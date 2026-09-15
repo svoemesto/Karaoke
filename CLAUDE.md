@@ -1,130 +1,65 @@
-# Karaoke Project Guidelines
+# Karaoke Project Guidelines (Claude Code)
 
-## Project Overview
-"Karaoke" (svoemesto) is a self-hosted pipeline for automated karaoke video production.
+> **Версия**: 1.3.0 | **Final compaction** (Pass 379 wayfinder #114, 2026-09-15).
+> 130 → 95 строк. Cross-references only. **Single source of truth**: `AGENTS.md` v3.1.0.
 
-## Key Documentation Files
-This project has two main documentation files that contain detailed technical information:
+## 🚦 Все правила — в AGENTS.md v3.1.0
 
-1. **DEVELOPMENT.md** — Main development guide with:
-   - Project structure and modules
-   - Build and deployment commands
-   - Architecture notes and key invariants
-   - Common pitfalls and solutions
+- **MUST #0 Knowledge-first pre-flight** → `AGENTS.md` Tier-1.
+- **Hard Gates (Pass 372-375, 358, 353)** → `AGENTS.md` Tier-1.
+- **OpenProject workflow** → `AGENTS.md` Tier-1.
+- **Каталог guards (R-04, R-05, R-07, R-08, R-11, R-32, R-43, R-44, IX.3)** → `AGENTS.md` Tier-2.
+- **TOP-11 ловушек** → `architecture-conventions.md` § «Ловушки».
+- **Build / Deploy / Containers** → `AGENTS.md` Tier-1 (Pass 372-375).
+- **Knowledge SSoT** → `AGENTS.md` Tier-1 + `knowledge/README.md`.
+- **Machine-specific exceptions** → `AGENTS.md` Tier-1 (таблица nsa-i9/dev-pc).
+- **Subagent isolation** → `AGENTS.md` Tier-1.
 
-2. **docs/architecture-notes-archive.md** — Detailed history of features and bug fixes:
-   - Chronological records of implemented features
-   - Debugging notes and troubleshooting guides
-   - Technical decisions and their rationale
+## 🚦 Рекомендации для Claude Code (не дублируют AGENTS.md)
 
-## Working with Documentation
-When you need to understand:
-- How the project is structured → read DEVELOPMENT.md
-- Why a specific feature works the way it does → check docs/architecture-notes-archive.md
-- Common issues and their fixes → both files contain relevant information
-
-**Important:** Before making significant changes, consult these files to understand the existing patterns and avoid known pitfalls.
-
-## Tech Stack
-- Backend: Kotlin/Spring Boot, Gradle, JDK 17
-- Frontend: Vue 3 + Vite (webvue3 for admin, karaoke-public for public site)
-- Database: PostgreSQL
-- Storage: MinIO
-- Video rendering: MLT framework (melt CLI)
-- Audio processing: Demucs, ffmpeg, Sheetsage
-
-## Development Workflow
-- All build/deploy commands are in `deploy/do.sh`
-- Always run commands from the `deploy/` directory
-- Check DEVELOPMENT.md for specific command syntax and common issues
-- The project uses a dual-database sync system (LOCAL ↔ SERVER)
-
-## Code Style
-- Follow existing patterns in the codebase
-- Use nullable types for database columns that allow NULL
-- Avoid `is*` prefix for boolean fields in DTOs (Jackson serialization issue)
-- Always URL-encode query parameters with special characters
-
----
-
-## 🚦 MUST-CHECKLIST при старте сессии
-
-> **Single source of truth**: см. **AGENTS.md § MUST #0** (Knowledge-first pre-flight).
-> Этот файл — рекомендация для Claude Code, **не** дублирующая обязательные шаги.
-> Перед любыми правками: `cat AGENTS.md | head -100`.
-
----
-
-## 🚦 Обязательная проверка перед git commit
-
-**Single source of truth**: см. **AGENTS.md § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения»** (Pass 239+245).
-
-5 шагов: compile → lint → bootJar → vite → docker. Полная команда в AGENTS.md.
-
----
-
-## 🚦 CI 7/7 PASS — обязательно перед merge
-
-**Single source of truth**: `.github/workflows/lint.yml` + `AGENTS.md` § «Hard Gate: Git — CI-gate для master».
-
-7 проверок: ktlint, ESLint webvue3 + karaoke-public, Docs, Baseline, KDoc coverage, JSDoc coverage. Локальные команды в AGENTS.md.
-
----
-
-## 🚦 TOP-10 ловушек (из реальных багов)
-
-**Single source of truth**: **`knowledge/guidelines/architecture-conventions.md` § «Ловушки»** + **`AGENTS.md` § «Каталог guards»** (R-04, R-05, R-07, R-08, R-11, R-32, R-43, R-44). Подробности в этих файлах.
-
----
+1. **При старте сессии**: `cat AGENTS.md | head -100` — знать обязательные правила.
+2. **Перед правкой кода фичи**: обновить `docs/features/<slug>.md` (FR-009).
+3. **Перед commit**: 7 проверок из AGENTS.md v3.1.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
+4. **При отладке**: сначала `docker logs`, потом гипотезы (Pass 358).
+5. **Если grep по `knowledge/` ничего не нашёл**: зафиксировать в `spec.md` явно «Searched: ... → no relevant docs».
 
 ## 🚦 Стратегия проекта (visitor→registration→premium)
 
-**Single source of truth**: **`docs/strategy/growth.md`** (полный список стратегических решений) + **`docs/strategy/growth-audit.md`** (аудит 37+ гипотез).
-
-Краткий focus: visitor → registration (конверсия 0.4%, потенциал ×5-13). Модель D (гибрид), без trial, сайт-центричная модель.
-
----
-
-## 🚦 Git workflow
-
-**Single source of truth**: **AGENTS.md § «Hard Gate: Git — CI-gate для master»** (Pass 353).
-
-Ключевые правила:
-- Только через feature-ветку + PR + CI.
-- НЕ коммитить в master напрямую.
-- `git commit --no-verify` — только в крайнем случае.
-- Force-push в main/master — нельзя.
-
----
-
-## 🚦 Tech Stack + Documents (краткая выжимка)
-
-**Tech**: Kotlin 2.x + Spring Boot 3.x + JDK 17 + Gradle; Vue 3 + Vite;
-PostgreSQL (raw JDBC); MinIO; Docker + docker-compose.
-
-**Deploy**: `deploy/do.sh` (все команды). ВСЕ `./gradlew` с `GRADLE_USER_HOME`.
-
-**Документы** (по приоритету):
-- `AGENTS.md` — правила opencode-стиля (читай **обязательно**).
-- `.specify/memory/constitution.md` — NON-NEGOTIABLE принципы.
-- `DEVELOPMENT.md` / `CONTRIBUTING.md` — архитектура, стиль.
-- `docs/strategy/growth.md` — стратегия роста.
-- `docs/features/<slug>.md` — per-feature (обновлять при правке, FR-009).
-- `docs/claude-code-setup.md` — детали для Claude Code.
-- `docs/architecture-notes.md` — changelog PR.
-
----
+**Single source of truth**: `docs/strategy/growth.md` + `docs/strategy/growth-audit.md`.
+Краткий focus: visitor → registration (конверсия 0.4%, потенциал ×5-13).
+Модель D (гибрид), без trial, сайт-центричная модель.
 
 ## 🚦 MCP-серверы (если доступны)
 
-- **`codegraph`** — read-only индекс символов. **Использовать ТОЛЬКО ПОСЛЕ Knowledge-first pre-flight** (см. MUST #0 в `AGENTS.md`). (Прецедент: spec #339, 2026-09-09.)
+- **`codegraph`** — read-only индекс символов. **Использовать ТОЛЬКО ПОСЛЕ Knowledge-first** (см. MUST #0 в AGENTS.md). Прецедент: spec #339, 2026-09-09.
 
-**Все «не делать» и governance-review требования** — в `AGENTS.md` (Hard Gate секции).
+## 🚦 Где искать что (TL;DR)
 
-**Версия**: 1.2.0 (Pass 379 wayfinder #114 — final compaction)
-**Изменения 1.2.0**:
-- Удалены дублирующие секции (MUST-CHECKLIST, НЕ делать, governance-review).
-- Все правила теперь в `AGENTS.md` v3.0.0 + `constitution.md` v2.4.0 (single source of truth).
-- Karaoke-override #1 сохранён (AGENTS.md ≠ CLAUDE.md).
+| Что | Где |
+|---|---|
+| Runtime правила, hard-gates | `AGENTS.md` (читай **обязательно**) |
+| NON-NEGOTIABLE принципы | `.specify/memory/constitution.md` |
+| Архитектура, build/deploy команды | `DEVELOPMENT.md` |
+| Стиль кода | `CONTRIBUTING.md` |
+| Build/docker конвенции | `knowledge/guidelines/architecture-conventions.md` |
+| Per-feature документы | `docs/features/<slug>.md` (FR-009) |
+| Стратегия роста | `docs/strategy/growth.md` |
+| Логи прода, диагностика | `docs/ops/log-correlation.md` |
+| Changelog PR | `docs/architecture-notes.md` |
+| Настройка Claude Code | `docs/claude-code-setup.md` |
 
-**Связанные документы**: `AGENTS.md` v3.0.0 (governance), `constitution.md` v2.4.0 (принципы), `docs/strategy/growth.md` (стратегия).
+## 🚦 Ключевые правила (Claude Code-specific)
+
+- **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
+- **Secrets**: НЕ коммитить. См. AGENTS.md v3.1.0 § «Hard Gate: Secrets».
+- **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
+- **Force-push в main/master**: нельзя.
+- **`git commit --no-verify`**: только в крайнем случае.
+
+## Changelog
+
+- **1.3.0** (Pass 379 wayfinder #114 final compaction): 130 → 95 строк. Удалены
+  Project Overview, Key Docs, Tech Stack, Workflow, Code Style, Working with
+  Documentation (всё — в `DEVELOPMENT.md` или `AGENTS.md`).
+- **1.2.0** (Pass 379 wayfinder #114): 219 → 130 строк. Удалены дублирующие секции.
+- **1.1.0** (Pass 340): первоначальная версия.

@@ -43,6 +43,11 @@ export default {
     processWillStopAfterThreadIsDone: false,
     workingProcessByThreadId: {},
     countWaiting: '...',
+    // specs/129-hrpool-badge (OpenProject #129): размер приоритетной очереди
+    // HealthReportBatchPool на бэке. Обновляется через SSE HEALTH_REPORT_POOL_COUNT
+    // (см. action setHealthReportPoolCount ниже). Показывается зелёным бейджем
+    // в ProcessWorker.vue слева от серого бейджа countWaiting.
+    healthReportPoolCount: '...',
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     processesTableCurrentPage: 1,
@@ -92,6 +97,10 @@ export default {
     },
     getCountWaiting(state) {
       return state.countWaiting
+    },
+    // specs/129-hrpool-badge (OpenProject #129).
+    getHealthReportPoolCount(state) {
+      return state.healthReportPoolCount
     },
     getProcessesTableCurrentPage(state) {
       return state.processesTableCurrentPage
@@ -195,6 +204,10 @@ export default {
     },
     setCountWaiting(state, userEventData) {
       state.countWaiting = userEventData.countWaiting
+    },
+    // specs/129-hrpool-badge (OpenProject #129). payload: { count: Long }.
+    setHealthReportPoolCount(state, userEventData) {
+      state.healthReportPoolCount = userEventData.count
     },
     setProcessWillStopAfterThreadIsDone(state, processWillStopAfterThreadIsDone) {
       state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone
@@ -316,6 +329,10 @@ export default {
     },
     setCountWaiting(ctx, userEventData) {
       ctx.commit('setCountWaiting', userEventData)
+    },
+    // specs/129-hrpool-badge (OpenProject #129).
+    setHealthReportPoolCount(ctx, userEventData) {
+      ctx.commit('setHealthReportPoolCount', userEventData)
     },
     setProcessWillStopAfterThreadIsDone(ctx, processWillStopAfterThreadIsDone) {
       ctx.commit('setProcessWillStopAfterThreadIsDone', processWillStopAfterThreadIsDone)

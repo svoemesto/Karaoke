@@ -391,6 +391,12 @@ export default {
           this.healthReportMessageByUserEvent(userEvent.data)
           break
         }
+        // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+        // Рассылается через SNS при каждом изменении queueSize (с подавлением дублей).
+        case 'HEALTH_REPORT_POOL_COUNT': {
+          this.setHealthReportPoolCount(userEvent.data)
+          break
+        }
         case 'MONITOR_ALERTS': {
           this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data)
           break
@@ -423,6 +429,11 @@ export default {
     healthReportMessageByUserEvent(userEventData) {
       // console.log('healthReportMessageByUserEvent', userEventData);
       this.$store.dispatch('healthReportMessageByUserEvent', userEventData)
+    },
+    // specs/129-hrpool-badge (OpenProject #129): проксирует событие SSE
+    // HEALTH_REPORT_POOL_COUNT в Vuex action.
+    setHealthReportPoolCount(userEventData) {
+      this.$store.dispatch('setHealthReportPoolCount', userEventData)
     },
     updateSongByUserEvent(userEventData) {
       this.$store.dispatch('updateSongByUserEvent', userEventData)

@@ -2,6 +2,8 @@ package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.HealthReport
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.model.HealthReportPoolCountMessage
+import com.svoemesto.karaokeapp.model.SseNotification
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
@@ -55,6 +57,7 @@ class HealthReportBatchPool(
         private const val WORKER_IDLE_SLEEP_MS = 50L
         private const val SHUTDOWN_TIMEOUT_SEC = 5L
         private const val LOG_CATEGORY = "infra.cache.hrpool"
+        private val companionLog = LoggerFactory.getLogger(LOG_CATEGORY)
 
         /**
          * Парсит входную строку `songIds` (формат `"1;2;3"` — конвенция проекта,
@@ -64,6 +67,65 @@ class HealthReportBatchPool(
         fun parseSongIds(raw: String?): List<Long> {
             if (raw.isNullOrBlank()) return emptyList()
             return raw.split(";").mapNotNull { it.trim().toLongOrNull() }
+        }
+
+        /**
+         * Последнее значение `queueSize`, фактически отправленное в SSE-канал
+         * через [sendPoolCountMessage]. Подавление дублей (FR-001): если новое
+         * значение совпадает с последним отправленным — событие не рассылается.
+         * `null` — ещё ни разу не отправляли (после рестарта бэкенда).
+         *
+         * `@Volatile` — пишется из любых worker-потоков и из HTTP-потока
+         * (call-site `enqueue`), читается там же. Без `@Volatile` JMM не
+         * гарантирует visibility (см. аналогичный `lastSentCountWaiting` в
+         * `KaraokeProcessWorker`).
+         *
+         * @see sendPoolCountMessage
+         */
+        @Volatile
+        private var lastSentQueueSize: Long? = null
+
+        /**
+         * Рассылает через SSE-канал `HEALTH_REPORT_POOL_COUNT` размер приоритетной
+         * очереди [HealthReportBatchPool]. Подавляет дубли (если `count` совпадает
+         * с `lastSentQueueSize` — событие не шлётся).
+         *
+         * Паттерн скопирован из `KaraokeProcessWorker.sendCountWaitingMessage`
+         * (companion-object static helper + `@Volatile` поле).
+         *
+         * @see com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_POOL_COUNT
+         * @see com.svoemesto.karaokeapp.model.HealthReportPoolCountMessage
+         * @see lastSentQueueSize
+         */
+        fun sendPoolCountMessage(count: Long) {
+            val previous = lastSentQueueSize
+            if (previous != null && previous == count) return
+            lastSentQueueSize = count
+            try {
+                SNS.send(
+                    SseNotification.healthReportPoolCount(
+                        HealthReportPoolCountMessage(count = count),
+                    ),
+                )
+            } catch (e: Exception) {
+                companionLog.warn(
+                    "failed to broadcast HEALTH_REPORT_POOL_COUNT (count=$count): ${e.message}",
+                    e,
+                )
+            }
+        }
+
+        /**
+         * Только для unit-тестов: сбрасывает [lastSentQueueSize] в `null`.
+         * Companion-объект — статическое состояние, разделяемое между тестами,
+         * поэтому нужно обнулять его в `@BeforeEach`/`@AfterEach`, чтобы
+         * подавление дублей не «протекало» из одного теста в другой.
+         *
+         * **Никогда не вызывается из production кода** — только из `*Test.kt`.
+         */
+        @Suppress("unused")
+        internal fun resetLastSentQueueSizeForTest() {
+            lastSentQueueSize = null
         }
     }
 
@@ -109,6 +171,9 @@ class HealthReportBatchPool(
             }
         }
         log.debug("enqueued batch of ${songIds.size} (queueSize=${queueSize()})")
+        // specs/129-hrpool-badge: рассылаем актуальный размер пула в SSE.
+        // Дубликаты подавляются в sendPoolCountMessage.
+        sendPoolCountMessage(queueSize().toLong())
         if (workersEnabled) wakeupWorkers()
     }
 
@@ -153,6 +218,9 @@ class HealthReportBatchPool(
                 Thread.sleep(WORKER_IDLE_SLEEP_MS)
                 continue
             }
+            // specs/129-hrpool-badge: размер пула уменьшился — рассылаем.
+            // Дубликаты подавляются в sendPoolCountMessage.
+            sendPoolCountMessage(queueSize().toLong())
             if (!tryEnter(id)) {
                 // Single-flight: другой worker уже считает эту песню.
                 continue

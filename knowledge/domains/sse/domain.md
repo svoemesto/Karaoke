@@ -73,6 +73,7 @@ related:
 | `CRUD` | Результат bulk-операции | broadcast |
 | `SYNC` | Статус two-DB sync | broadcast |
 | `HEALTH_REPORTS` | Обновление HealthReportList | broadcast |
+| `HEALTH_REPORT_POOL_COUNT` | Размер приоритетной очереди `HealthReportBatchPool` (Pass 128/129). Рассылается при изменении с подавлением дублей через `lastSentQueueSize`. Фронт — зелёный бейдж в `ProcessWorker.vue`. | broadcast |
 | `MONITOR_ALERTS` | Алерты мониторинга | broadcast |
 | `MASS_SEARCH_SUMMARY` | Сводка поиска (spec 316) | broadcast |
 

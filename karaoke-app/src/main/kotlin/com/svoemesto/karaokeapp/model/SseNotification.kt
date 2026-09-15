@@ -28,6 +28,11 @@ data class SseNotification(
         fun processCountWaiting(processCountWaitingMessage: ProcessCountWaitingMessage): SseNotification =
             SseNotification(SseNotificationType.PROCESS_COUNT_WAITING, processCountWaitingMessage)
 
+        // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+        // Рассылается broadcast (не addressed — нужен всем вкладкам с бейджем).
+        fun healthReportPoolCount(message: HealthReportPoolCountMessage): SseNotification =
+            SseNotification(SseNotificationType.HEALTH_REPORT_POOL_COUNT, message)
+
         fun message(message: Message): SseNotification = SseNotification(SseNotificationType.MESSAGE, message)
 
         fun error(error: Message): SseNotification = SseNotification(SseNotificationType.ERROR, error)

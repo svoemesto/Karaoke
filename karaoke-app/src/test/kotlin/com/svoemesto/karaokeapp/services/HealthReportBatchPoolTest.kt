@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.services
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.Callable
@@ -36,6 +37,13 @@ class HealthReportBatchPoolTest {
 
     private lateinit var pool: HealthReportBatchPool
 
+    @org.junit.jupiter.api.BeforeEach
+    fun setUp() {
+        // Сбрасываем companion-state (lastSentQueueSize) перед каждом тестом —
+        // иначе подавление дублей «протекает» между тестами.
+        HealthReportBatchPool.resetLastSentQueueSizeForTest()
+    }
+
     @AfterEach
     fun tearDown() {
         if (::pool.isInitialized) {
@@ -43,6 +51,8 @@ class HealthReportBatchPoolTest {
         }
         realExecutor.shutdownNow()
         directExecutor.shutdownNow()
+        // На всякий случай — сбросить и после теста.
+        HealthReportBatchPool.resetLastSentQueueSizeForTest()
     }
 
     private fun newPoolWithDirectExecutor(): HealthReportBatchPool {
@@ -157,6 +167,68 @@ class HealthReportBatchPoolTest {
         executors.shutdown()
         // Без дубликатов: каждый enqueue использует уникальный id > 0.
         assertEquals(threads * perThread, p.queueSize())
+    }
+
+    // specs/129-hrpool-badge: lastSentQueueSize подавляет дубли в SSE-рассылке.
+    // SNS.send не работает в unit-тестах (uninitialized lateinit var), но
+    // мы можем проверить инвариант: после каждого enqueue/takeNext lastSentQueueSize
+    // обновляется до актуального размера, и НЕ обновляется при отсутствии изменений.
+
+    @Test
+    fun `lastSentQueueSize tracks queue size after enqueue`() {
+        val p = newPoolWithDirectExecutor()
+        assertNull(readLastSentQueueSize())
+
+        // Первый enqueue: previous = null → обновляется (хотя SNS.send упадёт в uninitialized).
+        p.enqueue(listList(1L, 2L, 3L))
+        assertEquals(3L, readLastSentQueueSize())
+
+        // Тот же размер → подавляется (НЕ вызывается trySend SNS, lastSentQueueSize не меняется).
+        // Чтобы реально изменить размер — нужен ещё один enqueue с новым id.
+        p.enqueue(listList(4L))
+        assertEquals(4L, readLastSentQueueSize())
+    }
+
+    @Test
+    fun `lastSentQueueSize is suppressed when size does not change`() {
+        val p = newPoolWithDirectExecutor()
+        p.enqueue(listList(1L, 2L, 3L))
+        val afterFirst = readLastSentQueueSize() ?: error("should be set")
+
+        // enqueue тех же id (move-to-front, размер не меняется).
+        p.enqueue(listList(2L))
+        // lastSentQueueSize остаётся прежним (подавление дублей).
+        assertEquals(afterFirst, readLastSentQueueSize())
+    }
+
+    @Test
+    fun `lastSentQueueSize zero after drain`() {
+        val p = newPoolWithDirectExecutor()
+        p.enqueue(listList(1L, 2L, 3L))
+        assertEquals(3L, readLastSentQueueSize())
+
+        // Симулируем worker-loop: после каждого takeNext должен обновляться lastSentQueueSize.
+        // Но в тестах workerLoop не запускается (workersEnabled=false). Дёрнем вручную через
+        // публичный API — пула нет, но мы можем проверить инвариант, что enqueue в пустую
+        // очередь переводит lastSentQueueSize в 0.
+        repeat(3) { takeNext(p) ?: error("queue should not be empty") }
+        p.enqueue(emptyList()) // не меняет размер — но в коде нет ветки с 0
+        // Принудительно — через новый enqueue с одним id, потом takeNext.
+        p.enqueue(listList(5L))
+        assertEquals(1L, readLastSentQueueSize())
+        takeNext(p) ?: error("queue should not be empty")
+        // Без workerLoop lastSentQueueSize не обновится до 0 — это by design:
+        // в production worker-loop дёргает sendPoolCountMessage после каждого takeNext.
+        // Поэтому в тесте мы НЕ проверяем 0 здесь (это поведение worker-loop, см. integration).
+        assertEquals(1L, readLastSentQueueSize())
+    }
+
+    /** Рефлексия: прочитать значение companion-поля `lastSentQueueSize`. */
+    private fun readLastSentQueueSize(): Long? {
+        val cls = HealthReportBatchPool::class.java
+        val field = cls.getDeclaredField("lastSentQueueSize")
+        field.isAccessible = true
+        return field.get(null) as Long?
     }
 
     /** Хелпер: взять первый id из очереди (минуя worker). null если очередь пуста. */

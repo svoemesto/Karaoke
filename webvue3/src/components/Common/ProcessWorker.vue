@@ -21,6 +21,11 @@
         <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg" />
       </button>
       <div class="text-count-waiting" v-text="countWaiting" />
+      <!-- specs/129-hrpool-badge (OpenProject #129): зелёный бейдж с размером
+           приоритетной очереди HealthReportBatchPool. Расположен слева от серого
+           бейджа countWaiting (симметрично). Обновляется через SSE
+           HEALTH_REPORT_POOL_COUNT (см. App.vue). -->
+      <div class="text-count-waiting-green" v-text="healthReportPoolCount" />
     </div>
     <custom-confirm
       v-if="isConfirmVisible"
@@ -44,6 +49,11 @@ import CustomConfirm from './CustomConfirm.vue'
  *
  * Подписывается на SSE `PROCESS_WORKER_STATE` и `PROCESS_COUNT_WAITING`
  * для live-обновления.
+ *
+ * Также подписывается на `HEALTH_REPORT_POOL_COUNT` (OpenProject #129,
+ * specs/129-hrpool-badge) — размер приоритетной очереди
+ * `HealthReportBatchPool` на бэке. Показывается зелёным бейджем слева от
+ * кнопки Старт/Стоп.
  *
  * @see archive/docs/features/async-process-queue.md
  */
@@ -93,6 +103,10 @@ export default {
     },
     countWaiting() {
       return this.$store.getters.getCountWaiting
+    },
+    // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+    healthReportPoolCount() {
+      return this.$store.getters.getHealthReportPoolCount
     },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone
@@ -244,6 +258,21 @@ export default {
   padding: 0 4px;
   border-radius: 5px;
   background-color: gray;
+}
+/* specs/129-hrpool-badge (OpenProject #129): зелёный бейдж с размером пула
+   HealthReportBatchPool. Расположен в левом нижнем углу кнопки (симметрично
+   серому бейджу countWaiting в правом нижнем углу). */
+.text-count-waiting-green {
+  font-size: x-small;
+  color: white;
+  position: absolute;
+  pointer-events: none;
+  top: 100%;
+  left: 0;
+  transform: translate(-50%, -50%);
+  padding: 0 4px;
+  border-radius: 5px;
+  background-color: #28a745;
 }
 .wrapper-bar {
   display: flex;

@@ -20,6 +20,13 @@ enum class SseNotificationType(
     CRUD("crud"),
     SYNC("sync"),
     HEALTH_REPORTS("healthReports"),
+
+    // specs/129-hrpool-badge (OpenProject #129): размер приоритетной очереди
+    // HealthReportBatchPool. Рассылается при каждом изменении (с подавлением
+    // дублей — lastSentQueueSize в HealthReportBatchPool). Фронт рисует зелёный
+    // бейдж в ProcessWorker.vue.
+    HEALTH_REPORT_POOL_COUNT("healthReportPoolCount"),
+
     MONITOR_ALERTS("monitorAlerts"),
 
     // specs/316-search-timeout-configurable (FR-010, rev 3): сводка массового поиска текста

@@ -1036,6 +1036,16 @@ class KaraokeProcess(
             }
             if (wasWorking) return 0
 
+            // specs/126-key-from-file (#126, OpenProject): если для KEY_BPM_FROM_FILE файл
+            // `<songFile> [key].json` уже есть, НЕ создаём процесс — применяем key/bpm
+            // напрямую (см. Song.applyKeyBpmFromFileIfExists). Это защита от всех call-sites
+            // (HealthReport, ручной /api/process, миграции), когда файл уже валиден.
+            // Race-safety обеспечена saveToDbLocked() внутри helper + single-flight через
+            // existedProcesses выше.
+            if (action == KaraokeProcessTypes.KEY_BPM_FROM_FILE && song.applyKeyBpmFromFileIfExists()) {
+                return 0
+            }
+
             val karaokeProcess = KaraokeProcess(song.database)
             with(karaokeProcess) {
                 this.name = "[${song.author}] - [${song.album}] - «${song.songName}»"

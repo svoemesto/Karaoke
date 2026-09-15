@@ -29,6 +29,7 @@ import java.util.*
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.abs
+import org.slf4j.LoggerFactory
 
 // @Component
 
@@ -688,6 +689,10 @@ class Song(
     val bpm: Long get() = fields[SongField.BPM]?.toLongOrNull() ?: 0L
     val resultVersion: Long get() = fields[SongField.RESULT_VERSION]?.toLongOrNull() ?: 0L
     val diffBeats: Long get() = fields[SongField.DIFFBEATS]?.toLongOrNull() ?: 0L
+
+    // specs/126-key-from-file (#126, OpenProject): instance-логгер для keybpm-кеша.
+    // Семантически похоже на infra.cache.hrpool (Pass 128, HealthReportBatchPool.kt:132).
+    private val keyBpmLog = LoggerFactory.getLogger("infra.cache.keybpm")
 
     @Suppress("unused")
     val subtitleFileName: String get() = "$fileName.kdenlive.srt"
@@ -1892,6 +1897,32 @@ class Song(
             }
         }
         return Pair("", 0)
+    }
+
+    /**
+     * specs/126-key-from-file (#126, OpenProject): применяет key/bpm из существующего
+     * `<songFile> [key].json`, если файл есть и валиден. Используется как единая точка
+     * проверки из HealthReport и KaraokeProcess — чтобы не запускать docker заново.
+     *
+     * @return true если файл найден, валиден и key/bpm применены к песне;
+     *         false если файла нет / он не читается / невалидный JSON / поля null.
+     *
+     * Race-safety: использует saveToDbLocked() (Pass 299/357), защищает от race
+     * с параллельной ручной правкой через SongEdit. Не вызывает docker.
+     */
+    fun applyKeyBpmFromFileIfExists(): Boolean {
+        val data =
+            parseKeyBpmFileOrNull(pathToFileKeyBpmFinder)
+                ?: return false
+
+        fields[SongField.KEY] = data.key!!
+        fields[SongField.BPM] = data.bpm!!.toString()
+        // Pass 299/357: KEY_BPM_FROM_FILE — между load и save проходит заметное время.
+        // saveToDbLocked() атомарно берёт SELECT FOR NO KEY UPDATE + UPDATE, защищая от race
+        // с параллельной ручной правкой через SongEdit (см. song-entity.md § saveToDbLocked).
+        saveToDbLocked()
+        keyBpmLog.info("keybpm: applied from file for songId=$id fileName=$fileName key=${data.key} bpm=${data.bpm}")
+        return true
     }
 
     fun argsKeyBpmFinder(): Pair<List<List<String>>, Map<String, String>> {
@@ -6256,6 +6287,23 @@ class Song(
 
     companion object {
         const val TABLE_NAME = "tbl_songs"
+
+        // specs/126-key-from-file (#126, OpenProject): pure-parse helper.
+        // Без side-effects (БД/log), тестируется в KeyBpmFromFileCacheTest без БД.
+        // Возвращает AudioAnalysisResult только если файл существует, валиден
+        // И оба поля key/bpm не null. Иначе — null.
+        @JvmStatic
+        internal fun parseKeyBpmFileOrNull(filePath: String): AudioAnalysisResult? {
+            val file = File(filePath)
+            if (!file.exists()) return null
+            return try {
+                val text = file.readText(Charsets.UTF_8)
+                val data = Json.decodeFromString(AudioAnalysisResult.serializer(), text)
+                if (data.key != null && data.bpm != null) data else null
+            } catch (e: Exception) {
+                null
+            }
+        }
 
         // Разделитель для ключа "author_in" в getWhereList (поиск песен по НАБОРУ имён авторов —
         // используется при резолвинге алиаса автора в реальные имена, см. Author.resolveByTerm).

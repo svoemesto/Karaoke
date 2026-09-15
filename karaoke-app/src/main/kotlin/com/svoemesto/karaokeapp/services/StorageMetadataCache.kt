@@ -155,9 +155,9 @@ class StorageMetadataCache {
 
         /**
          * specs/118 #397: submit в КОНЕЦ deque (обычное FIFO поведение). Используется
-         * по умолчанию для неактивных songId.
+         * по умолчанию для неактивных songId. Без @Synchronized — cacheFillerExecutor.execute
+         * сам по себе потокобезопасен (LinkedBlockingDeque.take блокирует worker, не наш монитор).
          */
-        @Synchronized
         fun submitBack(task: Runnable) {
             cacheFillerExecutor.execute(task)
         }
@@ -178,8 +178,9 @@ class StorageMetadataCache {
          * Потокобезопасность: synchronized — одновременно с `setActiveSongIds` не должно
          * быть гонки. Сам `LinkedBlockingDeque.addFirst` потокобезопасен.
          */
-        @Synchronized
         fun submitFront(task: Runnable) {
+            // Добавляем в начало deque через cast (LinkedBlockingDeque.addFirst thread-safe).
+            // Без @Synchronized — addFirst сам по себе атомарен.
             (cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>).addFirst(task)
         }
 

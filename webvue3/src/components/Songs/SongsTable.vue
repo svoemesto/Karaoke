@@ -1128,7 +1128,7 @@ export default {
       try {
         const request = {
           method: 'POST',
-          url: '/api/health/active-song-ids',
+          url: '/api/health/cache/active-song-ids',
           data: { activeSongIds },
           headers: { 'Content-Type': 'application/json' },
         }

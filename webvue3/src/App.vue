@@ -397,6 +397,13 @@ export default {
           this.setHealthReportPoolCount(userEvent.data)
           break
         }
+        // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по
+        // всем песням, для которых получен HR. Рассылается через SNS при
+        // каждом изменении (с подавлением дублей в HealthReport.companion).
+        case 'HEALTH_REPORT_WAITING_COUNT': {
+          this.setHealthReportWaitingCount(userEvent.data)
+          break
+        }
         case 'MONITOR_ALERTS': {
           this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data)
           break
@@ -434,6 +441,10 @@ export default {
     // HEALTH_REPORT_POOL_COUNT в Vuex action.
     setHealthReportPoolCount(userEventData) {
       this.$store.dispatch('setHealthReportPoolCount', userEventData)
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130).
+    setHealthReportWaitingCount(userEventData) {
+      this.$store.dispatch('setHealthReportWaitingCount', userEventData)
     },
     updateSongByUserEvent(userEventData) {
       this.$store.dispatch('updateSongByUserEvent', userEventData)

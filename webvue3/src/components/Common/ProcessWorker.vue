@@ -26,6 +26,11 @@
            бейджа countWaiting (симметрично). Обновляется через SSE
            HEALTH_REPORT_POOL_COUNT (см. App.vue). -->
       <div class="text-count-waiting-green" v-text="healthReportPoolCount" />
+      <!-- specs/130-hrwaiting-badge (OpenProject #130): голубой бейдж с Σ WAITING
+           по всем песням, для которых получен HR. Расположен в правом верхнем
+           углу кнопки Старт/Стоп (симметрично серому снизу). Обновляется через
+           SSE HEALTH_REPORT_WAITING_COUNT (см. App.vue). -->
+      <div class="text-count-waiting-blue" v-text="healthReportWaitingCount" />
     </div>
     <custom-confirm
       v-if="isConfirmVisible"
@@ -54,6 +59,11 @@ import CustomConfirm from './CustomConfirm.vue'
  * specs/129-hrpool-badge) — размер приоритетной очереди
  * `HealthReportBatchPool` на бэке. Показывается зелёным бейджем слева от
  * кнопки Старт/Стоп.
+ *
+ * Также подписывается на `HEALTH_REPORT_WAITING_COUNT` (OpenProject #130,
+ * specs/130-hrwaiting-badge) — Σ WAITING-записей по всем песням, для которых
+ * получен HR. Показывается голубым бейджем в правом верхнем углу кнопки
+ * Старт/Стоп.
  *
  * @see archive/docs/features/async-process-queue.md
  */
@@ -107,6 +117,11 @@ export default {
     // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
     healthReportPoolCount() {
       return this.$store.getters.getHealthReportPoolCount
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по всем
+    // песням, для которых получен HR.
+    healthReportWaitingCount() {
+      return this.$store.getters.getHealthReportWaitingCount
     },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone
@@ -273,6 +288,21 @@ export default {
   padding: 0 4px;
   border-radius: 5px;
   background-color: #28a745;
+}
+/* specs/130-hrwaiting-badge (OpenProject #130): голубой бейдж с Σ WAITING
+   по всем песням, для которых получен HR. Расположен в правом верхнем углу
+   кнопки Старт/Стоп (симметрично серому бейджу снизу). */
+.text-count-waiting-blue {
+  font-size: x-small;
+  color: white;
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  left: 100%;
+  transform: translate(-50%, -50%);
+  padding: 0 4px;
+  border-radius: 5px;
+  background-color: #17a2b8;
 }
 .wrapper-bar {
   display: flex;

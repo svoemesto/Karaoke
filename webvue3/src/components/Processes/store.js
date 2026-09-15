@@ -48,6 +48,11 @@ export default {
     // (см. action setHealthReportPoolCount ниже). Показывается зелёным бейджем
     // в ProcessWorker.vue слева от серого бейджа countWaiting.
     healthReportPoolCount: '...',
+    // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по всем
+    // песням, для которых получен HR. Обновляется через SSE HEALTH_REPORT_WAITING_COUNT.
+    // Показывается голубым бейджем в ProcessWorker.vue справа сверху над кнопкой
+    // Старт/Стоп (симметрично серому снизу).
+    healthReportWaitingCount: '...',
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     processesTableCurrentPage: 1,
@@ -101,6 +106,10 @@ export default {
     // specs/129-hrpool-badge (OpenProject #129).
     getHealthReportPoolCount(state) {
       return state.healthReportPoolCount
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130).
+    getHealthReportWaitingCount(state) {
+      return state.healthReportWaitingCount
     },
     getProcessesTableCurrentPage(state) {
       return state.processesTableCurrentPage
@@ -208,6 +217,10 @@ export default {
     // specs/129-hrpool-badge (OpenProject #129). payload: { count: Long }.
     setHealthReportPoolCount(state, userEventData) {
       state.healthReportPoolCount = userEventData.count
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130). payload: { count: Long }.
+    setHealthReportWaitingCount(state, userEventData) {
+      state.healthReportWaitingCount = userEventData.count
     },
     setProcessWillStopAfterThreadIsDone(state, processWillStopAfterThreadIsDone) {
       state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone
@@ -333,6 +346,10 @@ export default {
     // specs/129-hrpool-badge (OpenProject #129).
     setHealthReportPoolCount(ctx, userEventData) {
       ctx.commit('setHealthReportPoolCount', userEventData)
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130).
+    setHealthReportWaitingCount(ctx, userEventData) {
+      ctx.commit('setHealthReportWaitingCount', userEventData)
     },
     setProcessWillStopAfterThreadIsDone(ctx, processWillStopAfterThreadIsDone) {
       ctx.commit('setProcessWillStopAfterThreadIsDone', processWillStopAfterThreadIsDone)

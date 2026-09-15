@@ -57,6 +57,11 @@ data class SseNotification(
                 ),
             )
 
+        // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по
+        // всем песням, для которых получен HR. Broadcast (не addressed).
+        fun healthReportWaitingCount(message: HealthReportWaitingCountMessage): SseNotification =
+            SseNotification(SseNotificationType.HEALTH_REPORT_WAITING_COUNT, message)
+
         fun monitorAlerts(alerts: List<MonitorAlertDto>): SseNotification = SseNotification(SseNotificationType.MONITOR_ALERTS, alerts)
     }
 }

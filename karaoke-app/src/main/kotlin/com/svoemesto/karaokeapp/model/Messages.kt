@@ -64,6 +64,20 @@ data class HealthReportPoolCountMessage(
 )
 
 /**
+ * Класс Health Report Waiting Count Message.
+ *
+ * SSE-payload для [com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_WAITING_COUNT]
+ * (OpenProject #130, specs/130-hrwaiting-badge). Сумма количества WAITING-записей
+ * по всем песням, для которых получен HR (на момент recomputeAndBroadcast).
+ *
+ * Фронт: `webvue3/src/components/Common/ProcessWorker.vue` рисует голубой
+ * бейдж с этим числом в правом верхнем углу кнопки Старт/Стоп.
+ */
+data class HealthReportWaitingCountMessage(
+    val count: Long,
+)
+
+/**
  * Класс Record Delete Message.
  *
  * @see archive/docs/features/dual-db-sync.md

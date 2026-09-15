@@ -74,6 +74,7 @@ related:
 | `SYNC` | Статус two-DB sync | broadcast |
 | `HEALTH_REPORTS` | Обновление HealthReportList | broadcast |
 | `HEALTH_REPORT_POOL_COUNT` | Размер приоритетной очереди `HealthReportBatchPool` (Pass 128/129). Рассылается при изменении с подавлением дублей через `lastSentQueueSize`. Фронт — зелёный бейдж в `ProcessWorker.vue`. | broadcast |
+| `HEALTH_REPORT_WAITING_COUNT` | Σ WAITING-записей по всем песням, для которых получен HR (Pass 128/130). In-memory counter `HealthReport.waitingCountBySongId`, обновляется в `recomputeAndBroadcast`. Рассылается с подавлением дублей через `lastSentWaitingCount`. Фронт — голубой бейдж в правом верхнем углу кнопки `ProcessWorker.vue`. | broadcast |
 | `MONITOR_ALERTS` | Алерты мониторинга | broadcast |
 | `MASS_SEARCH_SUMMARY` | Сводка поиска (spec 316) | broadcast |
 

@@ -45,7 +45,7 @@ knowledge/domains/<name>/
 | **catalog** | dictionaries, song-lifecycle, song-entity, entities-catalog, pictures, remaining-models |
 | **processing** | async-process-queue, two-db-sync, run-entity-sync, schedulers, process-admin, karaoke-properties, playwright-rendering |
 | **storage** | karaoke-storage-service, storage-api-client, storage-flow |
-| **health** | health-report |
+| **health** | health-report, health-report-batch-pool |
 | **sse** | (singleton) |
 | **persistence** | (singleton) |
 | **monetization** | (singleton) |

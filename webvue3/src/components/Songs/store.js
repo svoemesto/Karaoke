@@ -14,8 +14,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  * **Vuex-паттерны** (см. DEVELOPMENT.md#vuex-паттерны-songsstorejs):
  * - **Mutations** — только sync-присвоение `state`. Никаких async-операций.
  * - **Actions** — async (XHR, dispatch), `commit` после получения ответа.
- * - **HR-запросы** — через очередь (`HR_MAX_CONCURRENT=3`) во избежание
- *   перегрузки сервера при быстром скроллинге/пагинации.
+ * - **HR-запросы** — fire-and-forget батч на бэк (`/api/song/healthReportListBatch`,
+ *   см. action `loadHealthReportBatch`). Бэк разруливает приоритет через
+ *   `HealthReportBatchPool` (10 worker'ов), результаты приходят через SSE
+ *   `HEALTH_REPORTS` (см. action `healthReportMessageByUserEvent`). Раньше
+ *   каскад был синхронным с `HR_MAX_CONCURRENT=3` (Pass 128).
  * - **SSE** — подписка на `recordChange`/`recordDelete` через
  *   `subscribeToSse()` (см. `actions.subscribeToSse`); не локальный
  *   рендеринг после мутации.
@@ -1857,6 +1860,31 @@ export default {
       } catch (error) {
         console.log(error)
       }
+    },
+    // specs/128-async-health-report-list (#128): fire-and-forget батч-запрос
+    // healthReportList на бэк. Бэк ставит песни в приоритетный пул (10 worker'ов)
+    // и шлёт результаты через SSE-канал HEALTH_REPORTS — фронт обновляет
+    // state в mutation healthReportMessageByUserEvent (см. выше). Здесь мы
+    // (1) оптимистично помечаем песни pending-маркером '?', чтобы исключить
+    // повторные enqueue, (2) шлём id одной строкой с разделителем ';' —
+    // конвенция проекта (см. KaraokeProcessAdminController.kt:185).
+    loadHealthReportBatch(ctx, songIds) {
+      if (!songIds || songIds.length === 0) return
+      const request = {
+        method: 'POST',
+        url: '/api/song/healthReportListBatch',
+        params: { songIds: songIds.join(';') },
+      }
+      // Помечаем песни как pending локально (никаких сетевых ожиданий).
+      for (const songId of songIds) {
+        const song = ctx.state.songsDigest.find((s) => s.id === songId)
+        if (song) {
+          song.healthReportText = '?'
+          song.healthReportColor = '#CCCCCC'
+        }
+      }
+      // Fire-and-forget: 202 Accepted, тело пустое. Ошибки — в консоль.
+      promisedXMLHttpRequest(request).catch((err) => console.log(err))
     },
     changeToSync(ctx) {
       ctx.commit('changeToSync')

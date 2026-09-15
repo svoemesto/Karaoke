@@ -1068,6 +1068,11 @@ export default {
         // становятся активными для LIFO/всплытия cache-fill задач.
         this.notifyBackendActivePage()
         this.updateHealthReportForCurrentPage()
+        // specs/128-async-health-report-list (#128): старый синхронный каскад
+        // hrQueue/hrRunning удалён — фронт больше не делает HTTP round-trip на
+        // каждую песню. Вместо этого отправляем ОДИН батч на бэк, бэк сам
+        // разрулит приоритет и SSE-push обновит state.
+        this._enqueueHrBatch(this._collectMissingHrSongIds(newPage))
         this.reloadAssignmentStatus()
       },
     },
@@ -1365,6 +1370,35 @@ export default {
       if (idsToFetch.length > 0) {
         this.sendBatchHealthReports(idsToFetch)
       }
+      // specs/128-async-health-report-list (#128): дополнительно шлём батч
+      // через /api/song/healthReportListBatch (HealthReportBatchPool, 10 worker'ов).
+      // Оба endpoint'а работают параллельно (master endpoint + наш #128 endpoint),
+      // результат через SSE одинаковый. Это дублирование намеренно — владелец решит,
+      // какой из них оставить.
+      this._enqueueHrBatch(this._collectMissingHrSongIds(this.currentPage))
+    },
+    _collectMissingHrSongIds(page) {
+      // Возвращает массив songId песен на странице `page`, у которых ещё нет
+      // подгруженного healthReport (healthReportText === '-' или '?').
+      const ids = []
+      for (const songId of this.songsIds) {
+        const songPageNumber = this.songIdAndPageId.get(songId)
+        if (songPageNumber === page) {
+          const song = this.songsDigests.find((s) => s.id === songId)
+          if (song && song.healthReportText === '-') {
+            ids.push(songId)
+          }
+        }
+      }
+      return ids
+    },
+    _enqueueHrBatch(songIds) {
+      // Fire-and-forget: action loadHealthReportBatch ставит песни в pending
+      // ('?' + серый цвет) локально и шлёт один POST на /api/song/healthReportListBatch.
+      // Результаты придут через SSE HEALTH_REPORTS — фронт обновит state в
+      // mutation healthReportMessageByUserEvent.
+      if (!songIds || songIds.length === 0) return
+      this.$store.dispatch('loadHealthReportBatch', songIds)
     },
     // specs/118 #397: fire-and-forget POST — backend шлёт SSE HEALTH_REPORTS для
     // каждой песни (cache-hit сразу, cache-miss после worker'а). HTTP response не

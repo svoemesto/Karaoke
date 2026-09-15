@@ -33,6 +33,11 @@ data class SseNotification(
         fun cacheQueueSize(cacheQueueSizeMessage: CacheQueueSizeMessage): SseNotification =
             SseNotification(SseNotificationType.CACHE_QUEUE_SIZE, cacheQueueSizeMessage)
 
+        // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+        // Рассылается broadcast (не addressed — нужен всем вкладкам с бейджем).
+        fun healthReportPoolCount(message: HealthReportPoolCountMessage): SseNotification =
+            SseNotification(SseNotificationType.HEALTH_REPORT_POOL_COUNT, message)
+
         fun message(message: Message): SseNotification = SseNotification(SseNotificationType.MESSAGE, message)
 
         fun error(error: Message): SseNotification = SseNotification(SseNotificationType.ERROR, error)
@@ -56,6 +61,11 @@ data class SseNotification(
                     "healthReportDtoList" to healthReportDtoList,
                 ),
             )
+
+        // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по
+        // всем песням, для которых получен HR. Broadcast (не addressed).
+        fun healthReportWaitingCount(message: HealthReportWaitingCountMessage): SseNotification =
+            SseNotification(SseNotificationType.HEALTH_REPORT_WAITING_COUNT, message)
 
         fun monitorAlerts(alerts: List<MonitorAlertDto>): SseNotification = SseNotification(SseNotificationType.MONITOR_ALERTS, alerts)
     }

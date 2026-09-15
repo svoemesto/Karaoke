@@ -68,6 +68,11 @@ Health отвечает за проверку: «эти три представ�
 - **`HealthReportDTO`** — сериализация для webvue3 (минимальный набор
   полей).
 - **`HealthReportType`** / **`HealthReportStatus`** — перечисления.
+- **`HealthReportBatchPool`** (`karaoke-app/.../services/HealthReportBatchPool.kt`)
+  — асинхронный пул с приоритетной очередью для батч-запросов
+  `healthReportList` (OpenProject #128). 10 worker-потоков, single-flight,
+  move-to-front. Детальный контракт — в
+  [health-report-batch-pool](components/health-report-batch-pool.md).
 
 ## Domain Invariants | Инварианты и правила бизнеса
 
@@ -110,6 +115,12 @@ Health отвечает за проверку: «эти три представ�
   Метрики через `infra.cache.storage` SLF4J-категорию и
   `/api/health/cacheStats` endpoint. `race-#65` остаётся открытым
   (кеш смягчает, root cause не починен).
+- **#128** «Асинхронный healthReportList» (2026-09, спека
+  specs/128-async-health-report-list): **FIXED в Pass 128**. Бэк принимает
+  батч id-ов, ставит в приоритетную очередь с 10 worker'ами; результаты
+  рассылаются через SSE-канал `HEALTH_REPORTS` (payload не изменился).
+  Контракт пула и move-to-front семантика — в
+  [health-report-batch-pool](components/health-report-batch-pool.md).
 
 ## Код (физическая реализация)
 

@@ -59,6 +59,35 @@ data class CacheQueueSizeMessage(
 )
 
 /**
+ * Класс Health Report Pool Count Message.
+ *
+ * SSE-payload для [com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_POOL_COUNT]
+ * (OpenProject #129, specs/129-hrpool-badge). Размер приоритетной очереди
+ * `HealthReportBatchPool` — рассылается при каждом изменении (с подавлением
+ * дублей через `lastSentQueueSize` в pool).
+ *
+ * Фронт: `webvue3/src/components/Common/ProcessWorker.vue` рисует зелёный
+ * бейдж с этим числом в хедере у кнопки Старт/Стоп.
+ */
+data class HealthReportPoolCountMessage(
+    val count: Long,
+)
+
+/**
+ * Класс Health Report Waiting Count Message.
+ *
+ * SSE-payload для [com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_WAITING_COUNT]
+ * (OpenProject #130, specs/130-hrwaiting-badge). Сумма количества WAITING-записей
+ * по всем песням, для которых получен HR (на момент recomputeAndBroadcast).
+ *
+ * Фронт: `webvue3/src/components/Common/ProcessWorker.vue` рисует голубой
+ * бейдж с этим числом в правом верхнем углу кнопки Старт/Стоп.
+ */
+data class HealthReportWaitingCountMessage(
+    val count: Long,
+)
+
+/**
  * Класс Record Delete Message.
  *
  * @see archive/docs/features/dual-db-sync.md

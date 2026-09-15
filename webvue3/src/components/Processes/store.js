@@ -43,6 +43,16 @@ export default {
     processWillStopAfterThreadIsDone: false,
     workingProcessByThreadId: {},
     countWaiting: '...',
+    // specs/129-hrpool-badge (OpenProject #129): размер приоритетной очереди
+    // HealthReportBatchPool на бэке. Обновляется через SSE HEALTH_REPORT_POOL_COUNT
+    // (см. action setHealthReportPoolCount ниже). Показывается зелёным бейджем
+    // в ProcessWorker.vue слева от серого бейджа countWaiting.
+    healthReportPoolCount: '...',
+    // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по всем
+    // песням, для которых получен HR. Обновляется через SSE HEALTH_REPORT_WAITING_COUNT.
+    // Показывается голубым бейджем в ProcessWorker.vue справа сверху над кнопкой
+    // Старт/Стоп (симметрично серому снизу).
+    healthReportWaitingCount: '...',
     // specs/118 #397: размер cache-очереди StorageMetadataCache (см. GET /api/health/cache/cache-queue-size).
     cacheQueueSize: 0,
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
@@ -94,6 +104,14 @@ export default {
     },
     getCountWaiting(state) {
       return state.countWaiting
+    },
+    // specs/129-hrpool-badge (OpenProject #129).
+    getHealthReportPoolCount(state) {
+      return state.healthReportPoolCount
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130).
+    getHealthReportWaitingCount(state) {
+      return state.healthReportWaitingCount
     },
     // specs/118 #397: размер cache-очереди StorageMetadataCache.
     getCacheQueueSize(state) {
@@ -201,6 +219,14 @@ export default {
     },
     setCountWaiting(state, userEventData) {
       state.countWaiting = userEventData.countWaiting
+    },
+    // specs/129-hrpool-badge (OpenProject #129). payload: { count: Long }.
+    setHealthReportPoolCount(state, userEventData) {
+      state.healthReportPoolCount = userEventData.count
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130). payload: { count: Long }.
+    setHealthReportWaitingCount(state, userEventData) {
+      state.healthReportWaitingCount = userEventData.count
     },
     // specs/118 #397: установить размер cache-очереди.
     setCacheQueueSize(state, size) {
@@ -331,6 +357,14 @@ export default {
     },
     setCountWaiting(ctx, userEventData) {
       ctx.commit('setCountWaiting', userEventData)
+    },
+    // specs/129-hrpool-badge (OpenProject #129).
+    setHealthReportPoolCount(ctx, userEventData) {
+      ctx.commit('setHealthReportPoolCount', userEventData)
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130).
+    setHealthReportWaitingCount(ctx, userEventData) {
+      ctx.commit('setHealthReportWaitingCount', userEventData)
     },
     // specs/118 #397: action-обёртка для setCacheQueueSize.
     setCacheQueueSize(ctx, size) {

@@ -398,6 +398,19 @@ export default {
           this.healthReportMessageByUserEvent(userEvent.data)
           break
         }
+        // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+        // Рассылается через SNS при каждом изменении queueSize (с подавлением дублей).
+        case 'HEALTH_REPORT_POOL_COUNT': {
+          this.setHealthReportPoolCount(userEvent.data)
+          break
+        }
+        // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по
+        // всем песням, для которых получен HR. Рассылается через SNS при
+        // каждом изменении (с подавлением дублей в HealthReport.companion).
+        case 'HEALTH_REPORT_WAITING_COUNT': {
+          this.setHealthReportWaitingCount(userEvent.data)
+          break
+        }
         case 'MONITOR_ALERTS': {
           this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data)
           break
@@ -430,6 +443,15 @@ export default {
     healthReportMessageByUserEvent(userEventData) {
       // console.log('healthReportMessageByUserEvent', userEventData);
       this.$store.dispatch('healthReportMessageByUserEvent', userEventData)
+    },
+    // specs/129-hrpool-badge (OpenProject #129): проксирует событие SSE
+    // HEALTH_REPORT_POOL_COUNT в Vuex action.
+    setHealthReportPoolCount(userEventData) {
+      this.$store.dispatch('setHealthReportPoolCount', userEventData)
+    },
+    // specs/130-hrwaiting-badge (OpenProject #130).
+    setHealthReportWaitingCount(userEventData) {
+      this.$store.dispatch('setHealthReportWaitingCount', userEventData)
     },
     updateSongByUserEvent(userEventData) {
       this.$store.dispatch('updateSongByUserEvent', userEventData)

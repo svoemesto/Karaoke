@@ -144,8 +144,14 @@ class StorageMetadataCache {
             // Разделяем на активные и неактивные, сохраняя относительный порядок.
             val active = all.filterIsInstance<SongIdTaggedRunnable>().filter { it.songId in activeSongIds }
             val notActive = all.filter { it !is SongIdTaggedRunnable || it.songId !in activeSongIds }
-            // Активные — в начало (по возрастанию songId), затем неактивные — в конец.
-            for (r in active.sortedBy { it.songId }) {
+            // Активные — в начало (по убыванию songId + addFirst = по возрастанию songId в голове),
+// затем неактивные — в конец. Это даёт обработку сверху вниз по songId (визуально
+// сверху вниз в SongsTable).
+//
+// Объяснение addFirst+sortDescending: addFirst вставляет в ГОЛОВУ дек. Если мы
+// итерируем [max, mid, min] и каждый addFirst'им — получается [min, mid, max] в голове.
+// Worker забирает из головы (takeFirst) → сначала min → обработка сверху вниз.
+            for (r in active.sortedByDescending { it.songId }) {
                 queue.addFirst(r)
             }
             for (r in notActive) {

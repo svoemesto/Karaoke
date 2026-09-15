@@ -104,6 +104,14 @@ class StorageMetadataCache {
             }
 
         /**
+         * specs/118 #397: sentinel-задача для trigger'а создания worker'а. Когда
+         * submitFront добавляет задачу в начало deque через addFirst (минуя execute),
+         * ThreadPoolExecutor НЕ создаёт нового worker'а. execute(sentinel) форсирует
+         * создание worker'а, который заберёт нашу задачу из головы.
+         */
+        private val SENTINEL_RUNNABLE = Runnable { /* no-op */ }
+
+        /**
          * specs/118 #397: множество активных songId (песен текущей страницы админки).
          * Задачи cache-fill с этими songId должны обрабатываться в приоритете —
          * вставляться в начало deque при submit и всплывать при смене страницы.
@@ -203,7 +211,17 @@ class StorageMetadataCache {
         fun submitFront(task: Runnable) {
             // Добавляем в начало deque через cast (LinkedBlockingDeque.addFirst thread-safe).
             // Без @Synchronized — addFirst сам по себе атомарен.
+            //
+            // ВАЖНО: addFirst сам по себе НЕ создаёт worker. Если worker'ов нет (например,
+            // кеш прогрет и все worker'ы умерли по keepAliveTime), задача ляжет в дек
+            // и будет ждать, пока кто-то не возьмёт её. После execute(SENTINEL) ниже
+            // ThreadPoolExecutor СОЗДАЁТ нового worker, который забирает нашу задачу
+            // из головы дек (потому что она первая — sentinel ушёл в хвост).
+            //
+            // sentinel — no-op Runnable, который ничего не делает. Он служит только
+            // trigger'ом для ThreadPoolExecutor.addWorker().
             (cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>).addFirst(task)
+            cacheFillerExecutor.execute(SENTINEL_RUNNABLE)
         }
 
         /**

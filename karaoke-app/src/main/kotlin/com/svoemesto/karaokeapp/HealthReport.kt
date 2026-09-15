@@ -139,8 +139,9 @@ data class HealthReport(
             fileName: String,
             loader: () -> Boolean,
             onFillComplete: (() -> Unit)? = null,
+            songId: Long = 0,
         ): CompletableFuture<Boolean?> =
-            storageMetadataCache?.getFileExistsAsync(source, bucket, fileName, loader, onFillComplete)
+            storageMetadataCache?.getFileExistsAsync(source, bucket, fileName, loader, onFillComplete, songId)
                 ?: CompletableFuture.completedFuture(loader())
 
         private fun actions(
@@ -1001,6 +1002,8 @@ data class HealthReport(
                             println("recomputeAndBroadcast failed for song ${song.id} in actionsRemoteStorage onFillComplete: ${e.message}")
                         }
                     },
+                    // specs/118 #397: передаём songId для LIFO/всплытия активной страницы.
+                    songId = song.id,
                 )
             val existsInRemoteStore: Boolean? =
                 try {

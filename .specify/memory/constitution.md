@@ -1,5 +1,19 @@
 <!--
   Sync Impact Report
+  - Version change: 2.2.0 → 2.3.0 (MINOR: добавление Principle IX.3 — Subagent
+    workspace isolation, синхронизация с AGENTS.md v2.8.0 Pass 379 follow-up).
+  - Modified principles: добавлен Principle IX.3 — Subagent workspace isolation.
+    Прецедент Pass 379 — race condition при 3 параллельных субагентах в одном
+    workspace (R-07 JPA, R-04/05 docker, R-11 MP4) привела к чужим коммитам в
+    чужих PR'ах; чинилось rebase + amend + force-push вручную (~30 минут).
+  - Added sections: Principle IX.3 «Subagent workspace isolation (NON-NEGOTIABLE)».
+  - Removed sections: none
+  - Templates requiring updates: none (consumers — AGENTS.md, future CI).
+  - New artifacts to reference:
+      - tools/check-subagent-isolation.sh (proposed guard, не в этом коммите)
+  - Follow-up TODOs: none
+
+  Sync Impact Report (предыдущая версия, 2.1.0 → 2.2.0)
   - Version change: 2.1.0 → 2.2.0 (MINOR: добавление Principle IX — Knowledge-first,
     усиление существующего п. 5 «Категорически запрещено» формулировкой про
     codegraph_explore до Knowledge-first как явный failure-stop).
@@ -306,6 +320,36 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
 уже зафиксировал MinIO+TTL для image-cache). Знание паттернов и ADR —
 это не «полезное дополнение», а обязательный baseline для любого
 проектирования.
+
+#### IX.3 — Subagent workspace isolation (NON-NEGOTIABLE, Pass 379)
+
+**Rule**: При запуске нескольких субагентов для **параллельных PR-веток**
+каждый субагент MUST работать в **отдельном `git worktree`** (или в отдельной
+рабочей копии репо).
+
+**Запрещено**:
+- ❌ Несколько субагентов в одном `cwd` одновременно.
+- ❌ `git stash` поверх чужой ветки (вместо своей).
+- ❌ `git checkout <branch-other-than-mine>` в работающем субагенте.
+- ❌ `git push` в чужую ветку.
+
+**Прецедент (Pass 379, wayfinder #101)**: 3 параллельных субагента
+(R-07 JPA, R-04/05 docker, R-11 MP4) в одном workspace привели к
+race condition — через `git checkout` + `git stash` субагенты переключались
+на чужие ветки, и в PR #484 оказался чужой commit `66946300` (JPA),
+а в `.pre-commit-config.yaml` / `.github/workflows/lint.yml` — лишние hooks/steps.
+Чинилось через rebase + amend + force-push вручную (~30 минут).
+
+**Mandatory Action**: `git worktree add ../Karaoke-${N}-${slug} -b "${N}-${slug}" master`
+для каждого субагента ПЕРЕД запуском.
+
+**Failure-stop**: Субагент запущен в общем workspace → 30+ минут на rebase
+всех PR'ов, потенциально потеря коммитов, corrupted force-push.
+
+**Синхронизация**:
+- `AGENTS.md` § «Subagent workspace isolation» (Pass 379 follow-up, semver 2.7.0 → 2.8.0).
+- `tools/check-subagent-isolation.sh` (guard, proposed).
+- Прямой governance-PR #389 (Pass 379 follow-up).
 
 ## Технологический стек
 

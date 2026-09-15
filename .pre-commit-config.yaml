@@ -106,6 +106,18 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: Subagent workspace isolation (Pass 379 follow-up) ===
+      # Ловит race condition при параллельных субагентах в одном workspace.
+      # Прецедент: PR #484 имел чужой commit `66946300` (JPA) от PR #483.
+      # См. AGENTS.md § «Subagent workspace isolation», constitution.md Principle IX.3.
+      - id: subagent-isolation-guard
+        name: subagent-isolation guard (Pass 379+)
+        entry: bash tools/check-subagent-isolation.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

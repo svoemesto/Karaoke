@@ -306,3 +306,21 @@ jobs:
             exit 1
           fi
           echo "✅ No direct commits to master in last 24h"
+
+  # === no-mp4-mentions guard (Pass 379, R-11, wayfinder #107) ===
+  # Локальный guard-скрипт enforce'ит R-11 (MP4/скачивание запрет по оферте).
+  # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
+  # (Pass 372-375 guards опущены намеренно: они падают в CI runner'е,
+  #  требуют отдельного governance-PR для починки.)
+  no-mp4-mentions-guard:
+    name: no-mp4-mentions guard (Pass 379, R-11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: no-mp4-mentions guard (Pass 379, R-11)
+        # Ловит упоминания \bmp4\b и `скачивани` в production коде по оферте
+        # «доступ только онлайн». Baseline: tools/check-no-mp4-mentions.baseline.
+        run: bash tools/check-no-mp4-mentions.sh --quiet

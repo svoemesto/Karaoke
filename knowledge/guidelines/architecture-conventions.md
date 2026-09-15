@@ -57,7 +57,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 ### R-06 — TOP-10 ловушек (краткий список)
 
 **Rule**: См. раздел «Ловушки» ниже. Полный список с примерами —
-в AGENTS.md § «TOP-10 ловушек» и `AGENTS.md` § «🚦 HARD GATES».
+в AGENTS.md § «TOP-10 ловушек» и `AGENTS.md` § «HARD GATES».
 
 **Failure**: Каждая ловушка имеет свой failure-stop (см. AGENTS.md).
 
@@ -173,7 +173,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 
 ## Ловушки (TOP-11 из AGENTS.md)
 
-См. AGENTS.md § «🚦 HARD GATES» — полный список. Краткий preview:
+См. AGENTS.md § «HARD GATES» — полный список. Краткий preview:
 
 1. **Backticks в KDoc** ломают парсер ktlint. Заменять `` `multitrack` `` → «multitrack».
 2. **`redirectErrorStream(false)`** для `ProcessBuilder` блокирует процесс. Всегда `true`.

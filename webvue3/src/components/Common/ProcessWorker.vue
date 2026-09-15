@@ -170,14 +170,31 @@ export default {
       })
     },
     checkCountWaiting() {
-      this.$store.dispatch('getProcessesCountWaitingPromise').then((data) => {
-        this.$store.dispatch('setCountWaiting', { countWaiting: data })
+      this.$store.dispatch('getProcessesCountWaitingPromise').then((raw) => {
+        // promisedXMLHttpRequest возвращает xhr.responseText (string). Backend
+        // возвращает просто Long, не объект. Парсим как JSON (для простого числа
+        // JSON.parse("12345") === 12345 — Number).
+        let count = 0
+        try {
+          count = typeof raw === 'number' ? raw : Number(JSON.parse(raw))
+        } catch (e) {
+          console.warn('[ProcessWorker.checkCountWaiting] parse failed:', e)
+        }
+        this.$store.dispatch('setCountWaiting', { countWaiting: count })
       })
     },
     // specs/118 #397: загрузить размер cache-очереди.
     checkCacheQueueSize() {
-      this.$store.dispatch('getCacheQueueSizePromise').then((data) => {
-        const size = typeof data === 'number' ? data : (data?.queueSize ?? 0)
+      this.$store.dispatch('getCacheQueueSizePromise').then((raw) => {
+        // promisedXMLHttpRequest возвращает xhr.responseText (string), не parsed object.
+        // Парсим JSON: {"queueSize": N}.
+        let size = 0
+        try {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+          size = parsed?.queueSize ?? 0
+        } catch (e) {
+          console.warn('[ProcessWorker.checkCacheQueueSize] JSON parse failed:', e)
+        }
         this.$store.dispatch('setCacheQueueSize', size)
       })
     },

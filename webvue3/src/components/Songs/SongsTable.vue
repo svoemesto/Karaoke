@@ -1126,13 +1126,15 @@ export default {
     },
     async sendActiveSongIds(activeSongIds) {
       try {
-        const request = {
+        // specs/118 #397: по конвенции проекта (см. KaraokeProcessAdminController
+        // bulkRetry/bulkForceStop) массивы передаются как String с ';' разделителем —
+        // `activeSongIds.join(';')`. Бэкенд принимает @RequestParam String и парсит
+        // split(";"). Это application/x-www-form-urlencoded, не JSON.
+        await promisedXMLHttpRequest({
           method: 'POST',
           url: '/api/health/cache/active-song-ids',
-          data: { activeSongIds },
-          headers: { 'Content-Type': 'application/json' },
-        }
-        await promisedXMLHttpRequest(request)
+          params: { activeSongIds: activeSongIds.join(';') },
+        })
       } catch (e) {
         console.warn('[SongsTable.notifyBackendActivePage] failed:', e?.message || e)
       }

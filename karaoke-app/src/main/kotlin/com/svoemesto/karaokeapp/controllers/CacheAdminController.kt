@@ -3,7 +3,6 @@ package com.svoemesto.karaokeapp.controllers
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -77,29 +76,29 @@ class CacheAdminController(
      * backend приоритезирует cache-fill задачи для этих songId (вставка в начало
      * очереди, всплытие при смене страницы).
      *
-     * Body: `{ "activeSongIds": [123, 456, ...] }`
+     * Query param: `?activeSongIds=123;456;789` (semicolon-separated).
+     * По конвенции проекта (см. `KaraokeProcessAdminController.bulkRetry`,
+     * `bulkForceStop`, и т.д.) массивы передаются как String с `;` разделителем.
      *
      * Returns: `Map { "activeSongIds" -> установленное множество (size) }`.
      */
     @PostMapping("/active-song-ids")
     fun setActiveSongIds(
-        @RequestBody body: Map<String, Any>,
+        @RequestParam(name = "activeSongIds", required = false, defaultValue = "") activeSongIdsRaw: String,
     ): Map<String, Any> {
-        val rawIds = body["activeSongIds"]
-        val activeSongIds: Set<Long> = parseActiveSongIds(rawIds)
+        // Парсим `123;456;789` в Set<Long>. По конвенции проекта (см. комментарий в
+        // `KaraokeProcessAdminController.kt:181`): фронт шлёт ids.join(';'), бэк парсит split(";").
+        val activeSongIds: Set<Long> =
+            activeSongIdsRaw
+                .split(";")
+                .mapNotNull { it.trim().toLongOrNull() }
+                .toSet()
         StorageMetadataCache.setActiveSongIds(activeSongIds)
         return mapOf(
             "activeSongIds" to activeSongIds.size,
             "queueSize" to StorageMetadataCache.cacheQueueSize(),
         )
     }
-
-    private fun parseActiveSongIds(rawIds: Any?): Set<Long> =
-        when (rawIds) {
-            is List<*> -> rawIds.mapNotNull { (it as? Number)?.toLong() }.toSet()
-            is Array<*> -> rawIds.mapNotNull { (it as? Number)?.toLong() }.toSet()
-            else -> emptySet()
-        }
 
     /**
      * specs/118 #397: GET `/api/health/cache-queue-size`

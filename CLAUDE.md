@@ -55,165 +55,76 @@ When you need to understand:
 
 ---
 
-## 🚦 ОБЯЗАТЕЛЬНО перед каждым `git commit`
+## 🚦 Обязательная проверка перед git commit
 
-> ⚠️ **NON-NEGOTIABLE**: все `./gradlew ...` команды ДОЛЖНЫ идти с
-> `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` (папка `.gradle` ВНУТРИ проекта,
-> writable). Без этого wrapper пытается писать в `/home/nsa/.gradle/wrapper/dists/...` —
-> read-only для sandbox'а DSH, билд падает. См. `AGENTS.md` § «Gradle: запуск с GRADLE_USER_HOME».
+**Single source of truth**: см. **AGENTS.md § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения»** (Pass 239+245).
 
-```bash
-# 1. Линтеры (все gradle — с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle)
-GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew ktlintCheck                                      # Kotlin
-cd webvue3       && npm run lint:check && cd ..            # webvue3
-cd karaoke-public && npm run lint:check && cd ..          # karaoke-public
-
-# 2. Покрытие документацией (FR-006)
-bash tools/check-kdoc-coverage.sh                          # 100%
-bash tools/check-jsdoc-coverage.sh webvue3                 # 100%
-bash tools/check-jsdoc-coverage.sh karaoke-public          # 100%
-
-# 3. Prettier --check (CI падает на любых warning)
-cd webvue3       && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..
-cd karaoke-public && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..
-
-# 4. Pre-commit (7 проверок, единая точка)
-pre-commit run --all-files
-```
-
-Если что-то падает — **исправь**, не коммить с `--no-verify` (исключение: срочный hotfix).
+5 шагов: compile → lint → bootJar → vite → docker. Полная команда в AGENTS.md.
 
 ---
 
 ## 🚦 CI 7/7 PASS — обязательно перед merge
 
-| Проверка | Команда для локальной проверки |
-|----------|------------------------------|
-| ktlint (Kotlin/Java) | `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew ktlintCheck` |
-| ESLint + Prettier (webvue3) | `cd webvue3 && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
-| ESLint + Prettier (karaoke-public) | `cd karaoke-public && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
-| Docs (structure + offline links) | автоматически в CI |
-| Baseline stats | автоматически в CI (informational) |
-| KDoc coverage (≥50%, блокирует) | `bash tools/check-kdoc-coverage.sh --strict` |
-| JSDoc coverage (≥50%, блокирует) | `bash tools/check-jsdoc-coverage.sh --strict` |
+**Single source of truth**: `.github/workflows/lint.yml` + `AGENTS.md` § «Hard Gate: Git — CI-gate для master».
 
-**Если хотя бы одна падает — PR не мержится** (CI блокирует merge). Единственная
-информационная (не блокирующая) проверка — Baseline stats.
+7 проверок: ktlint, ESLint webvue3 + karaoke-public, Docs, Baseline, KDoc coverage, JSDoc coverage. Локальные команды в AGENTS.md.
 
 ---
 
 ## 🚦 TOP-10 ловушек (из реальных багов)
 
-1. **Backticks в KDoc** ломают парсер ktlint. Заменять `` `multitrack` `` → «multitrack».
-2. **`redirectErrorStream(false)`** для `ProcessBuilder` блокирует процесс. Всегда `true` (CONTRIBUTING.md).
-3. **`nginx:alpine`** — нет bash, контейнер падает. Использовать `nginx:stable`.
-4. **`node:latest`** — недетерминированный. Использовать `node:22-alpine`.
-5. **Двух-фронтенд**: admin (`webvue3`) и public (`karaoke-public`) — **разные приложения**, не смешивать.
-6. **Сырой JDBC + recordhash** (никакого JPA/Hibernate), `associateBy { it.id }` для diff — не O(n²).
-7. **Per-feature документ** обновлять при правке кода фичи (FR-009) — иначе PR rejection.
-8. **Git push через VPN** — может упасть `EOF` / `400 Bad request`. Запускать без VPN.
-9. **CI блокирует merge** при любом failing check. Не использовать `gh pr merge --admin` для обхода (только в исключительных случаях, по согласованию).
-10. **«Доступ — только онлайн»** (см. оферту). **НЕ упоминать** MP4/скачивание в рекламных материалах и комментариях к коду.
-11. **Санитайзер идемпотентен** (`SanitizePath.kt`, `Extentions.kt`). Удаление символа (drop) вместо замены (replace) ломает идемпотентность и ведёт к потере данных при импорте (issue #53: `!`/`?` молча удалялись → файлы не находились). Все правки санитайзера MUST соблюдать контракт `sanitize(sanitize(s)) == sanitize(s)` (см. `docs/features/idempotent-path-sanitize.md`).
+**Single source of truth**: **`knowledge/guidelines/architecture-conventions.md` § «Ловушки»** + **`AGENTS.md` § «Каталог guards»** (R-04, R-05, R-07, R-08, R-11, R-32, R-43, R-44). Подробности в этих файлах.
 
 ---
 
 ## 🚦 Стратегия проекта (visitor→registration→premium)
 
-**Главный фокус**: visitor → registration (конверсия 0.4%, потенциал ×5-13).
-Модель монетизации и trial — вторичные приоритеты.
+**Single source of truth**: **`docs/strategy/growth.md`** (полный список стратегических решений) + **`docs/strategy/growth-audit.md`** (аудит 37+ гипотез).
 
-**Принятые решения** (полный список в `docs/strategy/growth.md`):
-- **Модель D (гибрид)**: эфир-N-дней + 1 трек/исполнитель + 1 альбом/исполнитель free
-- **11 097 grandfathered** (эфирные): «решим позже», не трогаем в первом раунде
-- **Без trial** в первом раунде (anti-fraud дороже выгоды)
-- **Сайт-центричная модель**: площадки (Sponsr/Dzen/VK/Max/TG) = технический канал (DEMO), **не реклама**
-- **Только онлайн** (оферта): не упоминать MP4/скачивание
-
-**Top-3 фичи первого раунда**: QW-9 (страница «О проекте»), QW-2 (5 причин зарегистрироваться), QW-1 (таблица FREE vs PREMIUM).
+Краткий focus: visitor → registration (конверсия 0.4%, потенциал ×5-13). Модель D (гибрид), без trial, сайт-центричная модель.
 
 ---
 
 ## 🚦 Git workflow
 
-```bash
-# Перед серьёзной работой
-git pull && git status
+**Single source of truth**: **AGENTS.md § «Hard Gate: Git — CI-gate для master»** (Pass 353).
 
-# Перед правкой кода фичи — обновить docs/features/<slug>.md (FR-009)
-# Перед commit — 7 проверок (см. выше)
-
-# НЕ делать:
-# - Прямые коммиты в master (только в feature-ветке: 0XX-name)
-# - git add . / git add *  (всегда проверять git status)
-# - git commit --no-verify (только в крайнем случае)
-# - Force-push в main/master (своя ветка — можно)
-```
+Ключевые правила:
+- Только через feature-ветку + PR + CI.
+- НЕ коммитить в master напрямую.
+- `git commit --no-verify` — только в крайнем случае.
+- Force-push в main/master — нельзя.
 
 ---
 
-## 🚦 Tech Stack (краткая выжимка)
+## 🚦 Tech Stack + Documents (краткая выжимка)
 
-- **Backend**: Kotlin 2.x, Spring Boot 3.x, JDK 17, Gradle
-- **Frontend**: Vue 3 + Vite + Bootstrap 5 (karaoke-public) / Bootstrap-vue-next (webvue3)
-- **DB**: PostgreSQL (raw JDBC, без JPA/Hibernate)
-- **Storage**: MinIO (S3-compatible)
-- **ML**: Ollama, Demucs, Sheetsage (локально)
-- **Deploy**: Docker + docker-compose
+**Tech**: Kotlin 2.x + Spring Boot 3.x + JDK 17 + Gradle; Vue 3 + Vite;
+PostgreSQL (raw JDBC); MinIO; Docker + docker-compose.
 
----
+**Deploy**: `deploy/do.sh` (все команды). ВСЕ `./gradlew` с `GRADLE_USER_HOME`.
 
-## 🚦 Документы проекта (докуда ходить)
-
-| Файл | Зачем |
-|------|-------|
-| `AGENTS.md` | Правила opencode-стиля (читай обязательно) |
-| `DEVELOPMENT.md` | Архитектура + команды |
-| `CONTRIBUTING.md` | Стиль кода (Kotlin/Vue/SQL/MD/Sh/Docker) |
-| `docs/onboarding.md` | Setup новой машины |
-| `docs/claude-code-setup.md` | Эта инструкция + детали для Claude Code |
-| `docs/architecture-notes.md` | Changelog последних PR |
-| `docs/features/<slug>.md` | Per-feature (11 + 1 документ) |
-| `docs/strategy/growth.md` | Стратегия роста (воронка, гипотезы, roadmap) |
-| `docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) |
-| `docs/api/` | API-эндпоинты (сгенерировано из кода) |
-| `.specify/memory/constitution.md` | NON-NEGOTIABLE принципы |
+**Документы** (по приоритету):
+- `AGENTS.md` — правила opencode-стиля (читай **обязательно**).
+- `.specify/memory/constitution.md` — NON-NEGOTIABLE принципы.
+- `DEVELOPMENT.md` / `CONTRIBUTING.md` — архитектура, стиль.
+- `docs/strategy/growth.md` — стратегия роста.
+- `docs/features/<slug>.md` — per-feature (обновлять при правке, FR-009).
+- `docs/claude-code-setup.md` — детали для Claude Code.
+- `docs/architecture-notes.md` — changelog PR.
 
 ---
 
 ## 🚦 MCP-серверы (если доступны)
 
-- **`codegraph`** — read-only индекс символов. **Использовать ТОЛЬКО ПОСЛЕ Knowledge-first pre-flight** (см. MUST #0 в `AGENTS.md` и MUST-CHECKLIST выше). Понимание кода — это **шаг после** Knowledge, а не вместо. (Прецедент 2026-09-09: spec #339 — агент полез в `codegraph_explore` ДО Knowledge и изобрёл форму кеша вместо паттернов из `caching-patterns.md`.)
+- **`codegraph`** — read-only индекс символов. **Использовать ТОЛЬКО ПОСЛЕ Knowledge-first pre-flight** (см. MUST #0 в `AGENTS.md`). (Прецедент: spec #339, 2026-09-09.)
 
----
+**Все «не делать» и governance-review требования** — в `AGENTS.md` (Hard Gate секции).
 
-## 🚦 НЕ делать
+**Версия**: 1.2.0 (Pass 379 wayfinder #114 — final compaction)
+**Изменения 1.2.0**:
+- Удалены дублирующие секции (MUST-CHECKLIST, НЕ делать, governance-review).
+- Все правила теперь в `AGENTS.md` v3.0.0 + `constitution.md` v2.4.0 (single source of truth).
+- Karaoke-override #1 сохранён (AGENTS.md ≠ CLAUDE.md).
 
-- ❌ Коммитить в master (только в feature-ветке)
-- ❌ Менять `AGENTS.md`, `constitution.md`, `.gitignore` без согласования — **исключение**: governance-PR с явной формулировкой «governance-knowledge-first» / «agents-md-update» / «constitution-amendment» в slug допустим, **но PR всё равно проходит через обязательное ревью** (см. ниже).
-- ❌ Менять конфигурацию линтеров (`.pre-commit-config.yaml`, baseline-файлы) без согласования
-- ❌ Использовать `nginx:alpine`, `node:latest` (см. ловушки)
-- ❌ Импортировать JPA/Hibernate (только raw JDBC)
-- ❌ Обещать в коде/рекламе MP4/скачивание (см. оферту)
-- ❌ Упоминать площадки в рекламных материалах (сайт-центричная модель)
-- ❌ Добавлять «trial»-механику (отложено до следующего раунда)
-- ❌ Полезть в `codegraph_explore` / `grep` по `src/` **до** Knowledge-first pre-flight (см. MUST #0 в `AGENTS.md`)
-
-**Governance-review требования** (для PR, меняющих `AGENTS.md` / `constitution.md` / `.gitignore`):
-
-1. PR MUST содержать секцию «Governance Impact» с перечислением **всех** правил, которые меняются/добавляются/удаляются.
-2. PR MUST иметь версионный bump (semver) в header изменяемого файла.
-3. PR MUST получить одобрение владельца перед merge (CODEOWNERS для `AGENTS.md` / `constitution.md`).
-4. В changelog (`docs/architecture-notes.md`) MUST быть запись «Pass N: governance amendment — <summary>».
-
----
-
-**Версия**: 1.1.0 (2026-09-09, Pass 340 — governance-knowledge-first)
-**Изменения 1.1.0**:
-- MUST-CHECKLIST приведён в соответствие с MUST #0 (Knowledge-first pre-flight).
-- Правило про `codegraph` переписано: ТОЛЬКО ПОСЛЕ Knowledge-first (раньше было «ПЕРЕД grep/Read», что прямо противоречило MUST #0).
-- Добавлены governance-review требования для правок `AGENTS.md` / `constitution.md` / `.gitignore`.
-**Связанные документы**:
-- `docs/claude-code-setup.md` — детальная инструкция
-- `AGENTS.md` — runtime-правила
-- `docs/strategy/growth.md` — стратегия
+**Связанные документы**: `AGENTS.md` v3.0.0 (governance), `constitution.md` v2.4.0 (принципы), `docs/strategy/growth.md` (стратегия).

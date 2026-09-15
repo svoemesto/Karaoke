@@ -52,11 +52,9 @@ class StorageMetadataCache {
         // Доступ к Companion-членам для их инициализации.
         SOURCE_LOCAL // touch any companion member to force class init
         // Явное обращение к executor для его eager initialization.
-        // specs/118 #397: corePoolSize=8, но ThreadPoolExecutor создаёт core workers LAZILY.
-        // Без prestartAllCoreThreads() worker'ы появятся только при первом submit'е.
-        // Чтобы 8 worker'ов существовали сразу при старте Spring bean — вызываем
-        // prestartAllCoreThreads().
-        cacheFillerExecutor.prestartAllCoreThreads()
+        // corePoolSize=0 → worker'ы создаются lazily при submit'е. Нет смысла вызывать
+        // prestartAllCoreThreads() — он создал бы 0 worker'ов (потому что corePoolSize=0).
+        cacheFillerExecutor
     }
 
     companion object {
@@ -99,19 +97,23 @@ class StorageMetadataCache {
          */
         private val cacheFillerExecutor =
             ThreadPoolExecutor(
-                // corePoolSize=8: создаём 8 worker'ов постоянно, чтобы при submit'ах
-                // executor СРАЗУ создавал worker'ов для параллельной обработки (а не
-                // ждал бы создания нового после каждой задачи). Без этого с
-                // corePoolSize=0 executor обрабатывает задачи последовательно одним
-                // worker'ом (см. PR #499 обсуждение), хотя maxPoolSize=16 позволяет
-                // параллелизм.
+                // corePoolSize=0: worker'ы создаются LAZILY при submit'е, не постоянно.
+                // Это важно для OP #83: Postgres max_connections=100, и каждая задача
+                // в этом executor открывает DB connection (через Connection.local().
+                // getConnection() внутри loader()). corePoolSize=8 (как было раньше)
+                // создавал 8 постоянных connection'ов, истощая headroom для других
+                // executor'ов и Tomcat thread pool — наблюдалось "FATAL: sorry,
+                // too many clients already".
                 //
-                // Безопасность: idle worker'ы НЕ держат DB connection (Connection —
-                // ThreadLocal, создаётся только при выполнении задачи через
-                // Connection.local().getConnection()). Поэтому нет риска OP #83
-                // (исчерпание max_connections=100 в Postgres).
-                8,
-                16,
+                // maxPoolSize=4: при пике — до 4 worker'ов одновременно = до 4 connection'ов
+                // для cache-fill. Остальные 96 connection'ов доступны для других мест.
+                // (было 16 — слишком много).
+                //
+                // Без prestartAllCoreThreads() worker'ы появляются при submit'е, исчезают
+                // через keepAliveTime=60s после простоя. При постоянной нагрузке они
+                // живут постоянно.
+                0,
+                4,
                 60L,
                 TimeUnit.SECONDS,
                 LinkedBlockingDeque(),

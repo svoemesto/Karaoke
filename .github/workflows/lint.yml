@@ -306,3 +306,21 @@ jobs:
             exit 1
           fi
           echo "✅ No direct commits to master in last 24h"
+
+  # === no-jpa-imports guard (Pass 379, R-07, wayfinder #105) ===
+  # Локальный guard-скрипт enforce'ит R-07 (JPA/Hibernate запрет, Constitution II).
+  # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
+  # (Pass 372-375 guards опущены намеренно: они падают в CI runner'е,
+  #  требуют отдельного governance-PR для починки.)
+  no-jpa-imports-guard:
+    name: no-jpa-imports guard (Pass 379, R-07)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: no-jpa-imports guard (Pass 379, R-07)
+        # Ловит импорты JPA/Hibernate в .kt/.java исходниках karaoke-app и karaoke-web.
+        # Constitution Principle II «Сырой JDBC + дифф по хэшам (NON-NEGOTIABLE)».
+        run: bash tools/check-no-jpa-imports.sh --quiet

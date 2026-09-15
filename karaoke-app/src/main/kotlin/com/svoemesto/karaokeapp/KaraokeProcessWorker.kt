@@ -583,6 +583,9 @@ class KaraokeProcessWorker {
          */
         @Volatile private var lastSentCountWaiting: Long? = null
 
+        // specs/118 #123: дедупликация для per-lane WAITING-счётчика (ключ — threadId).
+        @Volatile private var lastSentLaneCountWaiting: Map<Int, Long> = emptyMap()
+
         /**
          * Режим без UI-контроля (для batch-прогонов на admin-машине): пока хотя бы один ЖИВОЙ поток
          * в любом лейне обрабатывает задание с `karaokeProcess.withoutControl == true`, главный цикл
@@ -677,6 +680,9 @@ class KaraokeProcessWorker {
             // ровно одно начальное сообщение `countWaiting` при старте воркера —
             // даже если число совпало с предыдущим значением до остановки.
             lastSentCountWaiting = null
+            // specs/118 #123: сбрасываем дедупликацию per-lane для гарантии
+            // начального сообщения по каждому lane при старте воркера.
+            lastSentLaneCountWaiting = emptyMap()
             sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
             Thread {
                 try {
@@ -816,6 +822,78 @@ class KaraokeProcessWorker {
                 SNS.send(messageProcessCountWaiting)
             } catch (e: Exception) {
                 println(e.message)
+            }
+            // specs/118 #123: при реальном изменении общего счётчика
+            // (тот же early-return каскад) — отправляем per-lane события
+            // для всех известных lane'ов. Это позволяет UI показывать
+            // бейджи «размер пула» (например, для HR-lane) в реальном
+            // времени. Дедупликация per-lane — внутри [sendLaneCountWaitingMessage].
+            sendLaneCountWaitingMessagesForAllLanes()
+        }
+
+        /**
+         * specs/118 #123: отправить SSE-событие `PROCESS_LANE_COUNT_WAITING` для
+         * одного lane (thread_id). Дедупликация через [lastSentLaneCountWaiting].
+         *
+         * @param threadId идентификатор lane (`THREAD_LANE_*`).
+         * @param countWaiting актуальное число WAITING-заданий в этом lane.
+         */
+        fun sendLaneCountWaitingMessage(
+            threadId: Int,
+            countWaiting: Long,
+        ) {
+            val previous = lastSentLaneCountWaiting[threadId]
+            if (previous != null && previous == countWaiting) return
+            lastSentLaneCountWaiting = lastSentLaneCountWaiting + (threadId to countWaiting)
+            val message =
+                SseNotification.processLaneCountWaiting(
+                    ProcessLaneCountWaitingMessage(
+                        threadId = threadId,
+                        countWaiting = countWaiting,
+                    ),
+                )
+            try {
+                SNS.send(message)
+            } catch (e: Exception) {
+                println(e.message)
+            }
+        }
+
+        /**
+         * specs/118 #123: пройти по всем известным lane'ам и отправить
+         * `PROCESS_LANE_COUNT_WAITING` для каждого. Вызывается после
+         * общего [sendCountWaitingMessage] — только если общий счётчик
+         * реально изменился (дедупликация по общему).
+         *
+         * Lane'ы определены в [KaraokeProcess.THREAD_LANE_*].
+         */
+        private fun sendLaneCountWaitingMessagesForAllLanes() {
+            val lanes =
+                listOf(
+                    KaraokeProcess.THREAD_LANE_HEAVY_RENDER,
+                    KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                    KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                    KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                    KaraokeProcess.THREAD_LANE_STEM_JOBS,
+                )
+            val database = WORKING_DATABASE
+            for (threadId in lanes) {
+                val count =
+                    try {
+                        KaraokeProcess.getCountWaiting(
+                            database = database,
+                            threadId = threadId,
+                        )
+                    } catch (e: Exception) {
+                        // Не валим общий поток из-за сбоя БД per-lane —
+                        // оставляем прежнее значение для этого lane.
+                        println(
+                            "[${Timestamp.from(Instant.now())}] sendLaneCountWaitingMessagesForAllLanes: " +
+                                "ошибка БД для threadId=$threadId: ${e.message}",
+                        )
+                        continue
+                    }
+                sendLaneCountWaitingMessage(threadId, count)
             }
         }
 

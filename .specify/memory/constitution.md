@@ -17,82 +17,12 @@
       - knowledge/guidelines/architecture-conventions.md (после wayfinder #108).
   - Follow-up TODOs: none.
   - Sync: pass-through с wayfinder #111 (Pass 379) — semver 2.3.0 → 2.4.0.
-
-  Sync Impact Report (предыдущая версия, 2.2.0 → 2.3.0)
-  - Version change: 2.2.0 → 2.3.0 (MINOR: добавление Principle IX.3 — Subagent
-    workspace isolation, синхронизация с AGENTS.md v2.8.0 Pass 379 follow-up).
-  - Modified principles: добавлен Principle IX.3 — Subagent workspace isolation.
-    Прецедент Pass 379 — race condition при 3 параллельных субагентах в одном
-    workspace (R-07 JPA, R-04/05 docker, R-11 MP4) привела к чужим коммитам в
-    чужих PR'ах; чинилось rebase + amend + force-push вручную (~30 минут).
-  - Added sections: Principle IX.3 «Subagent workspace isolation (NON-NEGOTIABLE)».
-  - Removed sections: none
-  - Templates requiring updates: none (consumers — AGENTS.md, future CI).
-  - New artifacts to reference:
-      - tools/check-subagent-isolation.sh (proposed guard, не в этом коммите)
-  - Follow-up TODOs: none
-
-  Sync Impact Report (предыдущая версия, 2.1.0 → 2.2.0)
-  - Version change: 2.1.0 → 2.2.0 (MINOR: добавление Principle IX — Knowledge-first,
-    усиление существующего п. 5 «Категорически запрещено» формулировкой про
-    codegraph_explore до Knowledge-first как явный failure-stop).
-  - Modified principles: п. 5 «Категорически запрещено» — добавлен пункт про
-    codegraph_explore / grep по src/ ДО Knowledge-first.
-  - Added sections: Principle IX «Knowledge-first при разработке фич
-    (NON-NEGOTIABLE)» — прецедент 2026-09-09, spec #339 (агент изобрёл форму
-    кеша вместо паттернов из caching-patterns.md).
-  - Removed sections: none
-  - Templates requiring updates:
-      .specify/templates/plan-template.md   ✅ aligned (Constitution Check gate
-        теперь включает Principle IX)
-      .specify/templates/spec-template.md   🔄 ТРЕБУЕТ ОБНОВЛЕНИЯ — добавить
-        секцию «Knowledge References (MANDATORY)»
-      .specify/templates/tasks-template.md  ✅ aligned (no change needed)
-      .specify/templates/checklist-template.md 🔄 ТРЕБУЕТ ОБНОВЛЕНИЯ — добавить
-        секцию «Knowledge Compliance»
-  - New artifacts to reference:
-      - tools/spec-knowledge-preflight.sh — пре-хуковый скрипт для bootstrap
-      - docs/governance/knowledge-first.md — операционная памятка (Pass 340)
-  - Follow-up TODOs:
-      - detekt (после выхода версии с поддержкой Kotlin 2.2) — см. T049
-      - typedoc-plugin-vue (для парсинга .vue single-file components) — backlog
-      - рефакторинг WORKING_DATABASE/KSS_APP в DI (Pass 15+)
-      - ADR (Architecture Decision Records) в docs/adr/ (Pass 16+)
-      - переписывание истории git (git filter-repo / BFG) для удаления
-        утёкших секретов из старых коммитов — отдельная задача после смены
-        всех утёкших секретов (см. docs/migration-prod-server.md)
-      - CODEOWNERS для AGENTS.md / constitution.md (Pass 340 follow-up)
-      - enforcement проверки непустой секции Knowledge References в spec.md
-        (Pass 340 follow-up — добавить в tools/check-knowledge-structure.sh)
--->
-<!--
-  Sync Impact Report (предыдущая версия)
-  - Version change: 2.0.0 → 2.1.0 (MINOR: добавление Principle VIII — секреты
-    и git-гигиена, усиление существующего п. 5 «Категорически запрещено»).
-  - Modified principles: п. 5 «Категорически запрещено» переформулирован
-    с явным указанием механизма (git rm --cached + .gitignore), добавлена
-    обязанность pre-commit проверки.
-  - Added sections: Principle VIII «Секреты и git-гигиена (NON-NEGOTIABLE)» —
-    новый Core Principle с чек-листом и инцидентом-прецедентом (2026-08-03:
-    deploy/.env трекался 3 года в публичном репо с утёкшими паролями).
-  - Removed sections: none
-  - Templates requiring updates:
-      .specify/templates/plan-template.md   ✅ aligned (Constitution Check gate
-        теперь включает Principle VIII)
-      .specify/templates/spec-template.md   ✅ aligned (no change needed)
-      .specify/templates/tasks-template.md  ✅ aligned (no change needed)
-      .specify/templates/checklist-template.md ✅ aligned (no change needed)
-  - New artifacts to reference:
-      - docs/migration-prod-server.md — чек-лист миграции прода, в ходе которой
-        обнаружена утечка
-  - Follow-up TODOs:
-      - detekt (после выхода версии с поддержкой Kotlin 2.2) — см. T049
-      - typedoc-plugin-vue (для парсинга .vue single-file components) — backlog
-      - рефакторинг WORKING_DATABASE/KSS_APP в DI (Pass 15+)
-      - ADR (Architecture Decision Records) в docs/adr/ (Pass 16+)
-      - переписывание истории git (git filter-repo / BFG) для удаления
-        утёкших секретов из старых коммитов — отдельная задача после смены
-        всех утёкших секретов (см. docs/migration-prod-server.md)
+  - Version change (предыдущая, 2.2.0 → 2.3.0): добавлен Principle IX.3 —
+    Subagent workspace isolation (NON-NEGOTIABLE). Детали: PR #486.
+  - Version change (предыдущая, 2.1.0 → 2.2.0): добавлен Principle IX —
+    Knowledge-first pre-flight. Прецедент: spec #339.
+  - Version change (предыдущая, 2.0.0 → 2.1.0): добавлен Principle VIII —
+    Секреты и git-гигиена. Прецедент: 2026-08-03 (deploy/.env трекался 3 года).
 -->
 # Karaoke Constitution
 

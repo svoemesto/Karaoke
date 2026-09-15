@@ -66,6 +66,30 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: No MP4 mentions (Pass 379, wayfinder #107) ===
+      # R-11 (MP4/скачивание запрет по оферте «доступ только онлайн»).
+      # Ловит упоминания \bmp4\b и `скачивани` в production коде (webvue3, karaoke-public, karaoke-app, karaoke-web).
+      # Baseline: tools/check-no-mp4-mentions.baseline (130 строк legacy-исключений).
+      - id: no-mp4-mentions-guard
+        name: no-mp4-mentions guard (R-11)
+        entry: bash tools/check-no-mp4-mentions.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # === Guard: Subagent workspace isolation (Pass 379 follow-up) ===
+      # Ловит race condition при параллельных субагентах в одном workspace.
+      # Прецедент: PR #484 имел чужой commit `66946300` (JPA) от PR #483.
+      # См. AGENTS.md § «Subagent workspace isolation», constitution.md Principle IX.3.
+      - id: subagent-isolation-guard
+        name: subagent-isolation guard (Pass 379+)
+        entry: bash tools/check-subagent-isolation.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

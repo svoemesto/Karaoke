@@ -1,6 +1,18 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.7.0 | **Last updated**: 2026-09-13 (Pass 375).
+> **Версия**: 2.8.0 | **Last updated**: 2026-09-15 (Pass 379 follow-up).
+>
+> **Изменения 2.8.0** (см. PR #389 — governance-subagent-isolation, wayfinder #101 follow-up):
+> - Добавлен раздел «Subagent workspace isolation»:
+>   правило применять ТРАНЗИТИВНО — при запуске нескольких субагентов
+>   для параллельных PR-веток каждый MUST работать в отдельном `git worktree`.
+> - Прецедент (Pass 379): 3 параллельных субагента (R-07 JPA, R-04/05 docker,
+>   R-11 MP4) в одном workspace привели к race condition — чужие коммиты
+>   в чужих PR'ах (через `git checkout` + `git stash` race), что потребовало
+>   rebase + amend + force-push вручную (30 минут).
+> - Добавлен guard-скрипт `tools/check-subagent-isolation.sh` (Pass 379+,
+>   enforcement — проверяет уникальность commits между PR-ветками).
+> - Правило: **каждый субагент → свой `git worktree`** — единственный путь.
 >
 > **Изменения 2.7.0** (см. PR #378 — governance-frontend-build-transitive):
 > - Добавлена секция «Frontend build: `npm run` для webvue3 и karaoke-public (Pass 375)»:
@@ -281,6 +293,62 @@ workflow выполнен ДО merge и ДО `mark-review`.
   повторения Pass 349 failure.
 
 Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tracker-openproject-migration.md`](knowledge/adr/0008-tracker-openproject-migration.md).
+
+## Subagent workspace isolation (Pass 379 follow-up, NON-NEGOTIABLE)
+
+> **Прецедент**: 2026-09-15, карта wayfinder #101 — 3 параллельных субагента
+> (R-07 JPA, R-04/05 docker, R-11 MP4) в **одном** workspace привели к
+> race condition: через `git checkout` + `git stash` субагенты переключались
+> на чужие ветки, и в PR #484 оказался чужой commit `66946300` (JPA),
+> а в `.pre-commit-config.yaml` / `.github/workflows/lint.yml` — лишние hooks/steps.
+> Чинилось через rebase + amend + force-push вручную (~30 минут).
+>
+> См. [`specs/_wayfinder-99-governance-rewrite/governance-pr-draft-subagent-workflow.md`](specs/_wayfinder-99-governance-rewrite/governance-pr-draft-subagent-workflow.md)
+> (полный прецедент + draft для этого governance-PR).
+
+**Rule**: При запуске нескольких субагентов для **параллельных PR-веток**
+каждый субагент MUST работать в **отдельном `git worktree`** (или в отдельной
+рабочей копии репо).
+
+**Запрещено** (NON-NEGOTIABLE):
+- ❌ Несколько субагентов в одном `cwd` одновременно.
+- ❌ `git stash` поверх чужой ветки (вместо своей).
+- ❌ `git checkout <branch-other-than-mine>` в работающем субагенте.
+- ❌ `git push` в чужую ветку.
+
+**Mandatory Action** (перед запуском N параллельных субагентов):
+```bash
+# Для каждого субагента — свой worktree:
+for slug in jpa docker-tags mp4; do
+  N=$(./tools/reserve-branch-number.sh $slug)
+  git worktree add ../Karaoke-${N}-${slug} -b "${N}-${slug}" master
+done
+# Каждый субагент работает ТОЛЬКО в ../Karaoke-${N}-<slug>/
+# (cd в нужную папку при запуске).
+```
+
+**После merge** — закрыть worktree:
+```bash
+git worktree remove ../Karaoke-${N}-<slug>
+```
+
+**Failure**: Два+ субагента в одном workspace →
+- Чужие коммиты в чужих PR-ветках (через `git checkout` race).
+- Shared-файлы (`.pre-commit-config.yaml`, `.github/workflows/lint.yml`)
+  оказываются с конфликтами/дублями hook'ов.
+- force-push + amend вручную (потеря ~30 минут на каждый PR).
+
+**Enforcement**:
+- `tools/check-subagent-isolation.sh` — guard, проверяет, что
+  каждая PR-ветка имеет уникальные commits (не содержит чужие).
+- Подключить к `.pre-commit-config.yaml` (advisory) +
+  `.github/workflows/lint.yml` (CI gate).
+- Прецедент в changelog **2.8.0** (см. header файла).
+
+**Worktree-альтернативы** (если `git worktree` недоступен):
+- Клонировать репо в отдельную папку: `git clone https://github.com/svoemesto/Karaoke.git Karaoke-<slug>`.
+- Использовать `gh repo fork` или иную изоляцию.
+- Главное — **физическая** изоляция `cwd` между субагентами.
 
 ## Ограничения агента (NON-NEGOTIABLE)
 

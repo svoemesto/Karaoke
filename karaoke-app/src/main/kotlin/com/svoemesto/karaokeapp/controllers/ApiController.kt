@@ -57,7 +57,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -7688,12 +7687,15 @@ class ApiController(
             .map { it.toDTO() }
 
     // specs/118 #397: batch-версия healthReportList — web шлёт все песни страницы одним
-    // запросом, backend через StorageMetadataCache.cacheFillerExecutor (corePoolSize=8,
-    // maxPoolSize=16) обрабатывает их чанками. Не нагружает браузер 50 одновременными
+    // запросом, backend через StorageMetadataCache.cacheFillerExecutor (corePoolSize=0,
+    // maxPoolSize=4) обрабатывает их чанками. Не нагружает браузер 50 одновременными
     // HTTP-запросами.
     //
     // HTTP response — СРАЗУ (минимальный: queued + activeSongIds). Сама обработка
-    // recomputeAndBroadcast запускается в CompletableFuture.runAsync() — fire-and-forget.
+    // submit'ится в cacheFillerExecutor (НЕ в CompletableFuture.runAsync — это
+    // использует ForkJoinPool.commonPool, который не лимитирован и создаёт
+    // worker'ов сколько угодно → exhaust Postgres connections).
+    //
     // Результат по каждой песне прилетает через SSE-событие HEALTH_REPORTS (см.
     // HealthReport.recomputeAndBroadcast и onFillComplete в
     // StorageMetadataCache.getFileExistsAsync).
@@ -7707,25 +7709,26 @@ class ApiController(
             idsRaw
                 .split(";")
                 .mapNotNull { it.trim().toLongOrNull() }
-        // Fire-and-forget: запускаем обработку в фоновом потоке, HTTP response
-        // возвращается сразу. recomputeAndBroadcast шлёт SSE HEALTH_REPORTS для каждой
-        // песни — для cache-hit синхронно, для cache-miss — после worker'а через
-        // onFillComplete.
+        // Submit'им в cacheFillerExecutor — он уже ограничен maxPoolSize=4 и
+        // использует connection через свою thread-local. Executor сам управляет
+        // concurrency (4 параллельных worker'а, остальные ждут в очереди).
         for (id in ids) {
-            CompletableFuture.runAsync {
-                try {
-                    HealthReport.recomputeAndBroadcast(
-                        songId = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
-                } catch (e: Exception) {
-                    println(
-                        "[getHealthReportListBatch] recomputeAndBroadcast failed for song $id: ${e.message}",
-                    )
-                }
-            }
+            StorageMetadataCache.submitBack(
+                Runnable {
+                    try {
+                        HealthReport.recomputeAndBroadcast(
+                            songId = id,
+                            database = WORKING_DATABASE,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        )
+                    } catch (e: Exception) {
+                        println(
+                            "[getHealthReportListBatch] recomputeAndBroadcast failed for song $id: ${e.message}",
+                        )
+                    }
+                },
+            )
         }
         return mapOf(
             "queued" to ids.size,

@@ -652,11 +652,6 @@ export default {
       isBusy: false,
       allowAddSync: false,
       hrQueue: [],
-      // specs/118 #122: привязка songId → pageId для «всплытия» при возврате.
-      // Хранит последнюю страницу, на которой songId был поставлен в hrQueue.
-      // Если при смене страницы songId этой страницы уже есть в hrQueue
-      // (вытеснен последующими страницами в конец), он будет перемещён в начало.
-      hrSongPages: new Map(),
       hrRunning: 0,
       HR_MAX_CONCURRENT: 3,
       // Кэш короткой информации о песнях для тултипов root/A-root.
@@ -1071,9 +1066,7 @@ export default {
       handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
         this.$store.commit('setSongsTableCurrentPage', newPage)
-        // specs/118 #122: НЕ сбрасываем hrQueue. Песни предыдущей страницы остаются
-        // в очереди — если для текущей страницы их songId уже там, они «всплывут»
-        // в начало через _enqueueHrRequest (см. unshift + splice).
+        this.hrQueue = []
         this.updateHealthReportForCurrentPage()
         this.reloadAssignmentStatus()
       },
@@ -1324,24 +1317,14 @@ export default {
           if (filteredSongs && filteredSongs.length > 0) {
             const song = filteredSongs[0]
             if (song.healthReportText === '-') {
-              this._enqueueHrRequest(songId, this.currentPage)
+              this._enqueueHrRequest(songId)
             }
           }
         }
       }
     },
-    _enqueueHrRequest(songId, pageId) {
-      // specs/118 #122: LIFO + всплытие. Если songId уже в очереди (вытеснен
-      // в конец последующими страницами), удаляем его оттуда — затем
-      // добавляем в начало. Это и есть «всплытие» задания при возврате
-      // на ранее посещённую страницу.
-      const existingIdx = this.hrQueue.indexOf(songId)
-      if (existingIdx >= 0) {
-        this.hrQueue.splice(existingIdx, 1)
-      }
-      this.hrSongPages.set(songId, pageId)
-      // unshift = LIFO: новейшие/всплывшие — первые на обработку.
-      this.hrQueue.unshift(songId)
+    _enqueueHrRequest(songId) {
+      this.hrQueue.push(songId)
       this._processHrQueue()
     },
     _processHrQueue() {
@@ -1350,9 +1333,6 @@ export default {
         this.hrRunning++
         this.$store.dispatch('setCurrentSongHealthReports', id).finally(() => {
           this.hrRunning--
-          // specs/118 #122: очищаем hrSongPages для обработанной песни —
-          // иначе Map растёт без ограничений за долгую сессию.
-          this.hrSongPages.delete(id)
           this._processHrQueue()
         })
       }
@@ -1918,11 +1898,7 @@ export default {
       this.isHealthReportTableVisible = false
     },
     async editSong(id) {
-      // specs/118 #122: НЕ сбрасываем hrQueue — песни текущей страницы
-      // могут быть в работе. После открытия/закрытия редактора
-      // updateHealthReportForCurrentPage перевычислит задания для страницы,
-      // и если для какой-то песни songId уже в hrQueue ( вытеснен),
-      // он «всплывёт» в начало.
+      this.hrQueue = []
       await this.$store.dispatch('setCurrentSongId', id)
       this.isSongEditVisible = true
       this.updateHealthReportForCurrentPage()

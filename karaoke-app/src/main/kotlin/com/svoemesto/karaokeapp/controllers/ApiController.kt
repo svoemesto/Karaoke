@@ -2105,9 +2105,7 @@ class ApiController(
     // Получение списка статусов процессов
     @PostMapping("/processes/countwaiting")
     @ResponseBody
-    fun getCountWaiting(
-        @RequestParam(required = false) threadId: Int? = null,
-    ): Long = KaraokeProcess.getCountWaiting(database = WORKING_DATABASE, threadId = threadId)
+    fun getCountWaiting(): Long = KaraokeProcess.getCountWaiting(database = WORKING_DATABASE)
 
     // Получение списка статусов процессов
     @PostMapping("/processes/statuses")

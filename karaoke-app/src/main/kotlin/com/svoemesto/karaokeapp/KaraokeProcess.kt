@@ -14,7 +14,6 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
-import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -501,16 +500,11 @@ class KaraokeProcess(
          *   тот же тип, что и `.save()`, чтобы retry-механизм `KaraokeProcessWorker.start()`
          *   (specs/087-fix-shared-db-connection) одинаково реагировал на любой сбой БД внутри
          *   главного цикла, а не только на сбой сохранения прогресса.
-         * @param threadId опциональный фильтр по lane (`THREAD_LANE_*`). `null` — общий
-         *   счётчик по всем lanes (используется в SSE `PROCESS_COUNT_WAITING` для бейджа
-         *   KaraokeProcess). Не-`null` — только задания в указанном lane (например,
-         *   `THREAD_LANE_HEALTH_REPORT` для бейджа пула HealthReport, см. specs/118).
          * @see archive/docs/features/async-process-queue.md
          */
         fun getCountWaiting(
             database: KaraokeConnection,
             throwOnError: Boolean = false,
-            threadId: Int? = null,
         ): Long {
             val connection = database.getConnection()
             if (connection == null) {
@@ -519,18 +513,14 @@ class KaraokeProcess(
                 if (throwOnError) throw SQLException(message)
                 return 0L
             }
-            var statement: PreparedStatement? = null
+            var statement: Statement? = null
             var rs: ResultSet? = null
-            val sqlBase = "select count(*) as cnt from tbl_processes where process_status = 'WAITING' and process_command <> 'tail'"
-            val sql = if (threadId == null) sqlBase else "$sqlBase and thread_id = ?"
+            val sql = "select count(*) as cnt from tbl_processes where process_status = 'WAITING' and process_command <> 'tail'"
             var result = 0L
 
             try {
-                statement = connection.prepareStatement(sql)
-                if (threadId != null) {
-                    statement.setInt(1, threadId)
-                }
-                rs = statement.executeQuery()
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
                 rs.next()
                 result = rs.getLong("cnt")
             } catch (e: SQLException) {

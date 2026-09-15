@@ -354,12 +354,26 @@ git worktree remove ../Karaoke-${N}-<slug>
 
 **Запрещено:** пересобирать `karaoke-app` (исключения см. ниже), деплой без согласия, редактировать файлы на сервере, коммитить секреты (`deploy/.env`, `*.key`, `*.pem` — `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто), образы `nginx:alpine`/`node:latest`/JDK вместо JRE. **Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`. **Обновление Knowledge (FR-014)**: при изменении bounded context или C4 уровня — обновить соответствующий файл в `knowledge/` в том же PR.
 
-### Машинно-специфичные исключения (Pass 282)
+### Машинно-специфичные исключения (Pass 282, обновлено Pass 379)
 
-#### `nsa-i9` / `nsa` (текущая)
-- ✅ `karaoke-app` пересобирать без явного согласия. ❌ Контейнер `karaoke-app` перезапускать только по согласию.
-- ✅ Править любой код, пересобирать `karaoke-web`/`webvue3`/`karaoke-public`.
-- ❌ Деплой на прод, правка файлов на сервере, `deploy/do.env` — только по согласию.
+> **Rule**: Список машин с их разрешениями для `karaoke-app` и других операций.
+> **Единый источник** — этот раздел AGENTS.md (консолидирует R-39 + R-40
+> из constitution.md v2.3.0, см. constitution § VII.4).
+
+| Hostname | OS-user | `karaoke-app` rebuild | `karaoke-app` restart | Любой локальный контейнер | Прод deploy |
+|---|---|---|---|---|---|
+| `nsa-i9` / `nsa` (текущая) | `nsa` | ✅ без согласия | ❌ по согласию | ✅ по согласию | ❌ по согласию |
+| `dev-pc` / `dev` | `dev` | ✅ без согласия | ✅ без согласия | ✅ без согласия | ❌ по согласию |
+
+**Источники**:
+- `nsa-i9` (R-39): Pass 282 — машина владельца, частичные ограничения.
+- `dev-pc` (R-40): dev-машина — полные права на локальные контейнеры.
+
+**Failure-stop**: Любая операция вне матрицы → спрашивать владельца **перед**
+выполнением (особенно для `karaoke-app` rebuild и прод deploy).
+
+**Синхронизация**: `constitution.md` § VII.4 + `docs/architecture-notes.md`.
+
 - **Новое исключение** → подсекция + semver bump `AGENTS.md` + `docs/architecture-notes.md`.
 
 ## Git — CI-gate для master (NON-NEGOTIABLE) ⛔

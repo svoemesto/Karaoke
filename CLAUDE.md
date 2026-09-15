@@ -47,29 +47,11 @@ When you need to understand:
 
 ---
 
-## 🚦 MUST-CHECKLIST при старте сессии (NON-NEGOTIABLE)
+## 🚦 MUST-CHECKLIST при старте сессии
 
-> Этот список **дублирует** MUST #0 из `AGENTS.md` и **обязательный
-> failure-stop**: если шаг пропущен — СТОП, дальше не продолжать.
-> Полная нормативная база — [`AGENTS.md`](AGENTS.md), MUST #0.
-
-Перед **любыми** правками агент MUST выполнить эти шаги **именно в этом порядке**:
-
-1. **MUST прочитать** `AGENTS.md` — runtime-инструкции, иерархия документов, ловушки.
-2. **MUST прочитать** `.specify/memory/constitution.md` (NON-NEGOTIABLE) — если нарушаешь принцип, должен явно обосновать **в спеке/PR**.
-3. **MUST прочитать** `CONTRIBUTING.md` (стиль кода, Kotlin/Vue/SQL/MD/Sh/Docker).
-4. **MUST прочитать** `DEVELOPMENT.md` (архитектура, как устроен проект).
-5. **MUST прочитать** `knowledge/README.md` + `knowledge/domains/README.md` — **полностью** (Knowledge-first pre-flight, см. AGENTS.md MUST #0).
-6. **MUST определить релевантные домены** через `grep -r '<keyword>' knowledge/` — минимум **3 попытки**.
-7. **MUST прочитать** `domain.md` + **все** `components/*.md` для каждого релевантного домена.
-8. **MUST прочитать** все `local-*.md` ADR из `knowledge/adr/` (принятые решения, запрещено переизобретать).
-9. **MUST прочитать** `docs/features/<slug>.md` — per-feature документ, **если правлю код этой фичи** (Constitution FR-009).
-10. **MUST прочитать** `docs/strategy/growth.md` — если правлю публичный модуль или монетизацию.
-
-**Failure-stop**: если grep по `knowledge/` ничего не дал — зафиксировать в `spec.md` явно («Searched: ... → no relevant docs»). Если релевантное содержимое найдено, но проигнорировано — спека MUST быть возвращена на `/speckit.clarify`.
-
-> ⚠️ **Не игнорируй этот список.** Без `AGENTS.md` ты не знаешь про ktlint-ловушки,
-> KDoc coverage 100%, pre-commit хуки, `redirectErrorStream(true)` и кучу другого.
+> **Single source of truth**: см. **AGENTS.md § MUST #0** (Knowledge-first pre-flight).
+> Этот файл — рекомендация для Claude Code, **не** дублирующая обязательные шаги.
+> Перед любыми правками: `cat AGENTS.md | head -100`.
 
 ---
 

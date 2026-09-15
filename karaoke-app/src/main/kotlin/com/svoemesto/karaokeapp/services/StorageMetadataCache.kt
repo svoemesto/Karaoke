@@ -43,6 +43,17 @@ import java.util.concurrent.TimeUnit
  */
 @Component
 class StorageMetadataCache {
+    // specs/118 #397: инициализируем companion object при создании Spring bean,
+    // чтобы cacheFillerExecutor был готов принимать задачи сразу. Без этого
+    // executor создаётся лениво при первом обращении к companion, и первые запросы
+    // кэша могут зависнуть (worker'ы ещё не запущены).
+    init {
+        // Доступ к Companion-членам для их инициализации.
+        SOURCE_LOCAL // touch any companion member to force class init
+        // Явное обращение к executor для его eager initialization.
+        cacheFillerExecutor
+    }
+
     companion object {
         const val SOURCE_LOCAL = "LOCAL"
         const val SOURCE_REMOTE = "REMOTE"
@@ -130,28 +141,29 @@ class StorageMetadataCache {
             val previous = activeSongIds
             activeSongIds = newActiveSongIds.toSet()
             if (previous == newActiveSongIds) return
-            // Переупорядочиваем очередь через drainTo + rebuild.
+            // Переупорядочиваем очередь: задачи с новыми activeSongIds → в начало
+            // (всплытие). Используем pollFirst/addLast в цикле — это единственный безопасный
+            // способ изменить LinkedBlockingDeque, не повреждая внутреннее состояние
+            // ThreadPoolExecutor (worker'ы). drainTo вызывает конфликт с getTask().
             //
-            // Проблема предыдущей версии (pollFirst/addLast в цикле): addLast иногда
-            // бесконечно висит на LinkedBlockingDeque.putLock при contention с worker'ами
-            // (race с takeLock → JVM-level deadlock в BlockingDeque).
-            //
-            // drainTo извлекает ВСЕ элементы атомарно. Безопасно, потому что мы внутри
-            // @Synchronized — workers не вызывают synchronized методы этого companion.
+            // Для правильного порядка в голове: итерируем [max, mid, min] и addFirst
+            // каждого → конечный порядок в голове [min, mid, max]. Worker берёт из
+            // головы → сначала min → обработка сверху вниз по songId.
             val queue = cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>
-            val all = mutableListOf<Runnable>()
-            queue.drainTo(all) // атомарно забирает всё
-            // Разделяем на активные и неактивные, сохраняя относительный порядок.
-            val active = all.filterIsInstance<SongIdTaggedRunnable>().filter { it.songId in activeSongIds }
-            val notActive = all.filter { it !is SongIdTaggedRunnable || it.songId !in activeSongIds }
-            // Активные — в начало (по убыванию songId + addFirst = по возрастанию songId в голове),
-// затем неактивные — в конец. Это даёт обработку сверху вниз по songId (визуально
-// сверху вниз в SongsTable).
-//
-// Объяснение addFirst+sortDescending: addFirst вставляет в ГОЛОВУ дек. Если мы
-// итерируем [max, mid, min] и каждый addFirst'им — получается [min, mid, max] в голове.
-// Worker забирает из головы (takeFirst) → сначала min → обработка сверху вниз.
-            for (r in active.sortedByDescending { it.songId }) {
+            val active = mutableListOf<Runnable>()
+            val notActive = mutableListOf<Runnable>()
+            // Извлекаем все задачи, разделяем на активные/неактивные.
+            while (true) {
+                val r = queue.pollFirst() ?: break
+                if (r is SongIdTaggedRunnable && r.songId in activeSongIds) {
+                    active.add(r)
+                } else {
+                    notActive.add(r)
+                }
+            }
+            // Возвращаем: сначала активные в начало (в порядке убывания songId →
+            // в голове окажется возрастание), затем неактивные в конец.
+            for (r in active.sortedByDescending { (it as SongIdTaggedRunnable).songId }) {
                 queue.addFirst(r)
             }
             for (r in notActive) {

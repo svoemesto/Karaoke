@@ -43,7 +43,7 @@ export default {
     processWillStopAfterThreadIsDone: false,
     workingProcessByThreadId: {},
     countWaiting: '...',
-    // specs/118 #397: размер cache-очереди StorageMetadataCache (см. POST /api/health/cache-queue-size).
+    // specs/118 #397: размер cache-очереди StorageMetadataCache (см. GET /api/health/cache/cache-queue-size).
     cacheQueueSize: 0,
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
@@ -323,7 +323,7 @@ export default {
     },
     // specs/118 #397: запросить размер cache-очереди.
     getCacheQueueSizePromise: () => {
-      const request = { method: 'GET', url: '/api/health/cache-queue-size' }
+      const request = { method: 'GET', url: '/api/health/cache/cache-queue-size' }
       return promisedXMLHttpRequest(request)
     },
     setProcessIsWorking(ctx, processIsWorking) {

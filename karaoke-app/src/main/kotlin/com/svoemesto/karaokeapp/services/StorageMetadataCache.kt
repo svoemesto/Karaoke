@@ -130,34 +130,38 @@ class StorageMetadataCache {
             val previous = activeSongIds
             activeSongIds = newActiveSongIds.toSet()
             if (previous == newActiveSongIds) return
-            // Переупорядочиваем очередь: задачи с новыми activeSongIds → в начало.
+            // Переупорядочиваем очередь через drainTo + rebuild.
+            //
+            // Проблема предыдущей версии (pollFirst/addLast в цикле): addLast иногда
+            // бесконечно висит на LinkedBlockingDeque.putLock при contention с worker'ами
+            // (race с takeLock → JVM-level deadlock в BlockingDeque).
+            //
+            // drainTo извлекает ВСЕ элементы атомарно. Безопасно, потому что мы внутри
+            // @Synchronized — workers не вызывают synchronized методы этого companion.
             val queue = cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>
-            val tagged = mutableListOf<Runnable>()
-            // Извлекаем все задачи из очереди.
-            while (true) {
-                val r = queue.pollFirst() ?: break
-                if (r is SongIdTaggedRunnable && r.songId in activeSongIds) {
-                    tagged.add(r)
-                } else {
-                    queue.addLast(r)
-                }
-            }
-            // Кладём tagged в начало (всплытие). Порядок между ними сохраняем по возрастанию
-            // songId (новые/меньшие первыми — стабильно для тестов).
-            for (r in tagged.sortedBy { (it as SongIdTaggedRunnable).songId }) {
+            val all = mutableListOf<Runnable>()
+            queue.drainTo(all) // атомарно забирает всё
+            // Разделяем на активные и неактивные, сохраняя относительный порядок.
+            val active = all.filterIsInstance<SongIdTaggedRunnable>().filter { it.songId in activeSongIds }
+            val notActive = all.filter { it !is SongIdTaggedRunnable || it.songId !in activeSongIds }
+            // Активные — в начало (по возрастанию songId), затем неактивные — в конец.
+            for (r in active.sortedBy { it.songId }) {
                 queue.addFirst(r)
+            }
+            for (r in notActive) {
+                queue.addLast(r)
             }
             log.info(
                 "activeSongIds changed: prev={} new={} reordered={}",
-                previous.size, newActiveSongIds.size, tagged.size,
+                previous.size, newActiveSongIds.size, active.size,
             )
         }
 
         /**
          * specs/118 #397: submit в КОНЕЦ deque (обычное FIFO поведение). Используется
-         * по умолчанию для неактивных songId.
+         * по умолчанию для неактивных songId. Без @Synchronized — cacheFillerExecutor.execute
+         * сам по себе потокобезопасен (LinkedBlockingDeque.take блокирует worker, не наш монитор).
          */
-        @Synchronized
         fun submitBack(task: Runnable) {
             cacheFillerExecutor.execute(task)
         }
@@ -178,8 +182,9 @@ class StorageMetadataCache {
          * Потокобезопасность: synchronized — одновременно с `setActiveSongIds` не должно
          * быть гонки. Сам `LinkedBlockingDeque.addFirst` потокобезопасен.
          */
-        @Synchronized
         fun submitFront(task: Runnable) {
+            // Добавляем в начало deque через cast (LinkedBlockingDeque.addFirst thread-safe).
+            // Без @Synchronized — addFirst сам по себе атомарен.
             (cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>).addFirst(task)
         }
 

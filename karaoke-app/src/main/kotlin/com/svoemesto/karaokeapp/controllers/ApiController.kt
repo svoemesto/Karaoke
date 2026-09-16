@@ -5211,6 +5211,18 @@ class ApiController(
     @PostMapping("/sync/oneclick")
     @ResponseBody
     fun postSyncOneClick(): ResponseEntity<Any> {
+        // Задача #124: проверка VPN перед подключением к БД прода
+        if (isVpnActive()) {
+            return ResponseEntity
+                .status(403)
+                .body(
+                    mapOf(
+                        "error" to "vpn_active",
+                        "message" to "Обнаружен активный VPN. Перед синхронизацией с БД прода выключите VPN, иначе подключение не удастся.",
+                    ),
+                )
+        }
+
         // spec 235: FR-007 + FR-015. Ручной клик и автозапуск не должны
         // выполняться одновременно — общий AtomicBoolean running в
         // AutoOneClickSyncScheduler. CAS(false, true) — non-blocking

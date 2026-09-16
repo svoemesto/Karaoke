@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.controllers.SyncOneClickResultDto
 import com.svoemesto.karaokeapp.controllers.dto.AutoOneClickSyncDtos
 import com.svoemesto.karaokeapp.controllers.dto.AutoOneClickSyncStatusDto
+import com.svoemesto.karaokeapp.isVpnActive
 import com.svoemesto.karaokeapp.runEntitySync
 import com.svoemesto.karaokeapp.sync.SyncRegistry
 import com.svoemesto.karaokeapp.sync.isAllowed
@@ -156,6 +157,12 @@ class AutoOneClickSyncScheduler {
     @Scheduled(fixedDelay = 60_000L, initialDelay = 5_000L)
     fun tick() {
         if (!KaraokeProperties.getBoolean("autoOneClickSyncEnabled")) return
+
+        // Задача #124: проверка VPN перед подключением к БД прода
+        if (isVpnActive()) {
+            log.warn("[AutoOneClickSyncScheduler] skipped — VPN detected (isVpnActive=true)")
+            return
+        }
 
         val now = System.currentTimeMillis()
         val intervalMs = KaraokeProperties.getLong("autoOneClickSyncIntervalMs").coerceAtLeast(60_000L)

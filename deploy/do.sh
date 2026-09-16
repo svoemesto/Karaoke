@@ -319,7 +319,6 @@ function do_stop_app() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml down
   announce "Остановка karaoke-app" "Бэк адм+инки остан+овлен"
 }
-}
 
 function do_push() {
   echo "Pushing images"

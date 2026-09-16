@@ -99,7 +99,8 @@
 
 - [`async-process-queue.md`](async-process-queue.md) — KaraokeProcess и worker'ы.
 - [`song-entity.md`](../../catalog/components/song-entity.md) — `Song` entity, `fields`, `saveToDbLocked`.
-- [`audio-analysis-result.md`](../../processing/components/audio-analysis-result.md) — формат `[key].json` (TODO: создать отдельно).
+- `karaoke-app/.../model/AudioAnalysisResult.kt` — формат `[key].json` (`AudioAnalysisResult { bpm: Int?, key: String?, error: String? }`).
+- TODO: вынести в `knowledge/domains/processing/components/audio-analysis-result.md` отдельным документом (Pass 401 follow-up).
 
 ## История
 

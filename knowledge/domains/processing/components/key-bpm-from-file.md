@@ -75,25 +75,107 @@
 3. **Внутри helper**: `saveToDbLocked()` атомарно берёт `SELECT FOR NO KEY UPDATE`
    + UPDATE, защищая от race с параллельной правкой через SongEdit (Pass 299/357).
 
+## Интерфейсы и Контракты
+
+### Instance API: `Song.applyKeyBpmFromFileIfExists(): Boolean`
+
+**Pre-conditions**: `song` уже загружен (id != 0), `pathToFileKeyBpmFinder` указывает
+на валидный путь (создаётся через `rightFileName()` в Song).
+
+**Post-conditions**:
+- Если файл есть, валиден, поля `key` и `bpm` НЕ null:
+  - `fields[SongField.KEY] = key`
+  - `fields[SongField.BPM] = bpm.toString()`
+  - `saveToDbLocked()` (Pass 299/357 race-safety)
+  - лог `INFO infra.cache.keybpm: applied from file for songId=... key=... bpm=...`
+  - return `true`
+- Иначе: return `false` (песня не меняется, файл не создаётся).
+
+### Static API: `Song.Companion.parseKeyBpmFileOrNull(filePath: String): AudioAnalysisResult?`
+
+**Pure function** — без side-effect, без DB. Используется в unit-тестах.
+
+**Возвращает**:
+- `AudioAnalysisResult(key, bpm)` — файл есть, валиден, поля != null.
+- `null` — файл не существует, или JSON невалиден, или `key`/`bpm` == null.
+
+### Concurrency
+
+- `saveToDbLocked()` (Pass 299/357) даёт `SELECT FOR NO KEY UPDATE` + UPDATE атомарно.
+- Защита от дубля процесса в `createProcess` — `if (wasWorking) return 0`.
+- Защита от дубля процесса в HealthReport — `loadList(...).isNotEmpty()` (line 1389).
+
+### Error model
+
+- Невалидный JSON — `catch (e: Exception)`, log DEBUG, return null (no crash).
+- IO error — IOException, log DEBUG, return null.
+- Не прерывает processing chain (Pass 379 R-08 sanitizer idempotency).
+
+## Логика и Алгоритмы
+
+Подробное описание шагов см. в секции «Algorithm | Алгоритм» выше.
+
+### Диаграмма последовательности (cache-hit)
+
+```text
+User -> HealthReport: "Исправить всё"
+HealthReport -> Song.applyKeyBpmFromFileIfExists()
+  Song -> FileSystem: read <song> [key].json
+  alt файл есть, валиден
+    Song -> Song: fields[KEY] = key; fields[BPM] = bpm
+    Song -> Postgres: SELECT FOR NO KEY UPDATE
+    Song -> Postgres: UPDATE songs SET ...
+    Song -> Logger: INFO cache-hit applied
+    Song --> HealthReport: true
+  else файла нет / невалиден
+    Song --> HealthReport: false
+  end
+alt cache hit
+  HealthReport -> HealthReport: HealthReport(OK, "Тональность применена из файла")
+else cache miss
+  HealthReport -> KaraokeProcess.createProcess(KEY_BPM_FROM_FILE)
+  KaraokeProcess -> Song.applyKeyBpmFromFileIfExists()
+    alt cache hit (race-condition second check)
+      KaraokeProcess --> return 0 (skip docker)
+    else cache miss
+      KaraokeProcess -> Docker: run svoemestodev/keybpmfinder
+    end
+end
+```
+
 ## Тестирование
 
 **Unit-тесты** (без БД, через pure-helper `parseKeyBpmFileOrNull`):
 - `KeyBpmFromFileCacheTest.kt` — 4 теста:
-  1. Файл есть, валиден → возвращает AudioAnalysisResult.
-  2. Файла нет → возвращает null.
-  3. Файл есть, поля null → возвращает null.
-  4. Файл есть, невалидный JSON → возвращает null (no crash).
+  1. Файл есть, валиден - возвращает AudioAnalysisResult.
+  2. Файла нет - возвращает null.
+  3. Файл есть, поля null - возвращает null.
+  4. Файл есть, невалидный JSON - возвращает null (no crash).
 
-**Интеграционные тесты** (требуют БД) — отдельная задача (Pass 401 follow-up).
+**Интеграционные тесты** (требуют БД) - отдельная задача (Pass 401 follow-up).
 
-## Rollout checklist
+## Зависимости
 
-1. ✅ Helper `applyKeyBpmFromFileIfExists` (Song.kt).
-2. ✅ HealthReport (точка 1) — `solutionActions`.
-3. ✅ KaraokeProcess.createProcess (точка 2).
-4. ✅ Pure-parse helper `parseKeyBpmFileOrNull` + 4 unit-теста.
-5. ⏳ Интеграционное тестирование (Stage 6 ручная проверка на dev).
-6. ⏳ Production deploy (Pass 401+ — после ревью владельца).
+### Внутренние
+
+- `Song` entity (`karaoke-app/.../model/Song.kt`).
+- `SongField.KEY`, `SongField.BPM` (`karaoke-app/.../model/SongFields.kt`).
+- `AudioAnalysisResult` (`karaoke-app/.../model/AudioAnalysisResult.kt`).
+- `saveToDbLocked()` (`Song.kt`, Pass 299/357).
+- `infra.cache.keybpm` SLF4J category (новая категория по образцу `infra.cache.hrpool` Pass 128).
+- `KaraokeProcess.createProcess(...)` (`KaraokeProcess.kt:1040+`).
+- `KaraokeProcessTypes.KEY_BPM_FROM_FILE`.
+- `HealthReport.solutionActions` (`HealthReport.kt:1407+`).
+
+### Внешние
+
+- **None** — компонента читает только локальную FS (MinIO mount через Docker volume).
+- Docker `svoemestodev/keybpmfinder:latest` НЕ используется (cache-hit пропускает его).
+
+### Test dependencies
+
+- JUnit 5 (`org.junit.jupiter.api.Assertions`).
+- JSR-305 `@Nullable` (для nullability marker на `parseKeyBpmFileOrNull`).
 
 ## Связанные компоненты
 
@@ -102,6 +184,14 @@
 - `karaoke-app/.../model/AudioAnalysisResult.kt` — формат `[key].json` (`AudioAnalysisResult { bpm: Int?, key: String?, error: String? }`).
 - TODO: вынести в `knowledge/domains/processing/components/audio-analysis-result.md` отдельным документом (Pass 401 follow-up).
 
+## Связанные ADR
+
+- ADR `knowledge/adr/local-008-process-types.md` (если существует) — добавление
+  `KEY_BPM_FROM_FILE` как типа процесса. Иначе — нет.
+
 ## История
 
 - **Pass 401** (2026-09-15): Initial. Создан по OpenProject #126. Автор: agent (Karaoke).
+- **Pass 401 follow-up** (2026-09-16): обновлён под CI lint-knowledge (NO EMOJI,
+  добавлены секции «Интерфейсы и Контракты» / «Логика и Алгоритмы» / «Зависимости»
+  / «Связанные ADR», удалены символьные маркеры статуса).

@@ -29,8 +29,14 @@
       <!-- specs/130-hrwaiting-badge (OpenProject #130): голубой бейдж с Σ WAITING
            по всем песням, для которых получен HR. Расположен в правом верхнем
            углу кнопки Старт/Стоп (симметрично серому снизу). Обновляется через
-           SSE HEALTH_REPORT_WAITING_COUNT (см. App.vue). -->
-      <div class="text-count-waiting-blue" v-text="healthReportWaitingCount" />
+           SSE HEALTH_REPORT_WAITING_COUNT (см. App.vue).
+           specs/403-hrwaiting-hide-zero: бейдж скрывается при count=0 или initial '...',
+           чтобы не показывать '...' до первого SSE-события. -->
+      <div
+        v-if="showWaitingBlueBadge"
+        class="text-count-waiting-blue"
+        v-text="healthReportWaitingCount"
+      />
       <!-- specs/118 #397: бейдж размера cache-очереди StorageMetadataCache (правый верхний угол).
            Показывается всегда (даже если queueSize=0), чтобы пользователь видел индикатор активности. -->
       <div class="text-cache-pool-size" v-text="cacheQueueSize" />
@@ -125,6 +131,13 @@ export default {
     // песням, для которых получен HR.
     healthReportWaitingCount() {
       return this.$store.getters.getHealthReportWaitingCount
+    },
+    // specs/403-hrwaiting-hide-zero: показывать голубой бейдж только когда
+    // есть реальное числовое значение > 0. До первого SSE-события
+    // healthReportWaitingCount === '...' → не показываем.
+    showWaitingBlueBadge() {
+      const v = this.healthReportWaitingCount
+      return typeof v === 'number' && v > 0
     },
     // specs/118 #397: размер cache-очереди StorageMetadataCache.
     cacheQueueSize() {

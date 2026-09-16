@@ -137,6 +137,10 @@ rendering — это **конечный** рендер MP4 из маркеров
   `JPEG quality 95`, `canvas.toDataURL()`, `out_time_ms` для прогресса.
 - [karaoke-properties](components/karaoke-properties.md) — единая точка
   конфигурации рендера (`KaraokeProperties.kt`, ~150 параметров).
+- [async-process-queue](components/async-process-queue.md) — `KaraokeProcess`
+  + `KaraokeProcessWorker` + async-очередь задач karaoke-app.
+- [key-bpm-from-file](components/key-bpm-from-file.md) — Pass 401 / OpenProject #126:
+  применяет key/bpm из существующего `[key].json` без повторного docker-прогона.
 
 ## Связанные фичи
 

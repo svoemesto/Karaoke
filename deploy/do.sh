@@ -148,6 +148,7 @@ function do_build_app() {
   # Бажное использование --no-daemon в GRADLE приводило к OOM (Kotlin 2.2 не компилируется
   # с дефолтным heap ~512 МБ gradle wrapper'а — хватает только daemon'у, у которого heap=2G по gradle.properties).
   # Фича 135: --no-daemon убран из GRADLE.
+  announce "Сборка karaoke-app" "Бэк адм+инки с+обран"
 }
 
 function do_build_app_nocache() {
@@ -165,6 +166,7 @@ function do_build_app_nocache() {
    -f $DEPLOY_DIR/karaoke-app/Dockerfile
   bl_commit
   bl_release
+  announce "Сборка karaoke-app без кеша" "Бэк адм+инки с+обран без к+еша"
 }
 
 function do_build_demucs() {
@@ -172,6 +174,7 @@ function do_build_demucs() {
   ${DOCKER} image build $DEPLOY_DIR/karaoke-app/files/ \
    -t "$DOCKER_REGISTRY/demucs:latest" \
    -f $DEPLOY_DIR/karaoke-app/DockerfileDemucs
+  announce "Сборка demucs" "М+одуль дем+укс с+обран"
 }
 
 function do_build_web() {
@@ -187,18 +190,21 @@ function do_build_web() {
    -f $DEPLOY_DIR/karaoke-web/Dockerfile
   bl_commit
   bl_release
+  announce "Сборка karaoke-web" "Бэк с+айта с+обран"
 }
 
 function do_build_webvue3() {
   echo "Building WEBVUE3 module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
     -t "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue3/Dockerfile
+  announce "Сборка karaoke-webvue3" "Фронт адм+инки с+обран"
 }
 
 function do_build_public() {
   echo "Building PUBLIC module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
     -t "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-public/Dockerfile
+   announce "Сборка karaoke-public" "Фронт с+айта с+обран"
 }
 
 function do_start() {
@@ -212,6 +218,7 @@ function do_start() {
 function do_stop() {
   echo "Остановка LOCAL"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} down
+  announce "Все контейнеры остановлены" "Все конт+эйнеры остан+овлены"
 }
 
 function do_load() {
@@ -229,56 +236,88 @@ function do_start_db() {
 function do_stop_db() {
   echo "Остановка DATABASE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-database.yml down
+  announce "DATABASE остановлен" "Б+аза д+анных остан+овлена"
 }
 
 function do_start_web() {
   do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml up -d
-  announce "WEB запущен" "Бэк+энда с+айта зап+ущен"
+  announce "karaoke-web запущен" "Бэк с+айта зап+ущен"
 }
 
 function do_stop_web() {
   echo "Остановка WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml down
+  announce "karaoke-web остановлен" "Бэк с+айта остан+овлен"
 }
 
 function do_start_webvue3() {
   do_stop_webvue3
   echo "Старт WEBVUE3"
+    # Определяем первый IP-адрес с помощью hostname -I
+    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+
+    # Проверяем, что IP-адрес был получен
+    if [ -z "$IP_ADDRESS" ]; then
+      echo "Не удалось определить IP-адрес."
+    else
+        # Определяем директорию, откуда запущен скрипт
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+        # Задаем пути к файлам
+        TEMPLATE_FILE="$SCRIPT_DIR/nginx_webvue3.conf.template"
+        OUTPUT_FILE="$SCRIPT_DIR/nginx_webvue3.conf"
+
+        # Проверяем, что файл шаблона существует
+        if [ ! -f "$TEMPLATE_FILE" ]; then
+          echo "Файл nginx_webvue3.conf.template не найден в директории $SCRIPT_DIR"
+        else
+            # Заменяем MY_IP_ADDRESS на реальный IP и сохраняем в nginx.conf
+            sed "s/MY_IP_ADDRESS/$IP_ADDRESS/g" "$TEMPLATE_FILE" > "$OUTPUT_FILE"
+            echo "Файл nginx_webvue3.conf успешно создан в $OUTPUT_FILE с IP-адресом $IP_ADDRESS"
+        fi
+    fi
+
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml up -d
-  announce "Старт WEBVUE3" "Адм+инка зап+ущена"
+  announce "Старт karaoke-webvue3" "Фронт адм+инки зап+ущен"
 }
 
 function do_stop_webvue3() {
   echo "Остановка WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml down
-  announce "Остановка WEBVUE3" "-"
+  announce "Остановка karaoke-webvue3" "Фронт адм+инки остан+овлен"
 }
 
 function do_start_public() {
   do_stop_public
   echo "Старт PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
-  announce "Старт PUBLIC" "Фронт+энд с+айта зап+ущен"
+  announce "Старт karaoke-public" "Фронт с+айта зап+ущен"
 }
 
 function do_stop_public() {
   echo "Остановка PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml down
-  announce "Остановка PUBLIC" "-"
+  announce "Остановка karaoke-public" "Фронт с+айта остан+овлен"
 }
 
 function do_start_app() {
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml ${APP_GPU_COMPOSE_FILE} up -d
-  announce "Старт APP" "Бэк+энд зап+ущен"
+  announce "Старт karaoke-app" "Бэк адм+инки зап+ущен"
+}
+
+function do_start_app2() {
+  echo "Старт APP"
+  announce "Старт karaoke-app" "Бэк адм+инки запуск+ается"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml ${APP_GPU_COMPOSE_FILE} up
 }
 
 function do_stop_app() {
   echo "Остановка APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml down
-  announce "Остановка APP" "-"
+  announce "Остановка karaoke-app" "Бэк адм+инки остан+овлен"
 }
 
 function do_push() {
@@ -346,6 +385,44 @@ function do_ps() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml -f $DEPLOY_DIR/docker-compose-database.yml ps
 }
 
+function do_pull_app() {
+  echo "Pulling APP"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml pull
+  announce "П+уллинг апп"
+}
+
+function do_pull_web() {
+  echo "Pulling WEB"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml pull
+  announce "П+уллинг вэб"
+}
+
+function do_pull_webvue() {
+  echo "Pulling WEBVUE"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml pull
+  announce "П+уллинг вэбь+ю"
+}
+
+function do_pull_webvue3() {
+  echo "Pulling WEBVUE3"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml pull
+  announce "П+уллинг вэбь+ю"
+}
+
+function do_restore_db() {
+  do_start_db
+  echo "Создание базы данных из бекапа в контейнере karaoke-db..."
+  ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_dump.sql" karaoke'
+  announce "Restore DB!"
+}
+
+function do_create_clear_db() {
+  do_start_db
+  echo "Создание базы данных из бекапа в контейнере karaoke-db..."
+  ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_clear_dump.sql" -d postgres'
+  announce "Create clear DB!"
+}
+
 cmd=$1
 param=$2
 
@@ -375,6 +452,7 @@ images) build_images ;;
 start) do_start ;;
 start_db) do_start_db ;;
 start_app) do_start_app ;;
+start_app2) do_start_app2 ;;
 start_web) do_start_web ;;
 start_webvue3) do_start_webvue3 ;;
 start_public) do_start_public ;;
@@ -394,6 +472,12 @@ push_public) do_push_public ;;
 pull) do_pull ;;
 ps) do_ps ;;
 rmi) do_rmi ;;
+pull_app) do_pull_app ;;
+pull_web) do_pull_web ;;
+pull_webvue) do_pull_webvue ;;
+pull_webvue3) do_pull_webvue3 ;;
+restore_db) do_restore_db ;;
+create_clear_db) do_create_clear_db ;;
 *)
   echo "Описание команды:
     $(basename $0) <command> <param>

@@ -1405,32 +1405,55 @@ data class HealthReport(
                             ),
                         )
                     } else {
-                        result.add(
-                            HealthReport(
-                                healthReportType = CONSISTENCY_VIOLATION,
-                                song = song,
-                                healthReportStatus = ERROR,
-                                canResolve = true,
-                                problemText = problemText,
-                                solutionText = "Создать задание для автоматического определения тональности",
-                                solutionActions =
-                                    listOf(
-                                        { println("HealthReportSolutionActions >>>") },
-                                        {
-                                            println(
-                                                "HealthReportSolutionActions: Создание задания для автоматического определения тональности для песни '${song.fileName}'",
-                                            )
-                                            KaraokeProcess.createProcess(
-                                                song = song,
-                                                action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
-                                                doWait = true,
-                                                threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                            )
-                                        },
-                                        { println("HealthReportSolutionActions <<<") },
-                                    ),
-                            ),
-                        )
+                        // specs/126-key-from-file (#126, OpenProject): если файл
+                        // `<songFile> [key].json` уже есть, применяем key/bpm напрямую
+                        // без docker-прогона (см. Song.applyKeyBpmFromFileIfExists).
+                        // Если файла нет — старое поведение (создать KaraokeProcess).
+                        if (song.applyKeyBpmFromFileIfExists()) {
+                            result.add(
+                                HealthReport(
+                                    healthReportType = CONSISTENCY_VIOLATION,
+                                    song = song,
+                                    healthReportStatus = OK,
+                                    canResolve = false,
+                                    problemText = problemText,
+                                    solutionText = "Тональность была применена из существующего файла '${song.fileName} [key].json' (без docker-прогона). См. log 'infra.cache.keybpm'.",
+                                    solutionActions =
+                                        listOf(
+                                            { println("HealthReportSolutionActions >>>") },
+                                            { println("HealthReportSolutionActions: key/bpm применены из файла для '${song.fileName}', docker не запускался") },
+                                            { println("HealthReportSolutionActions <<<") },
+                                        ),
+                                ),
+                            )
+                        } else {
+                            result.add(
+                                HealthReport(
+                                    healthReportType = CONSISTENCY_VIOLATION,
+                                    song = song,
+                                    healthReportStatus = ERROR,
+                                    canResolve = true,
+                                    problemText = problemText,
+                                    solutionText = "Создать задание для автоматического определения тональности",
+                                    solutionActions =
+                                        listOf(
+                                            { println("HealthReportSolutionActions >>>") },
+                                            {
+                                                println(
+                                                    "HealthReportSolutionActions: Создание задания для автоматического определения тональности для песни '${song.fileName}'",
+                                                )
+                                                KaraokeProcess.createProcess(
+                                                    song = song,
+                                                    action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+                                                    doWait = true,
+                                                    threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                                )
+                                            },
+                                            { println("HealthReportSolutionActions <<<") },
+                                        ),
+                                ),
+                            )
+                        }
                     }
                 } else {
                     result.add(

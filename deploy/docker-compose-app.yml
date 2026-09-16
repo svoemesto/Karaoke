@@ -40,6 +40,14 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ~/.Xauthority:/.Xauthority:rw
       - /etc/localtime:/etc/localtime:ro
+      # specs/401-followup-nvidia (#126, Pass 401): docker.sock нужен для запуска
+      # demucs из karaoke-app (см. Song.argsDemucs2 — ProcessBuilder "docker run
+      # svoemestodev/demucs:latest"). Без socket получаем:
+      #   failed to connect to the docker API at unix:///var/run/docker.sock
+      # Прецедент 2026-09-16: после обновления nvidia-драйверов контейнер
+      # пересоздался через deploy/do.sh, compose-файл не содержал docker.sock,
+      # и demucs перестал работать. Восстановлено добавлением этого volume.
+      - /var/run/docker.sock:/var/run/docker.sock
     devices:
       - /dev/dri:/dev/dri
     networks:

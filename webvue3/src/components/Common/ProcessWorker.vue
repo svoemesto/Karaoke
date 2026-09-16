@@ -117,7 +117,7 @@ export default {
     countWaiting() {
       return this.$store.getters.getCountWaiting
     },
-// specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+    // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
     healthReportPoolCount() {
       return this.$store.getters.getHealthReportPoolCount
     },

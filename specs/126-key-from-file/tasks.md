@@ -109,8 +109,8 @@
 - [X] T012 Запустить `./gradlew :karaoke-app:compileKotlin` — PASS.
 - [X] T013 Запустить `tools/check-no-jpa-imports.sh` — PASS (без новых violations).
 - [X] T014 Запустить `tools/check-no-mp4-mentions.sh` — PASS (без новых violations).
-- [ ] T015 Git commit + push + PR (см. AGENTS.md § "CI-gate для master").
-- [ ] T016 OpenProject: add-comment 126 → mark-review 126.
+- [X] T015 Git commit + push + PR (см. AGENTS.md § "CI-gate для master").
+- [X] T016 OpenProject: add-comment 126 → mark-review 126.
 
 ## Dependencies & Execution Order
 

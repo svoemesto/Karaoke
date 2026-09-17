@@ -179,6 +179,38 @@ connection-pool).
 файла в удаленном хранилище». См. `specs/352-storage-graceful-degradation/spec.md`,
 `docs/features/storage-metadata-cache.md`, `specs/349-tracker-must-link/report-65.md`.
 
+## Pass 372: watchdog + manual reset (Spec #405, OpenProject #131)
+
+**Follow-up на Pass 351 + Pass 364** (production-incident 2026-09-17 — circuit breaker
+застрял в HALF_OPEN на 8+ минут после 5×SocketTimeoutException к REMOTE MinIO).
+
+В Pass 372 добавлены:
+
+- **`StorageCircuitBreaker.kt` watchdog** (ScheduledExecutorService, single daemon
+  thread, FR-001..FR-004): если state=HALF_OPEN дольше
+  `timeoutSeconds + watchdogBufferSeconds` без `recordSuccess`/`recordFailure`
+  (Mono.timeout race / GC pause / thread death), watchdog принудительно
+  переводит state в OPEN с обновлённым `openedAtMs`. Конфигурация:
+  - `storage.circuit-breaker-watchdog-enabled` (default true).
+  - `storage.circuit-breaker-watchdog-buffer-seconds` (default 10).
+  - `storage.circuit-breaker-watchdog-check-interval-seconds` (default 1).
+
+- **`CircuitBreakerController.kt`** (NEW `@RestController`, FR-005):
+  - `POST /api/health/circuit-breaker/reset` — manual escape hatch. Сбрасывает
+    state в CLOSED + обнуляет counters. Возвращает JSON с `previousState`/
+    `currentState`. Идемпотентен.
+
+- **Новые SLF4J events** (Pass 372, `infra.cache.storage`):
+  - `cache:circuit:watchdog` (WARN) — watchdog перевёл HALF_OPEN→OPEN (probe stuck).
+  - `cache:circuit:reset` (INFO) — manual reset endpoint вызван.
+
+- **2 новых unit-теста** (`StorageCircuitBreakerTest`):
+  - `watchdog reopens stuck HALF_OPEN`.
+  - `reset transitions to CLOSED idempotently`.
+
+См. `specs/405-storage-circuit-breaker-watchdog/spec.md`, `tasks.md`, `plan.md`,
+`docs/features/storage-metadata-cache.md` (V2.2).
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

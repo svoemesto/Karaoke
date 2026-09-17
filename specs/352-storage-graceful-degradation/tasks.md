@@ -124,6 +124,14 @@
 
 **Purpose**: Knowledge updates, per-feature doc, integration with Pass 344/345 cache, OpenProject workflow.
 
+**NB (2026-09-17, Pass 372 follow-up OpenProject #131)**: Production-наблюдение — circuit breaker застрял в HALF_OPEN на 8+ минут после 5×SocketTimeoutException (Mono.timeout race / GC pause / thread death). Создана follow-up спецификация [`405-storage-circuit-breaker-watchdog`](../405-storage-circuit-breaker-watchdog/spec.md) (Pass 372, OpenProject #131), которая добавляет:
+- `StorageCircuitBreaker.kt` — `ScheduledExecutorService` watchdog (FR-001..FR-004): если state=HALF_OPEN дольше `timeoutSeconds + watchdogBufferSeconds` без recordSuccess/recordFailure, watchdog принудительно переводит в OPEN.
+- `CircuitBreakerController.kt` — `POST /api/health/circuit-breaker/reset` (FR-005): manual escape hatch.
+- 2 новых unit-теста (Pass 372).
+- 3 новых SLF4J events: `cache:circuit:watchdog`, `cache:circuit:reset` (см. `log-categories.md`).
+
+См. подробности в [`specs/405-storage-circuit-breaker-watchdog/tasks.md`](../405-storage-circuit-breaker-watchdog/tasks.md).
+
 - [ ] T017 [P] Modify `knowledge/domains/storage/components/storage-api-client.md`: add section "Pass 351: graceful degradation" referencing `StorageCircuitBreaker`, `decorate` pattern, default timeouts. Cross-link to `specs/352-storage-graceful-degradation/spec.md`.
 - [ ] T018 [P] Modify `docs/features/storage-metadata-cache.md` (V2 from Pass 344/345): add section "Pass 351: circuit breaker" — explains fileExists/fileIsActual/getFileInfo now wrapped in `StorageCircuitBreaker.decorate(...)`. Include `infra.cache.storage` new events (`cache:network:failure`, `cache:circuit:state`).
 - [ ] T019 [P] Modify `knowledge/domains/monitoring/components/log-categories.md`: add 2 new events under `infra.cache.storage`:

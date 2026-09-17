@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeapp.services
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
@@ -11,7 +13,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Unit-тесты для [StorageCircuitBreaker] (Pass 351, спека #352).
+ * Unit-тесты для [StorageCircuitBreaker] (Pass 351, спека #352 + Pass 372, спека #405).
  *
  * Покрывает:
  *  1. CLOSED state allows calls.
@@ -22,16 +24,24 @@ import java.util.concurrent.atomic.AtomicInteger
  *  6. concurrent acquire allows only one probe.
  *  7. concurrent failures transition once to OPEN.
  *  8. overhead closed state under 1ms.
+ *  9. (Pass 372) watchdog reopens stuck HALF_OPEN.
+ * 10. (Pass 372) reset transitions to CLOSED idempotently.
  */
 class StorageCircuitBreakerTest {
     private fun cb(
         timeout: Long = 5L,
         threshold: Int = 5,
         cooldown: Long = 30L,
+        watchdogEnabled: Boolean = false,
+        watchdogBuffer: Long = 10L,
+        checkInterval: Long = 1L,
     ) = StorageCircuitBreaker(
         timeoutSeconds = timeout,
         threshold = threshold,
         cooldownSeconds = cooldown,
+        watchdogEnabled = watchdogEnabled,
+        watchdogBufferSeconds = watchdogBuffer,
+        checkIntervalSeconds = checkInterval,
     )
 
     @Test
@@ -199,5 +209,76 @@ class StorageCircuitBreakerTest {
         // timeout считается как failure.
         assertEquals(StorageCircuitBreaker.State.CLOSED, c.state()) // only 1 failure
         assertEquals(1L, c.metrics().failureCount)
+    }
+
+    /**
+     * Pass 372, FR-002/FR-003/FR-004: watchdog переводит HALF_OPEN→OPEN,
+     * если probe завис дольше timeoutSeconds + watchdogBufferSeconds.
+     */
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    fun `watchdog reopens stuck HALF_OPEN`() {
+        // timeoutSeconds=1, watchdogBuffer=1 → deadline = 2s.
+        // checkInterval=1 — проверка каждую секунду.
+        // Watchdog должен сработать на ~3-й секунде (initialDelay=1 + ticks).
+        val c =
+            cb(
+                timeout = 1L,
+                threshold = 1,
+                cooldown = 0L,
+                watchdogEnabled = true,
+                watchdogBuffer = 1L,
+                checkInterval = 1L,
+            )
+        try {
+            c.initWatchdog() // @PostConstruct не вызывается в unit-тесте, вызываем вручную.
+            c.recordFailure(RuntimeException("boom")) // CLOSED -> OPEN
+            assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+            Thread.sleep(1L)
+            c.acquire() // OPEN -> HALF_OPEN (probe). НЕ вызываем recordSuccess/recordFailure — имитируем зависший probe.
+            assertEquals(StorageCircuitBreaker.State.HALF_OPEN, c.state())
+            val originalOpenedAtMs = c.metrics().lastFailureAt
+            assertNotNull(originalOpenedAtMs)
+
+            // Ждём timeoutSeconds(1) + watchdogBuffer(1) + 2*checkInterval(1) + buffer(500ms) = 4.5s.
+            // Watchdog тикает каждую секунду, на 3-м тике (~t=3s) elapsed=3s > deadline=2s → OPEN.
+            Thread.sleep(4_500)
+
+            assertEquals(StorageCircuitBreaker.State.OPEN, c.state(), "watchdog should reopen circuit")
+            assertTrue(
+                c.metrics().lastFailureAt!! > originalOpenedAtMs!!,
+                "openedAtMs should be updated by watchdog",
+            )
+        } finally {
+            c.destroyWatchdog() // cleanup daemon thread.
+        }
+    }
+
+    /**
+     * Pass 372, FR-005: reset() переводит circuit в CLOSED. Идемпотентен.
+     */
+    @Test
+    fun `reset transitions to CLOSED idempotently`() {
+        val c = cb(threshold = 1)
+        c.recordFailure(RuntimeException("boom")) // CLOSED -> OPEN
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+        assertTrue(c.metrics().failureCount >= 1)
+        assertNotNull(c.metrics().lastFailureAt)
+
+        // reset() возвращает обновлённый Metrics (currentState). previousState
+        // нужно замерить ДО reset (как в CircuitBreakerController.reset()).
+        val before = c.metrics()
+        c.reset()
+        assertEquals(StorageCircuitBreaker.State.CLOSED, c.state())
+        assertEquals(StorageCircuitBreaker.State.OPEN, before.state, "previousState should be OPEN")
+        assertEquals(0L, c.metrics().failureCount)
+        assertNull(c.metrics().lastFailureAt)
+
+        // Повторный reset в CLOSED — no-op, идемпотентен.
+        val before2 = c.metrics()
+        c.reset()
+        assertEquals(StorageCircuitBreaker.State.CLOSED, c.state())
+        assertEquals(StorageCircuitBreaker.State.CLOSED, before2.state, "previousState should be CLOSED")
+        assertEquals(0L, c.metrics().failureCount)
     }
 }

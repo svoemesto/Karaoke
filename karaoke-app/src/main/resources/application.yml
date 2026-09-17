@@ -71,6 +71,15 @@ storage:
   file-exists-timeout-seconds: 5
   circuit-breaker-threshold: 5
   circuit-breaker-cooldown-seconds: 30
+  # NEW (Pass 372, спека #405): watchdog для HALF_OPEN state — если probe завис
+  # (Mono.timeout race / GC pause / thread death), watchdog принудительно
+  # переводит HALF_OPEN→OPEN через timeoutSeconds + buffer, давая circuit
+  # следующий шанс на probe. Plus manual reset endpoint
+  # POST /api/health/circuit-breaker/reset (FR-007 спеки #352).
+  # Override через env: STORAGE_CIRCUIT_BREAKER_WATCHDOG_*.
+  circuit-breaker-watchdog-enabled: true
+  circuit-breaker-watchdog-buffer-seconds: 10
+  circuit-breaker-watchdog-check-interval-seconds: 1
 
 searxng:
   base-url: http://searxng:8080

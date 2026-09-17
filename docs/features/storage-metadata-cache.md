@@ -193,3 +193,21 @@ Open design question — это **отдельная спека 345+**, не в�
 - **#286** (author song counts cache): использовал SQL-драйвен денормализацию; данная спека — in-memory TTL.
   Разные подходы для разных сценариев.
 - **#339** (предыдущая провалившаяся спека, освобождена): агенту напоминание про Knowledge-first.
+- **#71 / Spec #352 / Pass 351**: graceful degradation через circuit breaker
+  (`StorageCircuitBreaker` оборачивает `fileExists`/`fileIsActual`/`getFileInfo`
+  в `decorate(...)` с per-call timeout + FSM CLOSED↔OPEN↔HALF_OPEN).
+  См. [specs/352-storage-graceful-degradation/spec.md](../../specs/352-storage-graceful-degradation/spec.md).
+- **#131 / Spec #405 / Pass 372**: watchdog + manual reset endpoint — follow-up
+  на #71. Production-incident 2026-09-17 — circuit breaker застрял в HALF_OPEN
+  на 8+ минут. Добавлен `ScheduledExecutorService` watchdog (FR-001..FR-004)
+  + `POST /api/health/circuit-breaker/reset` (FR-005). См.
+  [specs/405-storage-circuit-breaker-watchdog/spec.md](../../specs/405-storage-circuit-breaker-watchdog/spec.md).
+
+## История версий
+
+- **V2.2** (Pass 372, 2026-09-17, OpenProject #131): добавлен watchdog +
+  manual reset endpoint.
+- **V2.1** (Pass 351, 2026-09-09, OpenProject #71): добавлен circuit breaker.
+- **V2** (Pass 344/345, 2026-09-09, OpenProject #69): persistent metadata cache
+  (Postgres-backed, см. § Апгрейд).
+- **V1** (Pass 343, 2026-09-08): in-memory TTL cache.

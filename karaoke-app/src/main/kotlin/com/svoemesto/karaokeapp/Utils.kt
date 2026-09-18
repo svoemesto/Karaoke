@@ -798,17 +798,18 @@ fun syncRemotePicturesInStorage(
         }
 
         if (needToAdd) {
-            val fileInputStream =
-                storageService.downloadFile(
-                    bucketName = fileInLocal.bucketName,
-                    fileName = fileInLocal.fileName,
-                )
+            val fileBytes =
+                storageService
+                    .downloadFile(
+                        bucketName = fileInLocal.bucketName,
+                        fileName = fileInLocal.fileName,
+                    ).use { it.readAllBytes() }
 
             val monoUpload =
                 storageApiClient.uploadFile(
                     bucketName = fileInLocal.bucketName,
                     fileName = fileInLocal.fileName,
-                    fileContent = fileInputStream.readAllBytes(),
+                    fileContent = fileBytes,
                 )
 
             val upload =

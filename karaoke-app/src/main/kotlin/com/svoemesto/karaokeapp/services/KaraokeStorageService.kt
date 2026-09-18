@@ -398,17 +398,23 @@ class KaraokeStorageServiceImpl(
         pathToFileOnDisk: String,
     ): File {
         val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
-
-        val fileInputStream =
-            downloadFile(
-                bucketName = bucketName,
-                fileName = decodedFileName, // Передаём декодированное имя
-            )
         val file = File(pathToFileOnDisk)
-        FileOutputStream(file).use { outputStream ->
-            fileInputStream.use { it.copyTo(outputStream) }
+        // Родительский каталог: при восстановлении файла песни локальной папки
+        // может не быть — создаём, иначе FileOutputStream бросит
+        // FileNotFoundException и восстановление молча не сработает.
+        file.parentFile?.mkdirs()
+        // Поток MinIO оборачиваем в .use ДО FileOutputStream: если конструктор
+        // FileOutputStream всё же бросит, открытый GetObjectResponse будет закрыт.
+        // Иначе OkHttp-соединение утекает с недочитанным телом, и следующий запрос
+        // на нём читает mp3-байты как HTTP status line (ProtocolException).
+        downloadFile(
+            bucketName = bucketName,
+            fileName = decodedFileName, // Передаём декодированное имя
+        ).use { fileInputStream ->
+            FileOutputStream(file).use { outputStream ->
+                fileInputStream.copyTo(outputStream)
+            }
         }
-
         return file
     }
 

@@ -353,6 +353,24 @@ class StorageMetadataCache {
     }
 
     /**
+     * Неблокирующий взгляд в кеш без заполнения: возвращает закешированное
+     * значение `fileExists` или `null` при miss. **НЕ** запускает loader и
+     * **НЕ** пишет в кеш.
+     *
+     * Используется из `HealthReport.actionsRemoteStorage` (OpenProject #132):
+     * при miss запись помечается `WAITING` и файл ставится задачей в
+     * `HealthReportBatchPool.waitingQueue`, где её синхронно проверяют 20
+     * worker-потоков. Раньше здесь был fire-and-forget в `cacheFillerExecutor`,
+     * который с unbounded-очередью и `corePoolSize=0` давал лишь один поток.
+     */
+    fun peekFileExists(source: String, bucket: String, fileName: String): Boolean? {
+        validate(source, bucket, fileName)
+        val cached = selectExists(source, bucket, fileName)
+        if (cached != null) hit(source) else miss(source)
+        return cached
+    }
+
+    /**
      * SELECT из кеша, fallback на [loader] при miss.
      */
     fun getFileIsActual(source: String, bucket: String, fileName: String, loader: () -> Boolean): Boolean {

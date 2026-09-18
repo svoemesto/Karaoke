@@ -18,9 +18,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.CompletableFuture
 import kotlin.properties.Delegates
 
 /**
@@ -50,6 +48,13 @@ data class HealthReport(
     val problemText: String = "",
     val solutionText: String = "",
     val solutionActions: List<() -> Unit> = emptyList(),
+    /**
+     * OpenProject #132: для записей со статусом [HealthReportStatus.WAITING] —
+     * задание на обновление кеша хранилища (один файл). Несёт источник/bucket/
+     * имя файла, чтобы waiting-воркер `HealthReportBatchPool` мог выполнить
+     * блокирующую проверку и заполнить `StorageMetadataCache`.
+     */
+    val waitingFileTask: HealthReportBatchPool.WaitingFileTask? = null,
 ) {
     fun toDTO(): HealthReportDTO =
         HealthReportDTO(
@@ -148,23 +153,17 @@ data class HealthReport(
                 ?: loader()
 
         /**
-         * Async version: non-blocking cold-start (US2, spec #364, FR-007).
-         * Returns `CompletableFuture<Boolean?>` — null means "cache miss, async fill in progress".
-         *
-         * @param onFillComplete callback, вызываемый ПОСЛЕ background fill (спека #368).
-         *   Hit case — callback НЕ вызывается. Используется для recompute+SSE после
-         *   cold-start, чтобы UI автоматически обновился с WAITING → OK без F5.
+         * Неблокирующий взгляд в кеш без заполнения (OpenProject #132).
+         * `null` = cache miss. На miss задача на проверку файла ставится в
+         * [HealthReportBatchPool.waitingQueue] (см. `actionsRemoteStorage`), а
+         * не запускается fire-and-forget — так 20 worker'ов пула дают
+         * параллелизм, который не даёт `cacheFillerExecutor`.
          */
-        fun cachedFileExistsAsync(
+        fun peekCachedFileExists(
             source: String,
             bucket: String,
             fileName: String,
-            loader: () -> Boolean,
-            onFillComplete: (() -> Unit)? = null,
-            songId: Long = 0,
-        ): CompletableFuture<Boolean?> =
-            storageMetadataCache?.getFileExistsAsync(source, bucket, fileName, loader, onFillComplete, songId)
-                ?: CompletableFuture.completedFuture(loader())
+        ): Boolean? = storageMetadataCache?.peekFileExists(source, bucket, fileName)
 
         private fun actions(
             karaokeFileType: KaraokeFileType,
@@ -998,43 +997,18 @@ data class HealthReport(
 
             canBeResolved = canResolve
 
-            // US2 (spec #364, FR-007): async cold-start для REMOTE storage.
-            // cachedFileExistsAsync запускает async fill и сразу возвращает CompletableFuture.
-            // .get(50, MILLISECOND) блокирует max 50ms — fallback на WAITING (спека #368):
-            // если future вернул null (cache miss) или бросил exception — НЕ угадываем safe default,
-            // а сразу возвращаем WAITING, чтобы UI не показывал ложные ERROR.
-            // onFillComplete callback (спека #368): после успешного background fill
-            // вызывается recomputeAndBroadcast для рассылки SSE HEALTH_REPORTS,
-            // чтобы UI автоматически обновил запись с WAITING → OK/ERROR без F5.
-            val remoteFileExistsFuture: java.util.concurrent.CompletableFuture<Boolean?> =
-                cachedFileExistsAsync(
+            // OpenProject #132: неблокирующий взгляд в кеш. На hit — сразу
+            // известное значение. На miss — возвращаем WAITING-запись с
+            // waitingFileTask; она попадёт в HealthReportBatchPool.waitingQueue,
+            // где 20 worker-потоков синхронно проверят файл и заполнят кеш.
+            // (Раньше был fire-and-forget в cacheFillerExecutor, который с
+            // unbounded-очередью и corePoolSize=0 давал лишь один поток.)
+            val existsInRemoteStore: Boolean? =
+                peekCachedFileExists(
                     "REMOTE",
                     storageBucketName,
                     storageFileName,
-                    loader = {
-                        storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
-                    },
-                    onFillComplete = {
-                        // Спека #368: после успешного background fill в StorageMetadataCache
-                        // пересчитываем HealthReport для этой песни и рассылаем SSE.
-                        // Рекомпьют берёт свежие данные из кеша и шлёт HEALTH_REPORTS.
-                        try {
-                            recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
-                        } catch (e: Exception) {
-                            println("recomputeAndBroadcast failed for song ${song.id} in actionsRemoteStorage onFillComplete: ${e.message}")
-                        }
-                    },
-                    // specs/118 #397: передаём songId для LIFO/всплытия активной страницы.
-                    songId = song.id,
                 )
-            val existsInRemoteStore: Boolean? =
-                try {
-                    remoteFileExistsFuture.get(50, TimeUnit.MILLISECONDS)
-                } catch (_: Exception) {
-                    null // timeout → cache miss, async fill в фоне
-                }
-            // Спека #368: если cache miss (existsInRemoteStore == null) — сразу вернуть
-            // WAITING-запись, не угадывая. UI получит обновление через SSE после fill.
             if (existsInRemoteStore == null) {
                 return listOf(
                     HealthReport(
@@ -1045,6 +1019,13 @@ data class HealthReport(
                         canResolve = false,
                         problemText = "Кеш ещё не заполнен, проверка в фоне",
                         solutionText = "Дождитесь окончания проверки (обновление через SSE)",
+                        waitingFileTask =
+                            HealthReportBatchPool.WaitingFileTask(
+                                songId = song.id,
+                                source = "REMOTE",
+                                bucket = storageBucketName,
+                                fileName = storageFileName,
+                            ),
                     ),
                 )
             }
@@ -2420,33 +2401,32 @@ data class HealthReport(
             // HealthReportBatchPool (20 worker'ов) как пары (songId, location).
             // Worker'ы разгребают пул, размер рассылается через SSE
             // HEALTH_REPORT_WAITING_POOL_SIZE (голубой бейдж на фронте).
-            enqueueWaitingTasks(songId, reports)
+            enqueueWaitingTasks(reports)
             return reports
         }
 
         /**
-         * Собирает WAITING-записи из [reports] и ставит их в [healthReportBatchPool]
-         * (OpenProject #132). Формат `description` — `"<fileType>/<location.name>"`,
-         * поэтому location восстанавливается через
-         * [com.svoemesto.karaokeapp.services.HealthReportBatchPool.parseWaitingTask].
+         * Собирает WAITING-задачи из [reports] и ставит их в [healthReportBatchPool]
+         * (OpenProject #132). Задача — один файл (`waitingFileTask`), а не пара
+         * `(songId, location)`: именно файл проверяется и кешируется worker'ом.
          *
          * Батчем (один вызов `enqueueWaiting`), а не по одной задаче — меньше
          * SSE-событий и захватов очереди.
          */
-        private fun enqueueWaitingTasks(songId: Long, reports: List<HealthReport>) {
+        private fun enqueueWaitingTasks(reports: List<HealthReport>) {
             val pool = healthReportBatchPool ?: return
             val tasks =
                 reports
                     .asSequence()
                     .filter { it.healthReportStatus == WAITING }
-                    .mapNotNull { HealthReportBatchPool.parseWaitingTask(songId, it.description) }
+                    .mapNotNull { it.waitingFileTask }
                     .toList()
             if (tasks.isEmpty()) return
             try {
                 pool.enqueueWaiting(tasks)
             } catch (e: Exception) {
                 val log = LoggerFactory.getLogger("infra.cache.hrpool")
-                log.warn("failed to enqueue waiting tasks for songId=$songId: ${e.message}", e)
+                log.warn("failed to enqueue waiting tasks: ${e.message}", e)
             }
         }
 

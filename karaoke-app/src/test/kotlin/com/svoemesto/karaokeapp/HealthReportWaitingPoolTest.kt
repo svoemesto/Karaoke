@@ -18,13 +18,9 @@ import java.util.concurrent.TimeUnit
  * Unit-тесты для второго пула WAITING-задач в [HealthReportBatchPool]
  * (OpenProject #132, specs/132-hrwaiting-pool).
  *
- * Покрывает:
- *  1. parseWaitingTask: `"<fileType>/<location.name>"` → `(songId, ordinal)`.
- *  2. enqueueWaiting: вставка в голову, дедуп, move-to-front, фильтрация мусора.
- *  3. waitingQueueSize.
- *  4. single-flight: одна задача не берётся двумя worker'ами.
- *  5. sendWaitingPoolSizeMessage: подавление дублей (lastSentWaitingPoolSize).
- *  6. attachHealthReportBatchPool: привязка пула к companion HealthReport.
+ * Модель: **одно задание = один файл** ([HealthReportBatchPool.WaitingFileTask]).
+ * Покрывает enqueueWaiting (голова/дедуп/move-to-front/фильтр/concurrent),
+ * single-flight, SSE-dedup, attach и `@PreDestroy` (оба executor'а).
  *
  * Worker-loop зависит от `HealthReport.recomputeAndBroadcast` (обращения в БД/MinIO),
  * поэтому в тестах `waitingWorkersEnabled = false` — пул проверяется напрямую.
@@ -55,40 +51,13 @@ class HealthReportWaitingPoolTest {
         HealthReportBatchPool.resetLastSentWaitingPoolSizeForTest()
     }
 
-    // --- parseWaitingTask ---
-
-    @Test
-    fun `parseWaitingTask extracts REMOTE_STORAGE ordinal`() {
-        assertEquals(
-            7L to KaraokeFileTypeLocations.REMOTE_STORAGE.ordinal,
-            HealthReportBatchPool.parseWaitingTask(7L, "MP3_ACCOMPANIMENT/REMOTE_STORAGE"),
+    private fun task(songId: Long, fileName: String, source: String = "REMOTE"): HealthReportBatchPool.WaitingFileTask =
+        HealthReportBatchPool.WaitingFileTask(
+            songId = songId,
+            source = source,
+            bucket = "karaoke",
+            fileName = fileName,
         )
-    }
-
-    @Test
-    fun `parseWaitingTask extracts LOCAL_STORAGE ordinal`() {
-        assertEquals(
-            3L to KaraokeFileTypeLocations.LOCAL_STORAGE.ordinal,
-            HealthReportBatchPool.parseWaitingTask(3L, "COVER/LOCAL_STORAGE"),
-        )
-    }
-
-    @Test
-    fun `parseWaitingTask returns null for malformed description`() {
-        assertNull(HealthReportBatchPool.parseWaitingTask(1L, "no-slash"))
-        assertNull(HealthReportBatchPool.parseWaitingTask(1L, "COVER/"))
-    }
-
-    @Test
-    fun `parseWaitingTask returns null for unknown location name`() {
-        assertNull(HealthReportBatchPool.parseWaitingTask(1L, "COVER/NOWHERE"))
-    }
-
-    @Test
-    fun `parseWaitingTask returns null for non-positive songId`() {
-        assertNull(HealthReportBatchPool.parseWaitingTask(0L, "COVER/REMOTE_STORAGE"))
-        assertNull(HealthReportBatchPool.parseWaitingTask(-1L, "COVER/REMOTE_STORAGE"))
-    }
 
     // --- enqueueWaiting ---
 
@@ -99,28 +68,33 @@ class HealthReportWaitingPoolTest {
 
     @Test
     fun `enqueueWaiting inserts tasks at head preserving batch order`() {
-        pool.enqueueWaiting(listOf(1L to 2, 2L to 2, 3L to 2))
-        // Батч целиком в голове, внутренний порядок сохранён.
-        assertEquals(listOf(1L to 2, 2L to 2, 3L to 2), drainWaiting())
+        val a = task(1, "a.mp3")
+        val b = task(1, "b.mp3")
+        val c = task(2, "c.mp3")
+        pool.enqueueWaiting(listOf(a, b, c))
+        assertEquals(listOf(a, b, c), drainWaiting())
     }
 
     @Test
-    fun `enqueueWaiting deduplicates by (songId, location)`() {
-        pool.enqueueWaiting(listOf(1L to 2, 1L to 2, 2L to 2))
+    fun `enqueueWaiting deduplicates by file task`() {
+        pool.enqueueWaiting(listOf(task(1, "a.mp3"), task(1, "a.mp3"), task(2, "a.mp3")))
         assertEquals(2, pool.waitingQueueSize())
     }
 
     @Test
     fun `enqueueWaiting move-to-front for existing task`() {
-        pool.enqueueWaiting(listOf(1L to 2, 2L to 2, 3L to 2))
-        // 3 уже в очереди — при повторе всплывает в голову.
-        pool.enqueueWaiting(listOf(3L to 2))
-        assertEquals(listOf(3L to 2, 1L to 2, 2L to 2), drainWaiting())
+        val a = task(1, "a.mp3")
+        val b = task(1, "b.mp3")
+        val c = task(1, "c.mp3")
+        pool.enqueueWaiting(listOf(a, b, c))
+        // c уже в очереди — при повторе всплывает в голову.
+        pool.enqueueWaiting(listOf(c))
+        assertEquals(listOf(c, a, b), drainWaiting())
     }
 
     @Test
-    fun `enqueueWaiting distinguishes same song different locations`() {
-        pool.enqueueWaiting(listOf(1L to 0, 1L to 1, 1L to 2))
+    fun `enqueueWaiting distinguishes files of same song`() {
+        pool.enqueueWaiting(listOf(task(1, "a.mp3"), task(1, "b.mp3"), task(1, "c.mp3")))
         assertEquals(3, pool.waitingQueueSize())
     }
 
@@ -131,15 +105,15 @@ class HealthReportWaitingPoolTest {
     }
 
     @Test
-    fun `enqueueWaiting filters negative songIds and ordinals`() {
-        pool.enqueueWaiting(listOf(0L to 2, -1L to 2, 5L to -1, 5L to 2))
+    fun `enqueueWaiting filters non-positive songId`() {
+        pool.enqueueWaiting(listOf(task(0, "a.mp3"), task(-1, "b.mp3"), task(5, "c.mp3")))
         assertEquals(1, pool.waitingQueueSize())
-        assertEquals(5L to 2, drainWaiting().single())
+        assertEquals("c.mp3", drainWaiting().single().fileName)
     }
 
     @Test
     fun `waitingQueueSize returns correct value after enqueue and take`() {
-        pool.enqueueWaiting(listOf(1L to 2, 2L to 2))
+        pool.enqueueWaiting(listOf(task(1, "a.mp3"), task(2, "b.mp3")))
         assertEquals(2, pool.waitingQueueSize())
         pool.waitingQueue.pollFirst()
         assertEquals(1, pool.waitingQueueSize())
@@ -155,7 +129,7 @@ class HealthReportWaitingPoolTest {
                 executors.submit {
                     repeat(perThread) { i ->
                         val id = (t * perThread + i + 1).toLong()
-                        pool.enqueueWaiting(listOf(id to 2))
+                        pool.enqueueWaiting(listOf(task(id, "file-$id.mp3")))
                     }
                 }
             }
@@ -168,25 +142,23 @@ class HealthReportWaitingPoolTest {
 
     @Test
     fun `waitingInFlight single-flight guards two concurrent workers`() {
-        val task = 1L to 2
-        assertTrue(tryEnterWaiting(task))
-        // Второй worker не должен войти.
-        assertFalse(tryEnterWaiting(task))
-        exitWaiting(task)
-        // После exit — снова можно.
-        assertTrue(tryEnterWaiting(task))
-        exitWaiting(task)
+        val t = task(1, "a.mp3")
+        assertTrue(tryEnterWaiting(t))
+        assertFalse(tryEnterWaiting(t))
+        exitWaiting(t)
+        assertTrue(tryEnterWaiting(t))
+        exitWaiting(t)
     }
 
     @Test
     fun `enqueueWaiting skips task currently in-flight`() {
-        val task = 1L to 2
-        assertTrue(tryEnterWaiting(task))
+        val t = task(1, "a.mp3")
+        assertTrue(tryEnterWaiting(t))
         // Задача в работе — повторный enqueue не должен возвращать её в очередь
         // (иначе recomputeAndBroadcast изнутри worker'а дал бы busy-loop).
-        pool.enqueueWaiting(listOf(task))
+        pool.enqueueWaiting(listOf(t))
         assertEquals(0, pool.waitingQueueSize())
-        exitWaiting(task)
+        exitWaiting(t)
     }
 
     // --- SSE dedup ---
@@ -212,7 +184,7 @@ class HealthReportWaitingPoolTest {
 
     @Test
     fun `enqueueWaiting updates lastSentWaitingPoolSize`() {
-        pool.enqueueWaiting(listOf(1L to 2, 2L to 2))
+        pool.enqueueWaiting(listOf(task(1, "a.mp3"), task(2, "b.mp3")))
         assertEquals(2L, readLastSentWaitingPoolSize())
     }
 
@@ -224,24 +196,33 @@ class HealthReportWaitingPoolTest {
         assertEquals(pool, HealthReport.healthReportBatchPool)
     }
 
+    // --- lifecycle ---
+
+    @Test
+    fun `stop shuts down both executors`() {
+        pool.stop()
+        assertTrue(pool.executor.isShutdown)
+        assertTrue(pool.waitingExecutor.isShutdown)
+    }
+
     // --- helpers ---
 
-    private fun tryEnterWaiting(task: Pair<Long, Int>): Boolean =
-        invokePrivate("tryEnterWaiting", task)
+    private fun tryEnterWaiting(t: HealthReportBatchPool.WaitingFileTask): Boolean =
+        invokePrivate("tryEnterWaiting", t)
 
-    private fun exitWaiting(task: Pair<Long, Int>) {
-        invokePrivate<Unit>("exitWaiting", task)
+    private fun exitWaiting(t: HealthReportBatchPool.WaitingFileTask) {
+        invokePrivate<Unit>("exitWaiting", t)
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> invokePrivate(name: String, arg: Any): T {
-        val m = pool.javaClass.getDeclaredMethod(name, Pair::class.java)
+        val m = pool.javaClass.getDeclaredMethod(name, HealthReportBatchPool.WaitingFileTask::class.java)
         m.isAccessible = true
         return m.invoke(pool, arg) as T
     }
 
-    private fun drainWaiting(): List<Pair<Long, Int>> {
-        val result = mutableListOf<Pair<Long, Int>>()
+    private fun drainWaiting(): List<HealthReportBatchPool.WaitingFileTask> {
+        val result = mutableListOf<HealthReportBatchPool.WaitingFileTask>()
         while (true) {
             val next = pool.waitingQueue.pollFirst() ?: break
             result.add(next)

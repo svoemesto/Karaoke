@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.HealthReport
-import com.svoemesto.karaokeapp.KaraokeFileTypeLocations
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.HealthReportPoolCountMessage
 import com.svoemesto.karaokeapp.model.HealthReportWaitingPoolSizeMessage
@@ -36,13 +35,14 @@ import kotlin.concurrent.withLock
  *
  * Первый пул (`priorityQueue`, 10 worker'ов) — это **песни**, которые надо
  * пересчитать (одна задача = песня). Второй пул (`waitingQueue`, 20 worker'ов)
- * — это **WAITING-задания** на обновление кеша хранилища: пара
- * `(songId, location.ordinal)`. Когда `recomputeAndBroadcast` для песни
- * обнаруживает записи со статусом `WAITING` (кеш `StorageMetadataCache` ещё не
- * заполнен для REMOTE storage), каждая такая запись кладётся в `waitingQueue`.
- * 20 worker'ов разбирают этот пул: взяли задание — размер пула уменьшился —
- * фронт получает SSE `HEALTH_REPORT_WAITING_POOL_SIZE` и обновляет голубой
- * бейдж. Одна и та же задача не берётся двумя worker'ами (single-flight).
+ * — это **WAITING-задания на обновление кеша хранилища**: одно задание = один
+ * файл ([WaitingFileTask]). Когда `HealthReport.actionsRemoteStorage` обнаруживает
+ * cache miss для файла, он кладёт задачу в `waitingQueue`. 20 worker'ов
+ * **синхронно** проверяют файл в хранилище и заполняют
+ * `StorageMetadataCache` — именно они, а не `cacheFillerExecutor`, дают
+ * параллелизм 20. Взяли задачу — размер пула уменьшился — фронт получает SSE
+ * `HEALTH_REPORT_WAITING_POOL_SIZE` и обновляет голубой бейдж. Одна и та же
+ * задача не берётся двумя worker'ами (single-flight).
  *
  * **Семантика приоритетной очереди** (требование #128):
  *  - При поступлении нового батча все его `songId` вставляются в **начало**.
@@ -53,7 +53,7 @@ import kotlin.concurrent.withLock
  * **Single-flight** (паттерн из `race-fixed-65.md`):
  *  - `inFlight: ConcurrentHashMap<Long, AtomicBoolean>` защищает от
  *    повторного `recomputeAndBroadcast` для одной песни в разных worker'ах.
- *  - `waitingInFlight: ConcurrentHashMap<Pair<Long, Int>, AtomicBoolean>` —
+ *  - `waitingInFlight: ConcurrentHashMap<WaitingFileTask, AtomicBoolean>` —
  *    то же самое для WAITING-задач.
  *
  * **Не используется** [com.svoemesto.karaokeapp.KaraokeProcess] — нам не нужны
@@ -69,6 +69,21 @@ class HealthReportBatchPool(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
 ) {
+    /**
+     * Одно WAITING-задание = **один файл** (OpenProject #132). Владелец: «Одно
+     * задание = один файл».
+     *
+     * Содержит всё, что нужно worker'у для блокирующей проверки и заполнения
+     * кеша: хранилище ([source]), bucket и имя файла. `songId` — для
+     * последующего `recomputeAndBroadcast` (обновить HealthReport и разослать SSE).
+     */
+    data class WaitingFileTask(
+        val songId: Long,
+        val source: String,
+        val bucket: String,
+        val fileName: String,
+    )
+
     companion object {
         private const val POOL_SIZE = 10
 
@@ -94,25 +109,6 @@ class HealthReportBatchPool(
         fun parseSongIds(raw: String?): List<Long> {
             if (raw.isNullOrBlank()) return emptyList()
             return raw.split(";").mapNotNull { it.trim().toLongOrNull() }
-        }
-
-        /**
-         * Разбирает `description` записи [HealthReport] (формат
-         * `"<karaokeFileType>/<location.name>"`, см. `HealthReport.kt` метод
-         * `actions`) в пару `(songId, location.ordinal)`. Возвращает `null`, если
-         * формат не распознан (malformed / неизвестный location).
-         *
-         * Используется для наполнения [waitingQueue] заданиями, обнаруженными
-         * в `HealthReport.recomputeAndBroadcast`.
-         */
-        fun parseWaitingTask(songId: Long, description: String): Pair<Long, Int>? {
-            val locationName = description.substringAfterLast('/', missingDelimiterValue = "")
-            if (locationName.isEmpty()) return null
-            val ordinal =
-                runCatching { KaraokeFileTypeLocations.valueOf(locationName).ordinal }
-                    .getOrNull() ?: return null
-            if (songId <= 0L || ordinal < 0) return null
-            return songId to ordinal
         }
 
         /**
@@ -232,12 +228,12 @@ class HealthReportBatchPool(
     internal var executor: ExecutorService = Executors.newFixedThreadPool(POOL_SIZE)
 
     /**
-     * Второй пул — очередь WAITING-задач (OpenProject #132). Элемент — пара
-     * `(songId, location.ordinal)`. `LinkedBlockingDeque` thread-safe сам по себе
+     * Второй пул — очередь WAITING-задач (OpenProject #132). Элемент — один файл
+     * ([WaitingFileTask]). `LinkedBlockingDeque` thread-safe сам по себе
      * (не требует внешнего lock, в отличие от [priorityQueue]).
      */
     @Suppress("MemberVisibilityCanBePrivate")
-    internal var waitingQueue: LinkedBlockingDeque<Pair<Long, Int>> = LinkedBlockingDeque()
+    internal var waitingQueue: LinkedBlockingDeque<WaitingFileTask> = LinkedBlockingDeque()
 
     /**
      * Executor второго пула (20 worker'ов). Подменяется в unit-тестах.
@@ -246,10 +242,10 @@ class HealthReportBatchPool(
     internal var waitingExecutor: ExecutorService = Executors.newFixedThreadPool(POOL_SIZE_WAITING)
 
     /**
-     * Single-flight для WAITING-задач: одна и та же пара `(songId, location)`
-     * не обрабатывается двумя worker'ами одновременно.
+     * Single-flight для WAITING-задач: один и тот же файл не обрабатывается двумя
+     * worker'ами одновременно.
      */
-    private val waitingInFlight: ConcurrentHashMap<Pair<Long, Int>, AtomicBoolean> = ConcurrentHashMap()
+    private val waitingInFlight: ConcurrentHashMap<WaitingFileTask, AtomicBoolean> = ConcurrentHashMap()
 
     /**
      * Флаг, контролирующий автозапуск worker'ов при [enqueue]. В production — `true`.
@@ -302,8 +298,8 @@ class HealthReportBatchPool(
     }
 
     /**
-     * Добавить WAITING-задачи `(songId, location.ordinal)` во второй пул
-     * (OpenProject #132).
+     * Добавить WAITING-задачи (каждая — один файл, [WaitingFileTask]) во второй
+     * пул (OpenProject #132).
      *
      * Семантика:
      *  - **move-to-front**: задача, уже стоящая в [waitingQueue], удаляется и
@@ -314,15 +310,12 @@ class HealthReportBatchPool(
      *    (`waitingInFlight[task] == true`), не добавляются повторно — иначе
      *    `recomputeAndBroadcast`, вызванный изнутри worker'а, немедленно вернул бы
      *    ту же задачу в очередь и вызвал busy-loop.
-     *
-     * Порядок внутри батча сохраняется (первая задача батча — в голове).
      */
-    fun enqueueWaiting(tasks: List<Pair<Long, Int>>) {
+    fun enqueueWaiting(tasks: List<WaitingFileTask>) {
         if (tasks.isEmpty()) return
         var added = 0
         for (task in tasks.asReversed()) {
-            val (songId, ordinal) = task
-            if (songId <= 0L || ordinal < 0) continue
+            if (task.songId <= 0L) continue
             if (waitingInFlight[task]?.get() == true) continue
             waitingQueue.remove(task)
             waitingQueue.addFirst(task)
@@ -415,8 +408,16 @@ class HealthReportBatchPool(
 
     /**
      * Worker-loop второго пула (OpenProject #132). Берёт WAITING-задачу из головы
-     * [waitingQueue], инициирует пересчёт песни (это запускает/продолжает async
-     * заполнение кеша хранилища), и снимает single-flight.
+     * [waitingQueue] и **сам** выполняет блокирующую проверку файла в хранилище
+     * ([HealthReport.cachedFileExists]), заполняя `StorageMetadataCache` в этом
+     * worker-потоке. Именно поэтому 20 worker'ов дают 20 параллельных проверок —
+     * в отличие от fire-and-forget в `cacheFillerExecutor`, который с unbounded
+     * очередью и `corePoolSize=0` создаёт лишь один поток.
+     *
+     * После заполнения кеша песня ставится в [priorityQueue] (`enqueue`):
+     * пересчёт HR и SSE-рассылку делает существующий song-пул (10 worker'ов) —
+     * не дублируем путь `recomputeAndBroadcast`, не грузим БД лишний раз и
+     * получаем автоматический дедуп через `inFlight`.
      *
      * Размер очереди рассылается через SSE сразу после взятия задачи — фронт
      * видит, как голубой бейдж уменьшается.
@@ -431,18 +432,25 @@ class HealthReportBatchPool(
             // Взяли задачу — пул уменьшился, обновляем бейдж.
             sendWaitingPoolSizeMessage(waitingQueueSize().toLong())
             if (!tryEnterWaiting(task)) {
-                // Single-flight: другой worker уже обрабатывает эту задачу.
+                // Single-flight: другой worker уже обрабатывает этот файл.
                 continue
             }
             try {
-                HealthReport.recomputeAndBroadcast(
-                    songId = task.first,
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
+                // Блокирующая проверка файла + заполнение кеша в ЭТОМ потоке.
+                HealthReport.cachedFileExists(
+                    source = task.source,
+                    bucket = task.bucket,
+                    fileName = task.fileName,
+                    loader = {
+                        storageApiClient.fileExists(bucketName = task.bucket, fileName = task.fileName)
+                    },
                 )
+                // Кеш заполнен — просим song-пул пересчитать HR (WAITING → OK/ERROR)
+                // и разослать SSE. inFlight в song-пуле дедуплицирует повторные
+                // запросы по одной песне.
+                enqueue(listOf(task.songId))
             } catch (e: Exception) {
-                log.warn("waiting recomputeAndBroadcast failed for task=$task: ${e.message}", e)
+                log.warn("waiting task failed for $task: ${e.message}", e)
             } finally {
                 exitWaiting(task)
             }
@@ -454,7 +462,7 @@ class HealthReportBatchPool(
             if (priorityQueue.isEmpty()) null else priorityQueue.removeAt(0)
         }
 
-    private fun takeWaitingNext(): Pair<Long, Int>? = waitingQueue.pollFirst()
+    private fun takeWaitingNext(): WaitingFileTask? = waitingQueue.pollFirst()
 
     private fun tryEnter(songId: Long): Boolean =
         inFlight
@@ -467,12 +475,12 @@ class HealthReportBatchPool(
         // путях — паттерн из race-fixed-65.md).
     }
 
-    private fun tryEnterWaiting(task: Pair<Long, Int>): Boolean =
+    private fun tryEnterWaiting(task: WaitingFileTask): Boolean =
         waitingInFlight
             .computeIfAbsent(task) { AtomicBoolean(false) }
             .compareAndSet(false, true)
 
-    private fun exitWaiting(task: Pair<Long, Int>) {
+    private fun exitWaiting(task: WaitingFileTask) {
         waitingInFlight[task]?.set(false)
         // NB: ключ НЕ удаляем из map — тот же паттерн, что в exit().
     }

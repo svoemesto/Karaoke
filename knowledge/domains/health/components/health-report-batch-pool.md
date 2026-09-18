@@ -33,9 +33,8 @@ class HealthReportBatchPool(
 | `enqueue(songIds: List<Long>)` | `fun` | Добавить песни в приоритетную очередь. Дедуп + move-to-front (см. алгоритм). |
 | `queueSize(): Int` | `fun` | Текущий размер очереди. Используется в unit-тестах и диагностике. |
 | `parseSongIds(raw: String?)` | `companion fun` | Парсит входную строку формата `"1;2;3"` в `List<Long>`. Невалидные значения молча отбрасываются. |
-| `enqueueWaiting(tasks: List<Pair<Long, Int>>)` | `fun` | Добавить WAITING-задачи `(songId, location.ordinal)` во второй пул. Move-to-front, дедуп, пропуск in-flight задач (Pass 132). |
+| `enqueueWaiting(tasks: List<WaitingFileTask>)` | `fun` | Добавить WAITING-задачи (каждая — один файл) во второй пул. Move-to-front, дедуп, пропуск in-flight задач (Pass 132). |
 | `waitingQueueSize(): Int` | `fun` | Текущий размер очереди WAITING-задач. |
-| `parseWaitingTask(songId, description)` | `companion fun` | Разбирает `"<fileType>/<location.name>"` → `(songId, ordinal)`. `null` при malformed/unknown. |
 
 **internal (для unit-тестов)**:
 
@@ -43,23 +42,50 @@ class HealthReportBatchPool(
 |---|---|
 | `executor: ExecutorService` | Подменяется на `DirectExecutorService` в тестах, чтобы изолировать от реального `recomputeAndBroadcast`. |
 | `waitingExecutor: ExecutorService` | Executor второго пула (20 worker'ов). Подменяется в тестах. |
-| `waitingQueue: LinkedBlockingDeque<Pair<Long, Int>>` | Очередь WAITING-задач (thread-safe, без внешнего lock). |
+| `waitingQueue: LinkedBlockingDeque<WaitingFileTask>` | Очередь WAITING-задач (thread-safe, без внешнего lock). |
 | `workersEnabled: Boolean` | Если `false` — `enqueue` НЕ запускает worker'ы (для тестов, чтобы не уходить в БД/MinIO). |
 | `waitingWorkersEnabled: Boolean` | То же для worker'ов второго пула. |
+
+### `WaitingFileTask` — одно задание = один файл
+
+```kotlin
+data class WaitingFileTask(
+    val songId: Long,
+    val source: String,   // "REMOTE" (пока только REMOTE даёт WAITING)
+    val bucket: String,
+    val fileName: String,
+)
+```
+
+`HealthReport` для WAITING-записи несёт `waitingFileTask`; `enqueueWaitingTasks`
+собирает их батчем и зовёт `enqueueWaiting`.
 
 ### Два пула (Pass 132, OpenProject #132, specs/132-hrwaiting-pool)
 
 Первый пул (`priorityQueue`, 10 worker'ов) — **песни** для пересчёта.
-Второй пул (`waitingQueue`, 20 worker'ов) — **WAITING-задания** на обновление
-кеша хранилища, ключ `Pair<Long, Int>` (`songId`, `location.ordinal`). Наполняется
-из `HealthReport.recomputeAndBroadcast`: записи со статусом `WAITING` парсятся
-через `parseWaitingTask` и батчем ставятся в `enqueueWaiting`. 20 worker'ов
-разбирают пул через `LinkedBlockingDeque.pollFirst()` (LIFO-голова); размер
-рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE` (голубой бейдж на фронте).
-`waitingInFlight` (`ConcurrentHashMap<Pair<Long, Int>, AtomicBoolean>`) даёт
-single-flight: два worker'а не берут одну задачу, а `enqueueWaiting` пропускает
-in-flight задачи (иначе `recomputeAndBroadcast` изнутри worker'а вернул бы ту же
-задачу и вызвал busy-loop). `@PreDestroy` shutdown'ит **оба** executor'а.
+Второй пул (`waitingQueue`, 20 worker'ов) — **WAITING-задания на обновление
+кеша хранилища: одно задание = один файл**. Наполняется из
+`HealthReport.recomputeAndBroadcast` (записи со статусом `WAITING` несут
+`waitingFileTask`). 20 worker'ов:
+
+1. берут задачу из головы (`LinkedBlockingDeque.pollFirst()` — LIFO),
+2. **сами** синхронно проверяют файл и заполняют `StorageMetadataCache`
+   ([HealthReport.cachedFileExists]); именно здесь 20 потоков дают 20
+   параллельных проверок,
+3. ставят песню в `priorityQueue` (`enqueue`) — пересчёт HR и SSE делает
+   существующий song-пул (дедуп через `inFlight`).
+
+Размер пула рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE` (голубой бейдж на
+фронте). `waitingInFlight` (`ConcurrentHashMap<WaitingFileTask, AtomicBoolean>`)
+даёт single-flight. `@PreDestroy` shutdown'ит **оба** executor'а.
+
+**Pass 132 fix (почему не fire-and-forget)**: раньше `actionsRemoteStorage` на
+cache miss уходил в `StorageMetadataCache.getFileExistsAsync` →
+`cacheFillerExecutor` (`ThreadPoolExecutor(corePoolSize=0, maxPoolSize=4,
+unbounded LinkedBlockingDeque)`). С безразмерной очередью Java не поднимает
+больше **одного** потока (рост только при заполненной очереди), поэтому вся
+проверка шла в `pool-2-thread-1`. Теперь fire-and-forget для REMOTE заменён
+на `peekFileExists` (только чтение кеша) + задачу в `waitingQueue`.
 
 ### Endpoint `POST /api/song/healthReportListBatch`
 
@@ -194,9 +220,9 @@ karaoke-app. См.:
 concurrent enqueue, SSE-dedup). Все 13/13 PASS.
 
 `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportWaitingPoolTest.kt` —
-20 unit-тестов второго пула (parseWaitingTask, enqueueWaiting, dedup,
-move-to-front, фильтрация, concurrent enqueue, single-flight, SSE-dedup,
-attach). Все 20/20 PASS (Pass 132).
+16 unit-тестов второго пула (enqueueWaiting: голова/дедуп/move-to-front/фильтр/
+concurrent, single-flight, SSE-dedup, attach, `stop` обоих executor'ов).
+Все 16/16 PASS (Pass 132).
 
 ## Связанные ADR | Related ADRs
 

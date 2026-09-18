@@ -82,11 +82,10 @@ WAITING-задач, а не сумма-суррогат.
 
 ### Edge Cases
 
-- **Две задачи с одним `songId`, разными location** — разные записи пула
-  (ключ `Pair<Long, Int>`).
+- **Разные файлы одной песни** — разные задачи пула.
 - **Одна задача взята воркером и снова обнаружена WAITING** — не возвращается
   в пул, пока `waitingInFlight[task] == true` (иначе busy-loop).
-- **Ошибка `recomputeAndBroadcast` в воркере** — логируется, задача завершается,
+- **Ошибка проверки файла в воркере** — логируется, задача завершается,
   пул не падает.
 
 ## Requirements *(mandatory)*
@@ -94,30 +93,35 @@ WAITING-задач, а не сумма-суррогат.
 ### Functional Requirements
 
 - **FR-001**: `HealthReportBatchPool` ДОЛЖЕН содержать второй пул
-  `waitingQueue: LinkedBlockingDeque<Pair<Long, Int>>` + `waitingExecutor`
+  `waitingQueue: LinkedBlockingDeque<WaitingFileTask>` + `waitingExecutor`
   (`Executors.newFixedThreadPool(20)`) + `waitingInFlight` для single-flight.
+  **Одно задание = один файл** (`WaitingFileTask(songId, source, bucket, fileName)`).
 - **FR-002**: `enqueueWaiting(tasks)` ДОЛЖЕН поддерживать move-to-front и дедуп
-  по `(songId, location.ordinal)`; in-flight задачи пропускаются.
+  по задаче-файлу; in-flight задачи пропускаются.
 - **FR-003**: Каждое изменение размера `waitingQueue` ДОЛЖНО рассылать SSE
   `HEALTH_REPORT_WAITING_POOL_SIZE` (`{count: Long}`) с подавлением дублей.
 - **FR-004**: `HealthReport.recomputeAndBroadcast` ДОЛЖЕН для каждой WAITING-записи
-  вызвать `enqueueWaiting` (батчем) через статическую ссылку `healthReportBatchPool`.
+  (несущей `waitingFileTask`) вызвать `enqueueWaiting` (батчем) через статическую
+  ссылку `healthReportBatchPool`.
 - **FR-005**: `@PreDestroy` ДОЛЖЕН shutdown'ить **оба** executor'а (иначе executor leak).
 - **FR-006**: Старая SUM-реализация #130 (`waitingCountBySongId`,
   `lastSentWaitingCount`, `HealthReportWaitingCountMessage`,
   `HEALTH_REPORT_WAITING_COUNT`, Vuex `healthReportWaitingCount`) ДОЛЖНА быть удалена.
 - **FR-007**: Фронт (`Processes/store.js`, `App.vue`, `ProcessWorker.vue`) ДОЛЖЕН
   показывать `healthReportWaitingPoolSize` голубым бейджем, скрытым при `0`.
-- **FR-008**: `parseWaitingTask` ДОЛЖЕН восстанавливать location из `description`
-  формата `"<fileType>/<location.name>"`.
+- **FR-008**: Worker пула ДОЛЖЕН **сам** синхронно выполнять проверку файла и
+  заполнять `StorageMetadataCache` (не fire-and-forget) — иначе с
+  `cacheFillerExecutor` (unbounded-очередь, `corePoolSize=0`) параллелизма нет.
+- **FR-009**: После заполнения кеша worker ДОЛЖЕН поставить песню в song-пул
+  (`enqueue`) для пересчёта HR — без дублирования `recomputeAndBroadcast`.
 
 ### Key Entities
 
-- **`HealthReportBatchPool.waitingQueue`** — `LinkedBlockingDeque<Pair<Long, Int>>`.
+- **`HealthReportBatchPool.WaitingFileTask`** — `(songId, source, bucket, fileName)`.
 - **`HealthReportWaitingPoolSizeMessage(count: Long)`** — SSE-payload.
 - **`SseNotificationType.HEALTH_REPORT_WAITING_POOL_SIZE`** — новый тип события.
-- **`KaraokeFileTypeLocations`** — `LOCAL_FILESYSTEM(0)`, `LOCAL_STORAGE(1)`,
-  `REMOTE_STORAGE(2)`; сохраняется как `ordinal`.
+- **`HealthReport.waitingFileTask`** — задача-файл для WAITING-записи.
+- **`StorageMetadataCache.peekFileExists`** — неблокирующее чтение кеша.
 
 ## Success Criteria *(mandatory)*
 

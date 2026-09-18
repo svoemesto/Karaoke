@@ -110,10 +110,13 @@ enum class HealthReportStatus(val color: String) {
 - Таблица `tbl_storage_metadata_cache` в локальной БД (persists across restarts).
 - Write-through: `uploadFile`/`deleteFile` автоматически инвалидируют кеш.
 
-**Async cold-start (Pass 364, #75, US2)**:
-- `StorageMetadataCache.getFileExistsAsync()` — fire-and-forget на cache miss.
-- `cachedFileExistsAsync()` в `HealthReport` companion.
-- REMOTE storage: max 50ms block (вместо 200ms), safe default `true`.
+**Async cold-start (Pass 364, #75, US2; уточнено в Pass 132, #132)**:
+- `StorageMetadataCache.peekFileExists()` — неблокирующее чтение кеша (без fill).
+- REMOTE storage: cache miss → `WAITING` + `waitingFileTask` в
+  `HealthReportBatchPool.waitingQueue` (20 worker'ов синхронно проверяют файл
+  и заполняют кеш). Старый `cachedFileExistsAsync`/`getFileExistsAsync`
+  fire-and-forget остаётся примитивом кеша, но health-flow его больше не
+  использует (он сериализовался в один поток `cacheFillerExecutor`).
 - Warm cache: <1ms (cache hit).
 
 **Circuit breaker (Pass 364, #75, FR-006)**:

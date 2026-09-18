@@ -59,7 +59,7 @@ WAITING-задач на бэке, разгребаемый 20 воркерами
 
 ### User Story 1 — Бейдж показывает реальный размер пула WAITING-задач (Priority: P1)
 
-**Why this priority**: Это прямая просьба владельца: голубой бейдж — размер пула
+**Why this priority**: Это прямая просьба владельца: синий бейдж — размер пула
 WAITING-задач, а не сумма-суррогат.
 
 **Independent Test**: При cold-start `StorageMetadataCache` бейдж растёт по мере
@@ -73,7 +73,7 @@ WAITING-задач, а не сумма-суррогат.
    `HEALTH_REPORT_WAITING_POOL_SIZE`.
 2. **Given** пул не пуст, **When** воркер берёт задачу, **Then** размер пула
    уменьшается и фронт получает новое SSE.
-3. **Given** пул пуст, **Then** голубой бейдж скрыт (`count == 0`).
+3. **Given** пул пуст, **Then** синий бейдж скрыт (`count == 0`).
 
 ### User Story 2 — Всплытие при возврате на посещённую страницу (Priority: P2)
 
@@ -108,7 +108,7 @@ WAITING-задач, а не сумма-суррогат.
   `lastSentWaitingCount`, `HealthReportWaitingCountMessage`,
   `HEALTH_REPORT_WAITING_COUNT`, Vuex `healthReportWaitingCount`) ДОЛЖНА быть удалена.
 - **FR-007**: Фронт (`Processes/store.js`, `App.vue`, `ProcessWorker.vue`) ДОЛЖЕН
-  показывать `healthReportWaitingPoolSize` голубым бейджем, скрытым при `0`.
+  показывать `healthReportWaitingPoolSize` синим бейджем (правый верхний угол), скрытым при `0`.
 - **FR-008**: Worker пула ДОЛЖЕН **сам** синхронно выполнять проверку файла и
   заполнять `StorageMetadataCache` (не fire-and-forget) — иначе с
   `cacheFillerExecutor` (unbounded-очередь, `corePoolSize=0`) параллелизма нет.

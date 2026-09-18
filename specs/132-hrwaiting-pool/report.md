@@ -118,7 +118,7 @@ REMOTE заменён на `peekFileExists` (FR-004/FR-009).
 2. Merge: `gh pr merge --merge` (без `--delete-branch`).
 3. Docker: `deploy/do.sh build_karaoke-app && build_webvue3`.
 4. Deploy (по согласию AGENTS.md Tier-1).
-5. Ручная проверка: при cold-start `StorageMetadataCache` голубой бейдж растёт и
+5. Ручная проверка: при cold-start `StorageMetadataCache` синий бейдж растёт и
    убывает синхронно с разбором пула 20 воркерами.
 6. `tracker.sh close-issue 137` и `close-issue 132`.
 

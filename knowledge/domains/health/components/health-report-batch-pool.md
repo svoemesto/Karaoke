@@ -75,7 +75,7 @@ data class WaitingFileTask(
 3. ставят песню в `priorityQueue` (`enqueue`) — пересчёт HR и SSE делает
    существующий song-пул (дедуп через `inFlight`).
 
-Размер пула рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE` (голубой бейдж на
+Размер пула рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE` (синий бейдж на
 фронте). `waitingInFlight` (`ConcurrentHashMap<WaitingFileTask, AtomicBoolean>`)
 даёт single-flight. `@PreDestroy` shutdown'ит **оба** executor'а.
 

@@ -26,20 +26,17 @@
            бейджа countWaiting (симметрично). Обновляется через SSE
            HEALTH_REPORT_POOL_COUNT (см. App.vue). -->
       <div class="text-count-waiting-green" v-text="healthReportPoolCount" />
-      <!-- specs/132-hrwaiting-pool (OpenProject #132): голубой бейдж с размером
-           реального backend-пула WAITING-задач HealthReportBatchPool.waitingQueue
-           (второй пул, 20 worker'ов). Расположен в правом верхнем углу кнопки
-           Старт/Стоп. Показывается только при count > 0 (симметрично зелёному
-           скрывается при нуле). Обновляется через SSE
+      <!-- specs/132-hrwaiting-pool (OpenProject #132): синий бейдж с размером
+           реального пула WAITING-задач HealthReportBatchPool.waitingQueue — те
+           задания на обновление кеша хранилища, которые разгребают 20 worker'ов.
+           Число = только ожидающая очередь (waitingQueue.size()). Правый верхний
+           угол кнопки Старт/Стоп. Обновляется через SSE
            HEALTH_REPORT_WAITING_POOL_SIZE (см. App.vue). -->
       <div
         v-show="showWaitingPoolBadge"
-        class="text-count-waiting-blue"
+        class="text-waiting-pool-size"
         v-text="healthReportWaitingPoolSize"
       />
-      <!-- specs/118 #397: бейдж размера cache-очереди StorageMetadataCache (правый верхний угол).
-           Показывается всегда (даже если queueSize=0), чтобы пользователь видел индикатор активности. -->
-      <div class="text-cache-pool-size" v-text="cacheQueueSize" />
     </div>
     <custom-confirm
       v-if="isConfirmVisible"
@@ -72,7 +69,7 @@ import CustomConfirm from './CustomConfirm.vue'
  * Также подписывается на `HEALTH_REPORT_WAITING_POOL_SIZE` (OpenProject #132,
  * specs/132-hrwaiting-pool) — размер реального backend-пула WAITING-задач
  * `HealthReportBatchPool.waitingQueue` (второй пул, 20 worker'ов). Показывается
- * голубым бейджем в правом верхнем углу кнопки Старт/Стоп и скрывается при 0.
+ * синим бейджем в правом верхнем углу кнопки Старт/Стоп и скрывается при 0.
  *
  * @see archive/docs/features/async-process-queue.md
  */
@@ -138,10 +135,6 @@ export default {
         typeof this.healthReportWaitingPoolSize === 'number' && this.healthReportWaitingPoolSize > 0
       )
     },
-    // specs/118 #397: размер cache-очереди StorageMetadataCache.
-    cacheQueueSize() {
-      return this.$store.getters.getCacheQueueSize
-    },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone
     },
@@ -178,10 +171,6 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
-    // specs/118 #397: cacheQueueSize обновляется через SSE-событие PROCESS_COUNT_WAITING
-    // (см. App.vue) — нет необходимости в poll. Initial fetch через REST API оставлен
-    // на случай если SSE ещё не подключился.
-    this.checkCacheQueueSize()
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -224,21 +213,6 @@ export default {
           console.warn('[ProcessWorker.checkCountWaiting] parse failed:', e)
         }
         this.$store.dispatch('setCountWaiting', { countWaiting: count })
-      })
-    },
-    // specs/118 #397: загрузить размер cache-очереди.
-    checkCacheQueueSize() {
-      this.$store.dispatch('getCacheQueueSizePromise').then((raw) => {
-        // promisedXMLHttpRequest возвращает xhr.responseText (string), не parsed object.
-        // Парсим JSON: {"queueSize": N}.
-        let size = 0
-        try {
-          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-          size = parsed?.queueSize ?? 0
-        } catch (e) {
-          console.warn('[ProcessWorker.checkCacheQueueSize] JSON parse failed:', e)
-        }
-        this.$store.dispatch('setCacheQueueSize', size)
       })
     },
     truncateString(name, maxSymbols) {
@@ -336,21 +310,6 @@ export default {
   border-radius: 5px;
   background-color: #28a745;
 }
-/* specs/132-hrwaiting-pool (OpenProject #132): голубой бейдж с размером
-   реального пула WAITING-задач HealthReportBatchPool.waitingQueue. Расположен
-   в правом верхнем углу кнопки Старт/Стоп (скрыт при 0 — см. showWaitingPoolBadge). */
-.text-count-waiting-blue {
-  font-size: x-small;
-  color: white;
-  position: absolute;
-  pointer-events: none;
-  top: 0;
-  left: 100%;
-  transform: translate(-50%, -50%);
-  padding: 0 4px;
-  border-radius: 5px;
-  background-color: #17a2b8;
-}
 .wrapper-bar {
   display: flex;
   height: 1rem;
@@ -360,8 +319,10 @@ export default {
   background-color: #e9ecef;
   border-radius: 0.25rem;
 }
-/* specs/118 #397: синий бейдж размера cache-очереди — правый верхний угол кнопки. */
-.text-cache-pool-size {
+/* specs/132-hrwaiting-pool (OpenProject #132): синий бейдж размера пула
+   WAITING-задач HealthReportBatchPool.waitingQueue (20 worker'ов) — правый
+   верхний угол кнопки; скрыт при 0 (см. showWaitingPoolBadge). */
+.text-waiting-pool-size {
   font-size: x-small;
   color: white;
   position: absolute;

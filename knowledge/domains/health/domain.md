@@ -71,8 +71,11 @@ Health отвечает за проверку: «эти три представ�
 - **`HealthReportBatchPool`** (`karaoke-app/.../services/HealthReportBatchPool.kt`)
   — асинхронный пул с приоритетной очередью для батч-запросов
   `healthReportList` (OpenProject #128). 10 worker-потоков, single-flight,
-  move-to-front. Детальный контракт — в
-  [health-report-batch-pool](components/health-report-batch-pool.md).
+  move-to-front. **С Pass 132 (OpenProject #132)** содержит **второй пул**
+  WAITING-задач (`waitingQueue`, 20 worker-потоков, LIFO, single-flight),
+  наполняемый из `recomputeAndBroadcast` записями со статусом `WAITING`;
+  размер рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE`. Детальный
+  контракт — в [health-report-batch-pool](components/health-report-batch-pool.md).
 
 ## Domain Invariants | Инварианты и правила бизнеса
 

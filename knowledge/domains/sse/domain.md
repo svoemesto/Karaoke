@@ -74,7 +74,7 @@ related:
 | `SYNC` | Статус two-DB sync | broadcast |
 | `HEALTH_REPORTS` | Обновление HealthReportList | broadcast |
 | `HEALTH_REPORT_POOL_COUNT` | Размер приоритетной очереди `HealthReportBatchPool` (Pass 128/129). Рассылается при изменении с подавлением дублей через `lastSentQueueSize`. Фронт — зелёный бейдж в `ProcessWorker.vue`. | broadcast |
-| `HEALTH_REPORT_WAITING_COUNT` | Σ WAITING-записей по всем песням, для которых получен HR (Pass 128/130). In-memory counter `HealthReport.waitingCountBySongId`, обновляется в `recomputeAndBroadcast`. Рассылается с подавлением дублей через `lastSentWaitingCount`. Фронт — голубой бейдж в правом верхнем углу кнопки `ProcessWorker.vue`. | broadcast |
+| `HEALTH_REPORT_WAITING_POOL_SIZE` | Размер реального backend-пула WAITING-задач `HealthReportBatchPool.waitingQueue` (OpenProject #132, specs/132-hrwaiting-pool). Пул LIFO с 20 worker-потоками, одно задание = один файл `WaitingFileTask(songId, source, bucket, fileName)`, single-flight. Воркеры синхронно проверяют файл и заполняют `StorageMetadataCache`, затем ставят песню в song-пул на пересчёт. Наполняется из `HealthReport.recomputeAndBroadcast` для записей со статусом `WAITING`. Рассылается с подавлением дублей через `lastSentWaitingPoolSize`. Фронт — синий бейдж в `ProcessWorker.vue` (скрыт при `0`). | broadcast |
 | `MONITOR_ALERTS` | Алерты мониторинга | broadcast |
 | `MASS_SEARCH_SUMMARY` | Сводка поиска (spec 316) | broadcast |
 

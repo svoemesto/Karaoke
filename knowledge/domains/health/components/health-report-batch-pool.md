@@ -33,13 +33,59 @@ class HealthReportBatchPool(
 | `enqueue(songIds: List<Long>)` | `fun` | Добавить песни в приоритетную очередь. Дедуп + move-to-front (см. алгоритм). |
 | `queueSize(): Int` | `fun` | Текущий размер очереди. Используется в unit-тестах и диагностике. |
 | `parseSongIds(raw: String?)` | `companion fun` | Парсит входную строку формата `"1;2;3"` в `List<Long>`. Невалидные значения молча отбрасываются. |
+| `enqueueWaiting(tasks: List<WaitingFileTask>)` | `fun` | Добавить WAITING-задачи (каждая — один файл) во второй пул. Move-to-front, дедуп, пропуск in-flight задач (Pass 132). |
+| `waitingQueueSize(): Int` | `fun` | Текущий размер очереди WAITING-задач. |
 
 **internal (для unit-тестов)**:
 
 | Поле | Назначение |
 |---|---|
 | `executor: ExecutorService` | Подменяется на `DirectExecutorService` в тестах, чтобы изолировать от реального `recomputeAndBroadcast`. |
+| `waitingExecutor: ExecutorService` | Executor второго пула (20 worker'ов). Подменяется в тестах. |
+| `waitingQueue: LinkedBlockingDeque<WaitingFileTask>` | Очередь WAITING-задач (thread-safe, без внешнего lock). |
 | `workersEnabled: Boolean` | Если `false` — `enqueue` НЕ запускает worker'ы (для тестов, чтобы не уходить в БД/MinIO). |
+| `waitingWorkersEnabled: Boolean` | То же для worker'ов второго пула. |
+
+### `WaitingFileTask` — одно задание = один файл
+
+```kotlin
+data class WaitingFileTask(
+    val songId: Long,
+    val source: String,   // "REMOTE" (пока только REMOTE даёт WAITING)
+    val bucket: String,
+    val fileName: String,
+)
+```
+
+`HealthReport` для WAITING-записи несёт `waitingFileTask`; `enqueueWaitingTasks`
+собирает их батчем и зовёт `enqueueWaiting`.
+
+### Два пула (Pass 132, OpenProject #132, specs/132-hrwaiting-pool)
+
+Первый пул (`priorityQueue`, 10 worker'ов) — **песни** для пересчёта.
+Второй пул (`waitingQueue`, 20 worker'ов) — **WAITING-задания на обновление
+кеша хранилища: одно задание = один файл**. Наполняется из
+`HealthReport.recomputeAndBroadcast` (записи со статусом `WAITING` несут
+`waitingFileTask`). 20 worker'ов:
+
+1. берут задачу из головы (`LinkedBlockingDeque.pollFirst()` — LIFO),
+2. **сами** синхронно проверяют файл и заполняют `StorageMetadataCache`
+   ([HealthReport.cachedFileExists]); именно здесь 20 потоков дают 20
+   параллельных проверок,
+3. ставят песню в `priorityQueue` (`enqueue`) — пересчёт HR и SSE делает
+   существующий song-пул (дедуп через `inFlight`).
+
+Размер пула рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE` (синий бейдж на
+фронте). `waitingInFlight` (`ConcurrentHashMap<WaitingFileTask, AtomicBoolean>`)
+даёт single-flight. `@PreDestroy` shutdown'ит **оба** executor'а.
+
+**Pass 132 fix (почему не fire-and-forget)**: раньше `actionsRemoteStorage` на
+cache miss уходил в `StorageMetadataCache.getFileExistsAsync` →
+`cacheFillerExecutor` (`ThreadPoolExecutor(corePoolSize=0, maxPoolSize=4,
+unbounded LinkedBlockingDeque)`). С безразмерной очередью Java не поднимает
+больше **одного** потока (рост только при заполненной очереди), поэтому вся
+проверка шла в `pool-2-thread-1`. Теперь fire-and-forget для REMOTE заменён
+на `peekFileExists` (только чтение кеша) + задачу в `waitingQueue`.
 
 ### Endpoint `POST /api/song/healthReportListBatch`
 
@@ -170,8 +216,13 @@ karaoke-app. См.:
 ## Тесты
 
 `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/HealthReportBatchPoolTest.kt` —
-10 unit-тестов (parseSongIds, enqueue, dedup, move-to-front, batch-at-front,
-concurrent enqueue). Все 10/10 PASS за ~1.1s.
+13 unit-тестов (parseSongIds, enqueue, dedup, move-to-front, batch-at-front,
+concurrent enqueue, SSE-dedup). Все 13/13 PASS.
+
+`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportWaitingPoolTest.kt` —
+16 unit-тестов второго пула (enqueueWaiting: голова/дедуп/move-to-front/фильтр/
+concurrent, single-flight, SSE-dedup, attach, `stop` обоих executor'ов).
+Все 16/16 PASS (Pass 132).
 
 ## Связанные ADR | Related ADRs
 
@@ -181,4 +232,7 @@ concurrent enqueue). Все 10/10 PASS за ~1.1s.
 
 ## История изменений
 
+- **Pass 132** (2026-09-18): Добавлен второй пул `waitingQueue` (20 worker'ов,
+  LIFO, single-flight) + SSE `HEALTH_REPORT_WAITING_POOL_SIZE`; удалён
+  SUM-подход #130. OpenProject #132, specs/132-hrwaiting-pool. Автор: agent (Karaoke).
 - **Pass 128** (2026-09-15): Initial. Автор: agent (Karaoke).

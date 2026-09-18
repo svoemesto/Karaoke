@@ -8,7 +8,8 @@
 
 ## OpenProject Tracking *(MANDATORY — see AGENTS.md § Issue-tracker OpenProject)*
 
-- **Issue ID**: `#132` («Бейдж количества WAITING-задач - 2»).
+- **Issue ID**: `#132`.
+- **Title**: «Бейдж количества WAITING-задач - 2».
 - **Parent map**: `#133` (`[wayfinder:map] #132 Real pool WAITING-задач HR с воркерами`).
 - **Дочерние тикеты карты**: #137 (backend), #138 (frontend), #139 (cleanup #130),
   #140 (tests).

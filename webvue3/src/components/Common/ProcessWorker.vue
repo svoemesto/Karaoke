@@ -134,7 +134,9 @@ export default {
     },
     // Бейдж показываем только когда есть WAITING-задачи (count > 0).
     showWaitingPoolBadge() {
-      return typeof this.healthReportWaitingPoolSize === 'number' && this.healthReportWaitingPoolSize > 0
+      return (
+        typeof this.healthReportWaitingPoolSize === 'number' && this.healthReportWaitingPoolSize > 0
+      )
     },
     // specs/118 #397: размер cache-очереди StorageMetadataCache.
     cacheQueueSize() {

@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.SearchAsync
 import com.svoemesto.karaokeapp.model.SearchResult
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SseNotification
-import com.svoemesto.karaokeapp.model.HealthReportWaitingCountMessage
+import com.svoemesto.karaokeapp.services.HealthReportBatchPool
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -18,7 +18,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.CompletableFuture
@@ -109,74 +108,24 @@ data class HealthReport(
         }
 
         /**
-         * Количество WAITING-записей в [HealthReport] по каждой песне, для которой
-         * хотя бы раз был сгенерирован HR (через `recomputeAndBroadcast`).
+         * Static reference to [HealthReportBatchPool] для постановки WAITING-задач
+         * во второй пул (OpenProject #132, specs/132-hrwaiting-pool).
          *
-         * Сумма значений по всем ключам = количество песен × кол-во WAITING в их HR.
-         * Рассылается через SSE-канал `HEALTH_REPORT_WAITING_COUNT` (Pass 130, #130).
+         * Инициализируется через [attachHealthReportBatchPool] (bridge-бин
+         * `HealthReportBatchPoolWiring.@PostConstruct`). Используется из
+         * [recomputeAndBroadcast] — там нельзя передать pool параметром (много
+         * вызывающих мест), поэтому статическая ссылка.
          *
-         * **Семантика** (владелец #130, 2026-09-15):
-         * - «Для каждой песни есть количество WAITING-записей в HR. Сумма по
-         *   всем песням, для которых на данный момент получен HR — и есть нужное число.»
-         * - Песни, которые сейчас **в очереди** HealthReportBatchPool (HR ещё не получен) —
-         *   НЕ учитываются (нет ключа в map).
-         *
-         * @see recomputeAndBroadcast единая точка обновления.
-         * @see com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_WAITING_COUNT
-         */
-        @JvmStatic
-        val waitingCountBySongId: ConcurrentHashMap<Long, AtomicLong> = ConcurrentHashMap()
-
-        /**
-         * Последнее значение total WAITING, фактически отправленное в SSE через
-         * [sendWaitingCountMessage]. Подавление дублей (паттерн скопирован из
-         * `HealthReportBatchPool.lastSentQueueSize` и `KaraokeProcessWorker.lastSentCountWaiting`).
-         *
-         * `null` — ещё ни разу не отправляли (после рестарта бэкенда).
+         * @see attachHealthReportBatchPool
+         * @see com.svoemesto.karaokeapp.services.HealthReportBatchPool.enqueueWaiting
          */
         @JvmStatic
         @Volatile
-        private var lastSentWaitingCount: Long? = null
+        var healthReportBatchPool: HealthReportBatchPool? = null
 
-        /**
-         * Рассылает через SSE-канал `HEALTH_REPORT_WAITING_COUNT` сумму WAITING по
-         * всем песням, для которых когда-либо был сгенерирован HR. Подавляет дубли
-         * (если `count` совпадает с [lastSentWaitingCount] — событие не шлётся).
-         */
         @JvmStatic
-        fun sendWaitingCountMessage(count: Long) {
-            val previous = lastSentWaitingCount
-            if (previous != null && previous == count) return
-            lastSentWaitingCount = count
-            try {
-                SNS.send(
-                    SseNotification.healthReportWaitingCount(
-                        HealthReportWaitingCountMessage(count = count),
-                    ),
-                )
-            } catch (e: Exception) {
-                val log = LoggerFactory.getLogger("infra.cache.hrpool")
-                log.warn("failed to broadcast HEALTH_REPORT_WAITING_COUNT (count=$count): ${e.message}", e)
-            }
-        }
-
-        /** Сумма [waitingCountBySongId] (synchronous). */
-        @JvmStatic
-        fun waitingCountTotal(): Long =
-            waitingCountBySongId.values.sumOf { it.get() }
-
-        /** Сбрасывает [lastSentWaitingCount] в `null` (только для unit-тестов). */
-        @JvmStatic
-        @Suppress("unused")
-        internal fun resetLastSentWaitingCountForTest() {
-            lastSentWaitingCount = null
-        }
-
-        /** Очищает [waitingCountBySongId] (только для unit-тестов). */
-        @JvmStatic
-        @Suppress("unused")
-        internal fun clearWaitingCountBySongIdForTest() {
-            waitingCountBySongId.clear()
+        fun attachHealthReportBatchPool(pool: HealthReportBatchPool) {
+            healthReportBatchPool = pool
         }
 
         /**
@@ -2466,16 +2415,39 @@ data class HealthReport(
             reconcilePlayerReadinessFlags(song, reports)
             val dtoErrors = reports.errorsOnly().map { it.toDTO() }
             SNS.send(SseNotification.healthReports(songId = songId, healthReportDtoList = dtoErrors))
-            // specs/130-hrwaiting-badge (#130, OpenProject): обновляем in-memory
-            // счётчик WAITING для этой песни и рассылаем актуальную сумму.
-            // Песни без HR (ещё в очереди HealthReportBatchPool) — НЕ появляются
-            // в waitingCountBySongId, как и требует владелец.
-            val waitingCount = reports.count { it.healthReportStatus == WAITING }
-            waitingCountBySongId.compute(songId) { _, existing ->
-                if (waitingCount == 0) null else AtomicLong(waitingCount.toLong())
-            }
-            sendWaitingCountMessage(waitingCountTotal())
+            // specs/132-hrwaiting-pool (OpenProject #132): WAITING-записи — это
+            // задания на обновление кеша хранилища. Кладём их во второй пул
+            // HealthReportBatchPool (20 worker'ов) как пары (songId, location).
+            // Worker'ы разгребают пул, размер рассылается через SSE
+            // HEALTH_REPORT_WAITING_POOL_SIZE (голубой бейдж на фронте).
+            enqueueWaitingTasks(songId, reports)
             return reports
+        }
+
+        /**
+         * Собирает WAITING-записи из [reports] и ставит их в [healthReportBatchPool]
+         * (OpenProject #132). Формат `description` — `"<fileType>/<location.name>"`,
+         * поэтому location восстанавливается через
+         * [com.svoemesto.karaokeapp.services.HealthReportBatchPool.parseWaitingTask].
+         *
+         * Батчем (один вызов `enqueueWaiting`), а не по одной задаче — меньше
+         * SSE-событий и захватов очереди.
+         */
+        private fun enqueueWaitingTasks(songId: Long, reports: List<HealthReport>) {
+            val pool = healthReportBatchPool ?: return
+            val tasks =
+                reports
+                    .asSequence()
+                    .filter { it.healthReportStatus == WAITING }
+                    .mapNotNull { HealthReportBatchPool.parseWaitingTask(songId, it.description) }
+                    .toList()
+            if (tasks.isEmpty()) return
+            try {
+                pool.enqueueWaiting(tasks)
+            } catch (e: Exception) {
+                val log = LoggerFactory.getLogger("infra.cache.hrpool")
+                log.warn("failed to enqueue waiting tasks for songId=$songId: ${e.message}", e)
+            }
         }
 
         // Разовый backfill персистентных флагов готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql)

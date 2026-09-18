@@ -404,11 +404,11 @@ export default {
           this.setHealthReportPoolCount(userEvent.data)
           break
         }
-        // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по
-        // всем песням, для которых получен HR. Рассылается через SNS при
-        // каждом изменении (с подавлением дублей в HealthReport.companion).
-        case 'HEALTH_REPORT_WAITING_COUNT': {
-          this.setHealthReportWaitingCount(userEvent.data)
+        // specs/132-hrwaiting-pool (OpenProject #132): размер реального пула
+        // WAITING-задач HealthReportBatchPool.waitingQueue (второй пул, 20 worker'ов).
+        // Рассылается через SNS при каждом изменении (с подавлением дублей).
+        case 'HEALTH_REPORT_WAITING_POOL_SIZE': {
+          this.setHealthReportWaitingPoolSize(userEvent.data)
           break
         }
         case 'MONITOR_ALERTS': {
@@ -449,9 +449,9 @@ export default {
     setHealthReportPoolCount(userEventData) {
       this.$store.dispatch('setHealthReportPoolCount', userEventData)
     },
-    // specs/130-hrwaiting-badge (OpenProject #130).
-    setHealthReportWaitingCount(userEventData) {
-      this.$store.dispatch('setHealthReportWaitingCount', userEventData)
+    // specs/132-hrwaiting-pool (OpenProject #132).
+    setHealthReportWaitingPoolSize(userEventData) {
+      this.$store.dispatch('setHealthReportWaitingPoolSize', userEventData)
     },
     updateSongByUserEvent(userEventData) {
       this.$store.dispatch('updateSongByUserEvent', userEventData)

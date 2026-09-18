@@ -26,11 +26,17 @@
            бейджа countWaiting (симметрично). Обновляется через SSE
            HEALTH_REPORT_POOL_COUNT (см. App.vue). -->
       <div class="text-count-waiting-green" v-text="healthReportPoolCount" />
-      <!-- specs/130-hrwaiting-badge (OpenProject #130): голубой бейдж с Σ WAITING
-           по всем песням, для которых получен HR. Расположен в правом верхнем
-           углу кнопки Старт/Стоп (симметрично серому снизу). Обновляется через
-           SSE HEALTH_REPORT_WAITING_COUNT (см. App.vue). -->
-      <div class="text-count-waiting-blue" v-text="healthReportWaitingCount" />
+      <!-- specs/132-hrwaiting-pool (OpenProject #132): голубой бейдж с размером
+           реального backend-пула WAITING-задач HealthReportBatchPool.waitingQueue
+           (второй пул, 20 worker'ов). Расположен в правом верхнем углу кнопки
+           Старт/Стоп. Показывается только при count > 0 (симметрично зелёному
+           скрывается при нуле). Обновляется через SSE
+           HEALTH_REPORT_WAITING_POOL_SIZE (см. App.vue). -->
+      <div
+        v-show="showWaitingPoolBadge"
+        class="text-count-waiting-blue"
+        v-text="healthReportWaitingPoolSize"
+      />
       <!-- specs/118 #397: бейдж размера cache-очереди StorageMetadataCache (правый верхний угол).
            Показывается всегда (даже если queueSize=0), чтобы пользователь видел индикатор активности. -->
       <div class="text-cache-pool-size" v-text="cacheQueueSize" />
@@ -63,10 +69,10 @@ import CustomConfirm from './CustomConfirm.vue'
  * `HealthReportBatchPool` на бэке. Показывается зелёным бейджем слева от
  * кнопки Старт/Стоп.
  *
- * Также подписывается на `HEALTH_REPORT_WAITING_COUNT` (OpenProject #130,
- * specs/130-hrwaiting-badge) — Σ WAITING-записей по всем песням, для которых
- * получен HR. Показывается голубым бейджем в правом верхнем углу кнопки
- * Старт/Стоп.
+ * Также подписывается на `HEALTH_REPORT_WAITING_POOL_SIZE` (OpenProject #132,
+ * specs/132-hrwaiting-pool) — размер реального backend-пула WAITING-задач
+ * `HealthReportBatchPool.waitingQueue` (второй пул, 20 worker'ов). Показывается
+ * голубым бейджем в правом верхнем углу кнопки Старт/Стоп и скрывается при 0.
  *
  * @see archive/docs/features/async-process-queue.md
  */
@@ -121,10 +127,14 @@ export default {
     healthReportPoolCount() {
       return this.$store.getters.getHealthReportPoolCount
     },
-    // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по всем
-    // песням, для которых получен HR.
-    healthReportWaitingCount() {
-      return this.$store.getters.getHealthReportWaitingCount
+    // specs/132-hrwaiting-pool (OpenProject #132): размер реального backend-пула
+    // WAITING-задач HealthReportBatchPool.waitingQueue.
+    healthReportWaitingPoolSize() {
+      return this.$store.getters.getHealthReportWaitingPoolSize
+    },
+    // Бейдж показываем только когда есть WAITING-задачи (count > 0).
+    showWaitingPoolBadge() {
+      return typeof this.healthReportWaitingPoolSize === 'number' && this.healthReportWaitingPoolSize > 0
     },
     // specs/118 #397: размер cache-очереди StorageMetadataCache.
     cacheQueueSize() {
@@ -324,9 +334,9 @@ export default {
   border-radius: 5px;
   background-color: #28a745;
 }
-/* specs/130-hrwaiting-badge (OpenProject #130): голубой бейдж с Σ WAITING
-   по всем песням, для которых получен HR. Расположен в правом верхнем углу
-   кнопки Старт/Стоп (симметрично серому бейджу снизу). */
+/* specs/132-hrwaiting-pool (OpenProject #132): голубой бейдж с размером
+   реального пула WAITING-задач HealthReportBatchPool.waitingQueue. Расположен
+   в правом верхнем углу кнопки Старт/Стоп (скрыт при 0 — см. showWaitingPoolBadge). */
 .text-count-waiting-blue {
   font-size: x-small;
   color: white;

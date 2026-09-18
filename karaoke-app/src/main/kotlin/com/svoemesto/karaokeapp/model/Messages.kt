@@ -74,16 +74,17 @@ data class HealthReportPoolCountMessage(
 )
 
 /**
- * Класс Health Report Waiting Count Message.
+ * Класс Health Report Waiting Pool Size Message.
  *
- * SSE-payload для [com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_WAITING_COUNT]
- * (OpenProject #130, specs/130-hrwaiting-badge). Сумма количества WAITING-записей
- * по всем песням, для которых получен HR (на момент recomputeAndBroadcast).
+ * SSE-payload для [com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_WAITING_POOL_SIZE]
+ * (OpenProject #132, specs/132-hrwaiting-pool). Размер реального backend-пула
+ * WAITING-задач `HealthReportBatchPool.waitingQueue` — второго пула, который
+ * 20 worker-потоками разгребает задания на обновление кеша хранилища.
  *
  * Фронт: `webvue3/src/components/Common/ProcessWorker.vue` рисует голубой
  * бейдж с этим числом в правом верхнем углу кнопки Старт/Стоп.
  */
-data class HealthReportWaitingCountMessage(
+data class HealthReportWaitingPoolSizeMessage(
     val count: Long,
 )
 

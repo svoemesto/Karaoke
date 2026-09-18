@@ -33,11 +33,12 @@ enum class SseNotificationType(
     // бейдж в ProcessWorker.vue.
     HEALTH_REPORT_POOL_COUNT("healthReportPoolCount"),
 
-    // specs/130-hrwaiting-badge (OpenProject #130): Σ WAITING-записей по всем
-    // песням, для которых получен HR. Рассылается при изменении (с подавлением
-    // дублей — lastSentWaitingCount в HealthReport.companion). Фронт рисует
+    // specs/132-hrwaiting-pool (OpenProject #132): размер реального backend-пула
+    // WAITING-задач HealthReportBatchPool.waitingQueue (второй пул, 20 worker'ов,
+    // LIFO, move-to-front). Рассылается при каждом изменении размера (с подавлением
+    // дублей — lastSentWaitingPoolSize в HealthReportBatchPool). Фронт рисует
     // голубой бейдж в правом верхнем углу кнопки Старт/Стоп (ProcessWorker.vue).
-    HEALTH_REPORT_WAITING_COUNT("healthReportWaitingCount"),
+    HEALTH_REPORT_WAITING_POOL_SIZE("healthReportWaitingPoolSize"),
 
     MONITOR_ALERTS("monitorAlerts"),
 

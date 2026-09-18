@@ -18,6 +18,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
@@ -4125,6 +4126,38 @@ fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> =
         if (idx == -1) entry to "" else entry.substring(0, idx) to entry.substring(idx + 1)
     }
 
+/**
+ * Обновляет persistent-кеш метаданных ([StorageMetadataCache]) после
+ * **подтверждённого напрямую** наличия файла в хранилище (write-through).
+ *
+ * **Зачем** (OpenProject #132 follow-up): HealthReport принимает решение по
+ * кешу, а `executeUploadTo*Store` проверяет хранилище напрямую. Если кеш
+ * устарел (`exists=false`, например после временного сбоя MinIO), HealthReport
+ * бесконечно создаёт задание «загрузить файл», а задача, видя файл в хранилище,
+ * ничего не делает и рапортует успех — цикл. Write-through после direct-check
+ * разрывает цикл: следующий пересчёт HR видит `exists=true`.
+ *
+ * @param source `StorageMetadataCache.SOURCE_LOCAL` или `SOURCE_REMOTE`.
+ */
+private fun refreshStorageMetadataCache(
+    source: String,
+    bucketName: String,
+    fileName: String,
+) {
+    val cache = HealthReport.storageMetadataCache ?: return
+    runCatching {
+        if (source == StorageMetadataCache.SOURCE_REMOTE) {
+            val info = SAC_APP.getFileInfo(bucketName = bucketName, fileName = fileName).block()
+            cache.recordUpload(source, bucketName, fileName, info?.etag, info?.size)
+        } else {
+            val info = KSS_APP.getFileInfo(bucketName = bucketName, fileName = fileName)
+            cache.recordUpload(source, bucketName, fileName, info.etag, info.size)
+        }
+    }.onFailure {
+        println("Не удалось обновить кеш метаданных ($source) для '$fileName': ${it.message}")
+    }
+}
+
 fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     val songId = params["songId"]?.toLongOrNull() ?: return false
     val song =
@@ -4302,7 +4335,14 @@ fun executeUploadToLocalStore(
     val storageFileName = params["storageFileName"] ?: "${song.storageFileName}${fileType.suffix}.${fileType.extention}"
     val bucketName = params["bucketName"] ?: song.storageBucketName
     val existsInLocalStorage = storageService.fileExists(bucketName = bucketName, fileName = storageFileName)
-    if (existsInLocalFileSystem && !existsInLocalStorage) {
+    if (existsInLocalStorage) {
+        // Файл уже есть в локальном хранилище (direct-check): синхронизируем кеш,
+        // чтобы HealthReport перестал видеть устаревший exists=false и не
+        // плодил бесконечные задания (OpenProject #132 follow-up).
+        refreshStorageMetadataCache(StorageMetadataCache.SOURCE_LOCAL, bucketName, storageFileName)
+        return true
+    }
+    if (existsInLocalFileSystem) {
         val file = File(pathToFile)
         val totalSize = file.length()
         val stream =
@@ -4318,8 +4358,13 @@ fun executeUploadToLocalStore(
             size = totalSize,
         )
         if (deleteAfterUpload) Files.deleteIfExists(file.toPath())
+        return true
     }
-    return true
+    // Нет ни в хранилище, ни на диске — загружать нечего. Раньше возвращался true
+    // («успех» без результата); теперь это честный провал, чтобы задание ушло в
+    // ERROR, а не зациклилось.
+    println("executeUploadToLocalStore: нечего загружать — '$pathToFile' отсутствует на диске, а '$storageFileName' нет в локальном хранилище")
+    return false
 }
 
 fun executeUploadToRemoteStore(
@@ -4349,16 +4394,42 @@ fun executeUploadToRemoteStore(
     val storageFileName = params["storageFileName"] ?: "${song.storageFileName}${fileType.suffix}.${fileType.extention}"
     val bucketName = params["bucketName"] ?: song.storageBucketName
     val existsInRemoteStorage = storageApiClient.fileExists(bucketName = bucketName, fileName = storageFileName)
-    if (existsInLocalFileSystem && !existsInRemoteStorage) {
-        storageApiClient.uploadFile(
-            bucketName = bucketName,
-            fileName = storageFileName,
-            pathToFileOnDisk = pathToFile,
-            onProgress = onProgress,
-        )
-        if (deleteAfterUpload) Files.deleteIfExists(File(pathToFile).toPath())
+    if (existsInRemoteStorage) {
+        // Файл уже есть в удалённом хранилище (direct-check): синхронизируем кеш,
+        // чтобы HealthReport перестал видеть устаревший exists=false и не плодил
+        // бесконечные задания «загрузить файл» (OpenProject #132 follow-up).
+        // Раньше функция в этом случае ничего не делала, но возвращала true —
+        // отсюда «DONE успешно» за ~100 мс без загрузки и вечный цикл.
+        refreshStorageMetadataCache(StorageMetadataCache.SOURCE_REMOTE, bucketName, storageFileName)
+        // Если файл забирали из локального хранилища во временный — удаляем его,
+        // он больше не нужен (upload не требовался).
+        if (deleteAfterUpload && existsInLocalFileSystem) {
+            Files.deleteIfExists(File(pathToFile).toPath())
+        }
+        return true
     }
-    return true
+    if (existsInLocalFileSystem) {
+        // uploadFile возвращает null при ошибке (и логирует причину) — не
+        // рапортуем успех, иначе задание станет DONE, а файла в хранилище не будет.
+        val uploaded =
+            storageApiClient.uploadFile(
+                bucketName = bucketName,
+                fileName = storageFileName,
+                pathToFileOnDisk = pathToFile,
+                onProgress = onProgress,
+            )
+        if (uploaded == null) {
+            println("executeUploadToRemoteStore: загрузка '$pathToFile' -> '$storageFileName' не удалась")
+            return false
+        }
+        if (deleteAfterUpload) Files.deleteIfExists(File(pathToFile).toPath())
+        return true
+    }
+    // Нет ни в хранилище, ни на диске — загружать нечего. Раньше возвращался true
+    // («успех» без результата); теперь это честный провал, чтобы задание ушло в
+    // ERROR, а не зациклилось.
+    println("executeUploadToRemoteStore: нечего загружать — '$pathToFile' отсутствует на диске, а '$storageFileName' нет в удалённом хранилище")
+    return false
 }
 
 fun executeRenderMp4(

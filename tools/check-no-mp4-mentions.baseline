@@ -104,11 +104,11 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:204
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:33
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:83
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2009
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2019
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4416
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4434
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4444
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2010
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2020
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4487
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4505
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4515
 karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt:197
 karaoke-public/src/components/SongSubscriptionModal.vue:30
 karaoke-public/src/player/KaraokePlayer.js:120

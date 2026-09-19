@@ -99,6 +99,11 @@ two-DB sync, поиск lyrics, авто-публикация.
   расширен в [Pass 357](../../../../specs/357-folder-import-overwrite/spec.md) — 30+ мест
   переведены. Внутри пишет WARN `song.locked_save_diff_overlap` в `infra.prod.ping`
   лог при обнаружении расхождения между in-memory и БД (операционная диагностика).
+- **Хук аудио-потомков** (#141, specs/413): обе ветки сохранения вызывают
+  `SyncAudioDescendants.onSongSaved(...)` после успешного UPDATE. `saveToDbLocked()`
+  подавляет pre-commit вызов через `suppressTriggers` и повторяет хук после `commit()`,
+  чтобы воркер синхронизации читал уже зафиксированный статус родителя. См.
+  [audio-descendant-sync](audio-descendant-sync.md).
 
 ## Связь с другими компонентами
 

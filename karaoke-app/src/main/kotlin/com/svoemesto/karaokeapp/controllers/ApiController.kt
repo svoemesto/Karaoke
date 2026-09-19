@@ -5900,6 +5900,15 @@ class ApiController(
         )
     }
 
+    // specs/413-sync-audio-descendants (#141): массовая синхронизация аудио-потомков.
+    // Перебирает всех потомков (audio_parent_id <> 0, id_status < 6), группирует по родителю
+    // и обрабатывает каждого уникального родителя один раз (последовательно, в фоне).
+    // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если проход уже идёт.
+    // @see specs/413-sync-audio-descendants/contracts/http-endpoint-syncaudioparents.md
+    @PostMapping("/utils/syncaudioparents")
+    @ResponseBody
+    fun doSyncAudioParents(): String = SyncAudioDescendants.syncAll()
+
     // specs/277-song-name-censored: фоновый реckan tbl_songs.song_name_censored по словарю «Censored».
     // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт (см. Utils.rescanAllCensoredNames).
     @PostMapping("/utils/rescanallcensorednames")

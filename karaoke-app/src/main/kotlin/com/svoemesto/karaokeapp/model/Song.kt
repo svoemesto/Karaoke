@@ -5513,6 +5513,20 @@ class Song(
                 }
                 ps.close()
 
+                // specs/413-sync-audio-descendants (#141): хук синхронизации аудио-потомков.
+                // Вызывается после успешного UPDATE; saveToDbLocked() подавляет этот вызов
+                // (suppressTriggers) и повторяет хук после commit, чтобы воркер читал уже
+                // зафиксированный статус родителя. Ошибка хука не должна ломать сохранение.
+                try {
+                    SyncAudioDescendants.onSongSaved(
+                        song = this,
+                        previous = savedSong,
+                        changedContentFields = diff.map { it.recordDiffName }.toSet(),
+                    )
+                } catch (e: Exception) {
+                    println("[sync-audio] hook error songId=$id: ${e.message}")
+                }
+
 //                println(messageRecordChange.toString())
 
                 try {
@@ -5690,9 +5704,22 @@ class Song(
                 // делает loadFromDbById повторно (вернёт те же данные, что мы только что загрузили
                 // под блокировкой), считает diff с this, пишет UPDATE. Поскольку this и savedSong
                 // синхронизированы lock'ом, перезатирания параллельных изменений не произойдёт.
-                saveToDb()
+                //
+                // specs/413-sync-audio-descendants (#141): хук аудио-потомков подавляем на время
+                // pre-commit saveToDb() — воркер должен видеть уже зафиксированный статус родителя.
+                SyncAudioDescendants.suppressTriggers { saveToDb() }
                 connection.commit()
                 committed = true
+                // Хук — после commit: статус родителя уже виден другим соединениям.
+                try {
+                    SyncAudioDescendants.onSongSaved(
+                        song = this,
+                        previous = savedSong,
+                        changedContentFields = getDiff(this, savedSong).map { it.recordDiffName }.toSet(),
+                    )
+                } catch (e: Exception) {
+                    println("[sync-audio] hook error songId=$id: ${e.message}")
+                }
                 true
             }
         } catch (e: java.sql.SQLException) {

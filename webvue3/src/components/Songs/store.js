@@ -2491,6 +2491,19 @@ export default {
       let request = { method: 'POST', url: '/api/utils/findaudioparentforauthor', params: params }
       return promisedXMLHttpRequest(request)
     },
+    /**
+     * specs/413-sync-audio-descendants (#141): массовая синхронизация аудио-потомков
+     * с главной страницы админки. Перебирает потомков (audio_parent_id <> 0, статус <6),
+     * для каждого родителя (статус >=5) повторно сверяет аудио и переносит контент.
+     * Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если проход уже идёт.
+     * @returns {Promise<string>}
+     * @see specs/413-sync-audio-descendants/spec.md
+     * @see docs/features/sync-audio-descendants.md
+     */
+    syncAudioParentsPromise() {
+      let request = { method: 'POST', url: '/api/utils/syncaudioparents' }
+      return promisedXMLHttpRequest(request)
+    },
     deleteDublicatesPromise() {
       let request = { method: 'POST', url: '/api/utils/deldublicates' }
       return promisedXMLHttpRequest(request)

@@ -144,6 +144,17 @@
         >
           Поиск родителей и аудио-родителей (Custom Function)
         </button>
+        <!-- specs/413-sync-audio-descendants (#141): массовая синхронизация аудио-потомков.
+             Перебирает потомков (audio_parent_id <> 0, статус <6), для каждого родителя (статус>=5)
+             повторно сверяет аудио (порог 95%) и при успехе переносит текст/маркеры со сдвигом,
+             выставляет статус 5. Идёт в фоне, итог приходит SSE-уведомлением. -->
+        <button
+          class="button-action"
+          title="Синхронизировать аудио-потомков: перенести актуальные текст/маркеры родителей в похожие по звучанию песни"
+          @click="syncAudioParents"
+        >
+          Синхронизировать аудио-потомков (Custom Function)
+        </button>
         <!-- specs/277-song-name-censored: фоновый реckan tbl_songs.song_name_censored по словарю «Censored».
              Операция тяжёлая (≈18k строк), перезаписывает ВСЕ цензурированные названия — включая
              ручные правки в SongEdit. Идёт в фоне, итог приходит SSE-уведомлением. -->
@@ -881,6 +892,36 @@ export default {
           alertType: 'info',
           header: 'Поиск родителей и аудио-родителей',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // specs/413-sync-audio-descendants (#141): массовая синхронизация аудио-потомков.
+    // По образцу customFunction: подтверждение → фоновый запуск → SSE-уведомление по завершении.
+    // @see specs/413-sync-audio-descendants/spec.md
+    syncAudioParents() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Запустить синхронизацию аудио-потомков для всех песен?<br>` +
+          `Для каждого родителя (статус ≥ 5) с потомками (audio_parent_id, статус &lt; 6) будет повторно выполнена аудио-сверка (порог 95%); при успехе в потомка переносятся текст/маркеры/форматирование со сдвигом, обновляются аудио-метрики и статус переводится в 5.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Можно запускать повторно, чтобы подхватить новые изменения.</strong>`,
+        timeout: 15,
+        callback: this.doSyncAudioParents,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doSyncAudioParents() {
+      this.$store.dispatch('syncAudioParentsPromise').then((response) => {
+        const alreadyRunning = response === 'ALREADY_RUNNING'
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: alreadyRunning ? 'warning' : 'info',
+          header: 'Синхронизация аудио-потомков',
+          body: alreadyRunning
+            ? `Уже запущено — дождитесь завершения текущего прохода.`
+            : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true

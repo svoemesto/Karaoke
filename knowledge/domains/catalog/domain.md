@@ -133,6 +133,9 @@ MLT-конвейером).
 - [song-lifecycle](components/song-lifecycle.md) — переходы `idStatus`
   1→2→3→4→5→6, доменные события `SongStatusChanged` / `SongPublished`,
   роли участников пайплайна.
+- [audio-descendant-sync](components/audio-descendant-sync.md) — механизм
+  «Синхронизация аудио-потомков» (#141): хук `Song.saveToDb`, очередь,
+  аудио-сверка, перенос контента родителя в потомков.
 
 ## Связанные фичи
 

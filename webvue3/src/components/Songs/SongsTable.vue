@@ -226,6 +226,27 @@
             v-text="data.value"
           />
         </template>
+        <!-- OpenProject #142: тональность сокращённо (C minor → Cm, D major → D) и темп. -->
+        <template #cell(tonality)="data">
+          <div
+            class="fld-tonality"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="shortKey(data.item.key)"
+          />
+        </template>
+        <template #cell(bpm)="data">
+          <div
+            class="fld-bpm"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.item.bpm > 0 ? data.item.bpm : '-'"
+          />
+        </template>
         <template #cell(healthReportText)="data">
           <div
             class="fld-health-report-text"
@@ -552,6 +573,7 @@ import CustomConfirm from '../../components/Common/CustomConfirm.vue'
 import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
 import ReviewModal from '../SongEditor/ReviewModal.vue'
 import { promisedXMLHttpRequest } from '../../lib/utils'
+import KaraokePlayer from '../../player/KaraokePlayer.js'
 
 const ASSIGN_STATUS_LABELS = {
   assigned: 'Назначено',
@@ -884,6 +906,28 @@ export default {
           style: {
             minWidth: '60px',
             maxWidth: '60px',
+            textAlign: 'center',
+            fontSize: 'small',
+          },
+        },
+        {
+          key: 'tonality',
+          sortable: false,
+          label: 'Ton',
+          style: {
+            minWidth: '45px',
+            maxWidth: '45px',
+            textAlign: 'center',
+            fontSize: 'small',
+          },
+        },
+        {
+          key: 'bpm',
+          sortable: true,
+          label: 'BPM',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
             textAlign: 'center',
             fontSize: 'small',
           },
@@ -1285,6 +1329,18 @@ export default {
     openRootSong(id) {
       if (!id || id <= 0) return
       this.editSong(id)
+    },
+    /**
+     * OpenProject #142: краткое обозначение тональности для колонки Ton.
+     * Делегирует в `KaraokePlayer._shortKey` — единый визуал с плеером:
+     * «C minor» → «Cm», «D major» → «D», «Bb minor» → «A#m».
+     * Пустая/нераспознанная тональность → «-».
+     *
+     * @param {string} key - сырая тональность из SongDTOdigest.key
+     * @returns {string}
+     */
+    shortKey(key) {
+      return KaraokePlayer._shortKey(key) || '-'
     },
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
@@ -2186,6 +2242,22 @@ export default {
 .fld-timecode {
   min-width: 60px;
   max-width: 60px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-tonality {
+  min-width: 45px;
+  max-width: 45px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-bpm {
+  min-width: 50px;
+  max-width: 50px;
   text-align: center;
   font-size: small;
   white-space: nowrap;

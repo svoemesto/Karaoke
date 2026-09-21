@@ -107,6 +107,11 @@ data class SongDTOdigest(
     // Фаза 2 автопубликации (specs/113-telegram-demo-publish): для badge в SongsTable —
     // заполнен ли message_id демо-версии в Telegram. Пусто = не опубликовано.
     val idTelegramDemo: String = "",
+    // OpenProject #142: тональность и темп для колонок Ton/BPM в таблице песен админки.
+    // key — сырая строка («C minor», «Am»), сокращение до «Cm»/«A» делает фронтенд
+    // (KaraokePlayer._shortKey). bpm — 0 если не задан.
+    val key: String = "",
+    val bpm: Long = 0,
 ) : Serializable,
     Comparable<SongDTOdigest> {
     private val sortString: String get() {

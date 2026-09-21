@@ -375,5 +375,7 @@ data class SongDTO(
             albumId = albumId,
             albumName = albumName,
             idTelegramDemo = idTelegramDemo,
+            key = key,
+            bpm = bpm,
         )
 }

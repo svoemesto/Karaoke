@@ -34,7 +34,7 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 | `SongAssignmentDto` | Задание | `/api/songassignment/list` |
 | `SongCoAuthorDTO` | Со-автор | (internal) |
 | `SongDTO` | Песня (главный) | `/api/songs/list`, повсюду |
-| `SongDTOdigest` | Краткая инфа о песне | `/api/songs/digest` |
+| `SongDTOdigest` | Краткая инфа о песне | `/api/songsdigests` (в т.ч. `key`/`bpm` для колонок Ton/BPM в `SongsTable.vue`, OpenProject #142) |
 | `SongShortInfoDto` | Ещё короче | (internal) |
 | `StatsDebugDto` | Debug статистика | `/api/stats/debug` |
 | `StemJobDto` | StemJob | `/api/stemjobs/list` |

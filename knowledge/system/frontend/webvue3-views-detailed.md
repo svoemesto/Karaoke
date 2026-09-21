@@ -76,6 +76,21 @@ export default {
 - **Каждое открытие** view = mount table = fetch `digest`.
 - **Bulk-operations** — в `SongsView` (sync, push, pull, delete).
 
+## Колонки SongsTable (OpenProject #142)
+
+`SongsTable.vue` рендерит колонки из `songDigestFields` (bootstrap-vue-next
+`<b-table :fields>`). Помимо прочих, между `t/c` и `HR` стоят две
+колонки, добавленные в #142:
+
+- `tonality` («Ton») — краткая тональность из `SongDTOdigest.key` через
+  `KaraokePlayer._shortKey` («C minor» → «Cm», «D major» → «D»), `-` при
+  отсутствии. Не сортируется.
+- `bpm` («BPM») — `SongDTOdigest.bpm`, `-` при `0`. Сортируемая.
+
+Backend `SongDTOdigest` расширен полями `key: String` и `bpm: Long`
+(значения из `SongDTO`, заполняются в `SongDTO.toDtoDigest()`).
+
+
 ## Связь
 
 - [vuex-patterns.md](vuex-patterns.md) — общие паттерны.

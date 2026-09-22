@@ -300,6 +300,24 @@ Circuit breaker продолжает работать как задумано (`
 
 См. `specs/432-circuit-probe-consumed-by-healthcheck/spec.md`.
 
+## Pass 433: isFastFail cooldown-aware (Spec #433, OpenProject #157)
+
+**Регресс от Pass 432**: `isFastFail()` возвращал `true` для `OPEN` **и после
+истечения cooldown**. Тогда HealthReport fast-fail'ил всегда, реальные вызовы не
+доходили до `decorate`, `acquire()` (единственный, кто делает `OPEN→HALF_OPEN`) не
+вызывался **никем** → probe не стартовал → circuit **залипал в OPEN навсегда**
+(наблюдение 2026-09-22: 18:15 OPEN, `OPEN→HALF_OPEN`=0, `decision=FastFail`=0).
+
+**Fix (Pass 433)**: `isFastFail()` cooldown-aware:
+- `CLOSED` → `false`;
+- `HALF_OPEN` → `true` (probe в полёте);
+- `OPEN` → `true` **пока cooldown не истёк**, иначе `false` (вызов пропускается к probe).
+
+Итог: диагностика даёт fail-fast до cooldown (без MinIO-вызова) и **не блокирует**
+probe-путь после cooldown. `acquire()` не изменён.
+
+См. `specs/433-circuit-fastfail-cooldown-aware/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

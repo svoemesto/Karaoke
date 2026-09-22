@@ -254,8 +254,9 @@ class StorageCircuitBreakerTest {
     }
 
     /**
-     * Pass 432 (#156): диагностический `isFastFail()` НЕ переводит OPEN→HALF_OPEN
-     * и не потребляет probe — реальный probe остаётся за `acquire()`.
+     * Pass 432 (#156) + Pass 433 (#157): диагностический `isFastFail()` НЕ переводит
+     * OPEN→HALF_OPEN и не потребляет probe. После истечения cooldown возвращает
+     * `false` — вызов пропускается к probe (`acquire()` в decorate).
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
@@ -265,8 +266,9 @@ class StorageCircuitBreakerTest {
         assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
         Thread.sleep(1L) // cooldown elapsed
 
-        // Диагностика (HealthReport) видит fast-fail, но НЕ трогает state.
-        assertTrue(c.isFastFail(), "OPEN must be fast-fail")
+        // Диагностика (HealthReport) после cooldown НЕ блокирует (isFastFail=false),
+        // и НЕ трогает state.
+        assertFalse(c.isFastFail(), "OPEN after cooldown must not fast-fail")
         assertEquals(StorageCircuitBreaker.State.OPEN, c.state(), "diagnostics must not transition to HALF_OPEN")
 
         // Реальный вызов получает probe (никто его не «съел»).
@@ -276,12 +278,23 @@ class StorageCircuitBreakerTest {
         assertEquals(StorageCircuitBreaker.State.CLOSED, c.state(), "probe success must close circuit")
     }
 
+    /**
+     * Pass 433 (#157): cooldown-семантика isFastFail.
+     */
     @Test
-    fun `isFastFail mirrors acquire for CLOSED and HALF_OPEN`() {
-        val c = cb()
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    fun `isFastFail is cooldown-aware`() {
+        val c = cb(threshold = 1, cooldown = 30L)
         assertEquals(StorageCircuitBreaker.State.CLOSED, c.state())
         assertFalse(c.isFastFail(), "CLOSED must not fast-fail")
 
+        c.recordFailure(RuntimeException("boom")) // CLOSED -> OPEN
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+        // Cooldown НЕ истёк (30s) → fast-fail.
+        assertTrue(c.isFastFail(), "OPEN before cooldown must fast-fail")
+
+        // Переводим в HALF_OPEN вручную через acquire? Нет — cooldown не истёк.
+        // Проверим HALF_OPEN: короткий cooldown.
         val c2 = cb(threshold = 1, cooldown = 0L)
         c2.recordFailure(RuntimeException("boom"))
         Thread.sleep(1L)

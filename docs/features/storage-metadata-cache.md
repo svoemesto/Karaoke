@@ -236,8 +236,15 @@ Open design question — это **отдельная спека 345+**, не в�
   MinIO-вызов не исполнял → probe терялся → watchdog возвращал OPEN (вечный цикл).
   См. [specs/432-circuit-probe-consumed-by-healthcheck/spec.md](../../specs/432-circuit-probe-consumed-by-healthcheck/spec.md).
 
+- **#157 / Spec #433 / Pass 433**: cooldown-aware `isFastFail()` — регресс #156:
+  после cooldown диагностика больше не fast-fail'ит, вызов доходит до `decorate`
+  и становится probe'ом (circuit восстанавливается, а не залипает в OPEN).
+  См. [specs/433-circuit-fastfail-cooldown-aware/spec.md](../../specs/433-circuit-fastfail-cooldown-aware/spec.md).
+
 ## История версий
 
+- **V2.8** (Pass 433, 2026-09-22, OpenProject #157): `isFastFail()` cooldown-aware —
+  circuit не залипает в OPEN после cooldown (регресс #156).
 - **V2.7** (Pass 432, 2026-09-22, OpenProject #156): диагностика circuit через
   нетранзишн `isFastFail()` — устранён вечный цикл `OPEN→HALF_OPEN→watchdog OPEN`
   (probe больше не «съедается» HealthReport).

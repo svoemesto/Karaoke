@@ -129,6 +129,9 @@ enum class HealthReportStatus(val color: String) {
 - Pass 432 (#156): диагностика использует `isFastFail()` (нетранзишн), НЕ
   `acquire()` — иначе диагностический вызов «съедал» probe и circuit зацикливался
   `OPEN→HALF_OPEN→watchdog OPEN`. Реальный probe исполняет `decorate`.
+- Pass 433 (#157): `isFastFail()` cooldown-aware — после истечения cooldown
+  возвращает `false`, чтобы вызов дошёл до `decorate` и стал probe'ом (иначе
+  circuit залипал в OPEN).
 - State machine у каждого: CLOSED → OPEN → HALF_OPEN → CLOSED.
 - Сбой одного хранилища не влияет на другое (изоляция).
 - **NB**: до Pass 429 был один breaker (защищал remote), и `actionsLocalStorage`

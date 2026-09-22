@@ -318,6 +318,26 @@ probe-путь после cooldown. `acquire()` не изменён.
 
 См. `specs/433-circuit-fastfail-cooldown-aware/spec.md`.
 
+## Pass 434: getFileInfo/fileIsActual из кеша (Spec #434, OpenProject #158)
+
+**Проблема**: `StorageMetadataCache` кешировал только `fileExists`, а
+`fileIsActual`/`getFileInfo` в HealthReport шли в MinIO (`statObject`) **каждый
+раз** — даже на тёплом кеше (вопрос владельца: «зачем лезть в хранилище, если всё
+закешировано?»).
+
+**Fix (Pass 434)**:
+
+- `HealthReport.cachedFileInfo(...)` — кешированный `StorageFileInfo` (etag/size)
+  через `StorageMetadataCache.getFileInfo`; на hit — без MinIO, на miss — loader.
+- `fileIsActual` в HealthReport вычисляется сравнением `size` из кеша (диск vs
+  хранилище; local vs remote) — без отдельного `statObject`.
+- `selectFileInfo` возвращает `null` для неполной строки (`size IS NULL`).
+- Удалён мёртвый/неверный `StorageMetadataCache.getFileIsActual`.
+- `StorageApiClientImpl.fileIsActual(storageFileInfo)` обёрнут в circuit
+  (`decorateOrEmpty`), как path-вариант.
+
+См. `specs/434-healthreport-cache-fileinfo/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

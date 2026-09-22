@@ -390,13 +390,14 @@ class StorageApiClientImpl(
         storageFileInfo: StorageFileInfo,
     ): Boolean {
         var result = true
-        val fileInfo =
-            try {
-                getFileInfo(bucketName = bucketName, fileName = fileName).block()
-            } catch (e: Exception) {
-                println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
-                null
-            }
+        // Pass 434 (#158): обёрнуто в circuit (как path-вариант выше) — иначе
+        // прямой getFileInfo().block() шёл в MinIO мимо circuit при OPEN.
+        val fileInfo: StorageFileInfo? =
+            storageCircuitBreaker
+                .decorateOrEmpty<StorageFileInfo>(
+                    operation = "getFileInfo",
+                    loader = { getFileInfo(bucketName = bucketName, fileName = fileName) },
+                ).block()
         if (fileInfo != null) {
             result = (storageFileInfo.size == fileInfo.size)
         }

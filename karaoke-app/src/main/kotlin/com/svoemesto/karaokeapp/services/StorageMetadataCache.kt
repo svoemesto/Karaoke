@@ -371,26 +371,6 @@ class StorageMetadataCache {
     }
 
     /**
-     * SELECT из кеша, fallback на [loader] при miss.
-     */
-    fun getFileIsActual(source: String, bucket: String, fileName: String, loader: () -> Boolean): Boolean {
-        validate(source, bucket, fileName)
-        val cached = selectExists(source, bucket, fileName)
-        if (cached != null) {
-            hit(source)
-            return cached
-        }
-        miss(source)
-        val value = loader()
-        upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
-        log.info(
-            "cache:miss key={} bucket={} fileName={} source={} operation=fileIsActual value={}",
-            buildKey(source, bucket, fileName), bucket, fileName, source, value,
-        )
-        return value
-    }
-
-    /**
      * SELECT с загрузкой StorageFileInfo. Loader MUST blocking.
      */
     fun getFileInfo(source: String, bucket: String, fileName: String, loader: () -> StorageFileInfo): StorageFileInfo {
@@ -543,7 +523,9 @@ class StorageMetadataCache {
                             val exists = rs.getBoolean(1)
                             val etag = rs.getString(2) ?: ""
                             val size = rs.getLong(3)
-                            if (!exists) null else StorageFileInfo(bucket, fileName, etag, size)
+                            val sizeIsNull = rs.wasNull()
+                            // Pass 434 (#158): делегируем чистому helper'у (тестируемо).
+                            buildFileInfoFromRow(bucket, fileName, exists, etag, size, sizeIsNull)
                         }
                     }
                 }
@@ -694,4 +676,27 @@ class StorageMetadataCache {
         }
         return CompletableFuture.completedFuture(null)
     }
+}
+
+/**
+ * Pass 434 (#158): чистое построение [StorageFileInfo] из строки кеша.
+ *
+ * Возвращает `null`, если строка неполная/отрицательная:
+ * - `exists = false` — файла нет;
+ * - `sizeIsNull = true` — строка создана через `fileExists` (size/etag = NULL),
+ *   `StorageFileInfo` построить нельзя (иначе получилось бы ложное `size=0`).
+ *
+ * Вынесено из [StorageMetadataCache.selectFileInfo] для unit-тестируемости (JDBC
+ * здесь недоступен в тестах).
+ */
+internal fun buildFileInfoFromRow(
+    bucket: String,
+    fileName: String,
+    exists: Boolean,
+    etag: String,
+    size: Long,
+    sizeIsNull: Boolean,
+): StorageFileInfo? {
+    if (!exists || sizeIsNull) return null
+    return StorageFileInfo(bucket, fileName, etag, size)
 }

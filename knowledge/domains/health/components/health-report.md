@@ -109,6 +109,13 @@ enum class HealthReportStatus(val color: String) {
 - `StorageMetadataCache` — вечный in-process кеш результатов `fileExists`.
 - Таблица `tbl_storage_metadata_cache` в локальной БД (persists across restarts).
 - Write-through: `uploadFile`/`deleteFile` автоматически инвалидируют кеш.
+- **Pass 434 (#158)**: также кешируются `getFileInfo` (etag/size) — HealthReport
+  получает `StorageFileInfo` через `cachedFileInfo(...)`, а `fileIsActual`
+  вычисляется сравнением `size` (диск vs хранилище, local vs remote), **без**
+  отдельного `statObject`. Раньше кешировался только `fileExists`, а
+  `fileIsActual`/`getFileInfo` шли в MinIO каждый раз.
+  `selectFileInfo` возвращает `null` для неполных строк (size IS NULL) — иначе
+  ложное `size=0` → «файл неактуальный».
 
 **Async cold-start (Pass 364, #75, US2; уточнено в Pass 132, #132)**:
 - `StorageMetadataCache.peekFileExists()` — неблокирующее чтение кеша (без fill).

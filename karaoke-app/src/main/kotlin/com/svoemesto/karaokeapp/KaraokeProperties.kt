@@ -307,7 +307,7 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "vpnHomeCountry",
             defaultValue = "RU",
-            description = "Код страны сервера без ВПН (ISO 3166-1 alpha-2, например RU или DE). Используется для определения активности ВПН.",
+            description = "Список кодов стран сервера без ВПН (ISO 3166-1 alpha-2) через запятую/пробел, например DE,RU. Используется для определения активности ВПН.",
         ),
         KaraokeProperty(
             key = "sponsrSubscribersUrl",

@@ -111,6 +111,23 @@ Line ... (ещё много)
 Остался только `searchSongText` (вызывается из
 `MainController.kt:1423, 1633`).
 
+### VPN: `isVpnActive` / `vpnHomeCountries` (Pass 427, #151)
+
+`isVpnActive()` (`Utils.kt`) определяет страну текущего внешнего IP через
+`api.country.is` (fallback `ipapi.co`) и сравнивает со **списком** home-стран
+из настройки `vpnHomeCountry`. Машина может легально находиться в нескольких
+странах (DE и RU), поэтому настройка теперь — список кодов ISO 3166-1 alpha-2
+через `,`/`;`/пробел, например `DE,RU`.
+
+- `parseHomeCountries(raw)` — чистая функция: split, trim, uppercase, без пустых.
+- `vpnHomeCountries()` — набор из `Karaoke.vpnHomeCountry`.
+- Правило: страна **не в списке** ⇒ ВПН активен; пустой список ⇒ fail-open (ВПН не считаем).
+- Раньше было одно значение (`DE`), из-за чего RU ложно считался ВПН.
+
+Callers (`isVpnActive`): `AutoOneClickSyncScheduler`, `AlbumCoverFinder`,
+`ApiController.postSyncOneClick`, `KaraokeProcessWorker`. Второе место со списком —
+`checkLastAlbumYm` (ветка `AlbumSearchResult.Unknown`, было захардкожено `"RU"`).
+
 ### Ловушки `Utils.kt`
 
 1. **Большой файл, нет секций**: всё плоско. Найти функцию — `grep`.

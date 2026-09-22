@@ -3696,11 +3696,29 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     }
 }
 
+/**
+ * Разбирает значение настройки `vpnHomeCountry` в набор ISO 3166-1 alpha-2 кодов.
+ *
+ * Настройка допускает **список** стран через `,`, `;` и/или пробелы (Pass 427, #151),
+ * например `"DE,RU"`, `"DE RU"`, `"de;ru"`. Регистр не важен; пустые элементы
+ * отбрасываются. Одиночное значение (`"RU"`) даёт набор из одного элемента —
+ * обратная совместимость.
+ */
+fun parseHomeCountries(raw: String): Set<String> =
+    raw
+        .split(',', ';', ' ', '\t', '\n', '\r')
+        .map { it.trim().uppercase() }
+        .filter { it.isNotEmpty() }
+        .toSet()
+
+/** Текущий набор home-стран из настроек `vpnHomeCountry` (Pass 427, #151). */
+fun vpnHomeCountries(): Set<String> = parseHomeCountries(Karaoke.vpnHomeCountry)
+
 fun isVpnActive(): Boolean {
-    // Сравниваем текущую страну с настройкой vpnHomeCountry (по умолчанию "RU").
-    // Для сервера в Германии установить vpnHomeCountry = "DE" через интерфейс настроек.
+    // Сравниваем текущую страну со СПИСКОМ стран без ВПН (настройка vpnHomeCountry,
+    // например "DE,RU" — машина может легально находиться и в Германии, и в России).
     // api.country.is работает из Docker-контейнеров без ограничений.
-    val homeCountry = Karaoke.vpnHomeCountry.trim().uppercase()
+    val homeCountries = vpnHomeCountries()
     val services =
         listOf(
             "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
@@ -3723,8 +3741,11 @@ fun isVpnActive(): Boolean {
             }
         val country = regex.find(body)?.groupValues?.getOrElse(1) { "" } ?: ""
         if (country.isNotEmpty()) {
-            val isVpn = country != homeCountry
-            println("isVpnActive: countryCode=$country (homeCountry=$homeCountry) → ВПН ${if (isVpn) "включён" else "выключен"} (via $url)")
+            // Пустой список home-стран → fail-open: ВПН не считаем (не блокируем работу).
+            val isVpn = homeCountries.isNotEmpty() && country.uppercase() !in homeCountries
+            println(
+                "isVpnActive: countryCode=$country (homeCountry=${homeCountries.toList().sorted()}) → ВПН ${if (isVpn) "включён" else "выключен"} (via $url)",
+            )
             return isVpn
         }
     }
@@ -3768,7 +3789,7 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
                 } catch (_: Exception) {
                     ""
                 }
-            if (country.isNotEmpty() && country != "RU") {
+            if (country.isNotEmpty() && country.uppercase() !in vpnHomeCountries()) {
                 println(
                     "Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН (IP-регион: $country). Отключите ВПН.",
                 )

@@ -82,7 +82,7 @@ in-memory snapshot, захваченный в начале. Чтобы изме�
   `DE,RU`. Используется `isVpnActive()` (`Utils.kt`) и веткой
   `checkLastAlbumYm` (`AlbumSearchResult.Unknown`). Машина может легально
   находиться в нескольких странах, поэтому значение — список. Пустое значение
-  → fail-open (ВПН не считается). Подробнее — [utilities.md](../../system/utilities.md).
+  → fail-open (ВПН не считается). Подробнее — [utilities.md](../../../system/utilities.md).
 
 ## Зависимости | Dependencies
 

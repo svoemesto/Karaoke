@@ -68,7 +68,11 @@ storage:
   # StorageApiClientImpl. In-memory circuit + per-call timeout.
   # Override через env: STORAGE_FILE_EXISTS_TIMEOUT_SECONDS,
   # STORAGE_CIRCUIT_BREAKER_THRESHOLD, STORAGE_CIRCUIT_BREAKER_COOLDOWN_SECONDS.
-  file-exists-timeout-seconds: 5
+  # Pass 430 (#154): 5 -> 20s — remote MinIO нестабилен, часть ответов приходит
+  # позже 5s (ложные срабатывания circuit). Применяется к circuit `.timeout` и
+  # OkHttp connect/read (remote). Local — свои 10s/30s, не затронут.
+  # Watchdog-дедлайн станет 20 + buffer 10 = 30s.
+  file-exists-timeout-seconds: 20
   circuit-breaker-threshold: 5
   circuit-breaker-cooldown-seconds: 30
   # NEW (Pass 372, спека #405): watchdog для HALF_OPEN state — если probe завис

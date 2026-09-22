@@ -164,7 +164,7 @@ connection-pool).
 `karaoke-app/.../services/StorageCircuitBreaker.kt`), который оборачивает
 `fileExists`, `fileIsActual`, `getFileInfo` через `circuit.decorate(...)`:
 
-- **Per-call timeout**: `storage.file-exists-timeout-seconds` (default 5s, override `STORAGE_FILE_EXISTS_TIMEOUT_SECONDS`).
+- **Per-call timeout**: `storage.file-exists-timeout-seconds` (default **20s** с Pass 430, #154; ранее 5s, override `STORAGE_FILE_EXISTS_TIMEOUT_SECONDS`). То же значение используется для OkHttp `connectTimeout`/`readTimeout` (Pass 426). Watchdog-дедлайн = timeout + buffer = 30s.
 - **Circuit breaker FSM**: CLOSED → (N consecutive failures) → OPEN → (cooldown elapsed) → HALF_OPEN → (probe success) → CLOSED. (N = `storage.circuit-breaker-threshold`, default 5; cooldown = `storage.circuit-breaker-cooldown-seconds`, default 30).
 - **In-memory only** (AtomicReference): state сбрасывается при рестарте `karaoke-app`.
 - **Half-open probe pattern** (per Q3): первый call после cooldown — single probe. Success → CLOSED, failure → OPEN (reset openedAtMs).

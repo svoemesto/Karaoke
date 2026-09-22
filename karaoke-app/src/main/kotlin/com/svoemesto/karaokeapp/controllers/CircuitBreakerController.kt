@@ -2,31 +2,31 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.services.StorageCircuitBreaker
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * REST-endpoint for manual reset of StorageCircuitBreaker (Pass 372, OpenProject #131, spec #405).
+ * REST-endpoint for manual reset of [StorageCircuitBreaker] (Pass 372, OpenProject #131, spec #405).
  *
- * `POST /api/health/circuit-breaker/reset` resets [StorageCircuitBreaker] state to CLOSED
- * and zeroes all counters. Returns JSON with previousState and currentState. This is the
- * emergency escape hatch when watchdog fails to recover a stuck HALF_OPEN probe.
- *
- * The GET endpoint `/api/health/circuit-breaker` stays in [CacheStatsController] for
- * backward compatibility (Pass 351, spec #352, FR-008). This controller adds only
- * POST /reset (Pass 372, FR-005).
+ * Pass 429 (#153): теперь **два** независимых breaker'а (local + remote).
+ * `POST /api/health/circuit-breaker/reset?storage=local|remote|all` сбрасывает
+ * выбранный (без параметра — оба, backward-compatible). `GET /api/health/circuit-breaker`
+ * возвращает оба состояния в виде `{ local, remote }`.
  *
  * No authorization required — admin-only network, like other endpoints under `/api/health`.
  *
+ * @see specs/429-split-local-remote-circuit-breakers/spec.md
  * @see specs/405-storage-circuit-breaker-watchdog/spec.md (FR-005, FR-007)
  * @see specs/352-storage-graceful-degradation/spec.md (FR-007)
- * @see docs/features/storage-metadata-cache.md
  */
 @RestController
 @RequestMapping("/api/health/circuit-breaker")
 class CircuitBreakerController(
-    private val storageCircuitBreaker: StorageCircuitBreaker,
+    @Qualifier("localStorageCircuitBreaker") private val localStorageCircuitBreaker: StorageCircuitBreaker,
+    @Qualifier("remoteStorageCircuitBreaker") private val remoteStorageCircuitBreaker: StorageCircuitBreaker,
 ) {
     private val log = LoggerFactory.getLogger("infra.cache.storage")
 
@@ -44,17 +44,34 @@ class CircuitBreakerController(
     )
 
     /**
-     * Pass 372, FR-005: POST /api/health/circuit-breaker/reset.
-     * Resets circuit breaker state to CLOSED. Idempotent — repeated call in CLOSED
-     * returns previousState=CLOSED (no-op).
+     * Pass 372, FR-005 + Pass 429 (#153): POST /api/health/circuit-breaker/reset.
+     * `storage=local|remote|all` (default `all`). Идемпотентен.
      */
     @PostMapping("/reset")
-    fun reset(): ResetResponse {
-        val before = storageCircuitBreaker.metrics()
-        val after = storageCircuitBreaker.reset()
+    fun reset(
+        @RequestParam(name = "storage", required = false, defaultValue = "all") storage: String,
+    ): Map<String, ResetResponse> {
+        val targets: List<Pair<String, StorageCircuitBreaker>> =
+            when (storage.lowercase()) {
+                "local" -> listOf("local" to localStorageCircuitBreaker)
+                "remote" -> listOf("remote" to remoteStorageCircuitBreaker)
+                else -> listOf("local" to localStorageCircuitBreaker, "remote" to remoteStorageCircuitBreaker)
+            }
+        return targets.associate { (name, breaker) ->
+            name to resetOne(name, breaker)
+        }
+    }
+
+    private fun resetOne(
+        name: String,
+        breaker: StorageCircuitBreaker,
+    ): ResetResponse {
+        val before = breaker.metrics()
+        val after = breaker.reset()
         val resetAtMs = System.currentTimeMillis()
         log.info(
-            "cache:circuit:reset reason=manual_request_endpoint previousState={} currentState={}",
+            "cache:circuit:reset storage={} reason=manual_request_endpoint previousState={} currentState={}",
+            name,
             before.state,
             after.state,
         )

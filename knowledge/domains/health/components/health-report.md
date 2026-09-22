@@ -119,10 +119,17 @@ enum class HealthReportStatus(val color: String) {
   использует (он сериализовался в один поток `cacheFillerExecutor`).
 - Warm cache: <1ms (cache hit).
 
-**Circuit breaker (Pass 364, #75, FR-006)**:
-- `StorageCircuitBreaker` защищает local MinIO в `actionsLocalStorage`.
-- State machine: CLOSED → OPEN → HALF_OPEN → CLOSED.
-- При OPEN: `FATAL_ERROR("Storage unavailable")` немедленно.
+**Circuit breaker (Pass 364, #75, FR-006; разделение Pass 429, #153)**:
+- **Два независимых** `StorageCircuitBreaker`: `localStorageCircuitBreaker` и
+  `remoteStorageCircuitBreaker` (общий config, раздельное состояние).
+- `actionsLocalStorage` → **local**-брейкер: при OPEN `FATAL_ERROR`
+  «Локальное хранилище недоступно».
+- `actionsRemoteStorage` → **remote**-брейкер: при OPEN `FATAL_ERROR`
+  «Удалённое хранилище недоступно».
+- State machine у каждого: CLOSED → OPEN → HALF_OPEN → CLOSED.
+- Сбой одного хранилища не влияет на другое (изоляция).
+- **NB**: до Pass 429 был один breaker (защищал remote), и `actionsLocalStorage`
+  ошибочно читал его — remote-сбой валил локальный путь. Исправлено.
 
 **Async repair (Pass 364, #75, US3)**:
 - `startRepairAll()` — fire-and-repair через `repairExecutor` (4-thread pool).

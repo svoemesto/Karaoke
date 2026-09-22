@@ -94,6 +94,11 @@ webvue3 → POST /api/health/getHealthReportList
 
 **Это и есть проблема #69**: ~72k HTTP round-trips на страницу Songs.
 
+**Pass 429 (#153)**: local- и remote-пути защищены **разными** circuit breaker'ами.
+`actionsLocalStorage` использует `localStorageCircuitBreaker` (fail-fast → `FATAL_ERROR`
+«Локальное хранилище недоступно»), `actionsRemoteStorage` — `remoteStorageCircuitBreaker`.
+Сбой одного хранилища не влияет на другой.
+
 ### Поток 3: Public пользователь играет песню (read nginx-proxy)
 
 ```

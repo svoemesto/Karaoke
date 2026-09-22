@@ -7,6 +7,7 @@ import io.minio.errors.MinioException
 import io.minio.http.Method
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -135,7 +136,7 @@ class StorageApiClientImpl(
     @Value($$"${storage.key}") val storageKey: String,
     @Value($$"${storage.secret}") val storageSecret: String,
     private val storageMetadataCache: StorageMetadataCache,
-    private val storageCircuitBreaker: StorageCircuitBreaker,
+    @Qualifier("remoteStorageCircuitBreaker") private val storageCircuitBreaker: StorageCircuitBreaker,
     @Value($$"${storage.file-exists-timeout-seconds:5}") private val fileExistsTimeoutSeconds: Long,
 ) : StorageApiClient {
     private val storageClient: MinioClient =

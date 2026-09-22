@@ -4,7 +4,6 @@ import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import reactor.core.scheduler.Schedulers
@@ -54,9 +53,9 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * @see specs/352-storage-graceful-degradation/spec.md (FR-002, FR-004, NFR-002)
  * @see specs/405-storage-circuit-breaker-watchdog/spec.md (Pass 372, #131)
+ * @see specs/429-split-local-remote-circuit-breakers/spec.md (Pass 429, #153 — два bean)
  * @see docs/features/storage-metadata-cache.md
  */
-@Component
 class StorageCircuitBreaker(
     @Value("\${storage.file-exists-timeout-seconds:5}") private val timeoutSeconds: Long,
     @Value("\${storage.circuit-breaker-threshold:5}") private val threshold: Int,
@@ -64,6 +63,13 @@ class StorageCircuitBreaker(
     @Value("\${storage.circuit-breaker-watchdog-enabled:true}") private val watchdogEnabled: Boolean,
     @Value("\${storage.circuit-breaker-watchdog-buffer-seconds:10}") private val watchdogBufferSeconds: Long,
     @Value("\${storage.circuit-breaker-watchdog-check-interval-seconds:1}") private val checkIntervalSeconds: Long,
+    /**
+     * Pass 429 (#153): какой бэкенд защищает этот breaker — `local` или `remote`.
+     * Используется только в логах (`storage=local|remote`). Конфигурация и FSM
+     * у обоих одинаковые; состояние (state/counters/watchdog) — независимое,
+     * т.к. это два отдельных bean (см. [StorageCircuitBreakerConfig]).
+     */
+    val storageType: String = "remote",
 ) {
     enum class State { CLOSED, HALF_OPEN, OPEN }
 
@@ -176,8 +182,8 @@ class StorageCircuitBreaker(
             openedAtMs.set(now)
             halfOpenSinceMs.set(0L)
             log.warn(
-                "cache:circuit:watchdog state=HALF_OPEN->OPEN (probe stuck) durationMs={} openedAtMs={}",
-                elapsed, now,
+                "cache:circuit:watchdog storage={} state=HALF_OPEN->OPEN (probe stuck) durationMs={} openedAtMs={}",
+                storageType, elapsed, now,
             )
         }
     }
@@ -195,8 +201,8 @@ class StorageCircuitBreaker(
                     val now = System.currentTimeMillis()
                     halfOpenSinceMs.set(now)
                     log.info(
-                        "cache:circuit:state from={} to={} failureCount={} openedAtMs={}",
-                        State.OPEN, State.HALF_OPEN, failureCount.get(), openedAtMs.get(),
+                        "cache:circuit:state storage={} from={} to={} failureCount={} openedAtMs={}",
+                        storageType, State.OPEN, State.HALF_OPEN, failureCount.get(), openedAtMs.get(),
                     )
                     Decision.Probe
                 } else {
@@ -216,8 +222,8 @@ class StorageCircuitBreaker(
             failureCount.set(0)
             halfOpenSinceMs.set(0L)
             log.info(
-                "cache:circuit:state from={} to={} failureCount=0",
-                State.HALF_OPEN, State.CLOSED,
+                "cache:circuit:state storage={} from={} to={} failureCount=0",
+                storageType, State.HALF_OPEN, State.CLOSED,
             )
         }
     }
@@ -232,37 +238,37 @@ class StorageCircuitBreaker(
             State.CLOSED -> {
                 val newCount = failureCount.incrementAndGet()
                 log.warn(
-                    "cache:network:failure error=\"{}\" failureCount={} threshold={}",
-                    error.javaClass.simpleName, newCount, threshold,
+                    "cache:network:failure storage={} error=\"{}\" failureCount={} threshold={}",
+                    storageType, error.javaClass.simpleName, newCount, threshold,
                 )
                 if (newCount >= threshold && state.compareAndSet(State.CLOSED, State.OPEN)) {
                     openedAtMs.set(System.currentTimeMillis())
                     log.warn(
-                        "cache:circuit:state from={} to={} failureCount={} openedAtMs={}",
-                        State.CLOSED, State.OPEN, newCount, openedAtMs.get(),
+                        "cache:circuit:state storage={} from={} to={} failureCount={} openedAtMs={}",
+                        storageType, State.CLOSED, State.OPEN, newCount, openedAtMs.get(),
                     )
                 }
             }
             State.HALF_OPEN -> {
                 log.warn(
-                    "cache:network:failure error=\"{}\" state=HALF_OPEN->OPEN (probe failed)",
-                    error.javaClass.simpleName,
+                    "cache:network:failure storage={} error=\"{}\" state=HALF_OPEN->OPEN (probe failed)",
+                    storageType, error.javaClass.simpleName,
                 )
                 if (state.compareAndSet(State.HALF_OPEN, State.OPEN)) {
                     val now = System.currentTimeMillis()
                     openedAtMs.set(now)
                     halfOpenSinceMs.set(0L)
                     log.warn(
-                        "cache:circuit:state from={} to={} failureCount={} openedAtMs={}",
-                        State.HALF_OPEN, State.OPEN, failureCount.get(), now,
+                        "cache:circuit:state storage={} from={} to={} failureCount={} openedAtMs={}",
+                        storageType, State.HALF_OPEN, State.OPEN, failureCount.get(), now,
                     )
                 }
             }
             State.OPEN -> {
                 // already OPEN, no-op (но log для diagnostics)
                 log.warn(
-                    "cache:network:failure error=\"{}\" state=OPEN (still open)",
-                    error.javaClass.simpleName,
+                    "cache:network:failure storage={} error=\"{}\" state=OPEN (still open)",
+                    storageType, error.javaClass.simpleName,
                 )
             }
         }
@@ -280,8 +286,8 @@ class StorageCircuitBreaker(
         openedAtMs.set(0L)
         halfOpenSinceMs.set(0L)
         log.info(
-            "cache:circuit:reset reason=manual_request previousState={} currentState={}",
-            previousState, State.CLOSED,
+            "cache:circuit:reset storage={} reason=manual_request previousState={} currentState={}",
+            storageType, previousState, State.CLOSED,
         )
         return metrics()
     }
@@ -297,8 +303,8 @@ class StorageCircuitBreaker(
             when (decision) {
                 Decision.FastFail -> {
                     log.warn(
-                        "cache:network:failure operation={} decision=FastFail (circuit open)",
-                        operation,
+                        "cache:network:failure storage={} operation={} decision=FastFail (circuit open)",
+                        storageType, operation,
                     )
                     Mono.just(emptyValue)
                 }
@@ -323,8 +329,8 @@ class StorageCircuitBreaker(
             when (decision) {
                 Decision.FastFail -> {
                     log.warn(
-                        "cache:network:failure operation={} decision=FastFail (circuit open)",
-                        operation,
+                        "cache:network:failure storage={} operation={} decision=FastFail (circuit open)",
+                        storageType, operation,
                     )
                     Mono.empty()
                 }
@@ -337,6 +343,34 @@ class StorageCircuitBreaker(
                         .onErrorResume { Mono.empty() }
                 }
             }
+        }
+
+    /**
+     * Pass 429 (#153): **blocking**-вариант [decorate]/[decorateOrEmpty] для
+     * синхронного [KaraokeStorageService] (local MinIO). Не использует Mono/потоки —
+     * вызывающий поток сам выполняет `loader`, а circuit лишь решает FastFail vs Allow.
+     * При FastFail — `loader` НЕ вызывается (fail-fast <1ms).
+     */
+    fun <T> executeBlocking(
+        operation: String,
+        loader: () -> T,
+        emptyValue: T,
+    ): T =
+        when (acquire()) {
+            Decision.FastFail -> {
+                log.warn(
+                    "cache:network:failure storage={} operation={} decision=FastFail (circuit open)",
+                    storageType, operation,
+                )
+                emptyValue
+            }
+            Decision.Allow, Decision.Probe ->
+                try {
+                    loader().also { recordSuccess() }
+                } catch (e: Exception) {
+                    recordFailure(e)
+                    emptyValue
+                }
         }
 
     fun state(): State = state.get()

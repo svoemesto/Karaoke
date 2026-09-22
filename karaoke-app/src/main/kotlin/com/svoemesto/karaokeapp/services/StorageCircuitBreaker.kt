@@ -17,8 +17,9 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * Circuit breaker для file-* методов `StorageApiClientImpl` (Pass 351, #71).
  *
- * **Ответственность**: защита caller thread от блокировки на `readTimeout=60s`
- * (MinIO SDK) при network outage. Каждый `file*` вызов оборачивается через
+ * **Ответственность**: защита caller thread от блокировки на OkHttp-таймауте
+ * (Pass 430: connect/read = `storage.file-exists-timeout-seconds`, по умолчанию 20s)
+ * при network outage. Каждый `file*` вызов оборачивается через
  * [decorate] — single-call timeout + circuit breaker (CLOSED / HALF_OPEN / OPEN).
  *
  * **In-memory only** (per Q1, Pass 351 clarification): AtomicReference + AtomicLong,
@@ -57,7 +58,7 @@ import java.util.concurrent.atomic.AtomicReference
  * @see docs/features/storage-metadata-cache.md
  */
 class StorageCircuitBreaker(
-    @Value("\${storage.file-exists-timeout-seconds:5}") private val timeoutSeconds: Long,
+    @Value("\${storage.file-exists-timeout-seconds:20}") private val timeoutSeconds: Long,
     @Value("\${storage.circuit-breaker-threshold:5}") private val threshold: Int,
     @Value("\${storage.circuit-breaker-cooldown-seconds:30}") private val cooldownSeconds: Long,
     @Value("\${storage.circuit-breaker-watchdog-enabled:true}") private val watchdogEnabled: Boolean,

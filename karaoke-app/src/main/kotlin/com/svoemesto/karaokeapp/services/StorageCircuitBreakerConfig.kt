@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Configuration
 class StorageCircuitBreakerConfig {
     @Bean("localStorageCircuitBreaker")
     fun localStorageCircuitBreaker(
-        @Value("\${storage.file-exists-timeout-seconds:5}") timeoutSeconds: Long,
+        @Value("\${storage.file-exists-timeout-seconds:20}") timeoutSeconds: Long,
         @Value("\${storage.circuit-breaker-threshold:5}") threshold: Int,
         @Value("\${storage.circuit-breaker-cooldown-seconds:30}") cooldownSeconds: Long,
         @Value("\${storage.circuit-breaker-watchdog-enabled:true}") watchdogEnabled: Boolean,
@@ -45,7 +45,7 @@ class StorageCircuitBreakerConfig {
 
     @Bean("remoteStorageCircuitBreaker")
     fun remoteStorageCircuitBreaker(
-        @Value("\${storage.file-exists-timeout-seconds:5}") timeoutSeconds: Long,
+        @Value("\${storage.file-exists-timeout-seconds:20}") timeoutSeconds: Long,
         @Value("\${storage.circuit-breaker-threshold:5}") threshold: Int,
         @Value("\${storage.circuit-breaker-cooldown-seconds:30}") cooldownSeconds: Long,
         @Value("\${storage.circuit-breaker-watchdog-enabled:true}") watchdogEnabled: Boolean,

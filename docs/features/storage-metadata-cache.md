@@ -225,8 +225,16 @@ Open design question — это **отдельная спека 345+**, не в�
   `GET /api/health/circuit-breaker` → `{ local, remote }`, reset `?storage=`.
   См. [specs/429-split-local-remote-circuit-breakers/spec.md](../../specs/429-split-local-remote-circuit-breakers/spec.md).
 
+- **#154 / Spec #430 / Pass 430**: таймаут remote-хранилища 5s → 20s
+  (`storage.file-exists-timeout-seconds`) — снижает ложные срабатывания circuit
+  на нестабильном канале. Local не затронут (10s/30s).
+  См. [specs/430-remote-storage-timeout-20s/spec.md](../../specs/430-remote-storage-timeout-20s/spec.md).
+
 ## История версий
 
+- **V2.6** (Pass 430, 2026-09-22, OpenProject #154): таймаут remote-хранилища 5s → 20s
+  (`storage.file-exists-timeout-seconds`; circuit `.timeout` + OkHttp connect/read).
+  Watchdog-дедлайн 15s → 30s. Local не затронут.
 - **V2.5** (Pass 429, 2026-09-22, OpenProject #153): раздельные local/remote circuit breaker.
 - **V2.4** (Pass 428, 2026-09-22, OpenProject #152): interrupt-безопасные блокирующие
   вызовы (`runBlockingMinioOrNull`) — убран `onErrorDropped`/`InterruptedException`

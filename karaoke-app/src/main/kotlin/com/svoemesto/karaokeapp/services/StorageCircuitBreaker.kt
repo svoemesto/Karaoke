@@ -192,16 +192,30 @@ class StorageCircuitBreaker(
     /**
      * Pass 432 (#156): **нетранзишн**-проверка для диагностики (HealthReport).
      *
-     * Возвращает `true`, если circuit сейчас отвергнет вызов (`OPEN` или
-     * `HALF_OPEN`). **НЕ** переводит `OPEN→HALF_OPEN` и **НЕ** запускает probe —
-     * в отличие от [acquire]. Нужна там, где нужен только fail-fast и НЕ должно
-     * «съедаться» единственное право на probe: иначе диагностический вызов
-     * выигрывал CAS `OPEN→HALF_OPEN`, возвращал `Probe`, но реальный MinIO-вызов
-     * не исполнял → probe терялся → watchdog возвращал OPEN (вечный цикл).
+     * Возвращает `true`, если вызов будет отвергнут **прямо сейчас**, если отдать
+     * его [decorate]/[executeBlocking]. **НЕ** переводит `OPEN→HALF_OPEN` и **НЕ**
+     * запускает probe — в отличие от [acquire].
+     *
+     * Pass 433 (#157): **cooldown-aware**. Семантика:
+     * - `CLOSED` → `false` (вызов пройдёт);
+     * - `HALF_OPEN` → `true` (probe уже в полёте, нагрузку не добавляем);
+     * - `OPEN` → `true` **пока cooldown не истёк**; после истечения — `false`,
+     *   чтобы вызов дошёл до `decorate` и стал probe'ом. Раньше (#156) возвращал
+     *   `true` и после cooldown → реальные вызовы не доходили до `decorate` →
+     *   `acquire()` никто не вызывал → `OPEN→HALF_OPEN` не происходил → circuit
+     *   залипал в OPEN.
      */
     fun isFastFail(): Boolean {
         val current = state.get()
-        return current == State.OPEN || current == State.HALF_OPEN
+        return when (current) {
+            State.CLOSED -> false
+            State.HALF_OPEN -> true
+            State.OPEN -> {
+                val cooldownElapsed =
+                    (System.currentTimeMillis() - openedAtMs.get()) > cooldownSeconds * 1000L
+                !cooldownElapsed
+            }
+        }
     }
 
     /**

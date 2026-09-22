@@ -2,54 +2,65 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.services.StorageCircuitBreaker
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
  * REST-эндпоинт для метрик persistent metadata cache (спека #348, Pass 345) +
- * circuit breaker (Pass 351, #71).
+ * circuit breaker (Pass 351, #71; разделение local/remote — Pass 429, #153).
  *
  * `GET /api/health/cacheStats` → JSON с hit/miss/evictions/entries/networkFailures
- * для local и remote + `circuitBreaker` block. `entries` — COUNT(*) по таблице
- * `tbl_storage_metadata_cache`. Переживает рестарт.
+ * для local и remote + `circuitBreaker` (объект с `local` и `remote`).
+ * `GET /api/health/circuit-breaker` → `{ local, remote }`.
  *
+ * @see specs/429-split-local-remote-circuit-breakers/spec.md
  * @see specs/348-storage-cache-eternal/spec.md
  * @see specs/352-storage-graceful-degradation/spec.md (FR-005, FR-008)
- * @see docs/features/storage-metadata-cache.md (V2 → V2.1)
+ * @see docs/features/storage-metadata-cache.md
  */
 @RestController
 @RequestMapping("/api/health")
 class CacheStatsController(
     private val storageMetadataCache: StorageMetadataCache,
-    private val storageCircuitBreaker: StorageCircuitBreaker,
+    @Qualifier("localStorageCircuitBreaker") private val localStorageCircuitBreaker: StorageCircuitBreaker,
+    @Qualifier("remoteStorageCircuitBreaker") private val remoteStorageCircuitBreaker: StorageCircuitBreaker,
 ) {
+    /** Pass 429 (#153): оба состояния circuit breaker. */
+    data class CircuitBreakers(
+        val local: StorageCircuitBreaker.Metrics,
+        val remote: StorageCircuitBreaker.Metrics,
+    )
+
     /**
-     * Wraps [StorageMetadataCache.CacheStatsDto] with circuit breaker info.
-     * Backwards compatible: existing fields (entries, hits, ...) preserved;
-     * new fields (networkFailures, circuitBreaker) are additive.
+     * Wraps [StorageMetadataCache.StatsBucket] with both circuit breaker states.
+     * Backwards compatible: existing fields preserved; `circuitBreaker` теперь
+     * объект `{ local, remote }` вместо одного [StorageCircuitBreaker.Metrics].
      */
     data class CacheStatsResponse(
         val local: StorageMetadataCache.StatsBucket,
         val remote: StorageMetadataCache.StatsBucket,
-        val circuitBreaker: StorageCircuitBreaker.Metrics,
+        val circuitBreaker: CircuitBreakers,
     )
 
     @GetMapping("/cacheStats")
     fun cacheStats(): CacheStatsResponse {
         val base = storageMetadataCache.stats()
-        val cb = storageCircuitBreaker.metrics()
         return CacheStatsResponse(
             local = base.local,
             remote = base.remote,
-            circuitBreaker = cb,
+            circuitBreaker = circuitBreakers(),
         )
     }
 
-    /**
-     * Pass 351 (P3): GET /api/health/circuit-breaker.
-     * Returns full snapshot of circuit state.
-     */
+    /** Pass 351 (P3) + Pass 429 (#153): оба состояния. */
     @GetMapping("/circuit-breaker")
-    fun circuitBreaker(): StorageCircuitBreaker.Metrics = storageCircuitBreaker.metrics()
+    fun circuitBreakerEndpoint(): CircuitBreakers = circuitBreakers()
+
+    private fun circuitBreakers(): CircuitBreakers =
+        CircuitBreakers(
+            local = localStorageCircuitBreaker.metrics(),
+            remote = remoteStorageCircuitBreaker.metrics(),
+        )
 }

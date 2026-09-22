@@ -6,6 +6,7 @@ import io.minio.errors.MinioException
 import io.minio.http.Method
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
@@ -157,6 +158,7 @@ class KaraokeStorageServiceImpl(
     @Value($$"${storage.port-host}") val storagePortHost: String,
     @Value($$"${work-in-container}") val wic: Long,
     private val storageMetadataCache: StorageMetadataCache,
+    @Qualifier("localStorageCircuitBreaker") private val localStorageCircuitBreaker: StorageCircuitBreaker,
 ) : KaraokeStorageService {
     private val endpoint: String =
         if (wic !=
@@ -227,20 +229,26 @@ class KaraokeStorageServiceImpl(
     override fun getFileStat(
         bucketName: String,
         fileName: String,
-    ): StatObjectResponse? {
-        val decodedFileName = decodeFileNameIfEncoded(fileName)
-        return try {
-            storageClient.statObject(
-                StatObjectArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .`object`(decodedFileName) // Используем декодированное имя
-                    .build(),
-            )
-        } catch (_: MinioException) {
-            null
-        }
-    }
+    ): StatObjectResponse? =
+        // Pass 429 (#153): local-путь защищён своим (local) breaker'ом.
+        localStorageCircuitBreaker.executeBlocking(
+            operation = "getFileStat",
+            loader = {
+                val decodedFileName = decodeFileNameIfEncoded(fileName)
+                try {
+                    storageClient.statObject(
+                        StatObjectArgs
+                            .builder()
+                            .bucket(bucketName)
+                            .`object`(decodedFileName) // Используем декодированное имя
+                            .build(),
+                    )
+                } catch (_: MinioException) {
+                    null
+                }
+            },
+            emptyValue = null,
+        )
 
     override fun deleteAllEmptyBuckets() {
         try {
@@ -468,27 +476,34 @@ class KaraokeStorageServiceImpl(
     override fun fileExists(
         bucketName: String,
         fileName: String,
-    ): Boolean {
-        if (bucketExists(bucketName)) {
-            val decodedFileName = decodeFileNameIfEncoded(fileName)
-            return try {
-                storageClient.statObject(
-                    StatObjectArgs
-                        .builder()
-                        .bucket(bucketName)
-                        .`object`(decodedFileName)
-                        .build(),
-                )
-                true
-            } catch (_: ErrorResponseException) {
-                false
-            } catch (e: Exception) {
-                throw RuntimeException("Error checking object existence: ${e.message}", e)
-            }
-        } else {
-            return false
-        }
-    }
+    ): Boolean =
+        // Pass 429 (#153): local-путь защищён своим (local) breaker'ом независимо
+        // от remote. При OPEN — fail-fast (false), без обращения к MinIO.
+        localStorageCircuitBreaker.executeBlocking(
+            operation = "fileExists",
+            loader = {
+                if (bucketExists(bucketName)) {
+                    val decodedFileName = decodeFileNameIfEncoded(fileName)
+                    try {
+                        storageClient.statObject(
+                            StatObjectArgs
+                                .builder()
+                                .bucket(bucketName)
+                                .`object`(decodedFileName)
+                                .build(),
+                        )
+                        true
+                    } catch (_: ErrorResponseException) {
+                        false
+                    } catch (e: Exception) {
+                        throw RuntimeException("Error checking object existence: ${e.message}", e)
+                    }
+                } else {
+                    false
+                }
+            },
+            emptyValue = false,
+        )
 
     override fun fileIsActual(
         bucketName: String,

@@ -217,8 +217,17 @@ Open design question — это **отдельная спека 345+**, не в�
   ERROR со стеком. Fix: `runBlockingMinioOrNull { ... }` + `isInterruptWrapped`.
   См. [specs/428-storage-timeout-interrupt-noise/spec.md](../../specs/428-storage-timeout-interrupt-noise/spec.md).
 
+- **#153 / Spec #429 / Pass 429**: разъединение circuit breaker — два независимых
+  breaker'а (local/remote). Раньше единый breaker защищал remote, но
+  `actionsLocalStorage` читал его для local → remote-сбой валил локальный путь.
+  Fix: `StorageCircuitBreakerConfig` (два `@Bean`), local-путь через
+  `executeBlocking` в `KaraokeStorageServiceImpl`, корректные qualifier'ы,
+  `GET /api/health/circuit-breaker` → `{ local, remote }`, reset `?storage=`.
+  См. [specs/429-split-local-remote-circuit-breakers/spec.md](../../specs/429-split-local-remote-circuit-breakers/spec.md).
+
 ## История версий
 
+- **V2.5** (Pass 429, 2026-09-22, OpenProject #153): раздельные local/remote circuit breaker.
 - **V2.4** (Pass 428, 2026-09-22, OpenProject #152): interrupt-безопасные блокирующие
   вызовы (`runBlockingMinioOrNull`) — убран `onErrorDropped`/`InterruptedException`
   ERROR-шум при timeout-отмене (follow-up Pass 426).

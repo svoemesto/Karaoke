@@ -81,12 +81,21 @@ data class HealthReport(
         var storageMetadataCache: StorageMetadataCache? = null
 
         /**
-         * Static reference to [StorageCircuitBreaker] для local MinIO.
-         * Спека #364 (OP #75).
+         * Static reference to **local** [StorageCircuitBreaker] (локальный MinIO).
+         * Pass 429 (#153): отдельный от remote, чтобы сбой одного бэкенда не влиял
+         * на другой. Спека #364 (OP #75), разделение — #153.
          */
         @JvmStatic
         @Volatile
-        var storageCircuitBreaker: StorageCircuitBreaker? = null
+        var localStorageCircuitBreaker: StorageCircuitBreaker? = null
+
+        /**
+         * Static reference to **remote** [StorageCircuitBreaker] (удалённый MinIO).
+         * Pass 429 (#153).
+         */
+        @JvmStatic
+        @Volatile
+        var remoteStorageCircuitBreaker: StorageCircuitBreaker? = null
 
         /** SLF4J logger для circuit breaker events: infra.health.circuit */
         @JvmStatic
@@ -107,9 +116,14 @@ data class HealthReport(
             storageMetadataCache = cache
         }
 
+        /** Pass 429 (#153): привязка обоих circuit breaker'ов. */
         @JvmStatic
-        fun attachStorageCircuitBreaker(circuitBreaker: StorageCircuitBreaker) {
-            storageCircuitBreaker = circuitBreaker
+        fun attachStorageCircuitBreakers(
+            localStorage: StorageCircuitBreaker,
+            remoteStorage: StorageCircuitBreaker,
+        ) {
+            localStorageCircuitBreaker = localStorage
+            remoteStorageCircuitBreaker = remoteStorage
         }
 
         /**
@@ -635,14 +649,14 @@ data class HealthReport(
             val result: MutableList<HealthReport> = mutableListOf()
             if (!willBeInLocation) return emptyList()
 
-            // Circuit breaker check (FR-006, spec #364): fail fast if remote MinIO is down.
-            // Pass 426 (#150): circuit защищает REMOTE MinIO (storage.remote-endpoint),
-            // а не локальный. Раньше лог печатал storage=local и вводил в заблуждение.
-            val cb = storageCircuitBreaker
+            // Circuit breaker check (FR-006, spec #364): fail fast if LOCAL MinIO is down.
+            // Pass 429 (#153): здесь используется LOCAL-брейкер (не remote) — сбой
+            // удалённого хранилища больше НЕ валит локальный путь (и наоборот).
+            val cb = localStorageCircuitBreaker
             if (cb != null) {
                 when (val decision = cb.acquire()) {
                     StorageCircuitBreaker.Decision.FastFail -> {
-                        circuitLog.warn("circuit=OPEN storage=remote reason=Circuit breaker open")
+                        circuitLog.warn("circuit=OPEN storage=local reason=Circuit breaker open")
                         result.add(
                             HealthReport(
                                 healthReportType = FILE_VIOLATION,
@@ -650,8 +664,8 @@ data class HealthReport(
                                 description = description,
                                 healthReportStatus = FATAL_ERROR,
                                 canResolve = false,
-                                problemText = "Удалённое хранилище недоступно (circuit breaker open)",
-                                solutionText = "Проверьте доступность remote MinIO",
+                                problemText = "Локальное хранилище недоступно (circuit breaker open)",
+                                solutionText = "Проверьте доступность локального MinIO",
                             ),
                         )
                         return result
@@ -956,6 +970,30 @@ data class HealthReport(
         ): List<HealthReport> {
             val result: MutableList<HealthReport> = mutableListOf()
             if (!willBeInLocation) return emptyList()
+
+            // Circuit breaker check (Pass 429, #153): fail fast if REMOTE MinIO is down.
+            // Используется REMOTE-брейкер (не local) — изоляция от локального хранилища.
+            val remoteCb = remoteStorageCircuitBreaker
+            if (remoteCb != null) {
+                when (remoteCb.acquire()) {
+                    StorageCircuitBreaker.Decision.FastFail -> {
+                        circuitLog.warn("circuit=OPEN storage=remote reason=Circuit breaker open")
+                        result.add(
+                            HealthReport(
+                                healthReportType = FILE_VIOLATION,
+                                song = song,
+                                description = description,
+                                healthReportStatus = FATAL_ERROR,
+                                canResolve = false,
+                                problemText = "Удалённое хранилище недоступно (circuit breaker open)",
+                                solutionText = "Проверьте доступность remote MinIO",
+                            ),
+                        )
+                        return result
+                    }
+                    else -> { /* CLOSED or PROBE — proceed normally */ }
+                }
+            }
 
             /*
             Если должен быть (canBe):

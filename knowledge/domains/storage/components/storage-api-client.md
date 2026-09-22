@@ -260,6 +260,26 @@ Circuit breaker продолжает работать как задумано (`
 
 См. `specs/428-storage-timeout-interrupt-noise/spec.md`.
 
+## Pass 429: разделение local/remote circuit breaker (Spec #429, OpenProject #153)
+
+**Проблема**: раньше был **один** `StorageCircuitBreaker`, который защищал remote
+(`StorageApiClientImpl.decorate`), но `HealthReport.actionsLocalStorage` читал его же
+для локального пути. Сбой remote давал `FATAL_ERROR` на local (ложный каскад
+`UPLOAD_TO_LOCAL_STORE ERROR`), а сам локальный путь вообще не был защищён.
+
+**Fix (Pass 429)**:
+
+- Два независимых bean: `localStorageCircuitBreaker` и `remoteStorageCircuitBreaker`
+  (`StorageCircuitBreakerConfig`, общий config, раздельное состояние).
+- `StorageApiClientImpl` → `@Qualifier("remoteStorageCircuitBreaker")`.
+- `KaraokeStorageServiceImpl.fileExists`/`getFileStat` → `@Qualifier("localStorageCircuitBreaker")`
+  + `executeBlocking(...)` (blocking-вариант `decorate`, fail-fast при OPEN <1ms).
+- `HealthReport.actionsLocalStorage` → local-брейкер; `actionsRemoteStorage` → remote.
+- Логи/метрики/reset разделены (`GET /api/health/circuit-breaker` → `{ local, remote }`,
+  `POST /api/health/circuit-breaker/reset?storage=local|remote|all`).
+
+См. `specs/429-split-local-remote-circuit-breakers/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

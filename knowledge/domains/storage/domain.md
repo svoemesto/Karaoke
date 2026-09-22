@@ -167,7 +167,7 @@ black-hole, ломает SigV4-подпись). Поэтому — nginx-про�
   - US1 (≤200ms): частично достигнуто (LOCAL_STORAGE 25-55ms, REMOTE async 50ms)
   - US2 (async cold-start): **IMPLEMENTED** (`getFileExistsAsync`, 50ms timeout)
   - US3 (non-blocking repair): **IMPLEMENTED** (`repairExecutor`, fire-and-forget)
-  - FR-006 (circuit breaker): **IMPLEMENTED** (`StorageCircuitBreaker` в `actionsLocalStorage`)
+  - FR-006 (circuit breaker): **IMPLEMENTED** (`StorageCircuitBreaker` в `actionsLocalStorage`; Pass 429, #153 — раздельные local/remote breaker'ы)
 
 ## Код (физическая реализация)
 

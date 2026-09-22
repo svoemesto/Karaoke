@@ -126,6 +126,9 @@ enum class HealthReportStatus(val color: String) {
   «Локальное хранилище недоступно».
 - `actionsRemoteStorage` → **remote**-брейкер: при OPEN `FATAL_ERROR`
   «Удалённое хранилище недоступно».
+- Pass 432 (#156): диагностика использует `isFastFail()` (нетранзишн), НЕ
+  `acquire()` — иначе диагностический вызов «съедал» probe и circuit зацикливался
+  `OPEN→HALF_OPEN→watchdog OPEN`. Реальный probe исполняет `decorate`.
 - State machine у каждого: CLOSED → OPEN → HALF_OPEN → CLOSED.
 - Сбой одного хранилища не влияет на другое (изоляция).
 - **NB**: до Pass 429 был один breaker (защищал remote), и `actionsLocalStorage`

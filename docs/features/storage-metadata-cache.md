@@ -230,8 +230,17 @@ Open design question — это **отдельная спека 345+**, не в�
   на нестабильном канале. Local не затронут (10s/30s).
   См. [specs/430-remote-storage-timeout-20s/spec.md](../../specs/430-remote-storage-timeout-20s/spec.md).
 
+- **#156 / Spec #432 / Pass 432**: диагностика probe — `HealthReport` использует
+  нетранзишн `isFastFail()` вместо `acquire()`. Раньше диагностический `acquire()`
+  при истёкшем cooldown выигрывал `OPEN→HALF_OPEN` и возвращал `Probe`, но реальный
+  MinIO-вызов не исполнял → probe терялся → watchdog возвращал OPEN (вечный цикл).
+  См. [specs/432-circuit-probe-consumed-by-healthcheck/spec.md](../../specs/432-circuit-probe-consumed-by-healthcheck/spec.md).
+
 ## История версий
 
+- **V2.7** (Pass 432, 2026-09-22, OpenProject #156): диагностика circuit через
+  нетранзишн `isFastFail()` — устранён вечный цикл `OPEN→HALF_OPEN→watchdog OPEN`
+  (probe больше не «съедается» HealthReport).
 - **V2.6** (Pass 430, 2026-09-22, OpenProject #154): таймаут remote-хранилища 5s → 20s
   (`storage.file-exists-timeout-seconds`; circuit `.timeout` + OkHttp connect/read).
   Watchdog-дедлайн 15s → 30s. Local не затронут.

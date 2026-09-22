@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.services
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -250,6 +251,43 @@ class StorageCircuitBreakerTest {
             (c.decorate("fileExists", { Mono.fromCallable { "ok" } }, "fallback") as Mono<String>).block()
         assertEquals("ok", result)
         assertEquals(StorageCircuitBreaker.State.CLOSED, c.state(), "successful probe must close circuit")
+    }
+
+    /**
+     * Pass 432 (#156): диагностический `isFastFail()` НЕ переводит OPEN→HALF_OPEN
+     * и не потребляет probe — реальный probe остаётся за `acquire()`.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    fun `diagnostics do not consume probe`() {
+        val c = cb(threshold = 1, cooldown = 0L)
+        c.recordFailure(RuntimeException("boom")) // CLOSED -> OPEN
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+        Thread.sleep(1L) // cooldown elapsed
+
+        // Диагностика (HealthReport) видит fast-fail, но НЕ трогает state.
+        assertTrue(c.isFastFail(), "OPEN must be fast-fail")
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state(), "diagnostics must not transition to HALF_OPEN")
+
+        // Реальный вызов получает probe (никто его не «съел»).
+        assertEquals(StorageCircuitBreaker.Decision.Probe, c.acquire())
+        assertEquals(StorageCircuitBreaker.State.HALF_OPEN, c.state())
+        c.recordSuccess()
+        assertEquals(StorageCircuitBreaker.State.CLOSED, c.state(), "probe success must close circuit")
+    }
+
+    @Test
+    fun `isFastFail mirrors acquire for CLOSED and HALF_OPEN`() {
+        val c = cb()
+        assertEquals(StorageCircuitBreaker.State.CLOSED, c.state())
+        assertFalse(c.isFastFail(), "CLOSED must not fast-fail")
+
+        val c2 = cb(threshold = 1, cooldown = 0L)
+        c2.recordFailure(RuntimeException("boom"))
+        Thread.sleep(1L)
+        c2.acquire() // OPEN -> HALF_OPEN
+        assertEquals(StorageCircuitBreaker.State.HALF_OPEN, c2.state())
+        assertTrue(c2.isFastFail(), "HALF_OPEN must fast-fail")
     }
 
     /**

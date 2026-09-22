@@ -190,6 +190,21 @@ class StorageCircuitBreaker(
     }
 
     /**
+     * Pass 432 (#156): **нетранзишн**-проверка для диагностики (HealthReport).
+     *
+     * Возвращает `true`, если circuit сейчас отвергнет вызов (`OPEN` или
+     * `HALF_OPEN`). **НЕ** переводит `OPEN→HALF_OPEN` и **НЕ** запускает probe —
+     * в отличие от [acquire]. Нужна там, где нужен только fail-fast и НЕ должно
+     * «съедаться» единственное право на probe: иначе диагностический вызов
+     * выигрывал CAS `OPEN→HALF_OPEN`, возвращал `Probe`, но реальный MinIO-вызов
+     * не исполнял → probe терялся → watchdog возвращал OPEN (вечный цикл).
+     */
+    fun isFastFail(): Boolean {
+        val current = state.get()
+        return current == State.OPEN || current == State.HALF_OPEN
+    }
+
+    /**
      * Acquire decision. Single-thread-CAS по state.
      */
     fun acquire(): Decision {

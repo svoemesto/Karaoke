@@ -280,6 +280,26 @@ Circuit breaker продолжает работать как задумано (`
 
 См. `specs/429-split-local-remote-circuit-breakers/spec.md`.
 
+## Pass 432: диагностика не потребляет probe (Spec #432, OpenProject #156)
+
+**Проблема**: `HealthReport.actionsLocalStorage`/`actionsRemoteStorage` вызывали
+`cb.acquire()` для fail-fast. Когда cooldown истёк, **диагностический** вызов
+выигрывал CAS `OPEN→HALF_OPEN` и получал `Decision.Probe`, но реальный MinIO-вызов
+не исполнял. Реальный probe (`decorate`/`executeBlocking`) приходил позже и получал
+`FastFail` → probe терялся → watchdog через `timeout+buffer` возвращал OPEN.
+**Вечный цикл `OPEN→HALF_OPEN→watchdog OPEN`**, даже при живом хранилище (наблюдение
+2026-09-22: remote MinIO health=200, `probe failed`=0, `HALF_OPEN→CLOSED`=0).
+
+**Fix (Pass 432)**:
+
+- Добавлен нетранзишн-метод `StorageCircuitBreaker.isFastFail(): Boolean` —
+  только читает state (`OPEN`/`HALF_OPEN` → true), БЕЗ CAS и probe.
+- `HealthReport` использует `isFastFail()` вместо `acquire()`.
+- `acquire()` (с CAS `OPEN→HALF_OPEN`) остаётся только у
+  `decorate`/`decorateOrEmpty`/`executeBlocking` — единственных исполнителей probe.
+
+См. `specs/432-circuit-probe-consumed-by-healthcheck/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

@@ -72,6 +72,18 @@ KaraokePropertiesService.save(newProperties)
 in-memory snapshot, захваченный в начале. Чтобы изменение вступило в
 силу, нужно дождаться завершения текущего рендера.
 
+## Не-рендер параметры | Operational properties
+
+Часть `KaraokeProperty` не относится к рендеру, а управляет поведением
+сервисов. В частности:
+
+- **`vpnHomeCountry`** (default `"RU"`, Pass 427, #151) — **список** кодов
+  стран сервера без ВПН (ISO 3166-1 alpha-2) через `,`/`;`/пробел, например
+  `DE,RU`. Используется `isVpnActive()` (`Utils.kt`) и веткой
+  `checkLastAlbumYm` (`AlbumSearchResult.Unknown`). Машина может легально
+  находиться в нескольких странах, поэтому значение — список. Пустое значение
+  → fail-open (ВПН не считается). Подробнее — [utilities.md](../../../system/utilities.md).
+
 ## Зависимости | Dependencies
 
 - → [domain](../domain.md) — используется во всех mko-классах.

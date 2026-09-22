@@ -106,9 +106,9 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:83
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2011
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2021
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4488
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4506
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4516
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4509
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4527
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4537
 karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt:197
 karaoke-public/src/components/SongSubscriptionModal.vue:30
 karaoke-public/src/player/KaraokePlayer.js:120

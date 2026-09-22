@@ -19,6 +19,7 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
+import com.svoemesto.karaokeapp.services.SyncRemoteClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
@@ -933,16 +934,7 @@ fun setSongToSyncRemoteTable(ids: List<Long>): List<String> {
 
             val objectMapper = ObjectMapper()
             val requestBody: String = objectMapper.writeValueAsString(values)
-            val client = HttpClient.newBuilder().build()
-            val request =
-                HttpRequest
-                    .newBuilder()
-                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("Content-Type", "application/json")
-                    .build()
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-            println(response.body())
+            SyncRemoteClient.postChangeRecords(requestBody)
         }
     }
 
@@ -960,16 +952,7 @@ fun setSongToSyncRemoteTable(ids: List<Long>): List<String> {
 
             val objectMapper = ObjectMapper()
             val requestBody: String = objectMapper.writeValueAsString(values)
-            val client = HttpClient.newBuilder().build()
-            val request =
-                HttpRequest
-                    .newBuilder()
-                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("Content-Type", "application/json")
-                    .build()
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-            println(response.body())
+            SyncRemoteClient.postChangeRecords(requestBody)
         }
     }
 
@@ -1157,16 +1140,7 @@ fun updateDatabases(
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build()
-                val request =
-                    HttpRequest
-                        .newBuilder()
-                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                        .header("Content-Type", "application/json")
-                        .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                println(response.body())
+                SyncRemoteClient.postChangeRecords(requestBody)
             }
         }
 
@@ -1185,16 +1159,7 @@ fun updateDatabases(
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build()
-                val request =
-                    HttpRequest
-                        .newBuilder()
-                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                        .header("Content-Type", "application/json")
-                        .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                println(response.body())
+                SyncRemoteClient.postChangeRecords(requestBody)
             }
         }
 
@@ -1213,16 +1178,7 @@ fun updateDatabases(
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build()
-                val request =
-                    HttpRequest
-                        .newBuilder()
-                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                        .header("Content-Type", "application/json")
-                        .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                println(response.body())
+                SyncRemoteClient.postChangeRecords(requestBody)
             }
         }
     }
@@ -1250,16 +1206,7 @@ fun updateDatabases(
                     )
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build()
-                val request =
-                    HttpRequest
-                        .newBuilder()
-                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                        .header("Content-Type", "application/json")
-                        .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                println(response.body())
+                SyncRemoteClient.postChangeRecords(requestBody)
             }
         } else {
             println("[${Timestamp.from(Instant.now())}] Удаление перемещённых записей из источника ${fromDatabase.name} (JDBC).")

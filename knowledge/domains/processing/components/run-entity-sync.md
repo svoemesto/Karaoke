@@ -99,6 +99,22 @@ NB: MOVE — отдельная операция: «удалить в источ
 разделены, потому что они адресуются к разным БД. Флашится **после**
 записи в цель.
 
+### Resilient HTTP (Pass 431, #155)
+
+Все POST на `https://sm-karaoke.ru/changerecords` идут через
+`SyncRemoteClient.postChangeRecords(body)` (`services/SyncRemoteClient.kt`):
+
+- `HttpClient` с `connectTimeout=10s`, `requestTimeout=60s` (было — без таймаутов).
+- **1 retry** (задержка 2s) на транзиентные ошибки (`SSLException`, `ConnectException`,
+  `HttpTimeoutException`, `IOException` про timeout/reset).
+- Внутренний `try/catch`: наружу НЕ бросает — возвращает `false`. Раньше
+  `SSLHandshakeException` из `Utils.kt` проходила в `postSyncOneClick` (без `catch`)
+  и валила весь клик в HTTP 500.
+- Логи `infra.sync.remote`: `sync:remote:ok` / `sync:remote:retry` / `sync:remote:failure`.
+
+`postSyncOneClick` имеет per-target `try/catch` (как `AutoOneClickSyncScheduler`,
+FR-012 спеки #235); `SyncOneClickResultDto.error` заполняется при сбое сущности.
+
 ## Соединения
 
 ```kotlin

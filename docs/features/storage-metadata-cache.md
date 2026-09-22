@@ -241,8 +241,16 @@ Open design question — это **отдельная спека 345+**, не в�
   и становится probe'ом (circuit восстанавливается, а не залипает в OPEN).
   См. [specs/433-circuit-fastfail-cooldown-aware/spec.md](../../specs/433-circuit-fastfail-cooldown-aware/spec.md).
 
+- **#158 / Spec #434 / Pass 434**: `getFileInfo`/`fileIsActual` из кеша (etag/size) —
+  раньше HealthReport ходил в MinIO за `statObject` даже на тёплом кеше.
+  `selectFileInfo` null-guard (size IS NULL → miss), удалён мёртвый `getFileIsActual`.
+  См. [specs/434-healthreport-cache-fileinfo/spec.md](../../specs/434-healthreport-cache-fileinfo/spec.md).
+
 ## История версий
 
+- **V2.9** (Pass 434, 2026-09-22, OpenProject #158): `getFileInfo`/`fileIsActual`
+  из кеша — тёплый кеш не ходит в MinIO за etag/size; `selectFileInfo` null-guard;
+  удалён мёртвый `getFileIsActual`.
 - **V2.8** (Pass 433, 2026-09-22, OpenProject #157): `isFastFail()` cooldown-aware —
   circuit не залипает в OPEN после cooldown (регресс #156).
 - **V2.7** (Pass 432, 2026-09-22, OpenProject #156): диагностика circuit через

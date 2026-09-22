@@ -13,6 +13,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageCircuitBreaker
+import com.svoemesto.karaokeapp.services.StorageFileInfo
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -165,6 +166,36 @@ data class HealthReport(
         ): Boolean =
             storageMetadataCache?.getFileExists(source, bucket, fileName, loader, onFillComplete)
                 ?: loader()
+
+        /**
+         * Pass 434 (#158): кешированный `StorageFileInfo` (etag/size). На hit — без
+         * MinIO-вызова; на miss — `loader` (реальный `getFileInfo`) + запись в кеш.
+         * `null` — если строки нет/неполная (см. `StorageMetadataCache.selectFileInfo`).
+         *
+         * @param breaker circuit breaker этого бэкенда: при OPEN (до cooldown) в MinIO
+         *   не ходим — info неизвестен. После cooldown `isFastFail()`=false, и вызов
+         *   становится пробой (как в `decorate`).
+         * Guard `size >= 0` не даёт закешировать «-1» (файл не найден / getFileStat
+         * вернул null на OPEN circuit).
+         */
+        @JvmStatic
+        fun cachedFileInfo(
+            source: String,
+            bucket: String,
+            fileName: String,
+            breaker: StorageCircuitBreaker?,
+            loader: () -> StorageFileInfo,
+        ): StorageFileInfo? {
+            if (breaker != null && breaker.isFastFail()) return null
+            val guarded: () -> StorageFileInfo = {
+                loader().takeIf { it.size >= 0 } ?: error("file info unavailable (not found / failed)")
+            }
+            return try {
+                storageMetadataCache?.getFileInfo(source, bucket, fileName, guarded) ?: guarded()
+            } catch (e: Exception) {
+                null
+            }
+        }
 
         /**
          * Неблокирующий взгляд в кеш без заполнения (OpenProject #132).
@@ -733,12 +764,14 @@ data class HealthReport(
             if (canBe) { // Файл должен быть
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
-                        val fileIsActual =
-                            storageService.fileIsActual(
-                                bucketName = storageBucketName,
-                                fileName = storageFileName,
-                                pathToFileOnDisk = pathToFile,
-                            )
+                        // Pass 434 (#158): size файла берём из кеша (getFileInfo),
+                        // а не отдельным statObject в MinIO. fileIsActual(path) =
+                        // сравнение размера файла на диске с size из хранилища.
+                        val localInfo =
+                            cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
+                                storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
+                            }
+                        val fileIsActual = localInfo == null || File(pathToFile).length() == localInfo.size
                         if (!fileIsActual) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
@@ -790,13 +823,17 @@ data class HealthReport(
                         }
                         val existsInRemoteStore = cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader)
                         if (existsInRemoteStore) {
-                            val storageFileInfo = storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
-                            val fileIsActual =
-                                storageApiClient.fileIsActual(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    storageFileInfo = storageFileInfo,
-                                )
+                            // Pass 434 (#158): оба StorageFileInfo — из кеша.
+                            val storageFileInfo =
+                                cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
+                                    storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
+                                }
+                            val remoteFileInfo =
+                                cachedFileInfo("REMOTE", storageBucketName, storageFileName, remoteStorageCircuitBreaker) {
+                                    storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
+                                        ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
+                                }
+                            val fileIsActual = storageFileInfo == null || remoteFileInfo == null || storageFileInfo.size == remoteFileInfo.size
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
@@ -1078,12 +1115,13 @@ data class HealthReport(
             if (canBe) { // Файл должен быть
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInRemoteStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
-                        val fileIsActual =
-                            storageApiClient.fileIsActual(
-                                bucketName = storageBucketName,
-                                fileName = storageFileName,
-                                pathToFileOnDisk = pathToFile,
-                            )
+                        // Pass 434 (#158): size из кеша (getFileInfo), без statObject.
+                        val remoteInfo =
+                            cachedFileInfo("REMOTE", storageBucketName, storageFileName, remoteStorageCircuitBreaker) {
+                                storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
+                                    ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
+                            }
+                        val fileIsActual = remoteInfo == null || File(pathToFile).length() == remoteInfo.size
                         if (!fileIsActual) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
@@ -1139,13 +1177,17 @@ data class HealthReport(
                         }
                         val existsInLocalStore = cachedFileExists("LOCAL", storageBucketName, storageFileName, localFileExistsLoaderAlt1)
                         if (existsInLocalStore) {
-                            val storageFileInfo = storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
-                            val fileIsActual =
-                                storageApiClient.fileIsActual(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    storageFileInfo = storageFileInfo,
-                                )
+                            // Pass 434 (#158): оба StorageFileInfo — из кеша.
+                            val storageFileInfo =
+                                cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
+                                    storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
+                                }
+                            val remoteFileInfo =
+                                cachedFileInfo("REMOTE", storageBucketName, storageFileName, remoteStorageCircuitBreaker) {
+                                    storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
+                                        ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
+                                }
+                            val fileIsActual = storageFileInfo == null || remoteFileInfo == null || storageFileInfo.size == remoteFileInfo.size
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING

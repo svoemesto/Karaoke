@@ -237,6 +237,29 @@ HALF_OPEN→OPEN, circuit не восстанавливался даже при 
 
 См. `specs/426-storage-circuit-breaker-blocking-timeout/spec.md`.
 
+## Pass 428: interrupt-безопасность блокирующих вызовов (Spec #428, OpenProject #152)
+
+**Follow-up на Pass 426** (production-наблюдение 2026-09-22): после добавления
+`.subscribeOn(boundedElastic)` реактор при timeout **отменяет** подписку и
+**прерывает** worker-поток. Блокирующий `MinioClient.statObject` получает
+`InterruptedException` и заворачивает его в `RuntimeException` (не в `MinioException`),
+которое улетало после терминации Mono → `reactor.core.publisher.Operators`
+печатал ERROR `Operator called default onErrorDropped` со стектрейсом (15× за инцидент).
+
+**Fix (Pass 428)**:
+
+- `runBlockingMinioOrNull { ... }` (`StorageApiClient.kt`) — обёртка блокирующих
+  MinIO-вызовов: `MinioException` → `null`; `InterruptedException` (в т.ч. завёрнутое
+  в `RuntimeException`) → `null` + `Thread.currentThread().interrupt()`; прочие
+  `RuntimeException` пробрасываются.
+- `isInterruptWrapped(t)` — распознаёт `InterruptedException` в цепочке `cause`.
+- `statObjectOrNull` использует `runBlockingMinioOrNull`.
+
+Circuit breaker продолжает работать как задумано (`TimeoutException` → `recordFailure`
+→ OPEN); убран только ERROR-шум от dropped-error.
+
+См. `specs/428-storage-timeout-interrupt-noise/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

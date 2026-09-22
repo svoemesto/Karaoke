@@ -246,8 +246,16 @@ Open design question — это **отдельная спека 345+**, не в�
   `selectFileInfo` null-guard (size IS NULL → miss), удалён мёртвый `getFileIsActual`.
   См. [specs/434-healthreport-cache-fileinfo/spec.md](../../specs/434-healthreport-cache-fileinfo/spec.md).
 
+- **#159 / Spec #435 / Pass 435**: backfill `etag`/`size` в кеше — кнопка на главном
+  экране админки, фоновый проход по ~109k строкам, circuit-aware REMOTE,
+  `size=-1` → `exists=false`. См.
+  [specs/435-cache-etag-size-backfill/spec.md](../../specs/435-cache-etag-size-backfill/spec.md).
+
 ## История версий
 
+- **V2.10** (Pass 435, 2026-09-22, OpenProject #159): backfill `etag`/`size` для
+  строк кеша с `exists=true` и пустыми info (кнопка на главном экране; прогресс в
+  логах; файл не найден → `exists=false`).
 - **V2.9** (Pass 434, 2026-09-22, OpenProject #158): `getFileInfo`/`fileIsActual`
   из кеша — тёплый кеш не ходит в MinIO за etag/size; `selectFileInfo` null-guard;
   удалён мёртвый `getFileIsActual`.

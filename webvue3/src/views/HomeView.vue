@@ -172,6 +172,15 @@
         >
           Экспорт датасета для forced-alignment
         </button>
+        <!-- Pass 435 (#159): backfill etag/size в tbl_storage_metadata_cache — строки,
+             созданные через fileExists, хранят exists=true, но etag/size пусты. -->
+        <button
+          class="button-action"
+          title="Заполнить etag/size в кеше хранилища (tbl_storage_metadata_cache) для строк с exists=true и пустыми etag/size — чтобы проверка актуальности файлов шла из кеша без обращений к MinIO"
+          @click="backfillCacheEtagSize"
+        >
+          Заполнить etag/size кеша хранилища
+        </button>
       </div>
     </div>
   </div>
@@ -975,6 +984,36 @@ export default {
           alertType: 'info',
           header: 'Экспорт датасета для forced-alignment',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // Pass 435 (#159): backfill etag/size в tbl_storage_metadata_cache.
+    backfillCacheEtagSize() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Заполнить etag/size в кеше хранилища для всех строк с exists=true и пустыми etag/size?<br>` +
+          `Будет пройдено ~109k строк: для LOCAL/REMOTE запросится информация о файле (размер, etag). ` +
+          `Если файла в хранилище нет — запись будет помечена как отсутствующая (exists=false).<br>` +
+          `При недоступном удалённом хранилище часть строк будет пропущена — можно запускать повторно.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — прогресс в логах сервера, итог придёт уведомлением.</strong>`,
+        timeout: 15,
+        callback: this.doBackfillCacheEtagSize,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doBackfillCacheEtagSize() {
+      this.$store.dispatch('backfillCacheEtagSizePromise').then((response) => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+          header: 'Заполнение etag/size кеша хранилища',
+          body:
+            response === 'ALREADY_RUNNING'
+              ? `Уже запущено — дождитесь завершения текущего прогона.`
+              : `Операция запущена в фоне.<br>Прогресс — в логах сервера, итог придёт уведомлением по завершении.`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true

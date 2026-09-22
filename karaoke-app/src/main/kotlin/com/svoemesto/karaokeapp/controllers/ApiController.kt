@@ -5962,6 +5962,17 @@ class ApiController(
         )
     }
 
+    // Pass 435 (#159): backfill etag/size для строк кеша tbl_storage_metadata_cache
+    // (exists=true, но etag/size пусты). Фон, прогресс в логах, итог — SSE.
+    @PostMapping("/utils/backfillcacheetagsize")
+    @ResponseBody
+    fun doBackfillCacheEtagSize(): String =
+        backfillCacheEtagSize(
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            remoteBreaker = HealthReport.remoteStorageCircuitBreaker,
+        )
+
     // Актуализация VKLinkPictureWeb
 //    @PostMapping("/utils/actualizevklinkpictureweb")
 //    @ResponseBody

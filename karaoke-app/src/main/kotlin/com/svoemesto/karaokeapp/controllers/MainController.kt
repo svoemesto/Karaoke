@@ -157,6 +157,16 @@ class MainController(
     fun doCustomFunction(): String =
         customFunction(storageService = storageService, storageApiClient = storageApiClient, lyricsFinderService = lyricsFinderService)
 
+    // Pass 435 (#159): зеркало POST /api/utils/backfillcacheetagsize для Thymeleaf-страниц.
+    @GetMapping("/utils/backfillcacheetagsize")
+    @ResponseBody
+    fun doBackfillCacheEtagSize(): String =
+        backfillCacheEtagSize(
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            remoteBreaker = HealthReport.remoteStorageCircuitBreaker,
+        )
+
     // specs/277-song-name-censored: зеркало POST /api/utils/rescanallcensorednames для Thymeleaf-страниц.
     @GetMapping("/utils/rescanallcensorednames")
     @ResponseBody

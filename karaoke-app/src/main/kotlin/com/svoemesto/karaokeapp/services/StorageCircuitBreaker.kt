@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -34,6 +36,14 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * **Manual reset (Pass 372, FR-007 спеки #352)**: [reset] сбрасывает state в CLOSED.
  * Endpoint `POST /api/health/circuit-breaker/reset` в [CircuitBreakerController].
+ *
+ * **Blocking loader timeout (Pass 426, спека #426, OpenProject #150)**: [decorate] и
+ * [decorateOrEmpty] выполняют `loader()` на [Schedulers.boundedElastic] (`subscribeOn`),
+ * чтобы оператор `.timeout(timeoutSeconds)` имел реальную силу. Без этого блокирующий
+ * MinIO-вызов (OkHttp `connectTimeout`) выполнялся на вызывающем потоке и не прерывался
+ * таймаутом — фактическое ожидание было временем блокировки (15s), что больше
+ * `timeoutSeconds + watchdogBufferSeconds` (15s), и circuit навсегда залипал в
+ * HALF_OPEN→OPEN (watchdog «probe stuck»).
  *
  * **SLF4J** (per FR-004, Pass 351): категория `infra.cache.storage` (existing, Pass 344).
  * Events:
@@ -92,6 +102,14 @@ class StorageCircuitBreaker(
     private val totalNetworkFailures = AtomicLong(0L)
     private val halfOpenSinceMs = AtomicLong(0L)
     private val log = LoggerFactory.getLogger("infra.cache.storage")
+
+    /**
+     * Pass 426 (#150): scheduler для блокирующих loader'ов. `loader()` обычно —
+     * `Mono.fromCallable { blocking MinIO call }`. На вызывающем потоке `.timeout()`
+     * не мог его прервать (см. KDoc класса). `boundedElastic` — глобальный
+     * синглтон reactor, отдельного dispose не требует.
+     */
+    private val blockingScheduler: Scheduler = Schedulers.boundedElastic()
 
     @Volatile
     private var watchdogExecutor: ScheduledExecutorService? = null
@@ -286,6 +304,7 @@ class StorageCircuitBreaker(
                 }
                 Decision.Allow, Decision.Probe -> {
                     loader()
+                        .subscribeOn(blockingScheduler)
                         .timeout(Duration.ofSeconds(timeoutSeconds))
                         .doOnSuccess { recordSuccess() }
                         .doOnError { recordFailure(it) }
@@ -311,6 +330,7 @@ class StorageCircuitBreaker(
                 }
                 Decision.Allow, Decision.Probe -> {
                     loader()
+                        .subscribeOn(blockingScheduler)
                         .timeout(Duration.ofSeconds(timeoutSeconds))
                         .doOnSuccess { recordSuccess() }
                         .doOnError { recordFailure(it) }

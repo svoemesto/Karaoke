@@ -212,6 +212,47 @@ class StorageCircuitBreakerTest {
     }
 
     /**
+     * Pass 426 (#150): блокирующий loader (MinIO-вызов в `Mono.fromCallable`) MUST
+     * прерываться по `timeoutSeconds`, а не ждать фактическое время блокировки.
+     * До фикса `.timeout()` не срабатывал на вызывающем потоке и circuit залипал.
+     */
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    fun `decorate blocking loader times out at timeoutSeconds`() {
+        val c = cb(timeout = 1L, threshold = 5)
+        val blockingLoader = {
+            Mono.fromCallable {
+                Thread.sleep(30_000) // имитация блокирующего MinIO-вызова (connectTimeout 15s+)
+                "late"
+            }
+        }
+        val start = System.nanoTime()
+        val result = (c.decorate("fileExists", blockingLoader, "fallback") as Mono<String>).block()
+        val elapsedMs = (System.nanoTime() - start) / 1_000_000L
+        assertEquals("fallback", result)
+        assertTrue(elapsedMs < 5_000L, "blocking loader must be cut by timeout(1s), got ${elapsedMs}ms")
+        assertEquals(1L, c.metrics().failureCount, "timeout must be counted as failure")
+    }
+
+    /**
+     * Pass 426 (#150): успешный probe после сбоя закрывает circuit (реальное
+     * восстановление). HALF_OPEN + успешный быстрый loader → CLOSED.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    fun `probe success after failure closes circuit`() {
+        val c = cb(timeout = 1L, threshold = 1, cooldown = 0L)
+        c.recordFailure(RuntimeException("boom")) // CLOSED -> OPEN
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+        Thread.sleep(1L) // avoid cooldown race
+        // decorate сам делает acquire: OPEN → HALF_OPEN (Probe) → loader → recordSuccess → CLOSED.
+        val result =
+            (c.decorate("fileExists", { Mono.fromCallable { "ok" } }, "fallback") as Mono<String>).block()
+        assertEquals("ok", result)
+        assertEquals(StorageCircuitBreaker.State.CLOSED, c.state(), "successful probe must close circuit")
+    }
+
+    /**
      * Pass 372, FR-002/FR-003/FR-004: watchdog переводит HALF_OPEN→OPEN,
      * если probe завис дольше timeoutSeconds + watchdogBufferSeconds.
      */

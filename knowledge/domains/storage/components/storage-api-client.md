@@ -211,6 +211,32 @@ connection-pool).
 См. `specs/405-storage-circuit-breaker-watchdog/spec.md`, `tasks.md`, `plan.md`,
 `docs/features/storage-metadata-cache.md` (V2.2).
 
+## Pass 426: блокирующий loader + реальный timeout (Spec #426, OpenProject #150)
+
+**Follow-up на Pass 351 + Pass 372** (production-incident 2026-09-22 — `circuit=OPEN
+storage=local` висел бесконечно: цикл `OPEN → HALF_OPEN → watchdog OPEN (probe stuck)`
+повторялся каждые ~45s).
+
+**Root cause**: `decorate`/`decorateOrEmpty` оборачивали блокирующий MinIO-вызов
+(`Mono.fromCallable { storageClient... }`) в `.timeout(timeoutSeconds)`, но выполняли
+его на **вызывающем** потоке (`.block()`), где оператор `timeout` не может прервать
+блокировку. Фактическое ожидание = OkHttp `connectTimeout` (был 15s) >
+`timeoutSeconds + watchdogBufferSeconds` (15s) → watchdog всегда переводил
+HALF_OPEN→OPEN, circuit не восстанавливался даже при доступном MinIO.
+
+**Fix (Pass 426)**:
+
+- В `decorate`/`decorateOrEmpty` добавлен `.subscribeOn(blockingScheduler)`, где
+  `blockingScheduler = Schedulers.boundedElastic()` (единый на bean). Теперь
+  `.timeout(timeoutSeconds)` реально возвращает управление (≈5s), а не ждёт блокировку.
+- OkHttp в `StorageApiClientImpl`: `connectTimeout`/`readTimeout` выровнены с
+  `storage.file-exists-timeout-seconds` (5s) вместо 15s/60s. `writeTimeout` (300s)
+  не изменён — он не участвует в `fileExists`.
+- `HealthReport.actionsLocalStorage` FastFail-лог исправлен: `circuit=OPEN storage=remote`
+  (circuit защищает **remote** MinIO, а не локальный).
+
+См. `specs/426-storage-circuit-breaker-blocking-timeout/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

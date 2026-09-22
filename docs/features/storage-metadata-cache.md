@@ -203,8 +203,19 @@ Open design question — это **отдельная спека 345+**, не в�
   + `POST /api/health/circuit-breaker/reset` (FR-005). См.
   [specs/405-storage-circuit-breaker-watchdog/spec.md](../../specs/405-storage-circuit-breaker-watchdog/spec.md).
 
+- **#150 / Spec #426 / Pass 426**: реальный timeout для блокирующего loader —
+  follow-up на #71/#131. Production-incident 2026-09-22 — `circuit=OPEN storage=local`
+  висел бесконечно: `.timeout(5s)` не прерывал блокирующий MinIO-вызов на
+  вызывающем потоке (OkHttp `connectTimeout=15s` > timeout+buffer), watchdog
+  вечно переводил HALF_OPEN→OPEN. Fix: `subscribeOn(Schedulers.boundedElastic())`
+  в `decorate`/`decorateOrEmpty` + выравнивание OkHttp timeout + исправление
+  диагностического лога (`storage=remote`). См.
+  [specs/426-storage-circuit-breaker-blocking-timeout/spec.md](../../specs/426-storage-circuit-breaker-blocking-timeout/spec.md).
+
 ## История версий
 
+- **V2.3** (Pass 426, 2026-09-22, OpenProject #150): blocking-loader timeout
+  (`subscribeOn(boundedElastic)`), OkHttp timeout alignment, `storage=remote` log.
 - **V2.2** (Pass 372, 2026-09-17, OpenProject #131): добавлен watchdog +
   manual reset endpoint.
 - **V2.1** (Pass 351, 2026-09-09, OpenProject #71): добавлен circuit breaker.

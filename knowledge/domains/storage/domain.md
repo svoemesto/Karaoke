@@ -151,6 +151,7 @@ black-hole, ломает SigV4-подпись). Поэтому — nginx-про�
 | `SongEdit.vue` (webvue3) → `getHealthReportList` для одной песни | 1 раз на открытие редактирования | то же | **FIXED** |
 | `StorageApiClient.fileExists` HTTP round-trip (REMOTE) | 120-250ms каждый (холодный кеш) | OpenProject #75 | **OPTIMIZED (Pass 364, US2): async cold-start, 50ms max** |
 | `actionsLocalStorage` → MinIO (LOCAL) | 25-55ms каждый (холодный кеш) | OpenProject #75 | **FIXED (Pass 364, US3): circuit breaker** |
+| Circuit recovery (HALF_OPEN → CLOSED) | при сетевом сбое | OpenProject #150 | **FIXED (Pass 426): `subscribeOn(boundedElastic)` — реальный timeout** |
 | `startRepairAll` → executeResolvable | sync, блокирует HTTP thread | OpenProject #75 | **FIXED (Pass 364, US3): async via repairExecutor** |
 | `MinioClient.statObject` (внутри `fileExists`) | 10-30ms (прямой SDK на admin) | локальная задержка | OK (минимальная) |
 

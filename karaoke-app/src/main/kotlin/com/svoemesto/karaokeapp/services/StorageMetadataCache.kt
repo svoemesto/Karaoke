@@ -417,6 +417,24 @@ class StorageMetadataCache {
     }
 
     /**
+     * Pass 435 (#159): точечное заполнение `etag`/`size` существующей строки
+     * (backfill для строк, созданных через `fileExists`, где etag/size = NULL).
+     */
+    fun updateFileInfo(source: String, bucket: String, fileName: String, etag: String, size: Long) {
+        validate(source, bucket, fileName)
+        upsert(source, bucket, fileName, exists = true, etag = etag, sizeBytes = size)
+    }
+
+    /**
+     * Pass 435 (#159): пометить строку как «файла нет» (backfill нашёл, что объект
+     * в хранилище отсутствует — `getFileInfo` вернул size=-1).
+     */
+    fun markNotExists(source: String, bucket: String, fileName: String) {
+        validate(source, bucket, fileName)
+        upsert(source, bucket, fileName, exists = false, etag = null, sizeBytes = null)
+    }
+
+    /**
      * Manual refresh: точечный DELETE строки. Следующий read пойдёт в MinIO.
      */
     fun refresh(source: String, bucket: String, fileName: String): Int {

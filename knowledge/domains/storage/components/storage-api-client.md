@@ -338,6 +338,20 @@ probe-путь после cooldown. `acquire()` не изменён.
 
 См. `specs/434-healthreport-cache-fileinfo/spec.md`.
 
+## Pass 435: backfill etag/size кеша (Spec #435, OpenProject #159)
+
+Разовый backfill `tbl_storage_metadata_cache`: строки `exists=true`, но с пустыми
+`etag`/`size` (созданы через `fileExists`) заполняются через `getFileInfo`
+(`CacheEtagSizeBackfill.kt`, `backfillCacheEtagSize(...)`):
+
+- LOCAL → `KaraokeStorageService.getFileInfo`; REMOTE → `StorageApiClient`
+  (circuit-aware: при OPEN строки пропускаются).
+- `size = -1` (файл не найден) → `exists = false`.
+- Прогресс — `infra.cache.storage`; итог — SSE; кнопка на главном экране админки
+  (`HomeView.vue`) → `POST /api/utils/backfillcacheetagsize`.
+
+См. `specs/435-cache-etag-size-backfill/spec.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

@@ -2526,6 +2526,12 @@ export default {
       let request = { method: 'POST', url: '/api/utils/exportalignmentdataset' }
       return promisedXMLHttpRequest(request)
     },
+    // Pass 435 (#159): backfill etag/size в tbl_storage_metadata_cache.
+    // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт.
+    backfillCacheEtagSizePromise() {
+      let request = { method: 'POST', url: '/api/utils/backfillcacheetagsize' }
+      return promisedXMLHttpRequest(request)
+    },
     autorizeYMstartPromise() {
       let request = { method: 'POST', url: '/api/authymstart' }
       return promisedXMLHttpRequest(request)

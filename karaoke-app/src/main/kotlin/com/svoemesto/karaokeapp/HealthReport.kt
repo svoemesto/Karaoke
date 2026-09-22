@@ -635,12 +635,14 @@ data class HealthReport(
             val result: MutableList<HealthReport> = mutableListOf()
             if (!willBeInLocation) return emptyList()
 
-            // Circuit breaker check (FR-006, spec #364): fail fast if local MinIO is down
+            // Circuit breaker check (FR-006, spec #364): fail fast if remote MinIO is down.
+            // Pass 426 (#150): circuit защищает REMOTE MinIO (storage.remote-endpoint),
+            // а не локальный. Раньше лог печатал storage=local и вводил в заблуждение.
             val cb = storageCircuitBreaker
             if (cb != null) {
                 when (val decision = cb.acquire()) {
                     StorageCircuitBreaker.Decision.FastFail -> {
-                        circuitLog.warn("circuit=OPEN storage=local reason=Circuit breaker open")
+                        circuitLog.warn("circuit=OPEN storage=remote reason=Circuit breaker open")
                         result.add(
                             HealthReport(
                                 healthReportType = FILE_VIOLATION,
@@ -648,8 +650,8 @@ data class HealthReport(
                                 description = description,
                                 healthReportStatus = FATAL_ERROR,
                                 canResolve = false,
-                                problemText = "Локальное хранилище недоступно (circuit breaker open)",
-                                solutionText = "Проверьте доступность MinIO",
+                                problemText = "Удалённое хранилище недоступно (circuit breaker open)",
+                                solutionText = "Проверьте доступность remote MinIO",
                             ),
                         )
                         return result

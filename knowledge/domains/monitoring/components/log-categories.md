@@ -22,6 +22,7 @@
 | --- | --- | --- | --- |
 | `infra.prod.ping` | `ProdContainerCheck` | HTTP-пинг `sm-karaoke.ru/` | WARN при ошибке, INFO при recovery |
 | `infra.prod.db` | `ProdContainerCheck` | JDBC-пинг прод-БД | WARN при ошибке, INFO при recovery |
+| `infra.health.circuit` | `karaoke-app/.../HealthReport.kt` (circuitLog, спека #364) | FastFail circuit breaker: `circuit=OPEN storage=remote reason=Circuit breaker open` (Pass 426: `storage=remote` — circuit защищает remote MinIO) | WARN |
 | `infra.cache.statbysong` | `karaoke-web/StatBySong.kt` (cacheLog) | Cold-start, refresh, ошибки | WARN при cold-start, INFO при success, WARN при failure |
 | `infra.cache.storage` | `karaoke-app/.../services/StorageMetadataCache.kt` (cacheLog, спека #344, OpenProject #69) + `StorageCircuitBreaker.kt` (Pass 351, спека #352, OpenProject #71) + `CircuitBreakerController.kt` (Pass 372, спека #405, OpenProject #131) | cache:hit / cache:miss / cache:evicted (Pass 344) + **cache:network:failure** (Pass 351, WARN per fail) + **cache:circuit:state** (Pass 351, INFO per state transition CLOSED↔OPEN↔HALF_OPEN) + **cache:circuit:watchdog** (Pass 372, WARN — watchdog перевёл HALF_OPEN→OPEN, probe stuck) + **cache:circuit:reset** (Pass 372, INFO — manual reset endpoint вызван) | INFO hit/miss/circuit/reset, WARN network/watchdog |
 | `infra.cache.hrpool` | `karaoke-app/.../services/HealthReportBatchPool.kt` (Pass 128, спека specs/128-async-health-report-list, OpenProject #128) | Старт/стоп пула, размер очереди (debug), ошибки worker'ов | INFO старт/стоп, DEBUG enqueue, WARN worker failure |

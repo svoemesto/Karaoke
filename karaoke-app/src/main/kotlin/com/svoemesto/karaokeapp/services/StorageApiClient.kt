@@ -136,6 +136,7 @@ class StorageApiClientImpl(
     @Value($$"${storage.secret}") val storageSecret: String,
     private val storageMetadataCache: StorageMetadataCache,
     private val storageCircuitBreaker: StorageCircuitBreaker,
+    @Value($$"${storage.file-exists-timeout-seconds:5}") private val fileExistsTimeoutSeconds: Long,
 ) : StorageApiClient {
     private val storageClient: MinioClient =
         run {
@@ -143,8 +144,12 @@ class StorageApiClientImpl(
                 OkHttpClient
                     .Builder()
                     .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
-                    .connectTimeout(15, TimeUnit.SECONDS)
-                    .readTimeout(60, TimeUnit.SECONDS)
+                    // Pass 426 (#150): connect/read timeout выровнены с
+                    // storage.file-exists-timeout-seconds. Раньше connectTimeout=15s
+                    // был больше circuit-timeout(5s)+watchdog-buffer(10s), из-за чего
+                    // блокирующий вызов не прерывался и circuit залипал в HALF_OPEN.
+                    .connectTimeout(fileExistsTimeoutSeconds, TimeUnit.SECONDS)
+                    .readTimeout(fileExistsTimeoutSeconds, TimeUnit.SECONDS)
                     .writeTimeout(300, TimeUnit.SECONDS)
                     .build()
             MinioClient

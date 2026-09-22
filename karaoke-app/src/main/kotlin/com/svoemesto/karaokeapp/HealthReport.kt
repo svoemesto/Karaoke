@@ -652,26 +652,23 @@ data class HealthReport(
             // Circuit breaker check (FR-006, spec #364): fail fast if LOCAL MinIO is down.
             // Pass 429 (#153): здесь используется LOCAL-брейкер (не remote) — сбой
             // удалённого хранилища больше НЕ валит локальный путь (и наоборот).
+            // Pass 432 (#156): isFastFail() вместо acquire() — диагностика НЕ должна
+            // потреблять единственный probe (иначе circuit зацикливается OPEN→HALF_OPEN).
             val cb = localStorageCircuitBreaker
-            if (cb != null) {
-                when (val decision = cb.acquire()) {
-                    StorageCircuitBreaker.Decision.FastFail -> {
-                        circuitLog.warn("circuit=OPEN storage=local reason=Circuit breaker open")
-                        result.add(
-                            HealthReport(
-                                healthReportType = FILE_VIOLATION,
-                                song = song,
-                                description = description,
-                                healthReportStatus = FATAL_ERROR,
-                                canResolve = false,
-                                problemText = "Локальное хранилище недоступно (circuit breaker open)",
-                                solutionText = "Проверьте доступность локального MinIO",
-                            ),
-                        )
-                        return result
-                    }
-                    else -> { /* CLOSED or PROBE — proceed normally */ }
-                }
+            if (cb != null && cb.isFastFail()) {
+                circuitLog.warn("circuit=OPEN storage=local reason=Circuit breaker open")
+                result.add(
+                    HealthReport(
+                        healthReportType = FILE_VIOLATION,
+                        song = song,
+                        description = description,
+                        healthReportStatus = FATAL_ERROR,
+                        canResolve = false,
+                        problemText = "Локальное хранилище недоступно (circuit breaker open)",
+                        solutionText = "Проверьте доступность локального MinIO",
+                    ),
+                )
+                return result
             }
 
             /*
@@ -973,26 +970,22 @@ data class HealthReport(
 
             // Circuit breaker check (Pass 429, #153): fail fast if REMOTE MinIO is down.
             // Используется REMOTE-брейкер (не local) — изоляция от локального хранилища.
+            // Pass 432 (#156): isFastFail() вместо acquire() — не потребляем probe.
             val remoteCb = remoteStorageCircuitBreaker
-            if (remoteCb != null) {
-                when (remoteCb.acquire()) {
-                    StorageCircuitBreaker.Decision.FastFail -> {
-                        circuitLog.warn("circuit=OPEN storage=remote reason=Circuit breaker open")
-                        result.add(
-                            HealthReport(
-                                healthReportType = FILE_VIOLATION,
-                                song = song,
-                                description = description,
-                                healthReportStatus = FATAL_ERROR,
-                                canResolve = false,
-                                problemText = "Удалённое хранилище недоступно (circuit breaker open)",
-                                solutionText = "Проверьте доступность remote MinIO",
-                            ),
-                        )
-                        return result
-                    }
-                    else -> { /* CLOSED or PROBE — proceed normally */ }
-                }
+            if (remoteCb != null && remoteCb.isFastFail()) {
+                circuitLog.warn("circuit=OPEN storage=remote reason=Circuit breaker open")
+                result.add(
+                    HealthReport(
+                        healthReportType = FILE_VIOLATION,
+                        song = song,
+                        description = description,
+                        healthReportStatus = FATAL_ERROR,
+                        canResolve = false,
+                        problemText = "Удалённое хранилище недоступно (circuit breaker open)",
+                        solutionText = "Проверьте доступность remote MinIO",
+                    ),
+                )
+                return result
             }
 
             /*

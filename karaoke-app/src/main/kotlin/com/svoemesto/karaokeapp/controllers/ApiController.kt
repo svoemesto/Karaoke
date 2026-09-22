@@ -186,6 +186,8 @@ data class SyncOneClickResultDto(
     val updated: List<String>,
     val deleted: List<String>,
     val moved: List<String>,
+    /** Pass 431 (#155): описание ошибки сущности (null = успех/пропуск). */
+    val error: String? = null,
 )
 
 /**
@@ -206,6 +208,9 @@ class ApiController(
     private val healthReportBatchPool: HealthReportBatchPool,
 ) {
     private val lenientJson = Json { ignoreUnknownKeys = true }
+
+    /** Pass 431 (#155): лог сбоев ручной синхронизации (категория `infra.sync.remote`). */
+    private val syncLog: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.sync.remote")
 
     // specs/082-fix-import-folder-oom: ограничивает конкурентность фонового поиска текста песни
     // (SearXNG) при массовом импорте из папки — без лимита doCreateFromFolder создавал бы
@@ -5253,21 +5258,42 @@ class ApiController(
                             moved = emptyList(),
                         )
                     } else {
-                        val (created, updated, deleted, moved) = runEntitySync(key = target.key, direction = direction)
-                        if (created.size + updated.size + deleted.size + moved.size != 0) {
-                            SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
+                        try {
+                            val (created, updated, deleted, moved) = runEntitySync(key = target.key, direction = direction)
+                            if (created.size + updated.size + deleted.size + moved.size != 0) {
+                                SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
+                            }
+                            notifyStatsDirtyIfSongsPushed(target.key, direction, created.size + updated.size)
+                            SyncOneClickResultDto(
+                                key = target.key,
+                                displayName = target.displayName,
+                                direction = direction.name,
+                                skipped = false,
+                                created = created,
+                                updated = updated,
+                                deleted = deleted,
+                                moved = moved,
+                            )
+                        } catch (t: Throwable) {
+                            // Pass 431 (#155): изоляция per-target, как в AutoOneClickSyncScheduler
+                            // (FR-012 спеки #235) — одна упавшая сущность не валит весь клик в HTTP 500.
+                            syncLog.warn(
+                                "[postSyncOneClick] target={} failed: {}",
+                                target.key,
+                                "${t::class.simpleName}: ${t.message ?: "(no message)"}",
+                            )
+                            SyncOneClickResultDto(
+                                key = target.key,
+                                displayName = target.displayName,
+                                direction = direction.name,
+                                skipped = false,
+                                created = emptyList(),
+                                updated = emptyList(),
+                                deleted = emptyList(),
+                                moved = emptyList(),
+                                error = "${t::class.simpleName}: ${t.message ?: "(no message)"}",
+                            )
                         }
-                        notifyStatsDirtyIfSongsPushed(target.key, direction, created.size + updated.size)
-                        SyncOneClickResultDto(
-                            key = target.key,
-                            displayName = target.displayName,
-                            direction = direction.name,
-                            skipped = false,
-                            created = created,
-                            updated = updated,
-                            deleted = deleted,
-                            moved = moved,
-                        )
                     }
                 }
             return ResponseEntity.ok(results)

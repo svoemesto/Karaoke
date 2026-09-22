@@ -299,11 +299,12 @@ export default {
     showResultAlert(title, results) {
       const lines = results.map((r) => {
         if (r.skipped) return `${r.displayName || ''}: пропущено (запрещено настройками)`.trim()
+        const label = r.displayName ? `${r.displayName}: ` : ''
+        if (r.error) return `${label}ошибка: ${r.error}`
         const created = r.created ? r.created.length : 0
         const updated = r.updated ? r.updated.length : 0
         const deleted = r.deleted ? r.deleted.length : 0
         const moved = r.moved ? r.moved.length : 0
-        const label = r.displayName ? `${r.displayName}: ` : ''
         let line = `${label}добавлено ${created}, изменено ${updated}, удалено ${deleted}`
         if (moved) line += `, перемещено (удалено из источника) ${moved}`
         return line

@@ -79,6 +79,8 @@ LOCAL. Это значит, что **repair-процессы не видны п�
    - DELETE: получить записи, которые есть в цели, но нет в источнике.
    - MOVE: получить записи, помеченные как удалённые в источнике.
 3. Для каждой операции: HTTP POST на /api/sync/changerecords (server-side endpoint).
+   Pass 431 (#155): через `SyncRemoteClient` — таймауты 10s/60s, 1 retry (2s) на
+   транзиентные сетевые сбои, ошибка не пропагируется (см. run-entity-sync.md).
 4. Chunks по DELETE_CHUNK_SIZE = 200 для DELETE.
 5. Логировать результат: created/updated/deleted/moved counts.
 ```

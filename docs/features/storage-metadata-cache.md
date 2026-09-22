@@ -211,9 +211,17 @@ Open design question — это **отдельная спека 345+**, не в�
   в `decorate`/`decorateOrEmpty` + выравнивание OkHttp timeout + исправление
   диагностического лога (`storage=remote`). См.
   [specs/426-storage-circuit-breaker-blocking-timeout/spec.md](../../specs/426-storage-circuit-breaker-blocking-timeout/spec.md).
+- **#152 / Spec #428 / Pass 428**: interrupt-безопасность — follow-up на Pass 426.
+  При timeout-отмене реактор прерывал worker, MinIO бросал
+  `RuntimeException(InterruptedException)` мимо `MinioException` → `onErrorDropped`
+  ERROR со стеком. Fix: `runBlockingMinioOrNull { ... }` + `isInterruptWrapped`.
+  См. [specs/428-storage-timeout-interrupt-noise/spec.md](../../specs/428-storage-timeout-interrupt-noise/spec.md).
 
 ## История версий
 
+- **V2.4** (Pass 428, 2026-09-22, OpenProject #152): interrupt-безопасные блокирующие
+  вызовы (`runBlockingMinioOrNull`) — убран `onErrorDropped`/`InterruptedException`
+  ERROR-шум при timeout-отмене (follow-up Pass 426).
 - **V2.3** (Pass 426, 2026-09-22, OpenProject #150): blocking-loader timeout
   (`subscribeOn(boundedElastic)`), OkHttp timeout alignment, `storage=remote` log.
 - **V2.2** (Pass 372, 2026-09-17, OpenProject #131): добавлен watchdog +

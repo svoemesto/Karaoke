@@ -498,7 +498,7 @@ class StorageApiClientImpl(
         fileName: String,
     ): StatObjectResponse? {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
-        return try {
+        return runBlockingMinioOrNull {
             storageClient.statObject(
                 StatObjectArgs
                     .builder()
@@ -506,8 +506,50 @@ class StorageApiClientImpl(
                     .`object`(decodedFileName)
                     .build(),
             )
-        } catch (_: MinioException) {
-            null
         }
     }
 }
+
+/**
+ * Pass 428 (#152): распознаёт `InterruptedException`, завёрнутое в цепочку `cause`.
+ *
+ * `MinioClient.statObject` вызывает `CompletableFuture.get()`; при отмене подписки
+ * реактором (timeout) поток прерывается, и MinIO оборачивает `InterruptedException`
+ * в `RuntimeException` — это НЕ `MinioException`, поэтому раньше улетало наружу
+ * после терминации Mono → `reactor.core.publisher.Operators.onErrorDropped`.
+ */
+internal fun isInterruptWrapped(throwable: Throwable): Boolean {
+    var t: Throwable? = throwable
+    while (t != null) {
+        if (t is InterruptedException) return true
+        t = t.cause
+    }
+    return false
+}
+
+/**
+ * Pass 428 (#152): блокирующий MinIO-вызов, безопасный к отмене/прерыванию.
+ *
+ * Возвращает `null` при:
+ *  - `MinioException` (объект/бакет не найден и т.п.);
+ *  - `InterruptedException` (в т.ч. завёрнутом в `RuntimeException`) — вызов отменён
+ *    реактором по timeout; флаг прерывания восстанавливается.
+ *
+ * Прочие `RuntimeException` пробрасываются без изменений (не маскируем реальные ошибки).
+ */
+internal fun <T> runBlockingMinioOrNull(block: () -> T): T? =
+    try {
+        block()
+    } catch (_: MinioException) {
+        null
+    } catch (_: InterruptedException) {
+        Thread.currentThread().interrupt()
+        null
+    } catch (e: RuntimeException) {
+        if (isInterruptWrapped(e)) {
+            Thread.currentThread().interrupt()
+            null
+        } else {
+            throw e
+        }
+    }

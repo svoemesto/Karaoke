@@ -5,25 +5,32 @@
 
 ## Назначение
 
-`deploy/` содержит 178 файлов: Dockerfiles, docker-compose
+`deploy/` содержит Dockerfiles, docker-compose
 конфигурации, nginx конфиги, скрипты деплоя, .env. Деплой
 происходит на **двух машинах**:
 
 1. **Admin-машина** (`nsa-i9`): `karaoke-app` + `karaoke-web` (admin) +
-   `karaoke-public` (admin) + `webvue3` + `minio-storage` + БД.
+   `karaoke-public` (admin) + `webvue3` + БД.
 2. **Прод-сервер**: `karaoke-web` (прод) + `karaoke-public` (публичный) +
-   MinIO (отдельный хост) + БД.
+   **локальный MinIO** + БД.
 
-## Два корня deploy
+> **Переезд 2026-09-23** (wayfinder #165, спека #178): прод-сервер и
+> storage-сервер **объединены в один хост** `188.127.240.124`
+> (`sm-karaoke.ru`, Ubuntu 26.04). Раньше MinIO жил на отдельном хосте
+> `89.125.103.63`; теперь — локальный контейнер, доступ через host-nginx
+> `/minio/` → `127.0.0.1:8890`. Канон deploy для нового хоста —
+> `deploy/prod-single-host/` (старый `deploy/web-server-deploy/` — deprecated).
+
+## Корни deploy
 
 | Путь | Где | Назначение |
 |---|---|---|
 | `~/Karaoke/deploy/` | Admin-машина | **Основной** deploy отсюда |
-| `~/Karaoke/deploy/web-server-deploy/deploy/` | Прод | **Прод-сервер** (отдельная копия) |
+| `deploy/prod-single-host/` | Репо | **Канон** однохостового прода (из реального `/root/Karaoke/deploy`) |
+| `deploy/web-server-deploy/deploy/` | Прод (legacy) | Устаревшая двуххостовая копия (deprecated) |
 
-Это исторически сложилось — две разные папки для разных машин.
 Каждая содержит свои `do.sh`, `docker-compose-*.yml`,
-`nginx.conf`, `.env` (с реальными секретами в `do.env`).
+`nginx.conf`, `.env` (с реальными секретами в `do.env`, в git не трекаются).
 
 ## Главный скрипт: `do.sh`
 
@@ -63,7 +70,7 @@ NB: `Dockerfile*` несколько штук = эксперименты с ра
 | `docker-compose-public.yml` | karaoke-public на admin (для dev) |
 | `docker-compose-web.yml` | karaoke-web на прод |
 | `docker-compose-database.yml` | Только БД |
-| `docker-compose-storage.yml` | MinIO на прод (отдельный хост) |
+| `docker-compose-storage.yml` | MinIO на прод (2026-09-23: **локальный контейнер** на том же хосте) |
 | `docker-compose-whisper.yml` | Whisper ASR service |
 | `docker-compose-telegram-proxy.yml` | Telegram SOCKS proxy |
 | `tracker-docker-compose.yml` | OpenProject tracker (для задач) |
@@ -128,4 +135,6 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 
 ## Changelog
 
+- **Pass 440** (2026-09-23): Переезд прод+MinIO на один хост (`188.127.240.124`).
+  Канон — `deploy/prod-single-host/`; `web-server-deploy/` deprecated. wayfinder #165 / спека #178.
 - **Pass 354** (2026-09-09): Initial. Автор: agent (Karaoke).

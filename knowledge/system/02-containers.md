@@ -11,7 +11,7 @@
 | **karaoke-web** | Admin-машина + прод | Публичное API + UI (Thymeleaf), `useAuth`, `useKaraokeEditor`. Spring Boot, Kotlin. Порт 8899 (admin) / 8899 (прод). | [integration domain](../domains/integration/domain.md) |
 | **webvue3** | Admin-машина | Админ-интерфейс (Vue 3 + Vite + Vuex). Порт 7906. | [frontend docs](../system/frontend/) |
 | **karaoke-public** | Admin-машина + прод | Публичный сайт (Vue 3 + Vite + composables). Порт 7905. | [frontend docs](../system/frontend/karaoke-public-composables.md) |
-| **MinIO (karaoke-storage)** | Admin-машина (local) + прод (remote) | S3-compatible хранилище. | [storage domain](../domains/storage/domain.md) |
+| **MinIO (karaoke-storage)** | Admin-машина (local) + прод (**локальный контейнер** с 2026-09-23) | S3-compatible хранилище. | [storage domain](../domains/storage/domain.md) |
 | **PostgreSQL** | Admin-машина (LOCAL) + прод (SERVER) | БД для всех entity. | [persistence domain](../domains/persistence/domain.md) |
 | **nginx** | Обе машины | path-proxy для внешних сервисов (MTU black-hole обход). | [deploy-overview](../system/infra/deploy-overview.md) |
 
@@ -41,13 +41,13 @@ flowchart TB
       AlignML[alignment-ml<br/>Python FastAPI]
     end
 
-    subgraph ProdServer [Прод-сервер]
+    subgraph ProdServer [Прод-сервер (188.127.240.124, с 2026-09-23)]
       direction TB
       KaraokePublic[karaoke-public<br/>Vue 3 + Vite<br/>:7905]
       KaraokeWeb[karaoke-web<br/>Spring Boot, Kotlin<br/>:8899]
-      MinioRemote[(MinIO<br/>отдельный хост)]
+      MinioRemote[(MinIO<br/>локальный контейнер<br/>127.0.0.1:8890)]
       PostgresServer[(PostgreSQL<br/>SERVER)]
-      NginxProd[nginx<br/>path-proxy]
+      NginxProd[nginx<br/>path-proxy + TLS]
     end
 
     VK[VK]
@@ -100,4 +100,6 @@ flowchart TB
 
 ## Changelog
 
+- **Pass 440** (2026-09-23): Прод-сервер и MinIO объединены в один хост
+  `188.127.240.124` (wayfinder #165 / спека #178). MinIO — локальный контейнер.
 - **Pass 356** (2026-09-09): Initial C4 L2. Автор: agent (Karaoke).

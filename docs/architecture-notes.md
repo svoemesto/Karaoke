@@ -4,6 +4,26 @@
 высокоуровневого контекста; детали фич — в `specs/NNN-*/spec.md` и
 `docs/features/<slug>.md`.
 
+> **Pass 440** (2026-09-23, wayfinder #165 / спека #178): **переезд
+> прод-сайта на один сервер.** Прод (`karaoke-web`, `karaoke-public`,
+> PostgreSQL) и MinIO (444 GiB / 59 707 объектов) объединены на новом хосте
+> `188.127.240.124` (`sm-karaoke.ru`, Ubuntu 26.04, 6 vCPU, 3.8 ГБ, 985 ГБ);
+> старые `188.119.64.111` (прод) и `89.125.103.63` (storage) выводятся.
+> - Канон deploy — `deploy/prod-single-host/` (из реального `/root/Karaoke/deploy`);
+>   `deploy/web-server-deploy/` и `deploy/new_comp/` — deprecated.
+> - MinIO: образ `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`
+>   (`minio/minio` удалён с Docker Hub, 404); loopback `127.0.0.1:8890`;
+>   host-nginx `/minio/` → локальный MinIO + HTTP-кэш 24 ч.
+> - `karaoke-web` heap `-Xmx1200m` (3.8 ГБ RAM + swap 8 ГБ, `swappiness=10`).
+> - Sync: исправлен баг — `docker-compose-app.yml` не пробрасывал
+>   `DB_REMOTE_HOST` (`.env` игнорировался); дефолты `application.yml` →
+>   `188.127.240.124`.
+> - Приёмка: `tools/migration-smoke.sh` (15/15 PASS и по IP, и по домену).
+> - Артефакты решений: `specs/165-migration-one-server-research/`
+>   (research + `cutover-runbook.md` + `acceptance-checklist.md`).
+> См. `knowledge/system/infra/deploy-overview.md`, `knowledge/system/02-containers.md`,
+> `knowledge/domains/storage/domain.md`.
+
 > **Pass 369** (2026-09-11): Задача #81 (OP) — добавлен флаг
 > `free_after_on_air` (Kotlin: `freeAfterOnAir`) на `Song`. Семантика:
 > после наступления `dateTimePublish` песня остаётся публично доступной,

@@ -28,9 +28,11 @@ Storage — слой абстракции над **двумя физически
    - **Local MinIO** (`karaoke-storage:9000`, контейнер в docker-сети
      `karaokenet` на admin-машине) — полный read/write для
      `karaoke-app`.
-   - **Remote MinIO** (на отдельном хосте прод-сервера, доступ через
-     nginx path-proxy `minio-proxy`) — read/write для `karaoke-app`,
-     read-only неподписанные GET/HEAD для `karaoke-web`.
+   - **Remote MinIO** (на прод-сервере `188.127.240.124`; с 2026-09-23 —
+     **локальный контейнер на том же хосте**, что и `karaoke-web`; доступ
+     через host-nginx path-proxy `minio-proxy` → `127.0.0.1:8890`) —
+     read/write для `karaoke-app`, read-only неподписанные GET/HEAD для
+     `karaoke-web`.
 2. **Local Filesystem (FS)** — обычные файлы на диске admin-машины.
    Не S3, не通过网络. Доступны только `karaoke-app`. Используется
    для файлов, которые нужны MLT-движку и аудио-степаратору (большие
@@ -96,10 +98,13 @@ Storage — слой абстракции над **двумя физически
   фич, где нужна авторизация (например, скачивание результатов
   StemJob в `PublicStemJobController`).
 
-**Причина**: на проде MinIO вынесен на отдельный хост. Прямой
-MinioClient из docker-контейнера `karaoke-web` не работает (MTU
-black-hole, ломает SigV4-подпись). Поэтому — nginx-прокси, который
-позволяет неподписанные GET/HEAD.
+**Причина**: исторически на проде MinIO был вынесен на отдельный хост.
+Прямой MinioClient из docker-контейнера `karaoke-web` не работал (MTU
+black-hole, ломал SigV4-подпись). Поэтому — nginx-прокси, который
+позволяет неподписанные GET/HEAD. **С 2026-09-23** (wayfinder #165) MinIO —
+локальный контейнер на том же хосте (`127.0.0.1:8890`); MTU-проблема ушла,
+но path-proxy сохранён ради нулевых изменений в Java-коде
+(`STORAGE_PROXY_URL=http://minio-proxy`).
 
 **Бин `WebKaraokeStorageServiceImpl` обязателен только для DI** —
 несколько web-классов держат его как конструкторную зависимость.

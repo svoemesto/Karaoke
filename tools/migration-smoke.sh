@@ -21,15 +21,16 @@ if [ -z "$HOST" ]; then
 fi
 
 # Схема: по IP — всё равно https с SNI/Host = sm-karaoke.ru.
-SCHEME="https"
 SERVER_NAME="sm-karaoke.ru"
-BASE="https://${HOST}"
 CURL=(curl -sS --max-time 20)
 RESOLVE_OPT=()
-# Если задан IP — ходим по https с SNI/Host=sm-karaoke.ru через --resolve.
+# Если задан IP — ходим по https://sm-karaoke.ru с --resolve IP (SNI/Host корректны).
 case "${HOST%%:*}" in
-  *[!0-9.]*) : ;;  # hostname — используем как есть
-  *) RESOLVE_OPT=(--resolve "${SERVER_NAME}:443:${HOST%%:*}") ;;
+  *[!0-9.]*) BASE="https://${HOST}" ;;
+  *)
+    BASE="https://${SERVER_NAME}"
+    RESOLVE_OPT=(--resolve "${SERVER_NAME}:443:${HOST%%:*}")
+    ;;
 esac
 
 # curl отдаёт "000" при ошибке соединения; санитизируем до 3 цифр.
@@ -82,7 +83,7 @@ check "Страница песни"               200 "$BASE/song?id=1"
 check "OG-картинка песни"            200 "$BASE/api/public/og/song?id=1"
 check "Альбомы автора"               200 "$BASE/api/public/authors/17/albums"
 check "Статистика"                   200 "$BASE/api/public/stats"
-check "MinIO через nginx /minio/"    200 "$BASE/minio/karaoke/"
+check "MinIO через nginx /minio/"    200 "$BASE/minio/karaoke/song_banner_517.png"
 check "HTTP→HTTPS redirect"          301 "http://${HOST%%:*}/"
 
 # --- Данные (не заглушка) ---

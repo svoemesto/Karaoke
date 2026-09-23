@@ -31,12 +31,17 @@ __pycache__/
 .env
 .env.local
 *.env.*
+# Шаблоны без секретов — трекаются (wayfinder #165).
+!*.env.example
 /deploy/.env
 /deploy/do.env
 /deploy/web-server-deploy/deploy/.env
 /deploy/web-server-deploy/deploy/do.env
 /deploy/new_comp/sm-karaoke-system/deploy/.env
 /deploy/new_comp/sm-karaoke-system/deploy/do.env
+# prod-single-host: реальные .env/do.env (секреты) игнорируем, шаблоны — трекаем.
+/deploy/prod-single-host/.env
+/deploy/prod-single-host/do.env
 
 # Tracker local integration secrets (Constitution § VIII, spec 295)
 # Реальный файл .env.local-tracker содержит API-токены и пароли БД трекера.

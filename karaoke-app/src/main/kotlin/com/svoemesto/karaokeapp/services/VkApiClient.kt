@@ -244,6 +244,38 @@ class VkIdRefreshFailedException(
 ) : RuntimeException("VK ID refresh failed ($errorCode): $errorMsg")
 
 /**
+ * Сетевая ошибка VK API после исчерпания доступных транспортов (specs/437, #161).
+ *
+ * Бросается [VkApiClient.send], когда прямой запрос к `api.vk.ru` упал, а
+ * HTTP-прокси (`vkProxyUrl`) не задан — прокси для VK **опционален**. Это
+ * типизированная transient-ошибка: оркестраторы ([VkAutoPublishService],
+ * [VkAutoPublishScheduler], [VkPhotoUploadClient]) конвертируют её в
+ * `SEND_FAILED` / retry, а не дают «сырому» исключению пролететь через
+ * `@Scheduled`-тик. Исходная причина доступна в [cause].
+ *
+ * @param message краткое описание (без токенов).
+ * @param cause исходное сетевое исключение (Connection reset / timeout / …).
+ */
+class VkNetworkException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
+ * Транспорт для очередного запроса к VK API (specs/437, #161).
+ *
+ * Выделено в чистую функцию [VkApiClient.decideSendMode], чтобы решение
+ * «direct vs proxy» было тестируемым без сети.
+ */
+internal enum class VkSendMode {
+    /** Прямой запрос к `api.vk.ru`. */
+    DIRECT,
+
+    /** Запрос через HTTP-прокси (`vkProxyUrl`). */
+    PROXY,
+}
+
+/**
  * Тонкий клиент VK API поверх JDK HttpClient (specs/121-vk-news-auto-publish).
  *
  * Реализует методы:
@@ -258,7 +290,11 @@ class VkIdRefreshFailedException(
  *
  * Прокси-fallback — по образцу [TelegramApiClient]: каждый запрос сначала пробует
  * напрямую, при сетевой ошибке переключается на HTTP-прокси (`vkProxyUrl`) на
- * TTL-окно (`vkProxyModeTtlMs`). Если `vkProxyUrl` не задан — ошибка пробрасывается.
+ * TTL-окно (`vkProxyModeTtlMs`). Прокси для VK **опционален** (specs/437, #161):
+ * если `vkProxyUrl` не задан, при транзиентном сбое прямого запроса выполняется
+ * повторная прямая попытка, а затем бросается типизированная [VkNetworkException]
+ * (её оркестраторы конвертируют в `SEND_FAILED`), — `IllegalStateException` больше
+ * не пролетает через `@Scheduled`-тик.
  *
  * Retry/backoff (FR-009): 3 попытки с backoff `30с→2мин→5мин` (по образцу
  * [TelegramApiClient.sendVideo]). Non-retryable коды VK API: `4`, `5`, `15`,
@@ -436,12 +472,18 @@ class VkApiClient {
     private fun apiVersion(): String = KaraokeProperties.getString("vkApiVersion").ifBlank { "5.199" }
 
     // Отправка запроса с авто-fallback напрямую → прокси (по образцу TelegramApiClient.send).
+    //
+    // specs/437 (#161): прокси для VK ОПЦИОНАЛЕН. Если `vkProxyUrl` не задан, а прямой
+    // запрос упал транзиентно, нельзя бросать IllegalStateException — это валило
+    // @Scheduled-тик PremiumAutoPublishScheduler (12× подряд, лог 2026-09-23).
+    // Вместо этого: сбрасываем proxy-режим и повторяем прямой запрос; при повторном
+    // сбое — типизированная VkNetworkException (оркестратор конвертирует в SEND_FAILED).
     private fun send(request: HttpRequest): HttpResponse<String> {
         val ttl = KaraokeProperties.getLong("vkProxyModeTtlMs").let { if (it <= 0) 60_000L else it }
         val now = System.currentTimeMillis()
-        val shouldTryDirect = !useProxy || (now - modeSetAtMs > ttl)
+        val hasProxy = !KaraokeProperties.getString("vkProxyUrl").isBlank()
 
-        if (shouldTryDirect) {
+        if (decideSendMode(hasProxy, useProxy, modeSetAtMs, now, ttl) == VkSendMode.DIRECT) {
             try {
                 val response = directClient.send(request, HttpResponse.BodyHandlers.ofString())
                 if (useProxy) {
@@ -454,12 +496,34 @@ class VkApiClient {
                 if (!useProxy) println("VkApiClient: прямой доступ недоступен (${e.message}), переключение на прокси")
                 useProxy = true
                 modeSetAtMs = now
+                if (!hasProxy) {
+                    // Прокси не задан — повторяем прямой запрос (второй шанс на transient),
+                    // и только при повторном сбое отдаём типизированную сетевую ошибку.
+                    try {
+                        return directClient.send(request, HttpResponse.BodyHandlers.ofString())
+                    } catch (e2: Exception) {
+                        println("VkApiClient: повторный прямой доступ недоступен (${e2.message}), vkProxyUrl не задан")
+                        throw VkNetworkException(
+                            "VK недоступен напрямую, а vkProxyUrl не задан: ${e2.message ?: e2.javaClass.simpleName}",
+                            e2,
+                        )
+                    }
+                }
             }
         }
 
-        val proxy =
-            proxyClient()
-                ?: throw IllegalStateException("VK недоступен напрямую, а vkProxyUrl не задан")
+        val proxy: HttpClient? = proxyClient()
+        if (proxy == null) {
+            // Прокси пропал из конфигурации между тиками — не фатально: повторяем прямой запрос.
+            return try {
+                directClient.send(request, HttpResponse.BodyHandlers.ofString())
+            } catch (e: Exception) {
+                throw VkNetworkException(
+                    "VK недоступен ни напрямую, ни через прокси (vkProxyUrl пропал): ${e.message ?: e.javaClass.simpleName}",
+                    e,
+                )
+            }
+        }
         return proxy.send(request, HttpResponse.BodyHandlers.ofString())
     }
 
@@ -1064,6 +1128,35 @@ class VkApiClient {
         @JvmStatic
         fun decodeTokenResponse(body: String): VkCodeTokenResponse =
             checkerJson.decodeFromString(VkCodeTokenResponse.serializer(), body)
+
+        /**
+         * Чистое решение «direct vs proxy» для одного запроса (specs/437, #161).
+         *
+         * Логика:
+         * - `hasProxy=false` → всегда [VkSendMode.DIRECT] (прокси опционален; режим
+         *   proxy не имеет смысла и не должен приводить к фатальной ошибке).
+         * - `useProxy=false` → [VkSendMode.DIRECT] (нормальный режим).
+         * - `useProxy=true` и TTL не истёк → [VkSendMode.PROXY].
+         * - `useProxy=true` и TTL истёк → [VkSendMode.DIRECT] (пробуем вернуться
+         *   на прямой доступ).
+         *
+         * @param hasProxy задан ли `vkProxyUrl`.
+         * @param useProxy текущий режим (true — идём через прокси).
+         * @param modeSetAtMs момент установки текущего режима (мс).
+         * @param now текущее время (мс).
+         * @param ttl TTL прокси-режима (мс).
+         */
+        internal fun decideSendMode(
+            hasProxy: Boolean,
+            useProxy: Boolean,
+            modeSetAtMs: Long,
+            now: Long,
+            ttl: Long,
+        ): VkSendMode {
+            if (!hasProxy) return VkSendMode.DIRECT
+            val shouldTryDirect = !useProxy || (now - modeSetAtMs > ttl)
+            return if (shouldTryDirect) VkSendMode.DIRECT else VkSendMode.PROXY
+        }
     }
 }
 

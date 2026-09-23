@@ -155,6 +155,14 @@ class VkPhotoUploadClient(
                 }
                 val photo = apiClient.saveWallPhoto(raw.server, raw.photo, raw.hash, groupId, userToken)
                 return PhotoUploadResult(PhotoUploadMethod.PHOTOS, photo.attachment, null)
+            } catch (e: VkNetworkException) {
+                // specs/437 (#161): сетевая ошибка VK (в т.ч. «недоступен напрямую и нет прокси»)
+                // — transient-семантика: retry внутри цепочки + fallback на docs.*.
+                lastTransient = VkPhotoTransientException(0, "network: ${e.message}")
+                println("VkPhotoUploadClient.uploadCover: photos.* network on attempt $attempt/$transientAttempts: ${e.message}")
+                if (attempt < transientAttempts) {
+                    sleep(transientBackoffMs)
+                }
             } catch (e: VkPhotoTransientException) {
                 lastTransient = e
                 println("VkPhotoUploadClient.uploadCover: photos.* transient on attempt $attempt/$transientAttempts: ${e.errorCode} ${e.errorMsg}")
@@ -185,6 +193,13 @@ class VkPhotoUploadClient(
                 }
                 val doc = apiClient.saveWallDoc(raw.file, "$songId.png", communityToken)
                 return PhotoUploadResult(PhotoUploadMethod.DOCS, doc.attachment, null)
+            } catch (e: VkNetworkException) {
+                // specs/437 (#161): та же transient-семантика, что и для photos.*.
+                lastTransient = VkPhotoTransientException(0, "network: ${e.message}")
+                println("VkPhotoUploadClient.uploadCover: docs.* network on attempt $attempt/$transientAttempts: ${e.message}")
+                if (attempt < transientAttempts) {
+                    sleep(transientBackoffMs)
+                }
             } catch (e: VkPhotoTransientException) {
                 lastTransient = e
                 println("VkPhotoUploadClient.uploadCover: docs.* transient on attempt $attempt/$transientAttempts: ${e.errorCode} ${e.errorMsg}")

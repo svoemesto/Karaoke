@@ -76,6 +76,10 @@ Telegram Bot API имеет жёсткий rate-limit (1 запрос/сек н�
 2. **API ключи MUST быть в env-переменных** (`@Value` / `System.getenv`),
    не в коде (Constitution VIII).
 3. **Rate-limits MUST быть обработаны** (Telegram 1/sec, VK 3/sec).
+4. **Опциональный прокси MUST NOT быть фатальным** (specs/437, #161):
+   если `vkProxyUrl` (или аналог) не задан, транзиентный сетевой сбой
+   конвертируется в типизированную сетевую ошибку и `SEND_FAILED`, а не
+   в необработанное исключение, валящее `@Scheduled`-тик.
 
 ## Hot paths
 
@@ -111,4 +115,6 @@ Telegram Bot API имеет жёсткий rate-limit (1 запрос/сек н�
 
 ## Changelog
 
+- **Pass 437** (2026-09-23, issue #161): Domain Invariant #4 —
+  опциональный прокси не фатален (VK proxy-fallback resilience).
 - **Pass 345** (2026-09-09): Initial. Автор: agent (Karaoke).

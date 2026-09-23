@@ -71,6 +71,13 @@ News (category + text + picture + dates)
 Failure modes: preview timeout, photo upload rate limit, wall.post
 group blocked.
 
+**Resilience** (specs/437, #161): `publishTextOnly` / `publishFile` ловят
+исключения от `VkApiClient` (в т.ч. `VkNetworkException` — «VK недоступен
+напрямую, прокси не задан») и штатно записывают `SEND_FAILED` через
+`writeFailure` (`vkAutoPublishLastError`), не пробрасывая исключение в
+`@Scheduled`-тик. `VkAutoPublishScheduler.publishNewsWithoutVideo` — то же,
+пост не помечается опубликованным (повтор на следующем тике).
+
 ## Детально: `SongReleaseAnnouncementService` (506 строк)
 
 **Файл**: `karaoke-app/.../services/SongReleaseAnnouncementService.kt`.
@@ -159,4 +166,6 @@ object NewsTemplateService {
 
 ## Changelog
 
+- **Pass 437** (2026-09-23, issue #161): resilience `VkAutoPublishService` /
+  `VkAutoPublishScheduler` — сетевые ошибки VK → `SEND_FAILED`, не исключение.
 - **Pass 379** (2026-09-09): Initial. Автор: agent (Karaoke).

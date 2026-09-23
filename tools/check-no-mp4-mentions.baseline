@@ -84,9 +84,9 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublis
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt:23
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt:26
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramTemplateService.kt:10
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:251
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:577
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:722
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:283
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:641
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:786
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:117
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:125
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:257

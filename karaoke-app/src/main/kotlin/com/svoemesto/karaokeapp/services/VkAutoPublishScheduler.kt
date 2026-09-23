@@ -125,10 +125,19 @@ class VkAutoPublishScheduler {
                 }
             }
         val client = VkApiClient()
-        val result = client.wallPost(groupId, message, attachments = null)
+        // specs/437 (#161): сбой VK API (сеть / нет прокси) не должен валить @Scheduled-тик.
+        // Пост НЕ помечаем опубликованным — попробуем снова на следующем тике.
+        val result =
+            try {
+                client.wallPost(groupId, message, attachments = null)
+            } catch (e: Exception) {
+                println("VkAutoPublishScheduler.publishNewsWithoutVideo: wallPost exception for news ${news.id}: ${e.message ?: e.javaClass.simpleName}")
+                return
+            }
         if (result.state == VkAutoPublishState.PUBLISHED) {
             publishedNewsIdsWithoutSong.add(news.id)
         } else {
+            println("VkAutoPublishScheduler.publishNewsWithoutVideo: news ${news.id} not published: ${result.error}")
         }
     }
 

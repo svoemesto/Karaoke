@@ -359,7 +359,19 @@ object VkAutoPublishService {
             // specs/299: race с SongEdit — saveToDbLocked обеспечивает атомарность
             song.saveToDbLocked()
 
-            val result = client.sendPostWithVideo(groupId, message, demoFile, song.id, photoAttachment)
+            // specs/437 (#161): VK API может быть недоступен (сеть, нет прокси) — не даём
+            // исключению пролететь через @Scheduled-тик. Записываем SEND_FAILED штатно.
+            val result =
+                try {
+                    client.sendPostWithVideo(groupId, message, demoFile, song.id, photoAttachment)
+                } catch (e: Exception) {
+                    val reason = "sendPostWithVideo exception: ${e.message ?: e.javaClass.simpleName}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                }
 
             if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
                 if (persistPostId) {
@@ -471,7 +483,18 @@ object VkAutoPublishService {
             // specs/299: race с SongEdit — saveToDbLocked обеспечивает атомарность
             song.saveToDbLocked()
 
-            val result = client.wallPost(groupId, message, attachments = photoAttachment)
+            // specs/437 (#161): см. publishFile — VK API может быть недоступен, SEND_FAILED штатно.
+            val result =
+                try {
+                    client.wallPost(groupId, message, attachments = photoAttachment)
+                } catch (e: Exception) {
+                    val reason = "wallPost exception: ${e.message ?: e.javaClass.simpleName}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                }
 
             if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
                 if (persistPostId) {

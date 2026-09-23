@@ -60,6 +60,17 @@
 
 **Логирование**: SLF4J.
 
+**Прокси-fallback** (specs/437, #161): как у [TelegramApiClient](#5-telegramapiclient) —
+каждый запрос сначала напрямую, при сетевом сбое → HTTP-прокси (`vkProxyUrl`) на
+TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: прокси для VK
+**опционален**. Если `vkProxyUrl` не задан, при сбое прямого запроса выполняется
+повторная прямая попытка, затем бросается типизированная `VkNetworkException`
+(её конвертируют в `SEND_FAILED` оркестраторы — `VkAutoPublishService` /
+`VkAutoPublishScheduler` / `VkPhotoUploadClient`). Решение «direct vs proxy»
+вынесено в чистую функцию `VkApiClient.decideSendMode` (тесты
+`VkApiClientSendModeTest`). Прецедент: 2026-09-23 — `IllegalStateException`
+пролетал через `@Scheduled`-тик 12× подряд.
+
 ---
 
 ## 2. `VkPhotoUploadClient`
@@ -299,4 +310,9 @@ LAN IP хоста (НЕ `0.0.0.0`), поэтому URL должен быть н�
 
 ## Changelog
 
+- **Pass 437** (2026-09-23, issue #161): `VkApiClient` proxy-fallback — прокси
+  опционален; добавлена `VkNetworkException`, `decideSendMode` (чистая функция),
+  unit-тесты `VkApiClientSendModeTest`. Оркестраторы (`VkAutoPublishService`,
+  `VkAutoPublishScheduler`, `VkPhotoUploadClient`) конвертируют сетевую ошибку
+  в `SEND_FAILED` / transient.
 - **Pass 345** (2026-09-09): Initial. Автор: agent (Karaoke).

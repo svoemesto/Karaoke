@@ -1,0 +1,65 @@
+version: "3.9"
+services:
+
+  karaoke-web:
+    container_name: karaoke-web
+    image: ${DOCKER_REGISTRY}/karaoke-web:1
+    ports:
+      # Наружу — только host-nginx (443/80); karaoke-web слушает loopback (#173).
+      - "127.0.0.1:${WEB_PORT_HOST}:${WEB_PORT_INSIDE_CONTAINER}"
+    environment:
+      - WORK_ON_SERVER=1
+      - WORK_IN_CONTAINER=1
+      - STORAGE_FOLDER=${STORAGE_FOLDER}
+      - STORAGE_PORT_HOST=${STORAGE_PORT_HOST}
+      - STORAGE_PORT_INSIDE_CONTAINER=${STORAGE_PORT_INSIDE_CONTAINER}
+      - STORAGE_CONSOLE_PORT_HOST=${STORAGE_CONSOLE_PORT_HOST}
+      - STORAGE_CONSOLE_PORT_INSIDE_CONTAINER=${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}
+      - STORAGE_CONTAINER_NAME=${STORAGE_CONTAINER_NAME}
+      - STORAGE_KEY=${STORAGE_KEY}
+      - STORAGE_SECRET=${STORAGE_SECRET}
+      - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
+      - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
+      - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
+      - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
+      - DB_REMOTE_HOST=${DB_REMOTE_HOST}
+      - DB_REMOTE_PORT=${DB_REMOTE_PORT}
+      # Обход MTU black-hole для внешних HTTPS-вызовов (см. 80to8897 location /smartcaptcha/) —
+      # тот же приём, что STORAGE_PROXY_URL для MinIO.
+      - CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptcha
+      # Тот же приём для ЮKassa API (80to8897 location /yookassa/). shop-id/secret-key — реальные
+      # значения из do.env на сервере (НЕ коммитить сюда, см. CLAUDE.md про секреты в do.sh/do.env).
+      - YOOKASSA_API_URL=http://minio-proxy/yookassa
+      - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+      - STEMJOBS_INTERNAL_SECRET=${STEMJOBS_INTERNAL_SECRET}
+      - VK_CLIENT_SECRET=${VK_CLIENT_SECRET}
+      - VK_APP_ID=${VK_APP_ID}
+      - VK_REDIRECT_URI=${VK_REDIRECT_URI}
+      - VK_ID_CLIENT_ID=${VK_ID_CLIENT_ID}
+      - VK_ID_CLIENT_SECRET=${VK_ID_CLIENT_SECRET}
+      - VK_ID_REDIRECT_URI=${VK_ID_REDIRECT_URI}
+      - VK_ID_ADMIN_API_URL=${VK_ID_ADMIN_API_URL}
+      # Прокси к MinIO через хостовый nginx (fetchFromMinIO/existsInMinIO в PublicApiController/
+      # PublicPlayerController). @Value("${storage.proxy-url}") требует это значение; application.yml
+      # в jar не упаковывается, поэтому property приходит только отсюда (иначе karaoke-web не стартует).
+      - STORAGE_PROXY_URL=http://minio-proxy
+    volumes:
+      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
+    extra_hosts:
+      - "minio-proxy:host-gateway"
+    networks:
+      - karaokenet
+    entrypoint:
+      - java
+      - -Dfile.encoding=UTF-8
+      - -Djava.security.egd=file:/dev/./urandom
+      - -XX:+HeapDumpOnOutOfMemoryError
+      - -XX:HeapDumpPath=/dumps
+    command: ${APP_JAVA_OPTS} -jar /app.jar
+    restart: always
+
+networks:
+  karaokenet:
+    external: true
+    name: deploy_karaokenet

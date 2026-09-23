@@ -1,0 +1,8 @@
+[Unit]
+Description=Karaoke: очистка неиспользуемых Docker-образов (защита от переполнения диска)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/root/Karaoke/deploy/prune-images.sh

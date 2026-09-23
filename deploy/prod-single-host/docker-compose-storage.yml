@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  karaoke-storage:
+    # minio/minio удалён с Docker Hub (2026-04-25, 404) → Quay.
+    # Версия запинена ровно та, что работала на старом storage (RELEASE.2025-09-07,
+    # формат xl-single совместим). Решение wayfinder #177.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    environment:
+      - MINIO_ACCESS_KEY=${STORAGE_KEY}
+      - MINIO_SECRET_KEY=${STORAGE_SECRET}
+      - WORK_IN_CONTAINER=1
+    container_name: karaoke-storage
+    ports:
+      # Наружу не открываем (#172): API доступен host-nginx и admin-машине.
+      # 8890 (API) — loopback; admin (185.26.28.109) ходит сюда для remote storage.
+      - "127.0.0.1:${STORAGE_PORT_HOST}:${STORAGE_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера
+      - "127.0.0.1:${STORAGE_CONSOLE_PORT_HOST}:${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}" # console
+    command: server /data --console-address ":${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}"
+    networks:
+      - karaokenet
+    volumes: # локальная папка : папка внутри контейнера
+      - ${STORAGE_FOLDER}:/data # /sm-karaoke/system/Караоке-storage → /data
+    restart: always
+
+networks:
+  karaokenet:
+    external: true
+    name: deploy_karaokenet

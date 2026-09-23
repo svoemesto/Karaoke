@@ -1043,12 +1043,57 @@ export default {
   background-color: beige;
 }
 
-/* Верхние элементы управления держим центрированной колонкой (~500px), чтобы кнопки не растягивались. */
+/* Верхние элементы управления держим центрированной колонкой (~500px), чтобы кнопки не растягивались.
+ *
+ * Адаптив (specs/436-home-adaptive-columns, #160): контейнер — block (не flex),
+ * чтобы работал CSS multi-column. По умолчанию 1 колонка; media-запросы ниже
+ * переключают column-count на 2/3/4, когда высоты экрана не хватает на весь
+ * контент (~1450px), а ширины — достаточно для узких колонок. Раскладка чисто
+ * CSS, без JS-resize. `break-inside: avoid` на прямых детях не даёт разрезать
+ * группы кнопок между колонками. */
 .home-controls {
-  display: flex;
-  flex-direction: column;
+  display: block;
+  column-count: 1;
+  column-gap: 20px;
   width: 500px;
   max-width: 100%;
+}
+
+.home-controls > * {
+  break-inside: avoid;
+}
+
+/* 2 колонки: ширина ≥ 1024px, высоты viewport не хватает на одну колонку (~1500px). */
+@media (min-width: 1024px) and (max-height: 1500px) {
+  .home {
+    max-width: 1120px;
+  }
+  .home-controls {
+    column-count: 2;
+    width: 100%;
+  }
+}
+
+/* 3 колонки: ширина ≥ 1400px, высоты не хватает и на 2 колонки (2 × ~725px). */
+@media (min-width: 1400px) and (max-height: 820px) {
+  .home {
+    max-width: 1760px;
+  }
+  .home-controls {
+    column-count: 3;
+    width: 100%;
+  }
+}
+
+/* 4 колонки: ширина ≥ 1920px, высоты не хватает и на 3 колонки (3 × ~483px). */
+@media (min-width: 1920px) and (max-height: 560px) {
+  .home {
+    max-width: 2200px;
+  }
+  .home-controls {
+    column-count: 4;
+    width: 100%;
+  }
 }
 
 .field-and-buttons-wrapper {

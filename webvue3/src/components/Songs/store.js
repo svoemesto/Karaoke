@@ -2883,6 +2883,24 @@ export default {
       let request = { method: 'POST', url: '/api/songs/createsymlinksall', params: params }
       return promisedXMLHttpRequest(request)
     },
+    // Спека #446: сброс persistent-кеша хранилища для списка песен.
+    // Бэкенд удаляет строки tbl_storage_metadata_cache для всех storage-имён песни
+    // (LOCAL+REMOTE). Идемпотентно. Следующий health-report перечитает реальный MinIO.
+    resetStorageCachePromise(_ctx, ids) {
+      let request = {
+        method: 'POST',
+        url: '/api/song/resetStorageCache',
+        params: { ids: ids.join(';') },
+      }
+      return promisedXMLHttpRequest(request).then((data) => {
+        try {
+          return JSON.parse(data)
+        } catch (e) {
+          console.warn('[resetStorageCachePromise] non-JSON response', e)
+          return {}
+        }
+      })
+    },
     createSmartCopyForAllPromise(ctx, payload) {
       let request = { method: 'POST', url: '/api/songs/smartcopyall', params: payload }
       return promisedXMLHttpRequest(request)

@@ -560,6 +560,14 @@
       >
         <img alt="Repair all" class="icon-40" src="../../assets/svg/icon_repair.svg" />
       </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Сбросить кеш хранилища для песен страницы"
+        @click="resetStorageCacheForAll"
+      >
+        <img alt="Reset storage cache" class="icon-40" src="../../assets/svg/icon_erase.svg" />
+      </button>
     </div>
   </div>
 </template>
@@ -1916,6 +1924,46 @@ export default {
     doRepairAll() {
       this.repairAllForCurrentPage()
       this.isCustomConfirmVisible = false
+    },
+    // Спека #446: сброс persistent-кеша хранилища для песней текущей страницы.
+    resetStorageCacheForAll() {
+      this.customConfirmParams = {
+        header: 'Подтвердите сброс кеша хранилища',
+        body: `Сбросить кеш хранилища для песен на странице (${this.currentPageSongIds.length})?<br>После сброса health-report перечитает реальное состояние MinIO.`,
+        callback: this.doResetStorageCacheForAll,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doResetStorageCacheForAll() {
+      const ids = this.currentPageSongIds
+      this.isCustomConfirmVisible = false
+      if (ids.length === 0) return
+      this.$store
+        .dispatch('resetStorageCachePromise', ids)
+        .then((response) => {
+          const rowsDeleted =
+            response && response.rowsDeleted !== undefined ? response.rowsDeleted : '?'
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'info',
+            header: 'Кеш хранилища сброшен',
+            body: `Песен: <strong>${ids.length}</strong>. Удалено записей кеша: <strong>${rowsDeleted}</strong>.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+          // Перезапрашиваем health-report для песен страницы (обновление бейджей через SSE).
+          this.sendBatchHealthReports(ids)
+        })
+        .catch((e) => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'error',
+            header: 'Ошибка сброса кеша',
+            body: `Не удалось сбросить кеш: ${e?.message || e}`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     createSymlinksForAll() {
       this.customConfirmParams = {

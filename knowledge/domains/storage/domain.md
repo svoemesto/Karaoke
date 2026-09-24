@@ -223,6 +223,27 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 - [ ] **Логирование MinIO-операций** — отдельная тема для
       `monitoring/domain.md` P2.
 
+## Ручной сброс кеша (UI, спека #446)
+
+Persistent-кеш `tbl_storage_metadata_cache` имеет **TTL = ∞** и обновляется
+write-through. Если файл изменён мимо Karaoke (например, сменён endpoint
+хранилища — переезд #165), кеш показывает устаревшие `exists`. Штатный сброс:
+
+| Endpoint | Что сбрасывает |
+| --- | --- |
+| `DELETE /api/health/cache/refresh?source&bucket&fileName` | один ключ |
+| `DELETE /api/health/cache/refresh-all?source` | все ключи источника |
+| `POST /api/song/resetStorageCache?ids=1;2;3` | **все файлы перечисленных песен** (LOCAL+REMOTE), спека #446 |
+
+UI: `webvue3` — кнопка «Сбросить кеш» в `HealthReportTableHeader`
+(одна песня) и «Сбросить кеш хранилища» в футере `SongsTable`
+(песни текущей страницы). Формулы имён файлов — `StorageCacheReset`
+(единый источник, тест `StorageCacheResetTest`).
+
+**Ловушка (прецедент 2026-09-24):** после смены `storage.remote-endpoint`
+**обязателен** сброс кеша (`refresh-all?source=REMOTE` или UI-кнопка) — иначе
+health-report ошибочно показывает «0 ошибок», а файлы в новом MinIO отсутствуют.
+
 ## Связанные ADR | Related ADRs
 
 - `knowledge/adr/local-0003-shared-minio-image-cache.md` —

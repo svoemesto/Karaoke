@@ -206,6 +206,7 @@ class ApiController(
     private val albumCoverService: AlbumCoverService,
     private val autoOneClickSyncScheduler: AutoOneClickSyncScheduler,
     private val healthReportBatchPool: HealthReportBatchPool,
+    private val storageMetadataCache: StorageMetadataCache,
 ) {
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
@@ -7843,6 +7844,42 @@ class ApiController(
                     storageApiClient = storageApiClient,
                 )
             }
+    }
+
+    // Спека #446 (FR-001): сброс persistent-кеша хранилища для списка песен.
+    // Для каждой песни вычисляются ВСЕ её storage-имена (StorageCacheReset.storageFileNamesForSong)
+    // и удаляются строки кеша по обоим источникам (LOCAL+REMOTE). Идемпотентно.
+    // Следующий health-report перечитает реальный MinIO (или поставит WAITING → фон).
+    @PostMapping("/song/resetStorageCache")
+    @ResponseBody
+    fun resetStorageCache(
+        @RequestParam(name = "ids", required = false, defaultValue = "") idsRaw: String,
+    ): Map<String, Any> {
+        val ids = idsRaw.split(";").mapNotNull { it.trim().toLongOrNull() }
+        var songs = 0
+        val keys = mutableListOf<Triple<String, String, String>>()
+        ids.forEach { songId ->
+            Song
+                .loadFromDbById(
+                    id = songId,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )?.let { song ->
+                    songs++
+                    val bucket = song.storageBucketName
+                    StorageCacheReset.storageFileNamesForSong(song).forEach { fileName ->
+                        keys.add(Triple(StorageMetadataCache.SOURCE_LOCAL, bucket, fileName))
+                        keys.add(Triple(StorageMetadataCache.SOURCE_REMOTE, bucket, fileName))
+                    }
+                }
+        }
+        val rowsDeleted = storageMetadataCache.refreshKeys(keys)
+        return mapOf(
+            "songs" to songs,
+            "keys" to keys.size,
+            "rowsDeleted" to rowsDeleted,
+        )
     }
 
     // Выполнение customActions у конкретного HealthReport-а

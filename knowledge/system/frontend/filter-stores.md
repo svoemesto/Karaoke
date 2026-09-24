@@ -29,6 +29,23 @@ state: {
 }
 ```
 
+## Datalist подсказок авторов (specs/450-author-filter-datalist)
+
+Поля «Автор:» в фильтрах «Песни», «Авторы» и «Альбомы» используют
+**один источник подсказок** — нативный `<datalist>` с именами авторов из
+Vuex-геттера `getters.songAuthorsPromise` (модуль `Songs/store.js`,
+`POST /api/songs/authors` → `Song.loadListAuthors`).
+
+- `SongsFilterModal.vue` — эталон (`dictAuthors` + `id="dictAuthorsId"`).
+- `AuthorsFilterModal.vue` — `dictAuthors` + `id="authorsDictAuthorsId"`.
+- `AlbumsFilterModal.vue` — `dictAuthors` + `id="albumsDictAuthorsId"`
+  (ранее «мёртвая» привязка `list="list_authors"`).
+
+Заполнение — асинхронно в `mounted()`; при ошибке список пуст, поле
+работает как обычный текстовый ввод. Семантика фильтрации (точное имя)
+не меняется. `id` datalist'ов уникальны, чтобы избежать коллизий, когда
+несколько компонентов одновременно в DOM.
+
 ## Пример: Songs filter (20+ полей!)
 
 ```javascript
@@ -115,4 +132,6 @@ Filter store — **отдельно**, чтобы не загрязнять ос
 
 ## Changelog
 
+- **Specs 450** (2026-09-24): поля «Автор:» в фильтрах Авторы/Альбомы
+  получили datalist подсказок из `songAuthorsPromise` (issue #183).
 - **Pass 455-457** (2026-09-09): Initial. Автор: agent (Karaoke).

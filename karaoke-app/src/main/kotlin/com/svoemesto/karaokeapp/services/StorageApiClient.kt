@@ -116,9 +116,10 @@ interface StorageApiClient {
  * (`karaoke-storage:9000` в его сети нет + MTU black-hole), поэтому эндпоинты `/api/storage/…` отдавали 500 на каждый
  * `exists`/`upload`, а вся remote-проверка/заливка (HealthReport, UPLOAD_TO_REMOTE_STORE) не работала.
  *
- * Теперь karaoke-app (admin-машина) ходит в remote-хранилище НАПРЯМУЮ через `MinioClient` — новый MinIO
- * доступен и с хоста, и из контейнера karaoke-app (проверено: health 200 за ~17 мс). Endpoint задаётся
- * `storage.remote-endpoint` (env `STORAGE_REMOTE_ENDPOINT`, дефолт — новый сервер), креды — те же
+ * Теперь karaoke-app (admin-машина) ходит в remote-хранилище НАПРЯМУЮ через `MinioClient`. С 2026-09-23
+ * (переезд #165) remote MinIO — на прод-хосте `188.127.240.124`; endpoint задаётся
+ * `storage.remote-endpoint` (env `STORAGE_REMOTE_ENDPOINT`, дефолт — `http://188.127.240.124:9000` —
+ * host-nginx stream с allow-list admin → loopback MinIO 8890), креды — те же
  * `storage.key`/`storage.secret`, что и у локального хранилища. Интерфейс `StorageApiClient` и все
  * вызывающие места (HealthReport/Utils) не менялись; `Mono`-методы обёрнуты в `Mono.fromCallable`, чтобы
  * реальная работа (и возможная ошибка) происходила на `.block()` — под уже существующим try/catch
@@ -132,7 +133,7 @@ interface StorageApiClient {
  */
 @Service
 class StorageApiClientImpl(
-    @Value($$"${storage.remote-endpoint:http://89.125.103.63:9000}") val remoteEndpoint: String,
+    @Value($$"${storage.remote-endpoint:http://188.127.240.124:9000}") val remoteEndpoint: String,
     @Value($$"${storage.key}") val storageKey: String,
     @Value($$"${storage.secret}") val storageSecret: String,
     private val storageMetadataCache: StorageMetadataCache,

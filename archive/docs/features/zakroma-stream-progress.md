@@ -165,6 +165,10 @@ location /api/public/zakroma/stream {
 1. **`expectedCount` MUST быть идентичной формулой с тайлом** (FR-BE-003).
    Используется `Song.loadAuthorSongCounts(author, onlyPublished)`, **НЕ**
    `zakroma.albums[*].albumSettings.size` после фильтрации (drift).
+   **Исключение (specs/444-fix-album-progress, issue #179)**: при заданном
+   `?albumId=` знаменатель — число песен **альбома**
+   (`ready_song_count`/`total_song_count` через `ZakromaStreamProgress.resolveExpectedCount`),
+   а не автора; фронт в этом случае не шлёт авторский `expectedCount`.
 2. **`albumSettings` НЕ передаются в NDJSON** (out of scope, FR-BE-003).
    Фронт собирает свою статистику альбомов из полученных `song`-сообщений.
 3. **`albumId` НЕ используется в протоколе** (sequential grouping).

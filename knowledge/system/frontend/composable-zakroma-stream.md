@@ -61,6 +61,12 @@ const STREAM_METRICS_KEY = 'km_zakroma_stream_metrics'
 2. **AbortController** — для каждого `start()` новый, для `cleanup()`
    abort.
 3. **Метрики обязательны** (FR-FE-010) — для backend-аналитики.
+4. **`expectedCount` — album-scoped при `?albumId=`** (specs/444-fix-album-progress,
+   issue #179): когда активен фильтр по альбому, знаменатель прогрессометра считает
+   **сервер** из счётчика альбома (`ready_song_count` гостю / `total_song_count`
+   редактору). Фронт НЕ шлёт авторский `tile.songCount` при `albumId` (передаёт
+   `undefined`); без `albumId` — прежняя логика (provided > 0 → trust; иначе
+   author-fallback).
 
 ## Hot paths
 
@@ -75,4 +81,6 @@ const STREAM_METRICS_KEY = 'km_zakroma_stream_metrics'
 
 ## Changelog
 
+- **Pass 444** (2026-09-24): Album-scoped `expectedCount` при `?albumId=` (issue #179,
+  specs/444-fix-album-progress) — знаменатель по альбому, не по автору.
 - **Pass 387** (2026-09-09): Initial. Автор: agent (Karaoke).

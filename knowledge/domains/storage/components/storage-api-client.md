@@ -9,11 +9,14 @@
 
 Spring-бин для доступа к **remote MinIO** через HTTP-прокси.
 
+> **Remote MinIO** — это MinIO прод-хоста (`188.127.240.124`). С 2026-09-23
+> (переезд #165) он живёт на **том же хосте**, что и `karaoke-web`, но
+> архитектурное разделение `local` (admin-машина) / `remote` (прод) сохранено.
+
 Две реализации:
 
 - **`StorageApiClientImpl`** (`karaoke-app`) — **прямой** MinioClient
-  SDK к remote MinIO (admin-машина имеет полныйный доступ через
-  docker-сеть или VPN).
+  SDK к remote MinIO (admin-машина подключается к прод-хосту по сети).
 - **`StorageApiClientWeb`** (`karaoke-web`) — **WebClient** (reactive)
   через nginx path-proxy `minio-proxy` на проде (karaoke-web не
   имеет прямого доступа, см. [storage/domain.md](../domain.md)).

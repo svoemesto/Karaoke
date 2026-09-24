@@ -5,7 +5,7 @@
 --
 -- Apply:
 --   локально:  docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/40_site_user_can_self_assign_tasks.sql
---   прод:      ssh root@${PROD_HOST:-188.119.64.111} \
+--   прод:      ssh root@${PROD_HOST:-188.127.240.124} \
 --                'docker exec -i karaoke-db psql -U postgres -d karaoke \
 --                 < /root/Karaoke/deploy/karaoke-db/40_site_user_can_self_assign_tasks.sql'
 --

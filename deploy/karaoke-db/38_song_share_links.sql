@@ -22,7 +22,7 @@
 -- иначе SongShareLinkService упадёт "relation does not exist".
 --
 -- === ПОРЯДОК ДЕПЛОЯ НА PROD (Pass 50, spec 167-fix-share-claim-500, FR-001/FR-004) ===
---   1. Подключиться к прод-серверу: ssh root@${PROD_HOST:-188.119.64.111}
+--   1. Подключиться к прод-серверу: ssh root@${PROD_HOST:-188.127.240.124}
 --   2. Применить ЭТОТ файл на прод-БД:
 --        docker exec -i karaoke-db psql -U postgres -d karaoke \
 --          < /root/Karaoke/deploy/karaoke-db/38_song_share_links.sql

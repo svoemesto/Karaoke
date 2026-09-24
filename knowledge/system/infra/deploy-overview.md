@@ -11,8 +11,10 @@
 
 1. **Admin-машина** (`nsa-i9`): `karaoke-app` + `karaoke-web` (admin) +
    `karaoke-public` (admin) + `webvue3` + БД.
-2. **Прод-сервер**: `karaoke-web` (прод) + `karaoke-public` (публичный) +
-   **локальный MinIO** + БД.
+2. **Прод-сервер** (`188.127.240.124`): `karaoke-web` (прод) +
+   `karaoke-public` (публичный) + **локальный MinIO** + БД + host-nginx.
+
+## Прод — один хост (с 2026-09-23)
 
 > **Переезд 2026-09-23** (wayfinder #165, спека #178): прод-сервер и
 > storage-сервер **объединены в один хост** `188.127.240.124`
@@ -27,7 +29,7 @@
 |---|---|---|
 | `~/Karaoke/deploy/` | Admin-машина | **Основной** deploy отсюда |
 | `deploy/prod-single-host/` | Репо | **Канон** однохостового прода (из реального `/root/Karaoke/deploy`) |
-| `deploy/web-server-deploy/deploy/` | Прод (legacy) | Устаревшая двуххостовая копия (deprecated) |
+| `deploy/web-server-deploy/deploy/` | Репо (legacy) | Устаревшая двуххостовая копия, **deprecated** — не использовать |
 
 Каждая содержит свои `do.sh`, `docker-compose-*.yml`,
 `nginx.conf`, `.env` (с реальными секретами в `do.env`, в git не трекаются).

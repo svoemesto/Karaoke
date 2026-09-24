@@ -6,6 +6,9 @@
 
         <div class="afm-area-modal-body">
           <div class="afm-root-wrapper">
+            <datalist id="albumsDictAuthorsId">
+              <option v-for="val in dictAuthors" :key="val" :value="val" />
+            </datalist>
             <div class="afm-filter-row">
               <div class="afm-row-label">
                 <div v-text="'ID:'" />
@@ -28,7 +31,7 @@
               <div class="afm-row-input">
                 <input
                   v-model="albumsFilterAuthorName"
-                  list="list_authors"
+                  list="albumsDictAuthorsId"
                   class="afm-input-field"
                 />
               </div>
@@ -138,6 +141,11 @@ const ALBUM_TYPE_LABEL_OPTIONS = [
 /**
  * Модальное окно для filter.
  *
+ * Поле «Автор:» предлагает список авторов (нативный `<datalist>`) из того же
+ * источника, что и фильтр компонента «Песни» — Vuex-геттер `songAuthorsPromise`
+ * (`POST /api/songs/authors`). Семантика фильтрации не меняется (точное имя).
+ *
+ * @see docs/features/author-filter-datalist.md
  * @see AGENTS.md
  */
 export default {
@@ -145,6 +153,10 @@ export default {
   data() {
     return {
       albumTypeOptions: ALBUM_TYPE_LABEL_OPTIONS,
+      // Справочник имён авторов для `<datalist>` поля «Автор:». Заполняется
+      // асинхронно в `mounted()`; при ошибке остаётся пустым — поле работает
+      // как обычный текстовый ввод (см. specs/450-author-filter-datalist).
+      dictAuthors: [],
     }
   },
   computed: {
@@ -221,6 +233,17 @@ export default {
       this.$store.getters.getAuthorsDigest.length === 0
     ) {
       this.$store.dispatch('loadAuthorsDigests', {})
+    }
+  },
+  async mounted() {
+    // Подсказки авторов: тот же источник, что и в SongsFilterModal.vue — геттер
+    // songAuthorsPromise (POST /api/songs/authors). Не блокирует открытие модалки;
+    // при ошибке dictAuthors остаётся пустым (поле работает как текстовый ввод).
+    try {
+      const data = await this.$store.getters.songAuthorsPromise
+      this.dictAuthors = JSON.parse(data).authors || []
+    } catch (error) {
+      console.log(error)
     }
   },
   methods: {

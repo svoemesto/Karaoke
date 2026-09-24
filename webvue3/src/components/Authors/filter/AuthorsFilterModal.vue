@@ -6,6 +6,9 @@
 
         <div class="afm-area-modal-body">
           <div class="afm-root-wrapper">
+            <datalist id="authorsDictAuthorsId">
+              <option v-for="val in dictAuthors" :key="val" :value="val" />
+            </datalist>
             <div class="afm-filter-row">
               <div class="afm-row-label">
                 <div v-text="'ID:'" />
@@ -26,7 +29,11 @@
                 <div v-text="'Автор:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterAuthor" class="afm-input-field" />
+                <input
+                  v-model="authorsFilterAuthor"
+                  list="authorsDictAuthorsId"
+                  class="afm-input-field"
+                />
               </div>
               <button
                 :disabled="!authorsFilterAuthor"
@@ -171,10 +178,23 @@
 /**
  * Модальное окно для filter.
  *
+ * Поле «Автор:» предлагает список авторов (нативный `<datalist>`) из того же
+ * источника, что и фильтр компонента «Песни» — Vuex-геттер `songAuthorsPromise`
+ * (`POST /api/songs/authors`). Семантика фильтрации не меняется (точное имя).
+ *
+ * @see docs/features/author-filter-datalist.md
  * @see AGENTS.md
  */
 export default {
   name: 'AuthorsFilterModal',
+  data() {
+    return {
+      // Справочник имён авторов для `<datalist>` поля «Автор:». Заполняется
+      // асинхронно в `mounted()`; при ошибке остаётся пустым — поле работает
+      // как обычный текстовый ввод (см. specs/450-author-filter-datalist).
+      dictAuthors: [],
+    }
+  },
   computed: {
     authorsFilterId: {
       get() {
@@ -288,6 +308,17 @@ export default {
     this.$store.dispatch('setAuthorsFilterHaveNewAlbum', {
       value: await this.$store.getters.getWebvueProp('authorsFilterHaveNewAlbum', ''),
     })
+  },
+  async mounted() {
+    // Подсказки авторов: тот же источник, что и в SongsFilterModal.vue — геттер
+    // songAuthorsPromise (POST /api/songs/authors). Не блокирует открытие модалки;
+    // при ошибке dictAuthors остаётся пустым (поле работает как текстовый ввод).
+    try {
+      const data = await this.$store.getters.songAuthorsPromise
+      this.dictAuthors = JSON.parse(data).authors || []
+    } catch (error) {
+      console.log(error)
+    }
   },
   methods: {
     ok() {

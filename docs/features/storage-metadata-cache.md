@@ -263,11 +263,17 @@ Backend: `POST /api/song/resetStorageCache?ids=1;2;3` — для каждой п
   См. [specs/434-healthreport-cache-fileinfo/spec.md](../../specs/434-healthreport-cache-fileinfo/spec.md).
 
 - **#159 / Spec #435 / Pass 435**: backfill `etag`/`size` в кеше — кнопка на главном
-  экране админки, фоновый проход по ~109k строкам, circuit-aware REMOTE,
-  `size=-1` → `exists=false`. См.
-  [specs/435-cache-etag-size-backfill/spec.md](../../specs/435-cache-etag-size-backfill/spec.md).
+  экране админки, фоновый проход, circuit-aware REMOTE, `size=-1` → `exists=false`.
+  Изначально обрабатывал только `exists=true`; **#181 / Spec #448** расширил выборку
+  на `NOT exists` (самокоррекция: файл мог появиться/быть удалён мимо Karaoke).
+  См. [specs/435-cache-etag-size-backfill/spec.md](../../specs/435-cache-etag-size-backfill/spec.md),
+  [specs/448-backfill-all-records/spec.md](../../specs/448-backfill-all-records/spec.md).
 
 ## История версий
+
+- **V2.11** (Pass 448, 2026-09-24, OpenProject #181): backfill проходит по **всем**
+  записям кеша (`NOT exists OR пустые etag/size`), не только `exists=true` —
+  самокорректирует `exists` в обе стороны через `getFileInfo`.
 
 - **V2.7** (Pass 446, 2026-09-24, OpenProject #180): UI-сброс кеша — кнопка
   «Сбросить кеш» в health-report песни и «Сбросить кеш хранилища» в футере

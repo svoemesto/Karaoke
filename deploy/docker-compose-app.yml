@@ -20,6 +20,11 @@ services:
       - STORAGE_CONTAINER_NAME=${STORAGE_CONTAINER_NAME}
       - STORAGE_KEY=${STORAGE_KEY}
       - STORAGE_SECRET=${STORAGE_SECRET}
+      # Pass 445 (#165 follow-up): remote-store endpoint для karaoke-app.
+      # Без явного проброса брался устаревший дефолт application.yml
+      # (89.125.103.63) → karaoke-app заливал картинки в старый MinIO,
+      # а прод читал из нового → картинки не показывались.
+      - STORAGE_REMOTE_ENDPOINT=${STORAGE_REMOTE_ENDPOINT}
       - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
       - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
       - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}

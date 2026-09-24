@@ -244,6 +244,12 @@ UI: `webvue3` — кнопка «Сбросить кеш» в `HealthReportTable
 **обязателен** сброс кеша (`refresh-all?source=REMOTE` или UI-кнопка) — иначе
 health-report ошибочно показывает «0 ошибок», а файлы в новом MinIO отсутствуют.
 
+**Backfill/актуализация (спеки #435, #448):** кнопка «Заполнить etag/size кеша
+хранилища» (главный экран админки) проходит по **всем** строкам, требующим
+проверки (`NOT exists OR size/etag пустые`), через `getFileInfo` и самокорректирует
+`exists` в обе стороны. `size<0` → `exists=false` (WARN), `size>=0` → `exists=true`
++ etag/size. REMOTE — circuit-aware.
+
 ## Связанные ADR | Related ADRs
 
 - `knowledge/adr/local-0003-shared-minio-image-cache.md` —

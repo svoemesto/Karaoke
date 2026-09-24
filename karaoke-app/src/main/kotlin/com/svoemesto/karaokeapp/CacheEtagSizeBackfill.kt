@@ -15,23 +15,29 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 /**
- * Pass 435 (#159): разовый backfill `etag`/`size` в `tbl_storage_metadata_cache`.
+ * Pass 435 (#159) + Pass 448 (#181): backfill/актуализация `etag`/`size` в
+ * `tbl_storage_metadata_cache`.
  *
- * **Зачем**: строки, созданные через `fileExists`, хранят `exists=true`, но
- * `etag`/`size = NULL`. Из-за этого `fileIsActual` не может отвечать из кеша
- * (Pass 434). Функция проходит по таким строкам и заполняет info через
- * `getFileInfo` соответствующего бэкенда.
+ * **Зачем**: строки, созданные через `fileExists`, хранят `exists` без `etag`/`size`
+ * (NULL) — из-за этого `fileIsActual` не может отвечать из кеша (Pass 434). Плюс
+ * Pass 448 расширил выборку на `exists=false`: после смены endpoint хранилища или
+ * ручных изменений в MinIO кеш может врать в обе стороны.
+ *
+ * Функция проходит по **всем** строкам, требующим проверки (`NOT exists` ИЛИ
+ * пустые `etag`/`size`), и обновляет info через `getFileInfo` нужного бэкенда:
  *
  * - LOCAL → `KaraokeStorageService.getFileInfo` (прямой MinIO SDK).
  * - REMOTE → `StorageApiClient.getFileInfo` (circuit-aware: при OPEN строки
  *   пропускаются, чтобы не долбить нестабильный remote; идемпотентно — доберём
  *   при следующем запуске).
- * - Файл не найден (`size = -1`) → `exists = false` (самокоррекция) + WARN.
+ * - Файл не найден (`size = -1`) → `exists = false` (самокоррекция) + WARN;
+ *   файл найден (`size >= 0`) → `exists=true` + etag/size (самокоррекция «вверх»).
  *
  * Прогресс — SLF4J `infra.cache.storage`; итог — SSE-уведомление. Тяжёлая
- * операция (~109k строк) идёт в фоновом потоке; функция возвращает управление сразу.
+ * операция (~140k строк) идёт в фоновом потоке; функция возвращает управление сразу.
  *
  * @see specs/435-cache-etag-size-backfill/spec.md
+ * @see specs/448-backfill-all-records/spec.md
  * @see docs/features/storage-metadata-cache.md
  */
 
@@ -153,8 +159,12 @@ private data class CacheRow(
 )
 
 /**
- * Строки с `exists = true` и пустыми `etag`/`size` (по обоим источникам).
- * Читаем курсором в память (Source/bucket/fileName — компактно; ~109k строк).
+ * Строки, требующие (пере)проверки через `getFileInfo` — **все записи**, а не только
+ * `exists=true`: записи с `exists=false` тоже проверяются (самокоррекция — файл мог
+ * появиться/быть удалён мимо Karaoke). Итог: `size>=0` → UPDATE (etag/size + exists=true);
+ * `size<0` → MARK_MISSING (exists=false). Идемпотентно.
+ *
+ * Читаем курсором в память (source/bucket/fileName — компактно; ~140k строк).
  */
 private fun loadRowsNeedingBackfill(): List<CacheRow> {
     val result = mutableListOf<CacheRow>()
@@ -165,7 +175,7 @@ private fun loadRowsNeedingBackfill(): List<CacheRow> {
                 """
                 SELECT source, bucket, file_name
                 FROM tbl_storage_metadata_cache
-                WHERE exists = true AND (size IS NULL OR etag IS NULL OR etag = '')
+                WHERE NOT exists OR size IS NULL OR etag IS NULL OR etag = ''
                 """.trimIndent()
             c.prepareStatement(sql).use { ps ->
                 ps.executeQuery().use { rs ->

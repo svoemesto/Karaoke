@@ -5,76 +5,65 @@
 
 ## Phase 0: Канон deploy в репо (PR, безопасно)
 
-- [ ] T001 Создать `deploy/prod-single-host/` из реального прода (`/root/Karaoke/deploy`):
-  `do.sh`, `docker-compose-{database,storage,web,public}.yml`, `nginx.conf`,
-  `80to8897`, `karaoke-db-backup.{sh,service,timer}`,
-  `karaoke-docker-prune.{service,timer}`, `prune-images.sh`,
-  `nginx_karaoke-public.conf`, `karaoke-db/` (init-скрипты).
-- [ ] T002 `docker-compose-storage.yml`: образ →
-  `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`; порты
-  `127.0.0.1:8890:9000`, `127.0.0.1:8891:9001`.
-- [ ] T003 `docker-compose-database.yml`: `DB_FOLDER=/sm-karaoke/system/Караоке-db`.
-- [ ] T004 `80to8897`: `/minio/` → `127.0.0.1:8890` + HTTP-кэш 24 ч/404-5мин (оба server).
-- [ ] T005 `nginx.conf`: stream allow-list = только `185.26.28.109`; убрать мёртвый `map`.
-- [ ] T006 `do.env.example`/`.env.example` без секретов; реальные — `scp`.
-- [ ] T007 `README.md` — раскладка и порядок.
-- [ ] T008 Пометить `deploy/new_comp/` deprecated.
-
-**Checkpoint**: `bash -n` на скриптах; ревью.
+- [x] T001 Создать `deploy/prod-single-host/` из реального прода (`/root/Karaoke/deploy`): done (PR #532).
+- [x] T002 `docker-compose-storage.yml`: образ → `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`; loopback. done.
+- [x] T003 `docker-compose-database.yml`: `DB_FOLDER=/sm-karaoke/system/Караоке-db`. done.
+- [x] T004 `80to8897`: `/minio/` → `127.0.0.1:8890` + HTTP-кэш. done.
+- [x] T005 `nginx.conf`: stream allow только `185.26.28.109`; убран мёртвый `map`. done.
+- [x] T006 `do.env.example`/`.env.example` без секретов. done.
+- [x] T007 `README.md`. done.
+- [x] T008 `deploy/new_comp/` deprecated. done.
 
 ## Phase 1: Правки sync-конфигов (PR, безопасно)
 
-- [ ] T009 `deploy/docker-compose-app.yml`: `+ - DB_REMOTE_HOST=${DB_REMOTE_HOST}`.
-- [ ] T010 `karaoke-app/.../application.yml`: default `db-remote-host` → `188.127.240.124`.
-- [ ] T011 `karaoke-web/.../application.yml`: default `db-remote-host` → `188.127.240.124`.
-
-**Checkpoint**: `:karaoke-app:compileKotlin :karaoke-web:compileKotlin`; ktlint.
+- [x] T009 `docker-compose-app.yml`: `+ DB_REMOTE_HOST=${DB_REMOTE_HOST}`. done.
+- [x] T010 `karaoke-app/.../application.yml`: default → `188.127.240.124`. done.
+- [x] T011 `karaoke-web/.../application.yml`: default → `188.127.240.124`. done.
 
 ## Phase 2: Подготовка нового хоста (операционно, агент)
 
-- [ ] T012 Docker Engine 29.x + враппер `docker-compose`; `docker login svoemestodev`.
-- [ ] T013 nginx 1.28.3 + `libnginx-mod-stream`; `/etc/keys/` (fullchain+key).
-- [ ] T014 swap 8 ГБ, `vm.swappiness=10`, `ulimit -n` тюнинг.
-- [ ] T015 Каталоги `/sm-karaoke/system/{Караоке-db,Караоке-storage,dumps}`.
-- [ ] T016 `scp` `do.env`/`.env`; `deploy/prod-single-host/*` → `/root/Karaoke/deploy/`.
-- [ ] T017 `docker network create deploy_karaokenet`.
+- [x] T012 Docker 29.1.3 + враппер `docker-compose`; `docker login`. done.
+- [x] T013 nginx 1.28.3 + `libnginx-mod-stream`; `/etc/keys/` (fullchain). done.
+- [x] T014 swap 8 ГБ, `swappiness=10`. done.
+- [x] T015 Каталоги `/sm-karaoke/system/{Караоке-db,Караоке-storage,dumps}`. done.
+- [x] T016 `scp` `do.env`/`.env`; deploy-файлы. done.
+- [x] T017 `docker network create deploy_karaokenet`. done.
 
 ## Phase 3: Перенос данных (операционно, агент)
 
-- [ ] T018 Bulk MinIO: `mc mirror --preserve --overwrite` (~6.1 ч).
-- [ ] T019 Проверка: 59 707 объектов / ≈444.45 GiB.
-- [ ] T020 Дамп прод-БД + restore на новом хосте.
-- [ ] T021 Проверка БД: songs=26 549, users=86, recordhash-триггеры.
+- [x] T018 Bulk MinIO 444.47 GiB, 11 ч 50 мин, rc=0. done.
+- [x] T019 Проверка + инкремент: 445 GiB / 59 735 объектов. done.
+- [x] T020 Дамп прод-БД + restore. done.
+- [x] T021 Проверка БД: 26 557 / 86 / 24 rh-триггера. done.
 
 ## Phase 4: Подъём и предварительный smoke (операционно, агент)
 
-- [ ] T022 `do.sh start_db`, `start_storage`, `start_web`, `start_public`.
-- [ ] T023 `tools/migration-smoke.sh 188.127.240.124` → 15/15 PASS.
-- [ ] T024 Systemd-таймеры backup/prune.
+- [x] T022 4 контейнера подняты. done.
+- [x] T023 `migration-smoke.sh 188.127.240.124` → 15/15. done.
+- [x] T024 Systemd-таймеры backup/prune. done.
 
 ## Phase 5: Cutover (окно, владелец + агент)
 
-- [ ] T025 [OWNER] TTL → 300 (T−48…24 ч).
-- [ ] T026 [OWNER] Остановить старые `karaoke-web`; заморозить admin-публикацию.
-- [ ] T027 [AGENT] Финальный `mc mirror --overwrite --remove` + `mc diff` (пусто).
-- [ ] T028 [AGENT] Финальный дамп + restore.
-- [ ] T029 [AGENT] Рестарт нового стека; smoke по IP.
-- [ ] T030 [OWNER] DNS A apex+www → `188.127.240.124`.
-- [ ] T031 [AGENT] Наблюдение `access.log` старого хоста ~2 ч.
+- [x] T025 TTL оставлен 3600 (решение владельца).
+- [x] T026 Старый `karaoke-web` остановлен; запись заморожена. done.
+- [x] T027 Инкремент `mc mirror` + проверка (все объекты на месте). done.
+- [x] T028 Финальный дамп + restore (26 557/86). done.
+- [x] T029 Рестарт нового стека; smoke 15/15 по IP. done.
+- [x] T030 DNS A apex+www → `188.127.240.124` (владелец). done.
+- [x] T031 Остаточный трафик ~1 req/75s, затухает (TTL 3600). done.
 
 ## Phase 6: Admin/sync (по согласию)
 
-- [ ] T032 [OWNER/согласие] `do.sh stop_app && start_app` на admin.
-- [ ] T033 Ручная синхронизация; проверить `AutoOneClickSyncScheduler`.
+- [ ] T032 `do.sh stop_app && start_app` на admin — **отложено** (нужно согласие).
+- [ ] T033 Ручная синхронизация + `AutoOneClickSyncScheduler` — после T032.
 
 ## Phase 7: Knowledge & docs (PR)
 
-- [ ] T034 Обновить `knowledge/system/02-containers.md`, `deploy-overview.md`,
-  `knowledge/domains/storage/domain.md`, `docs/architecture-notes.md`.
+- [x] T034 Обновлены knowledge + architecture-notes (PR #533). done.
 
 ## Phase 8: Вывод из эксплуатации (владелец, T+7)
 
-- [ ] T035 [OWNER] Выключить старые серверы; TTL → 3600.
+- [ ] T035 [OWNER] Выключить старые серверы (standby ≥7 дней).
 
 ## Dependencies
 
@@ -82,4 +71,5 @@ Phase 0/1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
 
 ## Готово к исполнению
 
-Phase 0/1 — в этом PR (`439`). Phase 2+ — по шагам, с owner-gate на Phase 5+.
+Phase 0–5, 7 — выполнены. Phase 6 отложена (нужен рестарт `karaoke-app`).
+Phase 8 — за владельцем (T+7).

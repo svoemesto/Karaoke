@@ -518,6 +518,60 @@ class StorageMetadataCache {
     }
 
     /**
+     * Спека #449: bulk-upsert строк кеша (прогрев). Один `INSERT ... ON CONFLICT
+     * DO UPDATE` на пачку строк в рамках `withConn` (одно соединение) — в разы
+     * быстрее построчных `upsert`.
+     *
+     * @return число обработанных (вставленных/обновлённых) строк.
+     */
+    fun upsertBatch(rows: List<CacheUpsertRow>): Int {
+        if (rows.isEmpty()) return 0
+        return withConn { conn ->
+            conn.autoCommit = false
+            try {
+                val sql =
+                    """
+                    INSERT INTO tbl_storage_metadata_cache (source, bucket, file_name, exists, etag, size, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
+                    ON CONFLICT (source, bucket, file_name) DO UPDATE
+                    SET exists = EXCLUDED.exists, etag = EXCLUDED.etag, size = EXCLUDED.size, updated_at = NOW()
+                    """.trimIndent()
+                var count = 0
+                conn.prepareStatement(sql).use { ps ->
+                    rows.forEach { row ->
+                        ps.setString(1, row.source)
+                        ps.setString(2, row.bucket)
+                        ps.setString(3, row.fileName)
+                        ps.setBoolean(4, row.exists)
+                        ps.setString(5, row.etag)
+                        if (row.size != null) ps.setLong(6, row.size) else ps.setNull(6, java.sql.Types.BIGINT)
+                        ps.addBatch()
+                        count++
+                    }
+                    ps.executeBatch()
+                }
+                conn.commit()
+                count
+            } catch (e: Exception) {
+                conn.rollback()
+                throw e
+            } finally {
+                conn.autoCommit = true
+            }
+        }
+    }
+
+    /** Строка для bulk-upsert (спека #449). */
+    data class CacheUpsertRow(
+        val source: String,
+        val bucket: String,
+        val fileName: String,
+        val exists: Boolean,
+        val etag: String?,
+        val size: Long?,
+    )
+
+    /**
      * Stats для endpoint `/api/health/cacheStats`. `entries` — COUNT(*),
      * `hits/misses/evictions` — локальные in-process счётчики.
      */

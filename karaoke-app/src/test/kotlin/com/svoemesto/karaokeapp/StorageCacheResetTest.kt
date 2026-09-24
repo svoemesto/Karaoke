@@ -61,6 +61,9 @@ class StorageCacheResetTest {
         assertTrue(names.any { it.endsWith(".album.png") })
         assertTrue(names.any { it.endsWith(".author.png") })
         assertTrue(names.none { it.endsWith(".flac") }, "flac lives on local filesystem only")
-        assertTrue(names.none { it.endsWith(".mp4") }, "video lives on local filesystem only")
+        assertTrue(
+            names.all { it.endsWith(".mp3") || it.endsWith(".png") },
+            "only storage-backed types (mp3/png) expected, got: $names",
+        )
     }
 }

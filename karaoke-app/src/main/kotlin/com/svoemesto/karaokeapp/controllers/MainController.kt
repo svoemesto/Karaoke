@@ -167,6 +167,17 @@ class MainController(
             remoteBreaker = HealthReport.remoteStorageCircuitBreaker,
         )
 
+    // Спека #449 (#182): зеркало POST /api/utils/warmstoragecache для Thymeleaf-страниц.
+    @GetMapping("/utils/warmstoragecache")
+    @ResponseBody
+    fun doWarmStorageCache(): String =
+        warmStorageCache(
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            remoteBreaker = HealthReport.remoteStorageCircuitBreaker,
+        )
+
     // specs/277-song-name-censored: зеркало POST /api/utils/rescanallcensorednames для Thymeleaf-страниц.
     @GetMapping("/utils/rescanallcensorednames")
     @ResponseBody

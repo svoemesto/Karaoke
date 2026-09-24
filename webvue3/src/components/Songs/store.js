@@ -2532,6 +2532,13 @@ export default {
       let request = { method: 'POST', url: '/api/utils/backfillcacheetagsize' }
       return promisedXMLHttpRequest(request)
     },
+    // Спека #449 (#182): полный прогрев кеша хранилища — обход всех песен, листинг
+    // бакета MinIO (etag/size из LIST), bulk-upsert LOCAL+REMOTE (включая exists=false).
+    // Возвращает "OK"/"ALREADY_RUNNING".
+    warmStorageCachePromise() {
+      let request = { method: 'POST', url: '/api/utils/warmstoragecache' }
+      return promisedXMLHttpRequest(request)
+    },
     autorizeYMstartPromise() {
       let request = { method: 'POST', url: '/api/authymstart' }
       return promisedXMLHttpRequest(request)

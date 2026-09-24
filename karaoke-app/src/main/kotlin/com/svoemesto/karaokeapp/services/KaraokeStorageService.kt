@@ -207,10 +207,33 @@ class KaraokeStorageServiceImpl(
         }
     // --- /Вспомогательная функция ---
 
-    override fun listFilesInfo(bucketName: String): List<StorageFileInfo> =
-        listFiles(bucketName = bucketName).map { fileName ->
-            getFileInfo(bucketName = bucketName, fileName = fileName)
+    // Спека #449: LIST-ответ MinIO уже содержит etag/size каждого объекта, поэтому
+    // `statObject` на каждый файл не нужен (было: 59k+ statObject → десятки минут;
+    // стало: один LIST-проход). `Item` может быть каталогом (isDir) — пропускаем.
+    override fun listFilesInfo(bucketName: String): List<StorageFileInfo> {
+        if (!bucketExists(bucketName)) return emptyList()
+        return try {
+            storageClient
+                .listObjects(
+                    ListObjectsArgs
+                        .builder()
+                        .bucket(bucketName)
+                        .recursive(true)
+                        .build(),
+                ).mapNotNull { it.get() }
+                .filter { !it.isDir }
+                .map { obj ->
+                    StorageFileInfo(
+                        bucketName = bucketName,
+                        fileName = obj.objectName(),
+                        etag = obj.etag() ?: "",
+                        size = obj.size(),
+                    )
+                }
+        } catch (e: MinioException) {
+            throw RuntimeException("Failed to list files info in bucket: ${e.message}", e)
         }
+    }
 
     override fun getFileInfo(
         bucketName: String,

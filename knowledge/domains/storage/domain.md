@@ -250,6 +250,12 @@ health-report ошибочно показывает «0 ошибок», а фа�
 `exists` в обе стороны. `size<0` → `exists=false` (WARN), `size>=0` → `exists=true`
 + etag/size. REMOTE — circuit-aware.
 
+**Полный прогрев (спека #449):** кнопка «Прогреть кеш хранилища» строит кеш с нуля —
+листинг бакета MinIO (`listFilesInfo` берёт etag/size из LIST без `statObject`) +
+обход **всех** песен (`StorageCacheReset.storageFileNamesForSong`), bulk-upsert
+LOCAL+REMOTE (включая `exists=false`). Нужен после сброса кеша (#446) или переезда.
+`POST /api/utils/warmstoragecache`, фон + SSE.
+
 ## Связанные ADR | Related ADRs
 
 - `knowledge/adr/local-0003-shared-minio-image-cache.md` —

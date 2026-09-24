@@ -490,10 +490,31 @@ class StorageApiClientImpl(
             )
         }
 
+    // Спека #449: LIST-ответ MinIO уже содержит etag/size, поэтому `getFileInfo`
+    // (statObject) на каждый файл не нужен — один LIST-проход вместо 59k+ HTTP.
     override fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>> =
         Mono.fromCallable {
-            (listFiles(bucketName).block() ?: emptyList()).map { fileName ->
-                getFileInfo(bucketName = bucketName, fileName = fileName).block()!!
+            val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
+            if (!exists) {
+                emptyList()
+            } else {
+                storageClient
+                    .listObjects(
+                        ListObjectsArgs
+                            .builder()
+                            .bucket(bucketName)
+                            .recursive(true)
+                            .build(),
+                    ).mapNotNull { it.get() }
+                    .filter { !it.isDir }
+                    .map { obj ->
+                        StorageFileInfo(
+                            bucketName = bucketName,
+                            fileName = obj.objectName(),
+                            etag = obj.etag() ?: "",
+                            size = obj.size(),
+                        )
+                    }
             }
         }
 

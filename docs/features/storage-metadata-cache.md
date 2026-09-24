@@ -202,6 +202,15 @@ Backend: `POST /api/song/resetStorageCache?ids=1;2;3` — для каждой п
 обязателен сброс REMOTE-кеша — иначе health-report показывает «0 ошибок» при
 отсутствующих файлах.
 
+### Backfill vs Warm (спеки #448, #449)
+
+| Операция | Что делает | Когда |
+| --- | --- | --- |
+| **Backfill** (`POST /api/utils/backfillcacheetagsize`) | до(за)полняет **существующие** строки кеша (`NOT exists OR пустые info`) | подтянуть etag/size у имеющихся записей |
+| **Warm** (`POST /api/utils/warmstoragecache`) | строит кеш **с нуля по всем песням** (листинг MinIO + обход песен, включая `exists=false`) | после сброса/переезда |
+
+Кнопки — на главном экране админки («Заполнить etag/size…» и «Прогреть кеш хранилища»).
+
 ## Связь с другими задачами
 
 - **#65** (race in `fileExists` for remote storage): cache смягчает последствия, но не чинит root cause.
@@ -270,6 +279,11 @@ Backend: `POST /api/song/resetStorageCache?ids=1;2;3` — для каждой п
   [specs/448-backfill-all-records/spec.md](../../specs/448-backfill-all-records/spec.md).
 
 ## История версий
+
+- **V2.12** (Pass 449, 2026-09-24, OpenProject #182): «Прогреть кеш хранилища» —
+  обход всех песен + листинг MinIO (`listFilesInfo` из `Item.etag()/size()`, без
+  `statObject`), bulk-upsert LOCAL+REMOTE (включая `exists=false`). `upsertBatch`.
+  Backfill от Pass 448 и warm от Pass 449 — разные операции.
 
 - **V2.11** (Pass 448, 2026-09-24, OpenProject #181): backfill проходит по **всем**
   записям кеша (`NOT exists OR пустые etag/size`), не только `exists=true` —

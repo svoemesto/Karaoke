@@ -172,14 +172,22 @@
         >
           Экспорт датасета для forced-alignment
         </button>
-        <!-- Pass 435 (#159): backfill etag/size в tbl_storage_metadata_cache — строки,
-             созданные через fileExists, хранят exists=true, но etag/size пусты. -->
+        <!-- Pass 435 (#159) + Pass 448 (#181): backfill etag/size — теперь по всем
+             записям (exists=true и exists=false), самокоррекция exists в обе стороны. -->
         <button
           class="button-action"
-          title="Заполнить etag/size в кеше хранилища (tbl_storage_metadata_cache) для строк с exists=true и пустыми etag/size — чтобы проверка актуальности файлов шла из кеша без обращений к MinIO"
+          title="Заполнить etag/size в кеше хранилища (tbl_storage_metadata_cache): пройти по всем записям (включая exists=false) и актуализировать exists/etag/size из MinIO"
           @click="backfillCacheEtagSize"
         >
           Заполнить etag/size кеша хранилища
+        </button>
+        <!-- Спека #449 (#182): полный прогрев кеша — обход всех песен + листинг MinIO. -->
+        <button
+          class="button-action"
+          title="Полный прогрев кеша хранилища: обойти ВСЕ песни, снять etag/size из листинга MinIO (без statObject) и заново построить кеш для LOCAL+REMOTE, включая отсутствующие файлы (exists=false). Нужно после сброса кеша."
+          @click="warmStorageCache"
+        >
+          Прогреть кеш хранилища
         </button>
       </div>
     </div>
@@ -1010,6 +1018,37 @@ export default {
           isAlert: true,
           alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
           header: 'Заполнение etag/size кеша хранилища',
+          body:
+            response === 'ALREADY_RUNNING'
+              ? `Уже запущено — дождитесь завершения текущего прогона.`
+              : `Операция запущена в фоне.<br>Прогресс — в логах сервера, итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // Спека #449 (#182): полный прогрев кеша хранилища.
+    warmStorageCache() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Полностью прогреть кеш хранилища?<br>` +
+          `Будут обойдены <strong>все песни</strong> (~26k), снят листинг бакета MinIO ` +
+          `(LOCAL и REMOTE) и заново построен кеш — включая отсутствующие файлы (exists=false).<br>` +
+          `Это нужно после сброса кеша. При недоступном удалённом хранилище REMOTE-часть ` +
+          `будет пропущена — можно запускать повторно.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — прогресс в логах сервера, итог придёт уведомлением.</strong>`,
+        timeout: 15,
+        callback: this.doWarmStorageCache,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doWarmStorageCache() {
+      this.$store.dispatch('warmStorageCachePromise').then((response) => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+          header: 'Прогрев кеша хранилища',
           body:
             response === 'ALREADY_RUNNING'
               ? `Уже запущено — дождитесь завершения текущего прогона.`

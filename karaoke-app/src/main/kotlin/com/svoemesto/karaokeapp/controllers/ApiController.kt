@@ -7846,6 +7846,19 @@ class ApiController(
             }
     }
 
+    // Спека #449 (#182): полный прогрев persistent-кеша хранилища.
+    // Обходит ВСЕ песни (StorageCacheReset.storageFileNamesForSong), строит map из
+    // листинга MinIO (etag/size из LIST) и bulk-upsert'ит строки LOCAL+REMOTE.
+    // В отличие от backfill (#435/#448) — заполняет и exists=false (чего нет).
+    @PostMapping("/utils/warmstoragecache")
+    @ResponseBody
+    fun warmStorageCacheEndpoint(): String =
+        warmStorageCache(
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+
     // Спека #446 (FR-001): сброс persistent-кеша хранилища для списка песен.
     // Для каждой песни вычисляются ВСЕ её storage-имена (StorageCacheReset.storageFileNamesForSong)
     // и удаляются строки кеша по обоим источникам (LOCAL+REMOTE). Идемпотентно.

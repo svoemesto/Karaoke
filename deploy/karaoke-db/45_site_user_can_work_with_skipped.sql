@@ -10,7 +10,7 @@
 --
 -- Apply:
 --   локально:  docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/45_site_user_can_work_with_skipped.sql
---   прод:      ssh root@${PROD_HOST:-188.119.64.111} \
+--   прод:      ssh root@${PROD_HOST:-188.127.240.124} \
 --                'docker exec -i karaoke-db psql -U postgres -d karaoke \
 --                 < /root/Karaoke/deploy/karaoke-db/45_site_user_can_work_with_skipped.sql'
 --

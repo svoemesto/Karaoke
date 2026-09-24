@@ -58,7 +58,7 @@ Storage — слой абстракции над **двумя физически
 | **`StorageApiClientWeb`** | Реализация для `karaoke-web`: WebClient (reactor) к nginx-прокси | `karaoke-web/.../services/StorageApiClientWeb.kt:29` |
 | **`StorageFileInfo`** | Data class: `bucketName`, `fileName`, `etag`, `size` | `karaoke-app/.../services/KaraokeStorageService.kt:119` |
 | **`bucket`** | MinIO bucket. Имена: `karaoke`, `karaoke-cache`, `stemjobs`, и др. | см. мини-словарь ниже |
-| **`minio-proxy`** | nginx path-proxy на проде, через который идёт весь доступ к MinIO | `deploy/nginx/minio-proxy.conf` |
+| **`minio-proxy`** | nginx path-proxy на проде, через который идёт весь доступ к MinIO | `deploy/prod-single-host/80to8897` (location `/minio/`); локальный аналог — `deploy/karaoke-web/minio-proxy-local.conf` |
 
 ### Мини-словарь buckets
 
@@ -194,8 +194,8 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 
 ### Деплой
 
-- `deploy/nginx/minio-proxy.conf` (nginx path-proxy)
-- `deploy/docker-compose.yml` (контейнер `karaoke-storage`)
+- `deploy/prod-single-host/80to8897` (host-nginx `location /minio/`; ранее ошибочно указывался `deploy/nginx/minio-proxy.conf` — файла нет)
+- `deploy/prod-single-host/docker-compose-storage.yml` (контейнер `karaoke-storage`)
 
 ## Known gaps
 

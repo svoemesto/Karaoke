@@ -50,8 +50,10 @@
 │                                   ▼                               │
 │  ┌─────────────────┐    ┌──────────────────────┐                  │
 │  │  karaoke-public │    │ Remote MinIO         │                  │
-│  │  (Vue 3 + Vite, │    │ (отдельный хост)      │                  │
-│  │   7905)         │    │ read+write (admin)    │                  │
+│  │  (Vue 3 + Vite, │    │ (локальный контейнер │                  │
+│  │   7905)         │    │  на прод-хосте,      │                  │
+│  │                 │    │  с 2026-09-23)       │                  │
+│  │                 │    │ read+write (admin)    │                  │
 │  │                 │    │ read (public через nginx)               │
 │  │                 │    └──────────────────────┘                  │
 │  └─────────────────┘                                              │
@@ -111,8 +113,11 @@ karaoke-public (Player)
             └─► nginx path-proxy → remote MinIO → stream
 ```
 
-Этот поток НЕ использует `KaraokeStorageService` (прямой SDK),
-потому что на проде нет контейнера `karaoke-storage`. Только nginx.
+Этот поток НЕ использует `KaraokeStorageService` (прямой SDK), потому что
+`karaoke-web` работает в своём стеке; доступ идёт через host-nginx path-proxy
+(`minio-proxy`). С 2026-09-23 контейнер `karaoke-storage` живёт на том же
+прод-хосте, что и `karaoke-web` (переезд #165), но `karaoke-web` по-прежнему
+ходит через nginx (нулевые изменения в Java-коде).
 
 ### Поток 4: StemJob (premium фича) — двусторонний
 

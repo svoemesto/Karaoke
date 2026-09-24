@@ -4,7 +4,7 @@
 **Привязка**: [specs/288-prod-diagnostics-logging/spec.md](../specs/288-prod-diagnostics-logging/spec.md) — FR-019, FR-020
 **Где мы**: при диагностике инцидента «прод подвис» разработчик/administrator открывает этот документ и за ≤15 минут находит причину.
 
-> Прод-сервер: `188.119.64.111` (`sm-karaoke.ru`). Admin-машина, где запущен `karaoke-app`: обычно `nsa-i9`. Все логи пишутся в TZ `Europe/Moscow` (MSK) после фичи 288-prod-diagnostics-logging.
+> Прод-сервер: `188.127.240.124` (`sm-karaoke.ru`, с 2026-09-23 — прод и MinIO на одном хосте). Admin-машина, где запущен `karaoke-app`: обычно `nsa-i9`. Все логи пишутся в TZ `Europe/Moscow` (MSK) после фичи 288-prod-diagnostics-logging.
 
 ---
 
@@ -86,20 +86,20 @@ docker logs karaoke-app --since "1d" | grep "infra.prod.db"
 
 ```bash
 # Через SSH
-ssh root@188.119.64.111 'tail -f /var/log/nginx/access.log'
+ssh root@188.127.240.124 'tail -f /var/log/nginx/access.log'
 
 # Live tail с фильтром по status
-ssh root@188.119.64.111 'tail -f /var/log/nginx/access.log | awk "\$9 >= 500"'
+ssh root@188.127.240.124 'tail -f /var/log/nginx/access.log | awk "\$9 >= 500"'
 
 # Скачать за последний час
-ssh root@188.119.64.111 'grep "$(date -d "1 hour ago" "+%Y-%m-%dT%H")" /var/log/nginx/access.log'
+ssh root@188.127.240.124 'grep "$(date -d "1 hour ago" "+%Y-%m-%dT%H")" /var/log/nginx/access.log'
 ```
 
 ### 2.5. MinIO (через nginx proxy)
 
 ```bash
 # Запросы к /minio/karaoke/...
-ssh root@188.119.64.111 'grep "/minio/karaoke/" /var/log/nginx/access.log | tail -50'
+ssh root@188.127.240.124 'grep "/minio/karaoke/" /var/log/nginx/access.log | tail -50'
 ```
 
 ---
@@ -166,7 +166,7 @@ docker exec karaoke-db psql -U postgres -d karaoke -c "SHOW log_timezone;"
 # → Europe/Moscow
 docker exec karaoke-web bash -c 'date +%z'
 # → +0300
-ssh root@188.119.64.111 'date +%z'
+ssh root@188.127.240.124 'date +%z'
 # → +0300 (или TZ хоста)
 ```
 
@@ -193,7 +193,7 @@ docker logs karaoke-db --since "15m" | grep "duration:" | head -20
 # Если duration > 5 сек — это явный hotspot
 
 # 4. Коррелировать с nginx (HTTP-запросы в то же время)
-ssh root@188.119.64.111 'grep "$(date -d "15 minutes ago" "+%d/%b/%Y:%H")" /var/log/nginx/access.log | head -50'
+ssh root@188.127.240.124 'grep "$(date -d "15 minutes ago" "+%d/%b/%Y:%H")" /var/log/nginx/access.log | head -50'
 
 # 5. Проверить активные сессии БД (если инцидент продолжается)
 docker exec karaoke-db psql -U postgres -d karaoke -c "SELECT pid, state, query_start, LEFT(query, 80) FROM pg_stat_activity WHERE state != 'idle' ORDER BY query_start;"
@@ -223,14 +223,14 @@ docker logs karaoke-app --since "10m" | grep "infra.prod"
 docker logs karaoke-web --since "10m" | grep -E " ERROR " | head -20
 
 # 3. Проверить nginx (502 = upstream не отвечает, 503 = upstream вернул 503)
-ssh root@188.119.64.111 'grep " 50[0-9] " /var/log/nginx/access.log | tail -20'
+ssh root@188.127.240.124 'grep " 50[0-9] " /var/log/nginx/access.log | tail -20'
 
 # 4. Проверить состояние БД
 docker exec karaoke-db psql -U postgres -d karaoke -c "SELECT count(*), state FROM pg_stat_activity GROUP BY state;"
 
 # 5. Проверить container status
-ssh root@188.119.64.111 'docker ps'
-ssh root@188.119.64.111 'docker stats --no-stream'
+ssh root@188.127.240.124 'docker ps'
+ssh root@188.127.240.124 'docker stats --no-stream'
 ```
 
 ### 5.3. «Плановый дебаг новой фичи — нужно понять, какие SQL идут»
@@ -257,7 +257,7 @@ docker exec karaoke-db psql -U postgres -d karaoke -c "ALTER SYSTEM SET log_min_
    → Определить тип сбоя (ping, БД, восстановление).
 2. docker logs karaoke-db --since "15m" | grep "duration:|ERROR|WARNING"
    → Найти медленные SQL или ошибки БД.
-3. ssh root@188.119.64.111 'tail -50 /var/log/nginx/access.log'
+3. ssh root@188.127.240.124 'tail -50 /var/log/nginx/access.log'
    → Коррелировать с HTTP-трафиком.
 4. docker logs karaoke-web --since "15m" | grep " ERROR "
    → Найти ошибки Spring Boot.
@@ -272,8 +272,8 @@ mkdir -p /tmp/incident-logs
 docker logs karaoke-db --since "1h" > /tmp/incident-logs/karaoke-db.log
 docker logs karaoke-web --since "1h" > /tmp/incident-logs/karaoke-web.log
 docker logs karaoke-app --since "1h" > /tmp/incident-logs/karaoke-app.log
-ssh root@188.119.64.111 'cat /var/log/nginx/access.log' > /tmp/incident-logs/nginx-access.log
-ssh root@188.119.64.111 'cat /var/log/nginx/error.log' > /tmp/incident-logs/nginx-error.log
+ssh root@188.127.240.124 'cat /var/log/nginx/access.log' > /tmp/incident-logs/nginx-access.log
+ssh root@188.127.240.124 'cat /var/log/nginx/error.log' > /tmp/incident-logs/nginx-error.log
 tar czf /tmp/incident-logs.tgz /tmp/incident-logs
 ```
 

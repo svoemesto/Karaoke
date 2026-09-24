@@ -9,7 +9,8 @@
 # 4. nginx (прод, /var/log/nginx/access.log) — HTTP коды
 #
 # Требования:
-# - SSH-доступ к прод-серверу 188.119.64.111 (ssh root@... без пароля)
+# - SSH-доступ к прод-серверу (по умолчанию 188.127.240.124; переопределяется
+#   переменной PROD_HOST) — ssh root@... без пароля
 # - Локальный docker доступ к контейнеру karaoke-db (для прямого psql)
 # - Пароль DB_SERVER_POSTGRES_PASSWORD в .env (или hardcode в скрипте)
 #
@@ -33,7 +34,7 @@ if [ -z "$DB_PASS" ]; then
     exit 1
 fi
 
-PROD_HOST="188.119.64.111"
+PROD_HOST="${PROD_HOST:-188.127.240.124}"
 PROD_PORT="5433"
 PROD_USER="SvoeMestoKaraokeUser905"
 PROD_DB="karaoke"

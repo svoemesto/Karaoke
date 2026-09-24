@@ -186,6 +186,22 @@ helper с fallback на loader продолжает работать (без cac
 
 Open design question — это **отдельная спека 345+**, не входит в scope #344.
 
+## UI-сброс кеша (спека #446)
+
+Persistent-кеш (TTL=∞) не переживает смену endpoint хранилища сам по себе.
+Появились UI-кнопки:
+
+- **Одна песня** — `HealthReportTableHeader` → «Сбросить кеш».
+- **Страница песен** — футер `SongsTable.vue` → «Сбросить кеш хранилища».
+
+Backend: `POST /api/song/resetStorageCache?ids=1;2;3` — для каждой песни удаляет
+все её storage-ключи (LOCAL+REMOTE). Формулы имён — `StorageCacheReset`
+(единый с `HealthReport` источник, тест `StorageCacheResetTest`).
+
+**Ловушка (прецедент 2026-09-24):** после смены `storage.remote-endpoint`
+обязателен сброс REMOTE-кеша — иначе health-report показывает «0 ошибок» при
+отсутствующих файлах.
+
 ## Связь с другими задачами
 
 - **#65** (race in `fileExists` for remote storage): cache смягчает последствия, но не чинит root cause.
@@ -252,6 +268,11 @@ Open design question — это **отдельная спека 345+**, не в�
   [specs/435-cache-etag-size-backfill/spec.md](../../specs/435-cache-etag-size-backfill/spec.md).
 
 ## История версий
+
+- **V2.7** (Pass 446, 2026-09-24, OpenProject #180): UI-сброс кеша — кнопка
+  «Сбросить кеш» в health-report песни и «Сбросить кеш хранилища» в футере
+  таблицы песен; backend `POST /api/song/resetStorageCache`; формулы имён файлов
+  вынесены в `StorageCacheReset` (единый источник с `HealthReport`).
 
 - **V2.10** (Pass 435, 2026-09-22, OpenProject #159): backfill `etag`/`size` для
   строк кеша с `exists=true` и пустыми info (кнопка на главном экране; прогресс в

@@ -476,6 +476,48 @@ class StorageMetadataCache {
     }
 
     /**
+     * Спека #446 (FR-005): batch-DELETE ключей по списку `(source, bucket, fileName)`.
+     * Один `DELETE ... WHERE (source, bucket, file_name) IN ((?,?,?), ...)` на источник —
+     * без N+1 HTTP/SQL. Идемпотентно: отсутствующие ключи просто не удаляются.
+     *
+     * @return общее число удалённых строк.
+     */
+    fun refreshKeys(keys: List<Triple<String, String, String>>): Int {
+        if (keys.isEmpty()) return 0
+        // Группируем по source (DELETE валиден только с фиксированным source в кортеже).
+        var total = 0
+        keys
+            .groupBy { it.first }
+            .forEach { (source, list) ->
+                require(source == SOURCE_LOCAL || source == SOURCE_REMOTE) { "source must be LOCAL or REMOTE" }
+                val deleted =
+                    withConn { conn ->
+                        val placeholders = list.joinToString(",") { "(?, ?, ?)" }
+                        val sql =
+                            "DELETE FROM tbl_storage_metadata_cache " +
+                                "WHERE (source, bucket, file_name) IN ($placeholders)"
+                        conn.prepareStatement(sql).use { ps ->
+                            var i = 1
+                            list.forEach { (_, bucket, fileName) ->
+                                ps.setString(i++, source)
+                                ps.setString(i++, bucket)
+                                ps.setString(i++, fileName)
+                            }
+                            ps.executeUpdate()
+                        }
+                    }
+                if (deleted > 0) {
+                    if (source == SOURCE_LOCAL) localDeletes.add(deleted.toLong()) else remoteDeletes.add(deleted.toLong())
+                }
+                total += deleted
+            }
+        if (total > 0) {
+            log.info("cache:refresh-keys keys={} rowsDeleted={}", keys.size, total)
+        }
+        return total
+    }
+
+    /**
      * Stats для endpoint `/api/health/cacheStats`. `entries` — COUNT(*),
      * `hits/misses/evictions` — локальные in-process счётчики.
      */

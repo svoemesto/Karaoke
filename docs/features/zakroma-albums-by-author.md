@@ -144,8 +144,33 @@ ORDER BY a.year ASC NULLS LAST, a.name ASC
 - Бэкенд принимает `?albumId=N` на `/api/public/zakroma` и `/api/public/zakroma/stream` — фронт передаёт `albumId` из `selectedAlbumId` (Pass 360).
 - `ZakromaSettings.vue` (Pass 359) — компонент и `useZakromaSettings.js` композабл сохранены в репо (НЕ удалены), но сейчас НЕ используются на странице альбомов. Можно переиспользовать в будущем, если понадобится панель настроек размера/режима.
 
-## Bugfix #76 (spec 360 — Pass 361, 2026-09-10)
+## Bugfix #179 — прогресс загрузки альбома (spec 444, Pass 444, 2026-09-24)
 
+При открытии конкретного альбома (`/zakroma/{author_id}?albumId={id}`) прогрессометр
+показывал «Загружаем X из {общее число песен автора}…» вместо числа песен альбома.
+Например, для «Машины Времени» (2485 песен) на альбоме с 10 песнями — «0 из 2485».
+
+**Root cause** (две точки):
+1. `karaoke-public/src/views/ZakromaView.vue` — `tryStartZakromaStream()` всегда передавал
+   `expectedCount: tile.songCount` (число песен всего автора), даже при `?albumId=`.
+2. `karaoke-web/.../PublicApiController.kt` (`zakromaStream`) — бэкенд **доверял**
+   присланному `expectedCount` (`if (expectedCount != null && expectedCount > 0)`),
+   не пересчитывая его по `albumId`; fallback `Song.loadAuthorSongCounts()` тоже считал по автору.
+
+**Фикс**:
+- Сервер при `albumId` считает знаменатель из денормализованного счётчика альбома
+  (`ready_song_count` гостю / `total_song_count` редактору) — та же формула, что на плашке
+  (`AlbumTilePublicDto`), FR-002. Альбом не найден → `0` (не число песен автора).
+- Фронт при `selectedAlbumId != null` не шлёт авторский `expectedCount` (`undefined`).
+- Чистая логика — `karaoke-web/.../services/ZakromaStreamProgress.kt` (`resolveExpectedCount`),
+  offline-тесты — `ZakromaStreamProgressTest` (6 тестов).
+
+**Без изменений**: текст/разметка прогрессометра, список «Все песни автора» (знаменатель
+по автору, спека 181), `done.actualCount`, wire-формат NDJSON.
+
+**См. также**: [specs/444-fix-album-progress/spec.md](../specs/444-fix-album-progress/spec.md).
+
+## Bugfix #76 (spec 360 — Pass 361, 2026-09-10)
 Спека `360-editor-sees-all-albums` исправляет баг: редактор (`SiteUser.isEditor == true`) на публичном сайте видел только альбомы с готовыми песнями, как обычный пользователь, хотя контракт FR-011 спеки 356 явно требует, чтобы редактор видел **все** альбомы автора.
 
 **Root cause**: `karaoke-public/src/views/ZakromaAlbumsView.vue:111` (Pass 360) — единственный клиент `/api/public/authors/{authorId}/albums`, который делал наивный `fetch` без `Authorization: Bearer <token>`-заголовка. `SiteUserResolver.resolve(request)` (`SiteUserResolver.kt:25`) берёт токен **только** из `Authorization`-заголовка (контракт спеки 017), поэтому бэкенд всегда видел анонимного пользователя → `onlyPublishedFor(request) == true` → `Album.loadAlbumTilesWithCounts(authorId, onlyPublished=true)` отдавал выборку гостя.

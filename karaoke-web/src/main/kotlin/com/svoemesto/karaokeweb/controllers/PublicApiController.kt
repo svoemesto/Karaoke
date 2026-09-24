@@ -29,6 +29,7 @@ import com.svoemesto.karaokeweb.dto.ZakromaStreamMetricDto
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
+import com.svoemesto.karaokeweb.services.ZakromaStreamProgress
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -546,25 +547,44 @@ class PublicApiController(
                     // 1. meta — отправляем ДО загрузки данных, чтобы фронт сразу
                     //    узнал expectedCount.
                     //
-                    // Стратегия выбора источника:
-                    // - Если фронт прислал `expectedCount > 0` (т.е. счётчик
-                    //   был на тайле `AuthorTilePublicDto.songCount` к моменту
-                    //   клика) — TRUST его (та же формула `Song.loadAuthorSongCounts`).
-                    //   Saves 100-500мс DB-запроса.
+                    // specs/444-fix-album-progress (issue #179): при фильтре по альбому
+                    // (`?albumId=N`) знаменатель — число песен ЭТОГО альбома, а не всего
+                    // автора. Значение album-scoped авторитетно на сервере: не доверяем
+                    // присланному фронтом `expectedCount` (иначе на альбоме с 10 песнями
+                    // прогресс показывал «0 из 2485 песен автора»). Для гостя —
+                    // `ready_song_count`, для редактора — `total_song_count` (совпадение
+                    // с подписью плашки альбома, спека 356/360).
+                    //
+                    // Без `albumId` — прежняя стратегия (спека 181):
+                    // - Если фронт прислал `expectedCount > 0` (счётчик с тайла
+                    //   `AuthorTilePublicDto.songCount`) — TRUST его (та же формула
+                    //   `Song.loadAuthorSongCounts`). Saves 100-500мс DB-запроса.
                     // - Иначе (null/0/missing) — FALLBACK на `Song.loadAuthorSongCounts()`.
                     //   Это MUST для deep-link URL `/zakroma?author=...` — тайлы
                     //   могут быть НЕ загружены к моменту `mounted()`, фронт
                     //   ещё в процессе fetching `authors-tiles`. Без fallback
-                    //   метрика «0 из 0» (user видит после моего предыдущего
-                    //   fix'а 181/243).
+                    //   метрика «0 из 0» (user видит после предыдущего fix'а 181/243).
                     //
                     // FR-BE-008 (sanity check): backend всё равно отдаёт
                     // `done.actualCount` — frontend может сверить с
                     // мета.expectedCount (для drift detection).
+                    val albumCounters: ZakromaStreamProgress.AlbumCounters? =
+                        albumId
+                            ?.let { id ->
+                                Album.getAlbumById(
+                                    id = id,
+                                    database = WORKING_DATABASE,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
+                            }?.let { ZakromaStreamProgress.AlbumCounters(it.readySongCount, it.totalSongCount) }
                     val metaExpectedCount: Long =
-                        if (expectedCount != null && expectedCount > 0) {
-                            expectedCount
-                        } else {
+                        ZakromaStreamProgress.resolveExpectedCount(
+                            albumId = albumId,
+                            album = albumCounters,
+                            onlyPublished = onlyPublished,
+                            providedExpectedCount = expectedCount,
+                        ) {
                             Song.loadAuthorSongCounts(
                                 isSpecialOrder = null,
                                 onlyPublished = onlyPublished,

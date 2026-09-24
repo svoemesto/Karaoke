@@ -687,7 +687,12 @@ export default {
         // вернул no-op, страница оставалась пустой.
         this.loadZakromaStream({
           author: tile.author,
-          expectedCount: tile.songCount || undefined,
+          // specs/444-fix-album-progress (issue #179): author-side `expectedCount`
+          // (tile.songCount) — это число песен всего автора. При фильтре по альбому
+          // знаменатель прогресса должен считаться по альбому, и авторитетный источник —
+          // сервер (total_song_count/ready_song_count альбома). Поэтому при активном
+          // `?albumId=` НЕ шлём авторский expectedCount, отдаём undefined.
+          expectedCount: this.selectedAlbumId != null ? undefined : tile.songCount || undefined,
           force: true,
           // Pass 359: бэк фильтрует по `tbl_songs.album_id` чтобы не гонять
           // все 388 песен автора когда нужны только 10 из альбома.

@@ -69,6 +69,19 @@ data class ZakromaAlbumMetaPublicDto(
 - Стоимость: ровно +1 строка в DTO + 1 параметр в `fromAlbum`.
 - Размер NDJSON-чанка: album-чанк +8 байт. Для 6 альбомов: +48 байт. Незаметно.
 
+## Follow-up: знаменатель прогресса альбома (specs/444-fix-album-progress, issue #179)
+
+Этот ADR сделал фильтр `?albumId=` работоспособным на фронте, но знаменатель
+прогрессометра (`meta.expectedCount`) оставался авторским: фронт всегда слал
+`tile.songCount` (число песен **автора**), а сервер доверял ему даже при
+`albumId`. На альбоме с 10 песнями посетитель видел «0 из 2485».
+
+Решение (не меняет данный ADR, а дополняет его): при `albumId` знаменатель
+считает **сервер** из счётчика альбома (`ready_song_count` гостю /
+`total_song_count` редактору); фронт при `?albumId=` не шлёт авторский count
+(`undefined`). Чистая логика — `ZakromaStreamProgress.resolveExpectedCount`
+(karaoke-web), тесты — `ZakromaStreamProgressTest`.
+
 ## References
 
 - [deploy/karaoke-db/29_albums.sql](../../deploy/karaoke-db/29_albums.sql) — оригинальная схема `tbl_albums`
@@ -81,3 +94,4 @@ data class ZakromaAlbumMetaPublicDto(
 ## История
 
 - 2026-09-09: создан (Pass 359) после того как пользователь сообщил что `?albumId=2777` показывает пустую страницу при том что REST-эндпоинт `/authors-tiles` отдаёт правильный `albumId`. Диагноз: NDJSON-стрим использует свой собственный DTO без `albumId`.
+- 2026-09-24: follow-up (Pass 444, issue #179, specs/444-fix-album-progress) — знаменатель `meta.expectedCount` стал album-scoped при `?albumId=`.

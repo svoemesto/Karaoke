@@ -1634,7 +1634,7 @@ class MainController(
         // query-param, иначе сохранённое значение из KaraokeProperties (default 10).
         val effectiveTimeout =
             timeout?.coerceAtLeast(1)
-                ?: KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+                ?: Karaoke.lyricsSearchTimeoutSeconds
         txt?.let {
             val ids =
                 txt

@@ -201,6 +201,16 @@ val listKaraokeProperties =
             description = "Движок поиска обложек альбомов по умолчанию: SEARXNG / FOURGET",
         ),
         KaraokeProperty(
+            key = "albumCoverSearchScrapers",
+            defaultValue = "ddg;yahoo_japan;brave;google_cse",
+            description = "Список scrapers для fourget (image-поиск, движок FOURGET) при поиске обложек альбомов, через ';'. Перебираются по порядку; первый ответ, прошедший порог albumCoverSearchMinResults, используется. По умолчанию 'ddg;yahoo_japan;brave;google_cse' — порядок проверен на admin-машине 2026-09-26 на 5 студийных альбомах из библиотеки (релевантность считалась по вхождению автора/альбома в название картинки): ddg и yahoo_japan — 24 из 25 релевантных в топ-5, brave — 21 из 22, google_cse — 20 из 25. Сознательно НЕ включены: baidu (1 из 25 — мемы), pinterest (3 из 20), ftm (поиск мемов по назначению). Учтите: ddg и brave для web-поиска не работают, но для image-поиска это отдельный эндпоинт и там они рабочие.",
+        ),
+        KaraokeProperty(
+            key = "albumCoverSearchMinResults",
+            defaultValue = 2,
+            description = "Минимальное количество картинок-кандидатов от scraper'а, чтобы считать его ответ успешным (иначе пробуем следующий scraper из albumCoverSearchScrapers). По умолчанию 2 — оператору нужен выбор хотя бы из двух вариантов в галерее. Значения <1 поднимаются до 1: при 0 пустая выдача считалась бы успешной и перебор scrapers не срабатывал бы вовсе.",
+        ),
+        KaraokeProperty(
             key = "lyricsSearchScrapers",
             defaultValue = "google_cse;yahoo_japan;brave;yep",
             description = "Список scrapers для fourget (web-поиск) при поиске текстов песен, через ';'. Перебираются по порядку; первый ответ, прошедший post-filter и порог lyricsSearchMinResults, используется. По умолчанию 'google_cse;yahoo_japan;brave;yep' — порядок проверен на admin-машине 2026-09-26: google_cse и yahoo_japan дали результат на 6 из 6 контрольных запросов (текстовый сайт на 1-й позиции), тогда как brave и yep деградировали (пустая выдача либо нерелевантные результаты, обходящие порог по количеству).",

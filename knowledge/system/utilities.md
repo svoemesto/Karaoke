@@ -128,9 +128,24 @@ Callers (`isVpnActive`): `AutoOneClickSyncScheduler`, `AlbumCoverFinder`,
 `ApiController.postSyncOneClick`, `KaraokeProcessWorker`. Второе место со списком —
 `checkLastAlbumYm` (ветка `AlbumSearchResult.Unknown`, было захардкожено `"RU"`).
 
-**Кэш определения страны (Pass 454, 2026-09-26).** `isVpnActive()` зовётся из
-`KaraokeProcessWorker` **на каждую песню**, поэтому без кэша прогон пакета песен
-делал столько внешних HTTP-запросов, сколько в пакете песен. Добавлено:
+**Кэш определения страны (Pass 454, 2026-09-26; обоснование исправлено в
+Pass 456).** В первой версии этого раздела было написано, что `isVpnActive()`
+зовётся «на каждую песню». **Это неверно** — проверено по коду: в
+`KaraokeProcessWorker` вызов ограничен `requestNewSongTimeoutMs` (10 минут), в
+`AutoOneClickSyncScheduler` — `fixedDelay` 60 секунд, остальные два привязаны к
+действиям пользователя. Максимум ~1 вызов в минуту.
+
+Настоящая причина кэша — защита **квоты резервного сервиса**: бесплатный
+`ipapi.co` даёт порядка 1000 запросов в сутки, а 1 вызов в минуту это 1440 в
+сутки. При отказе основного `api.country.is` резерв вырабатывается за сутки, и
+детект ВПН ломается (fail-open). TTL 300 секунд снижает это до ~288/сутки.
+
+Реализация — общий `PollingCache<String>` (Pass 456, см.
+[caching domain](../domains/caching/components/web-caches.md)); свой ad-hoc
+`@Volatile`-кэш, написанный в Pass 454, убран: `caching-patterns.md` прямо
+запрещает ad-hoc кэши, и там же зафиксирован такой же прецедент (спека #339).
+
+Свойства кэша:
 
 - Настройка `vpnCheckCacheTtlSeconds` (default `300`; `0` или меньше — кэш выключен).
 - Кэшируется **только факт страны**, не решение «ВПН активен». Решение каждый раз
@@ -139,10 +154,12 @@ Callers (`isVpnActive`): `AutoOneClickSyncScheduler`, `AlbumCoverFinder`,
 - **Неудача не кэшируется.** Кэшировать её нельзя: разовый сетевой сбой залип бы в
   fail-open («ВПН не считаем») на весь TTL, и машина с включённым ВПН пошла бы в
   Яндекс.Музыку, где её блокируют.
-- Чистые функции под тестами: `isCountryCacheFresh(cachedAtMillis, nowMillis,
-  ttlSeconds)` и `extractCountryCode(body, regex)`; список сервисов —
-  `VPN_COUNTRY_SERVICES`. Потокобезопасность: `@Volatile` кэш + замок
-  (`synchronized`) — зовут из шедулеров и воркеров параллельно.
+- Чистая функция под тестами: `extractCountryCode(body, regex)`; список
+  сервисов — `VPN_COUNTRY_SERVICES`. Потокобезопасность обеспечивает
+  `ConcurrentHashMap` внутри `PollingCache` (свой замок не нужен).
+- TTL-логика тестами в `VpnHomeCountryTest` больше не покрывается — она
+  принадлежит `PollingCache` и проверяется в `PollingCacheTest` (включая
+  регресс-тест «TTL отсчитывается от завершения loader'а»).
 
 **Найденный дефект: fallback молча не работал.** До Pass 454 HTTP-статус ответа не
 проверялся вовсе, читалось тело. На 2026-09-26 резервный `ipapi.co` отвечал

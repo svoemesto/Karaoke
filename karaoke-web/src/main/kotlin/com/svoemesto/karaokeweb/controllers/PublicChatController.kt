@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
-import com.svoemesto.karaokeweb.services.PollingCache
+import com.svoemesto.karaokeapp.services.PollingCache
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

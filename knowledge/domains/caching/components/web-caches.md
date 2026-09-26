@@ -6,10 +6,15 @@
 
 ## Ответственность | Responsibility
 
-Документирует **два существующих** in-memory кеша в `karaoke-web/services/`,
-которые можно **переиспользовать** в новых фичах. **Pass 344+** — `PollingCache`
-также используется в `karaoke-app` (см. спеку #344, OpenProject #69) с
-локальной копией файла в `karaoke-app/services/PollingCache.kt`.
+Документирует **два существующих** in-memory кеша, которые можно
+**переиспользовать** в новых фичах.
+
+**Pass 456 (2026-09-26)** — `PollingCache` перенесён в `karaoke-app`
+(`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PollingCache.kt`),
+копия в `karaoke-web` удалена. Причина: `karaoke-web` зависит от `karaoke-app`,
+а не наоборот, поэтому копия в web была физически недоступна ядру — это и был
+known gap, зафиксированный ниже. Теперь у обоих модулей одна реализация.
+`DedupCache` остаётся в `karaoke-web` (пока его никто в ядре не использует).
 
 **[WARN]** Прецедент 2026-09-09 (Pass 340, спека #339): агент
 предложил создавать новую структуру `storage_file_cache` в БД, **не
@@ -49,13 +54,25 @@ cleanup.
 
 ### `PollingCache<V>` — TTL-кеш для polling-эндпоинтов
 
-Файл: `karaoke-web/.../services/PollingCache.kt` (80 строк).
+Файл: `karaoke-app/.../services/PollingCache.kt` (Pass 456; до этого — в
+`karaoke-web`).
 
 **Что делает**: потокобезопасный TTL-кеш **общего назначения** с
 `loader: () -> V`. Хранит `key → (value, expiresAtMs)`. При вызове
-`getOrCompute(key, ttlSeconds, loader)` возвращает кешированное
+`getOrCompute(key, ttlSeconds, shouldCache, loader)` возвращает кешированное
 значение, если живо, иначе вызывает loader, сохраняет результат с
 TTL и возвращает.
+
+**`shouldCache: (V) -> Boolean`** (Pass 456, по умолчанию `{ true }`) —
+условное кэширование: результат, который кэшировать нельзя, возвращается
+вызывающему, но в кэш не попадает. Мотивирующий случай — детект ВПН
+(`isVpnActive`): «страну определить не удалось» это fail-open, и кэшировать эту
+неудачу нельзя, иначе разовый сетевой сбой «залипнет» на весь TTL и машина с
+включённым ВПН пойдёт в Яндекс.Музыку, где её заблокируют.
+
+**`expiresAtMs` считается ПОСЛЕ вызова loader'а** (исправлено в Pass 456; раньше
+`now` снимался до вызова, поэтому медленный loader съедал часть TTL — у детекта
+ВПН loader идёт до 5+5 с на сервис).
 
 **Где используется**:
 
@@ -86,6 +103,7 @@ global cache manager ради 3 endpoints, TTL разный per-endpoint.
 | Read-mostly счётчики | `AtomicInteger` (см. [caching-patterns](caching-patterns.md)) |
 | Dirty-флаг | см. [caching-patterns](caching-patterns.md) |
 | **Кеш метаданных MinIO** (задача #69) | **`PollingCache<V>`** — лучший fit |
+| TTL-кеш значения с загрузчиком, который может «не получиться» | **`PollingCache<V>` + `shouldCache`** (Pass 456; пример — детект ВПН) |
 
 ## Применимость к OpenProject #69
 
@@ -139,7 +157,10 @@ class StorageMetadataCache {
 ## Код (физическая реализация)
 
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/DedupCache.kt`
-- `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PollingCache.kt`
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PollingCache.kt`
+  (Pass 456; используется и из `karaoke-web`)
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt`
+  (детект ВПН — потребитель `PollingCache` с `shouldCache`)
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SamplingFilter.kt`
   (использует `DedupCache`)
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsBuffer.kt`
@@ -153,8 +174,9 @@ class StorageMetadataCache {
 
 ## Known gaps
 
-- [ ] **`PollingCache` в `karaoke-app`** — есть или только в `karaoke-web`?
-      Если только в web, нужно переиспользовать или скопировать.
+- [x] **`PollingCache` в `karaoke-app`** — **закрыто в Pass 456**: класс перенесён
+      в `karaoke-app`, копия в `karaoke-web` удалена, оба модуля используют одну
+      реализацию.
 - [ ] **Caffeine/Guava как замена** — если нагрузка вырастет, может
       быть нужно. Решение — пересмотр через год.
 - [ ] **Метрики cache hit/miss rate** — **отсутствуют** (проверено:
@@ -169,3 +191,8 @@ class StorageMetadataCache {
 
 - **Pass 341** (2026-09-09): Initial. Прецедент: задача #69.
   Автор: agent (Karaoke).
+- **Pass 456** (2026-09-26): `PollingCache` перенесён в `karaoke-app`
+  (закрыт known gap), добавлен `shouldCache`, исправлен расчёт `expiresAtMs`.
+  Повод: агент сделал ad-hoc TTL-кэш для детекта ВПН, не зная об этом
+  документе — то есть повторил прецедент Pass 340 / спеки #339, ради
+  предотвращения которого страница и написана.

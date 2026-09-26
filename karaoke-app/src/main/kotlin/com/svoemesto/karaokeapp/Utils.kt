@@ -15,6 +15,7 @@ import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.PollingCache
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -3662,22 +3663,30 @@ fun parseHomeCountries(raw: String): Set<String> =
 fun vpnHomeCountries(): Set<String> = parseHomeCountries(Karaoke.vpnHomeCountry)
 
 /**
- * Кэш определённой страны внешнего IP: код страны + момент определения.
+ * Кэш определённой страны внешнего IP — санкционированный паттерн [PollingCache]
+ * (см. `knowledge/domains/caching/components/caching-patterns.md`: ad-hoc кэши
+ * запрещены, новый кэш обязан следовать существующему паттерну).
  *
- * Кэшируется только САМ ФАКТ страны, а не решение «ВПН активен» — решение каждый
- * раз считается заново из актуального `vpnHomeCountry`, поэтому правка списка
- * home-стран действует сразу, не дожидаясь истечения TTL.
+ * Ключ один: страна внешнего IP — свойство машины, а не запроса.
+ *
+ * Кэшируется только САМ ФАКТ страны, а не решение «ВПН активен»: решение каждый раз
+ * считается заново из актуального `vpnHomeCountry`, поэтому правка списка home-стран
+ * действует сразу, не дожидаясь истечения TTL.
+ *
+ * Зачем кэш вообще (Pass 456). Детект ВПН зовётся НЕ «на каждую песню»:
+ * в [KaraokeProcessWorker] вызов ограничен `requestNewSongTimeoutMs` (10 минут),
+ * в [com.svoemesto.karaokeapp.services.AutoOneClickSyncScheduler] — `fixedDelay`
+ * 60 секунд, остальные два вызова привязаны к действиям пользователя. То есть
+ * максимум ~1 вызов в минуту. Смысл кэша не в разгрузке горячего пути, а в защите
+ * КВОТЫ резервного сервиса: бесплатный `ipapi.co` даёт порядка 1000 запросов в сутки,
+ * а 1 вызов в минуту — это 1440 в сутки, то есть при отказе основного
+ * `api.country.is` резерв вырабатывается за сутки и детект ВПН ломается (fail-open).
+ * TTL 300 секунд снижает это до ~288 в сутки.
  */
-private data class CachedCountryCode(
-    val code: String,
-    val atMillis: Long,
-)
+private val vpnCountryCache = PollingCache<String>()
 
-/** Замок на [vpnCountryCache]: isVpnActive зовут из шедулеров и воркеров параллельно. */
-private val vpnCountryCacheLock = Any()
-
-@Volatile
-private var vpnCountryCache: CachedCountryCode? = null
+/** Ключ единственной записи в [vpnCountryCache]. */
+private const val VPN_COUNTRY_CACHE_KEY = "vpn_current_country"
 
 /**
  * Сервисы определения страны текущего внешнего IP, в порядке обращения.
@@ -3691,19 +3700,6 @@ internal val VPN_COUNTRY_SERVICES: List<Pair<String, Regex>> =
         "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
         "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$"""),
     )
-
-/**
- * Чистая функция: свежо ли закэшированное значение страны.
- *
- * `ttlSeconds <= 0` — кэш выключен (всегда «не свежо»). Отрицательный прошедший
- * интервал (часы ушли назад) тоже даёт «не свежо»: лишний сетевой запрос лучше,
- * чем вечно живой кэш.
- */
-internal fun isCountryCacheFresh(
-    cachedAtMillis: Long,
-    nowMillis: Long,
-    ttlSeconds: Int,
-): Boolean = ttlSeconds > 0 && (nowMillis - cachedAtMillis) in 0 until ttlSeconds * 1000L
 
 /**
  * Чистая функция: вытащить код страны из тела ответа сервиса.
@@ -3759,35 +3755,29 @@ private fun fetchCountryCodeFromService(
     }
 
 /**
- * Определяет страну текущего внешнего IP с кэшем на `vpnCheckCacheTtlSeconds` секунд
- * (0 или меньше — без кэша).
+ * Определяет страну текущего внешнего IP с кэшем на `vpnCheckCacheTtlSeconds` секунд.
  *
- * Кэшируется только успешный результат: неудачу кэшировать нельзя, иначе разовый
- * сетевой сбой «залипнет» в fail-open («ВПН не считаем») на весь TTL, и машина с
- * включённым ВПН будет ходить в Яндекс.Музыку, где её заблокируют.
+ * `ttlSeconds <= 0` — кэш фактически выключен: [PollingCache] сохранит запись с уже
+ * истёкшим сроком, поэтому следующий вызов снова пойдёт в сеть.
+ *
+ * Неудача (ни один сервис не дал страну) НЕ кэшируется (`shouldCache`) — иначе
+ * разовый сетевой сбой «залипнет» в fail-open («ВПН не считаем») на весь TTL, и
+ * машина с включённым ВПН будет ходить в Яндекс.Музыку, где её заблокируют.
  */
-fun resolveCurrentCountryCode(): String? {
-    val ttlSeconds = KaraokeProperties.getInt("vpnCheckCacheTtlSeconds")
-    synchronized(vpnCountryCacheLock) {
-        vpnCountryCache?.let {
-            if (isCountryCacheFresh(it.atMillis, System.currentTimeMillis(), ttlSeconds)) {
-                println("isVpnActive: страна из кэша: ${it.code} (TTL ${ttlSeconds}s)")
-                return it.code
-            }
-        }
-    }
-    for ((url, regex) in VPN_COUNTRY_SERVICES) {
-        val country = fetchCountryCodeFromService(url, regex)
-        if (country != null) {
-            synchronized(vpnCountryCacheLock) {
-                vpnCountryCache = CachedCountryCode(country, System.currentTimeMillis())
-            }
-            println("isVpnActive: countryCode=$country (via $url)")
-            return country
-        }
-    }
-    return null
-}
+fun resolveCurrentCountryCode(): String? =
+    vpnCountryCache
+        .getOrCompute(
+            key = VPN_COUNTRY_CACHE_KEY,
+            ttlSeconds = KaraokeProperties.getInt("vpnCheckCacheTtlSeconds").toLong(),
+            shouldCache = { it.isNotEmpty() },
+        ) {
+            println("isVpnActive: страны нет в кэше — опрашиваю сервисы")
+            VPN_COUNTRY_SERVICES.firstNotNullOfOrNull { (url, regex) ->
+                fetchCountryCodeFromService(url, regex)?.also {
+                    println("isVpnActive: countryCode=$it (via $url)")
+                }
+            } ?: ""
+        }.takeIf { it.isNotEmpty() }
 
 fun isVpnActive(): Boolean {
     // Сравниваем текущую страну со СПИСКОМ стран без ВПН (настройка vpnHomeCountry,

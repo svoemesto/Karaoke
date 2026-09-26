@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration
  * @see SamplingConfig
  * @see SamplingFilter
  * @see DedupCache
- * @see PollingCache
+ * @see com.svoemesto.karaokeapp.services.PollingCache
  * @see EventsRetentionScheduler
  * @see RateLimitInterceptor
  * @see DebugDbAccessGuard

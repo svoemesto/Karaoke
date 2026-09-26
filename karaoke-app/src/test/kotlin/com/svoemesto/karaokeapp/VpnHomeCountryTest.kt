@@ -7,12 +7,16 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * Офлайн-тесты логики home-стран для определения ВПН (Pass 427, #151) и кэша
- * определённой страны (Pass 454).
+ * Офлайн-тесты логики home-стран для определения ВПН (Pass 427, #151) и разбора
+ * ответов сервисов определения страны (Pass 454).
  *
  * Проверяются чистые функции: [parseHomeCountries], правило «страна не в списке
- * home-стран ⇒ ВПН», [isCountryCacheFresh] и [extractCountryCode]. Сеть не
- * трогается: сетевой резолв живёт в isVpnActive/resolveCurrentCountryCode.
+ * home-стран ⇒ ВПН» и [extractCountryCode]. Сеть не трогается: сетевой резолв
+ * живёт в isVpnActive/resolveCurrentCountryCode.
+ *
+ * TTL-логика кэша страны сюда не входит: она принадлежит [PollingCache] и
+ * проверяется в `PollingCacheTest` (Pass 456, до этого кэш был ad-hoc и тесты
+ * на него жили здесь).
  */
 class VpnHomeCountryTest {
     private fun isVpn(country: String, homeRaw: String): Boolean {
@@ -64,31 +68,6 @@ class VpnHomeCountryTest {
     @Test
     fun `empty home list fails open (no VPN)`() {
         assertFalse(isVpn("NL", ""), "empty list must not block work")
-    }
-
-    @Test
-    fun `cache is fresh strictly inside the TTL window`() {
-        assertTrue(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L, ttlSeconds = 300))
-        assertTrue(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L + 299_000L, ttlSeconds = 300))
-        assertFalse(
-            isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L + 300_000L, ttlSeconds = 300),
-            "ровно на границе TTL кэш уже не свеж",
-        )
-        assertFalse(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L + 301_000L, ttlSeconds = 300))
-    }
-
-    @Test
-    fun `ttl zero or negative disables the cache`() {
-        assertFalse(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L, ttlSeconds = 0))
-        assertFalse(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L, ttlSeconds = -1))
-    }
-
-    @Test
-    fun `clock moved backwards does not pin a stale cache`() {
-        assertFalse(
-            isCountryCacheFresh(cachedAtMillis = 10_000L, nowMillis = 1_000L, ttlSeconds = 300),
-            "отрицательный прошедший интервал — считаем кэш негодным",
-        )
     }
 
     @Test

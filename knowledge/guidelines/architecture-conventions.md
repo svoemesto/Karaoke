@@ -77,7 +77,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 
 **Reference**: `docs/features/idempotent-path-sanitize.md`.
 
-**Enforcement**: `tools/check-no-mp4-mentions.sh` baseline (130 строк legacy).
+**Enforcement**: `tools/check-no-mp4-mentions.sh` baseline (125 записей legacy).
 
 ### R-11 — MP4/скачивание запрет (оферта «доступ только онлайн»)
 
@@ -97,6 +97,14 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 (`offer.html`), legal/compliance риск.
 
 **Enforcement**: `tools/check-no-mp4-mentions.sh` (Pass 379, R-11).
+
+База исключений сопоставляется **по содержимому строки**, не по номеру
+(Pass 455): ключ — `<путь>:sha256(trim(строки))[:16]`. До этого база была
+`file:line` и ломалась от любой вставки строк выше — guard рапортовал «новое
+нарушение R-11» там, где упоминания не добавлялись (трижды за одну сессию:
+Pass 451, 452, 454). Вставка/удаление строк и смена отступа теперь базу не
+ломают; изменение самого текста упоминания — ломает, и это намеренно.
+Перегенерация: `bash tools/check-no-mp4-mentions.sh --update-baseline`.
 
 ### R-44 — MLT/melt рендеринг (НЕ ffmpeg)
 

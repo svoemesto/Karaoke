@@ -97,7 +97,9 @@ repos:
       # === Guard: No MP4 mentions (Pass 379, wayfinder #107) ===
       # R-11 (MP4/скачивание запрет по оферте «доступ только онлайн»).
       # Ловит упоминания \bmp4\b и `скачивани` в production коде (webvue3, karaoke-public, karaoke-app, karaoke-web).
-      # Baseline: tools/check-no-mp4-mentions.baseline (130 строк legacy-исключений).
+      # Baseline: tools/check-no-mp4-mentions.baseline (125 записей legacy-исключений,
+      # сопоставление ПО СОДЕРЖИМОМУ строки, не по номеру — Pass 455;
+      # перегенерация: bash tools/check-no-mp4-mentions.sh --update-baseline).
       - id: no-mp4-mentions-guard
         name: no-mp4-mentions guard (R-11)
         entry: bash tools/check-no-mp4-mentions.sh --quiet

@@ -2,14 +2,17 @@ package com.svoemesto.karaokeapp
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * Офлайн-тесты логики home-стран для определения ВПН (Pass 427, #151).
+ * Офлайн-тесты логики home-стран для определения ВПН (Pass 427, #151) и кэша
+ * определённой страны (Pass 454).
  *
- * Проверяется чистая функция [parseHomeCountries] и правило «страна не в списке
- * home-стран ⇒ ВПН», без сети/БД (сетевой резолв страны — в isVpnActive, не здесь).
+ * Проверяются чистые функции: [parseHomeCountries], правило «страна не в списке
+ * home-стран ⇒ ВПН», [isCountryCacheFresh] и [extractCountryCode]. Сеть не
+ * трогается: сетевой резолв живёт в isVpnActive/resolveCurrentCountryCode.
  */
 class VpnHomeCountryTest {
     private fun isVpn(country: String, homeRaw: String): Boolean {
@@ -61,5 +64,72 @@ class VpnHomeCountryTest {
     @Test
     fun `empty home list fails open (no VPN)`() {
         assertFalse(isVpn("NL", ""), "empty list must not block work")
+    }
+
+    @Test
+    fun `cache is fresh strictly inside the TTL window`() {
+        assertTrue(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L, ttlSeconds = 300))
+        assertTrue(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L + 299_000L, ttlSeconds = 300))
+        assertFalse(
+            isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L + 300_000L, ttlSeconds = 300),
+            "ровно на границе TTL кэш уже не свеж",
+        )
+        assertFalse(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L + 301_000L, ttlSeconds = 300))
+    }
+
+    @Test
+    fun `ttl zero or negative disables the cache`() {
+        assertFalse(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L, ttlSeconds = 0))
+        assertFalse(isCountryCacheFresh(cachedAtMillis = 1_000L, nowMillis = 1_000L, ttlSeconds = -1))
+    }
+
+    @Test
+    fun `clock moved backwards does not pin a stale cache`() {
+        assertFalse(
+            isCountryCacheFresh(cachedAtMillis = 10_000L, nowMillis = 1_000L, ttlSeconds = 300),
+            "отрицательный прошедший интервал — считаем кэш негодным",
+        )
+    }
+
+    @Test
+    fun `extractCountryCode reads api country is body`() {
+        val (_, regex) = VPN_COUNTRY_SERVICES.first { it.first.startsWith("https://api.country.is") }
+        assertEquals("RU", extractCountryCode("""{"ip":"185.26.28.109","country":"RU"}""", regex))
+    }
+
+    @Test
+    fun `extractCountryCode reads ipapi plain two-letter body`() {
+        val (_, regex) = VPN_COUNTRY_SERVICES.first { it.first.startsWith("https://ipapi.co") }
+        assertEquals("RU", extractCountryCode("RU", regex))
+    }
+
+    @Test
+    fun `extractCountryCode rejects real 429 rate-limit body`() {
+        // Именно это тело ipapi.co отдал 2026-09-26 при HTTP 429. До проверки статуса
+        // оно молча превращалось в «страну определить не удалось» и давало fail-open.
+        val (_, regex) = VPN_COUNTRY_SERVICES.first { it.first.startsWith("https://ipapi.co") }
+        assertNull(
+            extractCountryCode(
+                "{'error': True, 'reason': 'RateLimited', 'message': 'Visit https://ipapi.co/ratelimited/ for details'}",
+                regex,
+            ),
+            "тело ошибки не должно распознаваться как код страны",
+        )
+    }
+
+    @Test
+    fun `extractCountryCode returns null on empty body`() {
+        for ((_, regex) in VPN_COUNTRY_SERVICES) {
+            assertNull(extractCountryCode("", regex))
+        }
+    }
+
+    @Test
+    fun `extractCountryCode does not match lowercase country`() {
+        val (_, regex) = VPN_COUNTRY_SERVICES.first { it.first.startsWith("https://api.country.is") }
+        assertNull(
+            extractCountryCode("""{"country":"ru"}""", regex),
+            "сервисы отдают верхний регистр; нижний не должен совпадать",
+        )
     }
 }

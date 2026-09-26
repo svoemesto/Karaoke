@@ -2,7 +2,7 @@
 
 > **Feature**: управление публичным доступом к песне: всегда бесплатно, окно
 > бесплатного доступа после эфира, флаг « не снимать с эфира ».
-> Per-feature документ по [Constitution VI FR-009](../constitution.md).
+> Per-feature документ по [Constitution VI FR-009](../../.specify/memory/constitution.md).
 
 ## Контекст
 

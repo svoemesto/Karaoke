@@ -2,7 +2,7 @@
 
 > **Slug**: `zakroma-tiles-sort-order`
 > **Feature branch**: `307-special-authors-zakroma-order`
-> **Spec**: [specs/307-special-authors-zakroma-order/spec.md](../specs/307-special-authors-zakroma-order/spec.md)
+> **Spec**: [specs/307-special-authors-zakroma-order/spec.md](../../specs/307-special-authors-zakroma-order/spec.md)
 > **Status**: Implemented (Pass 310+)
 
 ## Что делает фича
@@ -78,13 +78,13 @@ ORDER BY (sort_order = 0), sort_order ASC, author ASC  -- Pass 311: ненуле
 
 ## Связанные документы
 
-- [specs/307-special-authors-zakroma-order/spec.md](../specs/307-special-authors-zakroma-order/spec.md) — полная спецификация (User Stories, FR, SC, Clarifications).
-- [specs/307-special-authors-zakroma-order/research.md](../specs/307-special-authors-zakroma-order/research.md) — технические решения (R1–R7).
-- [specs/307-special-authors-zakroma-order/data-model.md](../specs/307-special-authors-zakroma-order/data-model.md) — модель данных.
-- [specs/307-special-authors-zakroma-order/contracts/authors-tiles-api.md](../specs/307-special-authors-zakroma-order/contracts/authors-tiles-api.md) — контракт API.
-- [specs/307-special-authors-zakroma-order/quickstart.md](../specs/307-special-authors-zakroma-order/quickstart.md) — пошаговая валидация.
-- [deploy/karaoke-db/46_author_sort_order.sql](../deploy/karaoke-db/46_author_sort_order.sql) — миграция.
-- [specs/008-special-orders/spec.md](../specs/008-special-orders/spec.md) — историческая спека по спец-плашке.
+- [specs/307-special-authors-zakroma-order/spec.md](../../specs/307-special-authors-zakroma-order/spec.md) — полная спецификация (User Stories, FR, SC, Clarifications).
+- [specs/307-special-authors-zakroma-order/research.md](../../specs/307-special-authors-zakroma-order/research.md) — технические решения (R1–R7).
+- [specs/307-special-authors-zakroma-order/data-model.md](../../specs/307-special-authors-zakroma-order/data-model.md) — модель данных.
+- [specs/307-special-authors-zakroma-order/contracts/authors-tiles-api.md](../../specs/307-special-authors-zakroma-order/contracts/authors-tiles-api.md) — контракт API.
+- [specs/307-special-authors-zakroma-order/quickstart.md](../../specs/307-special-authors-zakroma-order/quickstart.md) — пошаговая валидация.
+- [deploy/karaoke-db/46_author_sort_order.sql](../../deploy/karaoke-db/46_author_sort_order.sql) — миграция.
+- [specs/008-special-orders/spec.md](../../specs/008-special-orders/spec.md) — историческая спека по спец-плашке.
 
 ## Контрактные точки (для будущих фич)
 

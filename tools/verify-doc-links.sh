@@ -16,6 +16,9 @@
 
 set -euo pipefail
 
+# Корень репозитория — нужен для --root-dir (см. вызов lychee ниже).
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
 # По умолчанию — offline, чтобы не зависеть от сети в pre-commit
 OFFLINE_FLAG="--offline"
 TARGETS=()
@@ -53,4 +56,9 @@ if ! command -v lychee >/dev/null 2>&1; then
 fi
 
 echo "==> Запуск lychee (${OFFLINE_FLAG:-online}) на: ${TARGETS[*]}"
-lychee $OFFLINE_FLAG --no-progress --exclude-loopback "${TARGETS[@]}"
+# --root-dir обязателен для root-relative ссылок вида `](/AGENTS.md)`: без него lychee
+# отвечает «Cannot resolve root-relative link ... provide a root dir» и валит проверку
+# на КОРРЕКТНЫХ ссылках (Pass 466). Именно такой флаг, а не --base-url: --base-url
+# меняет семантику ОТНОСИТЕЛЬНЫХ ссылок («становятся соседями базы») и ломает их —
+# проверено, ошибок становится больше (18 -> 237).
+lychee $OFFLINE_FLAG --no-progress --exclude-loopback --root-dir "$PROJECT_ROOT" "${TARGETS[@]}"

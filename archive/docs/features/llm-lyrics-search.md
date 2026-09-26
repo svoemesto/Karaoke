@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-09-26 (ветка `451-lyrics-scrapers-order`: порядок scrapers по умолчанию — `google_cse → yahoo_japan → brave → yep` вместо `yep → brave`; нижняя граница `lyricsSearchMinResults` поднята с 0 до 1; синхронизирован второй экземпляр дефолта в `Tools.kt` (+ тест-страж против расхождения). **Актуальный curl-перебор 2026-09-26**: `brave` отдаёт `did not return a result object`, `yep` — `status=ok` с `web=[]` либо 100 нерелевантных URL; `google_cse` и `yahoo_japan` дали результат на 6 из 6 контрольных запросов.)
+> **Last Updated**: 2026-09-26 (ветка `452-album-cover-scraper-failover`: image-скрапперы fourget для поиска обложек теперь **перебираются** по настройке `albumCoverSearchScrapers` (`ddg → yahoo_japan → brave → google_cse`) с порогом `albumCoverSearchMinResults` — раньше `scraper=brave` был зашит прямо в URL и перебора не было вовсе; `AlbumCoverService.search(engine = null)` теперь читает настройку, а не жёсткий `SEARXNG` из дефолта сигнатуры. **Замер image-скрапперов 2026-09-26** на 5 студийных альбомах из библиотеки: `ddg` и `yahoo_japan` — 24/25 релевантных в топ-5, `brave` — 21/22, `google_cse` — 20/25; `baidu` (1/25) и `pinterest` (3/20) — мусор, `ftm` — поиск мемов по назначению. Ранее в тот же день, ветка `451-lyrics-scrapers-order`: порядок web-скрапперов по умолчанию — `google_cse → yahoo_japan → brave → yep` вместо `yep → brave`; нижняя граница `lyricsSearchMinResults` поднята с 0 до 1; синхронизирован второй экземпляр дефолта в `Tools.kt` (+ тест-страж против расхождения). **Актуальный curl-перебор 2026-09-26**: `brave` отдаёт `did not return a result object`, `yep` — `status=ok` с `web=[]` либо 100 нерелевантных URL; `google_cse` и `yahoo_japan` дали результат на 6 из 6 контрольных запросов. Обратите внимание: `ddg` и `brave` для **web**-поиска мертвы, но для **image**-поиска это отдельные эндпоинты, и там они рабочие.)
 
 ## Что делает
 
@@ -67,10 +67,15 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    `AlbumCoverSearchEngine` в `AlbumCoverFinder.kt`, только 2 варианта —
    Yandex Cloud Search API возвращает текстовые результаты, не картинки):
    `SEARXNG` (`AlbumCoverService.searchSearxngImages`, сегодняшнее поведение
-   по умолчанию) или `FOURGET` (`AlbumCoverService.searchFourgetImages`,
-   `fourget` `/api/v1/images?s=...&scraper=brave`). Настройка —
-   `KaraokeProperties.albumCoverSearchEngine`, либо параметр `engine` в
-   `POST /api/song/searchalbumcover`.
+   по умолчанию) или `FOURGET` (`AlbumCoverService.searchFourgetImages`).
+   Настройка — `KaraokeProperties.albumCoverSearchEngine`, либо параметр
+   `engine` в `POST /api/song/searchalbumcover`. Внутри пути `FOURGET`
+   image-скрапперы перебираются по настройке `albumCoverSearchScrapers`
+   (`/api/v1/images?s=...&scraper=<имя>`), пока очередной не вернёт не меньше
+   `albumCoverSearchMinResults` кандидатов — по образцу перебора
+   web-скрапперов в `SearchTool.searchUrls` (2026-09-26, ветка
+   `452-album-cover-scraper-failover`). Путь `SEARXNG` перебора не требует:
+   SearXNG сам агрегирует движки внутри себя.
 5. **Автоочистка результатов поиска для готовых песен**
    (`specs/015-search-engine-selection`, порог обновлён в
    `specs/022-song-status-lifecycle`): как только `Song.saveToDb()`
@@ -264,6 +269,8 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 | `lyricsSearchScrapers` | String | `"google_cse;yahoo_japan;brave;yep"` | Порядок scrapers через `;`. Был `"yep;brave"` (2026-09-02…2026-09-26), до этого — `"brave;yep"`. |
 | `lyricsSearchMinResults` | Int | `2` | Порог «качества» — если scraper вернул меньше URL после post-filter, пробуем следующий. Значения <1 поднимаются до 1: при 0 пустая выдача считалась бы успешной и перебор не срабатывал бы. |
 | `lyricsSearchUselessUrlPatterns` | String | (см. FR-004 спеки 294) | Паттерны для post-filter через `;`. |
+| `albumCoverSearchScrapers` | String | `"ddg;yahoo_japan;brave;google_cse"` | Порядок **image**-scraper'ов через `;` — путь `FOURGET` при поиске обложек (2026-09-26). Независим от `lyricsSearchScrapers`: ключи разные, потому что эндпоинты разные (`/api/v1/web` vs `/api/v1/images`) и рабочие наборы scraper'ов у них не совпадают. |
+| `albumCoverSearchMinResults` | Int | `2` | Порог для **image**-scraper'ов: вернул меньше картинок — пробуем следующий. Значения <1 поднимаются до 1 по той же причине, что и у `lyricsSearchMinResults`. |
 
 **Логирование**: новая строка `🔧 [SearchTool] post-filter: было N,
 осталось M (отброшено K)` на уровне INFO — для мониторинга
@@ -309,10 +316,60 @@ curl "http://localhost:8889/api/v1/images?s=<запрос>&scraper=<имя>" # �
 Yahoo Japan) стоит вторым, а не «в резерве»: при отказе `google_cse`
 перебор дойдёт до него на том же запросе.
 
+
+## Image-скрапперы fourget: как перепроверять (2026-09-26)
+
+Тот же вопрос для **обложек** (`scraper` у `/api/v1/images`), но метрика
+другая: релевантность картинки к альбому, а не наличие текстового сайта.
+Рабочий признак — вхождение автора/альбома в название картинки
+(`image[].title`); количество ответов само по себе ничего не значит.
+
+**Процедура.** 5 студийных альбомов (сборники вида «Топ 50» и «Русские
+хиты» для замера не годятся — канонической обложки у них нет), запрос — как
+его строит `AlbumCoverService.defaultSearchQuery`:
+`"<автор> <альбом> обложка альбома"`. Для каждого scraper'а считать, у
+скольких из первых пяти картинок в `title` есть токен автора или альбома.
+
+**Результат замера 2026-09-26** (5 альбомов: Ария/Герой асфальта,
+ДДТ/Актриса Весна, Земфира/Прости меня моя любовь, КИНО/Группа крови,
+Мельница/Знак четырёх):
+
+| Scraper | Ответов | Релевантных в топ-5 | Что в выдаче |
+|---|---|---|---|
+| `ddg` | 5/5 | 24/25 | обложки (57-100 картинок) |
+| `yahoo_japan` | 5/5 | 24/25 | обложки с Wikipedia (ровно 20) |
+| `brave` | 5/5 | 21/22 | обложки с Discogs (37-46) |
+| `google_cse` | 5/5 | 20/25 | обложки с Wikipedia (ровно 20) |
+| `pinterest` | 4/5 | 3/20 | мусор |
+| `baidu` | 5/5 | 1/25 | мемы («Альтушка для скуфа») |
+| `ftm` | 5/5 | — | `find that meme` — поиск мемов по назначению |
+
+**Живые, но исключённые сознательно**: `baidu` и `pinterest` отдают много
+картинок и проходят любой порог по количеству — именно поэтому порог по
+количеству без проверки релевантности опасен (тот же урок, что с `yep` в
+web-поиске). `ftm` — не про обложки вообще.
+
+**Мёртвые image-скрапперы** (2026-09-26, 0 ответов): `yandex` (`Failed to
+decode JSON`), `google` (`Still working on a Google scraper that uses a
+headful browser`), `google_api` (нужны ключи), `startpage` (`Failed to grep
+JSON object`), `qwant` (`Qwant returned an API error`), `cara` (HTTP-ошибка),
+`flickr`, `pexels`, `pixabay`, `unsplash` (таймаут 30 с), `fivehpx`, `vsco`
+(таймаут 30 с), `imgur`, `solofield`.
+
+**Ключевой вывод**: `ddg` и `brave` для **web**-поиска мертвы (см. замер
+выше), но для **image**-поиска это отдельный эндпоинт, и там оба рабочие. Не
+переносить выводы одного замера на другой эндпоинт.
+
 **Принципы и контекст**:
-- Только `SearchTool.searchUrls` (lyrics). `AlbumCoverFinder.kt`
-  (поиск обложек) **не трогаем** — обложки работают как раньше
-  через жёстко зашитый `scraper=brave` без fallback (NFR-006).
+- Перебор scraper'ов реализован в ДВУХ местах и по одному образцу:
+  `SearchTool.searchUrls` (web, тексты песен) и
+  `AlbumCoverService.searchFourgetImages` (images, обложки). Обложки
+  добавлены 2026-09-26 (ветка `452-album-cover-scraper-failover`): до этого
+  `scraper=brave` был зашит в URL и перебора не было — оговорка NFR-006
+  «обложки не трогаем» больше не действует. Настройки независимы:
+  `lyricsSearchScrapers` + `lyricsSearchMinResults` для текстов,
+  `albumCoverSearchScrapers` + `albumCoverSearchMinResults` для картинок;
+  менять одну, ожидая эффекта на другой, — ошибка.
 - Семантическая фильтрация URL (страница про текст песни vs альбом
   vs артиста) — НЕ наша задача; это работа LLM-парсинга
   (`ScraperAgent`).

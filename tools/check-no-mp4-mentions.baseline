@@ -1,149 +1,137 @@
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt:24
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt:255
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt:22
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt:23
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2757
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6831
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6884
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:7679
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:7722
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:7727
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:7731
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt:1064
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt:141
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileType.kt:253
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileType.kt:262
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1183
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1186
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1193
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1196
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1332
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1335
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1342
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1345
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1650
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1653
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1660
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1663
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1875
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1885
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:499
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:503
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:504
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1883
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1889
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1905
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1911
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:2072
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:230
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:258
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:272
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Consumer.kt:12
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt:199
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2263
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2294
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:504
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:505
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:506
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:508
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:509
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:511
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:512
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:513
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:515
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:516
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:518
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:519
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:520
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:523
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:524
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:525
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:550
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:551
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:552
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:553
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:554
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:555
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:557
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:558
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5796
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5854
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt:14
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StemJob.kt:39
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt:10
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt:12
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt:89
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:165
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:59
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:60
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:74
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt:208
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt:219
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt:347
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt:113
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt:23
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt:26
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramTemplateService.kt:10
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:283
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:641
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:786
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:117
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:125
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:257
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:30
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:70
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState.kt:28
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState.kt:31
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:204
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:33
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:83
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:1958
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:1968
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4564
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4582
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4592
-karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt:197
-karaoke-public/src/components/SongSubscriptionModal.vue:30
-karaoke-public/src/player/KaraokePlayer.js:120
-karaoke-public/src/player/KaraokePlayer.js:122
-karaoke-public/src/player/KaraokePlayer.js:1333
-karaoke-public/src/player/KaraokePlayer.js:1381
-karaoke-public/src/player/KaraokePlayer.js:2612
-karaoke-public/src/player/KaraokePlayer.js:2614
-karaoke-public/src/player/KaraokePlayer.js:2615
-karaoke-public/src/player/KaraokePlayer.js:2807
-karaoke-public/src/player/KaraokePlayer.js:2808
-karaoke-public/src/player/KaraokePlayer.js:2811
-karaoke-public/src/player/KaraokePlayer.js:2821
-karaoke-public/src/player/KaraokePlayer.js:2831
-karaoke-public/src/player/KaraokePlayer.js:797
-karaoke-public/src/views/CartView.vue:51
-karaoke-public/src/views/OfertaView.vue:52
-karaoke-public/src/views/PlayerView.vue:28
-karaoke-public/src/views/PlayerView.vue:39
-karaoke-public/src/views/PremiumView.vue:118
-karaoke-public/src/views/SongView.vue:364
-karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt:22
-karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicStemJobController.kt:34
-webvue3/src/components/Songs/edit/SongEdit.vue:4304
-webvue3/src/components/Songs/edit/SongEdit.vue:4364
-webvue3/src/player/KaraokePlayer.js:133
-webvue3/src/player/KaraokePlayer.js:1519
-webvue3/src/player/KaraokePlayer.js:194
-webvue3/src/player/KaraokePlayer.js:216
-webvue3/src/player/KaraokePlayer.js:2656
-webvue3/src/player/KaraokePlayer.js:2670
-webvue3/src/player/KaraokePlayer.js:2674
-webvue3/src/player/KaraokePlayer.js:2950
-webvue3/src/player/KaraokePlayer.js:2951
-webvue3/src/player/KaraokePlayer.js:2954
-webvue3/src/player/KaraokePlayer.js:2964
-webvue3/src/player/KaraokePlayer.js:2974
-webvue3/src/player/KaraokePlayer.js:3108
-webvue3/src/player/KaraokePlayer.js:3167
-webvue3/src/player/KaraokePlayer.js:919
-webvue3/src/views/PlayerView.vue:21
-webvue3/src/views/PlayerView.vue:29
-webvue3/src/views/PlayerView.vue:30
-webvue3/src/views/PlayerView.vue:32
-webvue3/src/views/PlayerView.vue:51
+# Baseline для tools/check-no-mp4-mentions.sh (правило R-11).
+#
+# Формат: <путь>:<sha256(trim(содержимого строки))[:16]>  # <сниппет>
+# Всё после '#' — комментарий-сниппет, на сопоставление не влияет.
+#
+# Номер строки НЕ используется (Pass 455): раньше база была file:line и
+# ломалась от любой вставки строк выше — это выглядело как новое
+# нарушение R-11. Теперь вставка/удаление строк и смена отступа базу не
+# ломают; изменение самого текста упоминания — ломает (намеренно).
+#
+# Перегенерировать: bash tools/check-no-mp4-mentions.sh --update-baseline
+
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt:230702d461268bcc  # * картинок через SearXNG, скачивание кандидата и defensive center-crop + resize до 400×400.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt:dd16ed2946309ec9  # println("downloadImageBytes: ошибка скачивания '$url': ${e.message}")
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt:0bb48b3d95ab906b  # // плеера") — PNG-секвенция и промежуточный mp4 для визуальной сверки с эталонным MLT-рендером.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt:80d0ef2f4ebd0dd7  # // Этап 1 (MVP) рендера видео mp4 из онлайн-плеера ("Рендер видео MP4 из онлайн-
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileType.kt:cc8341fcd8777b27  # extention = "mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:547e1588e1ae6c01  # // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:55d8fa42fbd376a9  # description = "RENDER MP4 ($version)"
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:b08b202216421b10  # // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:ceb1bf0ab4e4771a  # * - `THREAD_LANE_HEAVY_RENDER=0` — тяжёлые CPU-задачи (рендер MLT, MP4).
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:111a3d92889d594c  # description = "Telegram Фаза 2: включить плановый бот автопубликации демо-MP4 (sendVideo). Endpoint /api/song/publish...
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:5bccdc1601be73a4  # defaultValue = "/login;/signup;/register;/auth;/wp-login.php;/wp-admin;/administrator;/sitemap.xml;/sitemap;/sitemap_...
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:7716284dc2ea7ad6  # description = "ВК: лимит размера демо-MP4 (МБ) для video.save. При превышении ставит перерендер RENDER_MP4_DEMO с уме...
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:baee0a866596ac84  # // (telegramPollingEnabled — отлов уже вышедших постов), Фаза 2 САМА публикует демо-MP4 в канал
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:e0febeb9b9e4389d  # // в группу ВК через wall.post + video.save (демо-MP4). Идемпотентность по Song.idVk (tbl_songs.id_vk).
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:e71293db2f1c5dfc  # "Telegram Фаза 2: лимит размера MP4 (МБ) для sendVideo. Стандартный Bot API — 50; " +
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:0260f614c9477003  # val tempOutputPath = "${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${songId}_${version.name}/output.mp4"
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:9b64375260f97550  # // Копируем результат в done_files с именем [version].mp4
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:b6867ea6a79dd060  # // Удаляем временную папку (секвенция кадров + промежуточный mp4)
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:ca864e85fcc92107  # pathToTagFolder + "/" + sourceFileKaraoke.split("/").last().replace(" [karaoke].mp4", " [karaoke] {$tag}.mp4")
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:d7f8f8e2c5d029d9  # sourceFile720Karaoke.split("/").last().replace(" [karaoke] 720p.mp4", " [karaoke] {$tag} 720p.mp4")
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:07cdfe9f227becd2  # .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"song_$id.mp4\"")
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:46aca960efc46d22  # // Рендер видео mp4 из онлайн-плеера — интеграция в очередь KaraokeProcess.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4b74e6394e742eb8  # val file = File("$PATH_TO_TEMP_RENDERMP4_FOLDER/$id/output.mp4")
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:54c5701acc374804  # "message" to "Рендер MP4 (${renderVersion.name}) поставлен в очередь (processId=$processId)",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6ef145a9565e70b9  # // Скачивание отрендеренного MP4
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:b349c1c93e265aa1  # // Видео проигрыватель: Render MP4 (из онлайн-плеера)
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:e2808de1fc9097f9  # // Статус рендера MP4
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt:1c87a690673324e6  # // повторный approve (или параллельный ручной триггер «Рендер MP4 DEMO») не плодил дублей.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt:b5ded257c57cc5dd  # // FR-001: streaming через Resource (НЕ readAllBytes!) — устраняет OOM для MP4 100+ MB.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:d829a3ea09c83252  # ".7z", ".tar", ".gz", ".mp3", ".mp4", ".wav", ".avi",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:f2a6bf28a20e4370  # *   .zip, .rar, .7z, .tar, .gz, .mp3, .mp4, .wav, .avi, .mov, .jpg, .jpeg,
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Consumer.kt:9bcbf679ca98f249  # Pair("f", "mp4"),
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt:89cbde89fa602457  # .propertyName("kdenlive:docproperties.renderprofile", "MP4-H265 (HEVC)")
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:090b307de0ca6e24  # val nameFileKaraoke: String get() = "$fileName [karaoke].mp4".rightFileName()
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:10c6809dfdbb4878  # " [lyrics].mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:20ff09b761ca657f  # //    val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", ...
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5f699a567188196c  # val nameFileRenderMp4: String get() = "$fileName [render].mp4".rightFileName()
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:796829b22025778e  # val nameFileChords: String get() = "$fileName [chords].mp4".rightFileName()
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:7c3cb2224e938e57  # "$fileName ${version.fileSuffix}.mp4".rightFileName()
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:818936b3b6afae39  # val nameFileMelody: String get() = "$fileName [tabs].mp4".rightFileName()
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:9c3e741b8ccc55ba  # fileName += ".mp4"
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:a328e4b8f4eeb680  # " [karaoke].mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:c2c0a3d211c870d5  # " [chords] 720p.mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:c843ed6dad7c13c8  # //    val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [l...
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:d4ffc736953f0ca4  # " [tabs].mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:d7168819948dd9fc  # " [chords].mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:daae6b78eea82a05  # " [tabs] 720p.mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:de5ffb41b26ef2ef  # val nameFileLyrics: String get() = "$fileName [lyrics].mp4".rightFileName()
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:e3cfb686617b6c0c  # " [karaoke] 720p.mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:e90373d62ddd1fae  # " [lyrics] 720p.mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:f4a0202dda8366fe  # "  <property name=\"kdenlive:docproperties.externalproxyparams\">./;GL;.LRV;./;GX;.MP4;./;GP;.LRV;./;GP;.MP4</propert...
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt:2499426c1ed5df4c  # VIDEO(extension = "mp4"),
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StemJob.kt:843f92ff55f017ea  # // ?stem= при скачивании.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt:15d774291fb0fc30  # * итоговый mp4 через ffmpeg (уже используется этим же способом — ProcessBuilder-обёртка
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt:94f2f4ada9d6229f  # * Часть Этапа 1 (MVP) рендера видео mp4 из онлайн-плеера (см. DEVELOPMENT.md "Рендер видео MP4 из
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt:9e874e185604d0e1  # // звук в mp4 должен начинаться на том же смещении, что и в браузере.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:01b69b858f958ccf  # * (см. DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"). Плеер (webvue3/src/player/KaraokePlayer.js) в
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:750e4d05df2dbe0b  # * песни. Встройка в очередь — следующий этап (см. план "Рендер видео MP4 из онлайн-плеера").
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:836610322d78c094  # * Этап 1 (MVP) рендера видео mp4 напрямую из онлайн-плеера — в перспективе замена рендера через MLT
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt:c56f435b0363a079  # // Оптимизация (см. DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"): один CDP round-trip
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt:a4c5ce1c564a8bb6  # * @param videoFile готовый MP4-файл демо-версии
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt:a608d198b99b458f  # fileField("video", videoFileName, "video/mp4", videoBytes)
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt:b2f7b0ccc5d0d29d  # * Фаза 2 (specs/113-telegram-demo-publish): отправляет демо-MP4 в канал через Telegram Bot API
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt:c89ca26cd37af3ad  # // FR-003: есть ли готовый демо-MP4 нужного размера?
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt:5352c2507aa4187c  # /** Демо-MP4 готов, бот делает sendVideo (с ретраями FR-010). */
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt:c5b851da7fc686dc  # /** Бот рендерит демо-MP4 (FR-003 сц. 2 или 3 — файла нет или превышает лимит 50 МБ). */
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramTemplateService.kt:41b634d2f6e268c8  # * Рендеринг шаблонов подписей к демо-MP4 в Telegram (capsion, ≤1024 символа).
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:35d89c0f138cda5b  # * - `video.save` + загрузка видеофайла (прикрепление демо-MP4, FR-019)
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:7802aad19f079826  # * @param videoFile Демо-MP4 файл (проверка размера перед отправкой, FR-020).
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt:a0dcfdb84213e2ec  # contentType = "video/mp4",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:1959aeafc0a3aaf6  # * проверка демо-MP4 (FR-020, рендер при необходимости) → формирование текста по шаблону
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:33cd1e3b87b9054f  # // Рендерим шаблон, чтобы узнать — нужно ли прикреплять демо-MP4 (маркер {demoVideo}).
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:95258801ec65a8ed  # /** Выполняет `video.save` + `wall.post` (FR-019) с демо-MP4 и записывает результат (FR-004) или ошибку. */
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:adab4077dc4602e9  # * `isContentReady` (FR-022) → проверка демо-MP4 (FR-020, рендер при необходимости) →
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt:b711e39fa770605f  # // FR-020: есть ли готовый демо-MP4 нужного размера?
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState.kt:27c4ed8447612b32  # /** Бот рендерит демо-MP4 (FR-020 сц. 2 или 3 — файла нет или превышает лимит). */
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState.kt:92871381494346d2  # /** Демо-MP4 готов, бот делает `video.save` + `wall.post` (с ретраями FR-009). */
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:a9df1388f63ea38b  # "маркер: если присутствует — бот прикрепит демо-MP4 видео к посту; сам маркер из текста удаляется",
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:b2e6e703f12b41ff  # * отрендеренный текст поста + флаг прикрепления демо-MP4 (маркер `{demoVideo}`).
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:e69fc027126b4bb6  # * - `{demoVideo}` — **маркер**: если присутствует в шаблоне, бот прикрепит демо-MP4
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt:ae926df2ff8b9cc5  # "Ария - Дай жару [Official Video].mp4",
+karaoke-public/src/components/SongSubscriptionModal.vue:ba27e77096f45f35  # без передачи файлов и без возможности скачивания. Полные условия — в
+karaoke-public/src/player/KaraokePlayer.js:1cb66f470a7dc211  # // _offline/_forcedTime are otherwise always inert (the headless mp4 exporter only drives the
+karaoke-public/src/player/KaraokePlayer.js:377071c5e03475b2  # // fetch на стадии скачивания, но НЕ прерывает уже запущенный decodeAudioData (Web Audio API не
+karaoke-public/src/player/KaraokePlayer.js:3d88af71841c82d0  # // Offline-режим (headless-рендер mp4 — только admin-копия плеера в webvue3 его реально
+karaoke-public/src/player/KaraokePlayer.js:44096493fa84166b  # // какой-то прогресс скачивания (_loadProgress != null) — показываем прогресс-полосу и держим её
+karaoke-public/src/player/KaraokePlayer.js:5a4837412b4fa061  # // admin/webvue3 copy, see DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"). Renders exactly one
+karaoke-public/src/player/KaraokePlayer.js:5a76b0b8da9c95e5  # // ─── Offline rendering (headless MP4 export) ───────────────────────────────
+karaoke-public/src/player/KaraokePlayer.js:6634664a3b1784e5  # // Скачивание: заполнение = доля скачанного
+karaoke-public/src/player/KaraokePlayer.js:72068bb761116268  # // визуальный скачок «полоса → спиннер», когда скачивание с локального хранилища почти мгновенно.
+karaoke-public/src/player/KaraokePlayer.js:94c9111c59de9856  # // до готовности: при p<1 подпись «N%», при p>=1 (скачивание закончилось, идёт decodeAudioData,
+karaoke-public/src/player/KaraokePlayer.js:b19b366f48140c5a  # // Общий прогресс скачивания = сумма байт обоих стемов. Пока Content-Length хотя бы одного
+karaoke-public/src/player/KaraokePlayer.js:d750b1b7612de264  # // обе копии", см. DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"). _forcedTime, когда не null,
+karaoke-public/src/player/KaraokePlayer.js:de008c4d113b54df  # // Есть прогресс скачивания: полоса + подпись «N%» / «Обработка...»
+karaoke-public/src/player/KaraokePlayer.js:f2a28828dcd483f5  # // Offline (headless mp4-экспорт, admin-копия) — зеркалировано по инварианту "две копии плеера".
+karaoke-public/src/views/CartView.vue:ba27e77096f45f35  # без передачи файлов и без возможности скачивания. Полные условия — в
+karaoke-public/src/views/OfertaView.vue:0e11effec967c965  # 3.3. Файлы аудио и текста Пользователю не передаются и не предоставляются для скачивания —
+karaoke-public/src/views/PlayerView.vue:5e738d1fac90fd43  # * @see archive/docs/features/mp4-render.md
+karaoke-public/src/views/PlayerView.vue:cb704e049c4f85c3  # * который загружает FLAC-стемы (vocals/accompaniment) и MP4-видео,
+karaoke-public/src/views/PremiumView.vue:3734f41cdd668db0  # файлов и без скачивания. Полные условия — в
+karaoke-public/src/views/SongView.vue:3021e52d687ee682  # * @see archive/docs/features/mp4-render.md (Player)
+karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt:fdb76877f461fe76  # * VK API с прикреплением демо-MP4, а парсинг ссылок VK больше не основной канал шаринга.
+karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicStemJobController.kt:76f3408836a17963  # * StemJobPollScheduler в karaoke-app — тянет файл через InternalStemJobController). Скачивание
+webvue3/src/components/Songs/edit/SongEdit.vue:868e38065a07c8e0  # ? `Демо-MP4 отправляется в Telegram.`
+webvue3/src/components/Songs/edit/SongEdit.vue:dcad377143ddbb3d  # ? `Демо-MP4 отправляется в ВК.`
+webvue3/src/player/KaraokePlayer.js:44096493fa84166b  # // какой-то прогресс скачивания (_loadProgress != null) — показываем прогресс-полосу и держим её
+webvue3/src/player/KaraokePlayer.js:578ecc84badb34ca  # // — see DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера") must set `this._offline = true` BEFORE
+webvue3/src/player/KaraokePlayer.js:5a76b0b8da9c95e5  # // ─── Offline rendering (headless MP4 export) ───────────────────────────────
+webvue3/src/player/KaraokePlayer.js:6150e5015fc5d0e9  # //  • MP4 render (_renderVersion set): picArea + 3-block textArea (song/version/chord)
+webvue3/src/player/KaraokePlayer.js:6634664a3b1784e5  # // Скачивание: заполнение = доля скачанного
+webvue3/src/player/KaraokePlayer.js:66cc6061393a57b7  # // Offline-режим (headless-рендер mp4, см. renderFrameAt() ниже): вызывающий код (Kotlin-
+webvue3/src/player/KaraokePlayer.js:72068bb761116268  # // визуальный скачок «полоса → спиннер», когда скачивание с локального хранилища почти мгновенно.
+webvue3/src/player/KaraokePlayer.js:7acfd30b7c0c4702  # // Read render version params from URL (set by PlayerView.vue for headless MP4 render)
+webvue3/src/player/KaraokePlayer.js:94c9111c59de9856  # // до готовности: при p<1 подпись «N%», при p>=1 (скачивание закончилось, идёт decodeAudioData,
+webvue3/src/player/KaraokePlayer.js:b09e2c5be551d53e  # // Offline render keeps the MP4 KARAOKE mix (voc=0) enforced by the renderer, so we skip here.
+webvue3/src/player/KaraokePlayer.js:b19b366f48140c5a  # // Общий прогресс скачивания = сумма байт обоих стемов. Пока Content-Length хотя бы одного
+webvue3/src/player/KaraokePlayer.js:de008c4d113b54df  # // Есть прогресс скачивания: полоса + подпись «N%» / «Обработка...»
+webvue3/src/player/KaraokePlayer.js:e02a27492d4be92b  # // Offline (headless mp4-экспорт): mp4 не должен содержать никакого UI-хрома плеера (ползунки
+webvue3/src/player/KaraokePlayer.js:e8f13ef6d006e0c4  # // DEMO end screen: offline (MP4 render) shows logo+text+arrows; online uses idle transition.
+webvue3/src/player/KaraokePlayer.js:fec862f0acbad4d4  # // ─── MP4 render mode: picArea + 3-block textArea ───
+webvue3/src/views/PlayerView.vue:34fd0ce99f6e2086  # // Headless mp4-рендер (см. DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"): Kotlin/Playwright-
+webvue3/src/views/PlayerView.vue:39d64f3a628a6f66  # * - `render=1` (query) — headless-режим для MP4-рендера через Playwright
+webvue3/src/views/PlayerView.vue:5e738d1fac90fd43  # * @see archive/docs/features/mp4-render.md
+webvue3/src/views/PlayerView.vue:9e267d761dba79cc  # *   (см. `mp4-render.md`).
+webvue3/src/views/PlayerView.vue:cb704e049c4f85c3  # * который загружает FLAC-стемы (vocals/accompaniment) и MP4-видео,

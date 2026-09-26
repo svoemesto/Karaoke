@@ -2,6 +2,8 @@ package com.svoemesto.karaokeapp.llm
 
 import com.svoemesto.karaokeapp.listKaraokeProperties
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -142,6 +144,50 @@ internal class ToolsTest {
                 "https://example.com/song.pdf",
             )
         assertEquals(emptyList<String>(), filterUselessLyricsUrls(input))
+    }
+
+    @Test
+    fun `tracking-маркер ловится на границе параметра, а не как голая подстрока`() {
+        // Pass 461. Раньше проверка была голым contains по всему URL, поэтому паттерн
+        // `ref=` находился и внутри честного параметра `?pref=...` — живая ссылка на
+        // текст песни отбрасывалась как мусор.
+        val input =
+            listOf(
+                "https://example.com/song?pref=abc", // НЕ должен отбрасываться
+                "https://example.com/song?ref=abc", // должен
+                "https://example.com/song?a=1&ref=abc", // должен
+                "https://example.com/song?utm_source=vk", // должен (?)
+                "https://example.com/song?a=1&utm_source=vk", // должен (&)
+            )
+        val expected =
+            listOf(
+                "https://example.com/song?pref=abc",
+            )
+        assertEquals(expected, filterUselessLyricsUrls(input))
+    }
+
+    @Test
+    fun `matchesUselessUrlPattern — чистая проверка обоих режимов`() {
+        // Паттерн с '=' требует границы параметра.
+        assertTrue(matchesUselessUrlPattern("https://e.com/s?ref=1", "ref="))
+        assertTrue(matchesUselessUrlPattern("https://e.com/s?a=1&ref=1", "ref="))
+        assertFalse(matchesUselessUrlPattern("https://e.com/s?pref=1", "ref="), "pref= не является ref=")
+        assertFalse(matchesUselessUrlPattern("https://e.com/ref=1", "ref="), "в path границы параметра нет")
+        // Паттерн без '=' работает подстрокой, как раньше.
+        assertTrue(matchesUselessUrlPattern("https://e.com/sitemap.xml", "/sitemap.xml"))
+        assertTrue(matchesUselessUrlPattern("https://e.com/a/report.pdf", ".pdf"))
+        assertFalse(matchesUselessUrlPattern("https://e.com/song", ".pdf"))
+    }
+
+    @Test
+    fun `паттерны без '=' по-прежнему ловятся подстрокой в любой части URL`() {
+        val input =
+            listOf(
+                "https://example.com/wp-login.php",
+                "https://example.com/files/song.pdf",
+                "https://example.com/song/lyrics",
+            )
+        assertEquals(listOf("https://example.com/song/lyrics"), filterUselessLyricsUrls(input))
     }
 
     @Test

@@ -113,6 +113,13 @@ RUN --mount=type=cache,target=/root/.cache/ms-playwright \
 
 # Установка переменных окружения для Java-приложения
 ENV JAVA_HOME=/opt/java/openjdk
+
+# ARG обязан быть объявлен В КАЖДОЙ стадии, где используется: `ARG VERSION` в начале
+# файла виден только первой стадии (java-app-builder), а здесь его уже нет. Без этой
+# строки ${VERSION:-unknown} молча давал "unknown" — при том что do.sh исправно
+# передаёт --build-arg VERSION=${BUILD_VERSION} (Pass 466). Проверено на образе:
+# было APP_VERSION=unknown при переданном VERSION=1.
+ARG VERSION
 ENV APP_VERSION=${VERSION:-unknown}
 ENV TZ="Europe/Moscow"
 ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Duser.language=ru -Duser.country=RU -Djava.security.egd=file:/dev/./urandom"

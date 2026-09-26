@@ -223,7 +223,7 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "lyricsSearchTimeoutSeconds",
             defaultValue = 10,
-            description = "Таймаут между поисковыми запросами текста, сек (specs/316-search-timeout-configurable)",
+            description = "ПАУЗА между последовательными поисковыми запросами текста, сек (specs/316-search-timeout-configurable). Это НЕ таймаут одного запроса: в пакетном поиске между итерациями делается Thread.sleep. Меньше 1 поднимается до 1. Для пакетного поиска значение можно задать параметром timeout запроса.",
         ),
         KaraokeProperty(
             key = "lyricsSearchUselessUrlPatterns",

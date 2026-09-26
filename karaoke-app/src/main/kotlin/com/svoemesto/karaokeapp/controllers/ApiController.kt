@@ -4800,7 +4800,7 @@ class ApiController(
         // query-param, иначе сохранённое значение из KaraokeProperties (default 10).
         val effectiveTimeout =
             timeout?.coerceAtLeast(1)
-                ?: KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+                ?: Karaoke.lyricsSearchTimeoutSeconds
 
         // specs/316-search-timeout-configurable (FR-009, rev 3): замер minIntervalMs
         // между двумя подряд успешными getLyricsSearch (упавшие запросы не учитываются).
@@ -5325,7 +5325,7 @@ class ApiController(
         // query-param (Р-3) или сохранённое значение из KaraokeProperties (default 10).
         val searchTimeout =
             timeout?.coerceAtLeast(1)
-                ?: KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+                ?: Karaoke.lyricsSearchTimeoutSeconds
 
         // specs/316-search-timeout-configurable (FR-009, rev 3.1/RC-1,RC-2): замер minIntervalMs для пути B
         // (упавшие запросы не учитываются). Счётчики обновляются из потоков executor'а (4 потока) —
@@ -6066,7 +6066,7 @@ class ApiController(
     @GetMapping("/lyrics-search-timeout")
     @ResponseBody
     fun getLyricsSearchTimeout(): Map<String, Int> {
-        val value = KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+        val value = Karaoke.lyricsSearchTimeoutSeconds
         return mapOf("value" to value)
     }
 

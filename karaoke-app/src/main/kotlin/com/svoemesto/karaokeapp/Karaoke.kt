@@ -162,8 +162,18 @@ class Karaoke : Serializable {
                 KaraokeProperties.set("checkSearchAsync", value)
             }
 
-        // specs/316-search-timeout-configurable (FR-007): таймаут между поисковыми запросами, секунды.
+        // specs/316-search-timeout-configurable (FR-007): ПАУЗА между последовательными
+        // поисковыми запросами, секунды (в цикле это `Thread.sleep(timeout * 1000L)`).
+        //
+        // [WARN] Имя вводит в заблуждение: это НЕ таймаут одного запроса. Ключ настройки
+        // называется `lyricsSearchTimeoutSeconds` и переименованию не подлежит — в живом
+        // `Karaoke.properties` он уже выставлен оператором (20), а смена ключа молча
+        // вернула бы дефолт 10. Фактический таймаут HTTP-запроса задаётся отдельно,
+        // на уровне клиента (connectTimeout) и запроса (`.timeout(...)`).
+        //
         // Хранится в KaraokeProperties (backend, /sm-karaoke/system/Karaoke.properties), default 10.
+        // ЕДИНСТВЕННОЕ место чтения с полом 10 (Pass 460): раньше это выражение было
+        // скопировано ещё в 4 местах контроллеров — правки в одном месте не доезжали до других.
         var lyricsSearchTimeoutSeconds: Int
             get() = KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
             set(value) {

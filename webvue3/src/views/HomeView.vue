@@ -266,7 +266,7 @@ export default {
         fields: [
           {
             fldName: 'timeout',
-            fldLabel: 'Таймаут (сек)',
+            fldLabel: 'Пауза между запросами (сек)',
             // БЕЗ fldIsSelect/fldIsBoolean/fldIsTextarea → default `<input>` (FR-006 validation на стороне callback).
             fldValue: defaultTimeout || 10,
           },
@@ -280,7 +280,7 @@ export default {
               isAlert: true,
               alertType: 'warning',
               header: 'Ошибка ввода',
-              body: 'Таймаут должен быть положительным целым числом ≥ 1.',
+              body: 'Пауза должна быть положительным целым числом ≥ 1.',
               timeout: 10,
             }
             this.isCustomConfirmVisible = true

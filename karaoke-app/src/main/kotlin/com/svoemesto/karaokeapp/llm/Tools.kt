@@ -3,7 +3,6 @@ package com.svoemesto.karaokeapp.llm
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.KaraokeProperties
-import dev.langchain4j.agent.tool.Tool
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -64,7 +63,6 @@ class SearchTool(
             .connectTimeout(Duration.ofSeconds(10))
             .build()
 
-    @Tool("Search the web for URLs related to a query. Returns a list of URLs.")
     fun searchUrls(query: String): List<String> {
         // Нижняя граница 1, а не 0: при пороге 0 пустой ответ scraper'а проходил бы
         // проверку `urls.size >= minResults` и перебор останавливался бы на первом же

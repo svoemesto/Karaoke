@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
  *
  * Алгоритм (`findLyrics` / `findChords`):
  * 1. [SearchTool] ищет 5-10 кандидатов (Google/Bing через прокси).
- * 2. [ScraperAgent] (langchain4j + LLM) парсит каждую страницу и
+ * 2. [ScraperAgent] (LLM через LmStudioService) парсит каждую страницу и
  *    извлекает структурированный текст/аккорды.
  * 3. Результаты ранжируются по эвристикам (длина текста, наличие
  *    аккордов, качество разметки).

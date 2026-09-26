@@ -64,7 +64,10 @@ Backend (Kotlin/Spring Boot, multi-module Gradle, JDK 17):
 
 Note: the existing tests under `karaoke-app/src/test` (`SearchLastAlbumVkTest`, `PlaywrightTests`)
 are manual integration checks that hit live network services / require a real browser and
-credentials — not a CI safe-guard suite (mostly `@Disabled` or require env setup).
+credentials — not a CI safe-guard suite. **All of them are `@Disabled`** (Pass 465): before that
+`SearchLastAlbumVkTest` was not, so plain `./gradlew karaoke-app:test` failed on any machine
+without the Playwright driver — which trains people to ignore test failures. To run one by hand,
+remove the annotation locally with the environment prepared (browsers + network).
 
 Frontend (`webvue3`, Vue 3 + Vite, Node):
 ```

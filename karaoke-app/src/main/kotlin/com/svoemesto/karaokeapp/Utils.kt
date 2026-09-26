@@ -3661,43 +3661,151 @@ fun parseHomeCountries(raw: String): Set<String> =
 /** Текущий набор home-стран из настроек `vpnHomeCountry` (Pass 427, #151). */
 fun vpnHomeCountries(): Set<String> = parseHomeCountries(Karaoke.vpnHomeCountry)
 
-fun isVpnActive(): Boolean {
-    // Сравниваем текущую страну со СПИСКОМ стран без ВПН (настройка vpnHomeCountry,
-    // например "DE,RU" — машина может легально находиться и в Германии, и в России).
-    // api.country.is работает из Docker-контейнеров без ограничений.
-    val homeCountries = vpnHomeCountries()
-    val services =
-        listOf(
-            "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
-            "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$"""),
-        )
-    for ((url, regex) in services) {
-        val body =
-            try {
-                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
+/**
+ * Кэш определённой страны внешнего IP: код страны + момент определения.
+ *
+ * Кэшируется только САМ ФАКТ страны, а не решение «ВПН активен» — решение каждый
+ * раз считается заново из актуального `vpnHomeCountry`, поэтому правка списка
+ * home-стран действует сразу, не дожидаясь истечения TTL.
+ */
+private data class CachedCountryCode(
+    val code: String,
+    val atMillis: Long,
+)
+
+/** Замок на [vpnCountryCache]: isVpnActive зовут из шедулеров и воркеров параллельно. */
+private val vpnCountryCacheLock = Any()
+
+@Volatile
+private var vpnCountryCache: CachedCountryCode? = null
+
+/**
+ * Сервисы определения страны текущего внешнего IP, в порядке обращения.
+ *
+ * `api.country.is` работает из Docker-контейнеров без ограничений; `ipapi.co` —
+ * резерв. На 2026-09-26 резерв отвечал HTTP 429 (rate limit), что раньше было
+ * неотличимо от сетевого сбоя — см. [fetchCountryCodeFromService].
+ */
+internal val VPN_COUNTRY_SERVICES: List<Pair<String, Regex>> =
+    listOf(
+        "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
+        "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$"""),
+    )
+
+/**
+ * Чистая функция: свежо ли закэшированное значение страны.
+ *
+ * `ttlSeconds <= 0` — кэш выключен (всегда «не свежо»). Отрицательный прошедший
+ * интервал (часы ушли назад) тоже даёт «не свежо»: лишний сетевой запрос лучше,
+ * чем вечно живой кэш.
+ */
+internal fun isCountryCacheFresh(
+    cachedAtMillis: Long,
+    nowMillis: Long,
+    ttlSeconds: Int,
+): Boolean = ttlSeconds > 0 && (nowMillis - cachedAtMillis) in 0 until ttlSeconds * 1000L
+
+/**
+ * Чистая функция: вытащить код страны из тела ответа сервиса.
+ *
+ * `null`, если тело не совпало с ожидаемым форматом — в том числе для тела
+ * ошибки. Это существенно: `ipapi.co` на 429 отдаёт
+ * `{'error': True, 'reason': 'RateLimited', ...}`, и без проверки статуса это
+ * молча выглядело как «страну определить не удалось».
+ */
+internal fun extractCountryCode(
+    body: String,
+    regex: Regex,
+): String? =
+    regex
+        .find(body)
+        ?.groupValues
+        ?.getOrElse(1) { "" }
+        ?.takeIf { it.isNotEmpty() }
+
+/**
+ * Запрашивает страну у одного сервиса. `null` — сервис не ответил, ответил не-200
+ * или тело не распознано.
+ *
+ * HTTP-статус проверяется явно: до 2026-09-26 он не проверялся вовсе, поэтому 429
+ * (rate limit) от резервного сервиса был неотличим от сетевого сбоя и просто
+ * приводил к fail-open.
+ */
+private fun fetchCountryCodeFromService(
+    url: String,
+    regex: Regex,
+): String? =
+    try {
+        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+        conn.connectTimeout = 5000
+        conn.readTimeout = 5000
+        val status = conn.responseCode
+        if (status != 200) {
+            println("isVpnActive: $url вернул HTTP $status")
+            null
+        } else {
+            extractCountryCode(
                 conn.inputStream
                     .bufferedReader()
                     .readText()
-                    .trim()
-            } catch (e: Exception) {
-                println("isVpnActive: исключение при запросе $url: ${e.message}")
-                continue
-            }
-        val country = regex.find(body)?.groupValues?.getOrElse(1) { "" } ?: ""
-        if (country.isNotEmpty()) {
-            // Пустой список home-стран → fail-open: ВПН не считаем (не блокируем работу).
-            val isVpn = homeCountries.isNotEmpty() && country.uppercase() !in homeCountries
-            println(
-                "isVpnActive: countryCode=$country (homeCountry=${homeCountries.toList().sorted()}) → ВПН ${if (isVpn) "включён" else "выключен"} (via $url)",
+                    .trim(),
+                regex,
             )
-            return isVpn
+        }
+    } catch (e: Exception) {
+        println("isVpnActive: исключение при запросе $url: ${e.message}")
+        null
+    }
+
+/**
+ * Определяет страну текущего внешнего IP с кэшем на `vpnCheckCacheTtlSeconds` секунд
+ * (0 или меньше — без кэша).
+ *
+ * Кэшируется только успешный результат: неудачу кэшировать нельзя, иначе разовый
+ * сетевой сбой «залипнет» в fail-open («ВПН не считаем») на весь TTL, и машина с
+ * включённым ВПН будет ходить в Яндекс.Музыку, где её заблокируют.
+ */
+fun resolveCurrentCountryCode(): String? {
+    val ttlSeconds = KaraokeProperties.getInt("vpnCheckCacheTtlSeconds")
+    synchronized(vpnCountryCacheLock) {
+        vpnCountryCache?.let {
+            if (isCountryCacheFresh(it.atMillis, System.currentTimeMillis(), ttlSeconds)) {
+                println("isVpnActive: страна из кэша: ${it.code} (TTL ${ttlSeconds}s)")
+                return it.code
+            }
         }
     }
-    println("isVpnActive: не удалось определить страну, пропускаем проверку ВПН")
-    return false
+    for ((url, regex) in VPN_COUNTRY_SERVICES) {
+        val country = fetchCountryCodeFromService(url, regex)
+        if (country != null) {
+            synchronized(vpnCountryCacheLock) {
+                vpnCountryCache = CachedCountryCode(country, System.currentTimeMillis())
+            }
+            println("isVpnActive: countryCode=$country (via $url)")
+            return country
+        }
+    }
+    return null
+}
+
+fun isVpnActive(): Boolean {
+    // Сравниваем текущую страну со СПИСКОМ стран без ВПН (настройка vpnHomeCountry,
+    // например "DE,RU" — машина может легально находиться и в Германии, и в России).
+    // Сетевой резолв страны кэшируется (vpnCheckCacheTtlSeconds), а само решение о
+    // ВПН — нет: правка vpnHomeCountry действует сразу.
+    val homeCountries = vpnHomeCountries()
+    val country = resolveCurrentCountryCode()
+    if (country == null) {
+        println("isVpnActive: не удалось определить страну, пропускаем проверку ВПН")
+        return false
+    }
+    // Пустой список home-стран → fail-open: ВПН не считаем (не блокируем работу).
+    val isVpn = homeCountries.isNotEmpty() && country.uppercase() !in homeCountries
+    println(
+        "isVpnActive: countryCode=$country (homeCountry=${homeCountries.toList().sorted()}) → ВПН ${if (isVpn) "включён" else "выключен"}",
+    )
+    return isVpn
 }
 
 fun checkLastAlbumYm(): Triple<String, String, Int> {

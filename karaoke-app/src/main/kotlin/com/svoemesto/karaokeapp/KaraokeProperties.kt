@@ -320,6 +320,11 @@ val listKaraokeProperties =
             description = "Список кодов стран сервера без ВПН (ISO 3166-1 alpha-2) через запятую/пробел, например DE,RU. Используется для определения активности ВПН.",
         ),
         KaraokeProperty(
+            key = "vpnCheckCacheTtlSeconds",
+            defaultValue = 300,
+            description = "Сколько секунд держать в кэше определённую страну внешнего IP (isVpnActive). Кэшируется только САМ ФАКТ страны, а решение «ВПН активен» считается заново из актуального vpnHomeCountry — поэтому правка списка стран действует сразу, без ожидания TTL. 0 или меньше — кэш выключен, страна определяется при каждом вызове. По умолчанию 300: без кэша каждый вызов isVpnActive() (в т.ч. на каждую песню в KaraokeProcessWorker) ходил в api.country.is, а fallback ipapi.co отвечал HTTP 429 (rate limit). Неудачное определение НЕ кэшируется, чтобы fail-open не «залипал» на весь TTL.",
+        ),
+        KaraokeProperty(
             key = "sponsrSubscribersUrl",
             defaultValue = "",
             description = "URL страницы списка подписчиков в кабинете автора Sponsr (пусто = скрейпинг выключен, см. SponsrSyncService)",

@@ -28,25 +28,17 @@ import com.svoemesto.karaokeapp.sync.SyncRegistry
 import com.svoemesto.karaokeapp.sync.SyncTarget
 import com.svoemesto.karaokeapp.sync.isOperationAllowed
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.*
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -3211,48 +3203,6 @@ fun getFontSize(
     elGetSylls.first().previous = null
     return fontSize
 }
-
-@Suppress("unused")
-fun getAlbumCardTitle(authorYmId: String): String =
-    runBlocking {
-        val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
-        var result = ""
-
-        try {
-            // Создание HttpClient
-            val client = HttpClient.newBuilder().build()
-
-            val request =
-                HttpRequest
-                    .newBuilder()
-                    .uri(URI.create(searchUrl))
-                    .GET()
-                    .build()
-            val response =
-                withContext(Dispatchers.IO) {
-                    client.send(request, HttpResponse.BodyHandlers.ofString())
-                }
-
-            println(response.body())
-
-            // Получение HTML-контента страницы
-            val htmlContent = response.body() // EntityUtils.toString(response.entity)
-
-            // Парсинг HTML с помощью Jsoup
-            val doc: Document = Jsoup.parse(htmlContent)
-
-            // Находим первый элемент <a>, у которого один из классов начинается с "AlbumCard_titleLink"
-            val element = doc.selectFirst("a[class*=AlbumCard_titleLink]")
-
-            if (element !== null) {
-                result = element.text().trim()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        result
-    }
 
 fun String.extractBalancedBracesFromString(startWord: String): String {
     val result = "" // Строка для возврата в случае ошибки

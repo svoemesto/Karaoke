@@ -16,25 +16,41 @@ background gradient, и т.д. Все они живут в одном месте
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
 
-### `KaraokeProperties.kt` — Kotlin-класс
+### `KaraokeProperties.kt` — Kotlin-класс, НЕ Spring-биндинг
 
-- **Поведение**: Spring `@ConfigurationProperties` биндинг к
-  файлу `Karaoke.properties`.
+- **Поведение** (проверено по коду, Pass 463): обычный `class KaraokeProperties`
+  с `companion object`. Ни `@ConfigurationProperties`, ни Spring-бина здесь нет —
+  прежняя версия этой страницы описывала механизм, которого в коде не существует.
+  Значения читаются из in-memory `karaokePropertiesMap`, которую при первом
+  обращении наполняет `loadPropertiesMap()` (значения файла + дефолты из
+  `listKaraokeProperties`). Чтение идёт **на каждый вызов**
+  (`KaraokeProperties.getInt(...)`), поэтому hot-fix действует без передеплоя.
 - **Использование**: во всех mko-классах и рендер-сервисах.
 - **Размер**: ~150 полей (см. live-документацию по конкретным группам).
 
 ### `/sm-karaoke/system/Karaoke.properties` — внешний файл
 
 - **Где**: на прод-сервере, в `/sm-karaoke/system/Karaoke.properties`.
-- **Backup**: `/sm-karaoke/system/Karaoke.properties.bak` (создаётся
-  автоматически перед каждой записью).
-- **Формат**: Java properties (key=value).
+- **Формат**: НЕ Java properties (как утверждала прежняя версия). Одна строка на
+  параметр, каждая строка — Base64 от JSON `{key, value}` (`savePropertiesMap()`);
+  после записи файл получает `chmod 666`.
+- **Backup**: автоматического бэкапа **НЕТ** — вопреки прежней версии страницы.
+  В `savePropertiesMap()` нет ни копирования, ни `.bak`, и файла
+  `/sm-karaoke/system/Karaoke.properties.bak` на диске нет. Копию перед ручными
+  экспериментами делает оператор.
+- **[WARN] Руками файл править бесполезно**: карта читается один раз и живёт в
+  памяти, а `savePropertiesMap()` затем перезапишет файл **из памяти**. Правка
+  файла мимо UI не только не применится, но и будет затёрта.
 
-### Admin UI — KaraokePropertiesView.vue
+### Admin UI — `webvue3/src/components/Properties/`
 
-- **Поведение**: редактирование параметров через webvue3.
-- **Сохранение**: PATCH `/api/karaoke-properties/save` → обновляет
-  файл и in-memory биндинг.
+- **Поведение**: редактирование параметров (`PropertiesTable.vue` + `store.js`).
+  Компонента `KaraokePropertiesView.vue`, на которую ссылалась прежняя версия,
+  в репозитории нет.
+- **Сохранение**: `POST /api/properties/setproperty` (рядом —
+  `/properties/getproperties`, `/properties/getproperty`,
+  `/properties/setpropertydefault`). Endpoint `PATCH /api/karaoke-properties/save`
+  в коде отсутствует.
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
@@ -57,20 +73,21 @@ background gradient, и т.д. Все они живут в одном месте
 ### Цикл обновления параметра
 
 ```
-User in Admin UI → KaraokePropertiesView.vue
-  ↓ PATCH /api/karaoke-properties/save
-KaraokePropertiesService.save(newProperties)
+User in Admin UI → PropertiesTable.vue (webvue3/src/components/Properties/)
+  ↓ POST /api/properties/setproperty
+KaraokeProperties.set(key, value)
   ↓
-[1] Backup: cp Karaoke.properties Karaoke.properties.bak
-[2] Write new values to file
-[3] Reload Spring @ConfigurationProperties bean
+[1] Обновляется in-memory karaokePropertiesMap — она и есть источник правды
+    на время работы процесса
+[2] savePropertiesMap() пишет ВЕСЬ файл: Base64(JSON) построчно + chmod 666
   ↓
-[4] Все активные рендер-сервисы видят новые значения при следующем кадре
+[3] Следующее чтение KaraokeProperties.get*(...) отдаёт новое значение —
+    передеплой не нужен
 ```
 
-**[WARN]** Шаг [3] не прерывает уже идущие рендеры — они используют
-in-memory snapshot, захваченный в начале. Чтобы изменение вступило в
-силу, нужно дождаться завершения текущего рендера.
+**[WARN]** Значения читаются в момент построения рендер-проекта, поэтому уже
+идущий рендер продолжает использовать то, что прочитал при старте. Чтобы
+изменение вступило в силу, нужно дождаться завершения текущего рендера.
 
 ## Не-рендер параметры | Operational properties
 
@@ -104,9 +121,10 @@ in-memory snapshot, захваченный в начале. Чтобы изме�
 
 ## Ловушки и предупреждения
 
-**[WARN] Прямая правка `Karaoke.properties` без UI** → UI-state
-рассинхронизируется, при следующем сохранении через UI ваши изменения
-будут перезаписаны. Правьте только через `KaraokePropertiesView.vue`.
+**[WARN] Прямая правка `Karaoke.properties` без UI** → изменения не
+применятся (карта уже прочитана в память), а при следующем сохранении через UI
+будут перезаписаны. Правьте только через
+`webvue3/src/components/Properties/PropertiesTable.vue`.
 
 **[WARN] Изменения не применяются к активным рендерам** — нужно
 дождаться завершения.

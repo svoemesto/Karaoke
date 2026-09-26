@@ -59,7 +59,7 @@ admin: POST /utils/syncaudioparents ─► syncAll ─► (та же очере�
 - **MUST**: не глотать ошибки БД молча, логировать и продолжать цикл
   ([local-0002](/knowledge/adr/local-0002-save-exception-handling.md)).
 - **MUST**: `ProcessBuilder.redirectErrorStream(true)` (используется в `WaveformCompare`)
-  ([ADR-0006](/knowledge/adr/0006-processbuilder-redirecterrorstream.md)).
+  ([ADR-0006](/knowledge/adr/0006-processbuilder-redirect-errorstream.md)).
 - **MUST**: Knowledge-SSoT обновляется в том же PR
   ([AGENTS.md § Knowledge SSoT](/AGENTS.md)).
 - **SHOULD**: порог схожести — `AUDIO_PARENT_THRESHOLD` (95 %), единый с поиском

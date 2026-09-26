@@ -307,7 +307,10 @@ internal fun uselessUrlPatternsList(): List<String> =
  * 4. URL содержит служебный path из [patterns] (case-insensitive substring) →
  *    отбрасывается.
  * 5. Расширение файла (из [patterns]) → отбрасывается (покрывается п.4).
- * 6. Tracking-маркер (из [patterns]) → отбрасывается (покрывается п.4).
+ * 6. Tracking-маркер (из [patterns]) → отбрасывается, но НЕ как голая подстрока:
+ *    паттерн, оканчивающийся на `=`, обязан начинаться на границе параметра
+ *    (`?` или `&`) — иначе `ref=` ловил бы честный `?pref=...`
+ *    (см. [matchesUselessUrlPattern], Pass 461).
  * 7. Дубликаты сохраняют порядок первого появления через `LinkedHashSet`.
  *
  * Сложность — O(N) на размер входного списка URL, без regex (substring matching).
@@ -339,8 +342,37 @@ internal fun filterUselessLyricsUrls(
         val path = uri.path ?: ""
         if (path.isEmpty() || path == "/") continue
         val urlLower = url.lowercase()
-        if (patternsLower.any { pattern -> urlLower.contains(pattern) }) continue
+        if (patternsLower.any { pattern -> matchesUselessUrlPattern(urlLower, pattern) }) continue
         result.add(url)
     }
     return result.toList()
+}
+
+/**
+ * Проверяет один паттерн фильтра против URL (оба — в нижнем регистре).
+ *
+ * Паттерн, оканчивающийся на `=`, — это tracking-маркер query-строки
+ * (`utm_source=`, `ref=`, `fbclid=`). Для него одного `contains` мало: подстрока
+ * `ref=` находится и внутри совершенно честного параметра `?pref=...`, из-за чего
+ * живая ссылка на текст песни отбрасывалась как мусор (Pass 461). Поэтому такой
+ * паттерн обязан начинаться на границе параметра — сразу после `?` или `&`.
+ *
+ * Остальные паттерны (служебные path и расширения файлов) проверяются подстрокой по
+ * всему URL, как и раньше.
+ *
+ * Чистая функция; регекспов нет — сложность O(длина URL) на паттерн, NFR-005 цел.
+ */
+internal fun matchesUselessUrlPattern(
+    urlLower: String,
+    patternLower: String,
+): Boolean {
+    if (!patternLower.endsWith("=")) return urlLower.contains(patternLower)
+
+    // Ведущие '?'/'&' в паттерне — необязательная запись: в дефолтном списке часть
+    // маркеров записана как "?utm_source=", а часть как "ref="/"fbclid=". Нормализуем
+    // и требуем границу параметра в самом URL — тогда "?utm_source=" и "&utm_source="
+    // ловятся одинаково, а "ref=" больше не срабатывает на честном "?pref=".
+    val marker = patternLower.trimStart('?', '&')
+    if (marker.isEmpty()) return false // паттерн из одних разделителей — ничего не отбрасываем
+    return urlLower.contains("?$marker") || urlLower.contains("&$marker")
 }

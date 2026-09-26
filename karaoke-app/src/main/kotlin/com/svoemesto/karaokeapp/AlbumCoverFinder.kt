@@ -19,6 +19,25 @@ import java.time.Duration
 import javax.imageio.ImageIO
 
 /**
+ * Общий HTTP-клиент для всех сетевых запросов модуля обложек: поиск картинок
+ * (SearXNG/fourget) и загрузка найденных картинок-кандидатов.
+ *
+ * `java.net.http.HttpClient` держит пул соединений и собственные рабочие потоки,
+ * поэтому создавать его на каждый вызов — анти-паттерн. Здесь это особенно заметно:
+ * [downloadImageBytes] вызывается из прокси-эндпоинта `/api/song/albumcoverproxy`
+ * на КАЖДУЮ картинку галереи кандидатов — то есть до 24 клиентов со своими потоками
+ * на одно действие пользователя (поиск обложки).
+ *
+ * Клиент потокобезопасен и рассчитан на переиспользование. В JDK 18 (наш таргет)
+ * `HttpClient` ещё не `AutoCloseable`, поэтому закрывать его не требуется.
+ */
+private val albumCoverHttpClient: HttpClient =
+    HttpClient
+        .newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build()
+
+/**
  * Поиск и сохранение картинки альбома (LogoAlbum.png): поиск обложки на странице артиста
  * в Яндекс.Музыке (переиспользует Playwright-профиль из [UtilsPlaywright]), фолбэк — поиск
  * картинок через SearXNG, скачивание кандидата и defensive center-crop + resize до 400×400.
@@ -229,7 +248,6 @@ fun findYandexAlbumCovers(
 /** Скачивает картинку по внешнему URL. Используется и для сохранения, и для CORS-прокси. */
 fun downloadImageBytes(url: String): ByteArray? =
     try {
-        val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
         val request =
             HttpRequest
                 .newBuilder()
@@ -240,7 +258,7 @@ fun downloadImageBytes(url: String): ByteArray? =
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
                 ).GET()
                 .build()
-        val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
+        val response = albumCoverHttpClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
         if (response.statusCode() in 200..299) response.body() else null
     } catch (e: Exception) {
         println("downloadImageBytes: ошибка скачивания '$url': ${e.message}")
@@ -301,11 +319,6 @@ class AlbumCoverService(
     private val objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(AlbumCoverService::class.java)
-    private val httpClient =
-        HttpClient
-            .newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build()
 
     fun defaultSearchQuery(
         author: String,
@@ -361,7 +374,7 @@ class AlbumCoverService(
                     .header("Accept", "application/json")
                     .GET()
                     .build()
-            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            val response = albumCoverHttpClient.send(request, HttpResponse.BodyHandlers.ofString())
             if (response.statusCode() != 200) {
                 logger.error("AlbumCoverService.searchSearxngImages: SearXNG вернул статус ${response.statusCode()}")
                 emptyList()
@@ -432,7 +445,7 @@ class AlbumCoverService(
                     .header("Accept", "application/json")
                     .GET()
                     .build()
-            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            val response = albumCoverHttpClient.send(request, HttpResponse.BodyHandlers.ofString())
             if (response.statusCode() != 200) {
                 logger.error("AlbumCoverService.searchFourgetImagesViaScraper ($scraper): fourget вернул статус ${response.statusCode()}")
                 emptyList()

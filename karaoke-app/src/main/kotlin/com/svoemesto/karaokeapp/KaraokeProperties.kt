@@ -13,6 +13,8 @@ import java.awt.Color
 import java.awt.Font
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.*
 
 const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properties"
@@ -26,59 +28,53 @@ class KaraokeProperties {
     companion object {
         fun pathToFile(): String = PATH_TO_KARAOKE_PROPERTIES_FILE
 
+        /**
+         * Предпринята ли попытка загрузки карты. Нужна, чтобы при НЕудачной загрузке
+         * (битый файл) `get()` не перечитывал файл на каждое обращение к любому
+         * свойству: раньше исключение разбора молча проглатывалось, карта оставалась
+         * пустой, и `get()` (`if (karaokePropertiesMap.isEmpty())`) запускал загрузку
+         * заново при каждом чтении — то есть на битом файле каждое чтение свойства
+         * тянуло чтение файла с диска.
+         */
+        private var propertiesLoadAttempted = false
+
         @OptIn(ExperimentalSerializationApi::class)
         fun loadPropertiesMap() {
+            if (propertiesLoadAttempted) return
+            propertiesLoadAttempted = true
+
             val file = File(pathToFile())
-            if (file.exists()) {
-                try {
-                    val list =
-                        File(pathToFile())
-                            .readText()
-                            .split("\n")
-                            .filter { it != "" }
-                            .map {
-                                Json.decodeFromStream(
-                                    KaraokePropertySerializable.serializer(),
-                                    ByteArrayInputStream(Base64.getDecoder().decode(it)),
-                                )
-                            }
-                    list.forEach { kps ->
-                        karaokePropertiesMap[kps.key] = kps.value()
-                    }
-                } catch (_: Exception) {
-                }
-            } else {
-                val list =
-                    listKaraokeProperties.map {
-                        KaraokePropertySerializable.create(
-                            key = it.key,
-                            value = it.defaultValue,
+            if (!file.exists()) {
+                listKaraokeProperties.forEach { karaokePropertiesMap[it.key] = it.defaultValue }
+                savePropertiesMap()
+                return
+            }
+
+            val loaded =
+                readPropertiesFile(file)
+                    ?: readPropertiesFile(backupFileFor(file))?.also {
+                        // Основной файл не разобрался, а резервная копия — да. Работаем на копии,
+                        // но говорим об этом громко: молчаливый откат к дефолтам (как было раньше)
+                        // означает тихую потерю ВСЕХ настроек, включая выставленные оператором.
+                        println(
+                            "KaraokeProperties: файл ${file.name} не разобрался, значения взяты из резервной " +
+                                "копии ${backupFileFor(file).name}. Проверьте основной файл.",
                         )
                     }
-                list.forEach { kps ->
-                    karaokePropertiesMap[kps.key] = kps.value()
-                }
-                savePropertiesMap()
+
+            if (loaded == null) {
+                println(
+                    "KaraokeProperties: не удалось прочитать ни ${file.name}, ни его резервную копию — работаем " +
+                        "на дефолтах. Файл будет перезаписан только при следующем изменении настройки.",
+                )
+                return
             }
+            loaded.forEach { (key, value) -> karaokePropertiesMap[key] = value }
         }
 
         fun savePropertiesMap() {
             try {
-                File(pathToFile()).writeText(
-                    karaokePropertiesMap
-                        .map { (key, value) ->
-                            Base64.getEncoder().encodeToString(
-                                Json
-                                    .encodeToString(
-                                        KaraokePropertySerializable.serializer(),
-                                        KaraokePropertySerializable.create(
-                                            key = key,
-                                            value = value,
-                                        ),
-                                    ).toByteArray(),
-                            )
-                        }.joinToString("\n"),
-                )
+                writePropertiesFileAtomic(File(pathToFile()), encodePropertiesMap(karaokePropertiesMap))
                 runCommand(listOf("chmod", "666", pathToFile()))
             } catch (e: Exception) {
                 println("KaraokeProperties: не удалось сохранить файл ${pathToFile()}: ${e.message}")
@@ -179,6 +175,91 @@ class KaraokeProperties {
             if (defaultValue !== null) set(key, defaultValue)
         }
     }
+}
+
+/** Файл резервной копии рядом с основным: `<имя>.bak`. */
+internal fun backupFileFor(target: File): File = File(target.parentFile, "${target.name}.bak")
+
+/**
+ * Кодирует карту свойств в формат файла: одна строка на параметр, каждая строка —
+ * Base64 от JSON `{key, value}`. Чистая функция — под тестом.
+ */
+internal fun encodePropertiesMap(map: Map<String, Any>): String =
+    map
+        .map { (key, value) ->
+            Base64.getEncoder().encodeToString(
+                Json
+                    .encodeToString(
+                        KaraokePropertySerializable.serializer(),
+                        KaraokePropertySerializable.create(key = key, value = value),
+                    ).toByteArray(),
+            )
+        }.joinToString("\n")
+
+/**
+ * Разбирает содержимое файла в карту. Бросает исключение, если строка не разбирается:
+ * решение «попробовать резервную копию или работать на дефолтах» принимает вызывающий
+ * ([KaraokeProperties.loadPropertiesMap]), а не этот разбор.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+internal fun decodePropertiesMap(content: String): Map<String, Any> =
+    content
+        .split("\n")
+        .filter { it != "" }
+        .associate { line ->
+            val kps =
+                Json.decodeFromStream(
+                    KaraokePropertySerializable.serializer(),
+                    ByteArrayInputStream(Base64.getDecoder().decode(line)),
+                )
+            kps.key to kps.value()
+        }
+
+/**
+ * Читает и разбирает файл свойств. `null` — файла нет или он не разбирается
+ * (исключение наружу не выпускается: вызывающий сам решает, что делать).
+ */
+internal fun readPropertiesFile(file: File): Map<String, Any>? =
+    if (!file.exists()) {
+        null
+    } else {
+        try {
+            decodePropertiesMap(file.readText())
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+/**
+ * Пишет [content] в [target] АТОМАРНО и со снятием копии предыдущей версии.
+ *
+ * Зачем (Pass 468). Раньше было `File(target).writeText(...)` — запись «на месте»:
+ * файл сначала усекается, потом пишется. Падение процесса в этот момент (SIGKILL,
+ * OOM-kill контейнера, отключение питания) оставляло ЧАСТИЧНО записанный файл, а
+ * `loadPropertiesMap` молча проглатывал ошибку разбора — и все ~150 параметров,
+ * включая настроенные оператором, откатывались к дефолтам, после чего перезаписывались
+ * ими же. Один провал записи превращался в безвозвратную потерю настроек.
+ *
+ * Теперь: содержимое пишется во временный файл рядом и переименовывается поверх
+ * (`ATOMIC_MOVE` — на одной ФС это атомарная операция), а перед заменой снимается
+ * копия предыдущей версии в `<имя>.bak` для отката.
+ */
+internal fun writePropertiesFileAtomic(
+    target: File,
+    content: String,
+) {
+    val dir = target.parentFile ?: File(".")
+    val tmp = File(dir, "${target.name}.tmp")
+    if (target.exists()) {
+        target.copyTo(backupFileFor(target), overwrite = true)
+    }
+    tmp.writeText(content)
+    Files.move(
+        tmp.toPath(),
+        target.toPath(),
+        StandardCopyOption.REPLACE_EXISTING,
+        StandardCopyOption.ATOMIC_MOVE,
+    )
 }
 
 val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()

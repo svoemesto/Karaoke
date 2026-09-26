@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.llm
 
+import com.svoemesto.karaokeapp.listKaraokeProperties
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -141,5 +142,31 @@ internal class ToolsTest {
                 "https://example.com/song.pdf",
             )
         assertEquals(emptyList<String>(), filterUselessLyricsUrls(input))
+    }
+
+    @Test
+    fun `дефолт scrapers в Tools совпадает с дефолтом в KaraokeProperties`() {
+        // Дефолт порядка scrapers объявлен ДВАЖДЫ: как defaultValue одноимённого
+        // KaraokeProperty (читается, когда ключа нет в Karaoke.properties) и как
+        // fallback-константа SearchTool.DEFAULT_LYRICS_SEARCH_SCRAPERS (срабатывает,
+        // когда значение в Karaoke.properties пустое или из одних ';').
+        // Расхождение означает разное поведение на чистом стенде и на стенде с
+        // испорченной настройкой — этот тест его ловит.
+        val declaredDefault =
+            listKaraokeProperties
+                .first { it.key == "lyricsSearchScrapers" }
+                .defaultValue as String
+        assertEquals(
+            "google_cse;yahoo_japan;brave;yep",
+            declaredDefault,
+            "defaultValue свойства lyricsSearchScrapers изменился — синхронизируйте " +
+                "SearchTool.DEFAULT_LYRICS_SEARCH_SCRAPERS и этот тест",
+        )
+        assertEquals(
+            declaredDefault.split(";"),
+            SearchTool.DEFAULT_LYRICS_SEARCH_SCRAPERS,
+            "DEFAULT_LYRICS_SEARCH_SCRAPERS в Tools.kt разошёлся с defaultValue " +
+                "свойства lyricsSearchScrapers в KaraokeProperties.kt",
+        )
     }
 }

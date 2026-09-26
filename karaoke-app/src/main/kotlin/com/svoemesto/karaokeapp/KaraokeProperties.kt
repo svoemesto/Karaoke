@@ -202,13 +202,13 @@ val listKaraokeProperties =
         ),
         KaraokeProperty(
             key = "lyricsSearchScrapers",
-            defaultValue = "yep;brave",
-            description = "Список scrapers для fourget (web-поиск) при поиске текстов песен, через ';'. Перебираются по порядку; первый непустой ответ (после post-filter, с учётом lyricsSearchMinResults) используется. По умолчанию 'yep;brave' — yep стабильнее на admin-машине по состоянию на 2026-09-02.",
+            defaultValue = "google_cse;yahoo_japan;brave;yep",
+            description = "Список scrapers для fourget (web-поиск) при поиске текстов песен, через ';'. Перебираются по порядку; первый ответ, прошедший post-filter и порог lyricsSearchMinResults, используется. По умолчанию 'google_cse;yahoo_japan;brave;yep' — порядок проверен на admin-машине 2026-09-26: google_cse и yahoo_japan дали результат на 6 из 6 контрольных запросов (текстовый сайт на 1-й позиции), тогда как brave и yep деградировали (пустая выдача либо нерелевантные результаты, обходящие порог по количеству).",
         ),
         KaraokeProperty(
             key = "lyricsSearchMinResults",
             defaultValue = 2,
-            description = "Минимальное количество URL от scraper'а (после post-filter), чтобы считать его ответ успешным. Меньше — пробуем следующий scraper. По умолчанию 2.",
+            description = "Минимальное количество URL от scraper'а (после post-filter), чтобы считать его ответ успешным. Меньше — пробуем следующий scraper. По умолчанию 2. Значения <1 поднимаются до 1: иначе пустая выдача считалась бы успешной и перебор scrapers не срабатывал бы вовсе.",
         ),
         KaraokeProperty(
             key = "lyricsSearchTimeoutSeconds",

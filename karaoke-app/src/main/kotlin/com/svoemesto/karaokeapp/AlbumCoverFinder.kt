@@ -297,8 +297,9 @@ data class SearxngImageSearchResult(
 
 /**
  * Оркестратор поиска обложки альбома: Яндекс.Музыка (если у автора есть `ymId`) с фолбэком на
- * SearXNG image-поиск. Вынесен в отдельный Spring-компонент (а не top-level функция), т.к.
- * нужен `searxng.base-url` из конфигурации — по образцу `llm/Tools.kt#SearchTool`.
+ * image-поиск выбранным движком — SearXNG либо fourget (`AlbumCoverSearchEngine`). Вынесен в
+ * отдельный Spring-компонент (а не top-level функция), т.к. нужны `searxng.base-url` и
+ * `lyrics-search.base-url` из конфигурации — по образцу `llm/Tools.kt#SearchTool`.
  */
 @Component
 class AlbumCoverService(
@@ -326,7 +327,7 @@ class AlbumCoverService(
         album: String,
         skipYandex: Boolean = false,
         customQuery: String? = null,
-        engine: AlbumCoverSearchEngine = AlbumCoverSearchEngine.SEARXNG,
+        engine: AlbumCoverSearchEngine? = null,
     ): AlbumCoverSearchOutcome {
         if (!skipYandex && !authorYmId.isNullOrBlank()) {
             if (isVpnActive()) {
@@ -341,8 +342,12 @@ class AlbumCoverService(
             }
         }
         val query = customQuery?.trim()?.takeIf { it.isNotEmpty() } ?: defaultSearchQuery(author, album)
+        // engine == null означает «взять из настройки albumCoverSearchEngine»: дефолт в
+        // сигнатуре раньше был жёстко SEARXNG и обходил resolveAlbumCoverSearchEngine(),
+        // из-за чего вызов без аргумента игнорировал настройку движка обложек.
+        val effectiveEngine = engine ?: resolveAlbumCoverSearchEngine()
         val fallbackCandidates =
-            when (engine) {
+            when (effectiveEngine) {
                 AlbumCoverSearchEngine.SEARXNG -> searchSearxngImages(query)
                 AlbumCoverSearchEngine.FOURGET -> searchFourgetImages(query)
             }
@@ -374,7 +379,7 @@ class AlbumCoverService(
                 searchResponse.results
                     .mapNotNull { r -> if (r.imgSrc.isBlank()) null else AlbumCoverCandidate(sourceUrl = r.imgSrc, source = AlbumCoverSource.SEARXNG) }
                     .distinctBy { it.sourceUrl }
-                    .take(24)
+                    .take(MAX_ALBUM_COVER_CANDIDATES)
             }
         } catch (e: Exception) {
             logger.error("AlbumCoverService.searchSearxngImages: ошибка: ${e.message}", e)
@@ -382,20 +387,52 @@ class AlbumCoverService(
         }
 
     /**
-     * Поиск картинок-кандидатов обложки через self-hosted fourget (`/api/v1/images`,
-     * scraper `brave` — подтверждённо рабочий на admin-машине, см.
-     * specs/014-lyrics-search-replacement/research.md). Движок `FOURGET` в
-     * [AlbumCoverSearchEngine] (specs/015-search-engine-selection). Каждый элемент
-     * `image[]` содержит `source[]` — список URL самой картинки в разных размерах
-     * (первый — как правило оригинал/наибольшее качество); верхнеуровневый `url` —
-     * это страница-источник, НЕ сама картинка.
+     * Поиск картинок-кандидатов обложки через self-hosted fourget (`/api/v1/images`).
+     * Движок `FOURGET` в [AlbumCoverSearchEngine] (specs/015-search-engine-selection).
+     *
+     * Скрапперы перебираются по порядку из настройки `albumCoverSearchScrapers`, пока
+     * очередной не вернёт не меньше `albumCoverSearchMinResults` кандидатов — тот же
+     * приём, что в `llm/Tools.kt#SearchTool.searchUrls` для текстов песен. До 2026-09-26
+     * scraper был жёстко зашит (`brave`) и перебора не было вовсе: единственная точка
+     * отказа роняла весь путь `FOURGET` для обложек.
+     *
+     * ВАЖНО: `status: "ok"` от fourget не означает релевантность — `baidu` на замере
+     * 2026-09-26 отдавал 60 картинок, из которых к альбому относилась одна (мемы).
+     * Признак успеха — прохождение порога по количеству, а порядок в настройке задаёт,
+     * насколько результаты пригодны; см. описание `albumCoverSearchScrapers`.
+     *
+     * Каждый элемент `image[]` содержит `source[]` — список URL самой картинки в разных
+     * размерах (первый — как правило оригинал/наибольшее качество); верхнеуровневый
+     * `url` — это страница-источник, НЕ сама картинка.
      *
      * @see archive/docs/features/llm-lyrics-search.md
      */
-    fun searchFourgetImages(query: String): List<AlbumCoverCandidate> =
+    fun searchFourgetImages(query: String): List<AlbumCoverCandidate> {
+        // Нижняя граница 1, а не 0: при пороге 0 пустой ответ проходил бы проверку
+        // размера и перебор останавливался бы на первом же scraper'е.
+        val minResults = KaraokeProperties.getInt("albumCoverSearchMinResults").coerceAtLeast(1)
+        for (scraper in albumCoverSearchScrapersList()) {
+            val candidates = searchFourgetImagesViaScraper(query, scraper)
+            logger.info("AlbumCoverService.searchFourgetImages: scraper=$scraper — кандидатов ${candidates.size} (порог $minResults)")
+            if (candidates.size >= minResults) return candidates
+        }
+        logger.info("AlbumCoverService.searchFourgetImages: ни один scraper не дал $minResults кандидатов")
+        return emptyList()
+    }
+
+    /**
+     * Один запрос к fourget image-поиску с конкретным scraper'ом. Ошибка любого рода
+     * (не-200, `status != "ok"`, исключение сети) возвращает пустой список — вызывающий
+     * [searchFourgetImages] трактует это как «scraper не дал результата» и идёт к
+     * следующему.
+     */
+    private fun searchFourgetImagesViaScraper(
+        query: String,
+        scraper: String,
+    ): List<AlbumCoverCandidate> =
         try {
             val encodedQuery = URLEncoder.encode(query, "UTF-8")
-            val url = "$fourgetBaseUrl/api/v1/images?s=$encodedQuery&scraper=brave"
+            val url = "$fourgetBaseUrl/api/v1/images?s=$encodedQuery&scraper=$scraper"
             val request =
                 HttpRequest
                     .newBuilder()
@@ -406,12 +443,12 @@ class AlbumCoverService(
                     .build()
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             if (response.statusCode() != 200) {
-                logger.error("AlbumCoverService.searchFourgetImages: fourget вернул статус ${response.statusCode()}")
+                logger.error("AlbumCoverService.searchFourgetImagesViaScraper ($scraper): fourget вернул статус ${response.statusCode()}")
                 emptyList()
             } else {
                 val searchResponse = objectMapper.readValue(response.body(), FourgetImageSearchResponse::class.java)
                 if (searchResponse.status != "ok") {
-                    logger.error("AlbumCoverService.searchFourgetImages: fourget вернул status='${searchResponse.status}'")
+                    logger.error("AlbumCoverService.searchFourgetImagesViaScraper ($scraper): fourget вернул status='${searchResponse.status}'")
                     emptyList()
                 } else {
                     searchResponse.image
@@ -422,13 +459,57 @@ class AlbumCoverService(
                                 ?.takeIf { it.isNotBlank() }
                         }.map { imageUrl -> AlbumCoverCandidate(sourceUrl = imageUrl, source = AlbumCoverSource.FOURGET) }
                         .distinctBy { it.sourceUrl }
-                        .take(24)
+                        .take(MAX_ALBUM_COVER_CANDIDATES)
                 }
             }
         } catch (e: Exception) {
-            logger.error("AlbumCoverService.searchFourgetImages: ошибка: ${e.message}", e)
+            logger.error("AlbumCoverService.searchFourgetImagesViaScraper ($scraper): ошибка: ${e.message}", e)
             emptyList()
         }
+
+    companion object {
+        /**
+         * Сколько кандидатов максимум отдавать в галерею выбора обложки. Раньше число
+         * было продублировано магической константой `take(24)` в двух местах
+         * ([searchSearxngImages] и image-пути fourget) — вынесено в одно имя.
+         */
+        internal const val MAX_ALBUM_COVER_CANDIDATES = 24
+
+        /**
+         * Fallback-порядок image-скрапперов, если `albumCoverSearchScrapers` не задано или
+         * состоит только из пустых токенов.
+         *
+         * ВНИМАНИЕ: это вторая копия дефолта — первая объявлена как `defaultValue`
+         * одноимённого [com.svoemesto.karaokeapp.KaraokeProperty] в `KaraokeProperties.kt`.
+         * Списки обязаны совпадать; расхождение ловится тестом
+         * `AlbumCoverFinderScrapersTest.дефолт image-скрапперов в коде и в KaraokeProperties совпадает`.
+         *
+         * `internal` — виден из unit-тестов в том же модуле.
+         */
+        internal val DEFAULT_ALBUM_COVER_SEARCH_SCRAPERS = listOf("ddg", "yahoo_japan", "brave", "google_cse")
+
+        /**
+         * Возвращает список image-скрапперов fourget для поиска обложек из
+         * [com.svoemesto.karaokeapp.KaraokeProperties].
+         */
+        internal fun albumCoverSearchScrapersList(): List<String> =
+            parseAlbumCoverScrapers(KaraokeProperties.getString("albumCoverSearchScrapers"))
+
+        /**
+         * Чистая функция разбора значения `albumCoverSearchScrapers`: split по `;`,
+         * trim каждого токена, отброс пустых; если после этого список пуст — fallback
+         * на [DEFAULT_ALBUM_COVER_SEARCH_SCRAPERS].
+         *
+         * Вынесена отдельно от чтения настройки, чтобы правила разбора проверялись
+         * unit-тестом без подмены глобального состояния `KaraokeProperties`.
+         */
+        internal fun parseAlbumCoverScrapers(raw: String): List<String> =
+            raw
+                .split(";")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .ifEmpty { DEFAULT_ALBUM_COVER_SEARCH_SCRAPERS }
+    }
 }
 
 /**

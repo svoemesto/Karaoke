@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-09-02 (specs/294-fourget-scraper-order: новый порядок scrapers `yep → brave` + post-filter «мусорных» URL через `filterUselessLyricsUrls`; настройки `lyricsSearchScrapers`, `lyricsSearchMinResults`, `lyricsSearchUselessUrlPatterns` в `KaraokeProperties`. **Актуальный curl-перебор 2026-09-02**: `yep` деградировал (`status=ok`, `web=[]` тихо), `brave` работает стабильно — fallback сработает автоматически, см. `specs/294-fourget-scraper-order/research.md`.)
+> **Last Updated**: 2026-09-26 (ветка `451-lyrics-scrapers-order`: порядок scrapers по умолчанию — `google_cse → yahoo_japan → brave → yep` вместо `yep → brave`; нижняя граница `lyricsSearchMinResults` поднята с 0 до 1; синхронизирован второй экземпляр дефолта в `Tools.kt` (+ тест-страж против расхождения). **Актуальный curl-перебор 2026-09-26**: `brave` отдаёт `did not return a result object`, `yep` — `status=ok` с `web=[]` либо 100 нерелевантных URL; `google_cse` и `yahoo_japan` дали результат на 6 из 6 контрольных запросов.)
 
 ## Что делает
 
@@ -27,7 +27,8 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    `YANDEX_ASYNC` (Yandex Cloud Search API, IAM-токен — `getYandexSearch`),
    `SEARXNG` (прямой запрос к self-hosted SearXNG — `SearchTool.searchUrlsViaSearxng`),
    `FOURGET` (self-hosted мета-поисковик fourget, `/api/v1/web?s=...&scraper=...`,
-   **с 2026-09-02: yep→brave** (было brave→yep), плюс post-filter «мусорных» URL
+   **с 2026-09-26: google_cse→yahoo_japan→brave→yep** (до этого `yep→brave`,
+   до 2026-09-02 — `brave→yep`), плюс post-filter «мусорных» URL
    `filterUselessLyricsUrls` в `Tools.kt`, см. `specs/294-fourget-scraper-order/spec.md` —
    `SearchTool.searchUrls`).
    Диспетчер — `getLyricsSearch(settings, lyricsFinderService, engine, forceResearch)`
@@ -155,16 +156,49 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
   FR-006), но песня останется без автоматически найденного текста до
   следующей попытки.
 - **Scraper fourget заблокирован конкретным движком**: многие scraper'ы
-  fourget (DuckDuckGo и всё, что через него проксируется — bing, yahoo_jp,
-  mullvad_brave, presearch, ecosia в этой сборке; также Startpage/Qwant —
-  капча, Mojeek — бан инстанса, Yandex — тихо пустой результат без ошибки)
-  могут не работать на конкретном IP/хостинге. Проверить вручную:
+  fourget могут не работать на конкретном IP/хостинге. Проверить вручную:
   `curl "http://<lyrics-search.base-url>/api/v1/web?s=test&scraper=<имя>"` —
   `status: "ok"` с непустым `web` значит движок реально работает. Список
-  scraper'ов, перебираемых `SearchTool` по очереди, — константа
-  `LYRICS_SEARCH_SCRAPERS` в `llm/Tools.kt` (сейчас `brave`, `yep`) — при
-  очередной блокировке добавить/заменить на другой рабочий scraper из этого
-  списка, а не менять весь бэкенд заново.
+  scraper'ов, перебираемых `SearchTool` по очереди, — **две** константы,
+  которые обязаны совпадать: `defaultValue` свойства `lyricsSearchScrapers`
+  в `KaraokeProperties.kt` (читается, когда ключа нет в `Karaoke.properties`)
+  и `DEFAULT_LYRICS_SEARCH_SCRAPERS` в `llm/Tools.kt` (fallback, когда
+  значение в `Karaoke.properties` пустое). Расхождение ловит тест
+  `ToolsTest.дефолт scrapers в Tools совпадает с дефолтом в KaraokeProperties`.
+  При очередной блокировке — добавить/заменить на другой рабочий scraper,
+  а не менять весь бэкенд заново.
+- **`status: "ok"` НЕ означает успех (тихая деградация)**: scraper умеет
+  вернуть `ok` с пустым `web[]` (`yep`, `mojeek`, `marginalia`, `wiby` —
+  2026-09-26), и тогда failover срабатывает только за счёт порога
+  `lyricsSearchMinResults`. Обратный случай хуже: `yep` отдал **100**
+  нерелевантных URL (викитека «Евгений Онегин», википедия «Талви Укко»,
+  youtube) подряд, порог по количеству прошёл с запасом, и failover до
+  рабочего scraper'а **не дошёл вовсе** — пайплайн получил мусорный список.
+  Именно поэтому порядок важнее порога: проверять не «вернул ли scraper
+  что-нибудь», а «на первом ли месте релевантный текстовый сайт».
+  Прецедент: 2026-09-02 `yep` деградировал тихо (пусто) и failover работал;
+  2026-09-26 он деградировал «громко» — и failover перестал помогать.
+- **У скрапперов нет rate-limit в привычном смысле**: в конфиге fourget
+  `BOT_PROTECTION = 0` (captcha выключена), собственного ограничителя частоты
+  и обработки `429`/`Retry-After` в коде нет вовсе. Отказы приходят не
+  статусом, а телом ответа, и маскируются под поломку парсера:
+  `Brave did not return a result object` (ошибка разбора, `brave.php`),
+  `DuckDuckGo detected an anomaly in the Javascript challenge response`,
+  `Qwant returned a captcha redirect`, `Failed to grep JSON object`
+  (Startpage). Вывод: нет квоты, которую можно выждать — есть невидимая
+  блокировка, поэтому обязателен перебор и недопустимо считать `ok` успехом.
+- **`HEADER_REGEX` блокирует ботов только на HTML-фронтенде**: конфиг
+  fourget отклоняет User-Agent'ы вида `curl`/`python-requests`/`scrapy`/
+  `go-http-client` (`"Tshh, blocked!"`), но проверка живёт в `frontend.php`
+  и на `/api/v1/*` не распространяется — проверено `curl`/`python-requests`/
+  `python-httpx`/`Go-http-client` (все получили `status: ok`). Важно при
+  подключении внешних клиентов (MCP-серверов) к fourget.
+- **Прокси для scraper'ов не настроены**: все `PROXY_*` в конфиге fourget —
+  `false`, то есть все scraper'ы ходят с одного IP хоста. Блокировка одного
+  движка неотличима от блокировки IP, а «размазать» нагрузку нечем.
+- **Пагинация привязана к scraper'у**: `npt`-токен в ответе fourget кодирует
+  имя scraper'а (`ddg1.<ключ>`, `google_cse33.<ключ>`) — сменить scraper
+  между страницами одной выдачи нельзя.
 - **Все self-hosted движки временно недоступны**: переключите
   `KaraokeProperties.lyricsSearchEngine` на `YANDEX_SYNC`/`YANDEX_ASYNC` (UI
   «Свойства») как временный запасной вариант — платный внешний Yandex Cloud
@@ -227,8 +261,8 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 
 | Ключ | Тип | Дефолт | Что делает |
 |---|---|---|---|
-| `lyricsSearchScrapers` | String | `"yep;brave"` | Порядок scrapers через `;`. Был `"brave;yep"` до 2026-09-02. |
-| `lyricsSearchMinResults` | Int | `2` | Порог «качества» — если scraper вернул меньше URL после post-filter, пробуем следующий. |
+| `lyricsSearchScrapers` | String | `"google_cse;yahoo_japan;brave;yep"` | Порядок scrapers через `;`. Был `"yep;brave"` (2026-09-02…2026-09-26), до этого — `"brave;yep"`. |
+| `lyricsSearchMinResults` | Int | `2` | Порог «качества» — если scraper вернул меньше URL после post-filter, пробуем следующий. Значения <1 поднимаются до 1: при 0 пустая выдача считалась бы успешной и перебор не срабатывал бы. |
 | `lyricsSearchUselessUrlPatterns` | String | (см. FR-004 спеки 294) | Паттерны для post-filter через `;`. |
 
 **Логирование**: новая строка `🔧 [SearchTool] post-filter: было N,
@@ -236,10 +270,44 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 эффективности filter'а в проде (SC-005: доля поисков с `K > 0` —
 5-30%).
 
-**Тесты**: 10 unit-тестов в
+**Тесты**: 11 unit-тестов в
 `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/llm/ToolsTest.kt`
-(по одному на каждое правило + happy path + edge cases). Активные,
+(по одному на каждое правило + happy path + edge cases + страж синхронности
+двух экземпляров дефолта `lyricsSearchScrapers`). Активные,
 не `@Disabled` — по образцу `AlbumCoverFinderParsingTest`.
+
+## Порядок scrapers: как перепроверять (2026-09-26)
+
+**Процедура.** Порядок в `lyricsSearchScrapers` — не константа на века, а
+результат замера на конкретной машине. Проверять не «вернул ли scraper
+что-нибудь», а **на каком месте первый релевантный текстовый сайт**:
+
+```bash
+curl "http://localhost:8889/api/v1/web?s=<запрос>&scraper=<имя>"   # web-поиск
+curl "http://localhost:8889/api/v1/images?s=<запрос>&scraper=<имя>" # картинки
+```
+
+Брать 5-6 разных песен (русские + латиница), для каждой смотреть позицию
+первого URL из числа текстовых сайтов (`genius`, `muztext`, `rulyrics`,
+`amalgama-lab`, `karaoke.ru`, …) и сколько их в топ-5. Прогон на одной песне
+даёт ложную картину: 2026-09-26 `brave` на первом запросе отдал 20
+релевантных URL, а на следующих пяти — `did not return a result object`.
+
+**Результат замера 2026-09-26** (6 песен × 4 scraper'а):
+
+| Scraper | Ответов | Текстовый сайт есть | Попаданий в топ-5 (из 30) |
+|---|---|---|---|
+| `google_cse` | 6/6 | 6/6 (на 1-й позиции) | 14 |
+| `yahoo_japan` | 6/6 | 6/6 (на 1-й, кроме одного) | 12 |
+| `brave` | 1/6 | 1/6 | 3 |
+| `yep` | 0/6 | — | — |
+
+**Оговорка про `google_cse`**: это скраппер по **публичному** CSE-id, зашитому
+в образ fourget (`GOOGLE_CX_ENDPOINT` в `data/config.php`), а не по
+собственному API-ключу — то есть он зависит от чужого публичного эндпоинта и
+может исчезнуть без предупреждения. Поэтому `yahoo_japan` (прямой скрейп
+Yahoo Japan) стоит вторым, а не «в резерве»: при отказе `google_cse`
+перебор дойдёт до него на том же запросе.
 
 **Принципы и контекст**:
 - Только `SearchTool.searchUrls` (lyrics). `AlbumCoverFinder.kt`

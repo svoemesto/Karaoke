@@ -16,24 +16,35 @@ import java.time.Duration
 
 /**
  * Класс Search Tool. Ищет URL с текстами песен через self-hosted мета-поисковик
- * fourget (`/api/v1/web`). Движок-источник по умолчанию (`yandex`) на практике
- * оказался заблокирован/капчится на admin-машине (см.
- * specs/014-lyrics-search-replacement/research.md, раздел "Production finding")
- * — используются реально рабочие на этом хостинге `yep` (основной) с
- * фолбэком на `brave`, если `yep` не дал результатов (по состоянию на
- * 2026-09-02 `brave` стал деградировать на admin-машине, см.
- * specs/294-fourget-scraper-order/spec.md).
+ * fourget (`/api/v1/web`). Скрапперы (движки-источники fourget) перебираются по
+ * порядку из `lyricsSearchScrapers`, пока очередной не пройдёт post-filter и
+ * порог `lyricsSearchMinResults`.
+ *
+ * Порядок по умолчанию — `google_cse;yahoo_japan;brave;yep` (проверен на
+ * admin-машине 2026-09-26). Он менялся дважды по факту деградации источников:
+ * `yandex` (исходный движок fourget) капчится/блокируется с самого начала
+ * (specs/014-lyrics-search-replacement/research.md, раздел "Production finding");
+ * 2026-09-02 основным сделали `yep`, а `brave` — фолбэком
+ * (specs/294-fourget-scraper-order/spec.md); 2026-09-26 оба деградировали
+ * (`brave` — `did not return a result object`, `yep` — пустая выдача либо
+ * 100 нерелевантных URL, обходящих порог по количеству), и основными стали
+ * `google_cse` и `yahoo_japan`.
+ *
+ * Важно: `status: "ok"` от fourget НЕ означает успех — скраппер умеет
+ * деградировать «тихо» (пустая выдача при ok). Признак успеха — только
+ * непустой результат, прошедший post-filter.
  *
  * Список scrapers и порог «качества» настраиваются через `KaraokeProperties`:
- * - `lyricsSearchScrapers` (String, дефолт `"yep;brave"`) — порядок через `;`.
+ * - `lyricsSearchScrapers` (String, дефолт
+ *   `"google_cse;yahoo_japan;brave;yep"`) — порядок через `;`.
  * - `lyricsSearchMinResults` (Int, дефолт `2`) — минимальное число URL после
  *   post-filter, ниже — fallback на следующий scraper.
  * - `lyricsSearchUselessUrlPatterns` (String через `;`) — паттерны для
  *   post-filter «мусорных» URL (homepage, sitemap, login-страницы, файлы,
  *   tracking-маркеры).
  *
- * Hot-fix при очередной блокировке — через БД/UI без передеплоя
- * (`KaraokeProperties.get*` читает значение на каждый запрос).
+ * Hot-fix при очередной блокировке — через UI «Свойства» (без передеплоя):
+ * `KaraokeProperties.get*` читает значение на каждый запрос.
  *
  * @see archive/docs/features/llm-lyrics-search.md
  */
@@ -55,7 +66,10 @@ class SearchTool(
 
     @Tool("Search the web for URLs related to a query. Returns a list of URLs.")
     fun searchUrls(query: String): List<String> {
-        val minResults = KaraokeProperties.getInt("lyricsSearchMinResults").coerceAtLeast(0)
+        // Нижняя граница 1, а не 0: при пороге 0 пустой ответ scraper'а проходил бы
+        // проверку `urls.size >= minResults` и перебор останавливался бы на первом же
+        // scraper'е — failover не срабатывал бы вовсе.
+        val minResults = KaraokeProperties.getInt("lyricsSearchMinResults").coerceAtLeast(1)
         for (scraper in lyricsSearchScrapersList()) {
             val urls = searchUrlsViaScraper(query, scraper)
             if (urls.size >= minResults) return urls
@@ -156,8 +170,18 @@ class SearchTool(
     }
 
     companion object {
-        /** Порядок scrapers по умолчанию (используется как fallback, если KaraokeProperties не задано). */
-        private val DEFAULT_LYRICS_SEARCH_SCRAPERS = listOf("yep", "brave")
+        /**
+         * Fallback-порядок scrapers, если `lyricsSearchScrapers` не задано или состоит
+         * только из пустых токенов.
+         *
+         * ВНИМАНИЕ: это вторая копия дефолта — первая объявлена как `defaultValue`
+         * одноимённого [com.svoemesto.karaokeapp.KaraokeProperty] в
+         * `KaraokeProperties.kt`. Списки обязаны совпадать; расхождение ловится
+         * тестом `ToolsTest.дефолт scrapers в Tools совпадает с дефолтом в KaraokeProperties`.
+         *
+         * `internal` — виден из unit-тестов в том же модуле.
+         */
+        internal val DEFAULT_LYRICS_SEARCH_SCRAPERS = listOf("google_cse", "yahoo_japan", "brave", "yep")
 
         /**
          * Возвращает список scrapers для lyrics-поиска из [com.svoemesto.karaokeapp.KaraokeProperties].

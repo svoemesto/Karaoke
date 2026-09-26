@@ -36,8 +36,8 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1890
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1896
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:2057
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:220
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:234
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:248
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:258
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt:272
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Consumer.kt:12
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt:199
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2263

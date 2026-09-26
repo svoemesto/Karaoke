@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-09-26 (ветка `452-album-cover-scraper-failover`: image-скрапперы fourget для поиска обложек теперь **перебираются** по настройке `albumCoverSearchScrapers` (`ddg → yahoo_japan → brave → google_cse`) с порогом `albumCoverSearchMinResults` — раньше `scraper=brave` был зашит прямо в URL и перебора не было вовсе; `AlbumCoverService.search(engine = null)` теперь читает настройку, а не жёсткий `SEARXNG` из дефолта сигнатуры. **Замер image-скрапперов 2026-09-26** на 5 студийных альбомах из библиотеки: `ddg` и `yahoo_japan` — 24/25 релевантных в топ-5, `brave` — 21/22, `google_cse` — 20/25; `baidu` (1/25) и `pinterest` (3/20) — мусор, `ftm` — поиск мемов по назначению. Ранее в тот же день, ветка `451-lyrics-scrapers-order`: порядок web-скрапперов по умолчанию — `google_cse → yahoo_japan → brave → yep` вместо `yep → brave`; нижняя граница `lyricsSearchMinResults` поднята с 0 до 1; синхронизирован второй экземпляр дефолта в `Tools.kt` (+ тест-страж против расхождения). **Актуальный curl-перебор 2026-09-26**: `brave` отдаёт `did not return a result object`, `yep` — `status=ok` с `web=[]` либо 100 нерелевантных URL; `google_cse` и `yahoo_japan` дали результат на 6 из 6 контрольных запросов. Обратите внимание: `ddg` и `brave` для **web**-поиска мертвы, но для **image**-поиска это отдельные эндпоинты, и там они рабочие.)
+> **Last Updated**: 2026-09-26 (ветка `453-album-cover-engine-selector`: в модалке обложек появился **селектор движка-фолбэка** — форма A, только `SEARXNG`/`FOURGET`, дефолт из настройки `albumCoverSearchEngine`. Параметр `engine` наконец прокинут из фронтенда (`store.js` → `AlbumCoverModal.vue`): бэкенд умел его принимать с 2026-09-02, но фронтенд не отправлял, поэтому ручной выбор движка был недостижим. Яндекс-варианты в селекторе сознательно отсутствуют (SC-004: не умеют искать картинки), а сама Яндекс.Музыка управляется чекбоксом «Не искать в Яндекс.Музыке». Ранее в тот же день, ветка `452-album-cover-scraper-failover`: image-скрапперы fourget для поиска обложек теперь **перебираются** по настройке `albumCoverSearchScrapers` (`ddg → yahoo_japan → brave → google_cse`) с порогом `albumCoverSearchMinResults` — раньше `scraper=brave` был зашит прямо в URL и перебора не было вовсе; `AlbumCoverService.search(engine = null)` теперь читает настройку, а не жёсткий `SEARXNG` из дефолта сигнатуры. **Замер image-скрапперов 2026-09-26** на 5 студийных альбомах из библиотеки: `ddg` и `yahoo_japan` — 24/25 релевантных в топ-5, `brave` — 21/22, `google_cse` — 20/25; `baidu` (1/25) и `pinterest` (3/20) — мусор, `ftm` — поиск мемов по назначению. Ранее в тот же день, ветка `451-lyrics-scrapers-order`: порядок web-скрапперов по умолчанию — `google_cse → yahoo_japan → brave → yep` вместо `yep → brave`; нижняя граница `lyricsSearchMinResults` поднята с 0 до 1; синхронизирован второй экземпляр дефолта в `Tools.kt` (+ тест-страж против расхождения). **Актуальный curl-перебор 2026-09-26**: `brave` отдаёт `did not return a result object`, `yep` — `status=ok` с `web=[]` либо 100 нерелевантных URL; `google_cse` и `yahoo_japan` дали результат на 6 из 6 контрольных запросов. Обратите внимание: `ddg` и `brave` для **web**-поиска мертвы, но для **image**-поиска это отдельные эндпоинты, и там они рабочие.)
 
 ## Что делает
 
@@ -76,6 +76,18 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    web-скрапперов в `SearchTool.searchUrls` (2026-09-26, ветка
    `452-album-cover-scraper-failover`). Путь `SEARXNG` перебора не требует:
    SearXNG сам агрегирует движки внутри себя.
+   **Движок выбирается и вручную**: в модалке обложек (`AlbumCoverModal.vue`)
+   рядом с чекбоксом «Не искать в Яндекс.Музыке» стоит селектор «Движок
+   веб-поиска», значение уходит в `engine` (`store.js` →
+   `searchAlbumCoverPromise`). Дефолт селектора читается из настройки
+   `albumCoverSearchEngine` при открытии модалки — как в `SearchText.vue` для
+   `lyricsSearchEngine`. Форма A (решение владельца 2026-09-26): только
+   `SEARXNG`/`FOURGET`, потому что селектор выбирает движок **фолбэка**, а
+   ступень 1 (Яндекс.Музыка) остаётся за чекбоксом. Ручной выбор действует
+   только на фолбэк: если Яндекс.Музыка нашла обложку, движок не спрашивается
+   вовсе — поэтому чекбокс «Не искать в Яндекс.Музыке» и есть способ
+   проверить выбранный движок (2026-09-26, ветка
+   `453-album-cover-engine-selector`).
 5. **Автоочистка результатов поиска для готовых песен**
    (`specs/015-search-engine-selection`, порог обновлён в
    `specs/022-song-status-lifecycle`): как только `Song.saveToDb()`

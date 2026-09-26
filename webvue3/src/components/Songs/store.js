@@ -2796,6 +2796,9 @@ export default {
       let params = { id: ctx.state.currentSongId }
       if (payload && payload.query) params.query = payload.query
       if (payload && payload.skipYandex) params.skipYandex = true
+      // Движок-фолбэк веб-поиска обложек (SEARXNG | FOURGET). Не отправляем, если пусто:
+      // тогда бэкенд сам возьмёт настройку albumCoverSearchEngine.
+      if (payload && payload.engine) params.engine = payload.engine
       let request = { method: 'POST', url: '/api/song/searchalbumcover', params: params }
       return promisedXMLHttpRequest(request)
     },

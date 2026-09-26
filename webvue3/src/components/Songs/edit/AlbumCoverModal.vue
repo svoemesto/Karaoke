@@ -30,6 +30,17 @@
                 <input v-model="skipYandex" type="checkbox" />
                 Не искать в Яндекс.Музыке
               </label>
+              <label
+                class="acm-engine-label"
+                title="Чем искать обложку, если Яндекс.Музыка не дала результата"
+              >
+                Движок веб-поиска:
+                <select v-model="searchEngine" class="acm-search-select">
+                  <option v-for="opt in engineOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </label>
             </div>
             <div class="acm-buttons-group">
               <button
@@ -80,6 +91,17 @@
               <label class="acm-checkbox-label">
                 <input v-model="skipYandex" type="checkbox" />
                 Не искать в Яндекс.Музыке
+              </label>
+              <label
+                class="acm-engine-label"
+                title="Чем искать обложку, если Яндекс.Музыка не дала результата"
+              >
+                Движок веб-поиска:
+                <select v-model="searchEngine" class="acm-search-select">
+                  <option v-for="opt in engineOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
               </label>
             </div>
             <div class="acm-buttons-group">
@@ -175,6 +197,14 @@ export default {
       lowResolutionWarning: false,
       searchQuery: '',
       skipYandex: false,
+      // Движок-фолбэк веб-поиска. Только 2 варианта (форма A): Яндекс-варианты
+      // не умеют искать картинки (SC-004 спеки 015), а сама Яндекс.Музыка здесь
+      // управляется чекбоксом skipYandex, а не этим селектором.
+      searchEngine: '',
+      engineOptions: [
+        { value: 'SEARXNG', label: 'SearXNG' },
+        { value: 'FOURGET', label: 'fourget' },
+      ],
     }
   },
   computed: {
@@ -190,6 +220,11 @@ export default {
   },
   async mounted() {
     this.searchQuery = this.defaultSearchQuery
+    // Дефолт селектора — текущая настройка albumCoverSearchEngine, как в
+    // SearchText.vue для lyricsSearchEngine. Настройка недоступна/пуста — SearXNG
+    // (тот же фолбэк, что у resolveAlbumCoverSearchEngine на бэкенде).
+    this.searchEngine =
+      (await this.$store.getters.getPropValue('albumCoverSearchEngine')) || 'SEARXNG'
     await this.loadCurrentPicture()
   },
   methods: {
@@ -211,6 +246,7 @@ export default {
         const data = await this.$store.dispatch('searchAlbumCoverPromise', {
           query: this.searchQuery,
           skipYandex: this.skipYandex,
+          engine: this.searchEngine,
         })
         const result = JSON.parse(data)
         if (result && result.candidates && result.candidates.length > 0) {
@@ -457,6 +493,21 @@ export default {
   font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.acm-engine-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.acm-search-select {
+  padding: 5px 8px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
 .acm-button {

@@ -3500,6 +3500,18 @@ sealed class AlbumSearchResult {
     ) : AlbumSearchResult()
 }
 
+/**
+ * Проверяет последний альбом автора на Яндекс.Музыке и разбирает страницу альбомов
+ * в [AlbumSearchResult].
+ *
+ * Pass 458: раньше здесь было **два** запуска браузера подряд — первый открывал
+ * `music.yandex.ru/`, закрывался, и результат не использовался; второй делал настоящую
+ * работу. Теперь запуск один, а переход на главную сохранён: он мог быть задуман как
+ * «прогрев» сессии в persistent-профиле, а намерение нигде не задокументировано.
+ * Поэтому изменение безопасно при ЛЮБОЙ трактовке, а издержки (полный запуск Chromium —
+ * секунды и сотни мегабайт на каждый вызов) уходят. Тот же паттерн убран и в
+ * `fetchYandexArtistAlbumsHtml` (`AlbumCoverFinder.kt`).
+ */
 fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
     val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
     val searchUrl = "$authorUrl/albums"
@@ -3518,25 +3530,6 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
         val page = context.pages().firstOrNull() ?: context.newPage()
         try {
             page.navigate("https://music.yandex.ru/")
-        } finally {
-            context.close()
-        }
-    }
-
-    Playwright.create().use { playwright ->
-
-        val context =
-            playwright.chromium().launchPersistentContext(
-                USER_DATA_DIR,
-                BrowserType
-                    .LaunchPersistentContextOptions()
-                    .setHeadless(true)
-                    .setLocale("ru-RU")
-                    .setTimezoneId("Europe/Moscow"),
-            )
-
-        val page = context.newPage()
-        try {
             page.navigate(searchUrl)
             val currentUrl = page.url()
             val html = page.content()

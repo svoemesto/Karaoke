@@ -29,9 +29,13 @@ state: {
 
 ## Hot paths
 
-- **`/api/authors/list`** — дайджест.
-- **`/api/authors/withnewalbumcount`** — бейдж.
-- **`/api/authors/getById`** / **`/update`** / **`/delete`**.
+- **`POST /api/authors/authorsdigests`** — дайджест.
+- **`POST /api/authors/withnewalbumcount`** — бейдж.
+- **`POST /api/authors/updateauthor`** — создать/обновить.
+  Отдельных `/getById` и `/delete` у авторов в коде нет
+  (проверено 2026-09-27: `ApiController` — только
+  `/authors/authorsdigests`, `/authors/updateauthor`,
+  `/authors/withnewalbumcount`).
 
 ## Связь
 

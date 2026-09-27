@@ -138,7 +138,7 @@ class AuthorTilesCache {
 }
 ```
 
-**Cold-start поведение**: HTTP-запрос `/api/main/authors` возвращает
+**Cold-start поведение**: HTTP-запрос `GET /api/public/authors-tiles` возвращает
 `emptyList()` пока refresh не закончен. UI должен показывать
 «Загрузка…».
 

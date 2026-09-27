@@ -63,9 +63,9 @@
 - **UI**: пара кнопок ДА/НЕТ «Не снимать с эфира (после окна доступа)» в
   `SongEdit.vue`, рядом с блоком «Всегда бесплатно».
 - **API**:
-  - `/api/songs/getById` — поле `freeAfterOnAir: boolean` в `SongDTO`.
-  - `/api/songs/list?filter_free_after_on_air=true|false` — фильтр списка.
-  - `/api/songs/{id}/access` — публичный доступ (через
+  - `POST /api/song` (`id`) — поле `freeAfterOnAir: boolean` в `SongDTO`.
+  - `POST /api/songs?filter_free_after_on_air=true|false` — фильтр списка.
+  - `GET /api/public/player/{id}/access` — публичный доступ (через
     `PublicPlayerController.canWatch` → `isFreelyAvailableNow`).
 - **recordhash** — в той же миграции
   (`deploy/karaoke-db/50_tbl_songs_free_after_on_air.sql`) пересозданы оба

@@ -91,7 +91,7 @@
 > - UI таблица `SongsTable.vue`: столбец `IA` (`flagFreeAfterOnAir`) рядом с
 >   `FR` (`flagFree`). Аналогичный формат ("-" / "✓"), отдельный CSS-класс
 >   `.fld-flag-free-after-on-air`.
-> - API: фильтр `filter_free_after_on_air` в `/api/songs/list`.
+> - API: фильтр `filter_free_after_on_air` в `POST /api/songs`.
 > - Тесты: добавлены 7 новых тестов в `SongStateTest` (Pass 369 фикс
 >   приоритетов: `free=true` > `freeAfterOnAir=true && onAir` > стандартное окно).
 > - Per-feature документ: `docs/features/song-air-access.md` (новый).

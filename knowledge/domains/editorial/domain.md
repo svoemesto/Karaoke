@@ -135,9 +135,9 @@ error codes) — см. [dictionaries](components/dictionaries.md).
 
 ## Код (физическая реализация)
 
-- Модели: `karaoke-app/src/main/kotlin/.../model/SongAssignment.kt`, `ReviewTask.kt`
+- Модели: `karaoke-app/src/main/kotlin/.../model/SongAssignment.kt` (ReviewTask.kt не существует — см. WARN выше)
 - Контроллер: `karaoke-web/.../controllers/PublicSongeditorController.kt` (`/api/public/songeditor`, `/assign-self`) — регистр в имени файла важен: рядом есть `PublicSongEditorController.kt` с другим назначением (`/api/public/account/editor`)
-- DTO: `SongAssignmentBriefDTO.kt`
+- DTO: `karaoke-app/.../dto/SongAssignmentBriefDto.kt`
 - SQL: `deploy/karaoke-db/10_song_assignments.sql`
 - Frontend: `karaoke-public/src/views/SongView.vue` (кнопка «Взять в работу»)
 - Frontend: `webvue3/src/components/SongEditor/ReviewModal.vue` (radio + watch)

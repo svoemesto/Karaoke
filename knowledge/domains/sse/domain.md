@@ -247,12 +247,10 @@ L3-компонентов у домена пока нет: контекст оп
 - `karaoke-app/.../services/SseNotificationService.kt` (~250 строк)
 - `karaoke-app/.../model/SseNotification.kt`
 - `karaoke-app/.../model/SseNotificationType.kt`
-- `karaoke-app/.../model/RecordChangeMessage.kt`
-- `karaoke-app/.../model/RecordAddMessage.kt`
-- `karaoke-app/.../model/RecordDeleteMessage.kt`
-- `karaoke-app/.../model/ProcessWorkerStateMessage.kt`
-- `karaoke-app/.../model/ProcessCountWaitingMessage.kt`
-- `karaoke-app/.../model/Message.kt`
+- `karaoke-app/.../model/Messages.kt` — все SSE-payload'ы в одном файле:
+  `Message`, `RecordChangeMessage`, `RecordAddMessage`,
+  `RecordDeleteMessage`, `ProcessWorkerStateMessage`,
+  `ProcessCountWaitingMessage`
 
 ## Changelog
 

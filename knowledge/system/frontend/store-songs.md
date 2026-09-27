@@ -41,7 +41,7 @@ state: {
 ### Решение 2: HR-очередь с лимитом 3
 
 `HR_MAX_CONCURRENT=3` — лимит одновременных
-`/api/songs/getHealthReport` запросов. Без лимита быстрая
+`POST /api/song/healthReportList` запросов. Без лимита быстрая
 пагинация перегружает сервер MinIO-запросами (см.
 [health-report.md](../../domains/health/components/health-report.md) —
 проблема OpenProject #69).
@@ -59,8 +59,8 @@ state: {
 
 ## Hot paths
 
-- **`/api/songs/list`** — на каждое изменение фильтра/страницы.
-- **`/api/songs/getHealthReport`** (через HR-очередь) — для каждой
+- **`POST /api/songs`** — на каждое изменение фильтра/страницы.
+- **`POST /api/song/healthReportList`** (через HR-очередь) — для каждой
   видимой строки (open #69 bottleneck).
 - **SSE `recordChange`** — реактивно обновляет таблицу.
 

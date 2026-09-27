@@ -109,7 +109,7 @@ flowchart TB
 
 - **Pages** (`HomeView`, `SongView`, `AlbumView`, ...).
 - **Store** (Vuex модули).
-- **Components** (`Player.vue`, `Lyrics.vue`, `StatsView.vue`).
+- **Components** (`PlayerIcon.vue`, `AppHeader.vue`, `LatestNewsSection.vue`).
 
 ### PostgreSQL
 

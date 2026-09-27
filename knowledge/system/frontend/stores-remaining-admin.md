@@ -29,12 +29,13 @@ state: {
 
 ## Hot paths
 
-- **ListeningHistory**: `/api/listening-history/list`.
-- **ShareLinks**: `/api/sharelinks/list` (см.
+- **ListeningHistory**: `/api/listeninghistory/digest`.
+- **ShareLinks**: `/api/sharelinks/digest` (см.
   [SongShareLinkService](../../domains/karaoke-web/components/song-share-link-service.md)).
-- **Publish**: `/api/publish/list`, `/api/publish/templates` (см.
+- **Publish**: `/api/publicationsdigest` (list), `/api/publications/date`;
+  шаблоны — `/api/vk/templates` и `/api/telegram/templates` (см.
   [publishing-services.md](../../domains/publishing/components/publishing-services.md)).
-- **SponsrSync**: `/api/sponsr-sync/status`.
+- **SponsrSync**: `/api/sponsrsync/status`.
 - **Chat**: `/api/chat/threads`, `/api/chat/messages` (см.
   [monitor-checks.md](../../domains/monitoring/components/monitor-checks.md)).
 - **Properties**: `/api/properties/digest` (см.

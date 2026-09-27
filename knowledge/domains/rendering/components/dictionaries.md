@@ -23,7 +23,7 @@ JS-фильтрах. Все литералы `LYRICS`/`KARAOKE`/`DEMO` обяз�
 | `KARAOKE` | `karaoke` | Текст + таймлайн + фоновая картинка альбома. |
 | `DEMO` | `demo` | Полный микс (текст + фон + анимация), «рекламная» версия. |
 
-**Место определения**: `karaoke-app/.../model/RenderVersion.kt`.
+**Место определения**: `karaoke-app/.../services/PlayerMp4RenderService.kt` (enum `RenderVersion`).
 
 **Использование**:
 
@@ -45,7 +45,8 @@ JS-фильтрах. Все литералы `LYRICS`/`KARAOKE`/`DEMO` обяз�
 | `2` | Прод: Docker `--cpus=2` на melt-процесс. |
 | (не задано) | Локально: без ограничения. |
 
-**Место определения**: `deploy/karaoke-app/docker-compose.yml` (env-var).
+**Место определения**: `karaoke-app/.../KaraokeProcess.kt` (`dockerCpusEnvValue`;
+env передаётся через `docker update`, в docker-compose его нет).
 
 **Контракт**: на проде **обязательно** `2`, иначе деградация UI.
 

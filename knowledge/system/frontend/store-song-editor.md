@@ -38,12 +38,12 @@ state: {
 
 ## Hot paths
 
-- **`/api/songassignment/list`** — каждое открытие вкладки.
-- **`/api/songassignment/digest`** — дайджест (лёгкий запрос).
-- **`/api/songassignment/{id}`** — детали задания.
-- **`/api/songassignment/assign`** — назначить редактора.
-- **`/api/songassignment/{id}/approve`** — одобрить.
-- **`/api/songassignment/{id}/reject`** — отклонить.
+- **`POST /api/songeditor/digest`** — каждое открытие вкладки.
+- **`POST /api/songeditor/digest`** — дайджест (лёгкий запрос).
+- **`POST /api/songeditor/byId`** — детали задания (`id` — параметр).
+- **`POST /api/songeditor/assign`** — назначить редактора.
+- **`POST /api/songeditor/approve`** — одобрить (`id` — параметр).
+- **`POST /api/songeditor/reject`** — отклонить (`id` — параметр).
 
 ## Известные TODO
 

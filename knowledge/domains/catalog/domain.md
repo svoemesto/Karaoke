@@ -41,7 +41,7 @@ MLT-конвейером).
 | **Песня (Song)** | Единица каталога, AR | `Song.kt`, таблица `tbl_songs` (до миграции 28 называлась `tbl_settings` — `28_rename_settings_to_songs.sql`) |
 | **Альбом (Album)** | Коллекция песен одного исполнителя. Денормализованные счётчики `total_song_count` / `ready_song_count` поддерживаются DB-триггером `trg_tbl_songs_update_album_counts` (Pass 357, миграция 49) — зеркалит паттерн spec 286 для `tbl_authors` | `Album.kt`, `tbl_albums` |
 | **Исполнитель (Author)** | Музыкальный исполнитель (НЕ автор текста) | `Author.kt`, `tbl_authors` |
-| **Жанр (Genre)** | Музыкальный жанр, справочник | `Genre.kt`, `tbl_genres` |
+| **Жанр (Genre)** | [WARN] отдельной сущности нет: файла Genre.kt и таблицы tbl_genres в репозитории нет (проверено 2026-09-27) | — |
 | **Картинка (Picture)** | Обложка альбома / фото исполнителя | `Picture.kt`, `tbl_pictures` |
 | **Спецтег (SpecTag)** | Специальный маркер в lyrics | `model/SpecTags.kt` (объект + вложенный `SpecTag`), парсится из текста — **не** хранится в таблице |
 | **Маркер (Marker)** | Время начала/конца секции караоке | `sourceMarkers` (string) |
@@ -153,9 +153,10 @@ MLT-конвейером).
 
 ## Код (физическая реализация)
 
-- Модели: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/{Song,Album,Author,Genre,Picture}.kt`
-- Сервисы: `SongService.kt`, `AlbumService.kt`, `AuthorService.kt`
-- DTO: `SongDTO.kt`, `AlbumDTO.kt`, `AuthorDTO.kt`, `SongPublicDTO.kt`, `AlbumPublicDTO.kt`
+- Модели: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/{Song,Album,Author,Picture}.kt`
+  (Genre/Genre.kt в репозитории нет — см. WARN в таблице выше)
+- Сервисы: отдельных SongService/AlbumService/AuthorService в репозитории нет (проверено 2026-09-27); CRUD — через `karaoke-app/.../controllers/ApiController.kt` и `karaoke-web/.../controllers/PublicApiController.kt`
+- DTO: `SongDTO.kt`, `AlbumDTO.kt`, `AuthorDTO.kt` (admin) и публичные `karaoke-web/.../dto/SongPublicDto.kt`, `karaoke-web/.../dto/AlbumTilePublicDto.kt`
 - SQL: `deploy/karaoke-db/<NNN>_tbl_songs.sql` (до миграции 28 таблица
   называлась `tbl_settings` — `28_rename_settings_to_songs.sql`),
   `<NNN>_tbl_albums.sql`, и т.д.

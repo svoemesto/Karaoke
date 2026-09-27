@@ -369,7 +369,8 @@ class Crypto {
 Используется в:
 - `Utils.kt:888, 902` — `Crypto.encrypt(sqlToDelete)` и
   `Crypto.encrypt(sqlToInsert)`: **шифрование SQL-команд** для
-  передачи через `/api/sync/changerecords` (two-DB sync).
+  передачи через `POST /changerecords` (two-DB sync; karaoke-app →
+  `https://sm-karaoke.ru/changerecords`, `SyncRemoteClient.kt`).
 - `karaoke-web/.../MainController.kt` (использование не изучено).
 - `Utils.kt:923, 950, 1147` — `Crypto.WORDS_TO_CHECK` (тестовая
   строка для проверки крипты).
@@ -433,7 +434,7 @@ UUID-генерация. Используется для:
 
 ---
 
-## `karaoke-web/TypographUtils.kt`
+## `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/TypographUtils.kt`
 
 ### Что
 

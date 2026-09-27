@@ -44,7 +44,7 @@ AGENTS.md «Синхронизация LOCAL↔SERVER — критичные п�
 
 - **`/api/tariffs/list`** / **`/create`** / **`/update`** / **`/delete`**
 - **`/api/promorules/list`** / CRUD
-- **`/api/subscriptions/list`** (admin view)
+- **`POST /api/subscriptions/digest`** (admin view)
 - **`/api/stemjobs/list`** / `/delete` / `/stop`
 
 ## Связь

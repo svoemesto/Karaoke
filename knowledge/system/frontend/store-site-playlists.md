@@ -30,8 +30,8 @@ state: {
 
 ## Hot paths
 
-- **`/api/siteplaylists/list`** — список.
-- **`/api/siteplaylists/getById`** — детали.
+- **`POST /api/siteplaylists/digest`** — список.
+- **`POST /api/siteplaylists/byId`** — детали.
 
 ## Связь
 

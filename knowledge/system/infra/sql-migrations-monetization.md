@@ -23,8 +23,10 @@ CREATE TABLE IF NOT EXISTS tbl_price_tariffs (
 полного описания тарифов.)
 
 **Важно**: применять на КАЖДОЙ БД (LOCAL + PROD 79.174.95.69:8832).
-`id_tariff` на `tbl_settings` — см. `deploy/recordhash_settings.sql`
-(применять вместе).
+`id_tariff` на `tbl_settings` — [WARN] файла deploy/recordhash_settings.sql
+в репозитории нет (проверено 2026-09-27); recordhash-скрипты есть только для
+`deploy/recordhash_authors.sql`, `deploy/recordhash_events.sql`,
+`deploy/recordhash_pictures.sql`, `deploy/recordhash_processes.sql`.
 
 ## NNN 16: `cart_and_orders`
 

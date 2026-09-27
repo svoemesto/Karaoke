@@ -144,10 +144,10 @@ is_premium = true OR is_permanent_premium = true
 
 ## Hot paths
 
-- **`/api/siteusers/list`** — admin список.
-- **`/api/siteusers/getById`** — детали.
-- **`/api/siteusers/update`** — редактирование.
-- **`/api/siteusers/{id}/subscriptions`** — подписки.
+- **`POST /api/siteusers/digest`** — admin список.
+- **`POST /api/siteusers/byId`** — детали.
+- **`POST /api/siteusers/update`** — редактирование.
+- **`POST /api/siteusers/subscriptions`** (`id`) — подписки.
 - **`/api/public/auth/me`** — текущий юзер (см. [composable-use-auth.md](../../../system/frontend/composable-use-auth.md)).
 
 ## Зависимости | Dependencies

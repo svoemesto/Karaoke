@@ -38,11 +38,14 @@ state: {
 
 ## Hot paths
 
-- **`/api/sync/list`** — список entities.
-- **`/api/sync/runOneClick`** — ручной запуск sync.
-- **`/api/sync/autoStatus`** — polling статуса автозапуска.
-- **`/api/sync/autoStart` / `/api/sync/autoStop`** — управление
-  автозапуском.
+- **`GET /api/sync/entities`** — список entities.
+- **`POST /api/sync/oneclick`** — ручной запуск sync.
+- **`GET /api/sync/auto-status`** — статус автозапуска при монтировании
+  `SyncTable.vue` (не polling — UI обновляет по F5, spec 235 FR-009).
+- Автозапуск **не имеет** start/stop-эндпоинтов (проверено 2026-09-27:
+  `AutoOneClickSyncStatusController` содержит только
+  `GET /api/sync/auto-status`). Включение — свойство
+  `autoOneClickSyncEnabled` (`KaraokeProperties`).
 
 ## Связь
 

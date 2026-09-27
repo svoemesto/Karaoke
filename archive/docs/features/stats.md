@@ -199,7 +199,8 @@ pgMaxConnections + timestamp`. `permitAll()` — admin-зона, доступ п
 
 ### События (`tbl_web_event`, `StatsByEvents`)
 
-Фронт (`karaoke-public`) шлёт события на `/api/event`:
+Фронт (`karaoke-public`) шлёт события на `POST /api/public/events`
+(`karaoke-public/src/services/tracking.js`):
 - `play` (старт воспроизведения).
 - `pause`, `resume`, `stop`.
 - `like`, `dislike`, `share`.

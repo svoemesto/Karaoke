@@ -37,31 +37,31 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 
 | DTO | Что | Используется в |
 |---|---|---|
-| `AlbumDTO` | Альбом | `/api/albums/list` |
-| `AuthorDTO` | Автор | `/api/authors/list` |
-| `CartItemDto` | Позиция корзины | `/api/cart/list` |
+| `AlbumDTO` | Альбом | `POST /api/albums/albumsdigests` |
+| `AuthorDTO` | Автор | `POST /api/authors/authorsdigests` |
+| `CartItemDto` | Позиция корзины | `GET /api/public/account/cart/list` |
 | `DictionaryDto` | Словарь | `/api/dictionaries/list` |
 | `KaraokeDbTableDto` | Базовый DTO (id) | Все DTO extend'ятся |
-| `ListeningHistoryDto` | История прослушиваний | `/api/listening-history/list` |
-| `NewsDto` | Новость | `/api/news/list` |
-| `PicturesDTO` | Картинка | `/api/pictures/list` |
+| `ListeningHistoryDto` | История прослушиваний | `/api/listeninghistory/digest` |
+| `NewsDto` | Новость | `POST /api/news/list` |
+| `PicturesDTO` | Картинка | `POST /api/pictures/picturesdigests` |
 | `PriceTariffDto` | Тариф | `/api/tariffs/list` |
 | `PromoRuleDto` | Акция | `/api/promorules/list` |
-| `SearchAsyncDTO` | Async-поиск | `/api/search/async` |
+| `SearchAsyncDTO` | Async-поиск | `POST /api/song/searchasync` |
 | `SearchResultDTO` | Результат async-поиска | (тот же) |
 | `SiteChatMessageDto` | Сообщение чата | `/api/chat/...` |
-| `SitePlaylistDto` | Плейлист | `/api/siteplaylists/list` |
+| `SitePlaylistDto` | Плейлист | `POST /api/siteplaylists/digest` |
 | `SitePlaylistItemDto` | Позиция плейлиста | (тот же) |
-| `SiteUserDto` | Пользователь | `/api/siteusers/list` |
-| `SongAssignmentDraftDto` | Draft задания | `/api/songassignmentdraft/list` |
-| `SongAssignmentDto` | Задание | `/api/songassignment/list` |
+| `SiteUserDto` | Пользователь | `POST /api/siteusers/digest` |
+| `SongAssignmentDraftDto` | Draft задания | `POST /api/songeditor/digest` (в составе задания) |
+| `SongAssignmentDto` | Задание | `POST /api/songeditor/digest` |
 | `SongCoAuthorDTO` | Со-автор | (internal) |
-| `SongDTO` | Песня (главный) | `/api/songs/list`, повсюду |
+| `SongDTO` | Песня (главный) | `POST /api/songs`, повсюду |
 | `SongDTOdigest` | Краткая инфа о песне | `/api/songsdigests` (в т.ч. `key`/`bpm` для колонок Ton/BPM в `SongsTable.vue`, OpenProject #142) |
 | `SongShortInfoDto` | Ещё короче | (internal) |
 | `StatsDebugDto` | Debug статистика | `/api/stats/debug` |
 | `StemJobDto` | StemJob | `/api/stemjobs/list` |
-| `SubscriptionDto` | Подписка | `/api/subscriptions/list` |
+| `SubscriptionDto` | Подписка | `/api/subscriptions/digest` |
 | `WebEventDTO` | WebEvent | (analytics) |
 
 ### DTO в karaoke-web (8 публичных)
@@ -70,8 +70,8 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 |---|---|---|
 | `AuthorTilePublicDto` | Тайл автора (главная) | `/api/public/authors/...` |
 | `HistoryEntryDto` | Запись истории | `/api/public/history/...` |
-| `PagedSongsDto` | Страница песен (public) | `/api/public/songs/...` |
-| `SongPublicDto` | Песня (public) | `/api/public/songs/{id}` |
+| `PagedSongsDto` | Страница песен (public) | `GET /api/public/songs` |
+| `SongPublicDto` | Песня (public) | `GET /api/public/song/{id}` |
 | `ZakromaAlbumMetaPublicDto` | Мета альбома «Закрома» | `/api/public/zakroma/...` |
 | `ZakromaPublicDto` | «Закрома» автора | (тот же) |
 | `ZakromaStreamMessageDto` | Сообщение стрима «Закрома» | `/api/public/zakroma/stream` |

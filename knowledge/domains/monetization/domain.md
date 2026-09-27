@@ -230,7 +230,7 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 ### Решение 2: `Subscription` через `SyncRegistry`
 
 `Subscription` участвует в two-DB sync, потому что админу нужно видеть
-статус подписок в webvue3 (`/api/subscriptions/list`).
+статус подписок в webvue3 (`POST /api/subscriptions/digest`).
 
 ### Решение 3: `CartItem` НЕ через SyncRegistry
 

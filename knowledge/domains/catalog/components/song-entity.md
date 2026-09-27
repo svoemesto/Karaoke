@@ -153,9 +153,9 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 
 ## Hot paths
 
-- **`/api/songs/list`** — на каждое изменение фильтра/страницы.
-- **`/api/songs/getById`** — на каждое открытие карточки.
-- **`/api/songs/save`** — при редактировании метаданных.
+- **`POST /api/songs`** — на каждое изменение фильтра/страницы.
+- **`POST /api/song`** (`id`) — на каждое открытие карточки.
+- **`POST /api/song/update`** — при редактировании метаданных.
 - **HealthReport** — 4 `*_ready` флага обновляются
   `reconcilePlayerReadinessFlags`.
 

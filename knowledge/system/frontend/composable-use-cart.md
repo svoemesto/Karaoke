@@ -44,9 +44,9 @@ clearCart()                // async — очистить
 
 ## Hot paths
 
-- **`/api/public/cart/list`** — загрузка.
-- **`/api/public/cart/{id}/toggle`** — toggle.
-- **`/api/public/cart/clear`** — clear.
+- **`GET /api/public/account/cart/list`** — загрузка.
+- **`POST /api/public/account/cart/toggle`** — toggle (`songId` — параметр body).
+- **`POST /api/public/account/cart/clear`** — clear.
 
 ## Связь
 

@@ -221,7 +221,7 @@ AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
       - `GET /api/storage/bucket/public-status` — `isBucketPublic`
       - `POST /api/storage/fileStat` / `/fileInfo` / `/listInfo` — metadata
       Все endpoints используют `KaraokeStorageService` (НЕ `StorageApiClient` — этот для remote).
-- [ ] **nginx-proxy конфиг** (`deploy/nginx/minio-proxy.conf`) —
+- [ ] **nginx-proxy конфиг** (`deploy/prod-single-host/80to8897`) —
       какие методы, есть ли auth, лимиты.
 - [ ] **StemJobPollScheduler ↔ InternalStemJobController** —
       как именно karaoke-app получает исходный файл с public-host.

@@ -103,13 +103,12 @@ enum, сохранённое как историческое (не соотве�
 
 ## Зависимости | Dependencies
 
-- → `UserRole.kt` — Kotlin enum, источник истины для значений.
+- → `model/SiteUser.kt` — boolean-флаги ролей (`isEditor`,
+  `canSelfAssignTasks`, `canWorkWithSkipped`); enum'а `UserRole` нет.
 - → Jackson (`com.fasterxml.jackson`) — конвенция сериализации
   boolean-полей.
-- → [security-config](security-config.md) — потребитель `UserRole`
-  в `Authentication.roles`.
-- → [domain](../domain.md) — AR `SiteUser` хранит `Roles` как
-  `Set<UserRole>`.
+- → [security-config](security-config.md) — auth-flow без `UserRole`.
+- → [domain](../domain.md) — AR `SiteUser` хранит роли как boolean-флаги.
 
 ## Связанные ADR | Related ADRs
 

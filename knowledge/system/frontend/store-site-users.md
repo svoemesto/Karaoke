@@ -26,10 +26,10 @@ state: {
 
 ## Hot paths
 
-- **`/api/siteusers/list`** — список.
-- **`/api/siteusers/getById`** — один.
-- **`/api/siteusers/update`** — редактировать.
-- **`/api/siteusers/{id}/subscriptions`** — подписки.
+- **`POST /api/siteusers/digest`** — список.
+- **`POST /api/siteusers/byId`** — один.
+- **`POST /api/siteusers/update`** — редактировать.
+- **`POST /api/siteusers/subscriptions`** — подписки (`id` — параметр запроса).
 
 ## Важно
 

@@ -5,6 +5,7 @@
 #   illustrative     — пример/шаблон/плейсхолдер, а не реальный файл
 #   wildcard-prose   — прозаичный wildcard или JS-шаблон, не конкретный путь
 #   external-not-api — путь внешнего сервиса (fourget/OpenProject), не наш API
+#   host-path        — путь на хосте вне репозитория (/sm-karaoke/...) или общее имя файла-артефакта
 #   generated        — артефакт генератора (.gitignore)
 archive/docs/features/llm-lyrics-search.md	endpoint	/api/v1/images	external-not-api
 archive/docs/features/llm-lyrics-search.md	endpoint	/api/v1/web	external-not-api
@@ -52,3 +53,4 @@ archive/docs/features/zakroma-stream-progress.md	path	tools/deploy-nginx-stream.
 archive/docs/onboarding-handoff/011-m23-special-orders-pickup.md	path	SpecialBucketView.vue	honest-gap
 archive/docs/strategy/growth-audit.md	path	NewsBell.vue	honest-gap
 docs/api/README.md	path	Settings.kt	honest-gap
+archive/docs/features/telegram-auto-publish.md	path	config.json	host-path

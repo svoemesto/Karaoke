@@ -38,103 +38,142 @@
 | 17 | `StatsCacheScheduler` | 74 | См. [schedulers.md](../../processing/components/schedulers.md) |
 | 18 | `EventsRetentionScheduler` | 69 | Cron retention для tbl_events (см. [schedulers.md](../../processing/components/schedulers.md)) |
 | 19 | `CaptchaConfigService` | 65 | Yandex SmartCaptcha config |
-| 20 | `YandexCaptchaValidationService` | 57 | Yandex SmartCaptcha validation (HTTP POST) |
-| 21 | `DebugDbAccessGuard` | 41 | IP allowlist для DebugDbController |
-| 22 | `StemJobTempCleanupScheduler` | 35 | Cron cleanup temp-файлов (см. [schedulers.md](../../processing/components/schedulers.md)) |
-| 23 | `SiteUserResolver` | 29 | Получение текущего SiteUser (через `SiteAuthInterceptor`) |
-| 24 | `SamplingConfig` | 27 | Конфигурация sampling rates |
+| 20 | `ZakromaStreamProgress` | 64 | Чистая логика `meta.expectedCount` для NDJSON-стрима `/api/public/zakroma/stream` (specs/444-fix-album-progress) |
+| 21 | `YandexCaptchaValidationService` | 57 | Yandex SmartCaptcha validation (HTTP POST) |
+| 22 | `DebugDbAccessGuard` | 41 | IP allowlist для DebugDbController |
+| 23 | `SongReleaseAnnouncementScheduler` | 41 | Cron (~5 мин) проверки «песня вышла в эфир» (specs/101-song-news-flag) |
+| 24 | `StemJobTempCleanupScheduler` | 35 | Cron cleanup temp-файлов (см. [schedulers.md](../../processing/components/schedulers.md)) |
+| 25 | `SiteUserResolver` | 29 | Получение текущего SiteUser (через `SiteAuthInterceptor`) |
+| 26 | `SamplingConfig` | 27 | Конфигурация sampling rates |
+
+**Итого**: в пакете `karaoke-web/.../services/` — 25 `.kt`-файлов.
+`PollingCache` (строка 16) — исключение: с Pass 456 его реализация
+живёт в `karaoke-app`, отсюда он только используется.
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
 
-### `SongShareLinkService` (1130 строк, hot path)
+Пакет — не один компонент с единым API: контракт каждого сервиса —
+его Kotlin-класс (Spring-бин) и публичные методы. Ниже — фактическая
+поверхность по исходникам `karaoke-web/.../services/*.kt`.
 
-**Файл**: `karaoke-web/.../services/SongShareLinkService.kt`.
+| Сервис | Публичный контракт (методы) |
+|---|---|
+| `SongShareLinkService` | `createLink`, `revokeLink`, `revokeLinkById`, `getCurrentForOwner`, `findLinkIdBySecret`, `tryClaim`, `heartbeat`, `release`, `validateShareSession`, `listLinksForUser`, `listSessionsForLink`; DTO — `CreateResult`, `OwnerLinkView`, `TryClaimResult`, `SessionView` |
+| `StorageApiClientWeb` | Реализация `StorageApiClient`: `uploadFile`, `getFileUrl`, `downloadFile`, `deleteFile`, `listFiles`, `checkIfExists`/`fileExists` (WebClient reactive) |
+| `EventsBuffer` | `add(EventRecord)`, `flush()`, `bufferSize()`, `isFlushing()`, `clear()`; SQL — `buildInsertSql` (internal) |
+| `PaymentService` | `hasCredentials()`, `createPayment`, `createCartPayment`, `chargeRecurring`, `verifyAndFetch`, `newIdempotenceKey()` |
+| `PriceService` | `computePrice`, `computeCartPrice` |
+| `PlayerGestureUnlockService` | `registerClick`, `validateToken`, `issueDirectAccessToken`, `issueDirectAccessTokenForAssignment`, `issueDemoAccessToken`, `assignmentIdForToken`, `demoRangeForToken` |
+| `SamplingFilter` | `shouldSkip(restName, parameters, siteUserId, anonId)`, `dedupCacheSize()` |
+| `RateLimitInterceptor` | `preHandle` (`HandlerInterceptor`); настраиваемые поля `endpointName`, `limitPerMinute`; `bucketSize()`, `clear()` |
+| `SiteUserTokenService` | `issueToken`, `resolveToken`, `revokeToken` |
+| `SiteUserResolver` | `resolve(request): SiteUser?` |
+| `DebugDbAccessGuard` | `isAllowed(properties, request)` |
+| `DedupCache` | `isDuplicate(key)`, `size()`, `clear()` |
+| `CaptchaConfigService` | `getClientKey()`, `getServerKey()` |
+| `YandexCaptchaValidationService` | `validate(...)` |
+| `KaraokeProperties` | `samplingConfig`, `eventsDedupTtlMs()`, `eventsRetentionDays`, `debugDbEnabled`, `debugDbAllowedIps`, `rateLimitSongPicturePerMinute`, `rateLimitSongVkImagePerMinute` |
+| `SamplingConfig` | Data-holder rates (методов нет) |
+| `ShareLinkSweeper` | `sweep()` — `@Scheduled(fixedDelayString = "${karaoke.share.sweep-interval-seconds:60}000")` |
+| `StatsCacheScheduler` | `warmUp()`, `refreshHourly()`, `refreshIfDirty()` |
+| `EventsRetentionScheduler` | `cleanup()` |
+| `SubscriptionRenewalScheduler` | `renewExpiringSiteSubscriptions()` |
+| `StemJobTempCleanupScheduler` | `cleanup()` |
+| `SongReleaseAnnouncementScheduler` | `checkOnAir()` — `@Scheduled(fixedDelay = 5 мин, initialDelay = 60 с)` |
+| `KaraokeWebService` | Конструктор-DI; публичных методов нет — инициализирует глобалы `WEBSOCKET`, `WEB_WORK_IN_CONTAINER`, `WEB_WORK_ON_SERVER`, `DB_*` |
+| `WebKaraokeStorageServiceImpl` | Реализация-заглушка: все методы бросают `UnsupportedOperationException` |
+| `ZakromaStreamProgress` | `resolveExpectedCount(albumId, album, onlyPublished, providedExpectedCount, authorCountFallback)` — object, чистая логика |
 
-**Логика** (по grep `@Service` + KDoc):
-
-- CRUD для `SongShareLink` (см.
-  [entities-catalog.md](../../catalog/components/entities-catalog.md#songsharelink)).
-- Создание токена + хэш.
-- Проверка активной сессии (lease + browser hash).
-- Heartbeat endpoint.
-- Rejected concurrent.
-- Active session management.
+**`SongShareLinkService`** — единственный сервис с несколькими
+контроллерами-потребителями: `PublicShareController`,
+`PublicPlayerController`, `SiteShareLinksController` и `ShareLinkSweeper`
+(проверено grep по `SongShareLinkService`).
 
 **NB**: `token_hash` (НЕ `token`) — сам токен не хранится в БД,
 безопасность (см. [security issue](internal-controllers.md)).
+Исходный секрет — 32 байта `SecureRandom` (base64url) — отдаётся ровно
+один раз при создании; `sha256Hex` — SHA-256.
 
 **Hot path**: `/api/public/share/heartbeat` — каждый ~25s от
-открытых share-линок.
+открытых share-линок (см. [song-share-link-service.md](song-share-link-service.md)).
 
-### `EventsBuffer` (297 строк, FR-109)
+## Логика и Алгоритмы | Logic and Algorithms
 
-**Файл**: `karaoke-web/.../services/EventsBuffer.kt`.
+### Поток веб-аналитики (SamplingFilter → DedupCache → EventsBuffer)
 
-**Логика**: batch INSERT в `tbl_events` вместо sync INSERT.
+1. Событие приходит в `POST /registerevent`; без `eventType` в теле —
+   сразу `false` (см. [main-controller.md](main-controller.md)).
+2. Для `EventType.CALL_REST` вызывается `SamplingFilter.shouldSkip(...)`:
+   сначала dedup-ключ `(restName, canonical(parameters), anonId-or-userId)`
+   с TTL 30 с (`karaoke-web.events.dedup-ttl-seconds`), затем sampling
+   `random.nextInt(rate) == 0` (rate: анонимы 20, залогиненные 5,
+   admin 1; все — `coerceAtLeast(1)`).
+3. `EventsBuffer.add(record)`:
+   - kill-switch `karaoke.web.events.batch-enabled` (default `false`) —
+     sync INSERT, как раньше;
+   - иначе запись в `ConcurrentLinkedQueue`; flush по `@Scheduled`
+     каждые 5000 мс или досрочно при переполнении буфера
+     (`karaoke.web.events.batch-max-buffer-size`, default 500) —
+     backpressure в том же потоке;
+   - flush — JDBC `addBatch()` + `executeBatch()`, двойной flush
+     предотвращает `AtomicBoolean flushing`;
+   - fail-open: при ошибке batch буфер очищается (событие логируется
+     через SLF4J, потеря допустима — это метрики вовлечённости).
+4. `SamplingConfig` (27 строк) — конфигурация rates, читается
+   `KaraokeProperties.samplingConfig` на каждый вызов.
 
-**Эффект** (по KDoc): снижает RPS INSERT на ≥80% (50 INSERT/5 сек
-→ 1 batch).
+### Rate limit
 
-**Kill-switch**: `karaoke.web.events.batch-enabled` (default `false` —
-sync INSERT как раньше).
+`RateLimitInterceptor.preHandle` строит bucket по ключу
+`"$ip|$endpointName"` и сравнивает `count > limitPerMinute`
+(поле, default 60). `WebMvcConfig` (см. [config.md](config.md)) создаёт
+два экземпляра с `endpointName = "song-picture"` /
+`"song-vk-image"` и лимитами из `KaraokeProperties`
+(`rateLimitSongPicturePerMinute`, `rateLimitSongVkImagePerMinute`).
 
-### `PaymentService` (294 строки, см. monetization)
+### Share-линки (жизненный цикл)
 
-См. [monetization domain](../../monetization/domain.md#paymentservice).
-YooKassa WebClient + nginx proxy + env credentials.
+1. **Создание** (`createLink`): SKIP-тег → `SongSkipped`;
+   не готовый к публикации контент → `SongUnavailable`; далее лимиты
+   `maxActivePerUser` (5), `maxGenerationsPerDay` (30),
+   `maxReissuesPerSongPerHour` (3) → `LinkAlreadyActive`. Прежняя
+   активная ссылка на ту же песню переводится в
+   `active=false, revoke_reason='replaced'`. `expires_at` пишется как
+   naive-МСК через `toMskLocalDateTime` (`setObject(..., Types.TIMESTAMP)`),
+   чтобы не зависеть от TZ JVM.
+2. **Claim** (`tryClaim`): rate-limit по IP
+   (`claimRateLimitPerIpPerMin` = 10/мин); если по ссылке уже есть живой
+   lease — возвращается существующий `sessionTokenHash` (то же
+   устройство/вкладки); иначе считается число активных сессий, при
+   `>= maxConcurrentSessions` (2) → `ConcurrentLimit` и
+   `rejected_concurrent++`; создаётся строка в `tbl_song_share_sessions`
+   и lease `now() + leaseTtlSeconds` (90 с).
+3. **Heartbeat** (`heartbeat`): `active_session_lease_until = now() + leaseTtlSeconds`,
+   `last_used_at = now()`; `executeUpdate() == 0` → `LeaseExpired`;
+   отдельным UPDATE обновляется `last_seen_at` сессии.
+4. **Release** (`release`): `finished_at = now()`, `result`
+   нормализуется к одному из `ended | closed | timeout | revoked | replaced`
+   (иначе `closed`), lease-поля ссылки обнуляются.
+5. **Sweeper** (`ShareLinkSweeper.sweep`, каждые
+   `karaoke.share.sweep-interval-seconds` = 60 с): lease-таймауты,
+   истёкшие `expires_at`, потеря премиума владельцем, SKIP/будущая
+   публикация песни; ошибки тика логируются и не роняют процесс.
 
-### `PriceService` (207 строк, см. monetization)
+### Инициализация `KaraokeWebService`
 
-См. [monetization domain](../../monetization/domain.md).
-Расчёт цены с учётом `PromoRule` (priority, percent, valid period).
+Конструктор биндит `@Value`-параметры (`work-in-container`,
+`work-on-server`, `db-*-postgres-*`) в Kotlin-глобалы, инициализирует
+`WEBSOCKET` (`SimpMessagingTemplate`) и подставляет заглушки
+`KSS_APP`/`SAC_APP`. `SNS = SseNotificationService(objectMapper)` —
+у karaoke-web нет `/subscribe`, emitters всегда пуст. Уборка бакетов
+(`deleteAllEmptyBuckets`) намеренно не вызывается — karaoke-web не
+ходит в MinIO напрямую.
 
-### `PlayerGestureUnlockService` (175 строк)
+### Заглушка `WebKaraokeStorageServiceImpl`
 
-**Файл**: `karaoke-web/.../services/PlayerGestureUnlockService.kt`.
-
-**Логика**: gesture unlock для мобильного плеера (touch/swipe).
-
-**Hot path**: используется в `PlayerView.vue` на мобильных.
-
-### `SamplingFilter` (146 строк, DDoS protection)
-
-**Файл**: `karaoke-web/.../services/SamplingFilter.kt`.
-
-**Логика**: 1/N sampling для WebEvent (см.
-[entities-catalog.md](../../catalog/components/entities-catalog.md#webevent)).
-
-**Rates**:
-
-- Анонимы: 1/20.
-- Залогиненные: 1/5.
-- Admin: 1/1 (всё).
-
-**SamplingConfig** (27 строк) — конфигурация rates.
-
-### `RateLimitInterceptor` (118 строк)
-
-**Файл**: `karaoke-web/.../services/RateLimitInterceptor.kt`.
-
-**Логика**: per-endpoint rate limit (HTTP interceptor).
-
-**Default**: 60/min per IP для `song-picture`, `song-vk-image`.
-
-**Настройка**: `KaraokeProperties` env.
-
-### `SiteUserTokenService` (92 строки)
-
-**Файл**: `karaoke-web/.../services/SiteUserTokenService.kt`.
-
-**Логика**: JWT-токены для `/api/public/account/*`.
-
-### `KaraokeWebService` (88 строк, DI setup)
-
-**Файл**: `karaoke-web/.../services/KaraokeWebService.kt`.
-
-**Содержит**:
-- `WEBSOCKET: SimpMessagingTemplate` (lateinit).
-- `WEB_WORK_IN_CONTAINER`, `WEB_WORK_ON_SERVER` (через @Value).
-- DB credentials (`DB_LOCAL_POSTGRES_USER` и т.д.).
+Все методы бросают `UnsupportedOperationException` (см. [storage
+domain](../../storage/domain.md)). Реальный доступ — через nginx
+или `StorageApiClientWeb`.
 
 ## Архитектурные решения
 
@@ -179,4 +218,5 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 
 ## Changelog
 
+- **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Автор: agent (Karaoke).

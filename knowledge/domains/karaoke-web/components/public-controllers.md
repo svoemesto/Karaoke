@@ -111,6 +111,75 @@ Real-time checks `player.readiness` (см.
 аутентификации). `SiteAuthInterceptor` проверяет JWT-токен и
 устанавливает `request.siteUser`.
 
+## Логика и Алгоритмы | Logic and Algorithms
+
+### Доступ к плееру (`PublicPlayerController`)
+
+- `authorized(id: Long, token: String?, session: String?): Boolean` — двойная
+  авторизация: сначала gesture-token
+  (`gestureUnlockService.validateToken(token, id)`), затем share-сессия
+  (`shareLinkService.validateShareSession(session, id)`); приоритет —
+  gesture-token.
+- `access(@PathVariable id: Long, @RequestParam session: String?, request)`:
+  `ready = song.isContentReady` (персистентные флаги Song, без обращения к
+  MinIO), `premium = siteUserResolver.resolve(request)?.isEffectivePremium`,
+  `subscribed = !premium && isSubscribedToSong(request, id)`,
+  `shareGuest = ready && session != null && validateShareSession(...) != null`.
+  Отсюда `canWatch = ready && (song.isFreelyAvailableNow || premium ||
+  subscribed || shareGuest)`, `canExport = canWatch && premium && !shareGuest`
+  (гость стемы не скачивает), `isDemo = ready && !canWatch`.
+- Токен выдаётся только при `canWatch || isDemo`:
+  `gestureUnlockService.issueDirectAccessToken(id)` либо
+  `issueDemoAccessToken(id, demoFragmentStartSeconds, demoFragmentEndSeconds)`.
+- Факт доступа логируется `mainController.doRegisterEvent(...)`:
+  `source=list` → `PlayerAction.OPENED`, иначе `PlayerAction.SHOWN`.
+- `readiness(@RequestParam ids: String, request)` — batch-проверка без MinIO:
+  `ids.split(",")` + дедупликация; `contentReady = song.isContentReady`,
+  `watchable = contentReady && (song.isFreelyAvailableNow || premium ||
+  id in subscribedIds)`; подписки набираются одним запросом
+  `Subscription.subscribedSongIds(userId, songIds, ...)`.
+
+### Платёжный webhook (`PublicPaymentController`)
+
+`webhook(@RequestBody body: Map<String, Any?>)` — событие ЮKassa
+(`{"event": ..., "object": {"id": ...}}`):
+
+1. Нет `object.id` → 400 `no_payment_id`.
+2. `Subscription.getAllByYookassaPaymentId(paymentId, ...)` — заказ корзины
+   (несколько подписок на один платёж); пусто → 200 `unknown_subscription`
+   (не 500).
+3. Идемпотентность: все позиции уже `STATUS_PAID` → 200, no-op.
+4. Телу вебхука не доверяем: `paymentService.verifyAndFetch(paymentId)`
+   перезапрашивает статус у ЮKassa; `null` → 502 `verify_failed`.
+5. `succeeded` → `STATUS_PAID` + `paidAt` + `yookassaPaymentMethodId` и
+   `applyFulfillment(sub)`; `canceled` → `STATUS_FAILED`;
+   `pending`/`waiting_for_capture` — ничего (ждём следующего события).
+6. `applyFulfillment` работает только для `SCOPE_SITE`: продлевает
+   `SiteUser.sitePremiumUntil` от `max(now, текущая дата)`, повторная оплата
+   не теряет ранее оплаченный хвост срока.
+
+### Polling-кеши и share-сессии
+
+- `PollingCache<V>` (класс в `karaoke-app`, Pass 456) навешен на:
+  `GET /api/public/news/since` (TTL 60s),
+  `GET /api/public/account/chat/unreadcount` (10s),
+  `POST /api/public/share/heartbeat` (15s, ключ
+  `share_heartbeat:<sessionTokenHash>`); cache-hit не дёргает БД.
+- `POST /api/public/share/claim(@RequestBody body)` требует `secret` +
+  `browserHash`; `SongShareLinkService.tryClaim` возвращает `linkExpiresAt`
+  (срок ссылки), `expiresAt` (текущий lease 90s), `sessionTokenHash` и
+  `redirectTo`. Ошибки: 400 `share.tokenMissing`, 409 `ConcurrentLimit`,
+  429 `RateLimited`, 404 `share.notFound`, 500 `share.internal`.
+- `POST /api/public/share/release` принимает и JSON, и form-urlencoded —
+  `navigator.sendBeacon` при уходе со страницы не умеет `application/json`.
+
+### Rate limit
+
+`RateLimitInterceptor` (регистрация — `WebMvcConfig`) навешен на
+`/api/public/song-picture/**` и `/api/public/song-vk-image/**`; лимит —
+`KaraokeProperties.rateLimitSongPicturePerMinute` /
+`rateLimitSongVkImagePerMinute` (дефолт 60/мин на IP).
+
 ## Архитектурные решения
 
 ### Решение 1: Все Public* без авторизации (кроме /account/)
@@ -156,4 +225,5 @@ rate limit 60/min per IP (через `RateLimitInterceptor`,
 
 ## Changelog
 
+- **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 363** (2026-09-09): Initial. Автор: agent (Karaoke).

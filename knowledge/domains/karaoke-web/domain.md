@@ -82,6 +82,40 @@ sampling, dedup, rate limiting. Все настройки — через
 | **`SiteAuthInterceptor`** | Защита `/api/public/account/*` (см. `config/`). |
 | **`PublicCartController`** | Публичная корзина (НЕ в `cart/` домене). |
 
+## Публичные контракты (API)
+
+### Публичный JSON API (`/api/public/*`, потребляет `karaoke-public`)
+
+| Группа | Базовый путь | Что внутри |
+|---|---|---|
+| Каталог | `/api/public` (`PublicApiController`) | `/stats`, `/authors`, `/authors-tiles`, `/authors/{authorId}/albums`, `/songs`, `/song/{id}`, `/picture`, `POST /events` |
+| Поток zakroma | `/api/public/zakroma/stream` | NDJSON-stream (`produces = application/x-ndjson`) + `POST /zakroma/stream/metrics` |
+| Аутентификация | `/api/public/auth` (`PublicAuthController`) | `/login`, `/logout`, `/register`, `/me`, `/config` |
+| Аккаунт (защищён `SiteAuthInterceptor`) | `/api/public/account/**` | `/profile`, `/change-password`, `/chat`, `/cart`, `/subscription`, `/stemjobs`, `/editor` |
+| Плеер | `/api/public/player` (`PublicPlayerController`) | `/api/public/player/{id}/fileminus.mp3` и другие файлы плеера |
+| Платежи | `/api/public/payment` (`PublicPaymentController`) | `POST /webhook` — уведомления YooKassa |
+| Прочее | `/api/public/news`, `/api/public/share`, `/api/public/songeditor`, `/api/public/debug` | `/news/since` (polling, TTL 60s), `/share/heartbeat` (TTL 15s), `/song-picture/{id}` и `/song-vk-image/{id}` (rate limit 60/min) |
+
+### Thymeleaf HTML (server-rendered)
+
+`/`, `/zakroma`, `/song`, `/filter`, `/statbysong`, `/webevents`,
+`/testpage/{id}` — см. [main-controller](components/main-controller.md).
+
+### Internal (server-to-server)
+
+| Endpoint | Назначение |
+|---|---|
+| `POST /registerevent` | Событие web-аналитики (см. [main-controller](components/main-controller.md)) |
+| `POST /changerecords` | Приём изменений two-DB sync (зашифрованный SQL) |
+| `GET /api/internal/stemjobs/{id}/raw`, `/{id}/ack` | Файлы StemJob admin↔web (shared-secret, см. [internal-stem-job-controller](components/internal-stem-job-controller.md)) |
+| `/api/siteusers/share/*` | Admin-управление share-ссылками (`SiteShareLinksController`) |
+
+### Real-time
+
+STOMP-WebSocket: endpoint `/api/message` (SockJS), broker
+`/api/messages`, app-prefix `/app` (`WebSocketConfig`) — см.
+[sse domain](../sse/domain.md).
+
 ## Зависимости | Dependencies
 
 - **Storage** ([storage domain](../storage/domain.md)) —
@@ -218,4 +252,7 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 
 ## Changelog
 
+- **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): добавлена
+  секция «Публичные контракты (API)» (группы `/api/public/*`, Thymeleaf,
+  internal, STOMP-WebSocket — сверено по контроллерам). Автор: agent (Karaoke).
 - **Pass 362** (2026-09-09): Initial. Автор: agent (Karaoke).

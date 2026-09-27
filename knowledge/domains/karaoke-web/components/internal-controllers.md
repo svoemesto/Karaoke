@@ -21,7 +21,7 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 |---|---|---|---|---|
 | 1 | `MainController` | 23 | `/`, `/zakroma`, `/login`, etc. | Thymeleaf HTML (статические страницы) |
 | 2 | `InternalStatsController` | 2 | `/api/internal/stats/...` | Внутренняя статистика |
-| 3 | `InternalStemJobController` | 3 | `/api/internal/stem-jobs/...` | Скачивание оригинала для StemJob |
+| 3 | `InternalStemJobController` | 3 | `/api/internal/stemjobs/...` | Скачивание оригинала для StemJob |
 | 4 | `DebugDbController` | 2 | `/api/public/debug/db` | Debug DB (защищённый) |
 | 5 | `SiteShareLinksController` | 4 | `/api/siteusers/share/...` | Управление share-линками (admin) |
 | 6 | `WebSocketConfig` | 0 | `/ws` | WebSocket/SSE endpoint config |
@@ -34,9 +34,11 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 
 **Endpoints** (по grep `@GetMapping`/`@PostMapping`):
 
-- Thymeleaf-страницы (HTML рендеринг): `/`, `/zakroma`, `/login`,
-  `/player/{id}`, `/news/{id}`, `/playlists/{id}`, etc.
-- API endpoints для них (JSON): `/api/web/...`.
+- Thymeleaf-страницы (HTML рендеринг): `/`, `/zakroma`, `/filter`, `/song`,
+  `/statbysong`, `/webevents`, `/testpage/{id}` (проверено по
+  `@GetMapping` в `MainController.kt`).
+- JSON/`@ResponseBody`: `POST /registerevent` (web-аналитика),
+  `POST /changerecords` (two-DB sync).
 
 **Архитектура**: Thymeleaf-шаблоны в `templates/`, контроллер
 принимает `Model` и возвращает HTML.
@@ -63,7 +65,10 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 
 **Endpoints** (по grep):
 
-- `/api/internal/stats/...` — внутренняя статистика для admin.
+- `POST /api/internal/stats/mark-dirty` — взводит флаг `StatBySong.markDirty()`
+  (пересчёт подхватывает `StatsCacheScheduler.refreshIfDirty()` в течение
+  минуты). Полный путь — `@RequestMapping("/api/internal/stats")` +
+  `@PostMapping("/mark-dirty")`.
 
 ### `InternalStemJobController`
 
@@ -83,8 +88,11 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 
 **Endpoints**:
 
-- `/api/public/debug/db` — execute SQL для отладки.
-- `/api/public/debug/db/status` — статус.
+- `GET /api/public/debug/db` — метрики ресурсов (pg `active`/`idle`/`max`
+  connections, `currentThreadCount`, `currentTomcatMaxThreads`, `sampledAt`)
+  для отладки.
+- [WARN] `/api/public/debug/db/status` — эндпоинта НЕ существует (проверено
+  Pass 481: у `DebugDbController` только `@GetMapping("/db")`).
 
 **Защита** (FR-006 из site-traffic-resilience):
 
@@ -109,6 +117,75 @@ WebSocket/SSE endpoint config. **Без endpoints** (только config).
 `SseEmitter` (см. [sse domain](../../sse/domain.md)). Этот класс
 настраивает `WebSocket` для других целей (возможно, чат или
 push-уведомления).
+
+## Логика и Алгоритмы | Logic and Algorithms
+
+### `MainController` — рендеринг и события
+
+- `main(model: Model, request): String` → шаблон `main`: атрибуты-счётчики
+  `StatBySong` (`onSponsr`, `onAir`, `exclusive`, `inWork`, `total`) и
+  `latestNews = News.loadPublished(WORKING_DATABASE, limit = 5, offset = 0)`;
+  при сбое БД список остаётся пустым, страница рендерится с HTTP 200 (без
+  падения). Затем регистрируется `CALL_REST` / `RestName.MAIN`.
+- `zakroma(@RequestParam author: String?, model, request): String` →
+  `canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false`;
+  `Song.loadListAuthors(withSkiped = canSeeSkipped)` и
+  `Zakroma.getZakroma(..., onlyPublished = true, canSeeSkipped = canSeeSkipped)`;
+  событие `CALL_REST` / `RestName.ZAKROMA`.
+- `doRegisterEvent(@RequestParam data: Map<String, Any>, request,
+  siteUserId: Long = 0): Boolean` — без `eventType` сразу `false`; IP берётся
+  из `ClientIpResolver.resolve(request)`, плюс `User-Agent` и `anonId`;
+  вставка идёт через `EventsBuffer.EventRecord` (kill-switch
+  `karaoke.web.events.batch-enabled`, дефолт `false` = синхронный INSERT) и
+  [`SamplingFilter`](../../../system/frontend/composable-engagement-tracking.md).
+- `doChangeRecords(...)` — `Crypto.decrypt(word)` должен совпасть с
+  `Crypto.WORDS_TO_CHECK`; применяются три набора SQL-действий
+  (`dataCreate`/`dataUpdate`/`dataDelete`), для `tbl_songs` до изменения
+  запоминается флаг доступности песни для новости (`songAvailabilityBefore`,
+  spec `101-song-news-flag`).
+
+### Internal-эндпоинты — shared secret
+
+- `InternalStemJobController.authorized(request): Boolean` — при пустом
+  `stemjobs.internal-secret` всегда `false` (по умолчанию закрыто), иначе
+  сравнение с заголовком `X-Internal-Secret`.
+- `raw(id, request, response)` — 403 без секрета; 404 если `StemJob` или
+  `File(tempDir, "${job.id}.${job.originalExt}")` не найдены; иначе 200
+  `application/octet-stream` с `Content-Length`.
+- `ack(id, request, response)` — 403 без секрета; удаляет
+  `File(tempDir, "$id.$ext")`, а если запись уже удалена — перебирает все
+  `StemJob.ALLOWED_EXTENSIONS`; отвечает 200.
+- `InternalStatsController.markDirty(request, response)` — после проверки
+  секрета взводит `StatBySong.markDirty()`; сам пересчёт отложен —
+  `StatsCacheScheduler.refreshIfDirty()` подхватывает флаг в течение минуты.
+- Оба контроллера **не проходят** `SiteAuthInterceptor`: `WebMvcConfig`
+  регистрирует его только на `/api/public/account/**`,
+  `/api/public/auth/{me,logout}` и `/api/siteusers/**`.
+
+### `DebugDbController` — fail-safe
+
+- `db(request): ResponseEntity<Any>` — `DebugDbAccessGuard.isAllowed(properties,
+  request)`; если не разрешено, отдаётся **404** (эндпоинт невидим, а не 403).
+- Master switch — `KARAOKE_WEB_DEBUG_DB_ENABLED` (дефолт `false`), allowlist —
+  `KARAOKE_WEB_DEBUG_DB_ALLOWED_IPS` (CIDR/IPv4 через запятую).
+- Тело ответа: `pgActiveConnections`/`pgIdleConnections`/`pgMaxConnections`
+  из `readPgStats()` (`pg_stat_activity` + HikariCP), `currentThreadCount` и
+  `currentTomcatMaxThreads` из `ManagementFactory.getThreadMXBean()`,
+  `sampledAt` (ISO-8601).
+
+### `SiteShareLinksController`
+
+Все три эндпоинта (`POST /links`, `POST /links/revoke`, `POST /sessions`)
+начинаются с `resolveEditorOrThrow(request)` — проверка `isEditor` внутри
+контроллера; `target` выбирает БД (`resolveDatabase`), недоступная удалённая
+БД → 503 `site.remote_unavailable`.
+
+### `WebSocketConfig`
+
+STOMP-конфигурация: `enableSimpleBroker("/api/messages")`,
+`setApplicationDestinationPrefixes("/app")`, точка подключения
+`registry.addEndpoint("/api/message").withSockJS()`. SSE здесь не
+реализован — он идёт через `SseEmitter`.
 
 ## Архитектурные решения
 
@@ -147,4 +224,5 @@ endpoints возвращают JSON. Гибрид — для статическ�
 
 ## Changelog
 
+- **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 364** (2026-09-09): Initial. Автор: agent (Karaoke).

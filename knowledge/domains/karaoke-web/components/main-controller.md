@@ -19,7 +19,12 @@
 **Thymeleaf HTML-страницы** (статические HTML) + **internal JSON
 endpoints** (для server-to-server между karaoke-app и karaoke-web).
 
-## Endpoints (Thymeleaf HTML)
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Контроллер отдаёт два разных контракта из одного класса: HTML-страницы
+(Thymeleaf) и JSON/`@ResponseBody`-endpoints для server-to-server.
+
+### Thymeleaf HTML-страницы
 
 | URL | Что |
 |---|---|
@@ -31,22 +36,44 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
 | `GET /statbysong` | Счётчики (StatBySong) |
 | `GET /webevents` | События |
 
-## Endpoints (JSON, internal)
+### JSON, internal (server-to-server)
 
-| URL | Что |
+| URL | Контракт |
 |---|---|
-| `POST /registerevent` | Регистрация события (с ClientIp + tracking) |
-| `POST /changerecords` | Приём изменений two-DB sync (зашифрованный SQL через `Crypto.encrypt`) |
-| `GET /api/internal/stemjobs/{id}/raw` (реальный путь; прежний `/api/internal/stem-jobs/{id}/download-original` не существует — Pass 477) | См. [internal-stem-job-controller.md](internal-stem-job-controller.md) |
+| `POST /registerevent` | Тело-`Map` с обязательным `eventType` (+ `anonId`); `siteUserId` — query-параметр. Возвращает `Boolean`. |
+| `POST /changerecords` | Тело: `word` (зашифрованное кодовое слово) + `dataCreate`/`dataUpdate`/`dataDelete` (списки SQL-действий). Возвращает `String` (`"OK"` или текст ошибки). |
+| `GET /api/internal/stemjobs/{id}/raw` | Реальный путь; прежний `/api/internal/stem-jobs/{id}/download-original` не существует (Pass 477). См. [internal-stem-job-controller.md](internal-stem-job-controller.md) |
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
-- **Импорты**: `KaraokeStorageService`, `StorageApiClient`,
-  `SongReleaseAnnouncementService`, `SamplingFilter`,
-  `SiteUserResolver`.
-- **Enums**: `EventType`, `LinkType`, `PlayerAction`, `RestName`.
-- **Crypto**: `Crypto.encrypt(sql)` для `/changerecords` (теперь
-  через env, см. [system/utilities.md](../../../system/utilities.md)).
+**`POST /registerevent`** (web-аналитика):
+
+1. Без `eventType` в теле — сразу `false`.
+2. IP клиента — `ClientIpResolver.resolve(request)`, плюс `User-Agent`
+   и `anonId` из тела.
+3. Событие формируется в `EventsBuffer.EventRecord` и уходит батчевым
+   INSERT; kill-switch — `karaoke.web.events.batch-enabled` (дефолт
+   `false` = синхронный INSERT, как раньше). SQL-формирование
+   инкапсулировано в `EventsBuffer.buildInsertSql`.
+4. Каждое событие проходит через [`SamplingFilter`](../../../system/frontend/composable-engagement-tracking.md) —
+   1/N sampling для web-аналитики (см.
+   [monitoring/log-categories.md](../../monitoring/components/log-categories.md)).
+
+**`POST /changerecords`** (two-DB sync):
+
+1. `Crypto.decrypt(word)` должен совпасть с `Crypto.WORDS_TO_CHECK` —
+   иначе возвращается «Не удалось расшифровать кодовое слово».
+2. Применяет три набора действий к `WORKING_DATABASE`; для строк
+   `tbl_songs` запоминает флаг «доступна для новости» **до** изменения
+   (`songAvailabilityBefore`, spec `101-song-news-flag`) и детектирует
+   переход после применения всего батча.
+3. `Crypto.encrypt`/`decrypt` берут ключ из env, см.
+   [system/utilities.md](../../../system/utilities.md).
+
+**Реализация**: импорты — `KaraokeStorageService`, `StorageApiClient`,
+`SongReleaseAnnouncementService`, `SamplingFilter`, `SiteUserResolver`,
+`ClientIpResolver`; enums — `EventType`, `LinkType`, `PlayerAction`,
+`RestName`.
 
 ## Hot paths
 
@@ -73,7 +100,7 @@ endpoints для internal). Разделение — по `produces` и типу
 ### Решение 3: WebSocket + SSE
 
 `SimpMessagingTemplate` — для SSE-push (см.
-[sse domain](../../sse/domain.md)). ВThymeleaf-страницах
+[sse domain](../../sse/domain.md)). В Thymeleaf-страницах
 используется для real-time обновлений (например, новые сообщения в
 чате).
 
@@ -93,4 +120,9 @@ endpoints для internal). Разделение — по `produces` и типу
 
 ## Changelog
 
+- **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции
+  «Endpoints …» сведены в «Интерфейсы и Контракты» (два контракта: Thymeleaf
+  и internal JSON), «Логика и Алгоритмы» дополнена фактическим потоком
+  `/registerevent` (EventsBuffer, kill-switch) и `/changerecords`
+  (decrypt → три набора действий → детекция флага новости). Автор: agent (Karaoke).
 - **Pass 436-438** (2026-09-09): Initial. Автор: agent (Karaoke).

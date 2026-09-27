@@ -135,6 +135,49 @@ ThreadLocal `TabIdContext` сохраняет `tabId` на время HTTP-за�
 Защита от дублей: если вкладка переподключилась (например, F5),
 старый emitter удаляется. Один на tab.
 
+## Публичные контракты (API)
+
+### HTTP-контракт (SSE)
+
+- `GET /api/subscribe?tabId=<uuid>` — `ApiController`
+  (`@RequestMapping("/api")`, `ApiController.kt:6041`): создаёт
+  `SseEmitter(timeout = -1)` и регистрирует его по `UserKey(userId = 1L, tabId)`.
+  Заголовки ответа: `Content-Type: text/event-stream`, `Cache-Control: no-store`,
+  `X-Accel-Buffering: no`. Потребитель — `webvue3` (`App.vue:282`,
+  `EventSourcePolyfill`, `heartbeatTimeout = 30000`); других слушателей нет.
+- Heartbeat: SSE-комментарий `ping` каждые 15 с
+  (`@Scheduled(fixedRate = 15_000)`, `SseNotificationService.kt:165`).
+- STOMP-конфигурация в `karaoke-web` (`WebSocketConfig.kt:15`: endpoint
+  `/api/message` с SockJS, simple-broker `/api/messages`, app-prefix `/app`)
+  присутствует, но **не используется**: `SimpMessagingTemplate` нигде не
+  вызывается (`convertAndSend` в коде не встречается), прикладного
+  STOMP-клиента во фронтах нет. Реальный контракт real-time — только SSE.
+
+### Каналы (типы событий)
+
+Публикуются через `SseNotificationService.send(SseNotification)`; тип —
+`SseNotificationType` (имя на клиенте в скобках). Broadcast для всех типов, кроме
+`MESSAGE`/`ERROR` — они addressed по `tabId` (`addressedTypes`).
+
+| Публикатор | Типы |
+| --- | --- |
+| `KaraokeDbTable.save()` / `createDbInstance`, `KaraokeProcess` | `RECORD_CHANGE` (`recordChange`), `RECORD_ADD` (`recordAdd`), `RECORD_DELETE` (`recordDelete`) |
+| `KaraokeProcessWorker` (`:775`, `:820`) | `PROCESS_WORKER_STATE` (`processWorkerState`), `PROCESS_COUNT_WAITING` (`processCountWaiting`) |
+| `StorageMetadataCache` → `KaraokeProcessWorker.sendCacheQueueSizeMessage` | `CACHE_QUEUE_SIZE` (`cacheQueueSize`), specs/118 #397 |
+| `HealthReport.recomputeAndBroadcast` (`HealthReport.kt:2473`) | `HEALTH_REPORTS` (`healthReports`) |
+| `HealthReportBatchPool` (`:155`, `:194`) | `HEALTH_REPORT_POOL_COUNT` (`healthReportPoolCount`), `HEALTH_REPORT_WAITING_POOL_SIZE` (`healthReportWaitingPoolSize`) |
+| `MonitoringService.kt:79`, `ApiController.kt:4868` / `:5490` | `MONITOR_ALERTS` (`monitorAlerts`), `MASS_SEARCH_SUMMARY` (`massSearchSummary`) |
+
+Полный перечень значений — `model/SseNotificationType.kt`; фабрики событий —
+`model/SseNotification.kt`.
+
+### Internal API
+
+- `SseNotificationService.subscribe(userId, tabId): SseEmitter`, `send(notification)`,
+  `heartbeat()`, `onShutdown()`.
+- `SseNotification` — фабрики событий; `UserKey(userId, tabId)`; `TabIdContext`
+  (ThreadLocal с `tabId` текущего HTTP-запроса).
+
 ## Структура компонентов (C4 L3)
 
 L3-компонентов у домена пока нет: контекст описан целиком в этом
@@ -214,3 +257,4 @@ L3-компонентов у домена пока нет: контекст оп
 ## Changelog
 
 - **Pass 341 P2** (2026-09-09): Initial. Автор: agent (Karaoke).
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

@@ -130,6 +130,54 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 потому что веб-прокси иногда кодирует имена файлов (русские
 буквы, спецсимволы).
 
+## Публичные контракты (API)
+
+### HTTP-контракты
+
+- **Admin-HTTP над `KaraokeStorageService`** — `StorageController`
+  (`karaoke-app/.../controllers/StorageController.kt:26`,
+  `@RequestMapping("/api/storage")`). Потребитель — `karaoke-web`:
+  `StorageApiClientWeb` шлёт те же вызовы через `WebClient` с
+  `baseUrl = https://sm-karaoke.ru/api/storage`
+  (`karaoke-web/.../config/WebClientConfig.kt:26`).
+  - `POST /api/storage/upload` (multipart: `file`, `bucketName`, `fileName?`),
+    `GET /api/storage/download` (стрим, Range/206), `GET /api/storage/url`,
+    `GET /api/storage/presigned-url?expiry`, `DELETE /api/storage/delete`,
+    `GET /api/storage/list`, `GET /api/storage/exists` → `{exists: Boolean}`;
+  - `POST /api/storage/fileStat` → `StatObjectResponse?`,
+    `POST /api/storage/fileInfo` → `StorageFileInfo?`,
+    `POST /api/storage/listInfo` → `List<StorageFileInfo>?`;
+  - `PUT /api/storage/bucket/public`, `PUT /api/storage/bucket/private`,
+    `GET /api/storage/bucket/public-status`.
+  Контракт ошибок: невалидное `fileName` → 400; отсутствующий bucket/file → 404.
+- **nginx path-proxy `/minio/<bucket>/<object>`** — неподписанные GET/HEAD к MinIO
+  (`deploy/prod-single-host/80to8897:6`; локальный аналог —
+  `deploy/karaoke-web/minio-proxy-local.conf:13`). Потребители: браузер публичного
+  сайта (URL `/minio/karaoke/<encoded>` отдают `PublicApiController`,
+  `PublicPlayerController`, `PublicPlaylistController`) и серверный fetch
+  `karaoke-web` (`fetchFromMinIO` в `PublicApiController.kt:253` и
+  `PublicPlayerController.kt:295`, `PublicStemJobController.kt:166`). Продюсер —
+  MinIO, вне Java-кода; `karaoke-app` ходит в MinIO через SDK напрямую.
+
+### Internal API
+
+- **`KaraokeStorageService`** (blocking, local MinIO, read+write для `karaoke-app`) —
+  `uploadFile` (`InputStream` + `size` либо путь на диске), `downloadFile` (→
+  `InputStream` либо `File`), `deleteFile`, `fileExists`, `fileIsActual`,
+  `listFiles`, `listFilesInfo`, `getFileInfo` →
+  `StorageFileInfo(bucketName, fileName, etag, size)`,
+  `getFileStat` → `StatObjectResponse?`, `getFileUrl`,
+  `getPresignedUrl(expiry = 604800)`, `bucketExists`, `createBucketIfNotExists`,
+  `deleteAllEmptyBuckets`, `setBucketPublic` / `setBucketPrivate` / `isBucketPublic`.
+- **`StorageApiClient`** (reactive, `Mono`) — та же поверхность для remote MinIO.
+  Реализации: `StorageApiClientImpl` (karaoke-app, MinioClient SDK напрямую) и
+  `StorageApiClientWeb` (karaoke-web, WebClient → `/api/storage/*`).
+- **`WebKaraokeStorageServiceImpl`** — DI-заглушка karaoke-web: все методы бросают
+  `UnsupportedOperationException` и реального контракта не дают.
+
+Детали компонент — [karaoke-storage-service](components/karaoke-storage-service.md),
+[storage-api-client](components/storage-api-client.md).
+
 ## Структура компонентов (C4 L3)
 
 - [karaoke-storage-service](components/karaoke-storage-service.md) — Spring-бин для `karaoke-app`, инкапсулирующий доступ к **local MinIO** (`karaoke-storage:9000`). Полный **read+write**…
@@ -279,3 +327,7 @@ LOCAL+REMOTE (включая `exists=false`). Нужен после сброса
 - `archive/docs/features/mlt-generator.md` — упомянут в KDoc.
 - ADR `0004-karaoke-app-admin-only.md` — `karaoke-app` только на
   admin-машине.
+
+## Changelog
+
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

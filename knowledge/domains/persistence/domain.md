@@ -157,6 +157,49 @@ md5 от канонизированной строки. Позволяет O(n) 
 
 UI обновляется без polling → экономия трафика и времени.
 
+## Публичные контракты (API)
+
+### HTTP-API
+
+У домена **нет HTTP-эндпоинтов**: `KaraokeDbTable` — библиотечный слой
+персистентности, к которому обращаются контроллеры и сервисы других доменов.
+Единственный «наружу»-эффект — SSE-события после записи (см. ниже).
+
+### Internal API
+
+- `KaraokeDbTable` (реализуют все DB-сущности):
+  - `getTableName(): String`, `toDTO(): KaraokeDbTableDto`,
+    `getSqlToInsert(): String`;
+  - `save()` — INSERT при `id == 0L` (через `createDbInstance`), иначе
+    diff-UPDATE только изменённых колонок; после UPDATE шлёт SSE `recordChange`;
+  - companion-загрузка: `loadList(clazz, tableName, whereList, limit, offset,
+    database, storageService, storageApiClient, sync, ignoreUseInList)` →
+    `List<KaraokeDbTable>`, `loadById(...)` → `KaraokeDbTable?`, `loadByIds(...)` →
+    `List<KaraokeDbTable>`;
+  - `createDbInstance(entity, database): KaraokeDbTable?` — INSERT + id/self-heal
+    сиквенса; `delete(tableName, id, database, sync): Boolean`,
+    `deleteIn(tableName, ids, database, sync): Int`;
+  - `getDiff(entityA, entityB): List<RecordDiff>` — порядок колонок по
+    `KaraokeDbTableField.name` (Pass 451);
+  - `getListHashes(tableName, database, whereText): List<RecordHash>?` — пары
+    `(id, recordhash)` для two-DB sync;
+  - `invalidateSchemaCache(tableName?, database?)` — сброс reflection-кеша.
+- `@KaraokeDbTableField(name, isId, useInDiff, useInHash, useInList)` — контракт
+  аннотации: имя колонки и участие поля в diff/hash/`loadList`.
+- `RecordDiff(recordDiffName, recordDiffValueNew, recordDiffValueOld,
+  recordDiffRealField)` — единица изменения; `RecordHash(id, recordhash)` —
+  единица sync-diff.
+- `KaraokeConnection.getConnection(): java.sql.Connection?` — соединение на поток
+  (ThreadLocal) с self-healing; `closeThreadConnection()`.
+- `Connection.local()` / `Connection.remote()` / `Connection.virtual()` —
+  singleton-фабрики (`name = LOCAL | SERVER | VIRTUAL`); URL/credentials зависят
+  от `APP_WORK_*`.
+
+### Внешний артефакт
+
+- SSE `recordChange` / `recordAdd` / `recordDelete`
+  (см. [sse domain](../sse/domain.md)) — публичный побочный эффект записи.
+
 ## Структура компонентов (C4 L3)
 
 L3-компонентов у домена пока нет: контекст описан целиком в этом
@@ -231,3 +274,4 @@ L3-компонентов у домена пока нет: контекст оп
 ## Changelog
 
 - **Pass 341 P2** (2026-09-09): Initial. Автор: agent (Karaoke).
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

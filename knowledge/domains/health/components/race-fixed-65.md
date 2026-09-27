@@ -23,7 +23,32 @@ per-song single-flight guard для `HealthReport.repair-loop` (реальный
 модифицируют `autoRepairSongIds` и оба вызывают
 `recomputeAndBroadcast` + `executeResolvable` параллельно.
 
-## Решение (FIXED in Pass 343)
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Публичная поверхность guard'а — три функции в `companion object`
+`HealthReport` (`karaoke-app/.../HealthReport.kt:2393-2407`):
+
+| Функция | Контракт |
+|---|---|
+| `attemptEnterRepair(songId: Long): Boolean` | `true` — поток вошёл в repair; `false` — для этой песни repair уже идёт (skip). Внутри `repairInFlight.computeIfAbsent(songId) { AtomicBoolean(false) }.compareAndSet(false, true)`. |
+| `exitRepair(songId: Long)` | Освобождает флаг: `repairInFlight[songId]?.set(false)`. Ключ в map остаётся (осознанно — чтобы не было memory churn). |
+| `cleanupRepair(songId: Long)` | Полное удаление ключа: `repairInFlight.remove(songId)`. **Пока не вызывается нигде** (см. Trade-offs). |
+
+Внутреннее состояние (private, companion):
+
+- `repairInFlight: ConcurrentHashMap<Long, AtomicBoolean>` — per-song
+  single-flight.
+- `autoRepairSongIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()` —
+  песни в каскаде «Исправить всё».
+
+Точки входа, обёрнутые в guard:
+
+- `startRepairAll(song: Song, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient)` — HTTP-поток (UI «Исправить всё»), repair уходит в `repairExecutor` (fire-and-forget, HTTP-тред не блокируется).
+- `onRepairProcessFinished(songId: Long, success: Boolean, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient)` — worker-поток, после завершения задания каскада.
+
+## Логика и Алгоритмы | Logic and Algorithms
+
+### Решение (FIXED in Pass 343)
 
 **Per-song single-flight guard** через `AtomicBoolean`:
 
@@ -46,31 +71,47 @@ fun cleanupRepair(songId: Long) {
 }
 ```
 
-## Использование в `startRepairAll` / `onRepairProcessFinished`
+### Использование в `startRepairAll` / `onRepairProcessFinished`
 
 ```kotlin
-fun startRepairAll(song, database, storageService, storageApiClient) {
-    if (!attemptEnterRepair(song.id)) return  // skip — другой поток чинит
+// HealthReport.startRepairAll (HTTP-поток, fire-and-forget):
+if (!attemptEnterRepair(song.id)) return      // skip — другой поток чинит
+autoRepairSongIds.add(song.id)
+recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
+repairExecutor.submit {
     try {
-        // ... существующая логика ...
+        // пересчёт → executeResolvable(reportsBefore) → финальный пересчёт
     } finally {
-        exitRepair(song.id)
+        exitRepair(songId)                    // флаг снимается по завершении repair
     }
 }
 
-fun onRepairProcessFinished(songId, success, database, storageService, storageApiClient) {
-    if (!attemptEnterRepair(songId)) return  // skip
-    try {
-        // ... существующая логика ...
-    } finally {
-        exitRepair(songId)
-    }
+// HealthReport.onRepairProcessFinished (worker-поток):
+if (!attemptEnterRepair(songId)) return        // skip — другой поток чинит
+try {
+    val reports = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+    if (songId !in autoRepairSongIds) return
+    if (!success) { autoRepairSongIds.remove(songId); return }  // ERROR обрывает каскад
+    // resolvable → executeResolvable + пересчёт; иначе !inProgress → выход из каскада
+} finally {
+    exitRepair(songId)
 }
 ```
 
+Порядок для обоих входов: `attemptEnterRepair` → (`true`) работа →
+`finally exitRepair`; при `false` вызов тихо пропускается.
+
+### Защита от race сценариев
+
+| Сценарий | Без fix | С fix |
+|---|---|---|
+| `startRepairAll` (HTTP) vs `onRepairProcessFinished` (worker) на одной песне | **двойное выполнение** actions | один выполняет, другой **skip** |
+| `autoRepairSongIds` — не thread-safe Set | потенциальный `ConcurrentModificationException` | **synchronized** через `computeIfAbsent` (AtomicBoolean) |
+| Разные песни | не блокируют друг друга | **не блокируют** (perSong lock) |
+
 ## Unit-тесты (Pass 343)
 
-`HealthReportRepairRaceTest.kt`:
+`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportRepairRaceTest.kt`:
 
 1. `attemptEnterRepair returns true on first call, false on second call before exit`
 2. `exitRepair allows re-entry`
@@ -88,14 +129,6 @@ fun onRepairProcessFinished(songId, success, database, storageService, storageAp
    песни никогда не очищаются. Решение: `cleanupRepair(songId)`
    (пока НЕ вызывается нигде — TODO Pass 343+).
 
-## Защита от race сценариев
-
-| Сценарий | Без fix | С fix |
-|---|---|---|
-| `startRepairAll` (HTTP) vs `onRepairProcessFinished` (worker) на одной песне | **двойное выполнение** actions | один выполняет, другой **skip** |
-| `autoRepairSongIds` — не thread-safe Set | потенциальный `ConcurrentModificationException` | **synchronized** через `computeIfAbsent` (AtomicBoolean) |
-| Разные песни | не блокируют друг друга | **не блокируют** (perSong lock) |
-
 ## Зависимости | Dependencies
 
 - [health-report.md](health-report.md) — общая компонента.
@@ -106,6 +139,7 @@ fun onRepairProcessFinished(songId, success, database, storageService, storageAp
 
 ## Changelog
 
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 343** (2026-09-09):
   - Гипотеза документирована (Pass 343 detail-2).
   - **FIXED** с unit-тестами (4/4 passed).

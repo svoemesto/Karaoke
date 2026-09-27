@@ -77,6 +77,57 @@ Health отвечает за проверку: «эти три представ�
   размер рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE`. Детальный
   контракт — в [health-report-batch-pool](components/health-report-batch-pool.md).
 
+## Публичные контракты (API)
+
+### HTTP-контракты: отчёты и ремонт (admin, `karaoke-app`)
+
+Потребитель — `webvue3` (Vuex-модули `Common/HealthReport` и `Songs`).
+
+| Метод | Путь | Контракт |
+| --- | --- | --- |
+| POST | `/api/song/healthReportList?id=` | синхронно возвращает `List<HealthReportDTO>` (только `errorsOnly()`) для одной песни; потребитель — `webvue3/src/components/Common/HealthReport/store.js:30` |
+| POST | `/api/song/healthReportList/batch` | батч-версия (specs/118 #397) через `StorageMetadataCache.cacheFillerExecutor`, отдаёт сразу `queued` + `activeSongIds`; потребитель — `webvue3/src/components/Songs/SongsTable.vue:1473` |
+| POST | `/api/song/healthReportListBatch?songIds=1;2` | async: id'ы уходят в `HealthReportBatchPool`, ответ `202 Accepted`, отчёты приходят по SSE `healthReports`; потребитель — `webvue3/src/components/Songs/store.js:1875` |
+| POST | `/api/song/repairAll?id=` | каскадный авто-ремонт одной песни (`HealthReport.startRepairAll`); потребитель — `Common/HealthReport/store.js:64` |
+| POST | `/api/song/executeHealthReportActions?id=&healthReportStatusName=&healthReportTypeName=&description=` | выполняет `solutionActions` конкретного отчёта; потребитель — `Common/HealthReport/store.js:50` |
+
+Все объявлены в `ApiController` (`@RequestMapping("/api")`):
+`ApiController.kt:7736`, `:7763`, `:7813`, `:7828`, `:7899`.
+
+### HTTP-контракты: кеш метаданных и circuit breaker (admin-диагностика)
+
+Кеш хранилища (`StorageMetadataCache`) и circuit breaker'ы — `CacheAdminController`
+(`@RequestMapping("/api/health/cache")`), `CacheStatsController`
+(`@RequestMapping("/api/health")`), `CircuitBreakerController`
+(`@RequestMapping("/api/health/circuit-breaker")`):
+
+- `DELETE /api/health/cache/refresh?source=&bucket=&fileName=` — точечный сброс
+  (`CacheAdminController.kt:37`);
+- `DELETE /api/health/cache/refresh-all?source=` — сброс всех ключей источника
+  (`:61`);
+- `POST /api/health/cache/active-song-ids?activeSongIds=1;2` — приоритет очереди
+  cache-fill (`:85`); потребитель — `webvue3/src/components/Songs/SongsTable.vue:1188`;
+- `GET /api/health/cache/cache-queue-size` (`:109`) — размер очереди cache-fill;
+  потребитель — `webvue3/src/components/Processes/store.js:352`;
+- `GET /api/health/cacheStats` (`CacheStatsController.kt:47`),
+  `GET /api/health/circuit-breaker` (`:58`),
+  `POST /api/health/circuit-breaker/reset?storage=local|remote|all`
+  (`CircuitBreakerController.kt:50`). UI-потребителя в `webvue3` не найдено;
+  используются как admin-диагностика (curl, quickstart-проверки specs/352).
+
+### Internal API
+
+- `HealthReport` (companion object): `getHealthReportList(song)`,
+  `recomputeAndBroadcast(...)`, `executeSolutionActions()`, `startRepairAll(...)`,
+  `executeResolvable(...)`; данные — `HealthReportDTO`, `HealthReportType`,
+  `HealthReportStatus`. Каталог — [health-report](components/health-report.md).
+- `HealthReportBatchPool` — приоритетная очередь задач (10 worker'ов) плюс второй
+  пул WAITING (20 worker'ов, LIFO); контракт —
+  [health-report-batch-pool](components/health-report-batch-pool.md).
+
+`POST /api/stats/debug` (`StatsDebugController`) существует, но это диагностика
+stats-инфраструктуры (кеш метрик + `pg_stat_activity`), а не контракт health-домена.
+
 ## Структура компонентов (C4 L3)
 
 - [health-report-batch-pool](components/health-report-batch-pool.md) — Решает проблему «каскада синхронных HTTP-запросов» при открытии страницы админки «Песни». Вместо того чтобы фронт делал…
@@ -177,3 +228,4 @@ Health отвечает за проверку: «эти три представ�
 
 - **Pass 341** (2026-09-09): Initial domain. Прецедент: задачи #65
   и #69. Автор: agent (Karaoke).
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

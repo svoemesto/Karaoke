@@ -12,14 +12,19 @@
 
 ## Файлы
 
-- `karaoke-app/.../monitor/MonitorContext.kt`
-- `karaoke-app/.../monitor/MonitorCheck.kt`
+- `karaoke-app/.../monitor/MonitorCheck.kt` — `MonitorContext`
+  (data class) + `MonitorCheck` (fun interface).
 - `karaoke-app/.../monitor/MonitorAlert.kt`
+- `karaoke-app/.../monitor/MonitorAlertDto.kt` — сериализуемое
+  представление для фронта (SSE + REST).
 - `karaoke-app/.../monitor/MonitorRegistry.kt`
-- `karaoke-app/.../monitor/MonitoringService.kt` (тик каждую минуту)
-- `karaoke-app/.../monitor/MonitorSeverity.kt` (enum WARNING/CRITICAL)
+- `karaoke-app/.../monitor/MonitoringService.kt` (тик раз в минуту)
+- `karaoke-app/.../monitor/MonitorSeverity.kt` (enum
+  `INFO`/`WARNING`/`ERROR`/`CRITICAL`)
 
-## `MonitorContext`
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### `MonitorContext`
 
 **Общий доступ проверок мониторинга к БД/сервисам** — чтобы не тянуть
 глобалы (`WORKING_DATABASE`/`KSS_APP`/`SAC_APP`) напрямую из каждой
@@ -33,7 +38,7 @@ data class MonitorContext(
 )
 ```
 
-## `MonitorCheck` (fun interface)
+### `MonitorCheck` (fun interface)
 
 ```kotlin
 fun interface MonitorCheck {
@@ -51,7 +56,7 @@ fun interface MonitorCheck {
 **ожидаемые ошибки** (сеть, БД) проверка должна обрабатывать сама
 (см. `ProdContainerCheck`).
 
-## `MonitorAlert`
+### `MonitorAlert`
 
 **Одно системное сообщение** — аналог `HealthReport`
 (`canResolve`/`problemText`/`solutionText`/`solutionActions`), но НЕ
@@ -62,14 +67,19 @@ fun interface MonitorCheck {
 ```kotlin
 data class MonitorAlert(
     val key: String,                    // стабильный между прогонами
-    val severity: MonitorSeverity,      // WARNING | CRITICAL
+    val severity: MonitorSeverity,      // INFO | WARNING | ERROR | CRITICAL
     val title: String,
     val body: String,
     val category: String,
     val detail: String? = null,
     val recommendations: String? = null,
     val resolveAction: (() -> Unit)? = null,
-)
+) {
+    val canResolve: Boolean get() = resolveAction != null
+    fun contentHash(): String            // hash(severity.name|title|body)
+    fun executeResolve()                 // resolveAction?.invoke()
+    fun toDto(read: Boolean): MonitorAlertDto
+}
 ```
 
 **`key` MUST быть стабильным** — по нему связывается состояние
@@ -77,10 +87,18 @@ data class MonitorAlert(
 `resolveAction` при "Решить проблему".
 
 **`detail`** — изменчивая часть текста (например, "недоступен уже N мин").
-**Сознательно НЕ входит** в `contentHash()`, иначе сообщение
-"мигало" бы read/unread на каждом тике планировщика.
+**Сознательно НЕ входит** в `contentHash()` (хэш считается только по
+`severity.name|title|body`), иначе сообщение "мигало" бы read/unread
+на каждом тике планировщика.
 
-## `MonitorRegistry`
+### `MonitorAlertDto`
+
+Сериализуемое представление `MonitorAlert` для фронта (SSE + REST) —
+**без лямбды** `resolveAction`; несёт `canResolve: Boolean`,
+`contentHash: String`, `read: Boolean` и `severityName`/`color`.
+По образцу `HealthReportDTO`.
+
+### `MonitorRegistry`
 
 ```kotlin
 object MonitorRegistry {
@@ -88,7 +106,10 @@ object MonitorRegistry {
         ProdContainerCheck,
         RenderQueueStalledCheck,
         LaneStalledCheck,
-        // ...
+        TelegramPollingDisabledCheck,
+        UnreadChatMessagesCheck,
+        SubmittedAssignmentsCheck,
+        StemJobsStuckCheck,
     )
 }
 ```
@@ -96,28 +117,63 @@ object MonitorRegistry {
 **Добавление новой проверки** — один `object : MonitorCheck` в
 `monitor/checks/` + одна строка здесь.
 
-## `MonitoringService`
-
-`@Scheduled(fixedDelay = 60_000L)` (1 минута). Каждый тик:
-
-```
-1. for each check in MonitorRegistry.all():
-    - previousAlert = lastAlert[check.name]
-    - currentAlert = check.run(ctx)
-    - если currentAlert != previousAlert → broadcast (SSE MONITOR_ALERTS)
-2. обновить lastAlert
-```
-
-(по KDoc [monitor-checks.md](monitor-checks.md))
-
-## `MonitorSeverity`
+### `MonitorSeverity`
 
 ```kotlin
-enum class MonitorSeverity {
-    WARNING,    // деградация, on-call может посмотреть в течение часа
-    CRITICAL,   // прод не работает, немедленная реакция
+enum class MonitorSeverity(val rank: Int, val color: String) {
+    INFO(0, "#4CAF50"),
+    WARNING(1, "#FFC107"),
+    ERROR(2, "#F44336"),
+    CRITICAL(3, "#D50000"),
 }
 ```
+
+`rank` — для вычисления максимальной серьёзности среди активных
+сообщений (цвет «светофора» в хедере webvue3); `color` — HEX для
+маркировки строки в модалке. Проверки сейчас используют `INFO`,
+`WARNING` и `CRITICAL` (см.
+[monitor-checks-detailed.md](monitor-checks-detailed.md)).
+
+## Логика и Алгоритмы | Logic and Algorithms
+
+### `MonitoringService` — тик раз в минуту
+
+`@Component`, `@Scheduled(fixedRate = 60_000L, initialDelay = 20_000L)`
+(fixedRate, не fixedDelay; старт через 20 с после запуска app).
+
+```kotlin
+fun tick() {
+    val alerts = MonitorRegistry.checks.flatMap { check ->
+        try { check.run(ctx()) }
+        catch (e: Exception) { listOf(checkFailureAlert(check, e)) }
+    }
+    snapshot = alerts.associateBy { it.key }
+    pruneDismissed()
+    broadcast()
+}
+```
+
+1. Все 7 проверок прогоняются за один проход; `ctx()` собирает
+   `MonitorContext(WORKING_DATABASE, KSS_APP, SAC_APP)`.
+2. Упавшая проверка не роняет тик — превращается в WARNING-алерт
+   `key = "check.<Name>.failure"`.
+3. `snapshot: Map<String, MonitorAlert>` — по одному актуальному
+   алерту на ключ (перезаписывается целиком).
+4. `pruneDismissed()` удаляет из `dismissed` ключи, которых больше нет
+   в снапшоте; `dismissed` персистится в `KaraokeProperties`
+   `"monitorDismissed"` (JSON), чтобы разобранные предупреждения не
+   всплывали после рестарта.
+5. `broadcast()` шлёт `SseNotification.monitorAlerts(currentDtos())`
+   всем вкладкам webvue3; `currentDtos()` сортирует по
+   `severity.rank` по убыванию и выставляет `read` сравнением
+   `dismissed[key] == alert.contentHash()`.
+6. `markRead(key)` / `markUnread(key)` / `reset()` меняют `dismissed`
+   и персистят; `resolve(key)` берёт лямбду из свежего снапшота
+   (`takeIf { it.canResolve }?.executeResolve()`) и сразу вызывает
+   `tick()`.
+
+Сервис работает только пока запущен `karaoke-app` — это не 24/7
+аптайм-монитор.
 
 ## Зависимости | Dependencies
 
@@ -128,4 +184,5 @@ enum class MonitorSeverity {
 
 ## Changelog
 
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 421** (2026-09-09): Initial. Автор: agent (Karaoke).

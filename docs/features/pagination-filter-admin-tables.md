@@ -1,16 +1,25 @@
 # Feature: Корректная пагинация таблиц admin SPA после применения фильтра
 
-**Spec**: [`specs/300-author-pagination-filter-bug/spec.md`](../../specs/300-author-pagination-filter-bug/spec.md)
-**Status**: In progress (Pass 300, реализация в feature-ветке `300-author-pagination-filter-bug`)
-**Created**: 2026-09-03
-**Last updated**: 2026-09-03
-**Source**: OpenProject #50 — «Неверное поведение на страницах автора после фильтра»
+> **Status**: active
+> **Feature Key**: pagination-filter-admin-tables
+> **Last Updated**: 2026-09-27
+> **Spec**: [`specs/300-author-pagination-filter-bug/spec.md`](../../specs/300-author-pagination-filter-bug/spec.md)
+> **Branch**: `300-author-pagination-filter-bug`
+> **Created**: 2026-09-03
+> **Source**: OpenProject #50 — «Неверное поведение на страницах автора после фильтра»
 
-## Назначение
+## Что делает
 
-В admin SPA `webvue3` после применения фильтра к таблице с пагинацией (Authors, Albums, Pictures, SiteUsers, Dictionaries, Processes, Properties и др.) на странице N>1, если фильтр сужает выборку до меньшего числа страниц, чем текущая, таблица показывает **пустую страницу** вместо корректного перехода на последнюю доступную страницу с записями.
+В admin SPA `webvue3` после применения фильтра к таблице с пагинацией (Authors,
+Albums, Pictures, SiteUsers, Dictionaries, Processes, Properties и др.) на странице
+N>1, если фильтр сужает выборку до меньшего числа страниц, чем текущая, таблица
+показывает **пустую страницу** вместо корректного перехода на последнюю доступную
+страницу с записями.
 
-## Bug description
+Фича фиксирует это поведение: `currentPage` сбрасывается на 1, как только новой
+выборке соответствует меньше страниц, чем текущая.
+
+## Зачем
 
 **Симптом** (из OpenProject #50):
 
@@ -24,14 +33,20 @@
 4. Ожидается: видны записи результата фильтра, текущая страница = 1.
 5. **Наблюдается до фикса**: «Page 1 of 1», но таблица пустая (currentPage остался 3, b-table пытается показать страницу 3 несуществующего контента).
 
-## Корневая причина
+Проблема бьёт по администраторам и редакторам: после фильтрации они видят пустой
+экран и вынуждены вручную возвращаться на первую страницу, хотя данные в выборке
+есть.
+
+## Как работает
+
+### Корневая причина
 
 В `webvue3/src/components/<Entity>/<Entity>Table.vue`:
 
 ```vue
 <b-pagination
   v-model="currentPage"
-  :total-rows="countRows"   <!-- ← countRows = digests.length, длина ТЕКУЩЕЙ страницы -->
+  :total-rows="countRows"   <!-- countRows = digests.length, длина ТЕКУЩЕЙ страницы -->
   :per-page="perPage"
 />
 ```
@@ -54,7 +69,9 @@ watch: {
 },
 ```
 
-…но **нет watcher на `countRows`**, который бы пересчитал `totalPages = ceil(countRows / perPage)` и сбросил `currentPage`, если он вышел за пределы.
+…но **нет watcher на `countRows`**, который бы пересчитал
+`totalPages = ceil(countRows / perPage)` и сбросил `currentPage`, если он вышел
+за пределы.
 
 **Цепочка бага**:
 
@@ -64,7 +81,7 @@ watch: {
 4. **Но `currentPage` остаётся 3** (нет watcher).
 5. `<b-table :current-page="3">` пытается показать страницу 3, которой нет в массиве → пустая таблица.
 
-## Pattern (эталон) — `Songs/SongsTable.vue:998-1009`
+### Эталон (pattern) — `webvue3/src/components/Songs/SongsTable.vue`
 
 `SongsTable.vue` уже имеет правильный watcher, который и нужно скопировать:
 
@@ -74,7 +91,7 @@ watch: {
     handler(newCount) {
       // Сбрасываем на 1, если текущая страница вышла за пределы после загрузки/фильтрации.
       // Иначе (при первом монтировании компонента) сохраняем страницу, на которой был пользователь.
-      // @see docs/features/pagination-filter-admin-tables.md (FR-006, эталон — Songs/SongsTable.vue:998-1009)
+      // @see docs/features/pagination-filter-admin-tables.md (FR-006, эталон — Songs/SongsTable.vue)
       const totalPages = Math.max(1, Math.ceil(newCount / this.perPage))
       if (this.currentPage > totalPages) {
         this.currentPage = 1
@@ -91,49 +108,125 @@ watch: {
 - При **расширении фильтра** (`countRows` увеличивается) → `totalPages` увеличивается → если `currentPage <= totalPages`, сброса нет, остаёмся на текущей странице (плавный UX).
 - При **сбросе фильтра** → аналогично сужению/расширению, в зависимости от объёма.
 
-**Политика FR-006** («всегда страница 1 после сброса фильтра») — согласована в Clarifications 2026-09-03. Реализуется **через watcher**: если `currentPage > totalPages` после новой выборки, сбрасываем на 1. Это покрывает и сброс фильтра, и сужение фильтра в один проход — без необходимости знать «был ли сброс».
+**Политика FR-006** («всегда страница 1 после сброса фильтра») — согласована в
+Clarifications 2026-09-03. Реализуется **через watcher**: если
+`currentPage > totalPages` после новой выборки, сбрасываем на 1. Это покрывает и
+сброс фильтра, и сужение фильтра в один проход — без необходимости знать «был ли
+сброс».
 
-## Affected tables (из `audit.md`)
+### Таблицы admin SPA (состояние на 2026-09-27)
 
-| Таблица | Файл | Статус |
-|---------|------|--------|
-| Authors | `webvue3/src/components/Authors/AuthorsTable.vue` | Требует фикса (MVP, OP#50) |
-| Albums | `webvue3/src/components/Albums/AlbumsTable.vue` | Требует фикса |
-| Pictures | `webvue3/src/components/Pictures/PicturesTable.vue` | Требует фикса |
-| SiteUsers | `webvue3/src/components/SiteUsers/SiteUsersTable.vue` | Требует фикса |
-| Dictionaries | `webvue3/src/components/Dictionaries/DictionariesTable.vue` | Требует фикса |
-| Processes | `webvue3/src/components/Processes/ProcessesTable.vue` | Требует фикса |
-| Properties | `webvue3/src/components/Properties/PropertiesTable.vue` | Требует фикса |
+| Таблица | Файл | Состояние |
+|---------|------|-----------|
+| Authors | `webvue3/src/components/Authors/AuthorsTable.vue` | countRows-watcher внедрён (MVP, OP#50) |
+| Albums | `webvue3/src/components/Albums/AlbumsTable.vue` | countRows-watcher внедрён |
+| Pictures | `webvue3/src/components/Pictures/PicturesTable.vue` | countRows-watcher внедрён |
+| SiteUsers | `webvue3/src/components/SiteUsers/SiteUsersTable.vue` | countRows-watcher внедрён |
+| Dictionaries | `webvue3/src/components/Dictionaries/DictionariesTable.vue` | watcher отсутствует — требует фикса |
+| Processes | `webvue3/src/components/Processes/ProcessesTable.vue` | watcher отсутствует — требует фикса |
+| Properties | `webvue3/src/components/Properties/PropertiesTable.vue` | watcher отсутствует — требует фикса |
 
 **Уже имеют правильный паттерн** (не требуют фикса):
 
 - `Songs/SongsTable.vue` — эталон (watcher на countRows)
-- `ShareLinks/ShareLinksTable.vue` — уже есть watcher (line 265)
-- `Subscriptions/SubscriptionsTable.vue` — уже есть watcher (line 256)
+- `ShareLinks/ShareLinksTable.vue` — уже есть watcher
+- `Subscriptions/SubscriptionsTable.vue` — уже есть watcher
 - `News/NewsTable.vue` + `News/store.js` — другой правильный паттерн (`setNewsTarget` сбрасывает `newsCurrentPage(1)` + `totalCount` в state)
 
-## Почему News и Songs работают по-разному
+### Почему News и Songs работают по-разному
 
-### News: target-based паттерн
-
-`webvue3/src/components/News/store.js:85-92`:
+**News: target-based паттерн** (`webvue3/src/components/News/store.js`):
 
 ```javascript
 setNewsTarget(ctx, target) {
   ctx.commit('setNewsTarget', target)
-  ctx.commit('setNewsCurrentPage', 1)  // ← явный сброс на 1
+  ctx.commit('setNewsCurrentPage', 1)  // явный сброс на 1
 }
 ```
 
-News сбрасывает страницу в **action** при смене target (а не в watcher на countRows), потому что у News в state есть **реальный `newsTotalCount`** (backend возвращает `{news: [...], total: N}`). Это позволяет точно знать `totalPages` в любой момент. При смене фильтра или target — явный сброс на 1.
+News сбрасывает страницу в **action** при смене target (а не в watcher на
+countRows), потому что у News в state есть **реальный `newsTotalCount`** (backend
+возвращает `{news: [...], total: N}`). Это позволяет точно знать `totalPages` в
+любой момент. При смене фильтра или target — явный сброс на 1.
 
-### Songs: watcher-based паттерн (эталон для текущего фикса)
+**Songs: watcher-based паттерн (эталон для текущего фикса)**. Songs не имеет
+`total` в backend-ответе, поэтому использует `countRows = songsDigest.length` как
+surrogate. Watcher на countRows реагирует на изменение длины массива и
+пересчитывает `totalPages` каждый раз. Это полностью client-side решение, не
+требует backend-изменений.
 
-Songs не имеет `total` в backend-ответе, поэтому использует `countRows = songsDigest.length` как surrogate. Watcher на countRows реагирует на изменение длины массива и пересчитывает `totalPages` каждый раз. Это полностью client-side решение, не требует backend-изменений.
+## Инварианты
+
+Источники правил: [spec 300 spec.md](../../specs/300-author-pagination-filter-bug/spec.md)
+(FR-006, Clarifications 2026-09-03) и [AGENTS.md](../../AGENTS.md) (обязательная
+проверка после любого изменения — frontend-пакет собирается через
+`cd webvue3 && npm run`).
+
+- **MUST**: в каждой `<Entity>Table.vue` с фильтром и пагинацией есть watcher на
+  `countRows`, который считает `totalPages = Math.max(1, Math.ceil(newCount / this.perPage))`
+  и сбрасывает `currentPage` в `1`, если `currentPage > totalPages`
+  ([эталон](../../webvue3/src/components/Songs/SongsTable.vue)).
+- **MUST**: «Политика FR-006» — после сужения выборки (включая сброс фильтра)
+  показывается страница 1, если прежняя страница стала недоступна
+  ([FR-006 spec 300](../../specs/300-author-pagination-filter-bug/spec.md)).
+- **MUST**: `countRows` остаётся surrogate-величиной `digests.length`, пока
+  backend не отдаёт реальный `total` (см. «Future work»); менять контракт
+  `countRows` в рамках багфикса нельзя.
+- **MUST**: `currentPage` хранится в store (`set<Entity>TableCurrentPage`) —
+  watcher на `currentPage` для сохранения остаётся.
+- **MUST**: новая таблица admin SPA с фильтром и пагинацией добавляется по
+  чек-листу ниже.
+- **SHOULD**: при первом монтировании, если сохранённая страница валидна,
+  сброса не происходит (плавный UX).
+
+### Чек-лист для новой таблицы
+
+При добавлении **новой** таблицы в admin SPA с фильтром + пагинацией:
+
+1. Создать `store.js` с `state.<entity>Digest = []`, `state.<entity>TableCurrentPage = 1`, `set<Entity>Digests`, `set<Entity>TableCurrentPage`, `load<Entity>Digests`.
+2. В `<Entity>Table.vue`:
+   - `data()`: `currentPage: this.$store.getters.get<Entity>TableCurrentPage || 1`, `perPage: 30`.
+   - `computed`: `countRows() { return this.<digests> ? this.<digests>.length : 0 }`, `<digests>() { return this.$store.getters.get<Entity>Digest }`.
+   - `watch`: **обязательно** добавить `countRows` watcher по эталону.
+3. Проверить по сценарию 1 из `quickstart.md` (страница N>1 → фильтр → корректная страница).
+
+## Известные ловушки
+
+- **`countRows` — не реальное число строк, а длина текущей страницы.** Пока
+  backend не отдаёт `total`, `countRows = digests.length`, поэтому «Page X of Y»
+  показывает Y = число страниц по текущей выборке, а не полное число страниц.
+- **Нет watcher на `countRows` → пустая таблица.** Визуально `b-pagination`
+  пересчитывает `total-rows` сам, а `currentPage` — нет; без watcher `b-table`
+  остаётся на несуществующей странице (корень OP#50).
+- **`Dictionaries`, `Processes`, `Properties` до сих пор без watcher** —
+  подтверждено `grep` по `webvue3/src/components` на 2026-09-27; это остаток
+  скоупа, а не регресс.
+- **News нельзя чинить watcher'ом на длину массива** — у News пагинация
+  завязана на реальный `newsTotalCount`, и правильный паттерн там —
+  target-based сброс в action.
+- **Первый проход watcher'а при монтировании** не должен сбрасывать валидную
+  страницу, иначе ломается возврат на сохранённую страницу после перезагрузки.
+
+## Ссылки
+
+- [`specs/300-author-pagination-filter-bug/spec.md`](../../specs/300-author-pagination-filter-bug/spec.md) — спецификация (FR-001…FR-011, User Stories 1-3, Clarifications).
+- [`specs/300-author-pagination-filter-bug/plan.md`](../../specs/300-author-pagination-filter-bug/plan.md) — implementation plan.
+- [`specs/300-author-pagination-filter-bug/research.md`](../../specs/300-author-pagination-filter-bug/research.md) — корневая причина, decisions, файл-список.
+- [`specs/300-author-pagination-filter-bug/data-model.md`](../../specs/300-author-pagination-filter-bug/data-model.md) — client state + backend response shapes.
+- [`specs/300-author-pagination-filter-bug/audit.md`](../../specs/300-author-pagination-filter-bug/audit.md) — аудит таблиц (FR-008).
+- [`specs/300-author-pagination-filter-bug/quickstart.md`](../../specs/300-author-pagination-filter-bug/quickstart.md) — 9 ручных validation scenarios.
+- [`specs/300-author-pagination-filter-bug/tasks.md`](../../specs/300-author-pagination-filter-bug/tasks.md) — задачи.
+- [`webvue3/src/components/Songs/SongsTable.vue`](../../webvue3/src/components/Songs/SongsTable.vue) — эталон правильного `countRows`-watcher.
+- [`webvue3/src/components/News/store.js`](../../webvue3/src/components/News/store.js) — пример target-based сброса (News).
+- [`webvue3/src/components/Authors/AuthorsTable.vue`](../../webvue3/src/components/Authors/AuthorsTable.vue) — MVP-таблица из OP#50.
+- [`webvue3/src/components/ShareLinks/ShareLinksTable.vue`](../../webvue3/src/components/ShareLinks/ShareLinksTable.vue) — таблица с внедрённым watcher.
+- [`webvue3/src/components/Subscriptions/SubscriptionsTable.vue`](../../webvue3/src/components/Subscriptions/SubscriptionsTable.vue) — таблица с внедрённым watcher.
+- OpenProject #50 — исходный баг-репорт (внешний трекер, без относительного пути).
 
 ## Future work (вне этой задачи)
 
-Добавление **реального `total` в backend-ответы** для Authors/Albums/Pictures/SiteUsers/Dictionaries/Processes/Properties позволит:
+Добавление **реального `total` в backend-ответы** для
+Authors/Albums/Pictures/SiteUsers/Dictionaries/Processes/Properties позволит:
 
 1. Заменить `countRows = digests.length` на `countRows = get<Entity>TotalCount` (точное число страниц).
 2. Корректно отображать «Page X of Y» (Y = реальное число страниц, а не 1).
@@ -145,33 +238,9 @@ Songs не имеет `total` в backend-ответе, поэтому испол
 - Изменения соответствующего `*/store.js` (добавить `set<Entity>TotalCount` mutation).
 - Изменения `<Entity>Table.vue` (использовать `get<Entity>TotalCount` в `countRows` computed).
 
-Watcher на countRows **продолжит работать** без изменений (он реагирует на computed, не на state напрямую).
-
-**Это отдельная задача** — выходит за рамки текущего баг-фикса.
-
-## Как применить фикс в новой таблице
-
-При добавлении **новой** таблицы в admin SPA с фильтром + пагинацией:
-
-1. Создать `store.js` с `state.<entity>Digest = []`, `state.<entity>TableCurrentPage = 1`, `set<Entity>Digests`, `set<Entity>TableCurrentPage`, `load<Entity>Digests`.
-2. В `<Entity>Table.vue`:
-   - `data()`: `currentPage: this.$store.getters.get<Entity>TableCurrentPage || 1`, `perPage: 30`.
-   - `computed`: `countRows() { return this.<digests> ? this.<digests>.length : 0 }`, `<digests>() { return this.$store.getters.get<Entity>Digest }`.
-   - `watch`: **обязательно** добавить `countRows` watcher по этому шаблону.
-3. Проверить по сценарию 1 из `quickstart.md` (страница N>1 → фильтр → корректная страница).
-
-## Связанные документы
-
-- [`specs/300-author-pagination-filter-bug/spec.md`](../../specs/300-author-pagination-filter-bug/spec.md) — спецификация (FR-001…FR-011, User Stories 1-3, Clarifications)
-- [`specs/300-author-pagination-filter-bug/plan.md`](../../specs/300-author-pagination-filter-bug/plan.md) — implementation plan
-- [`specs/300-author-pagination-filter-bug/research.md`](../../specs/300-author-pagination-filter-bug/research.md) — корневая причина, decisions, файл-список
-- [`specs/300-author-pagination-filter-bug/data-model.md`](../../specs/300-author-pagination-filter-bug/data-model.md) — client state + backend response shapes
-- [`specs/300-author-pagination-filter-bug/audit.md`](../../specs/300-author-pagination-filter-bug/audit.md) — аудит таблиц (FR-008)
-- [`specs/300-author-pagination-filter-bug/quickstart.md`](../../specs/300-author-pagination-filter-bug/quickstart.md) — 9 ручных validation scenarios
-- [`specs/300-author-pagination-filter-bug/tasks.md`](../../specs/300-author-pagination-filter-bug/tasks.md) — задачи
-- OpenProject #50 — исходный баг-репорт
-- `webvue3/src/components/Songs/SongsTable.vue:998-1009` — эталон правильного watcher
-- `webvue3/src/components/News/store.js:85-92` — пример target-based сброса (News)
+Watcher на countRows **продолжит работать** без изменений (он реагирует на
+computed, не на state напрямую). Это отдельная задача — выходит за рамки
+текущего баг-фикса.
 
 ## Версионирование
 

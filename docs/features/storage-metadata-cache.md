@@ -1,22 +1,27 @@
 # Storage Metadata Cache (OpenProject #69, спека #344)
 
+> **Status**: active
+> **Feature Key**: storage-metadata-cache
+> **Last Updated**: 2026-09-27
+> **Spec**: [specs/344-storage-metadata-cache/spec.md](../../specs/344-storage-metadata-cache/spec.md)
 > Per-feature документ (Constitution § VI FR-009). Описывает in-memory TTL-кеш
 > метаданных MinIO, устраняющий 72k+ HTTP round-trip на странице Songs в webvue3.
+>
+> **Прецедент**: спека #339 (2026-09-09) была провалена из-за пропуска Knowledge-first
+> (агент изобрёл форму кеша как Postgres-таблицу `storage_file_cache`, не зная про
+> готовый `PollingCache<V>`). Данная реализация использует устоявшийся паттерн из
+> [`knowledge/domains/caching/components/web-caches.md`](../../knowledge/domains/caching/components/web-caches.md).
 
-**Прецедент**: спека #339 (2026-09-09) была провалена из-за пропуска Knowledge-first
-(агент изобрёл форму кеша как Postgres-таблицу `storage_file_cache`, не зная про
-готовый `PollingCache<V>`). Данная реализация использует устоявшийся паттерн из
-[`knowledge/domains/caching/components/web-caches.md`](../../knowledge/domains/caching/components/web-caches.md).
+## Что делает
 
-**Связанные документы**:
-- [`specs/344-storage-metadata-cache/spec.md`](../../specs/344-storage-metadata-cache/spec.md)
-- [`specs/344-storage-metadata-cache/plan.md`](../../specs/344-storage-metadata-cache/plan.md)
-- [`specs/344-storage-metadata-cache/contracts/cache-stats-api.md`](../../specs/344-storage-metadata-cache/contracts/cache-stats-api.md)
-- [`knowledge/domains/storage/domain.md`](../../knowledge/domains/storage/domain.md)
-- [`knowledge/domains/health/domain.md`](../../knowledge/domains/health/domain.md)
-- [`knowledge/domains/caching/components/web-caches.md`](../../knowledge/domains/caching/components/web-caches.md) ← источник `PollingCache`
+In-memory TTL-кеш метаданных MinIO для `karaoke-app`: прозрачно кеширует
+результаты `fileExists` / `fileIsActual` / `getFileInfo` для локального и
+удалённого хранилища (два независимых инстанса — `local` и `remote`).
+Наблюдаемость — admin endpoint `GET /api/health/cacheStats` и SLF4J-категория
+`infra.cache.storage`. Публичного эквивалента в `karaoke-public` НЕТ (это
+внутренний инструмент `karaoke-app`).
 
-## Контекст
+## Зачем
 
 `HealthReport.getHealthReportList(song)` (в `karaoke-app/.../HealthReport.kt`) для каждой песни
 делает ~4 вызова `StorageApiClient.fileExists` через nginx path-proxy (`minio-proxy` на проде,
@@ -26,7 +31,9 @@
 Решение — in-memory TTL-кеш, **без новой инфраструктуры**, **без БД-таблицы**
 (см. § ADR Decisions).
 
-## Архитектура
+## Как работает
+
+### Архитектура
 
 ```text
 HealthReport.actionsLocalStorage / actionsRemoteStorage
@@ -50,7 +57,7 @@ HealthReport.actionsLocalStorage / actionsRemoteStorage
 - `cachedFileExists(...)` — `@JvmStatic` helper, fallback на прямой вызов loader'а
   если кеш ещё не инициализирован (early startup).
 
-## API контракт (`StorageMetadataCache`)
+### API контракт (`StorageMetadataCache`)
 
 ```kotlin
 fun getFileExists(source: String, bucket: String, fileName: String, loader: () -> Boolean): Boolean
@@ -68,7 +75,7 @@ fun clear()  // для тестов
 - Loader **MUST быть blocking** (`Boolean` / `StorageFileInfo`, **НЕ** `reactor.core.publisher.Mono`).
   `Mono.block()` внутри loader'а запрещён (усугубляет race-condition #65).
 
-## Endpoint `GET /api/health/cacheStats`
+### Endpoint `GET /api/health/cacheStats`
 
 [`contracts/cache-stats-api.md`](../../specs/344-storage-metadata-cache/contracts/cache-stats-api.md) — полный контракт. Кратко:
 
@@ -82,9 +89,9 @@ fun clear()  // для тестов
 Используется admin UI для наблюдения. Публичного эквивалента в `karaoke-public` НЕТ
 (это внутренний инструмент `karaoke-app`).
 
-## Метрики и observability
+### Метрики и observability
 
-### SLF4J-категория `infra.cache.storage`
+#### SLF4J-категория `infra.cache.storage`
 
 Регистрируется в
 [`log-categories.md`](../../knowledge/domains/monitoring/components/log-categories.md)
@@ -100,14 +107,14 @@ INFO  cache:hit  key="LOCAL:karaoke/song-123.mp4" source=LOCAL
 (`PollingCache.kt` локально инкрементирует hits/misses внутри — **не дублируем**
 в `StorageMetadataCache` для hit-case.)
 
-### Counter'ы через `LongAdder`
+#### Counter'ы через `LongAdder`
 
 - `localHits.sum()`, `localMisses.sum()`, `localEvictions.sum()` — thread-safe
   под hot-contention (Spring Boot worker pool, web UI threads).
 - `LongAdder` выбран вместо `AtomicLong` для лучшей производительности при
   concurrent updates (Wait-Free increments).
 
-## Конфигурация (`application.yml`)
+### Конфигурация (`application.yml`)
 
 ```yaml
 storage:
@@ -122,7 +129,65 @@ storage:
 
 Override через env: `STORAGE_METADATA_CACHE_LOCAL_TTL_SECONDS=600`.
 
-## Edge cases и ловушки
+### UI-сброс кеша (спека #446)
+
+Persistent-кеш (TTL=∞) не переживает смену endpoint хранилища сам по себе.
+Появились UI-кнопки:
+
+- **Одна песня** — `HealthReportTableHeader` → «Сбросить кеш».
+- **Страница песен** — футер `SongsTable.vue` → «Сбросить кеш хранилища».
+
+Backend: `POST /api/song/resetStorageCache?ids=1;2;3` — для каждой песни удаляет
+все её storage-ключи (LOCAL+REMOTE). Формулы имён — `StorageCacheReset`
+(единый с `HealthReport` источник, тест `StorageCacheResetTest`).
+
+**Ловушка (прецедент 2026-09-24):** после смены `storage.remote-endpoint`
+обязателен сброс REMOTE-кеша — иначе health-report показывает «0 ошибок» при
+отсутствующих файлах.
+
+### Backfill vs Warm (спеки #448, #449)
+
+| Операция | Что делает | Когда |
+| --- | --- | --- |
+| **Backfill** (`POST /api/utils/backfillcacheetagsize`) | до(за)полняет **существующие** строки кеша (`NOT exists OR пустые info`) | подтянуть etag/size у имеющихся записей |
+| **Warm** (`POST /api/utils/warmstoragecache`) | строит кеш **с нуля по всем песням** (листинг MinIO + обход песен, включая `exists=false`) | после сброса/переезда |
+
+Кнопки — на главном экране админки («Заполнить etag/size…» и «Прогреть кеш хранилища»).
+
+### Миграция и откат
+
+#### Initial migration
+
+Никаких миграций БД не требуется. Это in-memory cache.
+
+#### Rollback
+
+`git revert <merge-commit>` — отключает cache. `HealthReport.cachedFileExists(...)`
+helper с fallback на loader продолжает работать (без cache, всё идёт через MinIO
+как раньше). Никаких side-effects на проде.
+
+#### Апгрейд с v0 на v1 (будущее)
+
+Если в v1 потребуется write-through persistence (P3 user story):
+- Добавить `BatchingStorageMetadataCache implements StorageMetadataCache` (open class).
+- Расширить `SpringMetadataCache` Spring DI на выбор между in-memory / batching.
+- Postgres миграция: `CREATE TABLE storage_metadata_cache (key VARCHAR PRIMARY KEY, value JSONB, expires_at TIMESTAMP)`.
+
+Open design question — это **отдельная спека 345+**, не входит в scope #344.
+
+## Инварианты
+
+- **MUST**: `source ∈ {LOCAL, REMOTE}`, `bucket` и `fileName` — не пустые; иначе `IllegalArgumentException` (`require(...)` в `StorageMetadataCache.kt`).
+- **MUST**: cache key включает `source` и (при необходимости) `operation` — `"$source:$bucket/$fileName[:$operation]"`; коллизия LOCAL↔REMOTE исключена (FR-004).
+- **MUST**: local и remote кешируются **раздельными инстансами** с независимыми TTL (FR-002).
+- **MUST**: loader — блокирующий (`Boolean` / `StorageFileInfo`); `Mono.block()` / `Mono.toFuture().get()` внутри loader'а запрещён (FR-013).
+- **MUST**: исключения loader'а НЕ кешируются и пробрасываются caller'у без изменения кеша (FR-006).
+- **MUST**: URL-encoded имя файла декодируется (`decodeFileNameIfEncoded`) ДО формирования cache key (FR-012).
+- **MUST**: TTL по умолчанию 300 секунд для обоих кешей; `maxEntries = 50000` (FR-003, NFR-002).
+- **MUST**: кеш ленив (cold-start без прогрева и без блокировки первого HTTP-запроса) (FR-014).
+- **SHOULD**: hit/miss/eviction-счётчики — `LongAdder` (thread-safety, NFR-003).
+
+## Известные ловушки
 
 ### Покрытые edge cases (в спеке)
 
@@ -148,68 +213,26 @@ Override через env: `STORAGE_METADATA_CACHE_LOCAL_TTL_SECONDS=600`.
 - **`maxEntries` hard-cap (NFR-002)** — FIFO eviction в `PollingCache.enforceMaxEntriesIfNeeded()`.
   `ConcurrentHashMap.entrySet().iterator()` не гарантирует insertion order, так что eviction
   НЕ строго FIFO (см. unit test `maxEntries hard cap triggers eviction when size exceeds limit`).
+- **Смена `storage.remote-endpoint`**: без сброса REMOTE-кеша health-report показывает «0 ошибок»
+  при отсутствующих файлах (прецедент 2026-09-24, спека #446).
 
-## Тесты
+## Ссылки
 
-[`specs/344-storage-metadata-cache/quickstart.md`](../../specs/344-storage-metadata-cache/quickstart.md)
-— сценарии 1-4 + N1/N2.
-
-Покрытие unit-тестами:
-
-| Файл | Тесты | Что проверяют |
-|---|---|---|
-| `PollingCacheTest.kt` | 6 | miss/hit/TTL/concurrent/size/clear + maxEntries cap |
-
-**Не покрыто unit-тестами** (требует Spring context, рекомендуется integration test в следующем PR):
-- `StorageMetadataCache.kt` — Spring boot up + autowire (smoke).
-- `HealthReport.Companion.cachedFileExists(...)` — гарантирует fallback на loader если cache == null.
-- `CacheStatsController` — JSON shape (cold-start hitRatio=1.0).
-
-## Миграция и откат
-
-### Initial migration
-
-Никаких миграций БД не требуется. Это in-memory cache.
-
-### Rollback
-
-`git revert <merge-commit>` — отключает cache. `HealthReport.cachedFileExists(...)`
-helper с fallback на loader продолжает работать (без cache, всё идёт через MinIO
-как раньше). Никаких side-effects на проде.
-
-### Апгрейд с v0 на v1 (будущее)
-
-Если в v1 потребуется write-through persistence (P3 user story):
-- Добавить `BatchingStorageMetadataCache implements StorageMetadataCache` (open class).
-- Расширить `SpringMetadataCache` Spring DI на выбор между in-memory / batching.
-- Postgres миграция: `CREATE TABLE storage_metadata_cache (key VARCHAR PRIMARY KEY, value JSONB, expires_at TIMESTAMP)`.
-
-Open design question — это **отдельная спека 345+**, не входит в scope #344.
-
-## UI-сброс кеша (спека #446)
-
-Persistent-кеш (TTL=∞) не переживает смену endpoint хранилища сам по себе.
-Появились UI-кнопки:
-
-- **Одна песня** — `HealthReportTableHeader` → «Сбросить кеш».
-- **Страница песен** — футер `SongsTable.vue` → «Сбросить кеш хранилища».
-
-Backend: `POST /api/song/resetStorageCache?ids=1;2;3` — для каждой песни удаляет
-все её storage-ключи (LOCAL+REMOTE). Формулы имён — `StorageCacheReset`
-(единый с `HealthReport` источник, тест `StorageCacheResetTest`).
-
-**Ловушка (прецедент 2026-09-24):** после смены `storage.remote-endpoint`
-обязателен сброс REMOTE-кеша — иначе health-report показывает «0 ошибок» при
-отсутствующих файлах.
-
-### Backfill vs Warm (спеки #448, #449)
-
-| Операция | Что делает | Когда |
-| --- | --- | --- |
-| **Backfill** (`POST /api/utils/backfillcacheetagsize`) | до(за)полняет **существующие** строки кеша (`NOT exists OR пустые info`) | подтянуть etag/size у имеющихся записей |
-| **Warm** (`POST /api/utils/warmstoragecache`) | строит кеш **с нуля по всем песням** (листинг MinIO + обход песен, включая `exists=false`) | после сброса/переезда |
-
-Кнопки — на главном экране админки («Заполнить etag/size…» и «Прогреть кеш хранилища»).
+- [specs/344-storage-metadata-cache/spec.md](../../specs/344-storage-metadata-cache/spec.md) — основная спецификация
+- [specs/344-storage-metadata-cache/plan.md](../../specs/344-storage-metadata-cache/plan.md) — implementation plan
+- [specs/344-storage-metadata-cache/contracts/cache-stats-api.md](../../specs/344-storage-metadata-cache/contracts/cache-stats-api.md) — контракт cacheStats
+- [specs/344-storage-metadata-cache/quickstart.md](../../specs/344-storage-metadata-cache/quickstart.md) — сценарии проверки
+- [StorageMetadataCache.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageMetadataCache.kt) — бин-кеш local/remote
+- [StorageMetadataCacheWiring.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageMetadataCacheWiring.kt) — bridge bean к `HealthReport`
+- [PollingCache.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PollingCache.kt) — TTL-кеш (`getOrCompute`)
+- [HealthReport.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — call-site кеша
+- [CacheStatsController.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/CacheStatsController.kt) — `GET /api/health/cacheStats`
+- [StorageCacheReset.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StorageCacheReset.kt) — формулы имён файлов для сброса
+- [StorageCircuitBreaker.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreaker.kt) — circuit breaker вокруг loader'а
+- [web-caches.md](../../knowledge/domains/caching/components/web-caches.md) — источник паттерна `PollingCache`
+- [knowledge/domains/storage/domain.md](../../knowledge/domains/storage/domain.md) — домен хранилища
+- [knowledge/domains/health/domain.md](../../knowledge/domains/health/domain.md) — домен health-report
+- [log-categories.md](../../knowledge/domains/monitoring/components/log-categories.md) — регистрация категории `infra.cache.storage`
 
 ## Связь с другими задачами
 

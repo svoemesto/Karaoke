@@ -44,7 +44,7 @@ docker-сети и подписать SigV4 если нужно. См.
 | **`LmStudioService`** | OpenAI-совместимый /v1/chat/completions (LAN-only). |
 | **`WhisperAsrService`** | Whisper ASR (HTTP multipart). |
 | **`AlignmentServiceClient`** | Forced alignment маркеров. |
-| **`GeoIpService`** | api.country.is (с двухуровневым кэшем). |
+| **`GeoIpService`** | api.country.is (двухуровневый кэш; батч-резолв с бюджетом времени). |
 | **`YandexCaptchaValidationService`** | SmartCaptcha (Yandex). |
 
 ## Архитектурные решения

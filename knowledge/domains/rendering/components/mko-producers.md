@@ -12,12 +12,60 @@
 
 ## Назначение
 
-`karaoke-app/.../mlt/mko/Mko*.kt` — **41 конкретный Producer** для
+`karaoke-app/.../mlt/mko/Mko*.kt` — **40 Mko-классов** (41 `.kt`-файл
+вместе с интерфейсом `MltKaraokeObject`) — конкретные Producer'ы для
 MLT-генерации (см. [mlt-generator.md](mlt-generator.md)). Каждый
-Mko соответствует одному `ProducerType` (см.
+Mko соответствует одному или нескольким `ProducerType` (см.
 [entities-catalog.md#producer](../../catalog/components/entities-catalog.md#producer)).
 
-## Каталог (по размеру, от большего к меньшему)
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### Унифицированный конструктор
+
+Каждый Mko — `data class` с одинаковой сигнатурой:
+
+```kotlin
+data class Mko<Name>(
+    val mltProp: MltProp,
+    val type: ProducerType,
+    val voiceId: Int = 0,
+    val childId: Int = 0,
+    val elementId: Int = 0,
+) : MltKaraokeObject
+```
+
+Одинаковое количество, тип и порядок аргументов **обязательны** — по ним
+Mko создаётся рефлексией в `Mlt.getMlt` (см. `Mlt.kt`):
+
+> Все классы продюссеров должны иметь конструкторы с одинаковым
+> количеством, типом и последовательностью аргументов, чтобы их
+> можно было вызвать с помощью рефлексии.
+
+### Интерфейс `MltKaraokeObject`
+
+`mlt/mko/MltKaraokeObject.kt` — методы с `null`-дефолтами; конкретный Mko
+переопределяет только нужные:
+
+| Метод | Что возвращает |
+|---|---|
+| `producer()` | `<producer>` слоя |
+| `producerBlackTrack()` | black-track producer (использует `MkoMainBin`) |
+| `fileProducer()` | producer для file-playlist |
+| `filePlaylist()` | playlist слоя |
+| `trackPlaylist()` | track-playlist (`main_bin`) |
+| `tractor()` | tractor слоя |
+| `tractorSequence()` | sequence-tractor (использует `MkoMainBin`) |
+| `template()` | `kdenlivetitle`-шаблон (`xmldata`) |
+| `mainFilePlaylistTransformProperties()` | строка `TransformProperty` (opacity/fade); без дефолта — обязателен |
+
+### Регистрация типов
+
+`producerTypeClass` (`Constants.kt`) — map `ProducerType -> KClass<Mko>`
+на **44 записи**; несколько audio-типов (`AUDIOVOCAL`, `AUDIOMUSIC`,
+`AUDIOSONG`, `AUDIOBASS`, `AUDIODRUMS`) указывают на один `MkoAudio`,
+поэтому классов меньше, чем записей.
+
+### Каталог (по размеру, от большего к меньшему)
 
 | # | Файл | Строк | ProducerType | Назначение |
 |---|---|---|---|---|
@@ -37,23 +85,25 @@ Mko соответствует одному `ProducerType` (см.
 | 14 | `MkoString.kt` | 192 | `STRING` | Струна (визуализация) |
 | 15 | ... ещё 27 файлов (каждый < 200 строк) | | | См. `ls karaoke-app/.../mlt/mko/` |
 
-## Архитектура
+## Логика и Алгоритмы | Logic and Algorithms
 
-Каждый Mko — это `data class` с **одинаковой сигнатурой**:
+### Поток создания и связывания
 
-```kotlin
-data class Mko<Name>(
-    val mltProp: MltProp,
-    val type: ProducerType,
-    val voiceId: Int = 0,
-    val childId: Int = 0,
-    val elementId: Int = 0,
-) : MltKaraokeObject
-```
+1. `getMisList(mltProp)` (`Mlt.kt`) формирует список `MltInitialStructure`
+   по песне: голоса (`voice.linesForMlt()`), строки, элементы; UUID каждой
+   структуры хранится в `MltProp` (ключ — `listOf(type, voiceId, childId,
+   elementId)`), затем в конец списка добавляется `ProducerType.MAINBIN`.
+2. `Mlt.getMlt` для каждой структуры берёт класс из `producerTypeClass`
+   и вызывает
+   `getDeclaredConstructor(MltProp, ProducerType, Int, Int, Int).newInstance(mltProp, type, voiceId, childId, elementId)`.
+3. По рефлексии дёргаются `producer`, `producerBlackTrack`, `fileProducer`,
+   `filePlaylist`, `trackPlaylist`, `tractor`, `tractorSequence`;
+   непустые узлы (`producer*` → `bodyProducers`, playlist/tractor →
+   `bodyOthers`) добавляются в тело `<mlt producer="main_bin">`.
+4. `getMltProfile()` и `getMltConsumer(mltProp)` добавляются в начало тела;
+   итоговый корневой узел — `<mlt version="7.21.0">`.
 
-**`MltKaraokeObject`** интерфейс возвращает `MltNode` (XML).
-
-## Иерархия ProducerType ↔ Mko
+### Иерархия ProducerType ↔ Mko
 
 ```
 MAINBIN (level 0) — MkoMainBin
@@ -76,21 +126,18 @@ Plus отдельные:
 - `MkoHeader`, `MkoWatermark`, `MkoSplashStart`, `MkoProgress`,
   `MkoFlash`, `MkoBackground`, `MkoHorizon`, `MkoBoosty`.
 
-## Сигнатура Mko (унифицированная)
+### Связывание через `ProducerType`
 
-Все Mko имеют конструктор:
+- `MAINBIN` — корень (`level = 0`, `onlyOne = true`, `isSequence = true`);
+  его `trackPlaylist()` строит `main_bin` со всеми `<entry>`, а
+  `tractorSequence()` — основной клип (см. [mko-main-bin.md](mko-main-bin.md)).
+- Родитель/дети задаются полями enum: `parent`, `level`, `isSequence`,
+  `onlyOne`; `ProducerType.childs()` возвращает типы с
+  `parent == this`.
+- Sequence-типы связываются по UUID (`{uuid}`), не-sequence — по имени
+  producer'а (`MltGenerator.nameProducer`).
 
-```kotlin
-(mltProp, type, voiceId, childId, elementId) -> MltKaraokeObject
-```
-
-Это позволяет **reflection** (см. `Mlt.kt`):
-
-> Все классы продюссеров должны иметь конструкторы с одинаковым
-> количеством, типом и последовательностью аргументов, чтобы их
-> можно было вызвать с помощью рефлексии.
-
-## Hot paths
+### Hot paths
 
 - **MLT generation** — для каждой песни при `RENDER_MP4_*`
   (см. [async-process-queue.md](../../processing/components/async-process-queue.md)).
@@ -105,4 +152,5 @@ Plus отдельные:
 
 ## Changelog
 
+- **Pass 482** (2026-09-27, spec `482-knowledge-domain-rendering`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 388** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -19,6 +19,143 @@ MLT-генератор XML-проекта для melt/MLT-движка. Pass 366
 MLT (MediaLovinToolkit) — открытый XML-формат для нелинейного
 видеомонтажа. Используется в Karaoke для генерации караоке-видео.
 
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Точки входа генератора — две top-level функции в `Mlt.kt`:
+
+| Функция | Вход | Выход |
+|---|---|---|
+| `getMlt(mltProp: MltProp)` | параметры рендера | `MltNode` — корневой узел `<mlt>` |
+| `getMisList(mltProp: MltProp)` | параметры рендера | `List<MltInitialStructure>` — плоский список Producer'ов |
+
+`MltInitialStructure` — единица работы генератора:
+
+```kotlin
+data class MltInitialStructure(
+    var mltProp: MltProp,
+    var type: ProducerType,
+    var voiceId: Int = -1,
+    var childId: Int = -1,
+    var elementId: Int = -1,
+)
+```
+
+**`MltGenerator`** (`MltGenerator.kt`) — контракт одного Producer'а:
+
+- Конструктор: `MltGenerator(mltProp, type, voiceId = 0, childId = 0, elementId = 0)`.
+- Фабрики имён в `companion object`: `name(type, voiceId, childId, elementId)`,
+  `namePlaylistFile`, `namePlaylistTrack`, `nameTractor`, `nameProducer`,
+  `nameProducerBlackTrack`, `nameFileProducer`, `nameFilterVolume`,
+  `nameFilterPanner`, `nameFilterAudiolevel`, `nameFilterQtblend`,
+  `nameFilterGamma`.
+- Свойства: `id` (hash от `type.name, voiceId, childId, elementId`), `name`,
+  `namePlaylistFile`, `namePlaylistTrack`, `nameTractor`, `nameProducer`,
+  `nameProducerBlackTrack`, `nameFileProducer`, `nameFilter*`;
+  `propsTractor: MutableList<MltNode>`, `propProducer: MutableList<MltNode>`.
+- Методы сборки XML: `defaultProducerPropertiesForMltService(mltServiceName)`,
+  `entry(timecodeIn, timecodeOut, nodes, id)`, `producer(timecodeIn, timecodeOut, props, id)`,
+  `trackPlaylist()`, `filePlaylist()`,
+  `tractor(timecodeIn, timecodeOut, id, body)`.
+
+**`MltProp`** — параметры, которые читают генераторы:
+`getSongStartTimecode()`, `getSongEndTimecode()`, `getAudioEndTimecode()`,
+`getTotalStartTimecode()`, `getBackgroundEndTimecode()`, `getTimelineStartTimecode()`,
+`getLengthFr(...)`, `getAudioLengthFr()`, `getPath(...)`, `getVolume(...)`,
+`getFrameWidthPx()`, `getFrameHeightPx()`, `getFingerboardH(...)`,
+`getSongCapo()`, `getSongChordDescription()`, `getId(...)`, `getSong()`.
+
+**Профиль и consumer** (`Profile.kt`, `Consumer.kt`):
+
+- `getMltProfile(): MltNode` — узел `<profile>`: `frame_rate_num=60`,
+  `frame_rate_den=1`, `width/height` из `Karaoke.frameWidthPx`/`frameHeightPx`,
+  `colorspace=709`, `progressive=1`, `description="HD 1080p 60 fps"`.
+- `getMltConsumer(mltProp): MltNode` — узел `<consumer>`: `f=mp4`,
+  `properties=x265-medium`, `crf=15`, `preset=ultrafast`, `vcodec=libx265`,
+  `acodec=aac`, `ab=160k`, `target=mltProp.getFileName(SongOutputFile.VIDEO)`,
+  `out=mltProp.getLengthFr("Background")`.
+- `getMltBlackTrackProducer(mltProp): MltNode` (`BlackTrack.kt`) —
+  `<producer id="black_track">` с `resource=black`, `mlt_service=color`;
+  помечен `@Suppress("unused")`.
+
+**`MltNode` / `MltNodeBuilder`** — общий DSL XML-узлов: `MltNode.toString()`
+даёт XML-строку, `String.xmldata()` (`Extentions.kt`) добавляет
+`<?xml version="1.0"?>` и экранирует `<`. См. раздел
+[MltNode и MltNodeBuilder](#mltnode-и-mltnodebuilder-в-model).
+
+## Логика и Алгоритмы | Logic and Algorithms
+
+**`getMisList(mltProp)`** — разворачивает песню в плоский список
+Producer'ов:
+
+1. `mltProp.getSongVersion()` даёт `songVersion.producers` — набор
+   `ProducerType`, включённых для версии; `song.voicesForMlt` — голоса.
+   Если песни нет (`mltProp.getSong() == null`) — пустой список.
+2. По каждому голосу и каждой непустой линии (`!line.isEmptyLine`) — по
+   элементам `line.getElements(songVersion)`: если `ELEMENT` включён,
+   сначала рекурсивно добавляются его childs
+   (`ProducerType.ELEMENT.childs().asReversed()`), затем сам `ELEMENT`;
+   ключ — `listOf(type, indexVoice, indexLine, indexElement)`. Для
+   элементов вызывается `setCountChilds(line.getElements(songVersion).size, ...)`.
+3. По линиям — `LINE` (ключ `listOf(LINE, indexVoice, indexLine)`) с
+   `setDurationOnScreen(line.endVisibleTime - line.startVisibleTime, ...)`.
+4. По аккордам (`mltProp.getChords()`) — `CHORDPICTUREELEMENT` (по
+   числу элементов) и `CHORDPICTURELINE` (`setDurationOnScreen` от
+   `endChordVisibleTime - startChordVisibleTime`).
+5. Далее по голосу: `CHORDPICTURELINETRACK` (по
+   `voice.countChordPictureTracks`), `CHORDPICTURELINES`,
+   `CHORDPICTUREFADER`, `CHORDSBOARD`, `LINETRACK`
+   (`voice.countLineTracks`), `LINES`, `COUNTER`/`COUNTERS`,
+   `FILLCOLORSONGTEXT`/`FILLCOLORSONGTEXTS`, `SONGTEXT`,
+   `SCROLLER`/`SCROLLERTRACK`/`SCROLLERS`, `VOICE`.
+6. Один раз на песню (вне цикла по голосам): `VOICES`, `BOOSTY`,
+   `SPLASHSTART`, `WATERMARK`, `HEADER`, `FINGERBOARD`, `BACKCHORDS`,
+   `FADERTEXT`, `PROGRESS`, `FLASH`, `HORIZON`, `BACKGROUND`,
+   `AUDIODRUMS`, `AUDIOBASS`, `AUDIOSONG`, `AUDIOMUSIC`, `AUDIOVOCAL`,
+   `MAINBIN`.
+7. Каждому ключу присваивается UUID: `mltProp.getUUID(key)`; если пусто —
+   `mltProp.setUUID(getStoredUuid(key), key)`.
+
+**`getMlt(mltProp)`** — собирает корневой `<mlt>`:
+
+1. `mltProp.getSongVersion()` и `mltProp.getCountVoices()` — подготовка
+   параметров.
+2. В `body` первыми добавляются `getMltProfile()` и
+   `getMltConsumer(mltProp)`.
+3. Для каждой записи `getMisList(mltProp)` класс берётся из
+   `producerTypeClass` (`Constants.kt`) и инстанцируется рефлексией через
+   конструктор из 5 аргументов: `MltProp, ProducerType, Int, Int, Int`
+   (`voiceId`/`childId`/`elementId` нормализуются `Integer.max(..., 0)`).
+   Если типа нет в `producerTypeClass` — запись пропускается.
+4. У инстанса рефлексией (`declaredMethods`) вызываются методы по именам;
+   результаты делятся на две группы:
+   - `bodyProducers`: `producerBlackTrack`, `producer`, `fileProducer`;
+   - `bodyOthers`: `tractorSequence`, `filePlaylist`, `trackPlaylist`,
+     `tractor`.
+5. В `body` сначала добавляются все `bodyProducers`, затем `bodyOthers`.
+6. Возвращается `MltNode(name = "mlt", fields = LC_NUMERIC="C",
+   producer="main_bin", version="7.21.0", root=mltProp.getRootFolder("Song"))`.
+
+**`MltGenerator`** — генератор одного Producer'а:
+
+1. На вход: `mltProp`, `type`, `voiceId`, `childId`, `elementId`.
+2. `name` = `type.text.uppercase()` плюс суффиксы: `_V{voiceId}` (если
+   `!type.onlyOne`), `_C{childId}` и `_E{elementId}` (если id не 0 или
+   `type.ids` не пуст / `type.isCalculatedCount`). От `name` выводятся
+   имена всех узлов: `producer_*`, `producer_file_*`,
+   `producer_black_track_*`, `playlist_file_*`, `playlist_track_*`,
+   `tractor_*`, `filter_*`.
+3. `producer(...)`/`entry(...)` строят `<producer>`/`<entry>` с
+   `id`/`producer` и `in`/`out` из `timecodeIn`/`timecodeOut` (по
+   умолчанию — `getSongStartTimecode()`/`getSongEndTimecode()`).
+4. `tractor(...)` по умолчанию берёт `getTotalStartTimecode()` /
+   `getBackgroundEndTimecode()`; `tractorBody()` кладёт два `<track>`
+   (`playlist_file_*`, `playlist_track_*`), а при `type.isAudio`
+   добавляет фильтры `filter_volume_*`, `filter_panner_*`,
+   `filter_audiolevel_*`.
+5. Конкретный Producer — через `mko`-класс (например, `MkoHeader`,
+   `MkoAudio`); у всех mko-классов конструктор одинаковой сигнатуры,
+   иначе рефлексия в `getMlt` не сработает.
+
 ## Структура (52 Kotlin файла, ~7700 строк)
 
 ```
@@ -112,18 +249,6 @@ data class MltInitialStructure(
 - `getLengthFr(suffix: String)` — длина в frames.
 - `getPath(listOf(type))` — путь к файлу.
 - `getVolume(listOf(type))` — громкость слоя.
-
-### `MltGenerator` (325 строк)
-
-**Назначение**: генератор **одного Producer'а** (визуального слоя).
-
-**Алгоритм**:
-
-1. На вход: `MltProp`, `ProducerType`, `voiceId`, `childId`,
-   `elementId`.
-2. Использует `MltProp` (параметры) и `MltNodeBuilder` (DSL для XML).
-3. Конкретный Producer — через `mko` (например, `MkoHeader`,
-   `MkoAudio`).
 
 ### `Mko` файлы (конкретные Producers)
 
@@ -262,4 +387,5 @@ enum уже есть (см. entities-catalog.md), но конкретные
 
 ## Changelog
 
+- **Pass 482** (2026-09-27, spec `482-knowledge-domain-rendering`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 366-370** (2026-09-09): Initial detailed. Автор: agent (Karaoke).

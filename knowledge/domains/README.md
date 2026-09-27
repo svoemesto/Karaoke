@@ -42,17 +42,22 @@ knowledge/domains/<name>/
 
 | Домен | Компоненты |
 |---|---|
-| **catalog** | dictionaries, song-lifecycle, song-entity, entities-catalog, pictures, remaining-models |
-| **processing** | async-process-queue, two-db-sync, run-entity-sync, schedulers, process-admin, karaoke-properties, playwright-rendering |
+| **catalog** | album-entity, audio-descendant-sync, author-entity, dictionaries, entities-catalog, pictures, remaining-models, song-entity, song-lifecycle |
+| **processing** | async-process-queue, karaoke-properties, key-bpm-from-file, playwright-rendering, process-admin, run-entity-sync, schedulers, two-db-sync |
+| **karaoke-web** | config, internal-controllers, internal-stem-job-controller, main-controller, public-controllers, public-controllers-2, public-controllers-3, public-controllers-4, public-controllers-5, public-controllers-6, services-overview, song-share-link-service, thymeleaf-templates |
+| **rendering** | dictionaries, mlt-generator, mlt-karaoke-object, mlt-pipeline, mko-audio, mko-chord, mko-chord-picture-fader, mko-extra, mko-header, mko-main-bin, mko-producers, mko-visual, mko-voice, mko-voice-deep, mko-voice-misc, mko-voice-small |
+| **monitoring** | log-categories, monitor-checks, monitor-checks-detailed, monitor-core |
 | **storage** | karaoke-storage-service, storage-api-client, storage-flow |
-| **health** | health-report, health-report-batch-pool |
-| **sse** | (singleton) |
-| **persistence** | (singleton) |
-| **monetization** | (singleton) |
-| **integration** | external-api-clients, alignment-ml, dtos |
-| **karaoke-web** | public-controllers, internal-controllers, services-overview, song-share-link-service, config |
-| **rendering** | dictionaries, mlt-pipeline, mlt-generator |
-| **publishing** | dictionaries, stats-cache, publishing-services |
+| **identity** | dictionaries, security-config, site-user-entity |
+| **health** | health-report, health-report-batch-pool, race-fixed-65 |
+| **caching** | author-cache, caching-patterns, web-caches |
+| **integration** | alignment-ml, dtos, external-api-clients, song-public-dto |
+| **publishing** | dictionaries, publishing-services, stats-cache |
+| **editorial** | assignment-lifecycle, dictionaries |
+| **stats** | dictionaries, event-funnel |
+| **monetization** | (singleton — L3-компонентов нет) |
+| **persistence** | (singleton — L3-компонентов нет) |
+| **sse** | (singleton — L3-компонентов нет) |
 
 ## System (C4 L1 + L2 + infra)
 
@@ -102,13 +107,16 @@ knowledge/domains/<name>/
 
 ## Статистика (Pass 340-385)
 
-- **15 доменов** покрыто.
-- **~30 компонентов** в `domains/*/components/`.
-- **~25 system файлов** (frontend, infra, C4 L1/L2).
-- **~120+ файлов** Knowledge в целом.
-- **~440+ cross-links** все валидны.
+Значения измерены 2026-09-27 (Pass 471); до этого блок был устаревшим
+более чем вдвое по числу компонентов.
+
+- **16 доменов** покрыто.
+- **73 компонента** в `domains/*/components/`.
+- **57 system файлов** (frontend, infra, C4 L1/L2).
+- **181 файл** Knowledge в целом.
+- **634 cross-links**, все валидны.
 - **9/9 структурных** проверок OK.
-- **~16 000+ строк** Knowledge.
+- **~21 100 строк** Knowledge.
 
 ## Changelog
 

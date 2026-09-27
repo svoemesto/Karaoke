@@ -29,6 +29,19 @@
   `tools/check-knowledge-structure.sh`).
 - **Домены**: frontmatter обязателен (status, slug, related).
 
+## Lint policy (owner-decision 2026-09-27)
+
+Две секции шаблона компонента проверяются **условно** (`tools/lint-knowledge.py`,
+`is_section_required()`):
+
+- **«Связанные ADR»** — обязательна только если файл действительно ссылается на
+  ADR (`adr/`, `ADR-NNNN`, `local-NNNN`). Писать «нет релевантных ADR» в 44
+  файлах без ADR — наполнитель, отклонённый командой ещё в Pass 475.
+- **«Зависимости»** — не обязательна для каталожных компонент
+  (`entities-catalog`, `remaining-models`, `mko-producers`): это перечни
+  сущностей, понятия «зависимости» у них нет. Список исключений живёт в
+  `SECTION_EXEMPTIONS` в линтере и ревьюится вместе с правилом.
+
 ## См. также
 
 - [`knowledge/README.md`](../README.md) — главная SSoT-карта.

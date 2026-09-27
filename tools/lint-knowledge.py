@@ -42,6 +42,34 @@ def get_mandatory_headers_from_template(template_path):
     return headers
 
 
+# ---- Lint policy (owner-decision 2026-09-27) -------------------------
+
+# «Связанные ADR» обязательна только там, где компонента реально ссылается на
+# ADR: 44 из 49 «нарушений» были файлами, не упоминающими ни одного ADR, а
+# дописать в них «нет релевантных ADR» — наполнитель, который команда уже
+# осознанно отклонила (Pass 475, knowledge/domains/README.md § Структурный долг).
+ADR_SECTION = "Связанные ADR"
+ADR_REFERENCE_RE = re.compile(r"(adr/|ADR-\d|local-\d{4})")
+
+# Каталожные компоненты — перечни сущностей/моделей, а не поведение; понятия
+# «зависимости» у них нет (owner-decision 2026-09-27). Список явный: исключение
+# действует только на перечисленные файлы и ревьюится вместе с правилом.
+SECTION_EXEMPTIONS = {
+    "knowledge/domains/catalog/components/entities-catalog.md": {"Зависимости"},
+    "knowledge/domains/catalog/components/remaining-models.md": {"Зависимости"},
+    "knowledge/domains/rendering/components/mko-producers.md": {"Зависимости"},
+}
+
+
+def is_section_required(file_path, section_name, content):
+    """Нужна ли обязательная секция в конкретном файле (lint policy)."""
+    if section_name == ADR_SECTION:
+        return bool(ADR_REFERENCE_RE.search(content))
+    if section_name in SECTION_EXEMPTIONS.get(file_path, ()):
+        return False
+    return True
+
+
 # ---- Lint -----------------------------------------------------------
 
 def lint_markdown_file(file_path, mandatory_headers_map):
@@ -96,6 +124,8 @@ def lint_markdown_file(file_path, mandatory_headers_map):
                     break
             if not found:
                 primary_name = variants[0]
+                if not is_section_required(file_path, primary_name, content):
+                    continue
                 errors.append(f"Missing mandatory section: {primary_name} (or its aliases)")
 
     return errors

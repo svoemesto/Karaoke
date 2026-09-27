@@ -16,21 +16,72 @@ entity между двумя БД (LOCAL ↔ SERVER).
 
 `updateDatabases` — низкоуровневая логика: загружает записи из обеих
 БД, вычисляет diff (create/update/delete/move), применяет операции
-через HTTP на `/api/sync/changerecords`.
+через HTTP на `/changerecords`.
 
 ## Ubiquitous Language | Единый язык
 
 | Термин | Определение | Где в коде |
 | --- | --- | --- |
-| **`runEntitySync(key, direction, id?)`** | Синхронизировать одну entity по ключу | `Utils.kt:1055` |
-| **`updateDatabases(from, to, keys, idFilter)`** | Внутренняя логика sync | `Utils.kt:1075` |
-| **`SyncResult`** | Result data class с 4 списками: created, updated, deleted, moved | см. gaps |
+| **`runEntitySync(key, direction, id?)`** | Синхронизировать одну entity по ключу | `Utils.kt:1039` |
+| **`updateDatabases(from, to, keys, idFilter)`** | Внутренняя логика sync | `Utils.kt:1059` |
+| **`SyncResult`** | `data class` с 4 списками имён записей: created, updated, deleted, moved | `Utils.kt:960` |
 | **`SyncDirection.LOCAL_TO_SERVER`** | Push (admin → prod) | `sync/SyncTarget.kt:43` |
 | **`SyncDirection.SERVER_TO_LOCAL`** | Pull (prod → admin) | `sync/SyncTarget.kt:43` |
 | **`SyncOperation`** | `INSERT` / `UPDATE` / `DELETE` / `MOVE` | `sync/SyncTarget.kt:52` |
 | **`idFilter`** | Опциональный фильтр по конкретному id | `updateDatabases` |
 
-## Логика и Алгоритмы
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### Точки входа
+
+```kotlin
+fun runEntitySync(key: String, direction: SyncDirection, id: Long? = null): SyncResult
+
+fun updateDatabases(
+    fromDatabase: KaraokeConnection,
+    toDatabase: KaraokeConnection,
+    keys: Set<String>,
+    idFilter: Map<String, Long> = emptyMap(),
+): SyncResult
+```
+
+- `runEntitySync` — публичная точка входа на одну entity: разрешает
+  `direction` → `(fromDatabase, toDatabase)`, оборачивает `key` в `setOf(key)`,
+  а `id` — в `idFilter`.
+- `updateDatabases` — внутренняя точка входа: принимает уже разрешённые
+  соединения и произвольный набор ключей (`keys: Set<String>`).
+
+### Результат `SyncResult`
+
+`data class SyncResult(created, updated, deleted, moved)` (`Utils.kt:960`) — в
+каждом списке **имена** записей (`List<String>`), не объекты. Четыре компонента
+дают legacy-деструктуризацию `val (c, u, d, m) = ...`.
+
+### Контракт `SyncTarget` / `SyncRegistry` (внутренний)
+
+- target резолвится из `SyncRegistry.all`; чужой ключ пропускается
+  (`if (target.key !in keys) continue`).
+- флаги направлений/операций читаются через `isAllowed(direction)` и
+  `isOperationAllowed(direction, op)` (см. [two-db-sync.md](two-db-sync.md)).
+
+### HTTP-контракт на удалённую сторону
+
+- `SyncRemoteClient.postChangeRecords(body): Boolean` — единственный канал
+  записи на прод (`services/SyncRemoteClient.kt`); при сбое возвращает `false`,
+  а не бросает исключение.
+- URL: `https://sm-karaoke.ru/changerecords` (на web — `POST /changerecords`,
+  см. [main-controller.md](../../karaoke-web/components/main-controller.md)).
+- Тело: `word` + `dataCreate` / `dataUpdate` / `dataDelete`.
+- Callers в admin: `POST /sync/run` и `POST /sync/oneclick` (см.
+  [two-db-sync.md](two-db-sync.md)).
+
+### Возврат при недоступной БД
+
+`updateDatabases` возвращает пустой `SyncResult` (не бросает исключение),
+если `getConnection()` вернул `null` для любой из сторон, а также при
+`fromDatabase == toDatabase`.
+
+## Логика и Алгоритмы | Logic and Algorithms
 
 ### `runEntitySync`
 
@@ -89,7 +140,7 @@ fun updateDatabases(
           (по recordhash или по id).
         - Если UPDATE: загрузить записи с разным recordhash в источнике/цели.
         - Если DELETE: загрузить записи, которые есть в цели, но нет в источнике.
-4. Применить операции через HTTP POST /api/sync/changerecords:
+4. Применить операции через HTTP POST /changerecords:
    - chunks по DELETE_CHUNK_SIZE = 200 (см. two-db-sync.md).
 5. Возвратить SyncResult с 4 списками: created/updated/deleted/moved.
 ```
@@ -134,8 +185,10 @@ by design: ручной клик «не должен крашить UI».
 
 1. **`fromDatabase == toDatabase`** → no-op. Это защита от случайного
    sync LOCAL→LOCAL.
-2. **HTTP 500 на `/api/sync/changerecords`** → необработанное
-   исключение. Sync целиком падает. (См. Constitution II о retry-policy.)
+2. **Транзиентный сетевой сбой** (SSL/connect/timeout) раньше ронял весь
+   sync в HTTP 500; с Pass 431 `SyncRemoteClient` делает 1 retry и
+   возвращает `false` — исключение наружу не идёт, но и бесконечного
+   ретрая нет: при исчерпании попыток операция просто теряется.
 3. **Логирование через `println`** — НЕ через SLF4J-категории. См.
    gaps.
 4. **Concurrency**: `updateDatabases` НЕ thread-safe. Параллельные
@@ -153,11 +206,13 @@ by design: ручной клик «не должен крашить UI».
 
 ## Известные TODO
 
-- [ ] **`SyncResult`** — точное определение (data class с 4 полями).
+- [x] **`SyncResult`** — `data class` с 4 списками имён (`Utils.kt:960`),
+  см. «Интерфейсы и Контракты».
 - [ ] **`SyncTarget.resolveWhere`** — генерация WHERE clause для
   конкретной операции.
-- [ ] **HTTP `/api/sync/changerecords`** — endpoint в `karaoke-web`
-  для приёма операций.
+- [x] **HTTP `/changerecords`** — endpoint в `karaoke-web`
+  (`MainController.doChangeRecords`) для приёма операций; клиент —
+  `SyncRemoteClient`.
 - [ ] **Concurrency**: полная защита от одновременных sync.
 - [ ] **Retry policy** при HTTP failure.
 - [ ] **Логирование**: заменить `println` на SLF4J `infra.sync.*`.
@@ -166,8 +221,10 @@ by design: ручной клик «не должен крашить UI».
 
 ## Код (физическая реализация)
 
-- `karaoke-app/.../Utils.kt:1055` — `runEntitySync` (~20 строк).
-- `karaoke-app/.../Utils.kt:1075` — `updateDatabases` (~450 строк).
+- `karaoke-app/.../Utils.kt:1039` — `runEntitySync` (~20 строк).
+- `karaoke-app/.../Utils.kt:1059` — `updateDatabases` (~160 строк).
+- `karaoke-app/.../Utils.kt:1227` — `collectSyncOps` (~245 строк; сбор
+  операций и запись в LOCAL-цель).
 - `karaoke-app/.../sync/SyncTarget.kt` — `SyncTarget`, `SyncRegistry`.
 - `karaoke-app/.../services/AutoOneClickSyncScheduler.kt` —
   автозапуск `updateDatabases` каждые 3 часа.
@@ -176,5 +233,6 @@ by design: ручной клик «не должен крашить UI».
 
 ## Changelog
 
+- **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 343** (2026-09-09): Initial. Прецедент: задачи #65, #69.
   Автор: agent (Karaoke).

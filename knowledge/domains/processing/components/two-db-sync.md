@@ -38,6 +38,58 @@ SERVER, и наоборот, согласно per-target флагам. Такж�
 | **`AutoOneClickSyncScheduler`** | Периодический запуск «Синхронизации в 1 клик» раз в N часов (по умолчанию 3ч) | `services/AutoOneClickSyncScheduler.kt` |
 | **`AutoOneClickSyncRun`** | Запись о результате одного тика автосинка (in-memory, ≤10 записей) | `services/AutoOneClickSyncRun.kt` |
 
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### Контракт `SyncTarget<T>`
+
+Абстрактный класс `SyncTarget<T : Any>` (`sync/SyncTarget.kt:89`) — описание
+одной синхронизируемой таблицы. Публичные члены:
+
+| Метод / свойство | Контракт |
+| --- | --- |
+| `key`, `tableName`, `displayName` | Идентификация сущности/таблицы для `SyncRegistry`, UI и логов. |
+| `oneClickDirection` | Направление, в котором сущность едет в режиме «1 клик». |
+| `rowChunkSize` | Размер пачки для READ/INSERT/UPDATE (DELETE — общий `SyncRegistry.DELETE_CHUNK_SIZE`). |
+| `listHashes(db, whereText): List<RecordHash>?` | Пары `(id, recordhash)` для O(n)-сравнения LOCAL↔SERVER. `null`, если `whereText` недопустим. |
+| `loadByIds(ids, db): Map<Long, T>` | Пакетная загрузка `WHERE id IN (...)`. |
+| `getDiff(from, to): List<RecordDiff>` | Field-level diff двух версий записи (пустой список = идентичны). |
+| `getSqlToInsert(item): String` | SQL `INSERT` с `?`-плейсхолдерами для prepared-statement. |
+| `deleteLocal(id, db): Boolean` | Удаление записи из локальной БД (MOVE LOCAL→SERVER). |
+| `label(item): String` | Человекочитаемая метка записи. |
+| `shouldPush(diff): Boolean` | Открытый метод; по умолчанию `diff.isNotEmpty()`. |
+
+### `SyncRegistry`
+
+- `SyncRegistry.all: List<SyncTarget<*>>` — 18 зарегистрированных сущностей (`SyncTarget.kt:503`).
+- `SyncRegistry.byKey(key): SyncTarget<*>?` — поиск по ключу; `null`, если ключа нет (`SyncTarget.kt:525`).
+- `SyncRegistry.DELETE_CHUNK_SIZE = 200` — общий размер пачки для DELETE (`SyncTarget.kt:501`).
+
+### Флаги операций (extension-функции)
+
+- `operationPropertyKey(direction, op)` → ключ `sync_<key>_<push|pull>_<insert|update|delete|move>_allowed`.
+- `isOperationAllowed(direction, op): Boolean` — читает флаг из `KaraokeProperties`.
+- `isAllowed(direction): Boolean` — `true`, если разрешена хотя бы одна операция этого направления.
+
+### Точки входа
+
+- `runEntitySync(key, direction, id?): SyncResult` — одна entity по ключу (`Utils.kt:1039`).
+- `updateDatabases(fromDatabase, toDatabase, keys, idFilter): SyncResult` — низкоуровневая логика (`Utils.kt:1059`).
+- `SyncRemoteClient.postChangeRecords(body): Boolean` — POST на `/changerecords`; `false` при исчерпании попыток (`services/SyncRemoteClient.kt`).
+
+### HTTP-контракты
+
+| Метод / URL | Контракт |
+| --- | --- |
+| `GET /sync/entities` | `List<SyncEntityInfoDto>` — все targets с флагами (push/pull × insert/update/delete/move). |
+| `POST /sync/setflag` | Параметры `key`, `direction` (`PUSH`/`PULL`), `operation`, `value`; пишет флаг через `operationPropertyKey`; `400`, если ключ/направление/операция неизвестны. |
+| `POST /sync/run` | Параметры `key`, `direction`, `id?`; `403 sync_not_allowed`, если направление запрещено; возвращает `SyncRunResultDto`. |
+| `POST /sync/oneclick` | Прогон всех targets по их `oneClickDirection`; `403 vpn_active` при активном VPN; `409 sync_in_progress`, если занят `AutoOneClickSyncScheduler.running`; возвращает `List<SyncOneClickResultDto>`. |
+| `POST /utils/tosync` | Параметр `id` — добавляет одну песню в sync-таблицу. |
+| `POST /changerecords` (karaoke-web) | Тело: `word` (зашифрованное кодовое слово) + `dataCreate`/`dataUpdate`/`dataDelete`; возвращает `String` (`"OK"` или текст ошибки). См. [main-controller.md](../../karaoke-web/components/main-controller.md). |
+
+DTO контрактов (`SyncEntityInfoDto`, `SyncRunResultDto`,
+`SyncOneClickResultDto`) объявлены в `controllers/ApiController.kt:146/168/180`.
+
 ## Архитектура
 
 ### Зарегистрированные сущности (`SyncRegistry.all`)
@@ -67,6 +119,8 @@ LOCAL. Это значит, что **repair-процессы не видны п�
 Это позволяет **тонкую настройку**: например, push разрешён для
 новых песен, но не для удаления (delete только через ручной процесс).
 
+## Логика и Алгоритмы | Logic and Algorithms
+
 ### Алгоритм sync
 
 Один `runEntitySync(target, direction)` для каждого target'а:
@@ -78,7 +132,7 @@ LOCAL. Это значит, что **repair-процессы не видны п�
    - UPDATE: получить записи с разным recordhash в источнике и цели.
    - DELETE: получить записи, которые есть в цели, но нет в источнике.
    - MOVE: получить записи, помеченные как удалённые в источнике.
-3. Для каждой операции: HTTP POST на /api/sync/changerecords (server-side endpoint).
+3. Для каждой операции: HTTP POST на /changerecords (server-side endpoint).
    Pass 431 (#155): через `SyncRemoteClient` — таймауты 10s/60s, 1 retry (2s) на
    транзиентные сетевые сбои, ошибка не пропагируется (см. run-entity-sync.md).
 4. Chunks по DELETE_CHUNK_SIZE = 200 для DELETE.
@@ -87,6 +141,19 @@ LOCAL. Это значит, что **repair-процессы не видны п�
 
 NB: `recordhash` — md5 от канонизированной строки таблицы. **Без
 него** diff работал бы через покабельное сравнение, что долго.
+
+**Порядок и батчи (проверено в `updateDatabases`, `Utils.kt:1059`)**:
+
+- Для каждого target с ключом из `keys` вызывается `collectSyncOps(...)`;
+  при `id`-фильтре `whereText = "WHERE id = <id>"`, иначе `""`.
+- Запись в SERVER-цель идёт батчами в порядке **INSERT → DELETE → UPDATE**.
+- Размер пачки INSERT/UPDATE — `min(rowChunkSize)` по участвующим targets
+  (fallback `100`), DELETE — `SyncRegistry.DELETE_CHUNK_SIZE = 200`.
+- Удаление перемещённых строк из ИСТОЧНИКА (MOVE) — **после** записи в цель:
+  SERVER-источник — зашифрованным HTTP-DELETE, LOCAL-источник — прямым
+  JDBC-DELETE. Так источник чистится только по подтверждённой цели.
+- Если `collectSyncOps` вернул `false` — sync целиком возвращает пустой
+  `SyncResult`.
 
 ### `AutoOneClickSyncScheduler`
 
@@ -140,7 +207,7 @@ NB: `recordhash` — md5 от канонизированной строки та
   - SELECT chunk = 25 (под `socketTimeout=30` на тяжёлых строках
     Song, см. parent 241 A.4).
   - DELETE chunk = 200 (лёгкие, можно крупные пачки).
-- **HTTP round-trips**: один на чанк записей через `/api/sync/changerecords`.
+- **HTTP round-trips**: один на чанк записей через `/changerecords`.
 
 ## Зависимости | Dependencies
 
@@ -148,14 +215,14 @@ NB: `recordhash` — md5 от канонизированной строки та
   `KaraokeProcess` НЕ в sync — repair-процессы только LOCAL.
 - **Two-DB sync + Monitoring**: `AutoOneClickSyncStatusController`
   отдаёт последние 10 тиков для UI.
-- **Web side**: `/api/sync/changerecords` endpoint принимает sync-операции.
+- **Web side**: `/changerecords` endpoint принимает sync-операции.
 
 ## Известные TODO
 
 - [ ] **recordhash-триггеры** — где определены, как пересоздаются
       при миграциях.
 - [x] **`runEntitySync`** в `Utils.kt` — описан в [run-entity-sync.md](run-entity-sync.md).
-- [ ] **`/api/sync/changerecords`** на web-стороне — endpoint для
+- [ ] **`/changerecords`** на web-стороне — endpoint для
       приёма операций.
 - [ ] **Why NOT cluster lock**: karaoke-app — desktop, однопроцессный.
       Что если два админа одновременно запустят sync?
@@ -176,7 +243,7 @@ NB: `recordhash` — md5 от канонизированной строки та
 - `karaoke-app/.../controllers/AutoOneClickSyncStatusController.kt`
 - `karaoke-app/.../controllers/ApiController.kt` (`postSyncOneClick`)
 - `karaoke-app/.../controllers/dto/AutoOneClickSyncDtos.kt`
-- `karaoke-web/.../controllers/...` (`/api/sync/changerecords` endpoint)
+- `karaoke-web/.../controllers/...` (`/changerecords` endpoint)
 
 ## Связанные ADR
 
@@ -189,4 +256,5 @@ NB: `recordhash` — md5 от канонизированной строки та
 
 ## Changelog
 
+- **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).

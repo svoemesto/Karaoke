@@ -139,7 +139,7 @@ KaraokeProcess.createProcess(
 
 `runningThreads` — `ConcurrentHashMap<Long, KaraokeProcessThread>`.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport**: `HealthReport.actionsLocalFileSystem/...`
   добавляют `KaraokeProcess.createProcess(...)` в `solutionActions`.

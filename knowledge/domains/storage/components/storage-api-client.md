@@ -355,7 +355,7 @@ probe-путь после cooldown. `acquire()` не изменён.
 
 См. `specs/435-cache-etag-size-backfill/spec.md`.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,
   `downloadFile`, `uploadFile` для восстановления из remote.

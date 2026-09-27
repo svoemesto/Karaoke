@@ -3,6 +3,12 @@
 > **Домен**: integration (API contracts)
 > **Компонента**: `SongPublicDto` — главный публичный DTO песни.
 
+
+## Ответственность | Responsibility
+
+
+`SongPublicDto` — главный публичный DTO песни.
+
 ## Файл
 
 `karaoke-web/.../dto/SongPublicDto.kt`
@@ -57,7 +63,7 @@ API/UI публичного сайта (`/api/public/song/...`).
 - **`/api/public/news/...`** — для новостей.
 - **`/api/public/zakroma/...`** — для Закромов.
 
-## Связь
+## Зависимости | Dependencies
 
 - [dtos.md](dtos.md) — общий каталог DTO.
 - [song-entity.md](../../catalog/components/song-entity.md) — admin entity.

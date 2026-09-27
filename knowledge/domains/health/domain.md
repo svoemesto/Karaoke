@@ -77,6 +77,12 @@ Health отвечает за проверку: «эти три представ�
   размер рассылается SSE `HEALTH_REPORT_WAITING_POOL_SIZE`. Детальный
   контракт — в [health-report-batch-pool](components/health-report-batch-pool.md).
 
+## Структура компонентов (C4 L3)
+
+- [health-report-batch-pool](components/health-report-batch-pool.md) — Решает проблему «каскада синхронных HTTP-запросов» при открытии страницы админки «Песни». Вместо того чтобы фронт делал…
+- [health-report](components/health-report.md) — `HealthReport` — единичный отчёт о нарушении по одной песне. Содержит: **что не так** + **как исправить** (набор…
+- [race-fixed-65](components/race-fixed-65.md) — per-song single-flight guard для `HealthReport.repair-loop` (реальный fix race condition).
+
 ## Domain Invariants | Инварианты и правила бизнеса
 
 1. **`HealthReport` НИКОГДА не выполняет действия сам**: actions

@@ -130,6 +130,12 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 потому что веб-прокси иногда кодирует имена файлов (русские
 буквы, спецсимволы).
 
+## Структура компонентов (C4 L3)
+
+- [karaoke-storage-service](components/karaoke-storage-service.md) — Spring-бин для `karaoke-app`, инкапсулирующий доступ к **local MinIO** (`karaoke-storage:9000`). Полный **read+write**…
+- [storage-api-client](components/storage-api-client.md) — Spring-бин для доступа к **remote MinIO** через HTTP-прокси.
+- [storage-flow](components/storage-flow.md) — high-level диаграмма потоков данных между `karaoke-app`, `karaoke-web` и MinIO.
+
 ## Domain Invariants
 
 1. **`fileExists` и `fileIsActual` — single source of truth**: ни один

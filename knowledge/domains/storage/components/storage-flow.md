@@ -4,6 +4,12 @@
 > **Компонента**: high-level диаграмма потоков данных между
 > `karaoke-app`, `karaoke-web` и MinIO.
 
+
+## Ответственность | Responsibility
+
+
+high-level диаграмма потоков данных между `karaoke-app`, `karaoke-web` и MinIO.
+
 ## Архитектура (C4 L1 + L2)
 
 ```
@@ -204,7 +210,7 @@ AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
 - [ ] **CORS / public-read** — какие bucket'ы публичные, какие
       private, кто управляет.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport** (`actionsLocalStorage`, `actionsRemoteStorage`).
 - **Async Process Queue** (Pass 342) — `StemJobPollScheduler` и др.

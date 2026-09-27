@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: детальный обзор 6 non-Public контроллеров (admin/internal/debug).
 
+
+## Ответственность | Responsibility
+
+
+детальный обзор 6 non-Public контроллеров (admin/internal/debug).
+
 ## Назначение
 
 `karaoke-web/.../controllers/{Main,Internal*,Debug*,SiteShareLinks*,WebSocket*}` —
@@ -20,7 +26,7 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 | 5 | `SiteShareLinksController` | 4 | `/api/share-links/...` | Управление share-линками (admin) |
 | 6 | `WebSocketConfig` | 0 | `/ws` | WebSocket/SSE endpoint config |
 
-## Детальные контракты
+## Интерфейсы и Контракты | Interfaces and Contracts
 
 ### `MainController` (Thymeleaf, 23 endpoints)
 
@@ -119,7 +125,7 @@ endpoints возвращают JSON. Гибрид — для статическ�
 `KARAOKE_WEB_DEBUG_DB_ENABLED=false` по умолчанию. Нельзя случайно
 включить на проде.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **SSE** ([sse domain](../../sse/domain.md)) — `WebSocketConfig`.
 - **Storage** ([storage domain](../../storage/domain.md)) — read-only

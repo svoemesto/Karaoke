@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: `MkoAudio` — Producer для аудио-слоёв в karaoke-видео.
 
+
+## Ответственность | Responsibility
+
+
+`MkoAudio` — Producer для аудио-слоёв в karaoke-видео.
+
 ## Файл
 
 `karaoke-app/.../mlt/mko/MkoAudio.kt`
@@ -35,7 +41,7 @@ private val volume = mltProp.getVolume(listOf(type))
 private val songStartTimecode = mltProp.getSongStartTimecode()
 ```
 
-## Логика
+## Логика и Алгоритмы | Logic and Algorithms
 
 - `mltProp.getPath(listOf(type))` — путь к FLAC-файлу.
 - `mltProp.getVolume(listOf(type))` — громкость слоя.
@@ -46,7 +52,7 @@ private val songStartTimecode = mltProp.getSongStartTimecode()
 
 - **Render MP4** — для каждой песни, для каждой 5 (или 3) аудио-стемы.
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-producers.md](mko-producers.md) — иерархия.
 - [storage-flow.md](../../storage/components/storage-flow.md) — пути к FLAC в MinIO.

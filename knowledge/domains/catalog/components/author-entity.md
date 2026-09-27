@@ -3,6 +3,12 @@
 > **Домен**: [catalog](../domain.md)
 > **Компонента**: детальное описание `Author` entity.
 
+
+## Ответственность | Responsibility
+
+
+детальное описание `Author` entity.
+
 ## Файл
 
 `karaoke-app/.../model/Author.kt`
@@ -49,7 +55,7 @@
 `aliases` — для LLM-поиска текстов песен. Автор может иметь
 несколько имён/псевдонимов; LLM учитывает все.
 
-## Связь
+## Зависимости | Dependencies
 
 - [Song entity](song-entity.md) — `Song.author` (строковое имя, не FK).
 - [Album entity](album-entity.md) — `Album.authorId` (FK).

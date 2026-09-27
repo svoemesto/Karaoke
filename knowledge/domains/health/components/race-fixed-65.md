@@ -4,6 +4,12 @@
 > **Компонента**: per-song single-flight guard для
 > `HealthReport.repair-loop` (реальный fix race condition).
 
+
+## Ответственность | Responsibility
+
+
+per-song single-flight guard для `HealthReport.repair-loop` (реальный fix race condition).
+
 ## Контекст
 
 **OpenProject #65** (in progress): «Ошибка при проверке наличия
@@ -90,7 +96,7 @@ fun onRepairProcessFinished(songId, success, database, storageService, storageAp
 | `autoRepairSongIds` — не thread-safe Set | потенциальный `ConcurrentModificationException` | **synchronized** через `computeIfAbsent` (AtomicBoolean) |
 | Разные песни | не блокируют друг друга | **не блокируют** (perSong lock) |
 
-## Связь
+## Зависимости | Dependencies
 
 - [health-report.md](health-report.md) — общая компонента.
 - [health-report.md#reconcileplayerreadinessflags](health-report.md) —

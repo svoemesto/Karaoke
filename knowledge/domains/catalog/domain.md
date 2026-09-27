@@ -127,15 +127,15 @@ MLT-конвейером).
 
 ## Структура компонентов (C4 L3)
 
-- [dictionaries](components/dictionaries.md) — `IdStatus` (1..6),
-  `SongType` enum, тег `SKIP`. Централизованный словарь магических
-  кодов домена.
-- [song-lifecycle](components/song-lifecycle.md) — переходы `idStatus`
-  1→2→3→4→5→6, доменные события `SongStatusChanged` / `SongPublished`,
-  роли участников пайплайна.
-- [audio-descendant-sync](components/audio-descendant-sync.md) — механизм
-  «Синхронизация аудио-потомков» (#141): хук `Song.saveToDb`, очередь,
-  аудио-сверка, перенос контента родителя в потомков.
+- [album-entity](components/album-entity.md) — детальное описание `Album` entity.
+- [audio-descendant-sync](components/audio-descendant-sync.md) — Песня-потомок (`audio_parent_id` указывает на родителя) — по сути копия родителя по звучанию. Компонент обеспечивает…
+- [author-entity](components/author-entity.md) — детальное описание `Author` entity.
+- [dictionaries](components/dictionaries.md) — В catalog-домене часто возникают ситуации, когда:
+- [entities-catalog](components/entities-catalog.md) — Каталог сущностей, относящихся к **контенту проекта**: песни, альбомы, авторы, обложки, новости, словари, share-ссылки,…
+- [pictures](components/pictures.md) — `Pictures` — единая сущность для всех картинок проекта, связанных с альбомом или треком:
+- [remaining-models](components/remaining-models.md) — Детальное описание моделей, которые НЕ являются DB-entity в полном смысле (нет `KaraokeDbTable`), но являются…
+- [song-entity](components/song-entity.md) — детальное описание `Song` — главной entity проекта.
+- [song-lifecycle](components/song-lifecycle.md) — Эта компонента описывает **end-to-end pipeline** одной песни: от момента попадания mp3 в папку импорта до публикации…
 
 ## Связанные фичи
 

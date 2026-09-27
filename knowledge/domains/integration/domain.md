@@ -69,6 +69,13 @@ Telegram Bot API имеет жёсткий rate-limit (1 запрос/сек н�
 Решение — встроенный rate-limiter или очередь `KaraokeProcess` (см.
 [async-process-queue.md](../processing/components/async-process-queue.md)).
 
+## Структура компонентов (C4 L3)
+
+- [alignment-ml](components/alignment-ml.md) — `alignment-ml` — отдельный Python-сервис (НЕ Kotlin/Gradle), реализующий **forced alignment**: по известному тексту…
+- [dtos](components/dtos.md) — каталог всех DTO (Data Transfer Object) проекта.
+- [external-api-clients](components/external-api-clients.md) — Это **все HTTP-клиенты** проекта к внешним сервисам. Каждый клиент — отдельный `object` или `class` в `services/`.…
+- [song-public-dto](components/song-public-dto.md) — `SongPublicDto` — главный публичный DTO песни.
+
 ## Domain Invariants
 
 1. **Все внешние вызовы MUST идти через nginx-proxy** (не

@@ -4,6 +4,12 @@
 > **Компонента**: детальный обзор services, отвечающих за авто-публикацию
 > (TG/VK/Sponsr/Premium).
 
+
+## Ответственность | Responsibility
+
+
+детальный обзор services, отвечающих за авто-публикацию (TG/VK/Sponsr/Premium).
+
 ## Назначение
 
 Сервисы, которые публикуют контент во внешние системы
@@ -143,7 +149,7 @@ object NewsTemplateService {
 | `SongReleaseAnnouncementService` | 5min + per-song |
 | `NewsTemplateService` | per-render (cache не используется) |
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Schedulers** ([schedulers.md](../../processing/components/schedulers.md)) —
   триггеры.

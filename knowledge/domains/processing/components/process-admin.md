@@ -142,7 +142,7 @@ Sync для маленьких объов (до 100), async для больши�
 4. **Async bulk operations** — прогресс только через SSE. Не
    все клиенты могут получать SSE (Pass 343+ проверка).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Async Process Queue** ([async-process-queue.md](async-process-queue.md)) —
   `bulkUpdateProcessesAsync` создает задание типа `BULK_*`.

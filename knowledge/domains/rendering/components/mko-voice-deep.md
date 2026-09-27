@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: детальный обзор 10 Mko-файлов под VOICE/COUNTER/LINE.
 
+
+## Ответственность | Responsibility
+
+
+детальный обзор 10 Mko-файлов под VOICE/COUNTER/LINE.
+
 ## Каталог (10 файлов)
 
 | # | Mko | Строк | ProducerType | Что |
@@ -38,7 +44,7 @@ VOICES → VOICE →
 └── FILLCOLORSONGTEXTS → FILLCOLORSONGTEXT (level 3-4) — MkoFillcolorSongtext, MkoFillcolorSongtexts
 ```
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-voice.md](mko-voice.md) — обзор voice-иерархии (Pass 394).
 - [mko-voice-small.md](mko-voice-small.md) — Counter/Scroller/Line/etc.

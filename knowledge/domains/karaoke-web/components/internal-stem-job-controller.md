@@ -4,6 +4,12 @@
 > **Компонента**: `InternalStemJobController` — server-to-server для
 > StemJob processing.
 
+
+## Ответственность | Responsibility
+
+
+`InternalStemJobController` — server-to-server для StemJob processing.
+
 ## Файл
 
 `karaoke-web/.../controllers/InternalStemJobController.kt`
@@ -25,7 +31,7 @@
 | `/api/internal/stem-jobs/{id}/raw` | Сырой файл, загруженный пользователем (в `temp-dir` karaoke-web) |
 | `/api/internal/stem-jobs/{id}/ack` | Подтверждение, что файл забран и обработан — можно удалить |
 
-## Логика
+## Логика и Алгоритмы | Logic and Algorithms
 
 ### `/raw` — отдача сырого файла
 
@@ -51,7 +57,7 @@ karaoke-web **удаляет** файл из `temp-dir`.
   скачивать файлы.
 - **Per StemJob** — 1 download + 1 ack.
 
-## Связь
+## Зависимости | Dependencies
 
 - [storage-flow.md](../../storage/components/storage-flow.md) — общий
   поток.

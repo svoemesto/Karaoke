@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: обзор 3 Mko-файлов (Boosty, Fingerboard, FaderText).
 
+
+## Ответственность | Responsibility
+
+
+обзор 3 Mko-файлов (Boosty, Fingerboard, FaderText).
+
 ## Каталог (3 файла)
 
 | # | Mko | ProducerType | Что |
@@ -11,7 +17,7 @@
 | 2 | `MkoFingerboard.kt` | `FINGERBOARD` | Гриф гитары (визуализация позиций) |
 | 3 | `MkoFaderText.kt` | `FADERTEXT` | Текст с плавным появлением/исчезновением |
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-visual.md](mko-visual.md) — Background/Horizon/Flash/Progress/
   Watermark/SplashStart/Boosty (visual Mko).

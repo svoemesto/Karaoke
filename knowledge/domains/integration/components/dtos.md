@@ -3,6 +3,12 @@
 > **Домен**: integration (API contracts)
 > **Компонента**: каталог всех DTO (Data Transfer Object) проекта.
 
+
+## Ответственность | Responsibility
+
+
+каталог всех DTO (Data Transfer Object) проекта.
+
 ## Назначение
 
 DTO — сериализуемое представление сущностей для API/UI. Каждая
@@ -86,7 +92,7 @@ Jackson может генерировать DTO из entity через `@JsonVie
 (`isReady`, `recordHash`, и т.д.), `songPublicDto` — только то, что
 нужно пользователю.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Entity** ([entities-catalog.md](../../../domains/catalog/components/entities-catalog.md)) — каждой
   entity соответствует DTO.

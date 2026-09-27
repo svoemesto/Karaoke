@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: базовый интерфейс для всех Mko-классов.
 
+
+## Ответственность | Responsibility
+
+
+базовый интерфейс для всех Mko-классов.
+
 ## Файл
 
 `karaoke-app/.../mlt/mko/MltKaraokeObject.kt`
@@ -53,7 +59,7 @@ interface MltKaraokeObject {
   [mlt-generator.md](mlt-generator.md)).
 - Используется для построения `<multitrack>` / `<tractor>`.
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-producers.md](mko-producers.md) — общая иерархия.
 - [mlt-generator.md](mlt-generator.md) — `Mlt.kt` вызывает

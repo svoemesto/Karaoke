@@ -99,11 +99,9 @@ related:
 
 ## Структура компонентов (C4 L3)
 
-- [caching-patterns](components/caching-patterns.md) — детальное
-  описание 6 паттернов с примерами кода.
-- [author-cache](components/author-cache.md) — специфика
-  `AuthorsCache` (денормализация в БД) + `AuthorTilesCache`
-  (in-memory кеш тайлов).
+- [author-cache](components/author-cache.md) — В Karaoke есть **126+ исполнителей** (Authors), и для главной страницы нужны счётчики песен по каждому…
+- [caching-patterns](components/caching-patterns.md) — Эта компонента — единая точка регистрации всех caching patterns, применяемых в Karaoke. Каждый паттерн имеет **имя**,…
+- [web-caches](components/web-caches.md) — Документирует **два существующих** in-memory кеша, которые можно **переиспользовать** в новых фичах.
 
 ## Публичные контракты (API)
 

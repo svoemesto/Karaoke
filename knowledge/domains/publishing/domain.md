@@ -56,9 +56,17 @@ Publishing — контекст, отвечающий за **доставку к
 
 ## Aggregate Roots
 
-- **PublishWindow (Окно публикации)**: окно, в которое песня доступна
-  публично. Identity = `songId`. Содержит `publishDate`, `publishTime`,
-  флаг `isExclusive`.
+> **[WARN] Поправка Pass 475: типа `PublishWindow` НЕ существует.**
+> В коде нет ни класса `PublishWindow`, ни `PublishEvent` (grep по
+> `*.kt` — 0; найдено только вхождение `publishWindow` внутри
+> конфиг-ключа `telegramAutoPublishWindowMinutes`). Поля
+> `publishDate`, `publishTime`, `isExclusive` реальны, но живут на
+> сущности `Song` домена [catalog](../catalog/domain.md) — отдельного
+> агрегата публикации нет. Описание ниже — ЗАДУМАННАЯ модель:
+
+- ~~**PublishWindow (Окно публикации)**~~: окно, в которое песня
+  доступна публично; Identity = `songId`; содержит `publishDate`,
+  `publishTime`, `isExclusive`.
   Инварианты:
   - `publishDate + publishTime` либо в прошлом (эфир), либо в будущем
     (premium-only);
@@ -125,11 +133,9 @@ Publishing — контекст, отвечающий за **доставку к
 
 ## Структура компонентов (C4 L3)
 
-- [dictionaries](components/dictionaries.md) — `AccessMode` enum,
-  `VisitorType`, `BotScore` thresholds. Магические коды публикации.
-- [stats-cache](components/stats-cache.md) — `StatBySong`
-  AtomicInteger-кеш, обновление через `StatsCacheScheduler` каждый
-  час. Hot-path cache invalidation.
+- [dictionaries](components/dictionaries.md) — В publishing-домене часто возникают ситуации, когда:
+- [publishing-services](components/publishing-services.md) — детальный обзор services, отвечающих за авто-публикацию (TG/VK/Sponsr/Premium).
+- [stats-cache](components/stats-cache.md) — Главная страница `karaoke-public` показывает счётчики: «Всего песен», «В открытом доступе», «Доступно по подписке» и…
 
 ## Связанные фичи
 

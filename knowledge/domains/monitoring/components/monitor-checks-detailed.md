@@ -4,6 +4,12 @@
 > **Компонента**: детальный каталог 7 MonitorCheck'ов. Дополняет
 > [monitor-checks.md](monitor-checks.md).
 
+
+## Ответственность | Responsibility
+
+
+детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](monitor-checks.md).
+
 ## Назначение
 
 7 MonitorCheck'ов в `karaoke-app/.../monitor/checks/`. Тикают раз в
@@ -21,7 +27,7 @@
 | 6 | `SubmittedAssignmentsCheck` | 47 | WARNING | Заданий в `submitted` > 24ч (remote DB) |
 | 7 | `StemJobsStuckCheck` | 49 | WARNING | StemJob застряли > 30 мин (WAITING/WORKING) |
 
-## Детальные контракты
+## Интерфейсы и Контракты | Interfaces and Contracts
 
 ### 1. `ProdContainerCheck` (278 строк, **CRITICAL**)
 
@@ -128,7 +134,7 @@ read/unread на каждом тике.
 при перезапуске `karaoke-app` отсчёт начинается заново. Это
 by-design (нет персистенции monitor-состояния).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - [monitor-checks.md](monitor-checks.md) — общий каталог (7 чеков).
 - [log-categories.md](log-categories.md) — `infra.prod.ping`,

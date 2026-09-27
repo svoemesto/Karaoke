@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: 5 Mko-файлов voice-иерархии (misc).
 
+
+## Ответственность | Responsibility
+
+
+5 Mko-файлов voice-иерархии (misc).
+
 ## Каталог (5 файлов)
 
 | # | Mko | Строк | ProducerType | Что |
@@ -29,7 +35,7 @@ MAINBIN
 
 `FILL` — внутри `ELEMENT` (level 7) — пустой слой.
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-voice.md](mko-voice.md) — обзор voice-иерархии (Pass 394).
 - [mko-voice-small.md](mko-voice-small.md) — Counter/Scroller/Line/etc.

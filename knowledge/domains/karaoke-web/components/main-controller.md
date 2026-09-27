@@ -4,6 +4,12 @@
 > **Компонента**: `MainController` — Thymeleaf-страницы + internal
 > endpoints.
 
+
+## Ответственность | Responsibility
+
+
+`MainController` — Thymeleaf-страницы + internal endpoints.
+
 ## Файл
 
 `karaoke-web/.../controllers/MainController.kt` (~500+ строк)
@@ -33,7 +39,7 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
 | `POST /changerecords` | Приём изменений two-DB sync (зашифрованный SQL через `Crypto.encrypt`) |
 | `GET /api/internal/stem-jobs/{id}/download-original` | См. [internal-stem-job-controller.md](internal-stem-job-controller.md) |
 
-## Логика
+## Логика и Алгоритмы | Logic and Algorithms
 
 - **Импорты**: `KaraokeStorageService`, `StorageApiClient`,
   `SongReleaseAnnouncementService`, `SamplingFilter`,
@@ -71,7 +77,7 @@ endpoints для internal). Разделение — по `produces` и типу
 используется для real-time обновлений (например, новые сообщения в
 чате).
 
-## Связь
+## Зависимости | Dependencies
 
 - [internal-controllers.md](internal-controllers.md) — общий обзор.
 - [services-overview.md](services-overview.md) — сервисы.

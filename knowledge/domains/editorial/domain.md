@@ -121,12 +121,8 @@ error codes) — см. [dictionaries](components/dictionaries.md).
 
 ## Структура компонентов (C4 L3)
 
-- [dictionaries](components/dictionaries.md) — `ApprovalStatus` enum,
-  `TargetIdStatus` (5/6), error codes (`song_already_taken`,
-  `song_not_found`, etc.).
-- [assignment-lifecycle](components/assignment-lifecycle.md) —
-  жизненный цикл `EditorAssignment` (active → done/revoked),
-  `ReviewTask` review flow, race protection с `SELECT FOR UPDATE`.
+- [assignment-lifecycle](components/assignment-lifecycle.md) — Эта компонента описывает полный pipeline задания редактора: от self-assign до approve/reject с запуском авто-конвейера.…
+- [dictionaries](components/dictionaries.md) — В editorial-домене часто возникают ситуации, когда:
 
 ## Связанные фичи
 

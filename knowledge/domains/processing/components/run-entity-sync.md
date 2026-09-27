@@ -142,7 +142,7 @@ by design: ручной клик «не должен крашить UI».
    sync ОДНОЙ entity могут создать race. Защита — `AutoOneClickSyncScheduler.running`
    AtomicBoolean (см. two-db-sync.md) + ручной клик получает 409 Conflict.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Two-DB sync** ([two-db-sync.md](two-db-sync.md)) — главный
   контекст, SyncRegistry, AutoOneClickSyncScheduler.

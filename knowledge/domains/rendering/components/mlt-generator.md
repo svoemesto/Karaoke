@@ -4,6 +4,12 @@
 > **Компонента**: MLT-генератор XML-проекта для melt/MLT-движка.
 > Pass 366-370 Knowledge-аудита.
 
+
+## Ответственность | Responsibility
+
+
+MLT-генератор XML-проекта для melt/MLT-движка. Pass 366-370 Knowledge-аудита.
+
 ## Назначение
 
 `karaoke-app/.../mlt/` — **генератор XML-проекта для melt/MLT-движка**.
@@ -227,7 +233,7 @@ enum уже есть (см. entities-catalog.md), но конкретные
    ProducerType.
 5. **mko2 в разработке** — НЕ использовать в production.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **ProducerType** ([entities-catalog.md#producer](../../catalog/components/entities-catalog.md#producer)) —
   enum иерархии.

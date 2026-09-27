@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: `MkoMainBin` — root MLT-блок.
 
+
+## Ответственность | Responsibility
+
+
+`MkoMainBin` — root MLT-блок.
+
 ## Файл
 
 `karaoke-app/.../mlt/mko/MkoMainBin.kt` (310 строк)
@@ -29,14 +35,14 @@ private var mainBinUUID = mltProp.getUUID(listOf(ProducerType.MAINBIN))
 private var songOutputFileName = mltProp.getFileName(SongOutputFile.VIDEO)
 ```
 
-## Логика
+## Логика и Алгоритмы | Logic and Algorithms
 
 Создаёт root MLT-узел (`<multitrack>` или `<tractor>`) с:
 - Timeline (`<tractor in=... out=...>`).
 - Все audio-треки (vocals, accompaniment, mix, source).
 - Все video-треки (см. `ProducerType.levels`).
 
-## Связь
+## Зависимости | Dependencies
 
 - [mlt-generator.md](mlt-generator.md) — общая архитектура.
 - [mko-producers.md](mko-producers.md) — иерархия.

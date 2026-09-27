@@ -253,7 +253,7 @@ private fun executeResolvable(reports: List<HealthReport>) {
 песен. **Должен вызываться в фоне** — полный скан тысяч песен
 небыстрый (I/O на файл).
 
-## Связь с подсистемами
+## Зависимости | Dependencies
 
 - **Async Process Queue** (`KaraokeProcess`):
   repair часто создаёт `KaraokeProcess.createProcess(...)` как одну

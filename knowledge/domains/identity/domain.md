@@ -124,11 +124,9 @@ Identity — контекст для управления пользовател
 
 ## Структура компонентов (C4 L3)
 
-- [security-config](components/security-config.md) — два разных flow
-  авторизации: Spring Security + cookies для `karaoke-web`, отдельный
-  flow для `karaoke-public`. Содержит ловушки и обоснование разделения.
-- [dictionaries](components/dictionaries.md) — `UserRole` enum и
-  Jackson-конвенции для boolean-полей (`is`-prefix).
+- [dictionaries](components/dictionaries.md) — В DDD-домене часто возникают ситуации, когда:
+- [security-config](components/security-config.md) — Эта компонента фиксирует разницу между двумя flow авторизации в Karaoke и служит точкой входа для любого агента,…
+- [site-user-entity](components/site-user-entity.md) — детальное описание `SiteUser` entity (пользователь ПУБЛИЧНОГО сайта, **НЕ** admin).
 
 ## Связанные ADR
 

@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: детальный обзор 19 Public* контроллеров.
 
+
+## Ответственность | Responsibility
+
+
+детальный обзор 19 Public* контроллеров.
+
 ## Назначение
 
 `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/Public*Controller.kt` —
@@ -33,7 +39,7 @@
 | 18 | `PublicHistoryController` | 2 | `/api/public/history/...` | История прослушиваний |
 | 19 | `PublicTypographController` | 1 | `/api/public/typograph/...` | Типографика (утилита) |
 
-## Детальные контракты
+## Интерфейсы и Контракты | Interfaces and Contracts
 
 ### `PublicPlayerController`
 
@@ -127,7 +133,7 @@ internal-флаги (`isReady`, `recordHash`, `isDeleted`).
 rate limit 60/min per IP (через `RateLimitInterceptor`,
 настраивается через `KaraokeProperties`).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **SSE** ([sse domain](../../sse/domain.md)) — нет SSE напрямую в
   karaoke-web; события приходят через `karaoke-app`.

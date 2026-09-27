@@ -82,7 +82,7 @@ sampling, dedup, rate limiting. Все настройки — через
 | **`SiteAuthInterceptor`** | Защита `/api/public/account/*` (см. `config/`). |
 | **`PublicCartController`** | Публичная корзина (НЕ в `cart/` домене). |
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Storage** ([storage domain](../storage/domain.md)) —
   `WebKaraokeStorageServiceImpl` (заглушка), `StorageApiClientWeb`.
@@ -155,6 +155,22 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
     ├── ZakromaStreamMessageDto.kt
     └── ZakromaStreamMetricDto.kt
 ```
+
+## Структура компонентов (C4 L3)
+
+- [config](components/config.md) — Spring config — interceptors, security, WebClient.
+- [internal-controllers](components/internal-controllers.md) — детальный обзор 6 non-Public контроллеров (admin/internal/debug).
+- [internal-stem-job-controller](components/internal-stem-job-controller.md) — `InternalStemJobController` — server-to-server для StemJob processing.
+- [main-controller](components/main-controller.md) — `MainController` — Thymeleaf-страницы + internal endpoints.
+- [public-controllers-2](components/public-controllers-2.md) — детальный обзор 5 critical public controllers.
+- [public-controllers-3](components/public-controllers-3.md) — `PublicApiController` — главный public API контроллер.
+- [public-controllers-4](components/public-controllers-4.md) — `PublicPlayerController` — endpoints плеера.
+- [public-controllers-5](components/public-controllers-5.md) — обзор 5 мелких Public-контроллеров.
+- [public-controllers-6](components/public-controllers-6.md) — обзор 7 critical Public-контроллеров (средние).
+- [public-controllers](components/public-controllers.md) — детальный обзор 19 Public* контроллеров.
+- [services-overview](components/services-overview.md) — детальный каталог 25 services.
+- [song-share-link-service](components/song-share-link-service.md) — `SongShareLinkService` — самый большой сервис karaoke-web (1130 строк).
+- [thymeleaf-templates](components/thymeleaf-templates.md) — 8 Thymeleaf-шаблонов `templates/`.
 
 ## Domain Invariants
 

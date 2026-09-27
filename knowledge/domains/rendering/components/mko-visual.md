@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: visual Mko — фоновые/визуальные Producer'ы для видео.
 
+
+## Ответственность | Responsibility
+
+
+visual Mko — фоновые/визуальные Producer'ы для видео.
+
 ## Назначение
 
 Visual Producer'ы — фоновый слой, watermark, прогресс-бар, flash,
@@ -21,7 +27,7 @@ splash, и т.д. Создают **визуальные** элементы (не
 | 7 | `MkoBoosty.kt` | `BOOSTY` | Ссылка на Boosty-пост (если песня оттуда) |
 | 8 | `MkoFaderText.kt` | `FADERTEXT` | Текст с плавным появлением/исчезновением |
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-producers.md](mko-producers.md) — общая иерархия.
 - [mlt-generator.md](mlt-generator.md) — общая архитектура.

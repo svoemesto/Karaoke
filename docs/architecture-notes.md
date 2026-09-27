@@ -4,6 +4,30 @@
 высокоуровневого контекста; детали фич — в `specs/NNN-*/spec.md` и
 `docs/features/<slug>.md`.
 
+> **Pass 478** (2026-09-27, спека `478-fix-admin-stats-tabs`, OP #184):
+> **«Статистика» в админке снова грузит все вкладки.** Регресс внёс фикс #79
+> (спека 362, 2026-09-10): `bootstrap-vue-next` отдаёт в `BTabs v-model` **id
+> панели** (строку), а код ожидал числовой индекс — `parseInt` давал `NaN`,
+> проверка `typeof … !== 'number'` его пропускала (сравнения с `NaN` ложны),
+> endpoint'ы не грузились, а в `lastLoadedAt` попадал ключ `NaN`, из-за чего
+> 60s TTL-сторож глушил все переключения. `mounted()` с `|| 0` тянул только
+> вкладку KPI — ровно симптом #184 («KPI показывает данные, остальные блоки
+> пустые»).
+> - `StatsView.vue`: `v-model:index` (числовой индекс) + явные `id="stats-tab-N"`,
+>   `resolveTabIndex()` понимает число/id/числовую строку; нераспознанный id не
+>   грузится и не пишется в кеш; дедупликация dispatch'ей («Разбивки» — 3
+>   запроса вместо 9); «Обновить» игнорирует TTL (`force`).
+> - `Stats/store.js`: действия вкладок возвращают `Promise<Boolean>`, TTL
+>   взводится только при успехе; `getJson` с таймаутом 15s; композитные
+>   загрузки — `Promise.allSettled` (таймаут `countries` не стирает `referrers`).
+> - `GeoIpService.resolveMany(..., timeBudgetMs)`: бюджет 3 с на
+>   `/api/stats/countries` и 2 с на страницу `/api/webevents` — внешние GeoIP
+>   резолвы (до 150 IP с паузой 80 мс) держали вкладку 25+ секунд.
+> - Приёмка: `webvue3/scripts/check-stats-tabs.mjs` — обход 8 вкладок; на старом
+>   образе падает по 7 вкладкам, на исправленном коде — 0 провалов.
+> См. `specs/478-fix-admin-stats-tabs/`, `archive/docs/features/stats.md`,
+> `knowledge/system/frontend/store-stats.md`.
+
 > **Pass 440** (2026-09-23, wayfinder #165 / спека #178): **переезд
 > прод-сайта на один сервер.** Прод (`karaoke-web`, `karaoke-public`,
 > PostgreSQL) и MinIO (444 GiB / 59 707 объектов) объединены на новом хосте

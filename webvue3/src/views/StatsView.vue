@@ -17,20 +17,30 @@
           <option :value="365">Год</option>
         </select>
       </label>
-      <button class="btn btn-sm btn-outline-secondary" @click="loadDataForActiveTab(activeTab)">
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        @click="loadDataForActiveTab(activeTab, { force: true })"
+      >
         Обновить
       </button>
     </div>
 
-    <BTabs v-model="activeTab" nav-class="stats-nav" pills card>
+    <!--
+      v-model:index (числовой индекс) вместо v-model (id панели): bootstrap-vue-next
+      отдаёт в v-model строковый id вкладки, из-за чего разбор в число давал NaN
+      и вкладки, кроме первой, не грузили данные (OP #184, spec 478).
+      Явные id="stats-tab-N" оставлены как второй контракт: resolveTabIndex()
+      понимает и номер, и id — смена соглашения библиотеки больше не ломает загрузку.
+    -->
+    <BTabs v-model:index="activeTab" nav-class="stats-nav" pills card>
       <!-- 1. KPI -->
-      <BTab title="KPI">
+      <BTab id="stats-tab-0" title="KPI">
         <div v-if="summaryIsLoading && !summary" class="text-center py-3"><BSpinner small /></div>
         <KpiCards :summary="summary" />
       </BTab>
 
       <!-- 2. Монетизация -->
-      <BTab title="Монетизация">
+      <BTab id="stats-tab-1" title="Монетизация">
         <MonetizationPanel
           :summary="monetizationSummary"
           :is-loading="monetizationSummaryIsLoading"
@@ -40,7 +50,7 @@
       </BTab>
 
       <!-- 3. Динамика -->
-      <BTab title="Динамика">
+      <BTab id="stats-tab-2" title="Динамика">
         <TimeSeriesChart
           class="mb-3"
           :items="timeSeries"
@@ -51,7 +61,7 @@
       </BTab>
 
       <!-- 4. Разбивки -->
-      <BTab title="Разбивки">
+      <BTab id="stats-tab-3" title="Разбивки">
         <TypeChannelBreakdown
           :by-type="byType"
           :channels="channels"
@@ -67,12 +77,12 @@
       </BTab>
 
       <!-- 5. География -->
-      <BTab title="География">
+      <BTab id="stats-tab-4" title="География">
         <GeoReferrers :countries="countries" :referrers="referrers" :is-loading="geoIsLoading" />
       </BTab>
 
       <!-- 6. Пользователи -->
-      <BTab title="Пользователи">
+      <BTab id="stats-tab-5" title="Пользователи">
         <TopUsersTable
           :users="topUsers"
           :total-count="topUsersTotalCount"
@@ -86,7 +96,7 @@
       </BTab>
 
       <!-- 7. Слушают — песни, дослушанные ≥75% в онлайн-плеере -->
-      <BTab title="Слушают">
+      <BTab id="stats-tab-6" title="Слушают">
         <TopListenedSongsTable
           :items="topListened"
           :total-count="topListenedTotalCount"
@@ -100,7 +110,7 @@
       </BTab>
 
       <!-- 8. События -->
-      <BTab title="События">
+      <BTab id="stats-tab-7" title="События">
         <!-- Топ песен -->
         <div class="chart-card mb-3">
           <div class="chart-head">
@@ -367,6 +377,61 @@ const tabEndpoints = {
 // Endpoint'ы, зависящие от фильтра `days` (обновляются при onDaysChange).
 const dayDependentEndpoints = new Set(['summary', 'timeseries', 'by-type', 'by-detail'])
 
+// «Одиночные» endpoint'ы → Vuex-action. Оставшиеся (top-users, top-listened,
+// by-song, webevents) грузятся методами компонента — им нужны параметры
+// пагинации. Карта нужна для дедупликации: у «Разбивок» три endpoint'а с общим
+// action'ом, у «Географии» — два (spec 478: без дедупликации вкладка
+// «Разбивки» отправляла 9 запросов вместо 3).
+const simpleEndpointActions = {
+  summary: 'loadStatsSummary',
+  monetization: 'loadMonetizationSummary',
+  timeseries: 'loadStatsTimeSeries',
+  'by-type': 'loadStatsBreakdown',
+  channels: 'loadStatsBreakdown',
+  'by-detail': 'loadStatsBreakdown',
+  countries: 'loadStatsGeo',
+  referrers: 'loadStatsGeo',
+}
+
+// Явные id вкладок (см. шаблон `<BTab id="stats-tab-N">`). Второй контракт:
+// bootstrap-vue-next умеет отдавать в модель и числовой индекс (`index`, он же
+// `v-model:index`), и строковый id панели (`modelValue`, он же `v-model`).
+// Пока понимаются оба — смена соглашения библиотеки больше не ломает загрузку
+// вкладок (OP #184, spec 478: именно id панели в модели оставил все вкладки,
+// кроме KPI, пустыми — `parseInt` от id давал NaN).
+const TAB_IDS = Object.freeze([
+  'stats-tab-0',
+  'stats-tab-1',
+  'stats-tab-2',
+  'stats-tab-3',
+  'stats-tab-4',
+  'stats-tab-5',
+  'stats-tab-6',
+  'stats-tab-7',
+])
+const tabIndexById = new Map(TAB_IDS.map((id, index) => [id, index]))
+
+/**
+ * Привести значение активной вкладки к числовому индексу 0..7.
+ *
+ * Понимает число (контракт `v-model:index`), id панели вида `stats-tab-N`
+ * (второй контракт) и числовую строку `"3"`. Возвращает `null`, если значение
+ * не распознано: такой индекс нельзя ни грузить, ни писать в кеш «последней
+ * загрузки».
+ *
+ * @param {*} raw — значение из модели вкладок
+ * @returns {Number|null} индекс вкладки или null
+ */
+function resolveTabIndex(raw) {
+  if (Number.isInteger(raw) && raw >= 0 && raw < TAB_IDS.length) return raw
+  if (typeof raw === 'string') {
+    if (tabIndexById.has(raw)) return tabIndexById.get(raw)
+    const parsed = Number.parseInt(raw, 10)
+    if (Number.isInteger(parsed) && parsed >= 0 && parsed < TAB_IDS.length) return parsed
+  }
+  return null
+}
+
 // Union всех endpoint'ов для targetDependentEndpoints (Phase 4, US2). Пока
 // используется в `clearActiveTabData` для валидации, что очищаем только
 // известные endpoint'ы (защита от опечаток в будущем).
@@ -566,18 +631,23 @@ export default {
   watch: {
     // Issue #79 fix: при смене вкладки — lazy load данных новой активной
     // вкладки (TTL-кеш в store решает, нужен ли HTTP).
-    // Нормализуем в число — BTab v-model может передать строку ("0") или
-    // null, что ломает lookup в tabEndpoints (ключи — числа 0..7).
+    // OP #184 / spec 478: значение приводится `resolveTabIndex` (число, id
+    // панели или числовая строка). Нераспознанное значение не грузит ничего,
+    // но и НЕ пишет мусор в кеш — иначе TTL-сторож глушит все следующие
+    // переключения (именно это и случилось: в кеш попал ключ `NaN`).
     activeTab(newTab, oldTab) {
-      const normalizedTab = typeof newTab === 'number' ? newTab : parseInt(newTab, 10)
+      const normalizedTab = resolveTabIndex(newTab)
       console.debug('[Stats] tab switched — lazy load', {
         from: oldTab,
         to: newTab,
         normalized: normalizedTab,
         ttlRemaining:
-          STATS_FRONT_TTL_MS - (Date.now() - this.$store.getters.getLastLoadedAt(normalizedTab)),
+          normalizedTab === null
+            ? null
+            : STATS_FRONT_TTL_MS -
+              (Date.now() - this.$store.getters.getLastLoadedAt(normalizedTab)),
       })
-      this.loadDataForActiveTab(normalizedTab)
+      this.loadDataForActiveTab(newTab)
     },
     // Сохраняем номера страниц в store, чтобы они восстановились после возврата на вкладку «Статистика».
     statsBySongPage(newVal) {
@@ -593,39 +663,47 @@ export default {
   mounted() {
     // Issue #79 fix: вместо reloadAll() (11 параллельных HTTP → race
     // → apexcharts "Element not found") загружаем только данные
-    // активной вкладки (по умолчанию KPI = summary + monetization).
-    // Нормализуем в число на случай строки от BTab v-model.
-    const normalizedTab =
-      typeof this.activeTab === 'number' ? this.activeTab : parseInt(this.activeTab, 10) || 0
+    // активной вкладки (по умолчанию KPI).
+    // OP #184 / spec 478: раньше здесь стоял `parseInt(...) || 0`, который
+    // молча подменял нераспознанную вкладку на KPI. Теперь нераспознанное
+    // значение явно логируется; KPI грузится только как осознанный fallback.
+    const tabIndex = resolveTabIndex(this.activeTab)
     console.debug('[Stats] mounted — lazy loading active tab', {
       tab: this.activeTab,
-      normalized: normalizedTab,
+      resolved: tabIndex,
       ts: Date.now(),
     })
-    this.loadDataForActiveTab(normalizedTab)
+    if (tabIndex === null) {
+      console.warn('[Stats] mounted: unknown tab identity, falling back to KPI (0)', {
+        tab: this.activeTab,
+      })
+      this.loadDataForActiveTab(0)
+      return
+    }
+    this.loadDataForActiveTab(tabIndex)
   },
   methods: {
     reloadStatsBySong() {
-      this.$store.dispatch('loadStatsBySong', {
+      return this.$store.dispatch('loadStatsBySong', {
         page: this.statsBySongPage,
         pageSize: this.statsBySongPageSize,
       })
     },
     reloadWebEvents() {
-      this.$store.dispatch('loadWebEvents', {
+      return this.$store.dispatch('loadWebEvents', {
         page: this.webEventsPage,
         pageSize: this.webEventsPageSize,
         eventType: this.webEventsType,
       })
     },
     reloadTopUsers() {
-      this.$store.dispatch('loadStatsTopUsers', {
+      return this.$store.dispatch('loadStatsTopUsers', {
         page: this.topUsersPage,
         pageSize: this.topUsersPageSize,
       })
     },
     reloadTopListened() {
-      this.$store.dispatch('loadTopListened', {
+      return this.$store.dispatch('loadTopListened', {
         page: this.topListenedPage,
         pageSize: this.topListenedPageSize,
       })
@@ -637,75 +715,89 @@ export default {
      * активной вкладки. 60s TTL-guard: если данные этой вкладки
      * загружались менее 60s назад — HTTP НЕ отправляется (US3, T023).
      *
-     * @param {Number} activeTabIndex — индекс вкладки (0..7)
+     * @param {Number|String} rawTab — значение вкладки (индекс, id панели или числовая строка)
+     * @param {Object} [options]
+     * @param {Boolean} [options.force=false] — игнорировать 60s TTL (кнопка «Обновить»)
      */
-    loadDataForActiveTab(activeTabIndex) {
-      // T023: 60s TTL guard — short-circuit если данные свежие.
-      // Guard для undefined: BTab v-model может сбросить activeTab в undefined
-      // при mount/render до того, как watcher установит значение. Без этой
-      // проверки `tabEndpoints[undefined] = undefined → forEach ничего не
-      // делает → пользователь видит пустую страницу.
-      if (typeof activeTabIndex !== 'number' || activeTabIndex < 0 || activeTabIndex > 7) {
-        console.debug('[Stats] loadDataForActiveTab: invalid tab index, skipping', {
-          activeTabIndex,
+    loadDataForActiveTab(rawTab, { force = false } = {}) {
+      // OP #184 / spec 478: раньше здесь стояла проверка
+      // `typeof activeTabIndex !== 'number' || < 0 || > 7`, которую `NaN`
+      // проходил насквозь: `typeof NaN === 'number'`, а сравнения с `NaN`
+      // всегда ложны. Итог — пустой список endpoint'ов и запись ключа `NaN`
+      // в кеш, из-за чего TTL-сторож глушил все следующие переключения.
+      // Теперь значение приводится строго (`resolveTabIndex`), а
+      // нераспознанное НЕ попадает в кеш.
+      const activeTabIndex = resolveTabIndex(rawTab)
+      if (activeTabIndex === null) {
+        console.warn('[Stats] loadDataForActiveTab: unknown tab identity, skipping', {
+          rawTab,
         })
         return
       }
+      // T023: 60s TTL guard — short-circuit если данные свежие.
+      // `force` (кнопка «Обновить») TTL игнорирует (spec 478, FR-004).
       const lastTs = this.$store.getters.getLastLoadedAt(activeTabIndex)
       const age = Date.now() - lastTs
-      if (age < STATS_FRONT_TTL_MS && lastTs > 0) {
+      if (!force && age < STATS_FRONT_TTL_MS && lastTs > 0) {
         console.debug('[Stats] TTL hit, skipping load', { tab: activeTabIndex, age })
         return
       }
-      const endpoints = tabEndpoints[activeTabIndex] || []
-      endpoints.forEach((ep) => {
-        const ts = Date.now()
+      // Дедупликация: «Разбивки» перечисляют 3 endpoint'а, «География» — 2, но
+      // у каждой пары/тройки общий action. Без Set получалось 9 HTTP-запросов
+      // на одну вкладку вместо 3 (spec 478: замечено при разборе #184).
+      const dispatched = new Set()
+      const loads = []
+      ;(tabEndpoints[activeTabIndex] || []).forEach((ep) => {
+        const action = simpleEndpointActions[ep]
+        if (action) {
+          if (dispatched.has(action)) return
+          dispatched.add(action)
+          loads.push(this.$store.dispatch(action))
+          return
+        }
+        if (dispatched.has(ep)) return
+        dispatched.add(ep)
         switch (ep) {
-          case 'summary':
-            this.$store.dispatch('loadStatsSummary')
-            break
-          case 'monetization':
-            this.$store.dispatch('loadMonetizationSummary')
-            break
-          case 'timeseries':
-            this.$store.dispatch('loadStatsTimeSeries')
-            break
-          case 'by-type':
-          case 'channels':
-          case 'by-detail':
-            // Все три endpoint'а грузятся одним Promise.all в loadStatsBreakdown.
-            this.$store.dispatch('loadStatsBreakdown')
-            // Не записываем timestamp на каждый — записываем один раз за вызов метода (ниже).
-            return
-          case 'countries':
-          case 'referrers':
-            this.$store.dispatch('loadStatsGeo')
-            return
           case 'top-users':
-            this.reloadTopUsers()
+            loads.push(this.reloadTopUsers())
             break
           case 'top-listened':
-            this.reloadTopListened()
+            loads.push(this.reloadTopListened())
             break
           case 'by-song':
-            this.reloadStatsBySong()
+            loads.push(this.reloadStatsBySong())
             break
           case 'webevents':
-            this.reloadWebEvents()
+            loads.push(this.reloadWebEvents())
             break
         }
-        this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts })
       })
-      // Для «композитных» endpoint'ов (по 3 за раз) — финальный commit.
-      this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts: Date.now() })
+      // TTL взводится только когда данные РЕАЛЬНО загрузились: раньше неудачная
+      // загрузка (таймаут) тоже помечала вкладку «свежей» на 60 с, и пустая
+      // вкладка не перезагружалась (spec 478, FR-004).
+      Promise.allSettled(loads).then((settled) => {
+        const loaded = settled.some((r) => r.status === 'fulfilled' && r.value === true)
+        if (loaded) {
+          this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts: Date.now() })
+        } else {
+          console.warn('[Stats] tab load failed — TTL не взведён, повторим при следующем входе', {
+            tab: activeTabIndex,
+          })
+        }
+      })
     },
     /**
      * Очистить данные активной вкладки (для onTargetChange, чтобы не
      * показывать stale данные, пока грузятся новые с target=remote).
      *
-     * @param {Number} activeTabIndex — индекс вкладки (0..7)
+     * @param {Number|String} rawTab — значение вкладки (индекс, id панели или числовая строка)
      */
-    clearActiveTabData(activeTabIndex) {
+    clearActiveTabData(rawTab) {
+      const activeTabIndex = resolveTabIndex(rawTab)
+      if (activeTabIndex === null) {
+        console.warn('[Stats] clearActiveTabData: unknown tab identity, skipping', { rawTab })
+        return
+      }
       switch (activeTabIndex) {
         case 0: // KPI
           this.$store.commit('setStatsSummary', null)
@@ -759,12 +851,22 @@ export default {
       // проверяем, активна ли сейчас вкладка с dayDependentEndpoints
       // ({0, 2, 3} = KPI, Динамика, Разбивки). Если нет — ничего не шлём.
       if (dayDependentEndpoints.size === 0) return
+      // OP #184 / spec 478: сравниваем по приведённому индексу — значение
+      // вкладки может прийти и числом, и id панели.
+      const activeTabIndex = resolveTabIndex(this.activeTab)
       // Простой подход: обновляем только summary + timeseries + breakdown
       // (это 3 endpoint'а, которые у нас есть в FR-008).
-      if (this.activeTab === 0 || this.activeTab === 2 || this.activeTab === 3) {
-        this.$store.dispatch('loadStatsSummary')
-        this.$store.dispatch('loadStatsTimeSeries')
-        this.$store.dispatch('loadStatsBreakdown')
+      if (activeTabIndex === 0 || activeTabIndex === 2 || activeTabIndex === 3) {
+        Promise.allSettled([
+          this.$store.dispatch('loadStatsSummary'),
+          this.$store.dispatch('loadStatsTimeSeries'),
+          this.$store.dispatch('loadStatsBreakdown'),
+        ]).then((settled) => {
+          // TTL взводим только при успехе — как и в loadDataForActiveTab (FR-004).
+          if (settled.some((r) => r.status === 'fulfilled' && r.value === true)) {
+            this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts: Date.now() })
+          }
+        })
       }
     },
     onChangeTimeSeriesMode(mode) {

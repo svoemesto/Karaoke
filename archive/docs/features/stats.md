@@ -2,7 +2,9 @@
 
 > **Status**: active
 > **Feature Key**: stats
-> **Last Updated**: 2026-08-12 (specs/174-fix-stats-connection-leak: lazy load табов + 60s TTL кеш + `503 stats.unavailable` banner)
+> **Last Updated**: 2026-09-27 (specs/478-fix-admin-stats-tabs: фикс регресса
+> ленивой загрузки вкладок #184 + бюджет времени GeoIP; ранее —
+> 2026-08-12 specs/174-fix-stats-connection-leak: lazy load табов + 60s TTL кеш + `503 stats.unavailable` banner)
 
 ## Что делает
 
@@ -132,6 +134,40 @@ short-circuit'ит и не шлёт HTTP.
 Кнопка «Обновить всё» (10-12 параллельных HTTP) убрана из toolbar — см.
 `AGENTS.md` секцию «Известные ловушки».
 
+#### Регресс #184 и его фикс (spec 478)
+
+`bootstrap-vue-next` отдаёт в `BTabs v-model` **id панели** (строку вида
+`BootstrapVueNext__ID__v-10__tabpane___`), а не числовой индекс. Код спеки 362
+разбирал это значение через `parseInt` → `NaN`; проверка валидности индекса
+(`typeof … !== 'number'`) пропускала `NaN` насквозь (сравнения с `NaN` всегда
+ложны), набор endpoint'ов для `NaN` был пуст, а в `lastLoadedAt` попадал ключ
+`NaN` — из-за чего 60s TTL-сторож глушил все последующие переключения.
+`mounted()` использовал `parseInt(...) || 0`, поэтому данные грузила только
+первая вкладка (KPI). Симптом #184: «KPI показывает данные, остальные блоки
+пустые» — регресс жил с 2026-09-10 (приёмка спеки 362 была code-level).
+
+Исправление (spec 478, `478-fix-admin-stats-tabs`):
+
+- `BTabs` переведён на `v-model:index` (числовой индекс), у каждой `BTab` —
+  явный `id="stats-tab-N"`; `resolveTabIndex()` понимает и число, и id панели,
+  и числовую строку — смена соглашения библиотеки больше не ломает загрузку.
+- Нераспознанный id вкладки не грузится и **не пишется в кеш**.
+- TTL взводится только после реально успешной загрузки; кнопка «Обновить»
+  игнорирует TTL (`force`).
+- Дедупликация загрузок: «Разбивки» (3 endpoint'а, общий action) шлют
+  3 запроса вместо 9.
+- Таймаут запроса статистики на фронте — 15s; `by-type`/`channels`/`by-detail`
+  и `countries`/`referrers` грузятся независимо: таймаут одного не стирает
+  данные остальных и не оставляет вкладку в вечном спиннере.
+- `GeoIpService.resolveMany()` получил бюджет времени (`timeBudgetMs`):
+  «География» резолвила до 150 IP подряд (с паузой 80 мс) — вкладка висела
+  25+ секунд; теперь не более ~3 с на вызов (и ~2 с на страницу лога событий),
+  остальные IP домерджатся на следующих обновлениях из кеша.
+
+**Приёмка**: `webvue3/scripts/check-stats-tabs.mjs` — обход 8 вкладок с
+проверкой, что каждая запросила свои endpoint'ы и вышла из состояния загрузки.
+См. [`specs/478-fix-admin-stats-tabs/spec.md`](../../specs/478-fix-admin-stats-tabs/spec.md).
+
 ### Обработка сбоя БД — `503 stats.unavailable` (US3)
 
 При сбое `KaraokeConnection.getConnection()` (включая `too many clients already`)
@@ -238,4 +274,6 @@ pgMaxConnections + timestamp`. `permitAll()` — admin-зона, доступ п
 - [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — согласование счётчика «в коллекции» с листингами
 - [specs/022-song-status-lifecycle/spec.md](../../specs/022-song-status-lifecycle/spec.md) — расширение жизненного цикла статуса до 7 значений, перенос порога готовности на `>=6`
 - [specs/174-fix-stats-connection-leak/spec.md](../../specs/174-fix-stats-connection-leak/spec.md) — lazy load табов + 60s TTL + 503 stats.unavailable + `<DbOverloadBanner>`. SC-001..SC-005. Соседняя задача для контекста: спеки [087-fix-shared-db-connection](../../specs/087-fix-shared-db-connection/spec.md), [091-fix-connection-leak](../../specs/091-fix-connection-leak/spec.md), [167-fix-share-claim-500](../../specs/167-fix-share-claim-500/spec.md) (паттерн `share.internal`).
+- [specs/478-fix-admin-stats-tabs/spec.md](../../specs/478-fix-admin-stats-tabs/spec.md) — фикс регресса #184 (вкладки, кроме KPI, пустые) + приёмка `webvue3/scripts/check-stats-tabs.mjs`.
+- [webvue3/scripts/check-stats-tabs.mjs](../../webvue3/scripts/check-stats-tabs.mjs) — воспроизводимая проверка вкладок «Статистики».
 - [specs/174-fix-stats-connection-leak/quickstart.md](../../specs/174-fix-stats-connection-leak/quickstart.md) — 6 ручных сценариев валидации (SC-001..SC-005)

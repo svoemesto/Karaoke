@@ -5,7 +5,7 @@
 
 ## Файл
 
-`webvue3/src/components/Stats/store.js` (498 строк, **самый длинный store**)
+`webvue3/src/components/Stats/store.js` (591 строка, **самый длинный store**)
 
 ## State
 
@@ -61,6 +61,31 @@ GET (устоявшийся квирк проекта), поэтому все п
 - **`/api/stats/countries`** — география (см. [GeoIp](../../integration/components/external-api-clients.md#geoipservice)).
 - **`/api/stats/topusers`** / **`/api/stats/toplistened`** / **`/api/stats/statsBySong`**.
 
+## Контракт загрузки вкладок (spec 478, OP #184)
+
+Админ-дашборд грузит данные **лениво по активной вкладке**
+(`StatsView.loadDataForActiveTab`), поэтому контракт действий store важен:
+
+- Действия вкладок возвращают `Promise<Boolean>`: `true` — данные загружены,
+  `false` — ошибка/таймаут. `StatsView` взводит 60s TTL (`setLastLoadedAt`)
+  **только при `true`** — неудачная загрузка не «замораживает» пустую вкладку
+  на минуту.
+- `getJson(url, timeoutMs = 15_000)` — потолок ожидания ответа. Без него
+  зависший endpoint (холодный GeoIP в `/api/stats/countries`) держал вкладку
+  в вечной загрузке: XHR не завершается → `catch` не срабатывает → флаг
+  `isLoading` не сбрасывается.
+- Композитные загрузки (`by-type`+`channels`+`by-detail`, `countries`+`referrers`)
+  выполняются через `Promise.allSettled` и **независимо**: таймаут одного
+  endpoint'а не стирает данные остальных.
+- Кнопка «Обновить» вызывает `loadDataForActiveTab(activeTab, { force: true })`
+  и игнорирует TTL.
+
+Backend-сторона: `GeoIpService.resolveMany(..., timeBudgetMs)` ограничивает
+время на внешние GeoIP-резолвы (150 IP подряд + пауза 80 мс давали 25+ секунд
+на вкладке «География»).
+
+Приёмка: `webvue3/scripts/check-stats-tabs.mjs` — обход 8 вкладок.
+
 ## Top listened (топ реально слушаемых)
 
 `topListened` — **топ песен, которые реально слушают в онлайн-плеере**
@@ -85,6 +110,11 @@ event-ам).
 
 ## Changelog
 
+- **Pass 478** (2026-09-27, spec `478-fix-admin-stats-tabs`, OP #184): фикс
+  регресса ленивой загрузки вкладок. Действия вкладок возвращают
+  `Promise<Boolean>`; `getJson` получил таймаут 15s; композитные загрузки
+  (`loadStatsBreakdown`, `loadStatsGeo`) — `Promise.allSettled` с независимой
+  обработкой; TTL взводится только при успехе. См. «Контракт загрузки вкладок».
 - **Pass 362** (2026-09-10): `state.lastLoadedAt` (Object<Number, Number>)
   добавлен для 60s TTL-кеша на фронте. Singleton (Vuex) — timestamps
   сохраняются между mount/unmount компонента `StatsView`. Используется

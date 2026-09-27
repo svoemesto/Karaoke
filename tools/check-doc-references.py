@@ -34,6 +34,7 @@ import argparse
 import collections
 import os
 import re
+import subprocess
 import sys
 
 ROOTS = ("knowledge", "docs", "archive/docs")
@@ -78,25 +79,41 @@ def whitelisted(entries, md, kind, value):
 
 
 def build_index():
-    by_base = collections.defaultdict(list)
+    """Индекс ФАЙЛОВ ПОД КОНТРОЛЕМ ВЕРСИЙ (git ls-files) — ровно то, что видит CI.
+
+    Важно: untracked/ignored файлы (кэши ML-моделей, локальные `config.json`)
+    не должны «спасать» битую ссылку — иначе гейт зелёный локально и красный
+    в свежем checkout (прецедент: PR #584, `config.json` из whisper-кэша).
+    """
     all_files = []
-    for dirpath, dirnames, filenames in os.walk("."):
-        if any(part in dirpath for part in SKIP_DIR_PARTS):
-            continue
-        for f in filenames:
-            p = os.path.normpath(os.path.join(dirpath, f)).lstrip("./")
-            all_files.append(p)
-            by_base[f].append(p)
+    try:
+        out = subprocess.run(
+            ["git", "ls-files"], capture_output=True, text=True, check=True
+        ).stdout
+        all_files = [p for p in out.splitlines() if p]
+    except (OSError, subprocess.CalledProcessError):
+        all_files = []
+    if not all_files:  # fallback без git
+        for dirpath, _dirnames, filenames in os.walk("."):
+            if any(part in dirpath for part in SKIP_DIR_PARTS):
+                continue
+            for f in filenames:
+                all_files.append(os.path.normpath(os.path.join(dirpath, f)).lstrip("./"))
+    by_base = collections.defaultdict(list)
+    for p in all_files:
+        by_base[os.path.basename(p)].append(p)
     return all_files, by_base
 
 
 def path_exists(token, all_files, by_base):
+    """Токен существует, если совпал с файлом под контролем версий."""
+    tracked = set(all_files)
     if "..." in token:
         tail = token.split("...")[-1].lstrip("/")
         return any(p.endswith(tail) for p in all_files)
     if "/" not in token:
         return bool(by_base.get(os.path.basename(token)))
-    if os.path.exists(token):
+    if token in tracked:
         return True
     tail = "/".join(token.split("/")[-2:])
     return any(p.endswith(tail) for p in all_files)

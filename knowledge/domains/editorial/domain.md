@@ -57,12 +57,19 @@ error codes) — см. [dictionaries](components/dictionaries.md).
   - UNIQUE по `(song_id, assignee_id)`;
   - не более одного активного назначения на песню.
 
-- **ReviewTask (Задача на ревью)**: задача, созданная при назначении.
-  Identity = `id`. Содержит `assignmentId`, `targetIdStatus` (5 или 6),
-  `reviewedBy`, `reviewedAt`.
-  Инварианты:
-  - `targetIdStatus ∈ {5, 6}`;
-  - `reviewer` — admin.
+> **[WARN] Поправка Pass 474: агрегата `ReviewTask` НЕ существует.**
+> Файла `model/ReviewTask.kt`, таблицы `tbl_review_tasks` и строки
+> `review-task` в коде нет (grep по `*.kt`/`*.sql`/`*.vue` — 0).
+> Энумов `ApprovalStatus` и `TargetIdStatus` тоже нет. Реальный
+> флоу ревью — в `controllers/SongEditorController.kt`
+> (`/api/songeditor`, approve `:336`, reject `:573`, revoke `:612`),
+> а статусы назначения — в `model/SongAssignmentStatus.kt`
+> (ASSIGNED/IN_PROGRESS/SUBMITTED/APPROVED/REJECTED). Прежнее
+> описание сохранено как описание ЗАДУМАННОЙ модели:
+
+- ~~**ReviewTask (Задача на ревью)**~~ — задача, созданная при
+  назначении; Identity = `id`; содержит `assignmentId`,
+  `targetIdStatus` (5 или 6), `reviewedBy`, `reviewedAt`.
 
 ## Entities
 
@@ -105,8 +112,12 @@ error codes) — см. [dictionaries](components/dictionaries.md).
 
 ### Internal API (для админа)
 
-- `POST /api/admin/review-task/approve` — approve + выбор `targetIdStatus`.
-- `POST /api/admin/review-task/reject` — reject.
+- `POST /api/songeditor/approve` — approve (реально: `SongEditorController.kt:336`).
+- `POST /api/songeditor/reject` — reject (`:573`).
+- `POST /api/songeditor/revoke` — revoke (`:612`).
+
+  (Прежняя версия называла `/api/admin/review-task/approve|reject` —
+  таких эндпоинтов нет; Pass 474.)
 
 ## Структура компонентов (C4 L3)
 

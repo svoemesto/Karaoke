@@ -280,8 +280,8 @@ KARAOKE_WEB_DEBUG_DB_ALLOWED_IPS=127.0.0.1,::1
 - [contracts/api-changes.md](./contracts/api-changes.md) — 11 API-контрактов (C1-C11).
 - [contracts/CONTRACT-CHECK.md](./contracts/CONTRACT-CHECK.md) — чек-лист обратной совместимости.
 - [quickstart.md](./quickstart.md) — 10 ручных сценариев проверки.
-- [`docs/features/stats.md`](../../docs/features/stats.md) — прецедент для in-memory cache.
-- [`docs/features/dual-db-sync.md`](../../docs/features/dual-db-sync.md) — почему KaraokeConnection + thread-local.
+- [`docs/features/stats.md`](../../archive/docs/features/stats.md) — прецедент для in-memory cache.
+- [`docs/features/dual-db-sync.md`](../../archive/docs/features/dual-db-sync.md) — почему KaraokeConnection + thread-local.
 - [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — NON-NEGOTIABLE принципы.
 - [`AGENTS.md`](../../AGENTS.md) — общие правила для агента.
 - [docs/architecture-notes.md](../../docs/architecture-notes.md) — Pass 50-60 (контекст предыдущих фиксов).

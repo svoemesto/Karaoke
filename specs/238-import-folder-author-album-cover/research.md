@@ -29,7 +29,7 @@
 - Пометить функцию `findDuplicateOriginal` как legacy и ввести новую `findParentSameAuthor` — overkill: функция уже имеет параметризацию, нужно просто использовать её.
 - Полностью удалить функцию — нарушает существующие вызовы (`customFunction` тоже использует похожую логику, но через `findParentCandidateId`, не `findDuplicateOriginal`).
 
-**Подтверждение в коде** (см. [livedocs/architecture-notes-archive.md:282-294](../../livedocs/architecture-notes-archive.md)): текущее поведение `findDuplicateOriginal()` — сначала `sameAuthorOnly=true`, при ненахождении — `sameAuthorOnly=false`. Эту вторую попытку удаляем.
+**Подтверждение в коде** (см. [docs/architecture-notes.md](../../docs/architecture-notes.md)): текущее поведение `findDuplicateOriginal()` — сначала `sameAuthorOnly=true`, при ненахождении — `sameAuthorOnly=false`. Эту вторую попытку удаляем.
 
 **Затрагиваемые места**: только `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4256-4298`.
 

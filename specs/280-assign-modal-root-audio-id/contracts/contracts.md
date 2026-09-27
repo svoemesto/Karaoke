@@ -1,7 +1,7 @@
 # Contracts: 280 — AssignModal: фильтр по rootId и audioRootId
 
 **Date**: 2026-08-31
-**Spec**: [spec.md](spec.md)
+**Spec**: [spec.md](../spec.md)
 
 > Фича НЕ вводит новых HTTP-контрактов и НЕ меняет существующие. Этот документ фиксирует **форму потребления** уже существующего эндпоинта `POST /api/songsdigests` со стороны новых фильтров.
 

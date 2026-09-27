@@ -115,4 +115,4 @@ location /api/public/zakroma/stream {
 
 - [research.md](../research.md) — детальный анализ узких мест R1-R5 и обоснование решений.
 - [spec.md](../spec.md) — функциональные требования FR-001..FR-010 и success criteria SC-001..SC-006.
-- [docs/features/zakroma-stream-progress.md](../../../docs/features/zakroma-stream-progress.md) — per-feature документ (обновляется в этом PR).
+- [docs/features/zakroma-stream-progress.md](../../../archive/docs/features/zakroma-stream-progress.md) — per-feature документ (обновляется в этом PR).

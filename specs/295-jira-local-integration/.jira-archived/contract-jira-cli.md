@@ -2,7 +2,7 @@
 
 **Date**: 2026-09-02
 **Spec**: [spec.md](../spec.md) FR-004, FR-005, FR-007, FR-017
-**Data Model**: [data-model.md](../data-model.md)
+**Data Model**: [data-model.md](data-model-jira.md)
 
 ## Overview
 

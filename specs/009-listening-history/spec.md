@@ -26,8 +26,8 @@ visitor→registration.
 «История» в блоке «5 причин» снова станет правдой.
 
 **Связанные документы:**
-- [`docs/strategy/growth.md`](../../docs/strategy/growth.md) — роадмап, QW-13 в «Быстрых победах»
-- [`docs/strategy/growth-audit.md`](../../docs/strategy/growth-audit.md) — гипотеза H1.12
+- [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md) — роадмап, QW-13 в «Быстрых победах»
+- [`docs/strategy/growth-audit.md`](../../archive/docs/strategy/growth-audit.md) — гипотеза H1.12
 - [`004-reasons-to-register: пауза QW-2`](../004-reasons-to-register/spec.md) — почему это разблокирует QW-2
 
 ## User Scenarios & Testing *(mandatory)*

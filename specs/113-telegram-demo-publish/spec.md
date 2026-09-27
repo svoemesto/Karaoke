@@ -11,7 +11,7 @@
 ## Контекст
 
 Сегодня жизненный цикл «опубликовать песню в Telegram-канале» выглядит
-так (см. [`docs/features/telegram-auto-publish.md`](../features/telegram-auto-publish.md),
+так (см. [`docs/features/telegram-auto-publish.md`](../../archive/docs/features/telegram-auto-publish.md),
 `model/Publication.kt`, `model/Song.kt`):
 
 1. Администратор заводит запись `Publication` с датой `publishDate` и
@@ -602,25 +602,25 @@ Telegram-канал. Убедиться, что `message_id` этого пост
 
 ## References
 
-- [`docs/features/telegram-auto-publish.md`](../features/telegram-auto-publish.md) —
+- [`docs/features/telegram-auto-publish.md`](../../archive/docs/features/telegram-auto-publish.md) —
   текущая фича автопубликации (Фаза 1 — парсинг вышедших постов);
   эта спецификация добавляет Фазу 2 (автоматическая отправка постов
   по расписанию).
-- [`docs/features/mp4-render.md`](../features/mp4-render.md) — детали
+- [`docs/features/mp4-render.md`](../../archive/docs/features/mp4-render.md) — детали
   рендера `RENDER_MP4_DEMO`, который используется для демо-версии.
-- [`docs/features/async-process-queue.md`](../features/async-process-queue.md) —
+- [`docs/features/async-process-queue.md`](../../archive/docs/features/async-process-queue.md) —
   паттерн async-очереди задач (`KaraokeProcess*`), через который
   должен идти рендер демо-MP4.
-- [`docs/features/dual-db-sync.md`](../features/dual-db-sync.md) —
+- [`docs/features/dual-db-sync.md`](../../archive/docs/features/dual-db-sync.md) —
   правила синхронизации `Settings.idTelegram*` LOCAL↔SERVER
   (recordhash + дифф, `Song.saveToDb()`).
-- [`docs/features/sse-notifications.md`](../features/sse-notifications.md) —
+- [`docs/features/sse-notifications.md`](../../archive/docs/features/sse-notifications.md) —
   уведомления админки о сохранении `message_id` в запись песни.
-- [`specs/089-auto-news-song-release/spec.md`](./089-auto-news-song-release/spec.md) —
+- [`specs/089-auto-news-song-release/spec.md`](../089-auto-news-song-release/spec.md) —
   связанный механизм «автоматическая новость о появлении песни в
   коллекции» — даёт переиспользуемое определение «полной готовности
   песни» (статус ≥ 6 + флаги готовности плеера).
-- [`specs/101-song-news-flag/spec.md`](./101-song-news-flag/spec.md) —
+- [`specs/101-song-news-flag/spec.md`](../101-song-news-flag/spec.md) —
   связанный механизм «новость о выходе в эфир по расписанию» — даёт
   переиспользуемый паттерн плановой проверки (короткое скользящее
   окно) и идемпотентности через состояние, а не через отдельную

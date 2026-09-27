@@ -396,7 +396,7 @@ progress (он появится в Phase 4).
   - `## Ссылки` (spec.md, plan.md, nginx конфиг).
   - ~120-180 строк (по образцу существующих `docs/features/*.md`).
 - [x] **T022** ✅ [P] [US-all] Обновлён `docs/features/README.md`:
-  - Добавлена строка (26 фич): `26 | zakroma-stream-progress | Real-time прогресс через NDJSON chunked-stream (...) | [zakroma-stream-progress.md](./zakroma-stream-progress.md)`.
+  - Добавлена строка (26 фич): `26 | zakroma-stream-progress | Real-time прогресс через NDJSON chunked-stream (...) | [zakroma-stream-progress.md](../../archive/docs/features/zakroma-stream-progress.md)`.
 - [x] **T023** ✅ [P] [US-all] Cleanup старого кода (verified):
   - `grep -n latestRequestId karaoke-public/src/store/modules/zakroma.js` — 0 совпадений (был удалён в T009).
   - `grep -n 'Загрузка' karaoke-public/src/views/ZakromaView.vue` — 0 (заменён в T014).

@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-05
-**Feature**: [specs/154-editor-tasks-manage/spec.md](./spec.md)
+**Feature**: [specs/154-editor-tasks-manage/spec.md](../spec.md)
 
 ## Content Quality
 

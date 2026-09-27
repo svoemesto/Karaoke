@@ -21,7 +21,7 @@ related:
 ```markdown
 # <Заголовок фичи> (LiveDoc)
 
-> Это LiveDoc-сводка. Drill-down — [specs/<NNN-slug>/spec.md](../../specs/<NNN-slug>/spec.md).
+> Это LiveDoc-сводка. Drill-down — [specs/<NNN-slug>/spec.md](../spec.md).
 
 ## Что делает
 
@@ -45,8 +45,8 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md)
-- Architecture: [L3-components.md](../architecture/L3-components.md)
+- Domain: [catalog.md](../../../knowledge/domains/catalog/domain.md)
+- Architecture: `L3-components.md` (в новой структуре — компоненты доменов: `knowledge/domains/<домен>/components/`)
 
 ## Код
 

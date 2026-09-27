@@ -1,6 +1,6 @@
 # Contracts: Временный полный доступ к песне
 
-**Spec**: [./spec.md](./spec.md)
+**Spec**: [./spec.md](../spec.md)
 **Branch**: `164-complete-guest-share-link`
 
 Все endpoint'ы — JSON поверх HTTP. Контракты фиксируют **наблюдаемое поведение** для владельца, гостя, плеера и админа. Формат ошибок унифицирован: `{"errorCode": "share.<code>", ...доп.поля}`.

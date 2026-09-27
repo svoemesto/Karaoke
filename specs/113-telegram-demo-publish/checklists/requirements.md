@@ -2,7 +2,7 @@
 
 **Purpose**: Валидация полноты и качества спецификации перед переходом к планированию.
 **Created**: 2026-07-31
-**Feature**: [spec.md](./spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

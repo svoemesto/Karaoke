@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """check-doc-references.py — проверка ссылок и упоминаний в ТЕКУЩЕЙ документации.
 
-Что проверяется в `knowledge/`, `docs/`, `archive/docs/`:
+Что проверяется в `knowledge/`, `docs/`, `archive/docs/`, а в `specs/` —
+только ссылки (спеки фиксируют прошлое состояние кода, их упоминания файлов
+и эндпоинтов не переписываются):
 
-1. **Относительные .md-ссылки** — цель обязана существовать.
+1. **Относительные .md-ссылки** — цель обязана существовать (включая
+   `specs/**`; плейсхолдеры вида `<NNN-slug>` не проверяются).
    Пропускаются: http(s)/mailto, root-absolute (`/...` — GitHub резолвит от
    корня репозитория), генерируемые каталоги `docs/api/dokka/` и
    `docs/api/typedoc-*/` (в .gitignore), шаблоны `knowledge/templates/**`
@@ -38,8 +41,13 @@ import subprocess
 import sys
 
 ROOTS = ("knowledge", "docs", "archive/docs")
+# specs/ — исторические записи о прошлом состоянии кода: проверяем ТОЛЬКО
+# ссылки (навигация), но не упоминания файлов и эндпоинтов (они фиксируют,
+# как код выглядел на момент спеки, и переписывать их нельзя).
+SPECS_ROOT = "specs"
 SKIP_DIR_PARTS = ("/.git", "/node_modules", "/build", "/dist", "/.gradle", "/.worktrees")
 SKIP_DOC_PARTS = ("knowledge/templates",)
+LINK_ONLY_ROOTS = ("specs/",)  # здесь проверяются только ссылки
 GENERATED_PREFIXES = ("docs/api/dokka/", "docs/api/typedoc-")
 CODE_ROOTS = ("karaoke-app/src", "karaoke-web/src", "webvue3/src", "karaoke-public/src")
 CODE_EXT = (
@@ -184,7 +192,7 @@ def endpoint_exists(ep, literals):
 
 def docs_files():
     out = []
-    for root in ROOTS:
+    for root in ROOTS + (SPECS_ROOT,):
         for dirpath, _dirnames, filenames in os.walk(root):
             if any(part in dirpath for part in SKIP_DOC_PARTS):
                 continue
@@ -212,6 +220,8 @@ def main():
             target = m.group(1)
             if target.startswith(("http", "mailto", "/", "#")):
                 continue
+            if "<" in target or ">" in target:  # плейсхолдер шаблона, не ссылка
+                continue
             checked["link"] += 1
             resolved = os.path.normpath(os.path.join(os.path.dirname(md), target))
             if resolved.startswith(GENERATED_PREFIXES) or os.path.exists(resolved):
@@ -220,7 +230,11 @@ def main():
                 continue
             findings[("link", md)].append(target)
 
+        is_spec = md.startswith(SPECS_ROOT + "/")
+
         for m in PATH_RE.finditer(txt):
+            if is_spec:
+                continue
             token = m.group(1)
             if token.startswith(("http", "/api/", "api/")):
                 continue
@@ -239,6 +253,8 @@ def main():
             findings[("path", md)].append(token)
 
         for m in API_RE.finditer(txt):
+            if is_spec:
+                continue
             ep = m.group(1)
             if any(ch in ep for ch in ("*", "...", "$")):
                 continue

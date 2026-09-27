@@ -1,6 +1,6 @@
 # Implementation Plan: Локальная Jira для AI-агента
 
-**Branch**: `295-jira-local-integration` | **Date**: 2026-09-02 | **Spec**: [spec.md](./spec.md)
+**Branch**: `295-jira-local-integration` | **Date**: 2026-09-02 | **Spec**: [spec.md](../spec.md)
 
 **Input**: Feature specification from `/specs/295-jira-local-integration/spec.md`
 

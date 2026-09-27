@@ -55,12 +55,12 @@ related:
 
 ## Связанные фичи
 
-- [182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md)
-- [184-approve-status-choice.md](../features/184-approve-status-choice.md)
+- [182-editor-self-assign-tasks.md](../../../specs/182-editor-self-assign-tasks/spec.md)
+- [184-approve-status-choice.md](../../../specs/184-approve-status-choice/spec.md)
 
 ## Связанные LiveDocs
 
-- Architecture: [L3-components.md](../architecture/L3-components.md)
+- Architecture: `L3-components.md` (в новой структуре — компоненты доменов: `knowledge/domains/<домен>/components/`)
 
 ## Код
 

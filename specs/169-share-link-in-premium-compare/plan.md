@@ -37,7 +37,7 @@
 **Testing**: **ручное** + визуальное (как и в `005-free-vs-premium/quickstart.md`).
 Тестов в CI нет (`AGENTS.md` «Тесты: в CI нет»). Линтер:
 `cd karaoke-public && npm run lint:check` (часть CI, см.
-[`docs/features/ci-lint-enforcement.md`](../../docs/features/ci-lint-enforcement.md)).
+[`docs/features/ci-lint-enforcement.md`](../../archive/docs/features/ci-lint-enforcement.md)).
 
 **Target Platform**: Web — публичный SPA `karaoke-public`, открывается на
 desktop (1280+) и mobile (360-500). Адаптивность таблицы уже реализована
@@ -159,7 +159,7 @@ karaoke-public/
   мердже PR (#TBD).
 - **guest-share-link** (163/164/166/167) — **не правится**, только
   ссылается. Техническое состояние share-link покрыто
-  [`docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md)
+  [`docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md)
   и `SongShareLinkService.kt`. На момент 169 эти компоненты работают в
   проде и не требуют изменений.
 
@@ -168,7 +168,7 @@ karaoke-public/
 - Frontend-only правка, без backend coordination — задача для одного
   разработчика (single-PR).
 - Линтер `npm run lint:check` в `karaoke-public` обязателен к CI-проходу
-  (см. [`docs/features/ci-lint-enforcement.md`](../../docs/features/ci-lint-enforcement.md)).
+  (см. [`docs/features/ci-lint-enforcement.md`](../../archive/docs/features/ci-lint-enforcement.md)).
   Перевод `Boolean` (маленькая b) в `boolean` — ktlint-стиль для Kotlin;
   для `.vue` ESLint-проверки ничего не меняется.
 - Принцип «без новых секретов и без новых .env» соблюдён — никаких

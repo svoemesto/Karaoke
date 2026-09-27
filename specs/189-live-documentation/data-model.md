@@ -44,7 +44,7 @@ related:
 ```markdown
 # <Заголовок фичи> (LiveDoc)
 
-> Это LiveDoc-сводка. Drill-down — [specs/<NNN-slug>/spec.md](../../specs/<NNN-slug>/spec.md).
+> Это LiveDoc-сводка. Drill-down — [specs/<NNN-slug>/spec.md](spec.md).
 
 ## Что делает
 [1-2 абзаца: что делает фича, кому нужна, какой проблемы решает]
@@ -64,8 +64,8 @@ related:
 [≤ 5 AC, подробности — в исходной спеке]
 
 ## Связанные LiveDocs
-- Domain: [catalog.md](../domain/catalog.md) | [processing.md](../domain/processing.md) | ...
-- Architecture: [L3-components.md](../architecture/L3-components.md) | ...
+- Domain: [catalog.md](../../knowledge/domains/catalog/domain.md) | [processing.md](../../knowledge/domains/processing/domain.md) | ...
+- Architecture: `L3-components.md` (в новой структуре — компоненты доменов: `knowledge/domains/<домен>/components/`) | ...
 
 ## Код
 - Модуль: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/<package>/`
@@ -149,12 +149,12 @@ related:
 | <Term2> | <определение> | `<ClassName>` |
 
 ## Связанные фичи
-- [182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md)
-- [184-approve-status-choice.md](../features/184-approve-status-choice.md)
+- [182-editor-self-assign-tasks.md](../../specs/182-editor-self-assign-tasks/spec.md)
+- [184-approve-status-choice.md](../../specs/184-approve-status-choice/spec.md)
 [≤ 5 фич — остальные через full-text search]
 
 ## Связанные LiveDocs
-- Architecture: [L3-components.md](../architecture/L3-components.md)
+- Architecture: `L3-components.md` (в новой структуре — компоненты доменов: `knowledge/domains/<домен>/components/`)
 
 ## Код
 - Модели: `karaoke-app/src/main/kotlin/.../model/<Context>*.kt`
@@ -240,7 +240,7 @@ related:
 - **<B> → <C>**: [аналогично]
 
 ## Связанные LiveDocs
-- Domain: [catalog.md](../domain/catalog.md) | ...
+- Domain: [catalog.md](../../knowledge/domains/catalog/domain.md) | ...
 - Features: [182-...](../features/182-...) | ...
 
 ## История
@@ -292,7 +292,7 @@ frontmatter (это валидируется bash-скриптом — `head -1 
 | Файл | Тип | Описание |
 |------|-----|----------|
 | [182-...](182-...) | Feature Summary | ... |
-| [catalog.md](catalog.md) | Bounded Context | ... |
+| [catalog.md](../../knowledge/domains/catalog/domain.md) | Bounded Context | ... |
 | [L1-...](L1-...) | C4 Level | ... |
 
 ## Конвенции
@@ -339,7 +339,7 @@ frontmatter вручную.
 ```markdown
 # <Заголовок фичи> (LiveDoc)
 
-> Это LiveDoc-сводка. Drill-down — [specs/<NNN-slug>/spec.md](../../specs/<NNN-slug>/spec.md).
+> Это LiveDoc-сводка. Drill-down — [specs/<NNN-slug>/spec.md](spec.md).
 
 ## Что делает
 [1-2 абзаца]

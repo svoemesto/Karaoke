@@ -17,7 +17,7 @@
 
 ## Стратегический контекст
 
-**Гипотеза H1.20** (см. [`docs/strategy/growth-audit.md`](../growth-audit.md)):
+**Гипотеза H1.20** (см. [`docs/strategy/growth-audit.md`](../../archive/docs/strategy/growth-audit.md)):
 есть несколько авторов с 1-2 песнями (по спецзаказу) — для них нужно убрать из основного
 списка «Закромов» и перенести в **виртуальную плашку**, чтобы пользователь видел
 «отдельные песни разных авторов» как **самостоятельную категорию**, а не вперемешку
@@ -150,7 +150,7 @@
   endpoint) возвращает песни всех спецзаказных авторов одним запросом (без N+1 по авторам),
   в структуре ZakromaPublicDto (автор → альбом → песни). Реализовано через
   `Zakroma.getZakromaBySpecialOrder()` — см.
-  [docs/features/special-orders.md](../../docs/features/special-orders.md).
+  [docs/features/special-orders.md](../../archive/docs/features/special-orders.md).
 
 **Фронт:**
 

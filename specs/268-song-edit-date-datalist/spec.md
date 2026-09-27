@@ -207,7 +207,7 @@
 
 - [`../156-publish-slots-range/spec.md`](../156-publish-slots-range/spec.md) —
   серверная часть: формирование списка свободных слотов.
-- [`../../livedocs/features/156-publish-slots-range.md`](../../livedocs/features/156-publish-slots-range.md) —
+- [`../../livedocs/features/156-publish-slots-range.md`](../156-publish-slots-range/spec.md) —
   LiveDoc той же фичи (требует точечного обновления в этом PR: упомянуть
   frontend-фикс datalist-маскировки, FR-001/FR-002 в spec, обновить
   ссылки на `SongEdit.vue` — путь `edit/SongEdit.vue`, не `Songs/SongEdit.vue`).

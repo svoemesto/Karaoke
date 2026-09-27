@@ -651,10 +651,10 @@ VK ID — это только новый способ получения ток�
   спека, которую разблокирует #151 (загрузка превью-фото через `photos.*`).
 - [specs/121-vk-news-auto-publish/spec.md](../121-vk-news-auto-publish/spec.md) —
   основная спецификация автопубликации ВКонтакте.
-- [docs/features/vk-news-auto-publish.md](../../docs/features/vk-news-auto-publish.md) —
+- [docs/features/vk-news-auto-publish.md](../../archive/docs/features/vk-news-auto-publish.md) —
   общая документация по VK-публикации (обновить в том же PR: добавить
   секцию «Получение токена через VK ID», переместить старый OAuth в «Deprecated»).
-- [docs/features/README.md](../../docs/features/README.md) —
+- [docs/features/README.md](../../archive/docs/features/README.md) —
   таблица ключевых подсистем (обновить, добавить `vk-id-auth.md`).
 - [VK ID документация](https://id.vk.com/about/business/go/docs/ru/vkid/latest/vk-id/connection/main.html) —
   официальная документация VK ID (требует JS, изучена через альтернативные источники).

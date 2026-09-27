@@ -1,6 +1,6 @@
 # Contract: process-context для новых вызовов `KaraokeProcess.createProcess`
 
-**Дата**: 2026-08-31 | **Спека**: [spec.md](spec.md) | **План**: [plan.md](plan.md) | **Research**: [research.md](research.md)
+**Дата**: 2026-08-31 | **Спека**: [spec.md](../spec.md) | **План**: [plan.md](../plan.md) | **Research**: [research.md](../research.md)
 
 > **Замечание.** Эта фича не вводит новых публичных API (HTTP-эндпоинтов, RPC, message-форматов). Все изменения — внутренние вызовы `KaraokeProcess.createProcess(...)` в `Song.createFromPath()`. Тем не менее, для снижения риска рассинхронизации с существующими вызывающими `KaraokeProcess.createProcess` (например, `HealthReport.actions*`), формализуем контракт `context`-параметра, передаваемого в новые вызовы.
 

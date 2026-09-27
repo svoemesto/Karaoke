@@ -206,8 +206,8 @@ Pass 281 уже защитил 6 мест (см. спеку 281 FR-001, FR-011, 
 
 - [`spec.md`](./spec.md) — спецификация (FR-001..FR-060).
 - [`plan.md`](./plan.md) — Implementation Plan (Constitution Check, Project Structure).
-- [`../../281-find-lyrics-overwrites-key-bpm/spec.md`](../../281-find-lyrics-overwrites-key-bpm/spec.md) — Pass 281.
+- [`../../281-find-lyrics-overwrites-key-bpm/spec.md`](spec.md) — Pass 281.
 - [`../specs/087-fix-shared-db-connection`](../../087-fix-shared-db-connection/) — ThreadLocal connection model.
 - [`../specs/236-fix-karaoke-connection-self-healing`](../../236-fix-karaoke-connection-self-healing/) — self-healing.
-- [`../../../docs/ops/log-correlation.md`](../../../docs/ops/log-correlation.md) — log markers.
-- [`../../../.specify/memory/constitution.md`](../../../.specify/memory/constitution.md) — Constitution (8 principles).
+- [`../../../docs/ops/log-correlation.md`](../../docs/ops/log-correlation.md) — log markers.
+- [`../../../.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — Constitution (8 principles).

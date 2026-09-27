@@ -1,6 +1,6 @@
 # Отчёт: Pass 297 — Оптимизация `tbl_songs`
 
-**Спека**: [`specs/297-fix-tbl-songs-perf/spec.md`](specs/297-fix-tbl-songs-perf/spec.md)
+**Спека**: [`specs/297-fix-tbl-songs-perf/spec.md`](spec.md)
 **Work package**: http://localhost:8080/work_packages/47
 **Ветка**: `298-fix-tbl-songs-perf`
 **Коммит**: `5b1b1db8`

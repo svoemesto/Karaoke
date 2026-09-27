@@ -574,9 +574,9 @@ PNG-обложка песни, которая загружается в VK ка�
   (заменяется этим фичей).
 - [specs/130-vk-preview-generation/spec.md](../130-vk-preview-generation/spec.md) —
   прогрев PNG-кэша (инварианты сохраняются).
-- [docs/features/vk-news-auto-publish.md](../../docs/features/vk-news-auto-publish.md) —
+- [docs/features/vk-news-auto-publish.md](../../archive/docs/features/vk-news-auto-publish.md) —
   общая документация по VK-публикации (обновить в том же PR: добавить
   секцию «Превью через photos.saveWallPhoto» + скорректировать порядок
   шагов публикации).
-- [docs/features/README.md](../../docs/features/README.md) —
+- [docs/features/README.md](../../archive/docs/features/README.md) —
   таблица ключевых подсистем (обновить, если меняется список файлов).

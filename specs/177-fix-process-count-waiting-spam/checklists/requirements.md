@@ -3,7 +3,7 @@
 **Purpose**: Validate specification completeness and quality before
 proceeding to planning (`/speckit.plan`).
 **Created**: 2026-08-12
-**Feature**: [spec.md](./spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

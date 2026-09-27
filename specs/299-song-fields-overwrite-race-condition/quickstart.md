@@ -206,5 +206,5 @@ gh pr merge --merge
 - [`research.md`](./research.md) — Phase 0 research.
 - [`data-model.md`](./data-model.md) — Phase 1 data-model.
 - [`contracts/manual-test-checklist.md`](./contracts/manual-test-checklist.md) — manual test checklist.
-- [`../../../AGENTS.md`](../../../AGENTS.md) — governance, lint gates, machine rules.
-- [`../../../DEVELOPMENT.md`](../../../DEVELOPMENT.md) — архитектура + команды.
+- [`../../../AGENTS.md`](../../AGENTS.md) — governance, lint gates, machine rules.
+- [`../../../DEVELOPMENT.md`](../../DEVELOPMENT.md) — архитектура + команды.

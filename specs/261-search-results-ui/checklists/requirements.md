@@ -3,7 +3,7 @@
 **Purpose**: Validate completeness/quality of `specs/261-search-results-ui/spec.md`
 before proceeding to `/speckit.plan` or `/speckit.tasks`.
 **Created**: 2026-08-28
-**Feature**: [spec.md](spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

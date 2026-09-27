@@ -56,7 +56,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) | [processing.md](../domain/processing.md)
+- Domain: [catalog.md](../../../knowledge/domains/catalog/domain.md) | [processing.md](../../../knowledge/domains/processing/domain.md)
 - Features: [182-...](../features/182-...) | [184-...](../features/184-...)
 
 ## История

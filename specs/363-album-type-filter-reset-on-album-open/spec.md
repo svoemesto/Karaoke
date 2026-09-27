@@ -63,7 +63,7 @@
   — зачем прочитан: страница-источник перехода на конкретный альбом (Pass 359); `onAlbumSelect` пушит `{ name: 'zakroma-author', params: { authorId }, query: { albumId } }`.
 - [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AlbumType.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AlbumType.kt)
   — зачем прочитан: источник правды по `dbValue` (используем их при авто-сбросе фильтра).
-- [`specs/356-zakroma-albums-by-author/spec.md`](356-zakroma-albums-by-author/spec.md)
+- [`specs/356-zakroma-albums-by-author/spec.md`](../356-zakroma-albums-by-author/spec.md)
   — зачем прочитан: донорский паттерн «альбомы автора → клик по альбому → фильтр в URL» — то, на чём строится текущая регрессия.
 
 ### Search coverage

@@ -1,7 +1,7 @@
 # #141 — Решения механизма «Синхронизация аудио-потомков»
 
 > **Сессия**: 2026-09-19, wayfinder→spec (ветка `413-sync-audio-descendants`).
-> **Артефакт**: [`specs/413-sync-audio-descendants/spec.md`](../specs/413-sync-audio-descendants/spec.md).
+> **Артефакт**: [`specs/413-sync-audio-descendants/spec.md`](spec.md).
 
 Туман рассеян wayfinder-грилем (28 узлов дерева решений). Все спорные вопросы
 сняты с владельцем, назначение — спека для последующей реализации.

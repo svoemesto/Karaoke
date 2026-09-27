@@ -274,7 +274,8 @@ jobs:
 
       - name: Check documentation references (Pass 491)
         # tools/check-doc-references.py — относительные .md-ссылки, пути к
-        # файлам кода и /api-эндпоинты в knowledge/, docs/, archive/docs/.
+        # файлам кода и /api-эндпоинты в knowledge/, docs/, archive/docs/;
+        # в specs/ — только ссылки (спеки фиксируют прошлое состояние кода).
         # Ловит то, что не видел check-knowledge-cross-links.sh (он проверяет
         # другой класс ссылок). Осознанные исключения —
         # config/knowledge/doc-references-whitelist.txt.

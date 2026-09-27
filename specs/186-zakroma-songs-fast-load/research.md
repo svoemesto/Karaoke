@@ -6,7 +6,7 @@
 
 Фича про скорость загрузки страницы «Закрома» (karaoke-public). На авторе с 2500 песен пользователь видит ~17 секунд задержки: 5 секунд «пустой паузы» + 12 секунд работы прогрессометра.
 
-Предыдущая фича (spec 181 — `zakroma-author-load-progress`) уже оптимизировала прогрессометр до real-time: `FR-FE-008` явно запрещает `setInterval` для синтетического прогресса. Источник прогресса — `receivedCount.value / expectedCount.value` из NDJSON-стрима. См. [`docs/features/zakroma-stream-progress.md`](../../docs/features/zakroma-stream-progress.md).
+Предыдущая фича (spec 181 — `zakroma-author-load-progress`) уже оптимизировала прогрессометр до real-time: `FR-FE-008` явно запрещает `setInterval` для синтетического прогресса. Источник прогресса — `receivedCount.value / expectedCount.value` из NDJSON-стрима. См. [`docs/features/zakroma-stream-progress.md`](../../archive/docs/features/zakroma-stream-progress.md).
 
 Эта фича — продолжение оптимизации: устранить backend N+1 + лишние flush + frontend-баг с тротлингом `setTimeout` в фоновой вкладке.
 
@@ -507,6 +507,6 @@ writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, metaEx
 ## Ссылки
 
 - [Спека 181 — zakroma-author-load-progress](../181-zakroma-author-load-progress/spec.md) — предыдущая фича, оптимизировавшая прогрессометр до real-time.
-- [docs/features/zakroma-stream-progress.md](../../docs/features/zakroma-stream-progress.md) — per-feature документ (обновляется в этом PR).
+- [docs/features/zakroma-stream-progress.md](../../archive/docs/features/zakroma-stream-progress.md) — per-feature документ (обновляется в этом PR).
 - [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — принципы II (сырой JDBC), V (двух-фронтенд), VI (Code Standards).
 - [Chrome: Timers throttling in background tabs](https://developer.chrome.com/blog/timer-throttling-in-chrome-88) — почему `setTimeout(0)` тротлится в фоне.

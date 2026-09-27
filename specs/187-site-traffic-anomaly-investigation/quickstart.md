@@ -313,4 +313,4 @@ HTTP/1.1 404 Not Found
 - [plan.md](./plan.md) — имплементационный план.
 - [research.md](./research.md) — детальный аудит.
 - [contracts/](./contracts/) — API-контракты изменений.
-- [`docs/features/site-traffic-resilience.md`](../../docs/features/site-traffic-resilience.md) — per-feature документ (создаётся в plan.md).
+- [`docs/features/site-traffic-resilience.md`](../../archive/docs/features/site-traffic-resilience.md) — per-feature документ (создаётся в plan.md).

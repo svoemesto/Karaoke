@@ -152,7 +152,7 @@ Karaoke/
 - [x] T038 [P] [US5] Создать `livedocs/architecture/docker-conventions.md` — мигрировать Q&A про `nginx:alpine` (нет bash), `node:latest` (недетерминирован), JRE vs JDK, Docker CE в karaoke-app
 - [x] T039 [P] [US5] Создать `livedocs/architecture/documentation-conventions.md` — мигрировать Q&A про KDoc с backticks, JSDoc coverage, prettier/ktlint blame-ignore-revs
 - [x] T040 [P] [US5] Создать `livedocs/architecture/webvue3-patterns.md` — мигрировать паттерн «персистентность страницы пагинации в webvue3» (Vuex store + watcher)
-- [x] T041 [US5] Сократить `AGENTS.md`: удалить 4 мигрированных блока Q&A, заменить на одну строку-ссылку `> Детали и паттерны — в [livedocs/architecture/](../livedocs/architecture/README.md).` Проверить `wc -l AGENTS.md` ≤ 100
+- [x] T041 [US5] Сократить `AGENTS.md`: удалить 4 мигрированных блока Q&A, заменить на одну строку-ссылку `> Детали и паттерны — в [livedocs/architecture/](../../knowledge/README.md).` Проверить `wc -l AGENTS.md` ≤ 100
 - [x] T042 [US5] Обновить Q&A секцию `AGENTS.md` — убрать мигрированные Q&A (Jackson, Dockerfile, KDoc, webvue3-пагинация); оставить governance (CI-gate, иерархия, lifecycle)
 
 **Checkpoint**: `AGENTS.md` ≤ 100 строк, 4 детали мигрированы в `livedocs/architecture/*.md`. `check-livedocs-structure.sh` шаг `[6/7]` PASS.

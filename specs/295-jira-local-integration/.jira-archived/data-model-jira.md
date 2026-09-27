@@ -2,8 +2,8 @@
 
 **Branch**: `295-jira-local-integration`
 **Date**: 2026-09-02
-**Spec**: [spec.md](./spec.md)
-**Research**: [research.md](./research.md)
+**Spec**: [spec.md](../spec.md)
+**Research**: [research.md](research-jira.md)
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # UI Contract: 287 — Модалка «Поиск текста песни в интернете»
 
-> **Дата**: 2026-08-31 | **Спека**: [spec.md](spec.md) | **API Contracts**: [api-endpoints.md](api-endpoints.md)
+> **Дата**: 2026-08-31 | **Спека**: [spec.md](../spec.md) | **API Contracts**: [api-endpoints.md](api-endpoints.md)
 
 ## Контекст
 

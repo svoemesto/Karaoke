@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-14
-**Feature**: [specs/185-song-dto-audit-sponsr-remove/spec.md](./spec.md)
+**Feature**: [specs/185-song-dto-audit-sponsr-remove/spec.md](../spec.md)
 
 ## Content Quality
 

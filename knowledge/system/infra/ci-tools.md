@@ -27,7 +27,7 @@
 | `check-endpoint-field-coverage.sh` | Endpoint ↔ UI field coverage | CI |
 | `check-songedit-field-coverage.sh` | SongEdit ↔ backend field coverage | CI |
 | `lint-knowledge.py` | Lint knowledge/ (no emoji, etc.) | pre-commit |
-| `check-doc-references.py` | Ссылки/.md, пути к файлам и `/api`-эндпоинты в knowledge/, docs/, archive/docs/ (whitelist — `config/knowledge/doc-references-whitelist.txt`) | pre-commit + CI |
+| `check-doc-references.py` | Ссылки/.md (knowledge/, docs/, archive/docs/ + specs/), пути к файлам и `/api`-эндпоинты (везде, кроме specs/) (whitelist — `config/knowledge/doc-references-whitelist.txt`) | pre-commit + CI |
 
 ### Documentation generation
 
@@ -115,6 +115,13 @@ Knowledge.
   документации. Появился после аудита, который нашёл 233 битые ссылки,
   120 несуществующих путей и 83 несуществующих эндпоинта (штатный
   `check-knowledge-cross-links.sh` эти классы ссылок не покрывал).
-  Осознанные исключения — `config/knowledge/doc-references-whitelist.txt` (46 записей).
+  Осознанные исключения — `config/knowledge/doc-references-whitelist.txt` (47 записей).
+
+- **Pass 493** (2026-09-27): тем же аудитом починены ссылки в `specs/**`
+  (250 битых: `checklists/` и `contracts/` ссылались на `./spec.md` вместо
+  `../spec.md`, спеки ссылались на переехавшие `docs/features`, `docs/strategy`
+  и удалённые `livedocs/`). `specs/` включён в `check-doc-references.py`
+  **только по ссылкам**: спеки фиксируют прошлое состояние кода, их упоминания
+  файлов и эндпоинтов не переписываются.
 
 - **Pass 353** (2026-09-09): Initial. Автор: agent (Karaoke).

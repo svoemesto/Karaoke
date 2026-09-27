@@ -85,7 +85,7 @@ Content-Length: 0
 - Реализация в `ApiController.kt:6681-6683` (`@PostMapping("/getfreetimeslots")`)
   — **без изменений**.
 - Реализация `Utils.kt::getFreeTimeSlots()` — **без изменений** (см.
-  спеку [`156-publish-slots-range`](../156-publish-slots-range/spec.md)).
+  спеку [`156-publish-slots-range`](../../156-publish-slots-range/spec.md)).
 
 ## Что МЕНЯЕТСЯ в этой спеке (frontend)
 

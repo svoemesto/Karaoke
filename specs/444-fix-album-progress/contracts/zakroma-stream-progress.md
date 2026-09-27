@@ -1,6 +1,6 @@
 # Contract: `meta.expectedCount` для `/api/public/zakroma/stream`
 
-**Feature**: [spec.md](./spec.md) | **Issue**: OpenProject #179 | **Branch**: `444-fix-album-progress`
+**Feature**: [spec.md](../spec.md) | **Issue**: OpenProject #179 | **Branch**: `444-fix-album-progress`
 
 ## Endpoint
 

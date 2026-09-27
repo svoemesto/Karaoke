@@ -252,4 +252,4 @@ console.timeEnd('zakroma-load-large')
 - [plan.md](./plan.md) — имплементационный план.
 - [research.md](./research.md) — детальный анализ узких мест.
 - [contracts/stream-chunking.md](./contracts/stream-chunking.md) — изменения ритмики NDJSON.
-- [docs/features/zakroma-stream-progress.md](../../docs/features/zakroma-stream-progress.md) — per-feature документ.
+- [docs/features/zakroma-stream-progress.md](../../archive/docs/features/zakroma-stream-progress.md) — per-feature документ.

@@ -1,6 +1,6 @@
 # API Contract: Backfill флагов публикаций готовых песен
 
-**Branch**: `124-news-flags-backfill` | **Date**: 2026-08-03 | **Spec**: [spec.md](./spec.md)
+**Branch**: `124-news-flags-backfill` | **Date**: 2026-08-03 | **Spec**: [spec.md](../spec.md)
 
 ## Обзор
 

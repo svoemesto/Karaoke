@@ -37,18 +37,18 @@
 
 ## Стратегический контекст
 
-**Гипотеза** (см. [`docs/strategy/growth.md`](../growth.md)): анонимный посетитель не видит
+**Гипотеза** (см. [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md)): анонимный посетитель не видит
 явной ценности в регистрации → уходит. Главная страница — главная точка входа (5284 уникальных
 посетителей / мес). Конверсия 0.4% — критически низкая.
 
 **QW-2** — вторая фича в Top-3. Гипотеза H1.1 из аудита.
 
 **Связанные документы:**
-- [`docs/strategy/growth.md`](../growth.md) — стратегия (раздел 5 — Top-3)
-- [`docs/strategy/growth-audit.md`](../growth-audit.md) — аудит (раздел 2.3 — H1.1)
-- [`docs/features/README.md`](../features/README.md) — per-feature документация
-- [QW-9: страница «О проекте»](003-about-page/spec.md) — комплементарная
-- [QW-1: FREE vs PREMIUM](005-free-vs-premium/spec.md) — комплементарная
+- [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md) — стратегия (раздел 5 — Top-3)
+- [`docs/strategy/growth-audit.md`](../../archive/docs/strategy/growth-audit.md) — аудит (раздел 2.3 — H1.1)
+- [`docs/features/README.md`](../../archive/docs/features/README.md) — per-feature документация
+- [QW-9: страница «О проекте»](../003-about-page/spec.md) — комплементарная
+- [QW-1: FREE vs PREMIUM](../005-free-vs-premium/spec.md) — комплементарная
 
 ## User Scenarios & Testing *(mandatory)*
 

@@ -87,7 +87,9 @@ sampling, dedup, rate limiting. Все настройки — через
 - **Monetization** ([monetization domain](../monetization/domain.md)) —
   `PaymentService`, `PriceService`.
 - **Caching** ([caching domain](../caching/domain.md)) —
-  `DedupCache`, `PollingCache` — реализации.
+  `DedupCache` (реализация в `karaoke-web`), `PollingCache` (**Pass 456: реализация
+  перенесена в `karaoke-app`**, потому что `karaoke-web` зависит от ядра, а не
+  наоборот — иначе ядро не могло её использовать).
 - **Schedulers** ([schedulers.md](../processing/components/schedulers.md)) —
   фоновые задачи karaoke-web.
 

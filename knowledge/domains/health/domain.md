@@ -110,14 +110,20 @@ Health отвечает за проверку: «эти три представ�
   (2026, in progress): первопричина — race condition в HTTP-вызовах
   к `StorageApiClient.fileExists`. Детальный анализ — в
   [health-report.md#known-issues](components/health-report.md).
-- **#69** «Кеширование информации из хранилища» (2026-09, спека #344):
-  **FIXED в Pass 344**. In-memory TTL-кеш через готовый `PollingCache<V>`
-  (см. `knowledge/domains/caching/components/web-caches.md`). Спека #339
-  (провалившаяся попытка 2026-09-09) удалена, после Pass 341 Knowledge
-  достаточно для перезапуска — спека #344 успешно реализована и слита.
-  Метрики через `infra.cache.storage` SLF4J-категорию и
-  `/api/health/cacheStats` endpoint. `race-#65` остаётся открытым
-  (кеш смягчает, root cause не починен).
+- **#69** «Кеширование информации из хранилища»: **FIXED**, но не так, как
+  написано здесь ранее. Актуальная реализация — `StorageMetadataCache`
+  (спека **#348**, Pass 345), которая **supersede** спеку #344; спека #339
+  (провалившаяся попытка 2026-09-09) удалена.
+  Это **persistent (eternal) кеш, а НЕ in-memory TTL-кеш через `PollingCache`**
+  (прежняя версия этого абзаца утверждала именно это — неверно):
+  TTL = ∞, кеш сам не протухает, single source of truth — таблица
+  `tbl_storage_metadata_cache` в LOCAL Postgres (миграция
+  `deploy/karaoke-db/48_storage_metadata_cache.sql`), переживает restart и
+  rebuild. Инвалидация write-through: хуки в `StorageApiClient` /
+  `KaraokeStorageService` + ручной сброс `DELETE /api/health/cache/refresh`;
+  автоинвалидации сознательно нет. Метрики — `/api/health/cacheStats`.
+  Подробности — [caching domain](../caching/domain.md). `race-#65` остаётся
+  открытым (кеш смягчает, root cause не починен).
 - **#128** «Асинхронный healthReportList» (2026-09, спека
   specs/128-async-health-report-list): **FIXED в Pass 128**. Бэк принимает
   батч id-ов, ставит в приоритетную очередь с 10 worker'ами; результаты

@@ -3,6 +3,8 @@
 * **Status**: Accepted
 * **Date**: 2026-07-20 (Phase 001, NON-NEGOTIABLE — см. Constitution § I)
 * **Deciders**: команда Karaoke
+* **Superseded by**: ADR-0010 — в части LLM-движка (Ollama → LM Studio,
+  LangChain4j удалён). SearXNG, Sheetsage и Demucs остаются в силе.
 
 ## Context
 

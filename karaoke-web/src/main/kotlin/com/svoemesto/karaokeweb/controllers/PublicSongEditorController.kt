@@ -55,7 +55,7 @@ class PublicSongEditorController(
     private val db get() = WORKING_DATABASE
 
     // Терпимый к неизвестным ключам декодер — маркеры с фронта несут поля admin-формата (locklad и т.п.),
-    // которых нет в SourceMarker; строгий Json.Default бросил бы на них (см. AIAssistant.kt).
+    // которых нет в SourceMarker; строгий Json.Default бросил бы на них.
     private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser

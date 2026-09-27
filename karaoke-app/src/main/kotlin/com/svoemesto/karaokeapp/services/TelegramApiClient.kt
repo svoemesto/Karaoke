@@ -94,7 +94,7 @@ data class TelegramSendVideoResult(
 )
 
 /**
- * Тонкий клиент Telegram Bot API поверх JDK HttpClient (паттерн - как в AIAssistant.kt).
+ * Тонкий клиент Telegram Bot API поверх JDK HttpClient (без сторонних HTTP-библиотек).
  *
  * Доступ к Telegram из России периодически недоступен без VPN (см. DEVELOPMENT.md/архив). Реализован
  * авто-fallback: каждый запрос сначала пробует идти напрямую; при сетевой ошибке переключается на

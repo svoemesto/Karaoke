@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: `MkoHeader` — заголовок видео (верхняя панель).
 
+
+## Ответственность | Responsibility
+
+
+`MkoHeader` — заголовок видео (верхняя панель).
+
 ## Файл
 
 `karaoke-app/.../mlt/mko/MkoHeader.kt` (471 строк, **самый большой Mko**)
@@ -23,7 +29,7 @@ private val songEndTimecode = mltProp.getSongEndTimecode()
 // + font/text layout from MltProp
 ```
 
-## Логика
+## Логика и Алгоритмы | Logic and Algorithms
 
 - Создаёт `<producer>` с `<property name="length">`, `<property name="mlt_service">pango</property>`.
 - Layout текста — через `getTextWidthHeightPx` (см.
@@ -31,7 +37,7 @@ private val songEndTimecode = mltProp.getSongEndTimecode()
 - Font — из `MltProp` (см.
   [karaoke-properties.md](../../processing/components/karaoke-properties.md)).
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-producers.md](mko-producers.md) — иерархия.
 - [utilities.md](../../../system/utilities.md) — `getTextWidthHeightPx`.

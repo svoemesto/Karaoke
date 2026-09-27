@@ -4,6 +4,12 @@
 > **Компонента**: `SongShareLinkService` — самый большой сервис
 > karaoke-web (1130 строк).
 
+
+## Ответственность | Responsibility
+
+
+`SongShareLinkService` — самый большой сервис karaoke-web (1130 строк).
+
 ## Назначение
 
 CRUD + lifecycle для `SongShareLink` (см.
@@ -118,7 +124,7 @@ delete через `revoked_at`.
 4. **`tokenHash` уникален** — collision бы означало, что кто-то
    угадал чужой токен (impossible для sha256, но defensive).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Catalog** ([entities-catalog.md](../../catalog/components/entities-catalog.md#songsharelink)) —
   entity.

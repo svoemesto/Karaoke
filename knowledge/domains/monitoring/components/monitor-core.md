@@ -4,6 +4,12 @@
 > **Компонента**: базовые классы `MonitorContext`, `MonitorCheck`,
 > `MonitorAlert`, `MonitorRegistry`.
 
+
+## Ответственность | Responsibility
+
+
+базовые классы `MonitorContext`, `MonitorCheck`, `MonitorAlert`, `MonitorRegistry`.
+
 ## Файлы
 
 - `karaoke-app/.../monitor/MonitorContext.kt`
@@ -113,7 +119,7 @@ enum class MonitorSeverity {
 }
 ```
 
-## Связь
+## Зависимости | Dependencies
 
 - [monitor-checks.md](monitor-checks.md) — 7 проверок.
 - [monitor-checks-detailed.md](monitor-checks-detailed.md) — детали.

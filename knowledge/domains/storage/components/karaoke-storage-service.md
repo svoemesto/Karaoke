@@ -148,7 +148,7 @@ NANOSECONDS)`. Решение применено одинаково в обои�
 - `pathToFileOnDisk` с URL-encoded символами — через
   `decodeFileNameIfEncoded`.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport** (`actionsLocalStorage`): вызывает `fileExists`,
   `downloadFile`, `uploadFile` для восстановления файлов.

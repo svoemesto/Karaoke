@@ -150,7 +150,7 @@ Vuex store: `webvue3/src/components/Pictures/store.js` +
 - `webvue3/src/components/Pictures/filter/store.js`
 - `webvue3/src/components/Pictures/...` (UI)
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Storage layer** ([storage domain](../../../domains/storage/domain.md)) —
   `KaraokeStorage` + `KaraokeStorageService` для MinIO-операций.

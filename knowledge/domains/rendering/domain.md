@@ -111,10 +111,22 @@ related:
 
 ## Структура компонентов (C4 L3)
 
-- [mlt-pipeline](components/mlt-pipeline.md) — детальный MLT-пайплайн:
-  mko-классы, JPEG quality трюк, CPU-limit, lane.
-- [dictionaries](components/dictionaries.md) — `RenderVersion` enum и
-  связанные константы.
+- [dictionaries](components/dictionaries.md) — В rendering-домене единственный значимый enum — `RenderVersion`. Он определяет формат выходного MP4 и используется в…
+- [mko-audio](components/mko-audio.md) — `MkoAudio` — Producer для аудио-слоёв в karaoke-видео.
+- [mko-chord-picture-fader](components/mko-chord-picture-fader.md) — `MkoChordPictureFader` — плавное появление chord-картинок.
+- [mko-chord](components/mko-chord.md) — chord-related Mko — доска аккордов, chord-картинки, chord-текст.
+- [mko-extra](components/mko-extra.md) — обзор 3 Mko-файлов (Boosty, Fingerboard, FaderText).
+- [mko-header](components/mko-header.md) — `MkoHeader` — заголовок видео (верхняя панель).
+- [mko-main-bin](components/mko-main-bin.md) — `MkoMainBin` — root MLT-блок.
+- [mko-producers](components/mko-producers.md) — каталог всех 41 Mko-файлов (конкретные Producer'ы для MLT-генерации).
+- [mko-visual](components/mko-visual.md) — visual Mko — фоновые/визуальные Producer'ы для видео.
+- [mko-voice-deep](components/mko-voice-deep.md) — детальный обзор 10 Mko-файлов под VOICE/COUNTER/LINE.
+- [mko-voice-misc](components/mko-voice-misc.md) — 5 Mko-файлов voice-иерархии (misc).
+- [mko-voice-small](components/mko-voice-small.md) — обзор 13 Mko-файлов голосовой иерархии.
+- [mko-voice](components/mko-voice.md) — voice/line/scroll/melody Producer'ы — текст песни, скроллеры, мелодия, ноты, аккорды (вокал).
+- [mlt-generator](components/mlt-generator.md) — MLT-генератор XML-проекта для melt/MLT-движка. Pass 366-370 Knowledge-аудита.
+- [mlt-karaoke-object](components/mlt-karaoke-object.md) — базовый интерфейс для всех Mko-классов.
+- [mlt-pipeline](components/mlt-pipeline.md) — MLT-пайплайн — сердце rendering-домена. Эта компонента:
 
 ## Связанные ADR
 

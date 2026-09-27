@@ -171,7 +171,7 @@ NB: `try/catch` в worker-loop'е — одна проблемная песня �
 если простаивает — выполнит одну итерацию (взял null → sleep → выход).
 Дубликаты тасков безвредны: `takeNext()` атомарно разбирает очередь.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport** ([health-report.md](health-report.md)):
   worker вызывает `recomputeAndBroadcast(songId, ...)` — та же единая точка

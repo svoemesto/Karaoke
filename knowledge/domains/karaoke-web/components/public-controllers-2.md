@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: детальный обзор 5 critical public controllers.
 
+
+## Ответственность | Responsibility
+
+
+детальный обзор 5 critical public controllers.
+
 ## Назначение
 
 5 самых **security/critical** public-контроллеров. Полный список —
@@ -85,7 +91,7 @@ YooKassa. При успешном платеже:
 - **`/api/public/auth/me`** — каждые 5 минут (auto-refresh, см.
   [composable-use-auth.md](../../../system/frontend/composable-use-auth.md)).
 
-## Связь
+## Зависимости | Dependencies
 
 - [public-controllers.md](public-controllers.md) — обзор всех 19.
 - [monetization domain](../../monetization/domain.md) —

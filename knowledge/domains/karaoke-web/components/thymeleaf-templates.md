@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: 8 Thymeleaf-шаблонов `templates/`.
 
+
+## Ответственность | Responsibility
+
+
+8 Thymeleaf-шаблонов `templates/`.
+
 ## Назначение
 
 `karaoke-web/src/main/resources/templates/*.html` — Thymeleaf
@@ -59,7 +65,7 @@ fun main(model: Model): String {
   (server-side, без SPA).
 - SSR-кеширование (если есть) — `Cache-Control: max-age=N` (Pass 343+).
 
-## Связь
+## Зависимости | Dependencies
 
 - [main-controller.md](main-controller.md) — рендерит эти шаблоны.
 - [services-overview.md](services-overview.md) — данные для шаблонов.

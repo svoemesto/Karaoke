@@ -142,7 +142,7 @@ NB: `recordhash` — md5 от канонизированной строки та
   - DELETE chunk = 200 (лёгкие, можно крупные пачки).
 - **HTTP round-trips**: один на чанк записей через `/api/sync/changerecords`.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Async Process Queue** ([async-process-queue](async-process-queue.md)):
   `KaraokeProcess` НЕ в sync — repair-процессы только LOCAL.

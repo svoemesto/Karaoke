@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: Spring config — interceptors, security, WebClient.
 
+
+## Ответственность | Responsibility
+
+
+Spring config — interceptors, security, WebClient.
+
 ## Назначение
 
 `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/` —
@@ -19,7 +25,7 @@ beans, properties.
 | 4 | `WebClientConfig.kt` | WebClient beans (yookassa-proxy, etc.). |
 | 5 | `WebShareProperties.kt` | Share-ссылки настройки. |
 
-## Детальные контракты
+## Интерфейсы и Контракты | Interfaces and Contracts
 
 ### `WebMvcConfig`
 
@@ -85,7 +91,7 @@ Spring Security config. На karaoke-web — минимальный (нет auth
 
 Конфигурация для share-ссылок. Настройки через env.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Integration** ([integration domain](../../integration/domain.md)) —
   WebClient beans.

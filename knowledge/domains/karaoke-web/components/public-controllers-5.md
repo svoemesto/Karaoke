@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: обзор 5 мелких Public-контроллеров.
 
+
+## Ответственность | Responsibility
+
+
+обзор 5 мелких Public-контроллеров.
+
 ## Файлы
 
 | Store | Файл | Строк | Endpoints |
@@ -47,7 +53,7 @@
 [TypographUtils.kt](../../../system/utilities.md)). Используется
 `PublicTypographController` для нормализации текста на сервере.
 
-## Связь
+## Зависимости | Dependencies
 
 - [public-controllers.md](public-controllers.md) — обзор всех 19.
 - [composable-news-unread.md](../../../system/frontend/composable-news-unread.md) — consumer.

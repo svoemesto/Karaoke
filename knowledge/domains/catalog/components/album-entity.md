@@ -3,6 +3,12 @@
 > **Домен**: [catalog](../domain.md)
 > **Компонента**: детальное описание `Album` entity.
 
+
+## Ответственность | Responsibility
+
+
+детальное описание `Album` entity.
+
 ## Файл
 
 `karaoke-app/.../model/Album.kt`
@@ -77,7 +83,7 @@ enum class AlbumType {
    из фильтра на время просмотра — без побочных эффектов, `localStorage`
    не пишется.
 
-## Связь
+## Зависимости | Dependencies
 
 - [dictionaries.md#albumtype](dictionaries.md) — AlbumType enum.
 - [Song entity](song-entity.md) — `Song.albumId`.

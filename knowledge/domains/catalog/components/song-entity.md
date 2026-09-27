@@ -3,6 +3,12 @@
 > **Домен**: [catalog](../domain.md)
 > **Компонента**: детальное описание `Song` — главной entity проекта.
 
+
+## Ответственность | Responsibility
+
+
+детальное описание `Song` — главной entity проекта.
+
 ## Файл
 
 `karaoke-app/.../model/Song.kt` (~1500 строк, включая companion).
@@ -105,7 +111,7 @@ two-DB sync, поиск lyrics, авто-публикация.
   чтобы воркер синхронизации читал уже зафиксированный статус родителя. См.
   [audio-descendant-sync](audio-descendant-sync.md).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport** ([health-report.md](../../health/components/health-report.md)) —
   `Song.save()` для смены `idStatus`.

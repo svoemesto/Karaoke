@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: `PublicApiController` — главный public API контроллер.
 
+
+## Ответственность | Responsibility
+
+
+`PublicApiController` — главный public API контроллер.
+
 ## Файл
 
 `karaoke-web/.../controllers/PublicApiController.kt` (**1150 строк**,
@@ -52,7 +58,7 @@ rate limit 60/min per IP (через `RateLimitInterceptor`, см.
 `SamplingFilter` (см. [composable-engagement-tracking.md](../../../system/frontend/composable-engagement-tracking.md))
 — 1/N sampling.
 
-## Связь
+## Зависимости | Dependencies
 
 - [public-controllers.md](public-controllers.md) — обзор всех 19.
 - [storage domain](../../storage/domain.md) — картинки.

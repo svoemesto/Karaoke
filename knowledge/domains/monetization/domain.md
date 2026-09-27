@@ -67,10 +67,13 @@ related:
 Поля:
 
 - `name` — название («Месяц», «Год», «Навсегда»).
-- `price`, `currency` — стоимость.
-- `durationDays` — длительность (0 = бессрочно).
-- `isActive` — доступен ли для новых покупок.
-- `sortOrder` — порядок отображения в UI.
+- `priceRub` — стоимость в рублях (`PriceTariff.kt:51`).
+- `periodDays` — длительность в днях (`:54`).
+- `isActive` (`:57`), `isDefault` (`:60`), `sortOrder` (`:63`).
+
+  (Pass 475: прежняя версия называла поля `price`, `currency` и
+  `durationDays`. Поля `currency` в модели нет вообще — цены только
+  в рублях; остальные два названы иначе.)
 
 CRUD: `TariffsController` (`/api/tariffs/list|create|update|delete`).
 **Target-aware**: реальные тарифы правятся на прод-БД (`target=remote`),
@@ -81,13 +84,16 @@ CRUD: `TariffsController` (`/api/tariffs/list|create|update|delete`).
 
 Поля:
 
-- `id`, `code` — промокод (например, «LAUNCH2024»).
-- `discountPercent` — процент скидки (0..100).
-- `validFrom`, `validTo` — период действия.
-- `maxUsages`, `currentUsages` — лимит использований.
-- `isActive` — активно ли правило.
-- `priority` — приоритет (больше = раньше проверяется; конфликт
-  решает `PriceService`).
+- `name` — название правила (`PromoRule.kt:43`).
+- `type` — тип правила (`:46`; константы `TYPE_*` в `:107-121`).
+- `paramsJson` — параметры типа (`:49`); процент скидки живёт
+  ЗДЕСЬ, а не отдельным полем.
+- `appliesTo` (`:52`), `isActive` (`:55`), `priority` (`:64`).
+- `validFrom`, `validTo` — период действия (`:58`, `:61`).
+
+  (Pass 475: полей `code`, `discountPercent`, `maxUsages`,
+  `currentUsages` в модели НЕТ — промокода как отдельного
+  идентификатора не существует, а лимит использований не хранится.)
 
 `paramsJson` — JSON-параметры конкретного типа правила (расширяемо
 без миграций схемы).
@@ -99,11 +105,14 @@ CRUD: `PromoController` (`/api/promorules/list|create|update|delete`).
 
 Поля:
 
-- `id`, `idSiteUser` — пользователь.
-- `idSong` — песня, которую хотят купить.
-- `idPriceTariff` — выбранный тариф.
-- `idPromoRule` — применённое промо (опционально).
-- `created` — дата добавления.
+- `id`, `siteUserId` — пользователь (`CartItem.kt:45`).
+- `idSong` — песня, которую хотят купить (`:48`).
+- `addedAt` — дата добавления (`:51`).
+
+  (Pass 475: ссылок на тариф и промо в модели НЕТ — полей
+  `idPriceTariff`/`idPromoRule` не существует, а `created`
+  называется `addedAt`. Тариф выбирается на этапе оформления, а
+  не хранится в корзине.)
 
 При оформлении заказа → `Subscription` создаётся из `CartItem` +
 `PriceTariff`.
@@ -116,10 +125,17 @@ CRUD: `PublicCartController` в karaoke-web.
 
 Поля:
 
-- `id`, `idSiteUser` — пользователь.
-- `idTariff` — ID тарифа.
-- `startDate`, `endDate` — период действия.
-- `isActive` — автопродление/ручное.
+- `siteUserId` — пользователь (`Subscription.kt:52`).
+- `tariffId` — ID тарифа (`:62`).
+- `scope` (`:55`), `idSong` (`:59`), `periodDays` (`:65`).
+- `basePrice`, `discount`, `finalPrice` (`:68-74`).
+- `promoApplied` (`:77`), `status` (`:80`), `autoRenew` (`:94`).
+- `yookassaPaymentId` (`:83`), `orderId` (`:89`),
+  `yookassaPaymentMethodId` (`:97`).
+
+  (Pass 475: полей `idSiteUser`, `idTariff`, `startDate`, `endDate`
+  и `isActive` в модели НЕТ. Период задаётся `periodDays`, а
+  состояние — `status`; вместо `isActive` — `autoRenew`.)
 - `status` — `CREATED` / `PENDING` / `PAID` / `FAILED` /
   `REFUNDED` / `CANCELED` (константы в `Subscription.kt:135-140`):
   - `STATUS_CREATED = "CREATED"` — запись создана в БД.
@@ -137,6 +153,13 @@ webhook'а YooKassa продлевает `SiteUser.sitePremiumUntil`.
 
 **Участвует в LOCAL↔SERVER SyncRegistry** (см.
 [two-db-sync](../processing/components/two-db-sync.md)).
+
+## Структура компонентов (C4 L3)
+
+L3-компонентов у домена пока нет: контекст описан целиком в этом
+`domain.md` (см. [домены](../README.md)). Создание компонентных документов —
+отдельная задача; сам факт отсутствия L3 зафиксирован здесь, чтобы ссылка
+«структура компонентов» не выглядела потерянной.
 
 ## Domain Invariants
 
@@ -183,14 +206,16 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 - **`PriceService.calculate()`** — расчёт итоговой цены с учётом
   промо. См. gaps (Pass 342).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Identity** ([identity domain](../identity/domain.md)):
   `SiteUser.sitePremiumUntil` — обновляется при успешной оплате
   scope=SITE.
 - **Two-DB sync** ([two-db-sync](../processing/components/two-db-sync.md)):
-  `Subscription`, `PriceTariff`, `PromoRule` участвуют (см.
-  SyncRegistry.all).
+  `Subscription` и `PriceTariff` участвуют (`SubscriptionsSyncTarget`,
+  `PriceTariffsSyncTarget` в `SyncRegistry.all`). **`PromoRule` — НЕ
+  участвует**: цели синхронизации для промо-правил в
+  `sync/SyncTarget.kt` нет (Pass 475).
 - **Strategy** (`archive/docs/strategy/growth.md`):
   visitor→registration→premium воронка.
 

@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: обзор 13 Mko-файлов голосовой иерархии.
 
+
+## Ответственность | Responsibility
+
+
+обзор 13 Mko-файлов голосовой иерархии.
+
 ## Назначение
 
 Подкомпоненты **VOICE → ELEMENT** (см. [mko-voice.md](mko-voice.md)):
@@ -38,7 +44,7 @@ VOICES → VOICE →
 └── FILLCOLORSONGTEXTS → FILLCOLORSONGTEXT (MkoFillcolorSongtext, MkoFillcolorSongtexts)
 ```
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-voice.md](mko-voice.md) — обзор voice-иерархии (Pass 394).
 - [mko-producers.md](mko-producers.md) — каталог всех 41 Mko.

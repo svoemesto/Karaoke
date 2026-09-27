@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: `PublicPlayerController` — endpoints плеера.
 
+
+## Ответственность | Responsibility
+
+
+`PublicPlayerController` — endpoints плеера.
+
 ## Файл
 
 `karaoke-web/.../controllers/PublicPlayerController.kt` (589 строк)
@@ -46,7 +52,7 @@ UI «золотой/серебряной монетки» (см.
 готовность. Используется `usePlayerReadiness` (Pass 372) для
 chunked-проверки (chunk=20, MAX_CONCURRENT=3).
 
-## Связь
+## Зависимости | Dependencies
 
 - [public-controllers.md](public-controllers.md) — обзор.
 - [storage-flow.md](../../storage/components/storage-flow.md) — stream via nginx.

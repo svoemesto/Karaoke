@@ -77,7 +77,7 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
   **400** (нечего использовать).
 - `ALIGN_DEFAULT_USE_FINETUNED` — дефолт для режима.
 
-## Интеграция с karaoke-app
+## Зависимости | Dependencies
 
 `AlignmentServiceClient.kt` (`караоке-app/.../services/`) — HTTP
 multipart upload к этому сервису.

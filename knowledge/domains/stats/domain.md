@@ -142,11 +142,8 @@ related:
 
 ## Структура компонентов (C4 L3)
 
-- [dictionaries](components/dictionaries.md) — `EventType` enum
-  (VISIT/REGISTRATION/PREMIUM_PURCHASE/PLAY_START/PLAY_COMPLETE/...).
-  Магические коды аналитики.
-- [event-funnel](components/event-funnel.md) — visitor → registration →
-  premium воронка, сегментация трафика, baseline-funnel из фичи 187.
+- [dictionaries](components/dictionaries.md) — В stats-домене часто возникают ситуации, когда:
+- [event-funnel](components/event-funnel.md) — В Karaoke есть **воронка роста** (см. `archive/docs/strategy/growth.md`): **visitor → registration → premium**. Эта…
 
 ## Связанные фичи
 

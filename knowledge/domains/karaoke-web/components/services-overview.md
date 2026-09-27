@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: детальный каталог 25 services.
 
+
+## Ответственность | Responsibility
+
+
+детальный каталог 25 services.
+
 ## Назначение
 
 `karaoke-web/.../services/` — 25 сервисов разного размера (от 27 до
@@ -38,7 +44,7 @@
 | 23 | `SiteUserResolver` | 29 | Получение текущего SiteUser (через `SiteAuthInterceptor`) |
 | 24 | `SamplingConfig` | 27 | Конфигурация sampling rates |
 
-## Детальные контракты
+## Интерфейсы и Контракты | Interfaces and Contracts
 
 ### `SongShareLinkService` (1130 строк, hot path)
 
@@ -151,7 +157,7 @@ public).
 domain](../../storage/domain.md)). Реальный доступ — через nginx
 или `StorageApiClientWeb`.
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **Storage** ([storage domain](../../storage/domain.md)) —
   `StorageApiClientWeb`, `WebKaraokeStorageServiceImpl`.

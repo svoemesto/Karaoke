@@ -4,6 +4,12 @@
 > **Компонента**: детальное описание `SiteUser` entity (пользователь
 > ПУБЛИЧНОГО сайта, **НЕ** admin).
 
+
+## Ответственность | Responsibility
+
+
+детальное описание `SiteUser` entity (пользователь ПУБЛИЧНОГО сайта, **НЕ** admin).
+
 ## Файл
 
 `karaoke-app/.../model/SiteUser.kt`
@@ -66,7 +72,7 @@ webvue3). `tbl_site_users` живёт **на проде** (`Connection.remote()`
 - **`/api/siteusers/{id}/subscriptions`** — подписки.
 - **`/api/public/auth/me`** — текущий юзер (см. [composable-use-auth.md](../../../system/frontend/composable-use-auth.md)).
 
-## Связь
+## Зависимости | Dependencies
 
 - [identity domain](../domain.md) — bounded context.
 - [composable-use-auth.md](../../../system/frontend/composable-use-auth.md) — auth.

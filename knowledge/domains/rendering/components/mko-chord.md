@@ -4,6 +4,12 @@
 > **Компонента**: chord-related Mko — доска аккордов, chord-картинки,
 > chord-текст.
 
+
+## Ответственность | Responsibility
+
+
+chord-related Mko — доска аккордов, chord-картинки, chord-текст.
+
 ## Назначение
 
 Producer'ы для отображения **аккордов** на экране — chord-картинки
@@ -39,7 +45,7 @@ MAINBIN
 
 Plus **`CHORDS`** (level 6 в VOICE) — MkoChords (буквенные).
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-producers.md](mko-producers.md) — общая иерархия.
 

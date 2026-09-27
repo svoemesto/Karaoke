@@ -137,15 +137,14 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 ## Структура компонентов (C4 L3)
 
-- [playwright-rendering](components/playwright-rendering.md) — интеграция
-  с Playwright (headless Chromium) для рендера кадров: трюки с
-  `JPEG quality 95`, `canvas.toDataURL()`, `out_time_ms` для прогресса.
-- [karaoke-properties](components/karaoke-properties.md) — единая точка
-  конфигурации рендера (`KaraokeProperties.kt`, ~150 параметров).
-- [async-process-queue](components/async-process-queue.md) — `KaraokeProcess`
-  + `KaraokeProcessWorker` + async-очередь задач karaoke-app.
-- [key-bpm-from-file](components/key-bpm-from-file.md) — Pass 401 / OpenProject #126:
-  применяет key/bpm из существующего `[key].json` без повторного docker-прогона.
+- [async-process-queue](components/async-process-queue.md) — **Async-очередь задач** для karaoke-app. Каждое длительное действие (рендер, стем-сепарация, upload, smart copy, ...)…
+- [karaoke-properties](components/karaoke-properties.md) — В Karaoke **~150 параметров** управляют рендерингом караоке-видео: размер шрифта, цвета, позиции, размер видео, fps,…
+- [key-bpm-from-file](components/key-bpm-from-file.md) — Эта компонента решает задачу **#126 (OpenProject «Поиск тональности»)**: если у песни отсутствует тональность, но для…
+- [playwright-rendering](components/playwright-rendering.md) — Playwright-интеграция — нетривиальный кусок processing-домена. Karaoke рендерит каждый кадр караоке-плеера через…
+- [process-admin](components/process-admin.md) — **Admin REST API** для управления задачами в `tbl_processes`. Используется webvue3 (admin) для ручного управления…
+- [run-entity-sync](components/run-entity-sync.md) — `runEntitySync` + `updateDatabases` — **главная логика sync** одной entity между двумя БД (LOCAL ↔ SERVER).
+- [schedulers](components/schedulers.md) — детальный каталог всех `@Scheduled` фоновых задач проекта (12 штук, не считая `StatsCacheScheduler`).
+- [two-db-sync](components/two-db-sync.md) — **Two-DB sync** — механизм, который позволяет karaoke-admin'у (`karaoke-app`, LOCAL Postgres) и прод-серверу…
 
 ## Связанные фичи
 

@@ -3,6 +3,12 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонента**: `MkoChordPictureFader` — плавное появление chord-картинок.
 
+
+## Ответственность | Responsibility
+
+
+`MkoChordPictureFader` — плавное появление chord-картинок.
+
 ## Файл
 
 `karaoke-app/.../mlt/mko/MkoChordPictureFader.kt` (468 строк)
@@ -31,7 +37,7 @@ MAINBIN
 - Содержит **мастер-тайминг** для всей иерархии ниже.
 - Возможно, содержит кеш/оптимизации (Pass 343+ для деталей).
 
-## Связь
+## Зависимости | Dependencies
 
 - [mko-producers.md](mko-producers.md) — иерархия.
 

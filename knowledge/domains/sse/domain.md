@@ -135,6 +135,13 @@ ThreadLocal `TabIdContext` сохраняет `tabId` на время HTTP-за�
 Защита от дублей: если вкладка переподключилась (например, F5),
 старый emitter удаляется. Один на tab.
 
+## Структура компонентов (C4 L3)
+
+L3-компонентов у домена пока нет: контекст описан целиком в этом
+`domain.md` (см. [домены](../README.md)). Создание компонентных документов —
+отдельная задача; сам факт отсутствия L3 зафиксирован здесь, чтобы ссылка
+«структура компонентов» не выглядела потерянной.
+
 ## Domain Invariants
 
 1. **`SseEmitter.timeout = -1` (forever)**: SSE-соединение держится,
@@ -155,7 +162,7 @@ ThreadLocal `TabIdContext` сохраняет `tabId` на время HTTP-за�
 - **`healthReports`** — после repair-loop, может быть N=сотни за
   раз (bulk-repair).
 
-## Связь с другими компонентами
+## Зависимости | Dependencies
 
 - **HealthReport** ([health domain](../health/domain.md)):
   `recomputeAndBroadcast` → `HEALTH_REPORTS` событие.

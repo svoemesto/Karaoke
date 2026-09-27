@@ -3,6 +3,12 @@
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: обзор 7 critical Public-контроллеров (средние).
 
+
+## Ответственность | Responsibility
+
+
+обзор 7 critical Public-контроллеров (средние).
+
 ## Файлы
 
 | Store | Файл | Строк | Endpoints |
@@ -101,7 +107,7 @@
 - **`PublicShareController`** — каждое воспроизведение по share-ссылке.
 - **`PublicCartController`** — каждое добавление в корзину.
 
-## Связь
+## Зависимости | Dependencies
 
 - [public-controllers.md](public-controllers.md) — обзор.
 - [karaoke-web/services-overview.md](services-overview.md) — backend services.

@@ -1,4 +1,4 @@
-# Component: race fix (#65) ✅
+# Component: race fix (#65) [OK]
 
 > **Домен**: [health](../domain.md)
 > **Компонента**: per-song single-flight guard для

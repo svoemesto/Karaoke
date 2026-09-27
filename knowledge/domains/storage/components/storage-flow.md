@@ -147,12 +147,12 @@ karaoke-public (Player)
 
 | Сценарий | Локальный MinIO | Remote MinIO | Local FS |
 |---|---|---|---|
-| Admin upload из webvue3 | ✅ пишет | ✅ пишет (отдельно) | ✅ пишет |
-| webvue3 просмотр файла | ✅ читает (через direct URL?) | ✅ читает (через nginx-proxy) | ❌ |
-| Public песня играется | ❌ | ✅ читает (через nginx-proxy) | ❌ |
-| HealthReport repair | ✅ пишет+читает | ✅ пишет+читает | ✅ пишет+читает+symlinks |
-| StemJob processing | ✅ пишет | ✅ пишет | ✅ пишет (temp) |
-| Стем-сепарация (premium) | ❌ | ❌ | ✅ читает (исходный файл) |
+| Admin upload из webvue3 | [OK] пишет | [OK] пишет (отдельно) | [OK] пишет |
+| webvue3 просмотр файла | [OK] читает (через direct URL?) | [OK] читает (через nginx-proxy) | [NO] |
+| Public песня играется | [NO] | [OK] читает (через nginx-proxy) | [NO] |
+| HealthReport repair | [OK] пишет+читает | [OK] пишет+читает | [OK] пишет+читает+symlinks |
+| StemJob processing | [OK] пишет | [OK] пишет | [OK] пишет (temp) |
+| Стем-сепарация (premium) | [NO] | [NO] | [OK] читает (исходный файл) |
 
 ## Инвариант согласованности
 

@@ -13,7 +13,7 @@ related:
 > Bounded context для платёжного конвейера: тарифы, промо-правила,
 > корзина, подписки. Прецедент создания — P1 Knowledge-аудита
 > (Pass 341), а также стратегия visitor→registration→premium
-> (`docs/strategy/growth.md`).
+> (`archive/docs/strategy/growth.md`).
 
 ## Обзор контекста (Bounded Context)
 
@@ -191,7 +191,7 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 - **Two-DB sync** ([two-db-sync](../processing/components/two-db-sync.md)):
   `Subscription`, `PriceTariff`, `PromoRule` участвуют (см.
   SyncRegistry.all).
-- **Strategy** (`docs/strategy/growth.md`):
+- **Strategy** (`archive/docs/strategy/growth.md`):
   visitor→registration→premium воронка.
 
 ## Известные TODO
@@ -250,7 +250,7 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 
 ## Связанные ADR | Related ADRs
 
-- `docs/strategy/growth.md` — visitor→registration→premium.
+- `archive/docs/strategy/growth.md` — visitor→registration→premium.
 - `archive/docs/features/telegram-auto-publish.md` — упоминает тарифы.
 - `archive/docs/features/dual-db-sync.md` — sync для Subscription.
 

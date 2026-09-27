@@ -27,7 +27,7 @@
 | `docs/deployment.md` | Деплой на прод | Активен |
 | `docs/database.md` | DB schema | Активен |
 | `docs/public-modules.md` | Публичные модули | Активен |
-| `docs/strategy/growth.md` | visitor→registration→premium | Активен |
+| `archive/docs/strategy/growth.md` | visitor→registration→premium | Активен |
 | `docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) | Активен |
 | `docs/features/<slug>.md` | Per-feature документы (11+1 = 12) | Активен (FR-009) |
 | `docs/api/README.md` | API docs (Dokka + typedoc) | Автогенерируется |

@@ -56,7 +56,7 @@ LOCAL. Это значит, что **repair-процессы не видны п�
 
 ### Per-target флаги
 
-40 флагов в `KaraokeProperties.kt` (`sync_<key>_<push|pull>_<insert|update|delete|move>_allowed`),
+144 флага в `KaraokeProperties.kt` (уникальных `sync_*_allowed`; сверено в Pass 473) (`sync_<key>_<push|pull>_<insert|update|delete|move>_allowed`),
 например:
 
 - `sync_songs_push_insert_allowed`
@@ -184,7 +184,7 @@ NB: `recordhash` — md5 от канонизированной строки та
 - Constitution Principle III — обязательный recordhash-триггер.
 - `archive/docs/features/dual-db-sync.md` — оригинальный документ
   (НЕ Knowledge). Требует миграции.
-- `livedocs/features/235-auto-sync-3h.md` — спека автосинка (если
+- `archive/docs/features/dual-db-sync.md` — документ автосинка (каталога `livedocs/` в репозитории нет; если
   существует).
 
 ## Changelog

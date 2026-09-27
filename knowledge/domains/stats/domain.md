@@ -22,7 +22,7 @@ related:
 
 - Сбор событий посещений (`tbl_events`).
 - Сегментация трафика (bot/real-user).
-- Visitor → Registration → Premium воронка (см. `docs/strategy/growth.md`).
+- Visitor → Registration → Premium воронка (см. `archive/docs/strategy/growth.md`).
 - Аналитика аномалий трафика (см. фичу `187-site-traffic-anomaly-investigation`).
 
 **Почему выделено**:
@@ -56,7 +56,7 @@ related:
 | **REAL_USER** | `botScore < 0.3` (в старой версии), `< 0.5` (в publishing) | реальный человек |
 | **GOOD_BOT** | `0.3 <= botScore < 0.7` (поисковик) | Googlebot, YandexBot |
 | **BAD_BOT** | `botScore >= 0.7` | спам-сканеры |
-| **Воронка (Funnel)** | visitor → registration → premium | см. `docs/strategy/growth.md` |
+| **Воронка (Funnel)** | visitor → registration → premium | см. `archive/docs/strategy/growth.md` |
 | **StatsCacheScheduler** | `@Scheduled` фикс-rate update | каждые 60 мин |
 | **BotDetectionService** | Классификация трафика по BotScore | `BotDetectionService.kt` |
 

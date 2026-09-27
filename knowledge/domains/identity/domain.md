@@ -133,7 +133,13 @@ Identity — контекст для управления пользовател
 ## Код (физическая реализация)
 
 - Модели: `karaoke-app/src/main/kotlin/.../model/SiteUser.kt`, `Session.kt`
-- Сервисы: `SiteUserService.kt`, `AuthService.kt`
-- DTO: `SiteUserDTO.kt`, `SiteUserPublicDTO.kt` (с `@JsonProperty`!)
-- Security: `karaoke-web/src/main/kotlin/.../security/SecurityConfig.kt`
-- SQL: `deploy/karaoke-db/<NNN>_tbl_site_users.sql`
+- Контроллер: `karaoke-app/.../controllers/SiteUsersController.kt`
+- DTO: `karaoke-app/.../model/SiteUserDto.kt` (с `@JsonProperty`)
+- Сервисы: `karaoke-web/.../services/SiteUserResolver.kt`,
+  `karaoke-web/.../services/SiteUserTokenService.kt`
+- Security: `karaoke-app/.../config/SecurityConfig.kt`
+- SQL: `deploy/karaoke-db/06_site_users.sql`
+
+(Исправлено в Pass 473: прежний список называл `SiteUserService.kt`,
+`AuthService.kt`, `SiteUserDTO.kt`, `SiteUserPublicDTO.kt` и путь
+`.../security/SecurityConfig.kt` — таких файлов в репозитории нет.)

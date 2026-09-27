@@ -147,7 +147,7 @@ by design: ручной клик «не должен крашить UI».
 - **Two-DB sync** ([two-db-sync.md](two-db-sync.md)) — главный
   контекст, SyncRegistry, AutoOneClickSyncScheduler.
 - **Crypto** — sync шифрует SQL-команды через `Crypto.encrypt` (см.
-  [system/utilities](../../../system/utilities.md) — ⚠️ security
+  [system/utilities](../../../system/utilities.md) — [WARN]️ security
   issue с hardcoded ключом).
 - **KaraokeProperties** — per-target флаги синхронизации.
 

@@ -18,7 +18,7 @@
 
 | Файл | Строк | Hot? | Описание |
 |---|---|---|---|
-| `karaoke-app/.../Utils.kt` | 5366 | 🔥 **hot** | Главный файл утилит (custom functions, sync, MLT, BPM/Key, search, ML) |
+| `karaoke-app/.../Utils.kt` | 5366 | [HOT] **hot** | Главный файл утилит (custom functions, sync, MLT, BPM/Key, search, ML) |
 | `karaoke-app/.../UtilsPictures.kt` | 1019 | medium | Работа с изображениями (загрузка, ресайз, форматы) |
 | `karaoke-app/.../UtilsAI.kt` | 919 | medium | AI-обёртки (LM Studio, см. LmStudioService) |
 | `karaoke-app/.../SVG.kt` | 930 | medium | SVG-генерация (для обложек, маркеров) |
@@ -101,7 +101,7 @@ Line ... (ещё много)
 6. **Image sync**: `syncRemotePicturesInStorage`,
    `uploadPicturesToStorage`.
 
-### ~~Drift: `searchSongText` vs `searchSongText2`~~ — **FIXED in Pass 431** ✅
+### ~~Drift: `searchSongText` vs `searchSongText2`~~ — **FIXED in Pass 431** [OK]
 
 **Было** (до Pass 431): в `Utils.kt` было **две функции** для поиска
 текста (`searchSongText` + `searchSongText2`); `searchSongText2`
@@ -374,7 +374,7 @@ class Crypto {
 - `Utils.kt:923, 950, 1147` — `Crypto.WORDS_TO_CHECK` (тестовая
   строка для проверки крипты).
 
-### ⚠️ SECURITY ISSUE — **FIXED in Pass 430** ✅
+### [WARN]️ SECURITY ISSUE — **FIXED in Pass 430** [OK]
 
 **Было** (до Pass 430): ключ `KEY = "aesEncryptionKey"` и `INIT_VECTOR`
 **HARDCODED** в исходниках — нарушало Constitution VIII.
@@ -459,7 +459,7 @@ UUID-генерация. Используется для:
    - `UtilsDuplicates.kt` (dubl-пайплайн).
    - `UtilsMLT.kt` (chord/font).
 
-2. **Drift: `searchSongText` vs `searchSongText2`** — **FIXED in Pass 431** ✅
+2. **Drift: `searchSongText` vs `searchSongText2`** — **FIXED in Pass 431** [OK]
       (v2 удалена как dead code).
    TODO Pass 343.
 
@@ -508,11 +508,11 @@ issue #53.
 ## Известные TODO (Pass 343+)
 
 - [ ] **Каждая функция в `Utils.kt`** заслуживает отдельной страницы.
-- [x] **Drift `searchSongText` vs `searchSongText2`** — **FIXED in Pass 431** ✅
+- [x] **Drift `searchSongText` vs `searchSongText2`** — **FIXED in Pass 431** [OK]
       (v2 удалена как dead code).
 - [ ] **`redirectErrorStream(true)` enforcement**: где, как.
 - [ ] **`SanitizePath` контракт**: подробнее, unit-тесты.
-- [x] **`Crypto.kt` — fix в Pass 430** ✅: ключ и IV из env
+- [x] **`Crypto.kt` — fix в Pass 430** [OK]: ключ и IV из env
       (`CRYPTO_AES_KEY`/`CRYPTO_AES_IV`), legacy fallback + WARN-лог.
 - [ ] **`Functions.kt`** и **`Converter.kt`** — какие именно helpers.
 - [ ] **`UtilsPictures.kt`**: какие форматы, лимиты размера.

@@ -197,6 +197,18 @@ repos:
         files: '^archive/docs/features/.*\.md$'
         stages: [pre-commit]
 
+      # === Markdown: ссылки и упоминания файлов/эндпоинтов в текущей документации ===
+      # tools/check-doc-references.py (Pass 491): относительные .md-ссылки,
+      # пути к файлам кода и /api-эндпоинты в knowledge/, docs/, archive/docs/.
+      # Осознанные исключения — config/knowledge/doc-references-whitelist.txt.
+      - id: check-doc-references
+        name: check documentation references (links/paths/endpoints)
+        entry: python3 tools/check-doc-references.py
+        language: system
+        pass_filenames: false
+        files: '^(knowledge|docs|archive/docs)/.*\.md$'
+        stages: [pre-commit]
+
       # === Field coverage: SongEdit ↔ /song/update ===
       # specs/302-fix-censored-name-loss FR-005/006 — ловит баг "UI шлёт X, бэкенд не принимает".
       - id: songedit-field-coverage

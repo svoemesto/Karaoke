@@ -4,6 +4,22 @@
 высокоуровневого контекста; детали фич — в `specs/NNN-*/spec.md` и
 `docs/features/<slug>.md`.
 
+> **Pass 491** (2026-09-27, спека `491-doc-references-guard`): **аудит
+> документации закреплён как гейт.** Отдельный аудит нашёл в текущей
+> документации 233 битые относительные .md-ссылки, 120 упоминаний
+> несуществующих файлов и 83 несуществующих `/api`-эндпоинта — штатный
+> `check-knowledge-cross-links.sh` эти классы не покрывал (проверяет
+> `related:` и относительные пути иначе).
+> - Починено: 189 ссылок в `archive/docs/**` пересчитаны после переезда
+>   `docs/features/` → `archive/docs/features/`; ссылки livedocs-эпохи в
+>   `knowledge/adr/**` (15 файлов) переписаны на актуальные адреса;
+>   60 путей и 68 эндпоинтов исправлены по коду (реальные имена классов,
+>   DTO, контроллеров и путей из аннотаций); 12 per-feature документов
+>   приведены к контракту FR-009 (93 → 0 ERROR).
+> - Новое: `tools/check-doc-references.py` + `config/knowledge/doc-references-whitelist.txt`
+>   (46 осознанных исключений с причинами), подключён к pre-commit и CI.
+> См. `knowledge/system/infra/ci-tools.md`.
+
 > **Pass 487** (2026-09-27, спека `487-knowledge-lint-zero`): **структурный
 > долг `knowledge/` закрыт — 0 нарушений `lint-knowledge.py`.** Ранее baseline
 > подавлял 145 нарушений в 58 файлах (`config/knowledge/baseline-knowledge-lint.txt`,

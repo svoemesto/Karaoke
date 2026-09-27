@@ -3,9 +3,9 @@
 > **Feature Key**: `site-traffic-resilience`
 > **Status**: active
 > **Slug**: `site-traffic-resilience`
-> **Спека**: [specs/187-site-traffic-anomaly-investigation/spec.md](../../specs/187-site-traffic-anomaly-investigation/spec.md)
-> **План**: [specs/187-site-traffic-anomaly-investigation/plan.md](../../specs/187-site-traffic-anomaly-investigation/plan.md)
-> **Tasks**: [specs/187-site-traffic-anomaly-investigation/tasks.md](../../specs/187-site-traffic-anomaly-investigation/tasks.md)
+> **Спека**: [specs/187-site-traffic-anomaly-investigation/spec.md](../../../specs/187-site-traffic-anomaly-investigation/spec.md)
+> **План**: [specs/187-site-traffic-anomaly-investigation/plan.md](../../../specs/187-site-traffic-anomaly-investigation/plan.md)
+> **Tasks**: [specs/187-site-traffic-anomaly-investigation/tasks.md](../../../specs/187-site-traffic-anomaly-investigation/tasks.md)
 
 ## Что делает
 
@@ -194,10 +194,10 @@ Retention scheduler безопасен для sync.
 ## Ссылки
 
 - [specs/187-site-traffic-anomaly-investigation/](../../specs/187-site-traffic-anomaly-investigation/) — спека, plan, tasks, research.
-- [docs/features/dual-db-sync.md](../dual-db-sync.md) — почему `tbl_events` НЕ в SyncRegistry.
-- [docs/features/stats.md](../stats.md) — контекст in-memory кешей.
-- [docs/features/monitoring.md](../monitoring.md) — debug endpoint как часть мониторинга.
-- [Pass 50-60 в docs/architecture-notes.md](../../docs/architecture-notes.md) — история фиксов.
+- [dual-db-sync.md](./dual-db-sync.md) — почему `tbl_events` НЕ в SyncRegistry.
+- [stats.md](./stats.md) — контекст in-memory кешей.
+- [monitoring.md](./monitoring.md) — debug endpoint как часть мониторинга.
+- [Pass 50-60 в docs/architecture-notes.md](../../../docs/architecture-notes.md) — история фиксов.
 - Конкретные классы:
   - `DedupCache` — `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/DedupCache.kt`.
   - `PollingCache` — `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PollingCache.kt`.

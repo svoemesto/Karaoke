@@ -38,7 +38,7 @@
 ### `PublicHistoryController` (1 endpoint, 35 строк)
 
 `/api/public/history` — POST для регистрации прослушивания (см.
-[ListeningHistory](../../domains/catalog/components/entities-catalog.md#listeninghistory)).
+[ListeningHistory](../../catalog/components/entities-catalog.md#listeninghistory)).
 
 [WARN] Сверка с кодом: `@RequestMapping("/api/public/account")` +
 `@GetMapping("/history")` (стр. 29) → фактический URL

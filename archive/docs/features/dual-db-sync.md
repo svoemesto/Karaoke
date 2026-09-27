@@ -52,11 +52,11 @@ summary или пользовательские логи. `tbl_song_share_sessio
 
 - **MUST**: новая syncable-сущность **обязана** быть добавлена в
   `SyncRegistry.all` (см.
-  [CONTRIBUTING.md#kotlin-sync-registry](../../CONTRIBUTING.md)).
+  [CONTRIBUTING.md#kotlin-sync-registry](../../../CONTRIBUTING.md)).
   Наличие `recordhash`-триггера в SQL **не** означает авто-участие.
 - **MUST**: при изменении схемы syncable-таблицы **обязательно**
   пересоздаётся `recordhash`-триггер (см.
-  [CONTRIBUTING.md#sql-recordhash-triggers](../../CONTRIBUTING.md)).
+  [CONTRIBUTING.md#sql-recordhash-triggers](../../../CONTRIBUTING.md)).
 - **MUST**: сравнение `localMap vs remoteMap` через `associateBy { it.id }` —
   не вложенные `.any`/`.none` (O(n²) → 3+ минуты на 18k записей).
 - **MUST**: загрузка записей для diff — пакетно `WHERE id IN (...)`,
@@ -246,7 +246,7 @@ summary или пользовательские логи. `tbl_song_share_sessio
   используется в `checkOnAirWindow` для «в эфире») — не создавать, если такая новость уже
   существует (дедупликация) ИЛИ если у песни уже есть новость `category="air"` (on-air ⇒
   заведомо не новое событие). Схема БД не изменилась. См.
-  [contracts/collection-news-trigger.md](../../specs/152-fix-false-collection-news/contracts/collection-news-trigger.md)
+  [contracts/collection-news-trigger.md](../../../specs/152-fix-false-collection-news/contracts/collection-news-trigger.md)
   (заменяет описание шага 2 в `contracts/news-lifecycle.md` в части гарантий идемпотентности).
 - **Устранена утечка JDBC-соединений при «Синхронизации БД в 1 клик» (2026-08-16,
   specs/234-db-sync-connection-leak)**: фабрики `Connection.Companion.local()`/`remote()`/`virtual()`

@@ -4,7 +4,7 @@
 * **Date**: 2026-08-14
 * **Deciders**: команда Karaoke
 
-> **English version**: [../../../livedocs-en/decisions/local-0003-shared-minio-image-cache.md](../../../livedocs-en/decisions/local-0003-shared-minio-image-cache.md)
+> **English version**: `../../../livedocs-en/decisions/local-0003-shared-minio-image-cache.md`
 >
 > **Note**: this is **local** ADR — описывает конкретный паттерн кеширования
 > (а не глобальное архитектурное решение).
@@ -127,7 +127,7 @@ fun cleanupExpiredCache() {
 
 ## References
 
-- [architecture/L2-containers.md](../../L2-containers.md) — где MinIO живёт.
-- [domain/rendering.md](../../domain/rendering.md) — кто пишет в cache.
+- [architecture/L2-containers.md](../system/02-containers.md) — где MinIO живёт.
+- [domain/rendering.md](../domains/rendering/domain.md) — кто пишет в cache.
 - ADR-0002 (MLT/melt) — потребитель cache.
 - MinIO SDK: https://min.io/docs

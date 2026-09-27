@@ -34,7 +34,7 @@ oauth.vk.ru на id.vk.ru)» в репо Karaoke/svoemesto. Реализация
      `VkIdTokenRefreshResult` + `VkIdRefreshFailedException`.
    - `karaoke-app/services/VkIdTokenRefreshScheduler.kt` —
      `@Scheduled cron='0 0 * * * *'` (каждый час, порог 30 мин до истечения).
-   - `karaoke-app/KaraokeProperties.kt` — 9 новых ключей `vkId*`.
+   - `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt` — 9 новых ключей `vkId*`.
    - `karaoke-app/controllers/ApiController.kt` — 3 endpoint'а
      `vkIdSaveTokens`/`vkIdTokenStatus`/`vkIdRefreshNow` (admin API).
    - `docs/features/vk-id-auth.md`, `docs/features/README.md` (обновлён),

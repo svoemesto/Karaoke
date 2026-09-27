@@ -3,9 +3,9 @@
 > **Feature Key**: `seo-html-for-bots`
 > **Status**: active
 > **Slug**: `seo-html-for-bots`
-> **Спека**: [specs/180-og-seo-html/spec.md](../../specs/180-og-seo-html/spec.md)
-> **План**: [specs/180-og-seo-html/plan.md](../../specs/180-og-seo-html/plan.md)
-> **Tasks**: [specs/180-og-seo-html/tasks.md](../../specs/180-og-seo-html/tasks.md)
+> **Спека**: [specs/180-og-seo-html/spec.md](../../../specs/180-og-seo-html/spec.md)
+> **План**: [specs/180-og-seo-html/plan.md](../../../specs/180-og-seo-html/plan.md)
+> **Tasks**: [specs/180-og-seo-html/tasks.md](../../../specs/180-og-seo-html/tasks.md)
 
 ## Что делает
 
@@ -149,16 +149,16 @@ Endpoint `GET /api/public/og/song?id=NNN` (контроллер
 - [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — источник данных.
 - [`SongPublicDto.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/SongPublicDto.kt) — образец выбора публичных полей.
 - [`80to8897`](../../deploy/web-server-deploy/deploy/80to8897) — nginx-конфиг (НЕ меняется).
-- [`docs/architecture-notes.md`](./architecture-notes.md) — Pass 35 и Pass 51.
-- [`specs/121-vk-news-auto-publish/spec.md`](../../specs/121-vk-news-auto-publish/spec.md) — контекст ВК-публикаций.
-- [`specs/130-vk-preview-generation/spec.md`](../../specs/130-vk-preview-generation/spec.md) — контекст PNG-генерации.
-- [`specs/180-og-seo-html/spec.md`](../../specs/180-og-seo-html/spec.md) — функциональные требования.
-- [`specs/180-og-seo-html/research.md`](../../specs/180-og-seo-html/research.md) — обоснование технических решений.
-- [`specs/180-og-seo-html/data-model.md`](../../specs/180-og-seo-html/data-model.md) — модель данных.
-- [`specs/180-og-seo-html/contracts/og-html-endpoint.md`](../../specs/180-og-seo-html/contracts/og-html-endpoint.md) — HTTP-контракт.
-- [`specs/180-og-seo-html/quickstart.md`](../../specs/180-og-seo-html/quickstart.md) — сценарии ручной валидации.
-- [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — Principle VI (FR-009).
-- [`AGENTS.md`](../../AGENTS.md) — CI-gate, жизненный цикл feature-ветки.
+- [`docs/architecture-notes.md`](../../../docs/architecture-notes.md) — Pass 35 и Pass 51.
+- [`specs/121-vk-news-auto-publish/spec.md`](../../../specs/121-vk-news-auto-publish/spec.md) — контекст ВК-публикаций.
+- [`specs/130-vk-preview-generation/spec.md`](../../../specs/130-vk-preview-generation/spec.md) — контекст PNG-генерации.
+- [`specs/180-og-seo-html/spec.md`](../../../specs/180-og-seo-html/spec.md) — функциональные требования.
+- [`specs/180-og-seo-html/research.md`](../../../specs/180-og-seo-html/research.md) — обоснование технических решений.
+- [`specs/180-og-seo-html/data-model.md`](../../../specs/180-og-seo-html/data-model.md) — модель данных.
+- [`specs/180-og-seo-html/contracts/og-html-endpoint.md`](../../../specs/180-og-seo-html/contracts/og-html-endpoint.md) — HTTP-контракт.
+- [`specs/180-og-seo-html/quickstart.md`](../../../specs/180-og-seo-html/quickstart.md) — сценарии ручной валидации.
+- [`.specify/memory/constitution.md`](../../../.specify/memory/constitution.md) — Principle VI (FR-009).
+- [`AGENTS.md`](../../../AGENTS.md) — CI-gate, жизненный цикл feature-ветки.
 
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt` — реализация endpoint'а.
 - `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt` — источник данных (поля песни).

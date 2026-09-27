@@ -3,9 +3,9 @@
 > **Feature Key**: `homepage-latest-news`
 > **Status**: active
 > **Slug**: `homepage-latest-news`
-> **Спека**: [specs/144-homepage-latest-news/spec.md](../../specs/144-homepage-latest-news/spec.md)
-> **План**: [specs/144-homepage-latest-news/plan.md](../../specs/144-homepage-latest-news/plan.md)
-> **Tasks**: [specs/144-homepage-latest-news/tasks.md](../../specs/144-homepage-latest-news/tasks.md)
+> **Спека**: [specs/144-homepage-latest-news/spec.md](../../../specs/144-homepage-latest-news/spec.md)
+> **План**: [specs/144-homepage-latest-news/plan.md](../../../specs/144-homepage-latest-news/plan.md)
+> **Tasks**: [specs/144-homepage-latest-news/tasks.md](../../../specs/144-homepage-latest-news/tasks.md)
 
 ## Что делает
 
@@ -116,13 +116,13 @@ LIMIT 5
 
 ## Ссылки
 
-- [specs/144-homepage-latest-news/spec.md](../../specs/144-homepage-latest-news/spec.md) — спецификация фичи
-- [specs/144-homepage-latest-news/plan.md](../../specs/144-homepage-latest-news/plan.md) — имплементационный план
-- [specs/144-homepage-latest-news/data-model.md](../../specs/144-homepage-latest-news/data-model.md) — модель данных (read-only)
-- [specs/144-homepage-latest-news/contracts/public-news-api.md](../../specs/144-homepage-latest-news/contracts/public-news-api.md) — контракт переиспользуемого API
-- [specs/144-homepage-latest-news/quickstart.md](../../specs/144-homepage-latest-news/quickstart.md) — ручная валидация (8 сценариев)
+- [specs/144-homepage-latest-news/spec.md](../../../specs/144-homepage-latest-news/spec.md) — спецификация фичи
+- [specs/144-homepage-latest-news/plan.md](../../../specs/144-homepage-latest-news/plan.md) — имплементационный план
+- [specs/144-homepage-latest-news/data-model.md](../../../specs/144-homepage-latest-news/data-model.md) — модель данных (read-only)
+- [specs/144-homepage-latest-news/contracts/public-news-api.md](../../../specs/144-homepage-latest-news/contracts/public-news-api.md) — контракт переиспользуемого API
+- [specs/144-homepage-latest-news/quickstart.md](../../../specs/144-homepage-latest-news/quickstart.md) — ручная валидация (8 сценариев)
 - [docs/features/news-publish-backfill.md](news-publish-backfill.md) — backfill флагов публикации
 - [docs/features/news-templates.md](news-templates.md) — шаблоны авто-новостей
-- [specs/089-auto-news-song-release](../../specs/089-auto-news-song-release/spec.md) — авто-создание новостей о выходе песни (источник данных для блока)
-- [specs/090-news-pagination](../../specs/090-news-pagination/spec.md) — пагинация ленты `/news` (брат-близнец)
+- [specs/089-auto-news-song-release](../../../specs/089-auto-news-song-release/spec.md) — авто-создание новостей о выходе песни (источник данных для блока)
+- [specs/090-news-pagination](../../../specs/090-news-pagination/spec.md) — пагинация ленты `/news` (брат-близнец)
 - [docs/strategy/growth.md](../strategy/growth.md) — стратегия роста (visitor→registration)

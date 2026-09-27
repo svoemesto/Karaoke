@@ -1,12 +1,12 @@
 # Feature: Настраиваемое количество строк на странице таблиц в админке
 
-**Spec**: [`specs/358-rows-per-page/spec.md`](../../specs/358-rows-per-page/spec.md)
-**Status**: In progress (Pass 358, реализация в feature-ветке `359-rows-per-page`)
-**Created**: 2026-09-10
-**Last updated**: 2026-09-10
-**Source**: OpenProject #74 — «Количество строк на страницу таблицы»
+> **Status**: active
+> **Feature Key**: rows-per-page
+> **Last Updated**: 2026-09-27
+> **Spec**: [specs/358-rows-per-page/spec.md](../../specs/358-rows-per-page/spec.md)
+> **Source**: OpenProject #74 — «Количество строк на страницу таблицы»
 
-## Назначение
+## Что делает
 
 В admin SPA `webvue3` в табличных компонентах (Songs, Authors, Albums, Pictures,
 SiteUsers, Subscriptions, ShareLinks, Dictionaries, Properties, SitePlaylists,
@@ -15,7 +15,21 @@ ListeningHistory, Processes, News, Stats) в верхнем блоке паги�
 на странице без перезагрузки. Значение сохраняется per-table глобально (все админы
 видят одно и то же значение для каждой таблицы) в `KaraokeProperties`.
 
-## Где живёт
+## Зачем
+
+Штатные размеры страниц были захардкожены в каждой admin-таблице, и администратор не
+мог подстроить их под свою работу: на одних таблицах нужны десятки строк, на других
+(например, история прослушиваний) — сотни. Раньше для этого пришлось бы менять код и
+пересобирать фронт. Фича даёт одну настройку на таблицу, общую для всех админов, —
+без новых эндпоинтов и без перезагрузки страницы.
+
+## Как работает (кратко)
+
+Настройка хранится в `KaraokeProperties` (тот же backend, что и параметры компонента
+«Настройки»), по одному параметру `ui.<table>.rows_per_page` на таблицу. При старте
+SPA Vuex-модуль `tableSettings` один раз читает `/api/propertiesdigests`, кеширует
+значения локально, а при изменении поля пишет через `/api/properties/setproperty`.
+UI применяет значение только после успешного ответа backend (без optimistic).
 
 ### Backend (Kotlin / Spring Boot)
 
@@ -41,7 +55,7 @@ ListeningHistory, Processes, News, Stats) в верхнем блоке паги�
   - Добавлен метод `async onPerPageChange(newValue)` (парсинг, валидация,
     `currentPage = 1`, `setRowsPerPage`, `loadData()`).
 
-## API контракт
+### API контракт
 
 - **Запись**: `POST /api/properties/setproperty` с параметрами
   `key=ui.<table>.rows_per_page&stringValue=<int>`. Возвращает `"true"` или `"false"`.
@@ -51,7 +65,7 @@ ListeningHistory, Processes, News, Stats) в верхнем блоке паги�
   `.rows_per_page`.
 - Никаких новых эндпоинтов не введено — используется существующее API.
 
-## Принятые решения (см. spec.md § Clarifications)
+### Принятые решения (см. spec.md § Clarifications)
 
 - **Хранение**: `KaraokeProperties` (тот же backend, что используется для других
   параметров компонента «Настройки»), для каждой таблицы свой параметр.
@@ -60,9 +74,9 @@ ListeningHistory, Processes, News, Stats) в верхнем блоке паги�
 - **Поведение**: НЕ оптимистичное обновление — UI применяет значение только после
   успешного ответа backend (loading-индикатор на время round-trip).
 
-## FR / NFR / SC Coverage
+### FR / NFR / SC Coverage
 
-### Functional Requirements
+**Functional Requirements**
 
 - **FR-001**: UI-поле в 14 таблицах — `webvue3/src/components/<Entity>/<Entity>Table.vue`.
 - **FR-002**: Free input `1..1000` — `<b-form-input type="number" min="1" max="1000">`.
@@ -81,29 +95,66 @@ ListeningHistory, Processes, News, Stats) в верхнем блоке паги�
 - **FR-011**: Существующее поведение пагинации сохранено — НЕ трогаем `watch.perPage`
   и `loadData()`.
 
-### Non-Functional Requirements
+**Non-Functional Requirements**
 
 - **NFR-001**: Сохранение `≤ 200 мс` p95 — manual E2E (см. `quickstart.md`).
 - **NFR-002**: Без optimistic — UI не обновляется до ответа.
 - **NFR-003**: Дефолты идентичны текущим.
 
-### Success Criteria
+**Success Criteria**: см. `spec.md § Success Criteria` и `quickstart.md` для manual
+E2E сценария.
 
-См. `spec.md § Success Criteria` и `quickstart.md` для manual E2E сценария.
+## Инварианты
 
-## Связанные ADR
+- **MUST**: дефолты в `DEFAULT_ROWS_PER_PAGE` (`tableSettings.js`) совпадают с
+  `listKaraokeProperties` (`KaraokeProperties.kt`) — FR-010; рассинхрон ломает
+  fallback. См. [AGENTS.md](../../AGENTS.md).
+- **MUST**: серверная валидация `1..1000` для ключей `ui.*.rows_per_page` в
+  `ApiController.setproperty`; вне диапазона — HTTP 400 (FR-006).
+- **MUST**: запись — только через успешный ответ backend, без optimistic-обновления
+  (FR-003 / NFR-002).
+- **MUST**: один параметр на таблицу, глобально (НЕ per-user) — FR-009.
+- **MUST**: новых эндпоинтов не вводить — только `/api/propertiesdigests` и
+  `/api/properties/setproperty` (FR-007).
+- **MUST**: при изменении значения — `currentPage = 1` и `loadData()`
+  (FR-008, FR-011); существующий `watch.perPage` не трогать.
+- **SHOULD**: FR-009 требует обновлять этот документ при правке кода
+  ([constitution.md](../../.specify/memory/constitution.md)).
 
-- [`knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md`](../../knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md) —
-  паттерн webvue3 admin tables (server-side pagination, watch на perPage).
-- [`knowledge/adr/local-0001-karaoke-properties-defaults.md`](../../knowledge/adr/local-0001-karaoke-properties-defaults.md) —
-  конвенция дефолтов `KaraokeProperties`.
-- [`knowledge/domains/processing/components/karaoke-properties.md`](../../knowledge/domains/processing/components/karaoke-properties.md) —
-  описание `KaraokeProperties`.
+## Известные ловушки
 
-## Известные ограничения
+- **`Global, not per-user`** — все админы видят одно значение на таблицу
+  (см. Clarifications Q1); ожидать индивидуальной настройки не нужно.
+- **Серверная валидация `1..1000` добавлена этой фичей** — до её реализации
+  невалидные значения могли сохраняться в `Karaoke.properties`.
+- **Параметры `ui.*.rows_per_page` НЕ скрыты (`isHidden=false`)** — видны в UI
+  «Настройки» и редактируемы оттуда (бонус, но и второй канал изменения).
+- **Рассинхрон дефолтов** — значения в `DEFAULT_ROWS_PER_PAGE` и в
+  `listKaraokeProperties` обязаны совпадать; иначе фронт и backend дают разные
+  размеры страниц при отсутствии параметра.
+- **Особые потребители** — `ui.listening_history.rows_per_page` передаётся как
+  `pageSize` в `/api/listeninghistory/digest`, а `ui.processes.rows_per_page` — как
+  `limit` в `/api/admin/processes`; это не универсальный механизм для всех таблиц.
+- **`loadTableSettings()` идемпотентен** — защищён флагом `loaded`, повторные
+  `created()` не перечитывают сервер; при необходимости принудительного refresh
+  флаг нужно сбросить вручную.
 
-- Global, not per-user (см. Clarifications Q1).
-- Серверная валидация `1..1000` — добавляется в этой фиче; до её реализации
-  невалидные значения могли сохраняться в файл.
-- Параметры `ui.*.rows_per_page` НЕ скрыты (`isHidden=false`) — видны в UI «Настройки»
-  (бонус, можно редактировать оттуда).
+## Ссылки
+
+- [`specs/358-rows-per-page/spec.md`](../../specs/358-rows-per-page/spec.md)
+  — спецификация (FR-001…FR-011, NFR-001…NFR-003, Clarifications).
+- [`webvue3/src/store/modules/tableSettings.js`](../../webvue3/src/store/modules/tableSettings.js)
+  — Vuex-модуль `tableSettings`, `DEFAULT_ROWS_PER_PAGE`, `getRowsPerPage`,
+  `loadTableSettings`, `setRowsPerPage`.
+- [`webvue3/src/store/index.js`](../../webvue3/src/store/index.js)
+  — регистрация модуля `tableSettings`.
+- [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt)
+  — `listKaraokeProperties`, 14 записей `ui.<table>.rows_per_page`.
+- [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt)
+  — `/properties/setproperty` с валидацией `1..1000`.
+- [`knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md`](../../knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md)
+  — паттерн webvue3 admin tables (server-side pagination, watch на `perPage`).
+- [`knowledge/adr/local-0001-karaoke-properties-defaults.md`](../../knowledge/adr/local-0001-karaoke-properties-defaults.md)
+  — конвенция дефолтов `KaraokeProperties`.
+- [`knowledge/domains/processing/components/karaoke-properties.md`](../../knowledge/domains/processing/components/karaoke-properties.md)
+  — описание `KaraokeProperties`.

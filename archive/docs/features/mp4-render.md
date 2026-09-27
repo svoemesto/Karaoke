@@ -38,7 +38,7 @@ MLT-рендер (`melt`) — основной путь, но иногда ну�
 ## Инварианты / правила
 
 - **MUST**: `ProcessBuilder.redirectErrorStream(true)` для ffmpeg (см.
-  [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../CONTRIBUTING.md)).
+  [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../../CONTRIBUTING.md)).
 - **MUST**: JPEG quality=95 (не PNG) — x3 скорость рендера.
 - **MUST**: версия DEMO использует дефолты 1280/720/30fps, прописанные
   в `ApiController.kt` И в `KaraokeProcess.kt` (двойное fallback — иначе

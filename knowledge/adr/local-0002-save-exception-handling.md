@@ -4,7 +4,7 @@
 * **Date**: 2026-08-14
 * **Deciders**: команда Karaoke
 
-> **English version**: [../../../livedocs-en/decisions/local-0002-save-exception-handling.md](../../../livedocs-en/decisions/local-0002-save-exception-handling.md)
+> **English version**: `../../../livedocs-en/decisions/local-0002-save-exception-handling.md`
 >
 > **Note**: this is **local** ADR — описывает конкретный паттерн в коде
 > (а не глобальное архитектурное решение).
@@ -24,11 +24,11 @@ songList.forEach { song ->
 исключение выбрасывается наверх — и:
 - Следующие записи в forEach НЕ сохраняются.
 - UI получает 500 (если из HTTP).
-- Воркер стопит `doStart()` цикл (см. [087-fix-shared-db-connection](../../features/087-fix-shared-db-connection.md)).
+- Воркер стопит `doStart()` цикл (см. [087-fix-shared-db-connection](../../specs/087-fix-shared-db-connection/spec.md)).
 
 Исторически — **разная обработка** в разных местах:
 - `KaraokeProcess.save()` — пробрасывает `SQLException` (правильно).
-- `getCountWaiting()` — глотает, возвращает 0 (см. [088](../../features/088-fix-queue-swallowed-errors.md)).
+- `getCountWaiting()` — глотает, возвращает 0 (см. [088](../../specs/088-fix-queue-swallowed-errors/spec.md)).
 - `getProcessesToStart()` — глотает, возвращает пустую карту.
 
 Это привело к **двум разным сценариям** при одном и том же БД-failure:
@@ -78,7 +78,7 @@ fun getCountWaiting(): Int {
 
 1. **Все методы, возвращающие данные, ДОЛЖНЫ пробрасывать исключения наверх**.
 2. **Воркер doStart()** ловит Exception → логирует → retry (см.
-   [architecture/dual-db-access.md](../../dual-db-access.md) — retry 5x).
+   [architecture/dual-db-access.md](../domains/persistence/domain.md) — retry 5x).
 3. **UI (webvue3)** ловит Exception → показывает friendly error.
 4. **catch в проде (HTTP)** — для diagnostics logging, не для fallback.
 5. **НЕТ silent fallback'ов в слое service** — это скрывает проблемы.
@@ -108,8 +108,8 @@ fun getCountWaiting(): Int {
 ## References
 
 - ADR-0007 (strict-исключения) — эквивалент ADR-0001 для Java/Kotlin.
-- [architecture/dual-db-access.md](../../dual-db-access.md) — retry behavior.
-- [architecture/observability.md](../../observability.md) — где логируем.
-- [features/088-fix-queue-swallowed-errors.md](../../features/088-fix-queue-swallowed-errors.md) — оригинальная
+- [architecture/dual-db-access.md](../domains/persistence/domain.md) — retry behavior.
+- [architecture/observability.md](../domains/monitoring/domain.md) — где логируем.
+- [features/088-fix-queue-swallowed-errors.md](../../specs/088-fix-queue-swallowed-errors/spec.md) — оригинальная
   диагностика проблемы «тихих fallback'ов».
 - Конституция § IV «Async-очередь задач» — retry и обработка ошибок.

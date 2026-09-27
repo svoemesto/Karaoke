@@ -6,7 +6,7 @@
 
 ## Context
 
-Проект Karaoke состоит из нескольких контейнеров (см. [L2-containers.md](../L2-containers.md)):
+Проект Karaoke состоит из нескольких контейнеров (см. [L2-containers.md](../system/02-containers.md)):
 
 - `karaoke-web` — на **проде** (8090, behind nginx).
 - `karaoke-public`, `webvue3` — на **проде** (Vue SPA статика).
@@ -106,8 +106,8 @@ MLT, Demucs, Sheetsage, Telegram-бот, sync LOCAL↔SERVER — всё это �
 
 ## Ссылки
 
-- [Constitution § «Деплой-окружения»](.specify/memory/constitution.md).
-- [L2-containers.md](../L2-containers.md) — где что работает.
-- [`docs/deployment-notes.md`](../../../docs/deployment-notes.md) — конкретные
+- [Constitution § «Деплой-окружения»](../../.specify/memory/constitution.md).
+- [L2-containers.md](../system/02-containers.md) — где что работает.
+- [`docs/deployment-notes.md`](../system/infra/deploy-overview.md) — конкретные
   команды deploy.
 - ADR-0005 — следующий ADR объясняет, как связан с self-hosted ML.

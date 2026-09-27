@@ -154,7 +154,7 @@ KDoc. Список для следующих итераций.
 ### karaoke-app (P1)
 
 - [x] `KaraokeProcessWorker` (`KaraokeProcessWorker.kt`) — главный воркер ✅ 2026-07-20
-- [x] `KaraokeProcessThread` (`KaraokeProcessThread.kt`) — обёртка subprocess ✅ 2026-07-20
+- [x] `KaraokeProcessThread` (класс в `KaraokeProcessWorker.kt`) — обёртка subprocess ✅ 2026-07-20
 - [x] `Song` (`model/Song.kt`, переименовано из `Settings`/`Settings.kt` — specs/011-album-song-rename) — главная сущность ✅ 2026-07-20
 - [x] `Settings.loadListFromDb` / `Settings.saveToDb` — критичные методы ✅ 2026-07-20
 - [x] `KaraokeDbTable.save` / `KaraokeDbTable.loadList` — reflection-loader ✅ 2026-07-20
@@ -191,7 +191,7 @@ KDoc. Список для следующих итераций.
 - [x] `HomeView.vue` — главная страница ✅ 2026-07-20
 - [x] `PlayerView.vue` — караоке-плеер ✅ 2026-07-20
 - [ ] `SongView.vue` — страница песни
-- [ ] Composables: `useAuth.js`, `usePlayer.js`, `useFavorites.js`
+- [ ] Composables: реальные файлы — `karaoke-public/src/composables/useAuthBootstrap.js`, `usePlayerAccess.js`, `usePlaylistPlayer.js`, `usePlayerReadiness.js`, `useShareLink.js`; в `webvue3/src/composables/` — `useKaraokeEditor.js`
 
 ### Авто-генерация KDoc
 
@@ -247,7 +247,7 @@ python3 tools/auto-jsdoc.py karaoke-public/src
 ./tools/generate-docs.sh --clean  # с удалением старых выходов
 ```
 
-**Выходы:**
+**Выходы** (генерируются скриптом; каталоги `docs/api/dokka/` и `docs/api/typedoc-*/` в `.gitignore` — в свежем клоне их нет, поэтому ссылки ниже «битые» до первого запуска генератора):
 
 | Модуль | Путь | Размер | Генератор |
 |--------|------|--------|-----------|

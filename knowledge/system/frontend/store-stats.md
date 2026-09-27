@@ -58,7 +58,7 @@ GET (устоявшийся квирк проекта), поэтому все п
 - **`/api/stats/summary`** — сводка.
 - **`/api/stats/timeseries`** — временной ряд.
 - **`/api/stats/by-type`** / **`/api/stats/channels`** — разбивки.
-- **`/api/stats/countries`** — география (см. [GeoIp](../../integration/components/external-api-clients.md#geoipservice)).
+- **`/api/stats/countries`** — география (см. [GeoIp](../../domains/integration/components/external-api-clients.md#geoipservice)).
 - **`/api/stats/top-users`** / **`/api/stats/top-listened`** / **`/api/stats/by-song`**.
 
 ## Контракт загрузки вкладок (spec 478, OP #184)
@@ -103,7 +103,7 @@ event-ам).
 ## Связь
 
 - **Stats** ([stats domain](../../domains/stats/domain.md)) — backend.
-- **GeoIp** ([external-api-clients](../../integration/components/external-api-clients.md#geoipservice)) —
+- **GeoIp** ([external-api-clients](../../domains/integration/components/external-api-clients.md#geoipservice)) —
   countries.
 - **ListeningHistory** ([entities-catalog.md#listeninghistory](../../domains/catalog/components/entities-catalog.md#listeninghistory)) —
   top listened.

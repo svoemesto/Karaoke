@@ -2,7 +2,7 @@
 
 > Каждая ключевая подсистема проекта Karaoke имеет свой документ с описанием
 > «Что / Зачем / Как / Инварианты / Ловушки / Ссылки». Формат — в
-> [contracts/per-feature-doc.md](../../specs/001-code-standards-docs/contracts/per-feature-doc.md).
+> [contracts/per-feature-doc.md](../../../specs/001-code-standards-docs/contracts/per-feature-doc.md).
 >
 > **Правило**: PR, меняющий код одной из этих фич, **обязан** обновлять
 > соответствующий документ (FR-009 spec.md).
@@ -70,8 +70,8 @@
 
 ## Связанные документы
 
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — правила оформления кода
-- [DEVELOPMENT.md](../../DEVELOPMENT.md) — архитектурный контекст и dated-история
-- [AGENTS.md](../../AGENTS.md) — инструкции для AI-агента
-- [constitution.md](../../.specify/memory/constitution.md) — непреложные принципы
-- [docs/architecture-notes-archive.md](../architecture-notes-archive.md) — история изменений архитектуры
+- [CONTRIBUTING.md](../../../CONTRIBUTING.md) — правила оформления кода
+- [DEVELOPMENT.md](../../../DEVELOPMENT.md) — архитектурный контекст и dated-история
+- [AGENTS.md](../../../AGENTS.md) — инструкции для AI-агента
+- [constitution.md](../../../.specify/memory/constitution.md) — непреложные принципы
+- [docs/architecture-notes.md](../../../docs/architecture-notes.md) — дневник архитектурных решений (архивного файла `architecture-notes-archive.md` в репозитории нет)

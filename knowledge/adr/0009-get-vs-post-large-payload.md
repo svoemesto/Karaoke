@@ -101,6 +101,6 @@ backward-compat.**
 ## Changelog
 
 - **2026-09-10** (Pass 361): Initial. Автор: agent (Karaoke).
-- Связанные спеки: [specs/239](../specs/239-zakroma-author-songs-batch-render/spec.md),
-  [specs/361](../specs/361-playlists-membership-uri-length/spec.md).
+- Связанные спеки: [specs/239](../../specs/239-zakroma-author-songs-batch-render/spec.md),
+  [specs/361](../../specs/361-playlists-membership-uri-length/spec.md).
 - Связанный Issue: OpenProject #77.

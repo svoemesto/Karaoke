@@ -68,7 +68,7 @@
   `isFreelyAvailableNow`, отдельное свойство.
 - **MUST**: Длительность окна — фиксированная системная константа
   (`Song.FREE_ACCESS_WINDOW_MONTHS = 1`), не настраивается на уровне
-  песни ([constitution.md](../../.specify/memory/constitution.md), spec.md
+  песни ([constitution.md](../../../.specify/memory/constitution.md), spec.md
   FR-002).
 - **SHOULD**: Раз DB-колонка `exclusive` не удаляется (см. ловушку ниже),
   новый код НЕ ДОЛЖЕН читать/писать её напрямую — единственные legacy
@@ -131,5 +131,5 @@
 - [`karaoke-public/src/views/ZakromaView.vue`](../../karaoke-public/src/views/ZakromaView.vue) — `showCoin`/`showDate`/`dateLabel`
 - [`karaoke-public/src/views/SearchView.vue`](../../karaoke-public/src/views/SearchView.vue) — та же логика, независимая копия
 - [`karaoke-public/src/views/SongView.vue`](../../karaoke-public/src/views/SongView.vue) — `playerReady`/`waitingTitle`/`waitingBody`
-- [`specs/143-song-free-access-window/spec.md`](../../specs/143-song-free-access-window/spec.md) — исходная спецификация и все FR
-- [`specs/089-auto-news-song-release`](../../specs/089-auto-news-song-release/spec.md) — независимый триггер, использующий `onAir`/`isPubliclyWatchable`
+- [`specs/143-song-free-access-window/spec.md`](../../../specs/143-song-free-access-window/spec.md) — исходная спецификация и все FR
+- [`specs/089-auto-news-song-release`](../../../specs/089-auto-news-song-release/spec.md) — независимый триггер, использующий `onAir`/`isPubliclyWatchable`

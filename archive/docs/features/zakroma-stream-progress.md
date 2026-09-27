@@ -3,8 +3,8 @@
 > **Status**: active
 > **Feature Key**: zakroma-stream-progress
 > **Last Updated**: 2026-08-14
-> **Спека**: [specs/181-zakroma-author-load-progress/spec.md](../../specs/181-zakroma-author-load-progress/spec.md) (real-time прогресс)
-> **Ускорение**: [specs/186-zakroma-songs-fast-load/spec.md](../../specs/186-zakroma-songs-fast-load/spec.md) (Pass 186)
+> **Спека**: [specs/181-zakroma-author-load-progress/spec.md](../../../specs/181-zakroma-author-load-progress/spec.md) (real-time прогресс)
+> **Ускорение**: [specs/186-zakroma-songs-fast-load/spec.md](../../../specs/186-zakroma-songs-fast-load/spec.md) (Pass 186)
 > **PR**: `181-zakroma-author-load-progress` (real-time) + `186-zakroma-songs-fast-load` (ускорение)
 
 ## Что делает
@@ -151,7 +151,7 @@ location /api/public/zakroma/stream {
 
 **Применяется** обычным циклом nginx-конфига: правка `80to8897` в репо → rsync →
 ручное `cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897
-&& nginx -t && systemctl reload nginx` (см. [AGENTS.md § nginx 80to8897](../../AGENTS.md#Деплой)).
+&& nginx -t && systemctl reload nginx` (см. [AGENTS.md § nginx 80to8897](../../../AGENTS.md#Деплой)).
 
 **Раньше** использовался отдельный фрагмент `deploy/80to8897.stream-addition.frag`
 + скрипт `tools/deploy-nginx-stream.sh` (УДАЛЕНЫ в Pass 51-3, 2026-08-13).
@@ -239,7 +239,7 @@ Album-сообщения отправляются сразу (маркируют
   `zakromaStream` использует batched flush.
 
 **Контракт NDJSON НЕ меняется** (5 типов сообщений без изменений), меняется только ритмика
-отправки. См. [`specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md`](../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md).
+отправки. См. [`specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md`](../../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md).
 
 ### R3. Frontend `setTimeout(0)` × N тротлится в фоновой вкладке
 
@@ -279,11 +279,11 @@ Album-сообщения отправляются сразу (маркируют
 
 ### Связанные документы
 
-- [specs/186-zakroma-songs-fast-load/spec.md](../../specs/186-zakroma-songs-fast-load/spec.md)
-- [specs/186-zakroma-songs-fast-load/research.md](../../specs/186-zakroma-songs-fast-load/research.md)
-- [specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md](../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md)
-- [specs/186-zakroma-songs-fast-load/quickstart.md](../../specs/186-zakroma-songs-fast-load/quickstart.md)
-- [docs/architecture-notes.md — Pass 52 запись](../architecture-notes.md)
+- [specs/186-zakroma-songs-fast-load/spec.md](../../../specs/186-zakroma-songs-fast-load/spec.md)
+- [specs/186-zakroma-songs-fast-load/research.md](../../../specs/186-zakroma-songs-fast-load/research.md)
+- [specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md](../../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md)
+- [specs/186-zakroma-songs-fast-load/quickstart.md](../../../specs/186-zakroma-songs-fast-load/quickstart.md)
+- [docs/architecture-notes.md — Pass 52 запись](../../../docs/architecture-notes.md)
 
 ## Известные ловушки
 
@@ -362,12 +362,12 @@ Backend регистрирует каждое событие в `tbl_events` (ev
 
 ## Ссылки
 
-- [specs/181-zakroma-author-load-progress/spec.md](../../specs/181-zakroma-author-load-progress/spec.md)
-- [specs/181-zakroma-author-load-progress/plan.md](../../specs/181-zakroma-author-load-progress/plan.md)
-- [specs/181-zakroma-author-load-progress/quickstart.md](../../specs/181-zakroma-author-load-progress/quickstart.md)
+- [specs/181-zakroma-author-load-progress/spec.md](../../../specs/181-zakroma-author-load-progress/spec.md)
+- [specs/181-zakroma-author-load-progress/plan.md](../../../specs/181-zakroma-author-load-progress/plan.md)
+- [specs/181-zakroma-author-load-progress/quickstart.md](../../../specs/181-zakroma-author-load-progress/quickstart.md)
 - [docs/features/special-orders.md](./special-orders.md) — соседняя виртуальная плашка в Закромах
 - [docs/features/ci-lint-enforcement.md](./ci-lint-enforcement.md) — линтеры для KDoc/JSDoc
-- [CONTRIBUTING.md — § NDJSON Streaming](../../CONTRIBUTING.md) — стиль streaming-эндпоинтов
-- [AGENTS.md — § nginx 80to8897](../../AGENTS.md) — обновление nginx-конфига на проде
-- [AGENTS.md — § «Тип песни (song_type)»](../../AGENTS.md) — Out of Scope: передавать `songType` в NDJSON
-- [AGENTS.md — § «Выполнение после merge»](../../AGENTS.md) — git push и PR
+- [CONTRIBUTING.md — § NDJSON Streaming](../../../CONTRIBUTING.md) — стиль streaming-эндпоинтов
+- [AGENTS.md — § nginx 80to8897](../../../AGENTS.md) — обновление nginx-конфига на проде
+- [AGENTS.md — § «Тип песни (song_type)»](../../../AGENTS.md) — Out of Scope: передавать `songType` в NDJSON
+- [AGENTS.md — § «Выполнение после merge»](../../../AGENTS.md) — git push и PR

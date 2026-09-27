@@ -112,14 +112,14 @@ KaraokeProcessWorker.KaraokeProcessThread.run()            [karaoke-app/src/main
 
 ### Условный запуск при выборе статуса 5 (feature 184)
 
-Спека [184-approve-status-choice](../../specs/184-approve-status-choice/spec.md) добавляет
+Спека [184-approve-status-choice](../../../specs/184-approve-status-choice/spec.md) добавляет
 необязательный параметр `?idStatus=` в `POST /api/songeditor/approve`:
 
 - `5` — «Маркеры проверены» (каноническое имя из `specs/022-song-status-lifecycle`, label `MARKERS_VERIFIED`): маркеры одобрены редактором, но рендер DEMO и sync related-таблиц **не запускаются**.
 - `6` — «Готово» (или параметр не передан) — текущее поведение выше.
 
 **Гейт по ФАКТИЧЕСКОМУ `song.idStatus` после применения, не по запрошенному значению**
-([research D-2](../../specs/184-approve-status-choice/research.md)):
+([research D-2](../../../specs/184-approve-status-choice/research.md)):
 
 | `requestedIdStatus` | `current idStatus` | `song.idStatus` после | render-demo | sync related | song push |
 |---|---|---|---|---|---|
@@ -202,8 +202,8 @@ if (!forceStopped &&
 
 1. **Никаких новых миграций, DTO, recordhash-триггеров, эндпоинтов.**
    Фича — аддитивные вставки в двух существующих методах. Это закреплено
-   A-002 в [`spec.md`](../../specs/131-fix-approve-demo-render-telegram-sync/spec.md)
-   и Principles II, III, IV в [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md).
+   A-002 в [`spec.md`](../../../specs/131-fix-approve-demo-render-telegram-sync/spec.md)
+   и Principles II, III, IV в [`.specify/memory/constitution.md`](../../../.specify/memory/constitution.md).
 
 2. **Идемпотентность в 4 уровня:**
    - L1 — `triggerRenderMp4DemoIfNeeded` SELECT-гард: один процесс на
@@ -223,7 +223,7 @@ if (!forceStopped &&
      по этой песне ⇒ не дублировать; уже есть `category="air"` ⇒ песня
      точно не новая (on-air подразумевает давнюю доступность), новость «в
      коллекции» не создаётся. См.
-     [contracts/collection-news-trigger.md](../../specs/152-fix-false-collection-news/contracts/collection-news-trigger.md).
+     [contracts/collection-news-trigger.md](../../../specs/152-fix-false-collection-news/contracts/collection-news-trigger.md).
    - L4 — `updateDatabases` diff по `recordhash`-триггерам; неизменённые
      записи не пушатся.
 
@@ -246,8 +246,8 @@ if (!forceStopped &&
    находится **внутри** `TelegramAutoPublishService.publishToTelegram`
    (ранний `return SCHEDULED`, если выключено). Approve безусловно
    создаёт процесс; ДЕМО-MP4 рендерится; sync идёт; в Telegram поста
-   нет. См. S-008 в [quickstart.md](../../specs/131-fix-approve-demo-render-telegram-sync/quickstart.md)
-   и FR-012 в [spec.md](../../specs/131-fix-approve-demo-render-telegram-sync/spec.md).
+   нет. См. S-008 в [quickstart.md](../../../specs/131-fix-approve-demo-render-telegram-sync/quickstart.md)
+   и FR-012 в [spec.md](../../../specs/131-fix-approve-demo-render-telegram-sync/spec.md).
 
 7. **`Karaoke.allowUpdateRemote=false` НЕ блокирует новые шаги.** Блок
    `updateRemoteSongFromLocalDatabase(song.id)` пропускается (existing
@@ -278,17 +278,17 @@ if (!forceStopped &&
 
 ### Контракты и спецификации
 
-- [spec.md](../../specs/184-approve-status-choice/spec.md) — спецификация фичи 184 «Выбор статуса песни при апруве задания (5 или 6)» (12 FR, 3 US, 6 SC).
-- [plan.md](../../specs/184-approve-status-choice/plan.md) — Implementation Plan фичи 184 (Constitution Check 8/8 ✅).
-- [research.md](../../specs/184-approve-status-choice/research.md) — Phase 0 research фичи 184 (8 решений D-1..D-8).
+- [spec.md](../../../specs/184-approve-status-choice/spec.md) — спецификация фичи 184 «Выбор статуса песни при апруве задания (5 или 6)» (12 FR, 3 US, 6 SC).
+- [plan.md](../../../specs/184-approve-status-choice/plan.md) — Implementation Plan фичи 184 (Constitution Check 8/8 ✅).
+- [research.md](../../../specs/184-approve-status-choice/research.md) — Phase 0 research фичи 184 (8 решений D-1..D-8).
 - [contracts/](../../specs/184-approve-status-choice/contracts/) — дельты контрактов `/approve` и `/byId` для feature 184.
-- [spec.md](../../specs/131-fix-approve-demo-render-telegram-sync/spec.md) — спецификация фичи 131 (14 FR, 3 US, 6 SC).
-- [plan.md](../../specs/131-fix-approve-demo-render-telegram-sync/plan.md) — Implementation Plan (Constitution Check passed, 10/10).
-- [research.md](../../specs/131-fix-approve-demo-render-telegram-sync/research.md) — Phase 0 research, решения D-1..D-6, риски R-1..R-5.
-- [data-model.md](../../specs/131-fix-approve-demo-render-telegram-sync/data-model.md) — Phase 1 data model (no schema changes).
-- [contracts/pipeline.md](../../specs/131-fix-approve-demo-render-telegram-sync/contracts/pipeline.md) — внутренний контракт оркестрации, идемпотентность, матрица изоляции сбоев.
-- [quickstart.md](../../specs/131-fix-approve-demo-render-telegram-sync/quickstart.md) — ручные сценарии S-001..S-009.
-- [tasks.md](../../specs/131-fix-approve-demo-render-telegram-sync/tasks.md) — Phase 2 tasks (17 задач).
+- [spec.md](../../../specs/131-fix-approve-demo-render-telegram-sync/spec.md) — спецификация фичи 131 (14 FR, 3 US, 6 SC).
+- [plan.md](../../../specs/131-fix-approve-demo-render-telegram-sync/plan.md) — Implementation Plan (Constitution Check passed, 10/10).
+- [research.md](../../../specs/131-fix-approve-demo-render-telegram-sync/research.md) — Phase 0 research, решения D-1..D-6, риски R-1..R-5.
+- [data-model.md](../../../specs/131-fix-approve-demo-render-telegram-sync/data-model.md) — Phase 1 data model (no schema changes).
+- [contracts/pipeline.md](../../../specs/131-fix-approve-demo-render-telegram-sync/contracts/pipeline.md) — внутренний контракт оркестрации, идемпотентность, матрица изоляции сбоев.
+- [quickstart.md](../../../specs/131-fix-approve-demo-render-telegram-sync/quickstart.md) — ручные сценарии S-001..S-009.
+- [tasks.md](../../../specs/131-fix-approve-demo-render-telegram-sync/tasks.md) — Phase 2 tasks (17 задач).
 
 ### Связанные документы проекта
 
@@ -308,9 +308,9 @@ if (!forceStopped &&
 
 ### Governance
 
-- [AGENTS.md](../../AGENTS.md) — общие правила opencode, CI-gate для master, KDoc 100%, per-feature docs (FR-009).
-- [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — Core Principles (II — нет миграций, III — `SyncRegistry`, VI — код-стандарты, IX — async).
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — стиль кода (Kotlin), KDoc, logging-стиль `[approve/timing]`, `[approve/render-demo]`, `[approve/sync-related]`, `[render-demo/post-hook]`.
+- [AGENTS.md](../../../AGENTS.md) — общие правила opencode, CI-gate для master, KDoc 100%, per-feature docs (FR-009).
+- [.specify/memory/constitution.md](../../../.specify/memory/constitution.md) — Core Principles (II — нет миграций, III — `SyncRegistry`, VI — код-стандарты, IX — async).
+- [CONTRIBUTING.md](../../../CONTRIBUTING.md) — стиль кода (Kotlin), KDoc, logging-стиль `[approve/timing]`, `[approve/render-demo]`, `[approve/sync-related]`, `[render-demo/post-hook]`.
 
 ### История
 

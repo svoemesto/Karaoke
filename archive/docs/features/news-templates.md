@@ -178,14 +178,14 @@ FR-008/SC-005 «без перезапуска»).
 
 ## Ссылки
 
-- Спецификация: [specs/128-news-publish-templates/spec.md](../../specs/128-news-publish-templates/spec.md)
-- Research: [specs/128-news-publish-templates/research.md](../../specs/128-news-publish-templates/research.md)
-- Data model: [specs/128-news-publish-templates/data-model.md](../../specs/128-news-publish-templates/data-model.md)
-- API контракт: [specs/128-news-publish-templates/contracts/api.md](../../specs/128-news-publish-templates/contracts/api.md)
-- Quickstart: [specs/128-news-publish-templates/quickstart.md](../../specs/128-news-publish-templates/quickstart.md)
-- Tasks: [specs/128-news-publish-templates/tasks.md](../../specs/128-news-publish-templates/tasks.md)
+- Спецификация: [specs/128-news-publish-templates/spec.md](../../../specs/128-news-publish-templates/spec.md)
+- Research: [specs/128-news-publish-templates/research.md](../../../specs/128-news-publish-templates/research.md)
+- Data model: [specs/128-news-publish-templates/data-model.md](../../../specs/128-news-publish-templates/data-model.md)
+- API контракт: [specs/128-news-publish-templates/contracts/api.md](../../../specs/128-news-publish-templates/contracts/api.md)
+- Quickstart: [specs/128-news-publish-templates/quickstart.md](../../../specs/128-news-publish-templates/quickstart.md)
+- Tasks: [specs/128-news-publish-templates/tasks.md](../../../specs/128-news-publish-templates/tasks.md)
 - Смежная фича VK: [vk-news-auto-publish.md](./vk-news-auto-publish.md)
 - Смежная фича Telegram: [telegram-auto-publish.md](./telegram-auto-publish.md)
 - Kill-switch (читается перед рендером): [News.kt:393](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/News.kt)
 - Двух-БД sync: [dual-db-sync.md](./dual-db-sync.md)
-- Фикс `{songNameCensored}`: [specs/139-fix-censored-dictionary/spec.md](../../specs/139-fix-censored-dictionary/spec.md)
+- Фикс `{songNameCensored}`: [specs/139-fix-censored-dictionary/spec.md](../../../specs/139-fix-censored-dictionary/spec.md)

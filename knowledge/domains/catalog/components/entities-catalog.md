@@ -17,6 +17,104 @@
 **NB**: Сущности, НЕ участвующие в sync, доступны только на admin-машине
 (см. каждую сущность отдельно).
 
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### Общий контракт DB-сущности (`KaraokeDbTable`)
+
+Все DB-сущности каталога реализуют `KaraokeDbTable`
+(`karaoke-app/.../model/KaraokeDbTable.kt`):
+
+- Колонки размечаются `@KaraokeDbTableField(name, isId, useInList, useInDiff)`;
+  reflection-loader строит SELECT/INSERT/UPDATE из аннотаций.
+- Чтение: `loadList(clazz, tableName, whereList, limit, offset, ignoreUseInList)`,
+  `loadById(...)`, `loadByIds(...)`. Запись: `createDbInstance(entity)`,
+  `save()` (diff in-memory ↔ БД), `delete(tableName, id)`.
+- `useInList = false` исключает большое поле из `loadList` (защита от OOM);
+  достать его можно точечной загрузкой или `ignoreUseInList = true`.
+- `useInDiff = false` исключает служебное поле (`recordhash`, `last_update`,
+  `created_at`) из diff/UPDATE.
+- `toDTO(): KaraokeDbTableDto`; интерфейс `KaraokeDbTableDto` —
+  `isValid()`, `validationErrors()`, `fromDto(database): KaraokeDbTable`.
+
+### Сущность → таблица → sync → CRUD → Vuex
+
+| Сущность | Таблица (`TABLE_NAME`) | Sync-target (`key`, oneClickDirection) | CRUD | Vuex store |
+|---|---|---|---|---|
+| `Song` | `tbl_songs` | `SongSyncTarget`: `songs`, LOCAL_TO_SERVER | `/api/songs/*` | `Songs/store.js` |
+| `Album` | `tbl_albums` | `AlbumsSyncTarget`: `albums`, LOCAL_TO_SERVER | `/api/albums/*` | `Albums/store.js` |
+| `Author` | `tbl_authors` | `AuthorsSyncTarget`: `authors`, LOCAL_TO_SERVER | `/api/authors/*` | `Authors/store.js` |
+| `Pictures` | `tbl_pictures` | `PicturesSyncTarget`: `pictures`, LOCAL_TO_SERVER | `POST /api/pictures/updatepicture`, `POST /api/pictures/picturesdigests`, `GET /api/picture/file` | `Pictures/store.js` |
+| `News` | `tbl_news` | `NewsSyncTarget`: `news`, LOCAL_TO_SERVER | `/api/news/*` | `News/store.js` + `NewsTemplates/store.js` |
+| `Dictionary` | `tbl_dictionaries` | `DictionariesSyncTarget`: `dictionaries`, LOCAL_TO_SERVER | `/api/dictionaries/*` | `Dictionaries/store.js` |
+| `SongCoAuthor` | `tbl_song_authors` | `SongCoAuthorsSyncTarget`: `songcoauthors`, LOCAL_TO_SERVER | через `SongEditorController` | — |
+| `SongShareLink` | `tbl_song_share_links` | `ShareLinksSyncTarget`: `sharelinks`, SERVER_TO_LOCAL | `SiteShareLinksController` (karaoke-web), `ShareLinksAdminController` | `ShareLinks/store.js` |
+| `SiteChatMessage` | `tbl_site_chat_messages` | `SiteChatMessagesSyncTarget`: `chatmessages`, SERVER_TO_LOCAL | `PublicChatController` (karaoke-web), `ChatController` | `Chat/store.js` |
+| `WebEvent` | `tbl_events` | `EventsSyncTarget`: `events`, SERVER_TO_LOCAL | `GET /webevents` (`MainController`, HTML) | — |
+| `ListeningHistory` | `tbl_listening_history` | `ListeningHistorySyncTarget`: `listeninghistory`, SERVER_TO_LOCAL | `ListeningHistoryController` | `ListeningHistory/store.js` |
+| `SitePlaylist` / `SitePlaylistItem` | `tbl_site_playlists` / `tbl_site_playlist_items` | `siteplaylists` / `siteplaylistitems`, SERVER_TO_LOCAL | `SitePlaylistsController` | `SitePlaylists/store.js` |
+| `SongAssignment` / `SongAssignmentDraft` | `tbl_song_assignments` / `tbl_song_assignment_drafts` | `songassignments` / `songassignmentdrafts`, SERVER_TO_LOCAL | см. [editorial domain](../../editorial/domain.md) | `SongEditorView.vue` |
+| `StemJob` | `tbl_stem_jobs` | не зарегистрирован (живёт только на PROD) | `StemJobsAdminController`, `PublicStemJobController` | `StemJobs/store.js` |
+
+Все sync-target'ы объявлены в `karaoke-app/.../sync/SyncTarget.kt`,
+реестр — `SyncRegistry.all`.
+
+### Не DB-entity (helper / DTO / enum)
+
+- `CrossSong`, `CrossSongRow`, `CrossSongCell` — reporting helper (см. ниже).
+- `Producer`, `ProducerType` — DTO / enum MLT (см. ниже).
+- `Uuids` — генератор UUID (см. ниже).
+- `SearchAsync` / `SearchResult` — async-поиск текста (без sync).
+
+## Логика и Алгоритмы | Logic and Algorithms
+
+### `recordhash`-триггер: как сущность попадает в sync
+
+Каждая syncable-сущность несёт `recordhash VARCHAR(32)`. При INSERT/UPDATE
+таблицы триггер `update_tbl_<name>_recordhash()` (BEFORE INSERT OR UPDATE,
+FOR EACH ROW) пересчитывает `md5` от конкатенации бизнес-полей строки —
+состав полей задан явно в функции миграции (например, для `tbl_albums`:
+`id || author_id || year || name || album_type || sort_order`).
+Sync-target сравнивает локальные и серверные хеши (`listHashes`) и передаёт
+только расхождения. Направление и разрешённые операции задают
+`oneClickDirection` (`SyncTarget.kt`) и 40 флагов
+`sync_<key>_<push|pull>_<insert|update|delete|move>_allowed` в
+`KaraokeProperties` (по умолчанию все `false`). См.
+[processing/two-db-sync](../../../domains/processing/components/two-db-sync.md).
+
+### Ленивая загрузка больших полей (`useInList`)
+
+Поля с `useInList = false` не попадают в `SELECT` при `loadList` — иначе
+OOM/таймауты на больших таблицах (`Pictures`, `News`, текст песни). Их
+достают точечно или через `ignoreUseInList = true` (см.
+[pictures.md](pictures.md), [two-db-sync.md](../../../domains/processing/components/two-db-sync.md)).
+
+### Поведение конкретных сущностей
+
+Этот компонент — каталог; алгоритмы каждой сущности описаны в её секции
+ниже:
+
+- `Pictures` — setter `full` (base64 → MinIO), lazy `useInList`, sync-флаги.
+- `News` — вычисляемое «опубликовано» (`publishAt <= now()`),
+  автопубликация VK, идемпотентность через in-memory Set.
+- `Dictionary` — односторонний sync (LOCAL→SERVER), `loadList` на каждой
+  странице со словарями.
+- `WebEvent` — конвейер `SamplingFilter` → `DedupCache` → `EventsBuffer` →
+  `EventsRetentionScheduler`, `recordhash` на каждое событие.
+- `ListeningHistory` — upsert `play_count + 1` на каждом прослушивании.
+- `SongShareLink` — `token_hash` (не токен), lease активной сессии,
+  cleanup `ShareLinkSweeper`.
+- `SitePlaylist*`, `SongAssignment*` — см. соответствующие секции.
+- `StemJob` — см. [remaining-models.md](remaining-models.md).
+
+Специальные случаи, отличные от общей схемы:
+
+- `SongSyncTarget.shouldPush(diff)` не пушит, если diff состоит только из
+  виртуальных полей (`status`/`color`/`processColorXxx`) или шума
+  `status_process_*` (`SyncTarget.kt`).
+- `ListeningHistorySyncTarget` зарегистрирован (`SERVER_TO_LOCAL`), но все
+  флаги `sync_listeninghistory_*` по умолчанию `false` — фактически sync
+  выключен, пока флаг не включён в настройках.
+
 ## Сущности каталога
 
 - [Song](#song) — отдельный компонент (см. также `dictionaries.md`, `song-lifecycle.md`)
@@ -34,7 +132,7 @@
 
 ## Сущности из других доменов
 
-- [`ListeningHistory`](listeninghistory) — только LOCAL (см. также)
+- [`ListeningHistory`](#listeninghistory) — только LOCAL (см. также)
 - [`SitePlaylist`, `SitePlaylistItem`](#siteplaylist--siteplaylistitem) — плейлисты
 - [`SongAssignment`, `SongAssignmentDraft`](#songassignment--songassignmentdraft) — задания редактора
 - [`KaraokeProcess`](#karaokeprocess) — async-очередь (см. [processing/async-process-queue](../../../domains/processing/components/async-process-queue.md))
@@ -93,8 +191,11 @@ Sync.
 - `useInList=false` MUST быть у больших полей (OOM на loadList).
 - `picture_name` уникально — collision = silent overwrite.
 
-**Sync**: `PicturesSyncTarget` (push+pull, all operations).
-**CRUD**: `PicturesController` (`/api/pictures/list|...`).
+**Sync**: `PicturesSyncTarget` (key `pictures`, `oneClickDirection =
+LOCAL_TO_SERVER`; операции — по флагам `sync_pictures_*`).
+**CRUD**: отдельного `PicturesController` НЕТ — `POST /api/pictures/updatepicture`,
+`POST /api/pictures/picturesdigests` (`ApiController`), отдача файла —
+`GET /api/picture/file` (см. [pictures.md](pictures.md)).
 **Vuex**: `webvue3/src/components/Pictures/store.js`.
 
 См. детальный документ: [pictures.md](pictures.md).
@@ -400,7 +501,9 @@ video слои (`BACKGROUND`, `HORIZON`, `FLASH`, и т.д., level 1) +
 - INSERT/UPDATE на каждом прослушивании (`ListeningHistory.kt:87-90` —
   `INSERT INTO ... ON CONFLICT UPDATE play_count + 1, last_played_at = now()`).
 
-**Sync**: НЕ участвует. Только LOCAL.
+**Sync**: `ListeningHistorySyncTarget` (key `listeninghistory`, `SERVER_TO_LOCAL`);
+все флаги `sync_listeninghistory_*` по умолчанию `false` — фактически
+только LOCAL, пока флаг не включён в настройках.
 **CRUD**: `ListeningHistoryController`.
 **Vuex**: `webvue3/src/components/ListeningHistory/store.js`.
 ### SitePlaylist, SitePlaylistItem
@@ -523,5 +626,6 @@ Async-поиск текста песни.
 
 ## Changelog
 
+- **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 341 P3a** (2026-09-09): Initial detailed (catalog entities).
   Автор: agent (Karaoke).

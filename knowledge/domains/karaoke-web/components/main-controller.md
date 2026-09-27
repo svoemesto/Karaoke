@@ -37,7 +37,7 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
 |---|---|
 | `POST /registerevent` | Регистрация события (с ClientIp + tracking) |
 | `POST /changerecords` | Приём изменений two-DB sync (зашифрованный SQL через `Crypto.encrypt`) |
-| `GET /api/internal/stem-jobs/{id}/download-original` | См. [internal-stem-job-controller.md](internal-stem-job-controller.md) |
+| `GET /api/internal/stemjobs/{id}/raw` (реальный путь; прежний `/api/internal/stem-jobs/{id}/download-original` не существует — Pass 477) | См. [internal-stem-job-controller.md](internal-stem-job-controller.md) |
 
 ## Логика и Алгоритмы | Logic and Algorithms
 

@@ -21,7 +21,7 @@
 
 ## `PublicOgSongController` (1 endpoint, 539 строк — **огромный!**)
 
-`/api/public/og-song/...` — **Open Graph** теги для шеринга
+`/api/public/og/song` (GET) — **Open Graph** теги для шеринга
 песни в соцсетях. Генерирует OG-meta (title, image, description)
 динамически.
 
@@ -49,7 +49,7 @@
 
 ## `PublicTypographController` (1 endpoint, 52 строки)
 
-`/api/public/typograph` — утилита для типографики (см.
+`POST /api/replacesymbolsinsong` — утилита для типографики (см.
 [TypographUtils.kt](../../../system/utilities.md)). Используется
 `PublicTypographController` для нормализации текста на сервере.
 

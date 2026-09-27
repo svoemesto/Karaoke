@@ -80,9 +80,9 @@ YooKassa. При успешном платеже:
 | URL | Что |
 |---|---|
 | `/account/profile` | GET/POST — профиль (email, display_name) |
-| `/account/welcome-message` | GET — приветственное сообщение |
+| [WARN] `/account/welcome-message` — НЕ существует (grep 0, Pass 477) | — |
 | `/account/change-password` | POST — смена пароля |
-| `/account/premium-status` | GET | premium-статус |
+| [WARN] `/account/premium-status` — НЕ существует (grep 0, Pass 477); премиум-статус отдаёт `/api/public/stats` | — |
 
 ## Hot paths
 

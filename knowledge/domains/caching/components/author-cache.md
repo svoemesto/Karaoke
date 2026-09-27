@@ -39,14 +39,21 @@ INSERT/UPDATE/DELETE в `tbl_settings` нужно обновить
 - **Обновляется**: trigger / scheduler.
 - **Использование**: фильтр «доступные исполнители».
 
-### `AuthorTilesCache` — in-memory кеш тайлов
+### Кеш тайлов авторов — без класса `AuthorTilesCache`
 
-- **Что**: список тайлов для главной страницы (TOP-N авторов по
-  `total_songs_count` или новизне).
-- **Где**: `karaoke-web/.../AuthorTilesCache.kt`.
-- **Обновление**: cron (раз в час) или dirty-флаг (при создании
-  нового автора).
-- **Cold-start**: async refresh (паттерн 5).
+**[WARN] Поправка Pass 474: классов `AuthorTilesCache` и
+`AuthorsCache` в репозитории нет** (проверено `find` + grep по
+`*.kt`). Реальная реализация — companion-object внутри
+`karaoke-web/.../controllers/PublicApiController.kt` (`:74-100`):
+
+- `ConcurrentHashMap<String, CachedAuthorsTiles>`;
+- `CACHE_TTL_MS = 30 * 60 * 1000L` (30 минут);
+- включается флагом `karaoke.public.authors-tiles-cache.enabled`
+  (`KaraokeProperties.kt:447-449`);
+- инвалидация — через `StatBySong.consumeDirty`.
+
+Ни `bgExecutor`, ни `frozenAtStartup`, ни `getTopTiles(limit=50)`,
+ни cron-обновления в коде нет.
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
@@ -94,8 +101,14 @@ fun refreshAuthorCounts() {
 **Плюсы**: не замедляет hot path.
 **Минусы**: до 15 минут stale.
 
-**[WARN]** В Karaoke используется **scheduler** (spec 286). Trigger
-не используется из-за performance concerns.
+**[WARN]** Поправка Pass 474: используется **DB-триггер**, а не
+scheduler. `deploy/karaoke-db/44_author_song_counts.sql:187` создаёт
+`TRIGGER trg_tbl_songs_update_author_counts AFTER INSERT OR UPDATE OR
+DELETE ON public.tbl_songs FOR EACH ROW` (функция — `:114-183`;
+шапка миграции `:7` прямо говорит «колонки поддерживаются
+актуальными DB-триггером»). Функции `refreshAuthorCounts` в коде нет
+(grep по `*.kt` — 0), а приведённый ниже `@Scheduled`-вариант —
+описание альтернативы, а не текущего механизма.
 
 ### Алгоритм cold-start `AuthorTilesCache`
 

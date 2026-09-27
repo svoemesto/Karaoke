@@ -35,8 +35,8 @@ related:
 | --- | --- | --- |
 | **`StatBySong`** | In-memory счётчики главной страницы | `StatBySong.totalSongs.get()` |
 | **`StatsCacheScheduler`** | Cron-обновление кешей | `@Scheduled(cron = "0 0 * * * *")` |
-| **`AuthorsCache`** | Денормализованные счётчики `tbl_authors.total_songs_count` | specs 286 |
-| **`AuthorTilesCache`** | Кеш тайлов авторов для главной страницы | specs 248 |
+| **Счётчики авторов (класса `AuthorsCache` нет — Pass 474)** | Денормализованные `tbl_authors.total_songs_count`, поддерживаются DB-триггером `trg_tbl_songs_update_author_counts` | specs 286, миграция 44 |
+| **Кеш тайлов авторов (класса `AuthorTilesCache` нет — Pass 474)** | Companion-кеш в `PublicApiController.kt:74-100`, TTL 30 мин | specs 248 |
 | **`StorageMetadataCache`** | Кеш метаданных `fileExists` / `fileIsActual` / `getFileInfo` в `karaoke-app` (2 инстанса: local + remote MinIO). НЕ TTL-кеш: TTL = ∞, наполняется через очередь и БД, сброс — `POST /api/health/cache/refresh` | spec 344, OpenProject #69 |
 | **`PollingCache<V>`** | Готовый TTL-кеш общего назначения (`karaoke-app/services`, Pass 456 — до этого в `karaoke-web`). Потребители: публичные polling-эндпоинты `karaoke-web` и детект ВПН (`isVpnActive`) | spec FR-008, Pass 456 |
 | **Cold-start** | HTTP-тред возвращает fallback (0) за <100 мс | specs 289 |
@@ -55,7 +55,7 @@ related:
   single-flight guard.
 - **`StatsCacheScheduler`** (`karaoke-web/.../services/StatsCacheScheduler.kt`) —
   cron-обновление кешей раз в час + ежеминутная проверка dirty-флага.
-- **`AuthorsCache`** (через `tbl_authors.total_songs_count` /
+- **Счётчики авторов** (не класс `AuthorsCache`; через `tbl_authors.total_songs_count` /
   `ready_songs_count`) — денормализованные счётчики песен по автору
   (spec 286).
 - **`AuthorTilesCache`** (`karaoke-web/...`) — кеш тайлов авторов для

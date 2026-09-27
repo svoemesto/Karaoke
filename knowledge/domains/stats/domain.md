@@ -52,13 +52,28 @@ related:
 | --- | --- | --- |
 | **tbl_events** | Append-only таблица событий (visitor/bot/registration/play) | новая строка на каждый визит |
 | **Visitor** | Уникальный посетитель (по hash cookies/IP) | `Visitor.id=abc123` |
-| **BotScore** | 0..1, вероятность что посетитель — бот | `botScore=0.92` — bad bot |
-| **REAL_USER** | `botScore < 0.3` (в старой версии), `< 0.5` (в publishing) | реальный человек |
-| **GOOD_BOT** | `0.3 <= botScore < 0.7` (поисковик) | Googlebot, YandexBot |
-| **BAD_BOT** | `botScore >= 0.7` | спам-сканеры |
+> **[WARN] Поправка Pass 474: сегментация трафика НЕ реализована.**
+> `BotScore`, `VisitorType` (`REAL_USER`/`GOOD_BOT`/`BAD_BOT`),
+> `BotDetectionService`, `StatsService`, `SiteEvent` и колонка
+> `bot_score` в коде и миграциях отсутствуют (grep по
+> `*.kt`/`*.sql`/`*.vue` — 0 вхождений). Описанная ниже модель
+> воронки — ЗАДУМАННАЯ (намерение зафиксировано в спеке 369 и в
+> `archive/docs/strategy/growth.md`), но не реализованная.
+>
+> Что реально есть: события хранит `WebEvent`
+> (`model/WebEvent.kt:110`), отдаёт `StatsController.kt` (`:93`,
+> `:149`, `:202`); типы событий — `EventTypes.kt` (6 значений,
+> см. [dictionaries](components/dictionaries.md)).
+
+| Термин (задумано) | Значение | Пример |
+| --- | --- | --- |
+| **BotScore** | 0..1, вероятность что посетитель — бот | не реализовано |
+| **REAL_USER** | `botScore < 0.5` | не реализовано |
+| **GOOD_BOT** | поисковик | не реализовано |
+| **BAD_BOT** | `botScore >= 0.7` | не реализовано |
 | **Воронка (Funnel)** | visitor → registration → premium | см. `archive/docs/strategy/growth.md` |
 | **StatsCacheScheduler** | `@Scheduled` фикс-rate update | каждые 60 мин |
-| **BotDetectionService** | Классификация трафика по BotScore | `BotDetectionService.kt` |
+| **BotDetectionService** | Классификация трафика по BotScore | не реализовано — файла нет |
 
 Полный словарь `VisitorType` — см. [publishing dictionaries](../publishing/components/dictionaries.md).
 Полный словарь `EventType` — см. [dictionaries](components/dictionaries.md).
@@ -66,9 +81,13 @@ related:
 
 ## Aggregate Roots
 
-- **SiteEvent (`tbl_events`)**: одна запись на визит/событие.
-  Identity = `id` (auto-increment). Содержит `visitor_id`, `event_type`,
-  `created_at`, `bot_score`, `country`, `referrer`, `path`.
+**[WARN] Поправка Pass 474: агрегата `SiteEvent` нет.** Реальная
+сущность той же таблицы — `WebEvent` (`model/WebEvent.kt:110`);
+полей `visitor_id` и `bot_score` в схеме нет. Прежнее описание:
+
+- ~~**SiteEvent (`tbl_events`)**~~ — одна запись на визит/событие,
+  Identity = `id`; содержит `visitor_id`, `event_type`, `created_at`,
+  `bot_score`, `country`, `referrer`, `path`.
 
 ## Entities
 

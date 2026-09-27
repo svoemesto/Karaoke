@@ -353,8 +353,14 @@ import SongEventsModal from '../components/Stats/SongEventsModal.vue'
  * 60s TTL на фронте через Vuex `lastLoadedAt` — повторные клики по табу
  * в течение 60s не шлют HTTP.
  *
- * @see archive/docs/features/monitoring.md
+ * Контракт вкладок (spec 478, OP #184): значение активной вкладки приводится
+ * к числовому индексу `resolveTabIndex()` (UI-компонент может отдавать id
+ * панели); нераспознанный индекс не грузится и не пишется в кеш; TTL взводится
+ * только после успешной загрузки, кнопка «Обновить» его игнорирует (`force`).
+ *
+ * @see archive/docs/features/stats.md
  * @see specs/362-fix-stats-view-element-not-found/spec.md
+ * @see specs/478-fix-admin-stats-tabs/spec.md
  */
 
 // TTL фронтового кеша в миллисекундах. Соответствует бэкенду `StatsCache` (60s).

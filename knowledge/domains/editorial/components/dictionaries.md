@@ -47,7 +47,7 @@
 
 **Связь с [catalog domain](../../catalog/domain.md)**: `idStatus=5`
 означает `RENDERED`, `idStatus=6` — `APPROVED` (см.
-[song-lifecycle](../../../catalog/components/song-lifecycle.md.
+[song-lifecycle](../../catalog/components/song-lifecycle.md).
 
 **Запрещено**: числовые литералы `5`/`6` в коде (вместо —
 `TargetIdStatus.RENDERED` / `TargetIdStatus.APPROVED`).
@@ -102,7 +102,7 @@ fun canSelfAssign(user: SiteUser, song: Song): Boolean {
 - → [identity](../../identity/domain.md) — `SiteUser.canSelfAssign`.
 - → [catalog domain](../../catalog/domain.md) — `Song.idStatus`,
   `Song.publishDate`.
-- → [rendering dictionaries](../rendering/components/dictionaries.md —
+- → [rendering dictionaries](../../rendering/components/dictionaries.md) —
   `RenderVersion`.
 
 ## Связанные ADR | Related ADRs

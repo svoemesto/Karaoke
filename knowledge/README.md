@@ -33,6 +33,13 @@ Karaoke. Описывает **текущее состояние** системы
 - [`monitoring`](domains/monitoring/domain.md) — проверки здоровья инфраструктуры и SLF4J-категории.
 - [`stats`](domains/stats/domain.md) — аналитика трафика, воронка visitor→registration→premium.
 - [`caching`](domains/caching/domain.md) — паттерны кеширования (AtomicInteger, dirty-флаг, денормализация, async cold-start).
+- [`storage`](domains/storage/domain.md) — MinIO и локальные файлы, вечный кеш метаданных.
+- [`health`](domains/health/domain.md) — HealthReport и auto-repair (прецеденты #65, #69).
+- [`monetization`](domains/monetization/domain.md) — тарифы, промо, корзина, подписки (visitor→premium).
+- [`persistence`](domains/persistence/domain.md) — `KaraokeDbTable`, reflection-based save, `recordDiff`.
+- [`sse`](domains/sse/domain.md) — real-time SSE-уведомления.
+- [`integration`](domains/integration/domain.md) — внешние HTTP API (VK, Telegram, LM Studio, Whisper, Alignment, GeoIP).
+- [`karaoke-web`](domains/karaoke-web/domain.md) — прод-сервер, public API, YooKassa, share-линки, защита от DDoS.
 
 ## Жизненный цикл документации
 

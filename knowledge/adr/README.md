@@ -47,10 +47,17 @@ local-0006-logging-and-error-handling-karaoke-web.md
 local-0007-zakroma-album-id-in-stream-dto.md
 ```
 
-Дополнительный ADR в `knowledge/adr/`:
+Дополнительные ADR в `knowledge/adr/` (созданы после миграции; реестр
+дополнен в Pass 471 — до этого три ADR не были перечислены):
 - `0007-adopt-knowledge-as-ssot.md` — ADR о принятии knowledge/ как
   SSoT (создан в спеке 322). Получил номер 0007, чтобы не конфликтовать
   с существующим `0001-raw-jdbc.md`.
+- `0009-get-vs-post-large-payload.md` — GET → POST для больших CSV-payload
+  в membership-endpoint (414 Request-URI Too Large).
+- `0010-lm-studio-instead-of-ollama.md` — LM Studio вместо Ollama как
+  LLM-движок; LangChain4j удалён. Замещает ADR-0005 в части LLM.
+- `local-0008-effective-hidden-album-types.md` — transient auto-reset
+  `effectiveHiddenAlbumTypes` для `?albumId=`.
 
 Текущий формат — `* Status:` / `* Date:` / etc. — сохраняется как есть;
 полный переход на YAML frontmatter (как в шаблоне) — опционален и

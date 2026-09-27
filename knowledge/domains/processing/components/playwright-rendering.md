@@ -108,7 +108,7 @@ process.inputStream.bufferedReader().forEachLine { line ->
 ## Зависимости | Dependencies
 
 - → [domain](../domain.md) — AR `KaraokeVideo`, `MLTProject`.
-- → [rendering dictionaries](../../rendering/components/dictionaries.md —
+- → [rendering dictionaries](../../rendering/components/dictionaries.md) —
   `RenderVersion`.
 - → [karaoke-properties](karaoke-properties.md) — параметры рендера.
 - → ADR-0006 — `redirectErrorStream(true)` обязателен для всех

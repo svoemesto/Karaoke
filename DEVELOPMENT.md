@@ -17,14 +17,14 @@ A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot backend
 | Что | Где |
 |-----|-----|
 | Правила оформления кода (MUST/SHOULD) | [CONTRIBUTING.md](./CONTRIBUTING.md) |
-| Описание 9 ключевых подсистем | [docs/features/](./docs/features/README.md) |
+| Описание 9 ключевых подсистем | [archive/docs/features/](./archive/docs/features/README.md) |
 | KDoc/JSDoc инструкция | [docs/api/README.md](./docs/api/README.md) |
 | Непреложные принципы | [.specify/memory/constitution.md](./.specify/memory/constitution.md) |
-| Деплой на прод | [docs/deployment.md](./docs/deployment.md) |
-| Публичные модули (karaoke-public, плеер, аккаунт) | [docs/public-modules.md](./docs/public-modules.md) |
-| `tbl_public_settings`, миграции | [docs/database.md](./docs/database.md) |
-| Ключевые инварианты (ловушки) | [docs/invariants.md](./docs/invariants.md) |
-| Датированная история фич и «ловушек» | [docs/architecture-notes-archive.md](./docs/architecture-notes-archive.md) |
+| Деплой на прод | [knowledge/system/infra/deploy-overview.md](./knowledge/system/infra/deploy-overview.md) |
+| Публичные модули (karaoke-public, плеер, аккаунт) | [knowledge/public/c4-overview.md](./knowledge/public/c4-overview.md) |
+| `tbl_public_settings`, миграции | [knowledge/system/infra/sql-migrations.md](./knowledge/system/infra/sql-migrations.md) |
+| Ключевые инварианты (ловушки) | [knowledge/guidelines/architecture-conventions.md](./knowledge/guidelines/architecture-conventions.md) |
+| Датированная история фич и «ловушек» | [docs/architecture-notes.md](./docs/architecture-notes.md) |
 
 ## Modules / layout
 
@@ -34,10 +34,10 @@ A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot backend
   on it. **Runs only on the local admin machine — never deployed to the production server**.
   Anything that must also work in production (settings read by `karaoke-web`, etc.) cannot rely on
   an HTTP call to `karaoke-app`; it needs to live in Postgres instead (see
-  [docs/database.md](./docs/database.md)).
+  [knowledge/system/infra/sql-migrations.md](./knowledge/system/infra/sql-migrations.md)).
 - `karaoke-web` — thin Spring Boot module (`implementation(project(":karaoke-app"))`) exposing the
   public-facing website endpoints (song pages, stats, web events) and a websocket config. Reuses
-  `karaoke-app`'s DB models and services directly. **Deployed to prod** ([docs/deployment.md](./docs/deployment.md)).
+  `karaoke-app`'s DB models and services directly. **Deployed to prod** ([knowledge/system/infra/deploy-overview.md](./knowledge/system/infra/deploy-overview.md)).
 - `karaoke-db` — standalone plain-Java Gradle module containing only `Main.java`; not wired into the
   app's data access (which talks to Postgres directly via raw JDBC from `karaoke-app`). Legacy/
   placeholder — don't assume it's load-bearing.
@@ -93,12 +93,12 @@ bash do.sh start [all] / stop [all] / start_db / stop_db / push / pull / ps
 
 `deploy/do.env` / `deploy/.env` hold the environment (ports, registry, host folder mounts).
 
-**Подробности о деплое** — [docs/deployment.md](./docs/deployment.md).
+**Подробности о деплое** — [knowledge/system/infra/deploy-overview.md](./knowledge/system/infra/deploy-overview.md).
 
 ## Architecture notes (durable-карта)
 
 > Здесь — **краткий** durable-обзор: как устроены ключевые подсистемы. **Датированная история
-> и детали ловушек** — в [docs/architecture-notes-archive.md](./docs/architecture-notes-archive.md).
+> и детали ловушек** — в [docs/architecture-notes.md](./docs/architecture-notes.md).
 
 **Custom DB layer, no JPA/Hibernate.** Каждая персистентная сущность реализует `KaraokeDbTable`
 (`model/KaraokeDbTable.kt`): plain Kotlin data class + raw JDBC (`Connection`/`KaraokeConnection`);
@@ -106,13 +106,13 @@ bash do.sh start [all] / stop [all] / start_db / stop_db / push / pull / ps
 field-level дифф (`RecordDiff`) превращается в `UPDATE .. SET` и одновременно рассылается как
 `SseNotification.recordChange` — так admin-UI (`webvue3`, подписан по SSE/websocket) видит
 live-изменения без polling. Этот же recordhash/diff-механизм (`deploy/recordhash_*.sql`)
-синхронизирует LOCAL и SERVER БД. **Подробности** — [docs/features/dual-db-sync.md](./docs/features/dual-db-sync.md).
+синхронизирует LOCAL и SERVER БД. **Подробности** — [archive/docs/features/dual-db-sync.md](./archive/docs/features/dual-db-sync.md).
 
 **SSE-уведомления (`SseNotificationService`).** Один эндпоинт `GET /api/subscribe` (чистый
 `EventSource`/`EventSourcePolyfill`, **не** SockJS/STOMP). Подписка ключуется
 `UserKey(userId, tabId)`. `send()` различает broadcast и адресную доставку. Heartbeat —
 независимый `@Scheduled(fixedRate = 15_000)`. **Подробности** —
-[docs/features/sse-notifications.md](./docs/features/sse-notifications.md).
+[archive/docs/features/sse-notifications.md](./archive/docs/features/sse-notifications.md).
 
 **Dual database targets.** `Connection.kt` даёт фабрики `local()`/`remote()`/`virtual()`. Per-request
 `Connection.local()/remote()` **обязательно** закрывать (обёртка `withDb` в контроллерах
@@ -123,18 +123,18 @@ Sheetsage key/BPM/chords, copy/symlink) моделируется строкой 
 `KaraokeProcessTypes`, исполняется `KaraokeProcessWorker`/`KaraokeProcessThread` как
 OS-подпроцесс (`ProcessBuilder`). Задания имеют приоритет и **thread-лейны** (`threadId`
 группирует в независимые последовательные очереди). **Подробности** —
-[docs/features/async-process-queue.md](./docs/features/async-process-queue.md).
+[archive/docs/features/async-process-queue.md](./archive/docs/features/async-process-queue.md).
 
 **MLT video generation (пакет `mlt/`).** Сборка видео = генерация MLT XML-проекта
 (для `melt` CLI). `MltGenerator`/`MltProp`/`MltPropBuilder` строят named producers/tractors/
 filters; `mlt/mko/*` («Mlt Karaoke Object») — билдеры визуальных слоёв (текст, аккорды, гриф,
 ноты, счётчики, горизонт, watermark, фон). `KaraokeProperties.kt` держит ~150 настраиваемых
-параметров рендера. **Подробности** — [docs/features/mlt-generator.md](./docs/features/mlt-generator.md).
+параметров рендера. **Подробности** — [archive/docs/features/mlt-generator.md](./archive/docs/features/mlt-generator.md).
 
 **Премиум-фича «Создать минусовку» (`StemJob`, `tbl_stem_jobs`).** Пользователь karaoke-public
 загружает произвольный аудиофайл и получает исходник + стемы (demucs2/demucs5) — переиспользует
 движок выше (свой thread-лейн `THREAD_LANE_STEM_JOBS`), но задание живёт целиком на PROD-БД (не в
-`SyncRegistry`) и не привязано к `Settings`. **Подробности** — [docs/features/premium-stems.md](./docs/features/premium-stems.md).
+`SyncRegistry`) и не привязано к `Settings`. **Подробности** — [archive/docs/features/premium-stems.md](./archive/docs/features/premium-stems.md).
 
 **Storage (MinIO).** Сгенерированная медиа (аудио-стемы, видео, картинки) живёт в
 MinIO-совместимом объектном хранилище (`services/StorageApiClient.kt` /
@@ -146,9 +146,9 @@ MinIO-совместимом объектном хранилище (`services/St
 (`controllers/ApiController.kt` ~3400 строк). Live-обновления — SSE. `webvue3` (admin) **не
 гейтится авторизацией** — `SecurityConfig.kt` пускает всё (`permitAll()`, кроме
 `/api/private/**`); отдельного admin-логина в проекте больше нет. **Публичные модули
-(karaoke-public, плеер, аккаунт)** — [docs/public-modules.md](./docs/public-modules.md).
+(karaoke-public, плеер, аккаунт)** — [knowledge/public/c4-overview.md](./knowledge/public/c4-overview.md).
 
-**Ловушки и инварианты** — [docs/invariants.md](./docs/invariants.md).
+**Ловушки и инварианты** — [knowledge/guidelines/architecture-conventions.md](./knowledge/guidelines/architecture-conventions.md).
 
 ## Git — что НЕ добавлять в репозиторий
 
@@ -162,8 +162,8 @@ MinIO-совместимом объектном хранилище (`services/St
 
 ## См. также
 
-- [docs/features/](./docs/features/README.md) — 9 ключевых подсистем
-- [docs/architecture-notes-archive.md](./docs/architecture-notes-archive.md) — dated-история
+- [archive/docs/features/](./archive/docs/features/README.md) — 9 ключевых подсистем
+- [docs/architecture-notes.md](./docs/architecture-notes.md) — dated-история
 - [.specify/memory/constitution.md](./.specify/memory/constitution.md) — принципы
 
 ## Инварианты санитайзера (FR-012 спеки `304-idempotent-path-sanitize`)

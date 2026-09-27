@@ -27,7 +27,7 @@
 | `check-endpoint-field-coverage.sh` | Endpoint ↔ UI field coverage | CI |
 | `check-songedit-field-coverage.sh` | SongEdit ↔ backend field coverage | CI |
 | `lint-knowledge.py` | Lint knowledge/ (no emoji, etc.) | pre-commit |
-| `check-doc-references.py` | Ссылки/.md (knowledge/, docs/, archive/docs/ + specs/), пути к файлам и `/api`-эндпоинты (везде, кроме specs/) (whitelist — `config/knowledge/doc-references-whitelist.txt`) | pre-commit + CI |
+| `check-doc-references.py` | Ссылки/.md (корневые `*.md`, `.github/`, knowledge/, docs/, archive/docs/ + specs/), пути к файлам и `/api`-эндпоинты (везде, кроме specs/) (whitelist — `config/knowledge/doc-references-whitelist.txt`, 51 запись) | pre-commit + CI |
 
 ### Documentation generation
 
@@ -123,5 +123,11 @@ Knowledge.
   и удалённые `livedocs/`). `specs/` включён в `check-doc-references.py`
   **только по ссылкам**: спеки фиксируют прошлое состояние кода, их упоминания
   файлов и эндпоинтов не переписываются.
+
+- **Pass 494** (2026-09-27): гейт расширен на `.github/` и корневые `*.md`
+  (`README.md`, `DEVELOPMENT.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`).
+  Так нашлись и починены: PR-шаблон, ведший по удалённому LiveDocs, две секции
+  `README.md` со снятым тулчейном и 19 ссылок `DEVELOPMENT.md` на удалённые
+  `docs/*.md` и переехавшие `docs/features/*`.
 
 - **Pass 353** (2026-09-09): Initial. Автор: agent (Karaoke).

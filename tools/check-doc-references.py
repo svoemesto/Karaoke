@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """check-doc-references.py — проверка ссылок и упоминаний в ТЕКУЩЕЙ документации.
 
-Что проверяется в `knowledge/`, `docs/`, `archive/docs/`, `.github/`, а в `specs/` —
+Что проверяется в корневых `*.md`, `knowledge/`, `docs/`, `archive/docs/`,
+`.github/`, а в `specs/` —
 только ссылки (спеки фиксируют прошлое состояние кода, их упоминания файлов
 и эндпоинтов не переписываются):
 
@@ -45,6 +46,8 @@ ROOTS = ("knowledge", "docs", "archive/docs", ".github")
 # ссылки (навигация), но не упоминания файлов и эндпоинтов (они фиксируют,
 # как код выглядел на момент спеки, и переписывать их нельзя).
 SPECS_ROOT = "specs"
+# корневые документы репозитория — тоже текущая документация
+ROOT_FILES = ("README.md", "DEVELOPMENT.md", "CONTRIBUTING.md", "AGENTS.md", "CLAUDE.md")
 SKIP_DIR_PARTS = ("/.git", "/node_modules", "/build", "/dist", "/.gradle", "/.worktrees")
 SKIP_DOC_PARTS = ("knowledge/templates",)
 LINK_ONLY_ROOTS = ("specs/",)  # здесь проверяются только ссылки
@@ -191,7 +194,7 @@ def endpoint_exists(ep, literals):
 
 
 def docs_files():
-    out = []
+    out = [f for f in ROOT_FILES if os.path.exists(f)]
     for root in ROOTS + (SPECS_ROOT,):
         for dirpath, _dirnames, filenames in os.walk(root):
             if any(part in dirpath for part in SKIP_DOC_PARTS):

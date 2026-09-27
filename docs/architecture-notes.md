@@ -4,6 +4,21 @@
 высокоуровневого контекста; детали фич — в `specs/NNN-*/spec.md` и
 `docs/features/<slug>.md`.
 
+> **Pass 494** (2026-09-27, спека `494-pr-template-ssot`): **корневые доки и
+> PR-шаблон приведены к текущему SSoT; гейт расширен на `.github/` и
+> корневые `*.md`.** PR-шаблон вёл по удалённому LiveDocs (`livedocs/domain/*`,
+> четыре снятых `check-livedocs-*`), в `README.md` была целая секция
+> «Gen-скрипты LiveDoc» и блок «LiveDocs (FR-015)» с несуществующими
+> скриптами (gen-livedocs-*, search-livedocs.sh, gen-related-suggest.sh,
+> extract-kdoc-refs.sh, gen-spec-skeleton.sh — все сняты), а `DEVELOPMENT.md`
+> ссылался на удалённые `docs/{database,deployment,invariants,public-modules,
+> architecture-notes-archive}.md` и переехавшие `docs/features/*`.
+> Все ссылки перенаправлены на актуальные адреса (`knowledge/domains/*`,
+> `knowledge/system/infra/*`, `knowledge/public/*`, `archive/docs/*`),
+> списки скриптов заменены на реальные. Проверка выросла до 3733 ссылок и
+> 2096 упоминаний путей; иллюстративные примеры в `CONTRIBUTING.md`
+> занесены в whitelist (`illustrative`).
+
 > **Pass 493** (2026-09-27, спека `493-specs-links`): **ссылки в `specs/**`
 > починены, `specs/` включён в гейт (только по ссылкам).** 250 битых
 > ссылок в 137 файлах — следствия: (а) шаблон spec-kit генерировал в

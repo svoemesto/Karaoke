@@ -54,3 +54,7 @@ archive/docs/onboarding-handoff/011-m23-special-orders-pickup.md	path	SpecialBuc
 archive/docs/strategy/growth-audit.md	path	NewsBell.vue	honest-gap
 docs/api/README.md	path	Settings.kt	honest-gap
 archive/docs/features/telegram-auto-publish.md	path	config.json	host-path
+CONTRIBUTING.md	path	FilterModal.vue	illustrative
+CONTRIBUTING.md	path	SettingVoiceLine.kt	illustrative
+CONTRIBUTING.md	path	deploy/karaoke-db/42.sql	illustrative
+CONTRIBUTING.md	path	deploy/karaoke-db/42_add_song_metadata.sql	illustrative

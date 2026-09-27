@@ -23,31 +23,28 @@ Boot бэкенд.
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Архитектурный контекст, dated-история, ловушки |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | **Правила оформления кода** (Kotlin, Vue, SQL, Shell, Docker) |
 | [constitution.md](./.specify/memory/constitution.md) | Непреложные принципы проекта |
-| [**LiveDocs**](./livedocs/README.md) | **ПЕРВЫЙ источник знаний** — SDD/DDD/C4 (88 фич, 7 BC, 16 архитектурных topic) |
-| [livedocs/INDEX.md](./livedocs/INDEX.md) | Карта LiveDocs с decision tree |
-| [livedocs/architecture-notes.md](./livedocs/architecture-notes.md) | Датированный changelog архитектуры |
-| [livedocs/CHANGELOG.md](./livedocs/CHANGELOG.md) | История изменений LiveDocs |
-| [livedocs/strategy/growth.md](./livedocs/strategy/growth.md) | Стратегия роста (воронка: visitor → registration → premium) |
-| [livedocs/onboarding.md](./livedocs/onboarding.md) | Настройка новой машины разработчика |
-| [livedocs/runbooks/](./livedocs/runbooks/) | Операционные how-to (деплой, миграции, CI) |
+| [**Knowledge (SSoT)**](./knowledge/README.md) | **ПЕРВЫЙ источник знаний** — SDD/DDD/C4 (домены, компоненты, ADR) |
+| [knowledge/domains/README.md](./knowledge/domains/README.md) | Карта доменов и их компонентов |
+| [docs/architecture-notes.md](./docs/architecture-notes.md) | Датированный changelog архитектуры |
+| [knowledge/adr/](./knowledge/adr/README.md) | Architecture Decision Records (включая `local-*`) |
+| [archive/docs/strategy/growth.md](./archive/docs/strategy/growth.md) | Стратегия роста (воронка: visitor → registration → premium) |
+| [knowledge/public/onboarding.md](./knowledge/public/onboarding.md) | Настройка новой машины разработчика |
+| [knowledge/system/infra/](./knowledge/system/infra/) | Операционные how-to (деплой, миграции, CI) |
 | [archive/docs/features/](./archive/docs/features/) | Legacy per-feature документы (FR-017 спеки 189) |
 | [docs/api/](./docs/api/) | Build artifacts: KDoc/JSDoc |
 
-**AI-агент: начни с [livedocs/README.md](./livedocs/README.md) → [livedocs/INDEX.md](./livedocs/INDEX.md).**
+**AI-агент: начни с [knowledge/README.md](./knowledge/README.md) → [knowledge/domains/README.md](./knowledge/domains/README.md).**
 
-### Gen-скрипты (Pass 2 спеки 189)
-
-Автогенераторы LiveDoc:
+### Документация: генераторы
 
 | Скрипт | Что делает |
 |--------|-----------|
-| `bash tools/gen-related-suggest.sh <file>` | Предлагает `related:` ссылки для одного LiveDoc (backlinks, related-backlinks, BC candidates, same-directory) |
-| `bash tools/gen-related-suggest.sh --all` | Обновляет `related:` во всех LiveDoc |
-| `bash tools/gen-related-suggest.sh --missing-related` | Список LiveDoc без `related:` |
-| `bash tools/extract-kdoc-refs.sh <file>` | Извлекает @see из KDoc/JSDoc и предлагает `related:` |
-| `bash tools/extract-kdoc-refs.sh --missing-refs` | @see которые не резолвятся |
-| `bash tools/gen-spec-skeleton.sh <NNN>` | Создаёт LiveDoc-skeleton по `specs/<NNN>-*/spec.md` |
-| `bash tools/gen-spec-skeleton.sh --missing` | Список спек без LiveDoc |
+| `python3 tools/auto-kdoc.py` | Генерирует базовый KDoc (описание + `@see`) для Kotlin-классов без KDoc |
+| `python3 tools/auto-jsdoc.py` | То же для JS/Vue |
+| `python3 tools/auto-kdoc-quality.py` | Проверяет качество сгенерированного KDoc |
+| `bash tools/generate-docs.sh` | Генерирует HTML-документацию (Dokka + typedoc) в `docs/api/` |
+| `bash tools/check-kdoc-coverage.sh`, `bash tools/check-jsdoc-coverage.sh` | Покрытие KDoc/JSDoc (гейт) |
+| `bash tools/verify-kotlin-refs.sh` | Проверяет ссылки на Kotlin-сущности в документации |
 
 ## Стандарты оформления кода
 
@@ -65,7 +62,7 @@ Boot бэкенд.
   ktlint (Kotlin/Java), ESLint (webvue3/karaoke-public), Prettier,
   lychee, проверка per-feature документов. Запускается на push
   в `master` и pull_request в `master`. Per-feature документ:
-  [`livedocs/features/002-ci-lint-enforcement.md`](./livedocs/features/002-ci-lint-enforcement.md).
+  [`archive/docs/features/ci-lint-enforcement.md`](./archive/docs/features/ci-lint-enforcement.md).
 - **Baseline**: текущие нарушения зафиксированы в
   `config/ktlint/baseline-*.xml`, `webvue3/.eslint-baseline.json`,
   `karaoke-public/.eslint-baseline.json`. Темп сокращения: ≥10%/мес.
@@ -81,14 +78,13 @@ Boot бэкенд.
 - `tools/check-jsdoc-coverage.sh` — JSDoc coverage ≥ 100%.
 - `tools/check-audit-coverage.sh` — аудит кода.
 
-**LiveDocs** (FR-015 спеки 189):
-- `tools/check-livedocs-structure.sh` — 7 проверок структуры (≥5 фич, ≥5 BC, L1+L2+L3, frontmatter, AGENTS.md ≤100, CI).
-- `tools/check-livedocs-cross-links.sh` — валидация 1069 cross-links.
-- `tools/check-livedocs-external-links.sh` — проверка ВНЕШНИХ https:// ссылок (lychee).
-- `tools/check-livedocs-coverage.sh` — покрытие спек (specs → LiveDocs).
-- `tools/gen-livedocs-index.sh` — генерация INDEX_CARD.md (Mermaid).
-- `tools/gen-livedocs-stats.sh` — генерация STATS.md.
-- `tools/search-livedocs.sh` — grep wrapper для AI-агентов.
+**Knowledge SSoT** (Tier-1 AGENTS.md; прежний LiveDocs-тулчейн снят):
+- `tools/check-knowledge-structure.sh` — 9 структурных проверок `knowledge/`.
+- `tools/check-knowledge-cross-links.sh` — валидация относительных ссылок и `related:`.
+- `python3 tools/lint-knowledge.py` — markdown style (NO EMOJI, обязательные секции, структурная целостность).
+- `python3 tools/check-doc-references.py` — ссылки, пути к файлам и `/api`-эндпоинты в текущей документации.
+- `python3 tools/check-ssot-impact.py` — SSoT-гейт: правки кода по `.ssot-map.yml` требуют обновления `knowledge/`.
+- `bash tools/verify-kotlin-refs.sh`, `python3 tools/check-spec-issue-link.py` — ссылки на Kotlin-сущности и связка спек с OpenProject.
 
 ## Сборка и запуск
 

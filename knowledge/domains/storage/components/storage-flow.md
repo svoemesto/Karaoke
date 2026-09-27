@@ -164,11 +164,15 @@ karaoke-public (Player)
 это выявляет и чинит.
 
 **Следствие**: если webvue3 и karaoke-app стартуют одновременно и
-оба начинают чинить одну песню — возможен конфликт. **Single-flight
-guard ОТСУТСТВУЕТ** (проверено: `grep -nE "AtomicBoolean.*refreshing"
-HealthReport.kt KaraokeProcessWorker.kt` — нет вхождений).
-Текущая защита — только `recomputeAndBroadcast` через SSE,
-которая **не** предотвращает race на repair.
+оба начинают чинить одну песню — возможен конфликт.
+
+**Поправка Pass 472**: прежняя версия утверждала, что single-flight guard
+ОТСУТСТВУЕТ, и обосновывала это grep'ом по шаблону
+`AtomicBoolean.*refreshing`. Шаблон искал несуществующее имя: guard есть,
+но называется иначе — `repairInFlight: ConcurrentHashMap<Long,
+AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
+`computeIfAbsent`, `:2396`). Вывод «это может быть причиной #65»,
+опиравшийся на отсутствие guard, требует перепроверки на актуальном коде.
 
 Это **может быть причиной #65** (race в `StorageApiClient.fileExists`)
 — задача для Pass 343+.

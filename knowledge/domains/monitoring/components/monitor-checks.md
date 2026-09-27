@@ -14,9 +14,8 @@
 ### `MonitorCheck` интерфейс
 
 ```kotlin
-interface MonitorCheck {
-    val name: String       // уникальное имя для grep'а в логах
-    fun check(): MonitorAlert?  // null = OK, не-null = алерт
+fun interface MonitorCheck {
+    fun run(ctx: MonitorContext): List<MonitorAlert>  // пусто = OK
 }
 ```
 
@@ -37,7 +36,7 @@ interface MonitorCheck {
 | `TelegramPollingDisabledCheck` | Telegram polling работает | `monitor/checks/TelegramPollingDisabledCheck.kt` | CRITICAL |
 | `UnreadChatMessagesCheck` | Нет непрочитанных сообщений > 1 час | `monitor/checks/UnreadChatMessagesCheck.kt` | WARNING |
 | `SubmittedAssignmentsCheck` | Задания редактора не зависли в `submitted` > 24ч | `monitor/checks/SubmittedAssignmentsCheck.kt` | WARNING |
-| `StemJobsStuckCheck` | Stem jobs не зависли > 2 часов | `monitor/checks/StemJobsStuckCheck.kt` | WARNING |
+| `StemJobsStuckCheck` | Stem jobs не зависли > 30 минут (`STALE_MINUTES`) | `monitor/checks/StemJobsStuckCheck.kt` | WARNING |
 
 ## Логика и Алгоритмы | Logic and Algorithms
 

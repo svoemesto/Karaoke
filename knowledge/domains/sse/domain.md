@@ -55,7 +55,7 @@ related:
 | **`TabIdContext`** | ThreadLocal с tabId текущего запроса | `services/SseNotificationService.kt:45` |
 | **`addressedTypes`** | Типы, доставляемые адресно (только инициатору): `MESSAGE`, `ERROR` | `services/SseNotificationService.kt:99` |
 | **`maxEmittersPerTab`** | Ограничение: 1 emitter на tab (default) | `services/SseNotificationService.kt:92` |
-| **`ping`** | Heartbeat-комментарий каждые ~25с | `services/SseNotificationService.kt:171` |
+| **`ping`** | Heartbeat-комментарий каждые 15с (`fixedRate = 15_000`) | `services/SseNotificationService.kt:165` |
 
 ### Типы событий
 
@@ -98,8 +98,10 @@ related:
 
 ### Heartbeat
 
-Каждые ~25 секунд рассылается SSE-комментарий `ping` всем emitters
-(строка 171). Это нужно, чтобы:
+Каждые 15 секунд рассылается SSE-комментарий `ping` всем emitters
+(`@Scheduled(fixedRate = 15_000)`, `SseNotificationService.kt:165`).
+Прежняя версия говорила «~25с» — это противоречило и коду, и строке 160
+этого же файла. Это нужно, чтобы:
 
 - Прокси не закрывали соединение по idle timeout.
 - Клиент обнаруживал разрыв быстрее (если ping не пришёл).

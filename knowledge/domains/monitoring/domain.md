@@ -46,8 +46,11 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 
 ## Aggregate Roots
 
-- **MonitorCheck**: интерфейс проверки. Identity = `name`.
-  Каждая проверка возвращает `MonitorAlert?` (`null` = OK, не-null = алерт).
+- **MonitorCheck**: `fun interface` проверки. Единственный метод —
+  `run(ctx: MonitorContext): List<MonitorAlert>` (пустой список = OK).
+  Identity проверки задаёт реализация, а не интерфейс.
+  Прежняя версия описывала `val name` + `check(): MonitorAlert?` — такого
+  интерфейса в коде нет (поправка Pass 472, `monitor/MonitorCheck.kt:24-26`).
 - **MonitorAlert**: данные алерта. Identity = `(checkName, timestamp)`.
 
 ## Entities

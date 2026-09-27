@@ -272,6 +272,14 @@ jobs:
         # регенерировать через --generate-baseline.
         run: python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt
 
+      - name: Check documentation references (Pass 491)
+        # tools/check-doc-references.py — относительные .md-ссылки, пути к
+        # файлам кода и /api-эндпоинты в knowledge/, docs/, archive/docs/.
+        # Ловит то, что не видел check-knowledge-cross-links.sh (он проверяет
+        # другой класс ссылок). Осознанные исключения —
+        # config/knowledge/doc-references-whitelist.txt.
+        run: python3 tools/check-doc-references.py
+
       - name: Lint spec ↔ OpenProject link (Pass 349)
         # tools/check-spec-issue-link.py — проверяет, что каждая "modern" спека
         # (Phase-002+, с секцией "## Knowledge References") содержит обязательную

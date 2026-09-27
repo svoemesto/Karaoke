@@ -1,0 +1,54 @@
+# Осознанные исключения для tools/check-doc-references.py
+# Формат: scope<TAB>kind<TAB>value<TAB>reason   (kind: path|endpoint|link)
+# scope — путь .md-файла или префикс каталога; reason — почему это не дефект:
+#   honest-gap       — документ сам честно пишет, что файла/пути нет
+#   illustrative     — пример/шаблон/плейсхолдер, а не реальный файл
+#   wildcard-prose   — прозаичный wildcard или JS-шаблон, не конкретный путь
+#   external-not-api — путь внешнего сервиса (fourget/OpenProject), не наш API
+#   generated        — артефакт генератора (.gitignore)
+archive/docs/features/llm-lyrics-search.md	endpoint	/api/v1/images	external-not-api
+archive/docs/features/llm-lyrics-search.md	endpoint	/api/v1/web	external-not-api
+knowledge/adr/0008-tracker-openproject-migration.md	endpoint	/api/v3/statuses	external-not-api
+knowledge/domains/editorial/domain.md	path	model/ReviewTask.kt	honest-gap
+knowledge/domains/health/components/health-report.md	endpoint	/api/health/getHealthReportList	honest-gap
+knowledge/domains/health/domain.md	path	HealthReportView.vue	honest-gap
+knowledge/domains/identity/components/dictionaries.md	path	model/UserRole.kt	honest-gap
+knowledge/domains/identity/domain.md	path	AuthService.kt	honest-gap
+knowledge/domains/identity/domain.md	path	Session.kt	honest-gap
+knowledge/domains/identity/domain.md	path	SiteUserDTO.kt	honest-gap
+knowledge/domains/identity/domain.md	path	SiteUserPublicDTO.kt	honest-gap
+knowledge/domains/identity/domain.md	path	SiteUserService.kt	honest-gap
+knowledge/domains/integration/components/dtos.md	endpoint	/api/v1/	wildcard-prose
+knowledge/domains/integration/components/dtos.md	endpoint	/api/v2/	wildcard-prose
+knowledge/domains/karaoke-web/components/config.md	path	BOOT-INF/classes/application.yml	illustrative
+knowledge/domains/karaoke-web/components/internal-controllers.md	endpoint	/api/internal/stem-jobs/{id}/download-original	honest-gap
+knowledge/domains/karaoke-web/components/internal-controllers.md	endpoint	/api/public/debug/db/status	honest-gap
+knowledge/domains/karaoke-web/components/main-controller.md	endpoint	/api/internal/stem-jobs/{id}/download-original	honest-gap
+knowledge/domains/karaoke-web/components/public-controllers.md	endpoint	/api/public/home	honest-gap
+knowledge/domains/processing/components/karaoke-properties.md	path	KaraokePropertiesView.vue	honest-gap
+knowledge/domains/processing/domain.md	path	DemucsService.kt	honest-gap
+knowledge/domains/processing/domain.md	path	SheetsageService.kt	honest-gap
+knowledge/domains/publishing/components/dictionaries.md	endpoint	/api/songs/{id}/access	honest-gap
+knowledge/domains/publishing/components/dictionaries.md	path	model/AccessMode.kt	honest-gap
+knowledge/domains/publishing/components/dictionaries.md	path	model/VisitorType.kt	honest-gap
+knowledge/domains/stats/components/dictionaries.md	endpoint	/api/admin/stats/funnel	honest-gap
+knowledge/domains/stats/components/dictionaries.md	path	EventType.kt	honest-gap
+knowledge/domains/storage/domain.md	path	deploy/nginx/minio-proxy.conf	honest-gap
+knowledge/guidelines/code-style.md	path	NNN_description.sql	illustrative
+knowledge/guidelines/code-style.md	path	PascalCase.vue	illustrative
+knowledge/guidelines/code-style.md	path	useXxx.ts	illustrative
+knowledge/guidelines/code-style.md	path	xxx.store.ts	illustrative
+knowledge/guidelines/code-style.md	path	xxx.ts	illustrative
+knowledge/system/frontend/composable-news-unread.md	path	NewsBell.vue	honest-gap
+knowledge/system/frontend/composable-use-share-link.md	endpoint	/api/public/share/${songId}/create	wildcard-prose
+knowledge/system/utilities.md	path	ImageUtils.kt	illustrative
+knowledge/system/utilities.md	path	UtilsBpmKey.kt	illustrative
+knowledge/system/utilities.md	path	UtilsDuplicates.kt	illustrative
+knowledge/system/utilities.md	path	UtilsMLT.kt	illustrative
+knowledge/system/utilities.md	path	UtilsSearch.kt	illustrative
+knowledge/system/utilities.md	path	UtilsSync.kt	illustrative
+archive/docs/features/telegram-auto-publish.md	path	application.properties	illustrative
+archive/docs/features/zakroma-stream-progress.md	path	tools/deploy-nginx-stream.sh	honest-gap
+archive/docs/onboarding-handoff/011-m23-special-orders-pickup.md	path	SpecialBucketView.vue	honest-gap
+archive/docs/strategy/growth-audit.md	path	NewsBell.vue	honest-gap
+docs/api/README.md	path	Settings.kt	honest-gap

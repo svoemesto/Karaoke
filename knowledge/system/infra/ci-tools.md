@@ -27,6 +27,7 @@
 | `check-endpoint-field-coverage.sh` | Endpoint ↔ UI field coverage | CI |
 | `check-songedit-field-coverage.sh` | SongEdit ↔ backend field coverage | CI |
 | `lint-knowledge.py` | Lint knowledge/ (no emoji, etc.) | pre-commit |
+| `check-doc-references.py` | Ссылки/.md, пути к файлам и `/api`-эндпоинты в knowledge/, docs/, archive/docs/ (whitelist — `config/knowledge/doc-references-whitelist.txt`) | pre-commit + CI |
 
 ### Documentation generation
 
@@ -108,5 +109,12 @@ Knowledge.
 - **Constitution.md** — define what CI enforces.
 
 ## Changelog
+
+- **Pass 491** (2026-09-27): добавлен `check-doc-references.py` — проверка
+  относительных .md-ссылок, путей к файлам кода и `/api`-эндпоинтов в текущей
+  документации. Появился после аудита, который нашёл 233 битые ссылки,
+  120 несуществующих путей и 83 несуществующих эндпоинта (штатный
+  `check-knowledge-cross-links.sh` эти классы ссылок не покрывал).
+  Осознанные исключения — `config/knowledge/doc-references-whitelist.txt` (46 записей).
 
 - **Pass 353** (2026-09-09): Initial. Автор: agent (Karaoke).

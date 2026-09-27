@@ -73,3 +73,11 @@ ADR-0005 зафиксировал self-hosted ML и назвал LLM-движк�
 4. **Required Update**: `knowledge/domains/integration/` уже описывает
    `LmStudioService` как актуальный клиент — правок не требует. ADR-0005 получает
    ссылку о замещении в части LLM.
+
+## Changelog
+
+- **Pass 470** (2026-09-27): последний остаток Ollama удалён — `AIAssistant.kt`
+  (`OllamaRequest`, `OllamaStreamResponse`, дефолт `http://localhost:11434`) убран
+  вместе с двумя KDoc-упоминаниями в `TelegramApiClient` и
+  `PublicSongEditorController`, которые стали бы висячими. Пункт 3 «Последствий»
+  описывал состояние на момент решения (Pass 469); на текущий момент остатка нет.

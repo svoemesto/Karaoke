@@ -132,7 +132,7 @@ rate limit 60/min per IP (через `RateLimitInterceptor`,
 - **SSE** ([sse domain](../../sse/domain.md)) — нет SSE напрямую в
   karaoke-web; события приходят через `karaoke-app`.
 - **Caching** ([caching domain](../../caching/domain.md)) —
-  `PollingCache` + `DedupCache`.
+  `PollingCache` (**Pass 456: класс в `karaoke-app`**) + `DedupCache`.
 - **Monetization** ([monetization domain](../../monetization/domain.md)) —
   `PaymentService`, `PriceService`.
 - **Storage** ([storage domain](../../storage/domain.md)) —

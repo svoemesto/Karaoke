@@ -155,8 +155,9 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 
 - **Storage** ([storage domain](../../storage/domain.md)) —
   `StorageApiClientWeb`, `WebKaraokeStorageServiceImpl`.
-- **Caching** ([caching domain](../../caching/domain.md)) — `DedupCache`,
-  `PollingCache`.
+- **Caching** ([caching domain](../../caching/domain.md)) — `DedupCache`
+  (реализация здесь), `PollingCache` (**Pass 456 — реализация в `karaoke-app`**,
+  отсюда только используется).
 - **Schedulers** ([schedulers.md](../../processing/components/schedulers.md)) —
   `ShareLinkSweeper`, `StatsCacheScheduler`, etc.
 - **Monetization** ([monetization domain](../../monetization/domain.md)) —

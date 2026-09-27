@@ -25,6 +25,27 @@
 [two-db-sync.md](two-db-sync.md), `StatsCacheScheduler` — в
 [caching/domain.md](../../caching/domain.md). Здесь — 12 остальных.
 
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Точка входа каждого scheduler'а — единственный публичный `@Scheduled`-метод
+(остальные методы приватные вспомогательные). Spring вызывает их сам; ручного
+API у планировщиков нет.
+
+| Scheduler | Точка входа | Триггер | Ключевой вызов |
+|---|---|---|---|
+| `TelegramAutoPublishScheduler` | `tick()` | `fixedDelay = 60_000L` | `TelegramAutoPublishService.publishToTelegram(song, allowPastDate = true)` |
+| `VkAutoPublishScheduler` | `tick()` | `fixedDelay = 60_000L` | `VkAutoPublishService.publishToVk(song, PublicationType.AIR)` |
+| `SponsrSyncScheduler` | `run()` | `fixedRate = 12 * 3600_000L` | `SponsrSyncService.syncViaScraping(db, KSS_APP, SAC_APP)` |
+| `PremiumAutoPublishScheduler` | `tick()` | `fixedDelay = 30_000L` | `TelegramAutoPublishService` / `VkAutoPublishService` (публикация и резюм рендера, `PublicationType.PREMIUM`) |
+| `VkIdTokenRefreshScheduler` | `refreshIfNeeded()` | `cron = "0 0 * * * *"` | `VkApiClient.refreshVkIdAccessToken()` |
+| `StemJobPollScheduler` | `pollWaiting()` | `fixedDelay = 45_000L` | `StemJob.loadWaiting(...)` → `takeJob` |
+| `StemJobPollScheduler` | `cleanup()` | `fixedDelay = 5 * 60_000L` | `StemJob.loadPendingCleanup(...)` |
+| `EventsRetentionScheduler` | `cleanup()` | `cron = "0 0 3 * * *"` | `DELETE FROM tbl_events WHERE last_update < ?` |
+| `ShareLinkSweeper` | `sweep()` | `fixedDelayString = "${karaoke.share.sweep-interval-seconds:60}000"` | `SongShareLinkService` (expired/lease/premium/unavailable) |
+| `SongReleaseAnnouncementScheduler` | `checkOnAir()` | `fixedDelay = 5 * 60_000L` | `SongReleaseAnnouncementService` |
+| `StemJobTempCleanupScheduler` | `cleanup()` | `fixedDelay = 30 * 60_000L` | удаление файлов старше `STALE_HOURS = 2` в `stemjobs.temp-dir` |
+| `SubscriptionRenewalScheduler` | `renewExpiringSiteSubscriptions()` | `cron = "0 0 3 * * *"` | `PaymentService.chargeRecurring(...)` |
+
 ## Сводная таблица
 
 | # | Scheduler | Процесс | Триггер | Что делает |
@@ -36,7 +57,7 @@
 | 5 | `VkIdTokenRefreshScheduler` | karaoke-app | каждый час (`0 0 * * * *`) | Обновление VK ID access_token |
 | 6 | `StemJobPollScheduler.pollWaiting()` | karaoke-app | каждые 45s (fixedDelay) | Polling WAITING-StemJob из karaoke-web |
 | 7 | `StemJobPollScheduler.cleanup()` | karaoke-app | каждые 5min (fixedDelay) | Cleanup expired/delete-requested StemJob |
-| 8 | `EventsRetentionScheduler` | karaoke-web | каждый день 03:00 UTC (`0 0 3 * * *`) | Удаление старых `tbl_web_events` |
+| 8 | `EventsRetentionScheduler` | karaoke-web | каждый день 03:00 UTC (`0 0 3 * * *`) | Удаление старых `tbl_events` |
 | 9 | `ShareLinkSweeper` | karaoke-web | каждые 60s (default, configurable) | Sweep expired share-ссылок |
 | 10 | `SongReleaseAnnouncementScheduler` | karaoke-web | каждые 5min (fixedDelay) | Анонсы релизов песен |
 | 11 | `StemJobTempCleanupScheduler` | karaoke-web | каждые 30min (fixedDelay) | Очистка temp-файлов загрузок StemJob |
@@ -62,7 +83,8 @@
   не работает, поэтому fixedDelay=60s, а внутри — ручная проверка
   окна).
 
-**Использует**: `TelegramApiClient`, `TelegramAutoPublishService`.
+**Использует**: `TelegramAutoPublishService` (`TelegramApiClient` — внутри
+сервиса, не в самом scheduler'е).
 
 **Ловушка**: только пока работает karaoke-app. Если процесс не
 запущен — задачи теряются (нет persistence queue).
@@ -80,13 +102,14 @@
 
 **Алгоритм** (по KDoc):
 
-- Тик каждые 60с, проверка новоов `category="air"` + `publish_at <= now()`.
+- Тик каждые 60с, проверка новостей `category="air"` + `publish_at <= now()`.
 - Идемпотентность для `air`-новостей без `song_id` — через
   in-memory `Set` в `VkAutoPublishScheduler` (см.
   [catalog/components/entities-catalog.md](../../catalog/components/entities-catalog.md#news)).
 
-**Использует**: `VkApiClient`, `VkAutoPublishService`,
-`VkPhotoUploadClient`, `VkTemplateService`.
+**Использует**: `VkAutoPublishService`, `VkApiClient` (пост без видео и
+rate-limit); `VkPhotoUploadClient`/`VkTemplateService` — внутри
+`VkAutoPublishService`.
 
 ---
 
@@ -131,7 +154,8 @@ flaky-тесты.
   работает для динамических интервалов (см. AutoOneClickSyncScheduler
   pattern).
 
-**Использует**: `PremiumAutoPublishService`.
+**Использует**: `TelegramAutoPublishService` и `VkAutoPublishService`
+(отдельного `PremiumAutoPublishService` в коде нет).
 
 ---
 
@@ -148,7 +172,7 @@ flaky-тесты.
 
 ---
 
-## 7. `StemJobPollScheduler`
+## 6. `StemJobPollScheduler`
 
 **Файл**: `karaoke-app/.../StemJobPollScheduler.kt`.
 
@@ -186,9 +210,13 @@ flaky-тесты.
 
 **Триггер**: `@Scheduled(cron = "0 0 3 * * *")` — ежедневно в 03:00 UTC.
 
-**Что делает**: удаление старых `tbl_web_events` (см. [entities-catalog.md](../../catalog/components/entities-catalog.md#webevent)).
+**Что делает**: удаление старых `tbl_events` (append-only event log; в
+SyncRegistry намеренно отсутствует, см. [entities-catalog.md](../../catalog/components/entities-catalog.md#webevent)).
 
-Retention period: `KaraokeProperties` (нужно уточнить — Pass 343+).
+Retention: `KaraokeProperties.eventsRetentionDays` (default `7`, env
+`KARAOKE_WEB_EVENTS_RETENTION_DAYS`, минимум `1`). SQL:
+`DELETE FROM tbl_events WHERE last_update < ?` по cutoff
+`now - retentionDays`.
 
 **Логирование**: SLF4J.
 
@@ -260,16 +288,32 @@ upload → processing. Sweeper — последняя линия защиты.
 
 ---
 
-## Архитектурные решения
+## Логика и Алгоритмы | Logic and Algorithms
 
-### Решение 1: scheduler — single-instance only
+### Общий тик
 
-`karaoke-app` — desktop, однопроцессный. Никаких cluster lock'ов.
+Каждый scheduler — Spring-бин (`@Component`/`@Service`) с одним публичным
+`@Scheduled`-методом на задачу; сам планировщик потоков не создаёт.
 
-Следствие: если процесс не запущен — задачи теряются. Это by design
-(см. ADR `local-0003`).
+- **Планировщик karaoke-app** — `KaraokeAppApplication` реализует
+  `SchedulingConfigurer` и отдаёт явный бин `taskScheduler`:
+  `ConcurrentTaskScheduler` над `Executors.newScheduledThreadPool(4)` с
+  daemon-потоками `karaoke-scheduler`. До 4 тиков могут идти параллельно,
+  длинный тик не блокирует все остальные.
+- **Планировщик karaoke-web** — в `KaraokeWebApplication` только
+  `@EnableScheduling`; явного `TaskScheduler` в коде нет.
+- **Порядок внутри тика**: триггер → публичный метод → загрузка кандидатов
+  из БД → работа с сервисом/внешним API → логирование.
+- **Изоляция ошибок неоднородна**: `TelegramAutoPublishScheduler.tick()`,
+  `PremiumAutoPublishScheduler.tick()`, `SponsrSyncScheduler.run()`,
+  `SongReleaseAnnouncementScheduler.checkOnAir()` оборачивают работу в
+  `try/catch`; `StemJobPollScheduler.pollWaiting()` — `runCatching` на каждое
+  задание; `VkAutoPublishScheduler` гасит сбой VK API (specs/437 #161), чтобы
+  не валить тик. А `SubscriptionRenewalScheduler.renewExpiringSiteSubscriptions()`
+  идёт `users.forEach { tryRenew(user) }` без `try/catch` — исключение на
+  одном пользователе прерывает весь тик.
 
-### Решение 2: `fixedDelay` vs `fixedRate`
+### `fixedDelay` vs `fixedRate` vs `cron`
 
 - `fixedDelay` — следующая задача стартует **N мс ПОСЛЕ завершения
   предыдущей**. Используется для задач, которые не должны накапливаться.
@@ -277,13 +321,76 @@ upload → processing. Sweeper — последняя линия защиты.
   Используется для задач, где важна регулярность (даже ценой overlap).
 - `cron` — точно по времени суток.
 
-### Решение 3: SpEL `${...}` не работает для динамических интервалов
+### Динамические интервалы и SpEL
 
 Spring `@Scheduled` не позволяет ссылаться на `KaraokeProperties`
 через SpEL (это наш собственный base64-properties, не Spring
 Environment). Решение — паттерн `fixedDelay` (хардкод) + ручная
 проверка `now - lastRunMs >= intervalMs` внутри тика (по образцу
 `AutoOneClickSyncScheduler`, см. [two-db-sync.md](two-db-sync.md)).
+Исключение — `ShareLinkSweeper`: там `fixedDelayString` смотрит в
+настоящий Spring-property `${karaoke.share.sweep-interval-seconds:60}`.
+
+---
+
+## Архитектурные решения
+
+### Решение 1: scheduler — single-instance only
+
+`karaoke-app` — desktop, однопроцессный. Никаких cluster lock'ов.
+
+Следствие: если процесс не запущен — задачи теряются. Это by design:
+`@Scheduled`-методы `karaoke-app` не работают на проде, см.
+[ADR-0004](../../../adr/0004-karaoke-app-admin-only.md).
+
+---
+
+## Зависимости | Dependencies
+
+### Spring-планировщик
+
+- → `KaraokeAppApplication.taskScheduler` — `ConcurrentTaskScheduler` над
+  `Executors.newScheduledThreadPool(4)`, daemon-потоки `karaoke-scheduler`
+  (karaoke-app).
+- → `@EnableScheduling` в `KaraokeWebApplication` — karaoke-web (явного
+  `TaskScheduler` нет).
+- → `KaraokeProperties` — интервалы, окна и лимиты
+  (`telegramAutoPublishWindowMinutes`, `vkAutoPublishRateLimitPerHour`,
+  `eventsRetentionDays`); `@Value("${stemjobs.temp-dir:/tmp/stemjobs}")` и
+  `WebShareProperties` — у соответствующих scheduler'ов.
+
+### Внешние сервисы и клиенты (karaoke-app)
+
+| Scheduler | Что дёргает |
+|---|---|
+| `TelegramAutoPublishScheduler` | `TelegramAutoPublishService` (`publishToTelegram`, `onRenderCompleted`); `WORKING_DATABASE`, `KSS_APP`, `SAC_APP` |
+| `VkAutoPublishScheduler` | `VkApiClient`, `VkAutoPublishService` (`publishToVk`, `onRenderCompleted`); `WORKING_DATABASE`, `KSS_APP`, `SAC_APP` |
+| `SponsrSyncScheduler` | `Connection.remote()`, `SponsrSyncService.syncViaScraping(db, KSS_APP, SAC_APP)` |
+| `PremiumAutoPublishScheduler` | `TelegramAutoPublishService`, `VkAutoPublishService`, `Song.loadFromDbById`; `WORKING_DATABASE`, `KSS_APP`, `SAC_APP` |
+| `VkIdTokenRefreshScheduler` | `VkApiClient.refreshVkIdAccessToken()`, `KaraokeProperties` |
+| `StemJobPollScheduler` | `Connection.remote()` (`StemJob.loadWaiting`/`loadPendingCleanup`), внутренний HTTP `Karaoke.stemJobsWebInternalUrl` (`/api/internal/stemjobs/{id}/raw` и `/ack`), `ffprobe` (subprocess), `KaraokeProcess` + `THREAD_LANE_STEM_JOBS` |
+
+### Внешние сервисы и клиенты (karaoke-web)
+
+| Scheduler | Что дёргает |
+|---|---|
+| `EventsRetentionScheduler` | `WORKING_DATABASE`, `KaraokeProperties.eventsRetentionDays` — `DELETE FROM tbl_events` |
+| `ShareLinkSweeper` | `SongShareLinkService`, `WebShareProperties`, `KaraokeStorageService`, `StorageApiClient`, `WORKING_DATABASE` |
+| `SongReleaseAnnouncementScheduler` | `SongReleaseAnnouncementService`, `KaraokeStorageService`, `StorageApiClient` |
+| `StemJobTempCleanupScheduler` | локальная ФС `stemjobs.temp-dir` |
+| `SubscriptionRenewalScheduler` | `SiteUser.loadSitePremiumExpiringBefore`, `PaymentService.chargeRecurring` (по сохранённому `yookassaPaymentMethodId`), `KaraokeStorageService`, `StorageApiClient` |
+
+### Локи и общие ресурсы
+
+- **Нет cluster lock** ни у одного scheduler'а этой компоненты: karaoke-app —
+  desktop, однопроцессный (см. Решение 1).
+- `VkAutoPublishScheduler` — `synchronized(postTimestamps)` (часовой
+  rate-limit слотов) и in-memory `publishedNewsIdsWithoutSong`
+  (идемпотентность air-новостей без `song_id`).
+- `AutoOneClickSyncScheduler.running` (`AtomicBoolean`) — общий лок с ручным
+  `POST /sync/oneclick` (409 Conflict), см. [two-db-sync.md](two-db-sync.md).
+- `KaraokeProcessWorker.startStopLock` — не даёт поднять второй воркер
+  очереди, см. [async-process-queue.md](async-process-queue.md).
 
 ---
 
@@ -306,8 +413,8 @@ Environment). Решение — паттерн `fixedDelay` (хардкод) + 
 
 ## Известные TODO
 
-- [ ] **`EventsRetentionScheduler.retentionDays`** — точное значение
-      и настройка через KaraokeProperties.
+- [x] **`EventsRetentionScheduler.retentionDays`** — `KaraokeProperties.eventsRetentionDays`
+      (default `7`, env `KARAOKE_WEB_EVENTS_RETENTION_DAYS`), см. раздел 8.
 - [ ] **`ShareLinkSweeper`** — soft или hard delete?
 - [ ] **`StemJobPollScheduler.takeJob`** — полный алгоритм скачивания
       + ffprobe-проверки длительности.
@@ -334,7 +441,21 @@ Environment). Решение — паттерн `fixedDelay` (хардкод) + 
 | `StemJobTempCleanupScheduler` | `karaoke-web/.../services/StemJobTempCleanupScheduler.kt` |
 | `SubscriptionRenewalScheduler` | `karaoke-web/.../services/SubscriptionRenewalScheduler.kt` |
 
+## Связанные ADR | Related ADRs
+
+- [0004-karaoke-app-admin-only](../../../adr/0004-karaoke-app-admin-only.md) —
+  `karaoke-app` только на admin-машине; его `@Scheduled`-методы не работают
+  на проде (отсюда desktop-only характер app-планировщиков).
+- [local-0005-structured-logging-karaoke-app](../../../adr/local-0005-structured-logging-karaoke-app.md) —
+  конвенция логирования для app-планировщиков (см. Ловушку 2).
+- [local-0006-logging-and-error-handling-karaoke-web](../../../adr/local-0006-logging-and-error-handling-karaoke-web.md) —
+  логирование/error handling для web-планировщиков.
+
+Примечание: прежняя ссылка на `local-0003` в этом файле была ошибочной —
+этот ADR про shared MinIO image cache, не про cluster lock.
+
 ## Changelog
 
+- **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 344** (2026-09-09): Initial. Прецедент: задачи #65, #69 +
   общий Knowledge-аудит. Автор: agent (Karaoke).

@@ -33,12 +33,12 @@ subprocess (`ProcessBuilder`) и парсят stdout.
 
 | Термин | Определение | Где в коде |
 | --- | --- | --- |
-| **`KaraokeProcess`** | Задание в очереди. Data class с аннотациями `@KaraokeDbTableField` | `KaraokeProcess.kt` |
-| **`KaraokeProcessThread`** | Java-поток, обёртка вокруг subprocess | `KaraokeProcessWorker.kt:70` |
-| **`KaraokeProcessWorker`** | Главный воркер (companion object, singleton). Создаёт потоки, синхронизирует БД, цикл sync | `KaraokeProcessWorker.kt:526` |
+| **`KaraokeProcess`** | Задание в очереди. Класс-модель (`tbl_processes`) с аннотациями `@KaraokeDbTableField` | `KaraokeProcess.kt:49` |
+| **`KaraokeProcessThread`** | Java-поток, обёртка вокруг subprocess | `KaraokeProcessWorker.kt:71` |
+| **`KaraokeProcessWorker`** | Главный воркер (singleton, `companion object`). Создаёт потоки, синхронизирует БД, цикл sync | `KaraokeProcessWorker.kt:531` |
 | **`KaraokeProcessStatuses`** | `CREATING` / `WAITING` / `WORKING` / `DONE` / `ERROR` | `KaraokeProcessStatuses.kt` |
 | **`KaraokeProcessTypes`** | Конкретные типы (MELT_LYRICS, DEMUCS2, UPLOAD_TO_*, ...) | `KaraokeProcessTypes.kt` |
-| **`threadId`** | Lane (см. ниже) | `KaraokeProcess.kt` |
+| **`threadId`** | Lane (`Int`): какой worker-поток берёт задание (см. ниже) | `KaraokeProcess.kt:106` |
 | **`HR_REPAIR_PROCESS_TYPES`** | Set типов, которые вызывают `HealthReport.onRepairProcessFinished` | `HealthReport.kt` (см. P0 gaps) |
 | **`processChainId`** | ID родительского задания (цепочки) | `KaraokeProcess.kt` |
 | **`runFunctionWithArgs`** | Маркер «это Kotlin-функция, а не subprocess» | `KaraokeProcess.kt` (args[0][0]) |
@@ -59,7 +59,74 @@ Lane определяется через `threadId` (Long). Один lane = од
 serial execution** внутри lane. Тяжёлые рендеры (`0`) идут строго по
 одному, потому что MLT/Demucs жрут весь CPU и RAM.
 
-## Жизненный цикл задания
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### `KaraokeProcess.createProcess(...)` — постановка задания
+
+```kotlin
+KaraokeProcess.createProcess(
+    song = song,
+    action = KaraokeProcessTypes.MELT_LYRICS,
+    doWait = false,
+    prior = 1,
+    threadId = THREAD_LANE_HEAVY_RENDER,
+    context = emptyMap(),
+): Long
+```
+
+- `action` — `KaraokeProcessTypes` (`MELT_LYRICS`, `DEMUCS2`, `UPLOAD_TO_*`, ...).
+- `doWait = true` — задание сразу создаётся в `WAITING` и блокирует
+  вызывающий поток до DONE/ERROR (используется в HealthReport для
+  атомарности repair).
+- `threadId` (`Int`) — lane задания (см. таблицу lanes выше).
+- `context` — доп. параметры; для `UPLOAD_TO_LOCAL_STORE`/`UPLOAD_TO_REMOTE_STORE`
+  `karaokeFileType` уточняет задачу, чтобы загрузки разных файлов одной
+  песни не затирали друг друга.
+- Single-flight по `(song_id, process_type, thread_id)`: если такой процесс
+  уже в `WORKING` — возврат `0`; иначе не-WORKING записи удаляются и
+  создаётся новая. Для `KEY_BPM_FROM_FILE` при уже валидном файле процесс
+  не создаётся (возврат `0`).
+- Возврат: id созданного процесса; `0` — процесс уже в работе либо
+  сработал skip; `-1` — отдельные ветки «файл-назначение уже существует».
+
+### Прочие точки входа `KaraokeProcess` (companion object)
+
+| Метод | Контракт |
+| --- | --- |
+| `separate(parentProcess): List<KaraokeProcess>` | Разворачивает цепочку: если у процесса одни args — возвращает его же, иначе создаёт дочерние. |
+| `deleteDone(database)` | Удаляет завершённые задания. |
+| `setWorkingToWaiting(database)` | Recovery после рестарта: все `WORKING` → `WAITING`. |
+| `setWorkingToWaitingForThread(database, threadId)` | Точечный сброс `WORKING` → `WAITING` только для одного lane. |
+
+### `KaraokeProcessWorker` (companion object, singleton)
+
+| Метод / свойство | Контракт |
+| --- | --- |
+| `start(database, storageService, storageApiClient)` | Под `startStopLock` защищает от двойного запуска: `deleteDone` + `setWorkingToWaiting`, затем поток с главным циклом `doStart`. |
+| `stop()` | Мягкая остановка: ждёт завершения текущей цепочки (`stopAfterThreadIsDone`). |
+| `forceStop()` | Жёсткая остановка всей очереди: взводит `forceStopped`, убивает docker-контейнеры, возвращает незавершённые задания в `WAITING`. Аргументов нет — это остановка очереди, а не отдельного задания. |
+| `isWork`, `stopAfterThreadIsDone` | `@Volatile`-флаги состояния воркера (читаются HTTP-контроллерами). |
+| `threadsMap` | `ConcurrentHashMap<Int, KaraokeProcessThread?>` — живые потоки по lane. |
+
+### HTTP-контракты управления очередью
+
+| Метод / URL | Контракт |
+| --- | --- |
+| `GET /process/start`, `GET /process/stop` | Запуск/мягкая остановка воркера (`MainController`). |
+| `GET /process/deletedone` | `KaraokeProcess.deleteDone(WORKING_DATABASE)`. |
+| `GET /process/isworking`, `GET /process/isstopafterthreadssdone` | Текущее состояние воркера. |
+| `POST /processes/workerstartstop` | Инвертирует состояние: если `isWork` — `stop()`, иначе `start(...)`. |
+| `POST /processes/workerforcestop` | Жёсткий `forceStop()`. |
+| `POST /processes/workerstatus` | `{isWork, stopAfterThreadIsDone}`. |
+| `POST /processes/deletedone` | `KaraokeProcess.deleteDone(WORKING_DATABASE)`. |
+| `/api/admin/processes` | `KaraokeProcessAdminController`: `GET` (list), `GET /{id}`, `POST /{id}/edit`, `POST /{id}/delete`, `POST /{id}/retry`, `GET /{id}/audit`, `POST /bulk-update`, `POST /bulk-delete`, `POST /bulk-update-async`, `POST /bulk-delete-async`, `GET /bulk/snapshot`. |
+
+Статусы — `KaraokeProcessStatuses` (`CREATING`/`WAITING`/`WORKING`/`DONE`/`ERROR`),
+типы — `KaraokeProcessTypes`.
+
+## Логика и Алгоритмы | Logic and Algorithms
+
+### Жизненный цикл задания
 
 ```
 CREATE
@@ -83,7 +150,7 @@ CREATE
 Используется, чтобы при ручной отмене задание пошло в
 `WAITING` (а не `ERROR`) и было перезапущено.
 
-## Парсинг stdout
+### Парсинг stdout
 
 Известные regex'ы (см. KDoc + парсер в `KaraokeProcessThread.run()`):
 
@@ -95,7 +162,7 @@ CREATE
 NB: каждое обновление `percentage` пишется в БД. На горячих задачах
 (большие файлы) это создаёт много UPDATE'ов → нужен batch.
 
-## Синхронизация (LOCAL ↔ SERVER)
+### Синхронизация (LOCAL ↔ SERVER)
 
 `KaraokeProcess` участвует в **two-DB sync** через `SyncRegistry`:
 
@@ -106,38 +173,29 @@ NB: каждое обновление `percentage` пишется в БД. На 
 Поскольку `tbl_processes` синхронизируется, статус задания в karaoke-web
 **виден** через sync — webvue3 показывает прогресс (через SSE).
 
-## Создание задания: `createProcess(...)`
+### Force-stop
 
-```kotlin
-KaraokeProcess.createProcess(
-    song = song,
-    action = KaraokeProcessTypes.MELT_LYRICS,
-    doWait = false,
-    prior = 1,
-    threadId = THREAD_LANE_HEAVY_RENDER,
-)
-```
+`KaraokeProcessWorker.forceStop()` — жёсткая остановка всей очереди:
 
-Возвращает `KaraokeProcess?` (null при ошибке).
+1. Взвести `thread.forceStopped = true` всем живым потокам из `threadsMap`
+   (ДО убийства subprocess).
+2. `isWork = false`, `stopAfterThreadIsDone = true` — главный цикл `doStart`
+   выходит и не перезапускает уже убитые задания.
+3. Убить docker-контейнеры выполняющихся заданий (`killRunningDockerContainers`).
+4. Каждый поток: `status = WAITING` + `save()`, `osProcess?.destroyForcibly()`,
+   `interrupt()`.
 
-`doWait = true` — блокирует вызывающий поток до DONE/ERROR (используется
-в HealthReport для атомарности repair).
+Per-process force-stop в коде нет: остановка адресуется очереди целиком.
+Мягкая альтернатива — `stop()` (ждёт завершения текущей цепочки).
 
-## Force-stop
-
-`KaraokeProcessWorker.forceStop(processId: Long)`:
-
-1. Найти `KaraokeProcessThread` в `runningThreads` Map по processId.
-2. Взвести `thread.forceStopped = true`.
-3. `thread.osProcess?.destroyForcibly()`.
-4. Subprocess убит, `forceStopped = true` → статус → `WAITING`.
-
-## Потокобезопасность
+### Потокобезопасность
 
 `forceStopped` и `osProcess` помечены `@Volatile` — читаются из
 другого потока (force-stop).
 
-`runningThreads` — `ConcurrentHashMap<Long, KaraokeProcessThread>`.
+`threadsMap` — `ConcurrentHashMap<Int, KaraokeProcessThread?>`, ключ — lane
+(`threadId`). Запись в `isWork` защищена `startStopLock`, чтобы два быстрых
+`start()` не подняли два параллельных воркера.
 
 ## Зависимости | Dependencies
 
@@ -191,6 +249,9 @@ KaraokeProcess.createProcess(
 
 ## Связанные ADR
 
+- [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md) —
+  `redirectErrorStream(true)` для всех `ProcessBuilder`-вызовов очереди
+  (без него stderr переполняется и subprocess блокируется).
 - `archive/docs/features/async-process-queue.md` — оригинальный
   документ (НЕ Knowledge). Требует миграции.
 - `archive/docs/features/dual-db-sync.md` — sync для `tbl_processes`.
@@ -199,4 +260,5 @@ KaraokeProcess.createProcess(
 
 ## Changelog
 
+- **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check-doc-references.py — проверка ссылок и упоминаний в ТЕКУЩЕЙ документации.
 
-Что проверяется в `knowledge/`, `docs/`, `archive/docs/`, а в `specs/` —
+Что проверяется в `knowledge/`, `docs/`, `archive/docs/`, `.github/`, а в `specs/` —
 только ссылки (спеки фиксируют прошлое состояние кода, их упоминания файлов
 и эндпоинтов не переписываются):
 
@@ -40,7 +40,7 @@ import re
 import subprocess
 import sys
 
-ROOTS = ("knowledge", "docs", "archive/docs")
+ROOTS = ("knowledge", "docs", "archive/docs", ".github")
 # specs/ — исторические записи о прошлом состоянии кода: проверяем ТОЛЬКО
 # ссылки (навигация), но не упоминания файлов и эндпоинтов (они фиксируют,
 # как код выглядел на момент спеки, и переписывать их нельзя).

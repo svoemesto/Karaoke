@@ -8,7 +8,7 @@
 
 ## Тип изменения
 
-- [ ] Новая фича (одна из 9 ключевых подсистем из [docs/features/README.md](./docs/features/README.md))
+- [ ] Новая фича (одна из 9 ключевых подсистем — список ключей: [контракт per-feature-doc](../specs/001-code-standards-docs/contracts/per-feature-doc.md))
 - [ ] Исправление бага
 - [ ] Рефакторинг / приведение к стандартам
 - [ ] Обновление документации
@@ -46,18 +46,21 @@
       (Sync-механизм оперирует записями, не DDL — рассинхрон схемы не
       восстанавливается автоматически.)
 
-### LiveDocs (FR-014, см. [livedocs/README.md](./livedocs/README.md))
+### Knowledge SSoT (Tier-1 AGENTS.md, см. [knowledge/README.md](../knowledge/README.md))
 
 - [ ] Если меняется bounded context (`Song`, `Album`, `KaraokeVideo`, и т.п.) —
-      `livedocs/domain/<context>.md` обновлён/создан в этом же PR.
-- [ ] Если меняется C4 уровень (новый контейнер/компонент) — `livedocs/architecture/L<n>.md` обновлён.
-- [ ] Если добавляется новая фича — `livedocs/features/<NNN-slug>.md` создан по
-      [livedocs/templates/feature-summary.md](./livedocs/templates/feature-summary.md).
-- [ ] `bash tools/check-livedocs-structure.sh` — **7/7 PASS**.
-- [ ] `bash tools/check-livedocs-cross-links.sh` — **0 broken** (818+ cross-links).
-- [ ] `bash tools/check-livedocs-external-links.sh` — **0 broken** (strict mode).
-- [ ] `bash tools/check-livedocs-coverage.sh` — coverage не уменьшилось.
-- [ ] `bash tools/check-md-structure.sh` — 0 issues.
+      `knowledge/domains/<domain>/domain.md` и затронутые
+      `knowledge/domains/<domain>/components/*.md` обновлены/созданы в этом же PR.
+- [ ] Если меняется C4 уровень (новый контейнер/компонент) — соответствующий
+      документ в `knowledge/system/` обновлён.
+- [ ] Если добавляется новая фича — per-feature документ `docs/features/<slug>.md`
+      создан по [контракту per-feature-doc](../specs/001-code-standards-docs/contracts/per-feature-doc.md)
+      (6 обязательных секций, шапка `Status`/`Feature Key`/`Last Updated`).
+- [ ] `bash tools/check-knowledge-structure.sh` — **9/9 PASS**.
+- [ ] `bash tools/check-knowledge-cross-links.sh` — **0 broken**.
+- [ ] `python3 tools/lint-knowledge.py` — 0 violations (без `--baseline`).
+- [ ] `python3 tools/check-doc-references.py` — 0 битых ссылок/путей/эндпоинтов.
+- [ ] `bash tools/check-feature-doc.sh docs/features/*.md` — все документы валидны.
 - [ ] `bash tools/validate-mermaid.sh` — 0 issues (если есть mermaid-блоки).
 - [ ] `bash tools/test-livedocs.sh` — все self-tests PASS.
 

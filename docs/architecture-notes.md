@@ -4,6 +4,29 @@
 высокоуровневого контекста; детали фич — в `specs/NNN-*/spec.md` и
 `docs/features/<slug>.md`.
 
+> **Pass 487** (2026-09-27, спека `487-knowledge-lint-zero`): **структурный
+> долг `knowledge/` закрыт — 0 нарушений `lint-knowledge.py`.** Ранее baseline
+> подавлял 145 нарушений в 58 файлах (`config/knowledge/baseline-knowledge-lint.txt`,
+> 316 fingerprints, часть — устаревшие).
+> - **Политика** (owner-decision): «Связанные ADR» проверяется условно — секция
+>   обязательна только для файлов, реально ссылающихся на ADR (`is_section_required()`
+>   в `tools/lint-knowledge.py`); каталожные компоненты (`entities-catalog`,
+>   `remaining-models`, `mko-producers`) исключены из правила «Зависимости»
+>   (`SECTION_EXEMPTIONS`). Это закодировало решение Pass 475 («не писать 47 раз
+>   „нет ADR“») вместо ручного подавления.
+> - **Контент**: 56 файлов 16 доменов приведены к шаблону — «Интерфейсы и
+>   Контракты», «Логика и Алгоритмы», «Публичные контракты (API)», «Зависимости»,
+>   «Связанные ADR». Контент переносился из существующих секций, недостающее
+>   дописывалось по коду с проверкой имён/сигнатур; попутно исправлены десятки
+>   проверенных неточностей (числа endpoints/строк, несуществующие пути и методы,
+>   severity/пороги монитор-чеков, поля SiteUser, API NewsTemplateService и др.).
+> - **Партии**: PR #573 (политика), #574 karaoke-web, #575 rendering,
+>   #576 integration, #577 catalog, #578 processing, #579 прочие домены.
+>   Baseline регенерирован до нуля; `python3 tools/lint-knowledge.py` без
+>   `--baseline` — зелёный.
+> См. `knowledge/domains/README.md` § «Структурный долг: закрыт»,
+> `knowledge/templates/README.md` § «Lint policy».
+
 > **Pass 478** (2026-09-27, спека `478-fix-admin-stats-tabs`, OP #184):
 > **«Статистика» в админке снова грузит все вкладки.** Регресс внёс фикс #79
 > (спека 362, 2026-09-10): `bootstrap-vue-next` отдаёт в `BTabs v-model` **id

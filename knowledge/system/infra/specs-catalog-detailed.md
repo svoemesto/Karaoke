@@ -16,30 +16,30 @@
 
 | NNN | Slug | Статус | Прецедент |
 |---|---|---|---|
-| 001 | code-standards-docs | ✅ | AGENTS.md (стиль) |
-| 002 | ci-lint-enforcement | ✅ | pre-commit hooks |
-| 003 | about-page | ✅ | Страница «О проекте» (visitor→registration) |
-| 004 | reasons-to-register | ✅ | 5 причин зарегистрироваться |
-| 005 | free-vs-premium | ✅ | Таблица FREE vs PREMIUM (visitor→premium) |
-| 008 | special-orders | ✅ | Спецзаказы |
-| 009 | listening-history | ✅ | История прослушиваний |
-| 010 | lyrics-spec-tags | ✅ | Спец-теги в lyrics |
-| 011 | album-song-rename | ✅ | Переименование |
-| 012 | entity-description-fields | ✅ | Поля описания |
-| 013 | song-status-filter | ✅ | Фильтр статусов |
-| 014 | album-cell-album-cover-modal | ✅ | Модалка обложки |
-| 014 | lyrics-search-replacement | ✅ | Поиск lyrics |
-| 015 | search-engine-selection | ✅ | Выбор поискового движка |
-| 016-020 | fix-* | ✅ | Баг-фиксы |
-| 021 | dev-pc-agent-permissions | ✅ | Pass 282 (см. [dev-pc-exception.md](dev-pc-exception.md)) |
-| 022 | song-status-lifecycle | ✅ | Lifecycle статусов |
-| 023 | songs-audio-root-column | ✅ | Колонка audio root |
-| 029 | fix-queue-lane-stall | ✅ | Stall в очереди |
-| 030 | add-archive-album-type | ✅ | Archive album type |
-| 031 | add-tribute-cover-album-type | ✅ | Tribute/Cover type |
-| 082 | fix-import-folder-oom | ✅ | OOM при импорте |
-| 083 | album-cover-square-cell | ✅ | Square ячейка |
-| 087 | fix-shared-db-connection | ✅ | Shared connection leak |
+| 001 | code-standards-docs | [OK] | AGENTS.md (стиль) |
+| 002 | ci-lint-enforcement | [OK] | pre-commit hooks |
+| 003 | about-page | [OK] | Страница «О проекте» (visitor→registration) |
+| 004 | reasons-to-register | [OK] | 5 причин зарегистрироваться |
+| 005 | free-vs-premium | [OK] | Таблица FREE vs PREMIUM (visitor→premium) |
+| 008 | special-orders | [OK] | Спецзаказы |
+| 009 | listening-history | [OK] | История прослушиваний |
+| 010 | lyrics-spec-tags | [OK] | Спец-теги в lyrics |
+| 011 | album-song-rename | [OK] | Переименование |
+| 012 | entity-description-fields | [OK] | Поля описания |
+| 013 | song-status-filter | [OK] | Фильтр статусов |
+| 014 | album-cell-album-cover-modal | [OK] | Модалка обложки |
+| 014 | lyrics-search-replacement | [OK] | Поиск lyrics |
+| 015 | search-engine-selection | [OK] | Выбор поискового движка |
+| 016-020 | fix-* | [OK] | Баг-фиксы |
+| 021 | dev-pc-agent-permissions | [OK] | Pass 282 (см. [dev-pc-exception.md](dev-pc-exception.md)) |
+| 022 | song-status-lifecycle | [OK] | Lifecycle статусов |
+| 023 | songs-audio-root-column | [OK] | Колонка audio root |
+| 029 | fix-queue-lane-stall | [OK] | Stall в очереди |
+| 030 | add-archive-album-type | [OK] | Archive album type |
+| 031 | add-tribute-cover-album-type | [OK] | Tribute/Cover type |
+| 082 | fix-import-folder-oom | [OK] | OOM при импорте |
+| 083 | album-cover-square-cell | [OK] | Square ячейка |
+| 087 | fix-shared-db-connection | [OK] | Shared connection leak |
 
 ### Pass 100-300 (средние)
 

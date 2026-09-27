@@ -22,7 +22,7 @@ related:
 Publishing — контекст, отвечающий за **доставку каталога пользователям**:
 когда песня становится эфирной, кто видит exclusive, как работает
 подписка. Это монетизационная зона проекта и активная зона роста
-(см. `docs/strategy/growth.md`).
+(см. `archive/docs/strategy/growth.md`).
 
 Контекст **read-heavy** (публичный сайт делает много запросов для
 проверки доступа) + **write-light** (смена `publishDate` / подписки —
@@ -46,7 +46,7 @@ Publishing — контекст, отвечающий за **доставку к
 | **Visitor (посетитель)** | Один визит на сайт | `tbl_events` |
 | **BotScore** | 0.0..1.0, вероятность что это бот | `tbl_events.bot_score` |
 | **Grandfathered** | Старая песня, ставшая эфирной до введения premium | обсуждается (Pass 2+) |
-| **Воронка** | visitor→registration→premium | `docs/strategy/growth.md` |
+| **Воронка** | visitor→registration→premium | `archive/docs/strategy/growth.md` |
 | **publish_date / publish_time** | Когда песня станет эфирной | `tbl_settings.publish_date/time` |
 | **StatBySong** | Счётчики главной страницы | `Stat.kt`, `StatsCacheScheduler` |
 
@@ -98,7 +98,7 @@ Publishing — контекст, отвечающий за **доставку к
 
 1. **Гранды (grandfathered)**: песни, ставшие эфирными до введения
    premium, остаются в открытом доступе, даже если их `publishDate`
-   перевести в будущее. Это историческое решение, см. `docs/strategy/growth.md`.
+   перевести в будущее. Это историческое решение, см. `archive/docs/strategy/growth.md`.
 2. **`isExclusive=true` блокирует открытый доступ** независимо от
    `publishDate`. Чтобы сделать песню снова публичной — нужен отдельный
    эпик.

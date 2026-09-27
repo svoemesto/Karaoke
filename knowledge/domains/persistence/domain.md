@@ -11,7 +11,7 @@ related:
 
 # Domain: Persistence (KaraokeDbTable + DB I/O)
 
-> Bounded context для абстракции БД-персистентности. Все 30 DB-сущностей
+> Bounded context для абстракции БД-персистентности. Все 24 DB-сущности (сверено в Pass 473: 24 реализации `getTableName`)
 > karaoke-app реализуют интерфейс `KaraokeDbTable`. Прецедент
 > создания — P2 Knowledge-аудита (Pass 341).
 
@@ -177,7 +177,7 @@ UI обновляется без polling → экономия трафика и 
    в Kotlin → NPE при чтении. **Решение**: nullable-поля.
 2. **`save()` проглатывает UNIQUE-конфликты**: проверяйте конфликт
    ДО save в контроллере (см. CONSTITUTION_PATTERN).
-4. **`getDiff` field order** — **FIXED in Pass 451** ✅:
+4. **`getDiff` field order** — **FIXED in Pass 451** [OK]:
    `KaraokeDbTable.getDiff` теперь сортирует по
    `KaraokeDbTableField.name` для детерминированного UPDATE column
    order. Без сортировки порядок зависел от reflection

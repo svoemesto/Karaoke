@@ -99,7 +99,7 @@ sampling, dedup, rate limiting. Все настройки — через
 - **Schedulers** ([schedulers.md](../processing/components/schedulers.md)) —
   фоновые задачи karaoke-web.
 
-## Структура (73 Kotlin файла)
+## Структура (75 Kotlin файлов — сверено в Pass 473)
 
 ```
 karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/

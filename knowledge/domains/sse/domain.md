@@ -82,7 +82,7 @@ related:
 
 ### Endpoint: `/api/subscribe`
 
-`SseController` (не путать с `WebSocketConfig`). На каждый GET-запрос
+Эндпоинт живёт в `ApiController` (`@RequestMapping("/api")`, `:200`) — класса `SseController` в коде нет. На каждый GET-запрос
 создаёт `SseEmitter` (timeout=-1 = forever) и регистрирует в `emitters`
 по `UserKey`.
 
@@ -168,8 +168,9 @@ ThreadLocal `TabIdContext` сохраняет `tabId` на время HTTP-за�
 
 ## Известные TODO
 
-- [ ] **`SseController`** — где определён `/api/subscribe`, какие
-      query-параметры.
+- [x] **Где определён `/api/subscribe`** — `ApiController`
+      (`controllers/ApiController.kt:200` `@RequestMapping("/api")`,
+      `:6041` `@GetMapping("/subscribe")`). Класса `SseController` нет.
 - [ ] **`TabIdContext`** — где устанавливается tabId, кто читает.
 - [ ] **Multi-user**: сейчас `userId=1` hard-coded. Как перейти на
       реального пользователя?

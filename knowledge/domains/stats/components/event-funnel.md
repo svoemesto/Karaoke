@@ -6,7 +6,7 @@
 
 ## Ответственность | Responsibility
 
-В Karaoke есть **воронка роста** (см. `docs/strategy/growth.md`):
+В Karaoke есть **воронка роста** (см. `archive/docs/strategy/growth.md`):
 **visitor → registration → premium**. Эта компонента описывает, как
 считается каждый шаг воронки, какая сегментация применяется, и где
 baseline-метрики для отслеживания роста.
@@ -111,7 +111,7 @@ publishing (`0.5` / `0.7`).
 
 **Цель (Pass 2+)**: reg rate ×5 (1.6%), purchase rate ×2 (28%).
 
-Подробнее — `docs/strategy/growth.md`.
+Подробнее — `archive/docs/strategy/growth.md`.
 
 ## Ловушки и предупреждения
 

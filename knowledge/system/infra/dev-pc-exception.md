@@ -40,11 +40,11 @@
 > исключения Pass 282 **НЕ применяются** на этой машине.
 
 Это значит, что в нашей сессии:
-- ❌ Нельзя пересобирать/перезапускать `karaoke-app` без явного
+- [NO] Нельзя пересобирать/перезапускать `karaoke-app` без явного
   согласия.
-- ✅ Можно править код.
-- ✅ Можно запускать `gradle clean bootJar`, `npm run dev/build`.
-- ✅ Можно пересобирать `karaoke-web` / `webvue3` / `karaoke-public`.
+- [OK] Можно править код.
+- [OK] Можно запускать `gradle clean bootJar`, `npm run dev/build`.
+- [OK] Можно пересобирать `karaoke-web` / `webvue3` / `karaoke-public`.
 
 ## Известные TODO
 

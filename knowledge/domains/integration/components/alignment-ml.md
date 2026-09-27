@@ -41,18 +41,31 @@
 | `start_trainig.sh`, `resume_trainig.sh` | Скрипты обучения. |
 | `README.md` | Документация. |
 
-## HTTP API (`serve.py`)
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+HTTP-контракт задаётся `serve.py` (FastAPI). Клиент в Karaoke —
+`AlignmentServiceClient.kt`, который шлёт multipart с теми же именами
+полей.
+
+### `POST /align`
 
 ```
 POST /align
   body: multipart/form-data
-    audio: файл (FLAC)
-    text: строка ( известный текст песни)
-    use_finetuned: bool (по умолчанию из env ALIGN_DEFAULT_USE_FINETUNED)
+    file: файл (FLAC; имя поля — `file`, суффикс берётся из filename)
+    text: строка (известный текст песни, как в Settings.sourceText)
+    use_finetuned: bool, необязательный (None → ALIGN_DEFAULT_USE_FINETUNED)
   response: JSON
     ok: bool
     syllables: [{label, start_ms, end_ms}]
+    used_finetuned: bool
+  ошибка: 400, если use_finetuned=true, а ALIGN_MODEL_PATH не задан
 ```
+
+### `GET /health`
+
+Возвращает `{ok, finetuned_model_path, finetuned_available,
+default_use_finetuned}`.
 
 **Запуск**:
 
@@ -77,16 +90,29 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
   **400** (нечего использовать).
 - `ALIGN_DEFAULT_USE_FINETUNED` — дефолт для режима.
 
-## Зависимости | Dependencies
+## Логика и Алгоритмы | Logic and Algorithms
 
-`AlignmentServiceClient.kt` (`караоке-app/.../services/`) — HTTP
-multipart upload к этому сервису.
+**Шаги выравнивания** (`align_syllables` в `align.py`, вызывается из
+`/align`):
 
-**Используется** в `FORCED_ALIGN_MARKERS` KaraokeProcessType (см.
-[async-process-queue.md](../../../domains/processing/components/async-process-queue.md))
-— фоновая задача для всех голосов песни сразу.
+1. `split_text_into_words(text)` — текст → слова, каждое слово — список
+   слогов (та же разбивка, что дала ground truth в датасете).
+2. Слова склеиваются обратно (`flat_words`) и уходят в `align_words` —
+   это forced alignment по **известному** тексту, а не по тому, что
+   распознал ASR.
+3. `_load_model(model_path)` лениво грузит модель (baseline MMS_FA или
+   finetuned-чекпоинт), `_load_audio` приводит аудио к `sample_rate`
+   модели.
+4. `_align_words_finetuned`, если в state есть `custom_processor`,
+   иначе `_align_words_baseline` — по одному интервалу
+   `(start_sec, end_sec)` на слово.
+5. Тайминг слогов внутри слова раздаётся **пропорционально длине слога
+   в символах** (`duration * len(syl) / total_chars`) — тот же приём,
+   что в `WhisperMarkerAligner.kt` (упрощение до появления
+   посимвольной/пофонемной привязки).
+6. Результат — `[{label, start_ms, end_ms}]`, миллисекунды округляются.
 
-## Датасет
+### Датасет
 
 **Источник**: `ExportAlignmentDataset.kt` в karaoke-app — кнопка
 «Экспорт датасета для forced-alignment» на Home-странице.
@@ -102,7 +128,7 @@ multipart upload к этому сервису.
   тексте (ad-libs и т.п.). Слоги вставок помечаются
   `hasGroundTruth: false` в манифесте.
 
-## Логика обучения (`train.py`)
+### Логика обучения (`train.py`)
 
 1. `manifest.jsonl` → train.py читает.
 2. `chunking.py` — разбивает длинные аудио на чанки.
@@ -114,13 +140,13 @@ multipart upload к этому сервису.
 - `start_trainig.sh` — запуск с нуля.
 - `resume_trainig.sh` — продолжить с checkpoint.
 
-## Оценка (`evaluate.py`)
+### Оценка (`evaluate.py`)
 
 Сравнивает alignment с ground truth (Whisper). Слоги с
 `hasGroundTruth=false` НЕ сравниваются (это **ad-libs**, для которых
 нет человеческого тайминга).
 
-## Запуск всего pipeline
+### Запуск всего pipeline
 
 ```bash
 # 1. Экспорт датасета (admin UI)
@@ -132,6 +158,15 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
 # 4. karaoke-app использует через AlignmentServiceClient
 ```
 
+## Зависимости | Dependencies
+
+`AlignmentServiceClient.kt` (`караоке-app/.../services/`) — HTTP
+multipart upload к этому сервису.
+
+**Используется** в `FORCED_ALIGN_MARKERS` KaraokeProcessType (см.
+[async-process-queue.md](../../../domains/processing/components/async-process-queue.md))
+— фоновая задача для всех голосов песни сразу.
+
 ## Known gaps
 
 - [ ] **Модель MMS**: точная версия (mms-300m? mms-1b?).
@@ -142,3 +177,7 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
       `AlignmentServiceClient`.
 - [ ] **Production deployment** — как именно запускается на проде
       (Docker? systemd? uv run?).
+
+## Changelog
+
+- **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).

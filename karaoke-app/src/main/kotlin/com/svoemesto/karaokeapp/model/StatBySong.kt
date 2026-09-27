@@ -323,8 +323,10 @@ object StatsByEvents {
             }
 
             // Одним батчем определяем страну по всем IP страницы (кэш GeoIpService — без N+1 по сети).
-            // Лимит внешних резолвов на страницу лога, чтобы не задерживать ответ на холодном кэше.
-            val countries = GeoIpService.resolveMany(rows.map { it.clientIp }, maxFetch = 100)
+            // Лимит внешних резолвов на страницу лога + бюджет времени: холодный GeoIP-кэш не должен
+            // задерживать ответ вкладки «События» (OP #184, spec 478).
+            val countries =
+                GeoIpService.resolveMany(rows.map { it.clientIp }, maxFetch = 100, timeBudgetMs = 2_000)
 
             rows.forEach { r ->
                 val songName = songNames[r.songId] ?: ""
@@ -878,7 +880,9 @@ object StatsByEvents {
             }
         }
         // Лимит внешних резолвов за один показ дашборда — кэш наполнится за несколько обновлений.
-        val countries = GeoIpService.resolveMany(ipCounts.keys, maxFetch = 150)
+        // timeBudgetMs ограничивает ХУДШИЙ случай по времени: 150 IP × (сетевой запрос + пауза
+        // 80 мс) держало вкладку «География» в загрузке 25+ секунд (OP #184, spec 478).
+        val countries = GeoIpService.resolveMany(ipCounts.keys, maxFetch = 150, timeBudgetMs = 3_000)
         val byCountry = HashMap<String, Int>()
         for ((ip, cnt) in ipCounts) {
             val c = countries[ip.split(",").first().trim()] ?: ""

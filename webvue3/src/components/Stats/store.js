@@ -1,9 +1,47 @@
 import { promisedXMLHttpRequest } from '../../lib/utils'
 
+// Потолок ожидания ответа статистики. Без него «зависший» endpoint (например,
+// `/api/stats/countries`, который резолвит до 150 IP через внешний GeoIP)
+// держал вкладку в вечной загрузке: XHR никогда не завершается → `catch` не
+// срабатывает → флаг isLoading не сбрасывается, и пользователь видит пустой
+// блок со спиннером (OP #184, spec 478, FR-006/FR-007).
+const STATS_REQUEST_TIMEOUT_MS = 15_000
+
+/**
+ * Обернуть промис таймаутом: по истечении `timeoutMs` промис отклоняется,
+ * чтобы UI вышел из состояния загрузки (сам XHR при этом не отменяется).
+ *
+ * @param {Promise} promise — оборачиваемый промис
+ * @param {String} url — адрес (для текста ошибки)
+ * @param {Number} timeoutMs — потолок ожидания в мс
+ * @returns {Promise} промис с таймаутом
+ */
+function withTimeout(promise, url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Stats request timeout ${timeoutMs}ms: ${url}`)),
+      timeoutMs,
+    )
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
+}
+
 // Хелпер GET → JSON. promisedXMLHttpRequest не сериализует params в query-string для GET
 // (устоявшийся квирк проекта), поэтому все параметры собираем в URL вручную.
-function getJson(url) {
-  return promisedXMLHttpRequest({ method: 'GET', url, params: {} }).then((data) => JSON.parse(data))
+function getJson(url, timeoutMs = STATS_REQUEST_TIMEOUT_MS) {
+  const request = promisedXMLHttpRequest({ method: 'GET', url, params: {} }).then((data) =>
+    JSON.parse(data),
+  )
+  return withTimeout(request, url, timeoutMs)
 }
 
 /**
@@ -332,81 +370,109 @@ export default {
       ctx.commit('setStatsDays', days)
     },
 
+    // Возвращает Promise<Boolean>: true — данные загружены, false — ошибка/таймаут.
+    // Нужно вкладкам (StatsView.loadDataForActiveTab), чтобы взводить TTL-кеш
+    // только на действительно загруженной вкладке (OP #184, spec 478, FR-004).
     loadStatsSummary(ctx) {
       ctx.commit('setStatsSummaryIsLoading', true)
-      getJson(`/api/stats/summary?target=${ctx.state.statsTarget}`)
+      return getJson(`/api/stats/summary?target=${ctx.state.statsTarget}`)
         .then((r) => {
           ctx.commit('setStatsSummary', r.summary)
           ctx.commit('setStatsSummaryIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setStatsSummaryIsLoading', false)
+          return false
         })
     },
     loadStatsTimeSeries(ctx, { mode } = {}) {
       const m = mode !== undefined ? mode : ctx.state.timeSeriesMode
       ctx.commit('setStatsTimeSeriesMode', m)
       ctx.commit('setStatsTimeSeriesIsLoading', true)
-      getJson(
+      return getJson(
         `/api/stats/timeseries?target=${ctx.state.statsTarget}&days=${ctx.state.statsDays}&mode=${m}`,
       )
         .then((r) => {
           ctx.commit('setStatsTimeSeries', r.items)
           ctx.commit('setStatsTimeSeriesIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setStatsTimeSeriesIsLoading', false)
+          return false
         })
     },
     loadStatsBreakdown(ctx) {
       ctx.commit('setStatsBreakdownIsLoading', true)
-      Promise.all([
-        getJson(`/api/stats/by-type?target=${ctx.state.statsTarget}&days=${ctx.state.statsDays}`),
-        getJson(`/api/stats/channels?target=${ctx.state.statsTarget}`),
-        getJson(`/api/stats/by-detail?target=${ctx.state.statsTarget}&days=${ctx.state.statsDays}`),
-      ])
-        .then(([byType, channels, detailed]) => {
-          ctx.commit('setStatsByType', byType.items)
-          ctx.commit('setStatsChannels', channels.items)
-          ctx.commit('setStatsDetailed', detailed.items)
-          ctx.commit('setStatsBreakdownIsLoading', false)
-        })
-        .catch((e) => {
-          console.log(e)
-          ctx.commit('setStatsBreakdownIsLoading', false)
-        })
+      // Endpoint'ы вкладки грузятся НЕЗАВИСИМО: таймаут/ошибка одного не должен
+      // стирать данные остальных и не должен оставлять вкладку в вечной загрузке
+      // (OP #184, spec 478, FR-006). На ошибке прежние данные сохраняются.
+      const load = (url, commitName) =>
+        getJson(url)
+          .then((r) => {
+            ctx.commit(commitName, r.items || [])
+            return true
+          })
+          .catch((e) => {
+            console.warn('[Stats] breakdown endpoint failed:', url, e)
+            return false
+          })
+      return Promise.allSettled([
+        load(
+          `/api/stats/by-type?target=${ctx.state.statsTarget}&days=${ctx.state.statsDays}`,
+          'setStatsByType',
+        ),
+        load(`/api/stats/channels?target=${ctx.state.statsTarget}`, 'setStatsChannels'),
+        load(
+          `/api/stats/by-detail?target=${ctx.state.statsTarget}&days=${ctx.state.statsDays}`,
+          'setStatsDetailed',
+        ),
+      ]).then((settled) => {
+        ctx.commit('setStatsBreakdownIsLoading', false)
+        return settled.some((r) => r.status === 'fulfilled' && r.value === true)
+      })
     },
     loadStatsGeo(ctx) {
       ctx.commit('setStatsGeoIsLoading', true)
-      Promise.all([
-        getJson(`/api/stats/countries?target=${ctx.state.statsTarget}`),
-        getJson(`/api/stats/referrers?target=${ctx.state.statsTarget}`),
-      ])
-        .then(([countries, referrers]) => {
-          ctx.commit('setStatsCountries', countries.items)
-          ctx.commit('setStatsReferrers', referrers.items)
-          ctx.commit('setStatsGeoIsLoading', false)
-        })
-        .catch((e) => {
-          console.log(e)
-          ctx.commit('setStatsGeoIsLoading', false)
-        })
+      // independent-загрузка (см. комментарий выше) + таймаут: «География» не
+      // должна висеть вечно, если страны не отвечают, а внешние источники при
+      // этом доступны (OP #184, spec 478, FR-007).
+      const load = (url, commitName) =>
+        getJson(url)
+          .then((r) => {
+            ctx.commit(commitName, r.items || [])
+            return true
+          })
+          .catch((e) => {
+            console.warn('[Stats] geo endpoint failed:', url, e)
+            return false
+          })
+      return Promise.allSettled([
+        load(`/api/stats/countries?target=${ctx.state.statsTarget}`, 'setStatsCountries'),
+        load(`/api/stats/referrers?target=${ctx.state.statsTarget}`, 'setStatsReferrers'),
+      ]).then((settled) => {
+        ctx.commit('setStatsGeoIsLoading', false)
+        return settled.some((r) => r.status === 'fulfilled' && r.value === true)
+      })
     },
     loadStatsTopUsers(ctx, { page = 1, pageSize = 50 } = {}) {
       ctx.commit('setStatsTopUsersIsLoading', true)
-      getJson(
+      return getJson(
         `/api/stats/top-users?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`,
       )
         .then((r) => {
           ctx.commit('setStatsTopUsers', r.items)
           ctx.commit('setStatsTopUsersTotalCount', r.totalCount)
           ctx.commit('setStatsTopUsersIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setStatsTopUsersIsLoading', false)
+          return false
         })
     },
     // Drill-down по пользователю: залогиненный (siteUserId>0) ЛИБО аноним (anonId).
@@ -428,17 +494,19 @@ export default {
     },
     loadStatsBySong(ctx, { page = 1, pageSize = 50 } = {}) {
       ctx.commit('setStatsBySongIsLoading', true)
-      getJson(
+      return getJson(
         `/api/stats/by-song?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`,
       )
         .then((r) => {
           ctx.commit('setStatsBySong', r.items)
           ctx.commit('setStatsBySongTotalCount', r.totalCount)
           ctx.commit('setStatsBySongIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setStatsBySongIsLoading', false)
+          return false
         })
     },
     // Drill-down по песне: все события конкретной песни (клик по строке «Топ песен»).
@@ -461,27 +529,31 @@ export default {
       let url = `/api/webevents?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`
       if (eventType) url += `&eventType=${eventType}`
       if (days) url += `&days=${days}`
-      getJson(url)
+      return getJson(url)
         .then((r) => {
           ctx.commit('setWebEvents', r.items)
           ctx.commit('setWebEventsTotalCount', r.totalCount)
           ctx.commit('setWebEventsIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setWebEventsIsLoading', false)
+          return false
         })
     },
     loadMonetizationSummary(ctx) {
       ctx.commit('setMonetizationSummaryIsLoading', true)
-      getJson(`/api/stats/monetization?target=${ctx.state.statsTarget}`)
+      return getJson(`/api/stats/monetization?target=${ctx.state.statsTarget}`)
         .then((r) => {
           ctx.commit('setMonetizationSummary', r.summary)
           ctx.commit('setMonetizationSummaryIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setMonetizationSummaryIsLoading', false)
+          return false
         })
     },
     loadMonetizationTopSongs(ctx, { limit = 20 } = {}) {
@@ -500,17 +572,19 @@ export default {
     // Метрика «дослушали» = (progress='75' OR ended), сортировка по числу таких событий DESC.
     loadTopListened(ctx, { page = 1, pageSize = 50 } = {}) {
       ctx.commit('setTopListenedIsLoading', true)
-      getJson(
+      return getJson(
         `/api/stats/top-listened?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`,
       )
         .then((r) => {
           ctx.commit('setTopListened', r.items)
           ctx.commit('setTopListenedTotalCount', r.totalCount)
           ctx.commit('setTopListenedIsLoading', false)
+          return true
         })
         .catch((e) => {
           console.log(e)
           ctx.commit('setTopListenedIsLoading', false)
+          return false
         })
     },
   },

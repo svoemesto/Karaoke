@@ -166,6 +166,10 @@ related:
 ## Код (физическая реализация)
 
 - Frontend: `karaoke-public/src/components/StatsView.vue`, `LatestNewsBlock.vue`.
-- Frontend: `webvue3/src/views/StatsView.vue` (admin — 11 параллельных endpoint'ов).
+- Frontend: `webvue3/src/views/StatsView.vue` (admin — ленивая загрузка по
+  активной вкладке, `loadDataForActiveTab`; было «11 параллельных endpoint'ов»
+  до спеки 362, см. `knowledge/system/frontend/store-stats.md`).
+- Приёмка вкладок админ-статистики: `webvue3/scripts/check-stats-tabs.mjs`
+  (spec `478-fix-admin-stats-tabs`, OP #184).
 - Frontend: `webvue3/src/store/modules/stats/store.js` (Vuex module с StatsSnapshot).
 - Backend API: `GET /api/public/stats/{summary,by-type,by-song,countries,referrers,by-year,webevents}`.

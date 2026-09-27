@@ -70,10 +70,16 @@ object GeoIpService {
      * лимит IP возвращаются как "" (Не определено) и НЕ кэшируются — их подхватит следующий вызов
      * (кэш наполняется за несколько обновлений страницы). Приватные IP в лимит не считаются
      * (сеть не дёргается).
+     *
+     * [timeBudgetMs] — общий бюджет времени на внешние резолвы в рамках одного вызова
+     * (OP #184, spec 478). Лимит по количеству не ограничивает ХУДШИЙ случай: 150 IP ×
+     * (сетевой запрос + пауза 80 мс) давало 25+ секунд и «вечную загрузку» вкладки
+     * «География». По исчерпании бюджета оставшиеся IP возвращаются как "" и НЕ кэшируются.
      */
     fun resolveMany(
         rawIps: Collection<String>,
         maxFetch: Int = Int.MAX_VALUE,
+        timeBudgetMs: Long = Long.MAX_VALUE,
     ): Map<String, String> {
         val ips = rawIps.map { normalize(it) }.filter { it.isNotEmpty() }.distinct()
         val out = HashMap<String, String>(ips.size)
@@ -90,19 +96,26 @@ object GeoIpService {
             }
             missing.removeAll(fromDb.keys)
         }
+        val deadlineNanos =
+            if (timeBudgetMs == Long.MAX_VALUE) {
+                Long.MAX_VALUE
+            } else {
+                System.nanoTime() + timeBudgetMs * 1_000_000
+            }
         var fetched = 0
         for (ip in missing) {
             val priv = isPrivate(ip)
-            if (!priv && fetched >= maxFetch) {
+            if (!priv && (fetched >= maxFetch || System.nanoTime() >= deadlineNanos)) {
                 out[ip] = ""
                 continue
-            } // лимит исчерпан — не кэшируем, попробуем позже
+            } // лимит/бюджет исчерпан — не кэшируем, попробуем позже
             val resolved = if (priv) "" else fetchFromService(ip)
             out[ip] = resolved
             memCache[ip] = resolved
             saveToDb(ip, resolved)
             if (!priv) {
                 fetched++
+                if (System.nanoTime() >= deadlineNanos) continue // бюджет исчерпан — не спим
                 try {
                     Thread.sleep(80)
                 } catch (_: InterruptedException) {

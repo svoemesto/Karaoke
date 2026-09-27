@@ -25,12 +25,17 @@
 | `open` | Песня доступна всем, `publishDate` истёк, `isExclusive=false`. |
 | `premium-only` | Только для подписчиков (`isExclusive=true` ИЛИ `publishDate` в будущем). |
 
-**Место определения**: `karaoke-app/.../model/AccessMode.kt`.
+**[WARN] Поправка Pass 474: типа `AccessMode` не существует.**
+Файла `model/AccessMode.kt` нет; `AccessMode` встречается в
+репозитории только внутри комментариев (`Song.kt:923`,
+`deploy/karaoke-db/50_tbl_songs_free_after_on_air.sql:5`).
 
-**Контракт**: стабильный, используется в API (`/api/songs/{id}/access`).
+Реальная логика «эфирная/платная» — в `model/SongStateResolver.kt`
+(свободный доступ после истечения `publishDate` при
+`isExclusive=false`). Ни типа-перечисления, ни эндпоинта
+`/api/songs/{id}/access` в коде нет.
 
-**Запрещено**: хардкод `"open"`/`"premium-only"` в коде (вместо —
-`AccessMode.OPEN.name.lowercase()` или `AccessMode.PREMIUM_ONLY`).
+Таблица значений ниже сохранена как описание ЗАДУМАННОЙ модели:
 
 ### `VisitorType` — сегмент трафика
 
@@ -40,9 +45,10 @@
 | `good_bot` | Известный бот (Google, Yandex), учитывается в счётчиках. |
 | `bad_bot` | Подозрительный бот (`BotScore >= 0.7`), **не учитывается**. |
 
-**Место определения**: `karaoke-app/.../model/VisitorType.kt`.
-
-**Запрещено**: хардкод строковых литералов `"real_user"` и т.п.
+**[WARN] Поправка Pass 474: `VisitorType` не существует** —
+файла `model/VisitorType.kt` нет, строки `real_user`/`good_bot`/
+`bad_bot` не встречаются ни в одном `.kt`/`.sql`. Описание ниже —
+не реализованная модель.
 
 ### `BotScore` — пороги
 
@@ -52,11 +58,10 @@
 | `0.5..0.7` | пограничная зона (требует ручного разбора) |
 | `0.7..1.0` | `bad_bot` |
 
-**Место определения**: константа `BOT_SCORE_THRESHOLD = 0.7` в
-`StatsService.kt`.
-
-**Запрещено**: использовать `0.7` напрямую в коде — только через
-константу.
+**[WARN] Поправка Pass 474: `BotScore` и `BOT_SCORE_THRESHOLD`
+не существуют** — ни класса `StatsService`, ни константы, ни поля
+`bot_score` в миграциях нет. Порогов детекции ботов в коде нет;
+описание ниже — не реализованная модель.
 
 ## Логика и Алгоритмы | Logic and Algorithms
 

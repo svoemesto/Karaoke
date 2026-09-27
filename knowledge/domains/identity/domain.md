@@ -39,10 +39,10 @@ Identity — контекст для управления пользовател
 | --- | --- | --- |
 | **SiteUser** | Пользователь сайта (читатель, редактор, админ) | `SiteUser.kt` |
 | **Session** | Серверная сессия Spring Security | `HttpSession` |
-| **Roles** | admin / editor / user | `UserRole.kt` |
-| **editor** | Роль редактора (может брать задания) | `canSelfAssign=true` |
-| **canSelfAssign** | Флаг: редактор может брать задания | `SiteUser.canSelfAssign` |
-| **isSpecialOrder** | Boolean-поле, ловушка Jackson | `SiteUser.isSpecialOrder` (нужен `@JsonProperty`) |
+| **Флаги доступа** | `isEditor` / `canSelfAssignTasks` / `canWorkWithSkipped` — enum ролей в коде отсутствует (Pass 474) | `SiteUser.kt` |
+| **editor** | Редактор (может брать задания) | `isEditor=true` |
+| **canSelfAssignTasks** | Флаг: пользователь может брать задания себе | `SiteUser.canSelfAssignTasks` |
+| **isSpecialOrder** | Boolean-поле **не identity, а catalog** — ловушка Jackson показана здесь как пример | `Author.isSpecialOrder` (нужен `@JsonProperty`) |
 | **JWT** | Не используется (только cookies) | — |
 | **cookie** | Spring Security session cookie | `JSESSIONID` |
 | **principal** | Текущий пользователь в Spring Security | `SecurityContextHolder` |
@@ -55,22 +55,26 @@ Identity — контекст для управления пользовател
 ## Aggregate Roots
 
 - **SiteUser (Пользователь сайта)**: AR контекста. Identity = `id`. Содержит
-  `email`, `passwordHash`, `roles`, `isActive`, `canSelfAssign`
-  (для редакторов), `isSpecialOrder` (см. Jackson-ловушку).
+  `email`, `passwordHash`, `isActive` и три флага доступа
+  (`isEditor`, `canSelfAssignTasks`, `canWorkWithSkipped`).
+  Enum ролей и колонки `roles` не существует (Pass 474).
   Инварианты:
   - email уникален;
   - `passwordHash` ≠ null для активных пользователей;
-  - `roles` ⊆ {admin, editor, user} (см. [dictionaries](components/dictionaries.md)).
+  - флаги доступа независимы и выставляются только админом;
+    автоматической выдачи нет (см. [dictionaries](components/dictionaries.md)).
 
 - **Session (Сессия)**: серверная сессия (Spring Security). Identity =
-  `sessionId`. Содержит `userId`, `createdAt`, `expiresAt`, `roles`.
+  `sessionId`. Содержит `userId`, `createdAt`, `expiresAt`; роли в сессии не хранятся (проверка прав идёт по флагам `SiteUser`).
   Инварианты:
   - `userId` ссылается на существующего `SiteUser`;
   - `expiresAt` > `createdAt`.
 
 ## Entities
 
-- **UserRole (Роль)**: enum ролей (admin, editor, user, guest).
+- **Флаги доступа (не роль)**: `isEditor`, `canSelfAssignTasks`,
+  `canWorkWithSkipped` на `SiteUser`. Enum `UserRole` и его значения
+  (admin/editor/user/guest) в коде отсутствуют — Pass 474.
   См. [dictionaries](components/dictionaries.md).
 - **PasswordResetToken (Токен сброса)**: для forgot-password flow.
 

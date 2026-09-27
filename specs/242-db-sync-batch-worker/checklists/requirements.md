@@ -2,8 +2,8 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-26
-**Feature**: [spec.md](spec.md)
-**Parent**: [`specs/241-db-storage-perf-audit/spec.md`](../241-db-storage-perf-audit/spec.md) — Tier-1 / FR-101
+**Feature**: [spec.md](../spec.md)
+**Parent**: [`specs/241-db-storage-perf-audit/spec.md`](../../241-db-storage-perf-audit/spec.md) — Tier-1 / FR-101
 
 ## Content Quality
 

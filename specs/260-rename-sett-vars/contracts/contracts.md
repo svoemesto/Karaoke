@@ -1,6 +1,6 @@
 # Contracts: Переименование `sett`/`settings` → `song` (260-rename-sett-vars)
 
-**Input**: [`spec.md`](./spec.md), [`research.md`](./research.md), [`data-model.md`](./data-model.md)
+**Input**: [`spec.md`](../spec.md), [`research.md`](../research.md), [`data-model.md`](../data-model.md)
 **Дата**: 2026-08-28
 
 ## TL;DR

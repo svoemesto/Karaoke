@@ -1,7 +1,7 @@
 # UI Contract: ZakromaView state и AppHeader back-link
 
 **Дата**: 2026-08-30
-**Спека**: [spec.md](spec.md)
+**Спека**: [spec.md](../spec.md)
 
 ## AppHeader.back — без изменений
 

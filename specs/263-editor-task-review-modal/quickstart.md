@@ -10,7 +10,7 @@
 
 ## Prerequisites
 
-- Локальная копия Karaoke на машине разработчика (см. [docs/onboarding.md](../../docs/onboarding.md) и [livedocs/onboarding.md](../../livedocs/onboarding.md)).
+- Локальная копия Karaoke на машине разработчика (см. [docs/onboarding.md](../../knowledge/public/onboarding.md) и [livedocs/onboarding.md](../../knowledge/public/onboarding.md)).
 - Запущенные контейнеры:
   - `karaoke-app` (admin-движок, не пересобирается агентом — см. AGENTS.md § «Категорически запрещено»).
   - `karaoke-web` (API).
@@ -211,7 +211,7 @@ getComputedStyle(document.querySelector('.se-markup')).fontSize
 
 ### Scenario 7: Все 6 точек входа `ReviewModal` (Scope check)
 
-`ReviewModal` рендерится в 6 местах (см. [livedocs/features/154-editor-tasks-manage.md](../../livedocs/features/154-editor-tasks-manage.md) и codegraph `ReviewModal.vue`):
+`ReviewModal` рендерится в 6 местах (см. [livedocs/features/154-editor-tasks-manage.md](../154-editor-tasks-manage/spec.md) и codegraph `ReviewModal.vue`):
 1. `SongEditorTable` (раздел «Задания редактора»).
 2. `SongsTable` (таблица песен).
 3. `SongEdit` (карточка песни).

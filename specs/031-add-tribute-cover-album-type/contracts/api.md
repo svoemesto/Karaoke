@@ -2,7 +2,7 @@
 
 **Phase 1 output for**: `031-add-tribute-cover-album-type`
 **Date**: 2026-07-29
-**Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
+**Spec**: [spec.md](../spec.md) | **Plan**: [plan.md](../plan.md)
 
 ## Сводка
 

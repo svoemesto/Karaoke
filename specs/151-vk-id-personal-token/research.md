@@ -384,4 +384,4 @@ VK ID не поддерживает service account (для ботов). Тол�
 - [VK API: photos.saveWallPhoto](https://dev.vk.com/ru/reference/photos/save-wall-photo)
 - [specs/138-vk-photo-preview-attachment/spec.md](../138-vk-photo-preview-attachment/spec.md)
 - [specs/121-vk-news-auto-publish/spec.md](../121-vk-news-auto-publish/spec.md)
-- [docs/features/vk-news-auto-publish.md](../../docs/features/vk-news-auto-publish.md)
+- [docs/features/vk-news-auto-publish.md](../../archive/docs/features/vk-news-auto-publish.md)

@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-27
-**Feature**: [specs/258-zakroma-routing-refactor/spec.md](./spec.md)
+**Feature**: [specs/258-zakroma-routing-refactor/spec.md](../spec.md)
 
 ## Content Quality
 

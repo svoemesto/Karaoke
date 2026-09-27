@@ -1,12 +1,12 @@
 # Tasks: Локальная Jira для AI-агента
 
 **Input**: Design documents from `/specs/295-jira-local-integration/`
-- [plan.md](./plan.md) (required) — технический стек, структура, Constitution Check
-- [spec.md](./spec.md) (required) — 5 user stories (P1, P1, P1, P2, P3)
-- [research.md](./research.md) — 12 technology decisions
-- [data-model.md](./data-model.md) — 8 entities
-- [contracts/jira-cli.md](./contracts/jira-cli.md) — CLI contract (env, 8 subcommands, HTTP handling)
-- [quickstart.md](./quickstart.md) — 3-этапный end-to-end сценарий
+- [plan.md](plan-jira.md) (required) — технический стек, структура, Constitution Check
+- [spec.md](../spec.md) (required) — 5 user stories (P1, P1, P1, P2, P3)
+- [research.md](research-jira.md) — 12 technology decisions
+- [data-model.md](data-model-jira.md) — 8 entities
+- [contracts/jira-cli.md](contract-jira-cli.md) — CLI contract (env, 8 subcommands, HTTP handling)
+- [quickstart.md](quickstart-jira.md) — 3-этапный end-to-end сценарий
 
 **Tests**: НЕ включены (соответствует Karaoke — тесты `@Disabled`, ручная проверка пользователем).
 
@@ -43,10 +43,10 @@
 - [X] T008 Реализовать `deploy/jira-db-backup.sh` — bash-скрипт по образцу `karaoke-db-backup.sh`: `set -euo pipefail`, загрузка `JIRA_DB_PASSWORD` через `set -a; source .env.local-jira; set +a`, `docker exec jira-db pg_dump -U jira -d jira_db -Fc > /backups/jira-$(date +%F).dump`, retention 7 дней через `find /backups -name 'jira-*.dump' -mtime +7 -delete`
 - [X] T009 Реализовать `deploy/jira-db-backup.service` — systemd-user unit с `[Service] Type=oneshot ExecStart=/home/nsa/Karaoke/deploy/jira-db-backup.sh`
 - [X] T010 Реализовать `deploy/jira-db-backup.timer` — systemd-user timer с `[Timer] OnCalendar=*-*-* 03:00:00 Persistent=true RandomizedDelaySec=300`, `[Install] WantedBy=timers.target`
-- [X] T011 [P] Реализовать `tools/jira-lib.sh` — общие функции: `jira_load_env()` (source .env.local-jira с валидацией обязательных переменных), `jira_http_request(METHOD, ENDPOINT, BODY)` (curl с Basic Auth, retry на 429 с backoff 2s/4s/8s до 3 попыток, exit code mapping по [contracts/jira-cli.md](../specs/295-jira-local-integration/contracts/jira-cli.md) → HTTP Status handling), `jira_log(STATUS, DURATION_MS, ERROR)` (JSON в `$LOG_FILE`), `jira_md_to_adf(MD_FILE)` (минимальный markdown→ADF конвертер для [data-model.md](../specs/295-jira-local-integration/data-model.md) Entity 3), `jira_require_jq()`, `jira_require_curl()`
+- [X] T011 [P] Реализовать `tools/jira-lib.sh` — общие функции: `jira_load_env()` (source .env.local-jira с валидацией обязательных переменных), `jira_http_request(METHOD, ENDPOINT, BODY)` (curl с Basic Auth, retry на 429 с backoff 2s/4s/8s до 3 попыток, exit code mapping по [contracts/jira-cli.md](contract-jira-cli.md) → HTTP Status handling), `jira_log(STATUS, DURATION_MS, ERROR)` (JSON в `$LOG_FILE`), `jira_md_to_adf(MD_FILE)` (минимальный markdown→ADF конвертер для [data-model.md](data-model-jira.md) Entity 3), `jira_require_jq()`, `jira_require_curl()`
 - [X] T012 [P] Реализовать `tools/jira.sh` — главный CLI: загрузка `jira-lib.sh`, `set -euo pipefail`, парсинг подкоманды (`list-projects`, `list-issues`, `get-issue`, `claim-issue`, `add-comment`, `close-issue`, `reopen-issue`, `create-issue`, `healthcheck`), `--version` флаг, help-функция, маршрутизация на функции из `jira-lib.sh` (пока stub'ы — реализация в Phase 3)
 - [X] T013 Реализовать `tools/install-jira.sh` — first-run setup: проверка Docker, создание `.env.local-jira` из `.env.local-jira.example` если нет, автодетект занятого порта 8080 (фолбэк 8090), `docker compose -f deploy/jira-docker-compose.yml up -d`, ожидание healthcheck `/status` (≤10 минут), вывод инструкций для UI-setup и создания API-токена
-- [X] T014 [P] Реализовать `tools/jira-smoke-test.sh` — end-to-end проверка по [quickstart.md](../specs/295-jira-local-integration/quickstart.md) Этап 2: 9 шагов (healthcheck → list-projects → create → get → claim → add-comment → close → final healthcheck → cleanup), каждый с проверкой exit code и timeout'ом
+- [X] T014 [P] Реализовать `tools/jira-smoke-test.sh` — end-to-end проверка по [quickstart.md](quickstart-jira.md) Этап 2: 9 шагов (healthcheck → list-projects → create → get → claim → add-comment → close → final healthcheck → cleanup), каждый с проверкой exit code и timeout'ом
 
 **Checkpoint**: Foundation готов — `docker compose -f deploy/jira-docker-compose.yml up -d` стартует Jira, бэкап работает, CLI `--version` отвечает. После прохождения Этапа 1 из `quickstart.md` (установка + first-run UI setup) можно переходить к user stories.
 

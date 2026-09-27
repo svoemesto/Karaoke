@@ -156,6 +156,6 @@ Phase 2 декомпозирует реализацию на конкретны�
 - [`data-model.md`](./data-model.md) — Phase 1 data-model (новые методы `Song.saveToDbLocked`/`loadFromDbByIdForUpdate`, поле `songSaveLockedTimeoutMs`).
 - [`quickstart.md`](./quickstart.md) — Phase 1 quickstart (dev-машина запуск + smoke test).
 - [`contracts/manual-test-checklist.md`](./contracts/manual-test-checklist.md) — manual test checklist (5 шагов).
-- [`../../281-find-lyrics-overwrites-key-bpm/spec.md`](../../281-find-lyrics-overwrites-key-bpm/spec.md) — Pass 281 спека (на которой основан этот).
-- [`../../../.specify/memory/constitution.md`](../../../.specify/memory/constitution.md) — Constitution (8 Core Principles).
-- [`../../../docs/ops/log-correlation.md`](../../../docs/ops/log-correlation.md) — карта логов прода.
+- [`../../281-find-lyrics-overwrites-key-bpm/spec.md`](spec.md) — Pass 281 спека (на которой основан этот).
+- [`../../../.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — Constitution (8 Core Principles).
+- [`../../../docs/ops/log-correlation.md`](../../docs/ops/log-correlation.md) — карта логов прода.

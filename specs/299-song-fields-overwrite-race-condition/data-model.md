@@ -193,4 +193,4 @@ song.saveToDbLocked()  // ← новая обёртка с FOR NO KEY UPDATE
 - [`plan.md`](./plan.md) — Implementation Plan.
 - [`research.md`](./research.md) — Phase 0 research (R1-R7).
 - [`contracts/manual-test-checklist.md`](./contracts/manual-test-checklist.md) — manual test checklist.
-- [`../../../docs/ops/log-correlation.md`](../../../docs/ops/log-correlation.md) — log markers (обновляется в Phase 5).
+- [`../../../docs/ops/log-correlation.md`](../../docs/ops/log-correlation.md) — log markers (обновляется в Phase 5).

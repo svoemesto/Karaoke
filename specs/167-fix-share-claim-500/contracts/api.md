@@ -1,7 +1,7 @@
 # HTTP API Contracts: Починить 500 на `POST /api/public/share/claim`
 
 **Дата**: 2026-08-11
-**Spec**: [./spec.md](./spec.md) | **Plan**: [./plan.md](./plan.md) | **Data Model**: [./data-model.md](./data-model.md)
+**Spec**: [./spec.md](../spec.md) | **Plan**: [./plan.md](../plan.md) | **Data Model**: [./data-model.md](../data-model.md)
 
 ## Что меняется
 

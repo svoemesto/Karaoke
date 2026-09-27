@@ -1,6 +1,6 @@
 # API Contracts: Изменения для site-traffic-anomaly-investigation
 
-**Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md) | **Date**: 2026-08-14
+**Spec**: [spec.md](../spec.md) | **Plan**: [plan.md](../plan.md) | **Date**: 2026-08-14
 
 Этот документ описывает изменения контрактов API для фичи 187. Включает:
 1. Изменённые существующие контракты.
@@ -292,9 +292,9 @@ docker exec karaoke-web env | grep KARAOKE_WEB_EVENTS
 
 ## См. также
 
-- [spec.md](./spec.md) — функциональные требования.
-- [plan.md](./plan.md) — имплементационный план.
-- [research.md](./research.md) — детальный аудит и обоснование решений.
-- [data-model.md](./data-model.md) — описание новых entities.
-- [quickstart.md](./quickstart.md) — ручные сценарии.
+- [spec.md](../spec.md) — функциональные требования.
+- [plan.md](../plan.md) — имплементационный план.
+- [research.md](../research.md) — детальный аудит и обоснование решений.
+- [data-model.md](../data-model.md) — описание новых entities.
+- [quickstart.md](../quickstart.md) — ручные сценарии.
 - [CONTRACT-CHECK.md](./CONTRACT-CHECK.md) — checklist обратной совместимости.

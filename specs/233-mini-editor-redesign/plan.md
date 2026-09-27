@@ -129,6 +129,6 @@ livedocs/
 ## Связанные артефакты
 
 - Спека: [`spec.md`](./spec.md) (10 FR, 5 US, 5 closed OQ, 3 open OQ)
-- Per-feature LiveDoc (создаётся): [`../../livedocs/features/233-mini-editor-redesign.md`](../../livedocs/features/233-mini-editor-redesign.md)
-- Смежные LiveDoc'и: [`../../livedocs/features/232-admin-song-editor-local-db.md`](../../livedocs/features/232-admin-song-editor-local-db.md), [`../../livedocs/features/163-fix-song-editor-regressions.md`](../../livedocs/features/163-fix-song-editor-regressions.md)
+- Per-feature LiveDoc (создаётся): [`../../livedocs/features/233-mini-editor-redesign.md`](spec.md)
+- Смежные LiveDoc'и: [`../../livedocs/features/232-admin-song-editor-local-db.md`](../232-admin-song-editor-local-db/spec.md), [`../../livedocs/features/163-fix-song-editor-regressions.md`](../163-fix-song-editor-regressions/spec.md)
 - Constitution: [`../../.specify/memory/constitution.md`](../../.specify/memory/constitution.md) (v2.1.0)

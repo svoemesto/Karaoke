@@ -1,6 +1,6 @@
 # API Contract: VK ID Personal Token
 
-**Spec**: [spec.md](./spec.md)
+**Spec**: [spec.md](../spec.md)
 
 > Контракт endpoints для VK ID OAuth flow. Все endpoints работают через HTTP.
 

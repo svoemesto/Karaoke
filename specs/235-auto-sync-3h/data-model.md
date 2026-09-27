@@ -1,6 +1,6 @@
 # Data Model: Автозапуск «Синхронизации в 1 клик» каждые 3 часа
 
-> Phase 1 output для фичи 235. Источник: [`spec.md`](../spec.md) (FR-001..FR-016), [`research.md`](../research.md).
+> Phase 1 output для фичи 235. Источник: [`spec.md`](spec.md) (FR-001..FR-016), [`research.md`](research.md).
 
 ## Обзор
 

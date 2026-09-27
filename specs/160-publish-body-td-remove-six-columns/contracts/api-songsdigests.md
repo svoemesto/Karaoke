@@ -2,7 +2,7 @@
 
 **Phase**: 1 (Design & Contracts)
 **Branch**: `160-publish-body-td-remove-six-columns`
-**Spec**: [`./spec.md`](./spec.md)
+**Spec**: [`./spec.md`](../spec.md)
 **Date**: 2026-08-06
 
 Этот документ фиксирует публичный контракт JSON-ответов, изменяемый этим PR. Бэкенд удаляет 27 неиспользуемых полей `processColor*` из всех DTO-ответов; фронт уже перестал их использовать после US1/US3.

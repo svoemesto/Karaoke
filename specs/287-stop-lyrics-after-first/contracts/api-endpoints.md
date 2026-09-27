@@ -1,6 +1,6 @@
 # API Contracts: 287 — Прекращение извлечения текста после первого успеха + ручная попытка по ссылке
 
-> **Дата**: 2026-08-31 | **Спека**: [spec.md](spec.md) | **Data Model**: [data-model.md](data-model.md)
+> **Дата**: 2026-08-31 | **Спека**: [spec.md](../spec.md) | **Data Model**: [data-model.md](../data-model.md)
 
 ## Обзор
 

@@ -10,16 +10,16 @@
 
 ## Стратегический контекст
 
-**Гипотеза** (см. [`docs/strategy/growth.md`](../growth.md)): анонимный посетитель не понимает,
+**Гипотеза** (см. [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md)): анонимный посетитель не понимает,
 что за сайт и какой контент найдёт → не регистрируется. При конверсии 0.4% (visitor→registration)
 это **главный фокус** первого раунда.
 
 **QW-9** — страница «О проекте» — лидер роадмапа. Гипотеза H1.9 из аудита.
 
 **Связанные документы:**
-- [`docs/strategy/growth.md`](../growth.md) — стратегия (раздел 5 — Top-3)
-- [`docs/strategy/growth-audit.md`](../growth-audit.md) — аудит (раздел 2.3 — H1.9)
-- [`docs/public-modules.md`](../public-modules.md) — карта публичных модулей
+- [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md) — стратегия (раздел 5 — Top-3)
+- [`docs/strategy/growth-audit.md`](../../archive/docs/strategy/growth-audit.md) — аудит (раздел 2.3 — H1.9)
+- [`docs/public-modules.md`](../../knowledge/public/c4-overview.md) — карта публичных модулей
 - [`AGENTS.md`](../../AGENTS.md) — runtime-инструкции
 
 ## User Scenarios & Testing *(mandatory)*

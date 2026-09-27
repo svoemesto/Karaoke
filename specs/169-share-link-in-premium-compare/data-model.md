@@ -21,7 +21,7 @@
 | `tbl_song_share_sessions` | DB | там же | То же. |
 
 Per-feature модель share-link полностью описана в
-[`docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md#как-работает).
+[`docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md#как-работает).
 
 ---
 
@@ -133,6 +133,6 @@ N/A — массив `COMPARISON_ROWS` immutable на всё время сесс
 
 - `PremiumView.vue:204-220` — массив `COMPARISON_ROWS` (точка правки).
 - `PremiumView.vue:56-65` — premium-блок «Что вы получили» (точка правки).
-- [`docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md) — полное описание упоминаемой фичи.
+- [`docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md) — полное описание упоминаемой фичи.
 - [`specs/005-free-vs-premium/spec.md`](../005-free-vs-premium/spec.md) — родительская спека.
 - [`specs/169-share-link-in-premium-compare/research.md`](./research.md) — построчная верификация.

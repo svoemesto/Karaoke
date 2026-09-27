@@ -1,7 +1,7 @@
 # Contract: GET /api/public/account/playlists/{id}
 
 **Branch**: `190-playlist-play-button-and-stems-cancel` | **Date**: 2026-08-14
-**Spec**: [spec.md](spec.md) | **Data model**: [data-model.md](data-model.md)
+**Spec**: [spec.md](../spec.md) | **Data model**: [data-model.md](../data-model.md)
 
 ## Endpoint
 

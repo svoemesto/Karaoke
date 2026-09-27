@@ -1,7 +1,7 @@
 # Component Contract: `<AppHeader>`
 
 **Branch**: `250-unify-site-header` | **Date**: 2026-08-27
-**Spec**: [spec.md](spec.md) | **Research**: [research.md](research.md) | **Data Model**: [data-model.md](data-model.md)
+**Spec**: [spec.md](../spec.md) | **Research**: [research.md](../research.md) | **Data Model**: [data-model.md](../data-model.md)
 
 ## Summary
 
@@ -168,7 +168,7 @@ export default {
 
 ## Tests / Verification
 
-**Unit-тесты не пишутся** (Constitution § «Рабочий процесс»: тесты в CI нет, существующие `@Disabled`). Smoke-test — ручной (см. [quickstart.md](quickstart.md)).
+**Unit-тесты не пишутся** (Constitution § «Рабочий процесс»: тесты в CI нет, существующие `@Disabled`). Smoke-test — ручной (см. [quickstart.md](../quickstart.md)).
 
 **Где проверить компонент**:
 1. Открыть `karaoke-public/src/components/AppHeader.vue` — props/slots соответствуют этому контракту.
@@ -225,4 +225,4 @@ export default {
 
 ## Next Step
 
-→ [quickstart.md](quickstart.md) — manual smoke-test guide.
+→ [quickstart.md](../quickstart.md) — manual smoke-test guide.

@@ -13,7 +13,7 @@ PR #61, `PremiumView.vue:204-220`, сейчас 11 строк). Эта фича 
 добавление 12-й строки «Временная ссылка» в `COMPARISON_ROWS`.
 
 **Почему именно сейчас.** Функционал «Временная ссылка» (share-link, см.
-[`docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md),
+[`docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md),
 [specs/163-add-song-share-link](../163-add-song-share-link/),
 [specs/164-complete-guest-share-link](../164-complete-guest-share-link/)) уже
 работает в проде с 2026-08-10 и продаётся премиум-пользователям как
@@ -22,15 +22,15 @@ PREMIUM **он отсутствует** — пользователь, изуча
 видит «Временную ссылку» как премиум-фичу. Это пробел в воронке
 registration→premium.
 
-**Гипотеза** (как и QW-1, см. [`docs/strategy/growth.md#top-3`](../../docs/strategy/growth.md)):
+**Гипотеза** (как и QW-1, см. [`docs/strategy/growth.md#top-3`](../../archive/docs/strategy/growth.md)):
 free-пользователь, **знающий** о возможности поделиться песней с друзьями без
 регистрации, охотнее платит. Сейчас эта фича нигде не упоминается в
 сравнении — часть потенциальных покупателей её просто не видит.
 
 **Связанные документы:**
 
-- [`../../docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md) — per-feature документ о share-link
-- [`../../docs/strategy/growth.md`](../../docs/strategy/growth.md) — стратегия, раздел 5 Top-3
+- [`../../docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md) — per-feature документ о share-link
+- [`../../docs/strategy/growth.md`](../../archive/docs/strategy/growth.md) — стратегия, раздел 5 Top-3
 - [`../005-free-vs-premium/spec.md`](../005-free-vs-premium/spec.md) — исходная таблица FREE vs PREMIUM
 - [`../005-free-vs-premium/quickstart.md`](../005-free-vs-premium/quickstart.md) — критерии приёмки исходной таблицы
 - [`../005-free-vs-premium/research.md`](../005-free-vs-premium/research.md) — построчная верификация исходных 12 предложенных строк → 9 утверждённых
@@ -174,7 +174,7 @@ Free-зарегистрированный пользователь (или ан�
 
 - `PremiumView.vue` — точка размещения строки.
 - `tbl_song_share_links` — таблица share-ссылок (уже есть, см.
-  [`../../docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md)).
+  [`../../docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md)).
 - `SHARE_TTL_OPTIONS` (`useShareLink.js:7-11`) — константа с TTL
   (1 час / 24 часа / 7 дней).
 - `KaraokeProperties.share_maxConcurrentSessions` — лимит устройств (=2).
@@ -218,7 +218,7 @@ Free-зарегистрированный пользователь (или ан�
 5. Стоимость реализации: 1 правка в `PremiumView.vue` (массив +
    премиум-фраза), без миграций, без новых компонентов.
 6. **Не дублировать детали share-link**, которые и так подробно описаны
-   в [`docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md)
+   в [`docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md)
    и в `ShareLinkModal.vue`. Таблица — это краткая «выжимка», не полная
    документация.
 
@@ -268,7 +268,7 @@ Free-зарегистрированный пользователь (или ан�
   эта строка — через массив `COMPARISON_ROWS`.
 - **guest-share-link** (163, 164, 166, 167) — share-link-инфра
   готова, протестирована, в проде (см.
-  [`docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md)).
+  [`docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md)).
   Эта фича только упоминает уже существующий функционал в сравнительной
   таблице.
 - **QW-9 (страница «О проекте»)** — независимая.

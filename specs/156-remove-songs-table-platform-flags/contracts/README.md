@@ -1,7 +1,7 @@
 # Contracts: Удаление 18 столбцов-флагов из таблицы «Песни»
 
 **Created**: 2026-08-06
-**Feature**: [spec.md](./spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Контракты
 

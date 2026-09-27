@@ -1,7 +1,7 @@
 # Contract: `POST /api/stats/debug`
 
 **Branch**: `174-fix-stats-connection-leak` | **Date**: 2026-08-12
-**Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md) | **Data Model**: [../data-model.md](../data-model.md)
+**Spec**: [spec.md](../spec.md) | **Plan**: [plan.md](../plan.md) | **Data Model**: [../data-model.md](../data-model.md)
 
 ## Endpoint
 

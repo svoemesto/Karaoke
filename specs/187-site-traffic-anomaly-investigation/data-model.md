@@ -365,5 +365,5 @@
 - [research.md](./research.md) — детальный аудит.
 - [contracts/](./contracts/) — API-контракты.
 - [quickstart.md](./quickstart.md) — ручные сценарии.
-- [`docs/features/stats.md`](../../docs/features/stats.md) — прецедент для in-memory cache (StatsCacheScheduler).
-- [`docs/features/dual-db-sync.md`](../../docs/features/dual-db-sync.md) — почему KaraokeConnection + thread-local.
+- [`docs/features/stats.md`](../../archive/docs/features/stats.md) — прецедент для in-memory cache (StatsCacheScheduler).
+- [`docs/features/dual-db-sync.md`](../../archive/docs/features/dual-db-sync.md) — почему KaraokeConnection + thread-local.

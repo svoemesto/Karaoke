@@ -77,7 +77,7 @@
 Использовать `LoggerFactory.getLogger("infra.prod.ping")` и `LoggerFactory.getLogger("infra.prod.db")` — **явные категории** для grep'а и условного форматирования.
 
 ### Rationale
-- По local-0005 ([livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md](../../livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md)) рекомендуется `LoggerFactory.getLogger(javaClass)`, но для **категоризированных логов** (cross-cutting concern: мониторинг инфраструктуры) явная категория лучше.
+- По local-0005 ([livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md](../../knowledge/adr/local-0005-structured-logging-karaoke-app.md)) рекомендуется `LoggerFactory.getLogger(javaClass)`, но для **категоризированных логов** (cross-cutting concern: мониторинг инфраструктуры) явная категория лучше.
 - Преимущества:
   - `grep "infra.prod.ping" log.txt` находит ВСЕ записи о пинге прода (даже если они в разных классах).
   - logback-spring.xml (если будет создан) может настроить отдельный appender для этой категории через `<logger name="infra.prod.*" level="INFO"/>`.
@@ -154,7 +154,7 @@
 ## Решение 8: Per-feature документ — обновление существующего
 
 ### Decision
-Добавить изменения `ProdContainerCheck` в существующий per-feature документ [livedocs/features/154-remove-scheduled-publications-monitoring.md](../../livedocs/features/154-remove-scheduled-publications-monitoring.md) — там уже есть секция про monitoring-checks, можно дополнить.
+Добавить изменения `ProdContainerCheck` в существующий per-feature документ [livedocs/features/154-remove-scheduled-publications-monitoring.md](../154-remove-scheduled-publications-monitoring/spec.md) — там уже есть секция про monitoring-checks, можно дополнить.
 
 ### Rationale
 - `ProdContainerCheck` — не новая фича, а модификация существующего check.

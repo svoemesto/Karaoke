@@ -2,7 +2,7 @@
 
 **Branch**: `315-admin-ui-karaoke-process-v5`
 **Date**: 2026-09-07
-**Spec**: [spec.md](./spec.md)
+**Spec**: [spec.md](../spec.md)
 **Pattern**: `StemJobsAdminController` (lesson #3 iter #1)
 
 ## Endpoints

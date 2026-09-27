@@ -2,12 +2,12 @@
 
 **Feature**: 176-authors-new-albums-badge
 **Date**: 2026-08-12
-**Spec**: [spec.md](./spec.md)
-**Related**: [data-model.md](./data-model.md)
+**Spec**: [spec.md](../spec.md)
+**Related**: [data-model.md](../data-model.md)
 
 ## Назначение
 
-Возвращает количество авторов из `tbl_authors`, для которых выполняется условие `haveNewAlbum = true` (см. [data-model.md](./data-model.md)). Используется для бейджа в левом сайдбаре админки `webvue3`.
+Возвращает количество авторов из `tbl_authors`, для которых выполняется условие `haveNewAlbum = true` (см. [data-model.md](../data-model.md)). Используется для бейджа в левом сайдбаре админки `webvue3`.
 
 ## Endpoint
 
@@ -22,7 +22,7 @@
 
 ## Параметры запроса
 
-Нет. Endpoint не принимает параметров (в т.ч. нет `target` — в отличие от `/api/chat/unreadcount`, см. D-3 в [research.md](./research.md)).
+Нет. Endpoint не принимает параметров (в т.ч. нет `target` — в отличие от `/api/chat/unreadcount`, см. D-3 в [research.md](../research.md)).
 
 ## Ответ
 
@@ -117,10 +117,10 @@ loadAuthorsWithNewAlbumCount(ctx) {
 
 - **Обратная совместимость**: endpoint новый, никаких breaking changes.
 - **Версионирование**: не применимо (нет `/v1/` префиксов, см. существующие контроллеры).
-- **Тестирование**: ручное (по [quickstart.md](./quickstart.md)). Автотестов нет (CI для бэка отсутствует — см. AGENTS.md «Тесты»).
+- **Тестирование**: ручное (по [quickstart.md](../quickstart.md)). Автотестов нет (CI для бэка отсутствует — см. AGENTS.md «Тесты»).
 
 ## Известные ограничения
 
 1. Endpoint читает только `WORKING_DATABASE = Connection.local()`. На проде (где `karaoke-app` не развёрнут) вызов вернёт ошибку, но бэкенд на проде не обслуживает админку — N/A.
 2. Не включает архивированных/удалённых авторов (в `tbl_authors` soft-delete не используется).
-3. Тег SKIP не учитывается — намеренно (см. [data-model.md](./data-model.md)).
+3. Тег SKIP не учитывается — намеренно (см. [data-model.md](../data-model.md)).

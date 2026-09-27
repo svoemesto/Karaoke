@@ -111,7 +111,7 @@ npm run lint:check
 ```
 
 **Должно быть 0 errors / 0 warnings** (отсутствие изменений в baseline —
-см. [`docs/features/ci-lint-enforcement.md`](../../docs/features/ci-lint-enforcement.md)).
+см. [`docs/features/ci-lint-enforcement.md`](../../archive/docs/features/ci-lint-enforcement.md)).
 
 Если ESLint жалуется — обычно это:
 
@@ -156,10 +156,10 @@ grep -r "Временная ссылка на песню" dist/
 
 ## Связанные документы
 
-- [`../spec.md`](../spec.md) — спецификация (FR + SC).
-- [`../research.md`](../research.md) — построчная верификация с кодом.
-- [`../data-model.md`](../data-model.md) — UI-структура COMPARISON_ROW.
-- [`../contracts/comparison-row.md`](../contracts/comparison-row.md) — UI-контракт массива.
+- [`../spec.md`](spec.md) — спецификация (FR + SC).
+- [`../research.md`](research.md) — построчная верификация с кодом.
+- [`../data-model.md`](data-model.md) — UI-структура COMPARISON_ROW.
+- [`../contracts/comparison-row.md`](contracts/comparison-row.md) — UI-контракт массива.
 - [`005-free-vs-premium/quickstart.md`](../005-free-vs-premium/quickstart.md) — аналогичная quickstart родительской фичи (шаблон).
 - [`005-free-vs-premium/spec.md`](../005-free-vs-premium/spec.md) — спека родительской фичи (что НЕ должно сломаться).
-- [`../../docs/features/guest-share-link.md`](../../docs/features/guest-share-link.md) — описание упоминаемой фичи.
+- [`../../docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md) — описание упоминаемой фичи.

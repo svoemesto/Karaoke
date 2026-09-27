@@ -334,7 +334,7 @@
    работает, но token-фаза ожидает «парный» endpoint).
 
 **Документация для продолжения работы**:
-[`docs/onboarding-handoff/012-vk-id-401-token-exchange.md`](../../../docs/onboarding-handoff/012-vk-id-401-token-exchange.md).
+[`docs/onboarding-handoff/012-vk-id-401-token-exchange.md`](../../archive/docs/onboarding-handoff/012-vk-id-401-token-exchange.md).
 
 **Workaround до решения I-1**: спека #138 (загрузка превью-фото)
 остаётся заблокированной; публикация AIR-постов ВК возможна только

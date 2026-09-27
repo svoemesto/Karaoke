@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning.
 **Created**: 2026-08-31
-**Feature**: [specs/279-fix-parent-search-folder-add/spec.md](spec.md)
+**Feature**: [specs/279-fix-parent-search-folder-add/spec.md](../spec.md)
 
 ## Content Quality
 

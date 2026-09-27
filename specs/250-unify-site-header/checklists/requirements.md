@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-27
-**Feature**: [specs/250-unify-site-header/spec.md](spec.md)
+**Feature**: [specs/250-unify-site-header/spec.md](../spec.md)
 
 ## Content Quality
 

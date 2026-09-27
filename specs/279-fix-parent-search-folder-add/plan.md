@@ -168,7 +168,7 @@ song.fields[SongField.ID_STATUS] = songToSave.fields[SongField.ID_STATUS] ?: "5"
 
 ### Шаг 5 — Документация
 
-- Обновить [livedocs/features/238-import-folder-author-album-cover.md](../../livedocs/features/238-import-folder-author-album-cover.md) — запись в `## История`: «2026-08-31: bugfix — после спеки 278 `applyDuplicateOriginal`/`applyAudioParentMarkers` пишут в БД через `songToSave`, но `newSong`/`song` в памяти оставался «грязным» (rootId=0 / audio_*=дефолт). Последующий `song.saveToDb()` внутри `findAudioParentByWaveform` (или другой код-путь) видел расхождение и перезаписывал только что записанные поля. Добавлена явная синхронизация `newSong`/`song` с записанным состоянием сразу после `songToSave.saveToDb()`.»
+- Обновить [livedocs/features/238-import-folder-author-album-cover.md](../238-import-folder-author-album-cover/spec.md) — запись в `## История`: «2026-08-31: bugfix — после спеки 278 `applyDuplicateOriginal`/`applyAudioParentMarkers` пишут в БД через `songToSave`, но `newSong`/`song` в памяти оставался «грязным» (rootId=0 / audio_*=дефолт). Последующий `song.saveToDb()` внутри `findAudioParentByWaveform` (или другой код-путь) видел расхождение и перезаписывал только что записанные поля. Добавлена явная синхронизация `newSong`/`song` с записанным состоянием сразу после `songToSave.saveToDb()`.»
 
 ## Complexity Tracking
 

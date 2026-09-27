@@ -8,18 +8,18 @@
 
 ## Стратегический контекст
 
-**Гипотеза** (см. [`docs/strategy/growth.md`](../growth.md)): free-зарегистрированный пользователь
+**Гипотеза** (см. [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md)): free-зарегистрированный пользователь
 не понимает, какие преимущества даёт премиум → не покупает. Конверсия registration→premium
 сейчас 15% (3 из 20), и из них многие покупают «вслепую».
 
 **QW-1** — третья фича в Top-3. Гипотеза H2.1 из аудита.
 
 **Связанные документы:**
-- [`docs/strategy/growth.md`](../growth.md) — стратегия (раздел 5 — Top-3)
-- [`docs/strategy/growth-audit.md`](../growth-audit.md) — аудит (раздел 3.3 — H2.1)
-- [`docs/public-modules.md`](../public-modules.md) — карта публичных модулей
-- [QW-9: страница «О проекте»](003-about-page/spec.md) — комплементарная
-- [QW-2: 5 причин зарегистрироваться](004-reasons-to-register/spec.md) — комплементарная
+- [`docs/strategy/growth.md`](../../archive/docs/strategy/growth.md) — стратегия (раздел 5 — Top-3)
+- [`docs/strategy/growth-audit.md`](../../archive/docs/strategy/growth-audit.md) — аудит (раздел 3.3 — H2.1)
+- [`docs/public-modules.md`](../../knowledge/public/c4-overview.md) — карта публичных модулей
+- [QW-9: страница «О проекте»](../003-about-page/spec.md) — комплементарная
+- [QW-2: 5 причин зарегистрироваться](../004-reasons-to-register/spec.md) — комплементарная
 
 ## User Scenarios & Testing *(mandatory)*
 

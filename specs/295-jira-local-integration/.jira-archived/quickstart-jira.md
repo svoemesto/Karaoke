@@ -1,9 +1,9 @@
 # Quickstart: Локальная Jira для AI-агента
 
 **Date**: 2026-09-02
-**Spec**: [spec.md](./spec.md)
-**Data Model**: [data-model.md](./data-model.md)
-**CLI Contract**: [contracts/jira-cli.md](./contracts/jira-cli.md)
+**Spec**: [spec.md](../spec.md)
+**Data Model**: [data-model.md](data-model-jira.md)
+**CLI Contract**: [contracts/jira-cli.md](contract-jira-cli.md)
 
 ## Что проверяет этот quickstart
 
@@ -435,7 +435,7 @@ docker start jira
 ## Что дальше
 
 После успешного quickstart:
-- ✅ Прочитать [contracts/jira-cli.md](./contracts/jira-cli.md) для полного описания CLI.
+- ✅ Прочитать [contracts/jira-cli.md](contract-jira-cli.md) для полного описания CLI.
 - ✅ Настроить polling (cron / systemd-timer для `list-issues` + автоклейм).
 - ✅ Написать `docs/jira-setup.md` с пошаговой документацией (FR-010).
 - ✅ Передать пользователю для тестирования в реальных условиях.

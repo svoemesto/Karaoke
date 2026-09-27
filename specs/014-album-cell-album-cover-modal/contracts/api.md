@@ -1,9 +1,9 @@
 # API Contracts: Альбомы — клик по ячейке открывает модалку обложки альбома
 
 **Date**: 2026-07-27
-**Spec**: [./spec.md](./spec.md)
-**Research**: [./research.md](./research.md)
-**Data Model**: [./data-model.md](./data-model.md)
+**Spec**: [./spec.md](../spec.md)
+**Research**: [./research.md](../research.md)
+**Data Model**: [./data-model.md](../data-model.md)
 
 ## Сводка
 

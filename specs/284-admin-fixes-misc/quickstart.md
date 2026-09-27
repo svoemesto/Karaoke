@@ -1,7 +1,7 @@
 # Quickstart — Админка: мелкие правки UI (SongEdit label, описание, пагинация истории)
 
-**Feature**: [../spec.md](../spec.md) | **Plan**: [../plan.md](../plan.md)
-**Контракт**: [./listeninghistory-pagination.md](./listeninghistory-pagination.md)
+**Feature**: [../spec.md](spec.md) | **Plan**: [../plan.md](plan.md)
+**Контракт**: [./listeninghistory-pagination.md](contracts/listeninghistory-pagination.md)
 
 Ручная валидация по сценариям. Все действия — в UI админки `webvue3` на LOCAL-окружении
 (см. AGENTS.md, раздел «Машинно-специфичные исключения»: на `nsa-i9`/`nsa` бэкенд

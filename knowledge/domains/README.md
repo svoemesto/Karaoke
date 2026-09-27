@@ -33,7 +33,7 @@ knowledge/domains/<name>/
 | [`health`](health/domain.md) | **New in Pass 341** | HealthReport и auto-repair (прецедент: #65, #69) |
 | [`storage`](storage/domain.md) | **New in Pass 341** | MinIO + локальные файлы (прецедент: #65, #69) |
 | [`monetization`](monetization/domain.md) | **New in Pass 341** | Тарифы, промо, корзина, подписки (visitor→premium) |
-| [`sse`](sse/domain.md) | **New in Pass 341 P2** | Real-time SSE-уведомления (14 типов событий) |
+| [`sse`](sse/domain.md) | **New in Pass 341 P2** | Real-time SSE-уведомления (17 типов событий — сверено с `SseNotificationType.kt` в Pass 472) |
 | [`persistence`](persistence/domain.md) | **New in Pass 341 P2** | `KaraokeDbTable`, reflection-based save, `recordDiff` |
 | [`integration`](integration/domain.md) | **New in Pass 345** | Внешние HTTP API (VK, TG, LM Studio, Whisper, Alignment, GeoIp, Yandex Captcha) |
 | [`karaoke-web`](karaoke-web/domain.md) | **New in Pass 362-365** | Прод-сервер, public API, YooKassa, share-линки, защита от DDoS |

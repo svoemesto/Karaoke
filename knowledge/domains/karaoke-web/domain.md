@@ -39,7 +39,13 @@ related:
 
 ### Решение 1: WebSocket/SSE через karaoke-app
 
-`karaoke-web` НЕ имеет своего SSE/WebSocket. Real-time события
+**Поправка Pass 472**: утверждение «НЕ имеет своего SSE/WebSocket»
+неверно. В `karaoke-web` есть STOMP-брокер
+(`controllers/WebSocketConfig.kt:15` — `@EnableWebSocketMessageBroker`,
+broker `/api/messages`, endpoint `/api/message` с SockJS) и
+`KaraokeWebService.WEBSOCKET: SimpMessagingTemplate`. При этом подписка
+на real-time события из `karaoke-app` действительно идёт через SSE.
+Real-time события
 приходят через `karaoke-app` (который на admin-машине). На проде
 `karaoke-web` подключается к SSE на `karaoke-app` через nginx proxy
 (обратный прокси).
@@ -113,7 +119,7 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 │   ├── Internal*Controller.kt     # 2 internal (admin→web)
 │   ├── DebugDbController.kt       # /api/public/debug/db (защищённый)
 │   ├── SiteShareLinksController.kt # Public share-ссылки
-│   └── WebSocketConfig.kt         # /ws (SSE)
+│   └── WebSocketConfig.kt         # STOMP: /api/message, broker /api/messages
 ├── services/                      # 25 сервисов
 │   ├── KaraokeWebService.kt        # Главный сервис
 │   ├── KaraokeProperties.kt        # Env-binding (~20 настроек)

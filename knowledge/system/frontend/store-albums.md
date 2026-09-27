@@ -31,8 +31,8 @@ state: {
 
 ## Hot paths
 
-- **`/api/albums/list`** — полный.
-- **`/api/albums/digestLite`** (или подобный) — лёгкий.
+- **`POST /api/albums/albumsdigests`** — полный.
+- **`POST /api/albums/albumsdigestslite`** — лёгкий.
 
 ## Связь
 

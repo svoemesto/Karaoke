@@ -34,7 +34,7 @@
 #### 1. `karaoke-web` — Spring Security + cookies
 
 - **Технология**: Spring Security (filter chain в
-  `karaoke-web/src/main/kotlin/.../security/SecurityConfig.kt`).
+  `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/SecurityConfig.kt`).
 - **Сессия**: `HttpSession`, идентифицируется `JSESSIONID` cookie.
 - **Хранилище сессий**: БД или Redis (зависит от deployment-конфига).
 - **Сценарий**: админка (`webvue3`), редакторский API, защищённые

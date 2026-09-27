@@ -159,7 +159,7 @@ end
 ### Внутренние
 
 - `Song` entity (`karaoke-app/.../model/Song.kt`).
-- `SongField.KEY`, `SongField.BPM` (`karaoke-app/.../model/SongFields.kt`).
+- `SongField.KEY`, `SongField.BPM` (`karaoke-app/.../model/SongField.kt`).
 - `AudioAnalysisResult` (`karaoke-app/.../model/AudioAnalysisResult.kt`).
 - `saveToDbLocked()` (`Song.kt`, Pass 299/357).
 - `infra.cache.keybpm` SLF4J category (новая категория по образцу `infra.cache.hrpool` Pass 128).

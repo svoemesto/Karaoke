@@ -292,11 +292,14 @@ private fun executeResolvable(reports: List<HealthReport>) {
 
 ## Known gaps (TODO для следующих Pass)
 
-- [ ] **UI-сторона**: `webvue3/src/views/HealthReportView.vue`,
-      Vuex `healthReport/store.js`, API-эндпоинт
-      `/api/health/getHealthReportList`.
-- [ ] **webvue3 `HealthReportView.vue`** + Vuex-модуль + endpoint
-      `/api/health/getHealthReportList`.
+- [x] **UI-сторона**: `webvue3/src/components/Common/HealthReport/`
+      (компоненты + Vuex `webvue3/src/components/Common/HealthReport/store.js`)
+      уже есть; API-эндпоинт — `POST /api/song/healthReportList`
+      (batch-вариант: `POST /api/song/healthReportList/batch`,
+      `ApiController.kt:7736`/`:7763`). Прежний `/api/health/getHealthReportList`
+      не существует.
+- [x] **webvue3 HealthReport UI** (`webvue3/src/components/Common/HealthReport/`)
+      + Vuex-модуль + endpoint `POST /api/song/healthReportList`.
 - [ ] **`KaraokeProcess.THREAD_LANE_HEALTH_REPORT`** — отдельная
       thread lane; см. [async-process-queue](../../processing/components/async-process-queue.md).
 - [ ] **`LEGACY_MLT_FILE_TYPES`** (строка 1107) — set из 4 типов,

@@ -22,9 +22,9 @@ state: {
 
 ## Hot paths
 
-- **`/api/pictures/list`** — дайджест.
-- **`/api/pictures/getById`** — одна картинка.
-- **`/api/pictures/update`** — редактировать.
+- **`POST /api/pictures/picturesdigests`** — дайджест.
+- **`POST /api/picture`** — одна картинка.
+- **`POST /api/pictures/updatepicture`** — редактировать.
 
 ## Связь
 

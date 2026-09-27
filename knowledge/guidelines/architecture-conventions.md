@@ -70,7 +70,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 
 **Protocol**:
 - Никогда не использовать `replace` если `drop` сохраняет идемпотентность.
-- Тесты: `tests/unit/SanitizePathTest.kt` проверяет идемпотентность.
+- Тесты: `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt` проверяет идемпотентность.
 
 **Failure**: Нарушение → потеря данных при импорте (issue #53: `!`/`?`
 молча удалялись → файлы не находились).
@@ -94,7 +94,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 - webvue3/karaoke-public player (headless mp4 export, admin).
 
 **Failure**: Упоминание MP4 в публичных UI-обещаниях → нарушение оферты
-(`offer.html`), legal/compliance риск.
+(`karaoke-public/src/views/OfertaView.vue`), legal/compliance риск.
 
 **Enforcement**: `tools/check-no-mp4-mentions.sh` (Pass 379, R-11).
 

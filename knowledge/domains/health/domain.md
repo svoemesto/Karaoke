@@ -216,7 +216,7 @@ stats-инфраструктуры (кеш метрик + `pg_stat_activity`), �
 - [ ] **`StatsCache` / `StatsDebugController`** — связь HealthReport
   с admin-метриками не описана.
 - [ ] **webvue3 сторона**: `HealthReportView.vue` (нужно найти
-  и описать UI), Vuex-модуль `healthReport/store.js`.
+  и описать UI), Vuex-модуль `webvue3/src/components/Common/HealthReport/store.js`.
 - [ ] **`KaraokeProcess.THREAD_LANE_HEALTH_REPORT`** — отдельная
   thread-lane для repair-процессов; связана с Async Process Queue
   (Pass 342).

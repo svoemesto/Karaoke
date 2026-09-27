@@ -1,11 +1,11 @@
-# Vuex stores: remaining detailed (6 stores)
+# Vuex stores: remaining detailed (7 stores)
 
 > **Домен**: system (frontend)
 > **Компонента**: детальный каталог 6 оставшихся stores
 > (ListeningHistory, ShareLinks, Publish, SponsrSync, Chat,
 > NewsTemplates, HealthReport UI, Monitor UI).
 
-## Файлы (8 stores)
+## Файлы (7 stores)
 
 | Store | Файл | Строк | Назначение |
 |---|---|---|---|
@@ -13,7 +13,7 @@
 | `ShareLinks` | `webvue3/.../ShareLinks/store.js` | 104 | Share-ссылки (admin) |
 | `Publish` | `webvue3/.../Publish/store.js` | 201 | Публикации (admin) — **самый сложный** |
 | `SponsrSync` | `webvue3/.../SponsrSync/store.js` | 92 | Sync с Sponsr (status) |
-| `NewsTemplates` | `webvue3/.../NewsTemplates/store.js` | ? | Шаблоны новостей |
+| `NewsTemplates` | [WARN] отдельного store нет (проверено 2026-09-27); шаблоны — компонент `webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue` внутри `PublishTemplatesView.vue` | — | Шаблоны новостей |
 | `HealthReport` | `webvue3/.../Common/HealthReport/store.js` | 74 | HealthReport UI |
 | `Monitor` | `webvue3/.../Common/Monitor/store.js` | 64 | Мониторинг UI (alerts) |
 
@@ -23,14 +23,14 @@
 
 - `listeningHistoryDigest: []` — текущая страница.
 - `listeningHistoryDigestTotalCount: 0` — для пагинации.
-- Endpoint: `/api/listening-history/list`.
+- Endpoint: `/api/listeninghistory/digest`.
 
 См. [ListeningHistory](../../domains/catalog/components/entities-catalog.md#listeninghistory).
 
 ### `ShareLinks`
 
 - `shareLinksDigest: []`, `shareLinksDigestTotalCount: 0`.
-- Endpoint: `/api/sharelinks/list`.
+- Endpoint: `/api/sharelinks/digest`.
 
 См. [SongShareLinkService](../../domains/karaoke-web/components/song-share-link-service.md).
 
@@ -47,7 +47,7 @@
   [schedulers.md](../../domains/processing/components/schedulers.md)).
 - `sponsrSyncIsLoading`, `lastRun`, `last10` (history).
 
-Endpoint: `/api/sponsr-sync/status`.
+Endpoint: `/api/sponsrsync/status`.
 
 ### `Chat` (218 строк, **самый большой** из оставшихся)
 

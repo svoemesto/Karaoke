@@ -24,7 +24,8 @@ state: {
 - `updateHealthReportList(state, result)` — mutation.
 - `setHealthReportListIsLoading(state, isLoading)` — mutation.
 
-**Hot path**: `loadHealthReport(songId)` — fetches `/api/health/list` для
+**Hot path**: `loadHealthReport(songId)` — fetches
+`POST /api/song/healthReportList` для
 одной песни. **HR-очередь** (Pass 341 P0, `HR_MAX_CONCURRENT=3`).
 
 ## Monitor store

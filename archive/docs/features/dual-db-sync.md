@@ -194,7 +194,7 @@ summary или пользовательские логи. `tbl_song_share_sessio
   Из этих 4126 не создано НИ ОДНОЙ новости — похоже, у них никогда не пересчитывались персистентные
   флаги готовности (`stemAccompanimentReady`/`stemVocalReady`/`pictureAlbumReady`/`pictureAuthorReady`,
   см. `Song.isContentReady`), из-за чего они и не пройдут `isPubliclyWatchable`. Это значит, что даже
-  backfill (`/api/news/backfill-announcements`) не решил бы проблему — та же фильтрация исключила бы
+  backfill (`POST /api/utils/backfillnewsavailable`) не решил бы проблему — та же фильтрация исключила бы
   все 4126, оставив их непомеченными навсегда, и то же 58-секундное сканирование повторялось бы на
   КАЖДОМ последующем триггере бесконечно (не разовый бэклог, а постоянно воспроизводимый баг).
   Исправлено: `checkAndAnnounce`, вызываемый из `approve()`, теперь запускается в фоновом

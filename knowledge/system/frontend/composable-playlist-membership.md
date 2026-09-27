@@ -38,8 +38,8 @@ const loading = reactive({})
   backward-compat) — старый CSV-эндпоинт, ломается на ~1350+ id (414).
   См. [ADR-0009](../../adr/0009-get-vs-post-large-payload.md) и
   [specs/361](../../../specs/361-playlists-membership-uri-length/spec.md).
-- **`/api/public/playlist/{id}/add`** — добавить.
-- **`/api/public/playlist/{id}/remove`** — удалить.
+- **`POST /api/public/account/playlists/{id}/addsong`** — добавить.
+- **`POST /api/public/account/playlists/{id}/removesong`** — удалить.
 
 ## Связь
 

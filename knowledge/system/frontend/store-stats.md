@@ -57,9 +57,9 @@ GET (устоявшийся квирк проекта), поэтому все п
 
 - **`/api/stats/summary`** — сводка.
 - **`/api/stats/timeseries`** — временной ряд.
-- **`/api/stats/bytype`** / **`/api/stats/channels`** — разбивки.
+- **`/api/stats/by-type`** / **`/api/stats/channels`** — разбивки.
 - **`/api/stats/countries`** — география (см. [GeoIp](../../integration/components/external-api-clients.md#geoipservice)).
-- **`/api/stats/topusers`** / **`/api/stats/toplistened`** / **`/api/stats/statsBySong`**.
+- **`/api/stats/top-users`** / **`/api/stats/top-listened`** / **`/api/stats/by-song`**.
 
 ## Контракт загрузки вкладок (spec 478, OP #184)
 

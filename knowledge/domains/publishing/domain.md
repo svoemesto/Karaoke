@@ -38,7 +38,7 @@ Publishing — контекст, отвечающий за **доставку к
 
 | Термин | Определение | Пример в коде |
 | --- | --- | --- |
-| **Эфир (On-Air)** | Песня в открытом доступе (`publishDate` истёк) | `Stat.kt` (формула «В открытом доступе») |
+| **Эфир (On-Air)** | Песня в открытом доступе (`publishDate` истёк) | `StatBySong.kt` (формула «В открытом доступе») |
 | **Эфирная песня** | То же, что On-Air | `Song.kt` |
 | **Exclusive** | Доступна только по подписке | `tbl_settings.is_exclusive` |
 | **premium-only** | Доступна только подписчикам | `AccessMode.premium-only` |
@@ -48,7 +48,7 @@ Publishing — контекст, отвечающий за **доставку к
 | **Grandfathered** | Старая песня, ставшая эфирной до введения premium | обсуждается (Pass 2+) |
 | **Воронка** | visitor→registration→premium | `archive/docs/strategy/growth.md` |
 | **publish_date / publish_time** | Когда песня станет эфирной | `tbl_settings.publish_date/time` |
-| **StatBySong** | Счётчики главной страницы | `Stat.kt`, `StatsCacheScheduler` |
+| **StatBySong** | Счётчики главной страницы | `karaoke-web/.../StatBySong.kt`, `karaoke-web/.../services/StatsCacheScheduler.kt` |
 
 Полный словарь магических кодов (`AccessMode`, `VisitorType`,
 `BotScore`) — см. [dictionaries](components/dictionaries.md). Детали
@@ -116,7 +116,7 @@ Publishing — контекст, отвечающий за **доставку к
 4. **`StatBySong` кеш обновляется раз в час**: `StatsCacheScheduler`
    читает из БД и обновляет AtomicInteger. Не чаще, чтобы не нагружать БД.
 5. **`BotScore > 0.7` = bad_bot**: такие визиты не учитываются в
-   счётчиках главной страницы (см. `Stat.kt`).
+   счётчиках главной страницы (см. `karaoke-web/.../StatBySong.kt`).
 
 ## Публичные контракты (API)
 
@@ -149,7 +149,8 @@ Publishing — контекст, отвечающий за **доставку к
 
 - Модели: `karaoke-app/src/main/kotlin/.../model/Song.kt` (`publishDate`/
   `isExclusive`), `Subscription.kt`
-- Сервисы: `StatsService.kt`, `StatsCacheScheduler.kt`
+- Сервисы: `karaoke-web/.../StatBySong.kt` (singleton-кеш),
+  `karaoke-web/.../services/StatsCacheScheduler.kt`
 - Контроллеры: `PublicApiController.kt` (`/api/stats`), `MainController.kt` (Thymeleaf)
 - SQL: `deploy/karaoke-db/<NNN>_tbl_settings_publish.sql`,
   `<NNN>_tbl_subscriptions.sql`

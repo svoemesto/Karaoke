@@ -14,26 +14,26 @@
 | View | Назначение | Backend endpoints |
 |---|---|---|
 | `HomeView.vue` | Главная (dashboard, мониторинг) | `/api/monitor/...` |
-| `SongsView.vue` | **Главная таблица** — список песен | `/api/songs/list` |
-| `AlbumsView.vue` | Альбомы | `/api/albums/list` |
-| `AuthorsView.vue` | Авторы | `/api/authors/list` |
-| `PicturesView.vue` | Картинки | `/api/pictures/list` |
-| `DictionariesView.vue` | Словари | `/api/dictionaries/list` |
-| `NewsView.vue` | Новости | `/api/news/list` |
-| `NewsTemplatesView.vue` | Шаблоны новостей | `/api/news/templates` |
-| `ListeningHistoryView.vue` | История прослушиваний | `/api/listening-history/list` |
-| `PublicSettingsView.vue` | Публичные настройки | `/api/public-settings/list` |
-| `PromotionsView.vue` | Акции (PromoRule) | `/api/promorules/list` |
+| `SongsView.vue` | **Главная таблица** — список песен | `POST /api/songs` |
+| `AlbumsView.vue` | Альбомы | `POST /api/albums/albumsdigests` |
+| `AuthorsView.vue` | Авторы | `POST /api/authors/authorsdigests` |
+| `PicturesView.vue` | Картинки | `POST /api/pictures/picturesdigests` |
+| `DictionariesView.vue` | Словари | `POST /api/dictionaries/list` |
+| `NewsView.vue` | Новости | `POST /api/news/list` |
+| — | Шаблоны новостей (вкладка `PublishTemplatesView.vue`, стр. 36) | `/api/news/templates` |
+| `ListeningHistoryView.vue` | История прослушиваний | `/api/listeninghistory/digest` |
+| `PublicSettingsView.vue` | Публичные настройки | `POST /api/publicsettings/digest` |
+| `PromotionsView.vue` | Акции (PromoRule) | `POST /api/promorules/list` |
 | `PropertiesView.vue` | Karaoke.properties (UI редактор) | `/api/properties/getproperty` |
-| `TariffsView.vue` | Тарифы | `/api/tariffs/list` |
-| `SubscriptionsView.vue` | Подписки | `/api/subscriptions/list` |
-| `SiteUsersView.vue` | Пользователи сайта | `/api/siteusers/list` |
-| `SitePlaylistsView.vue` | Плейлисты | `/api/siteplaylists/list` |
-| `ShareLinksView.vue` | Share-ссылки | `/api/sharelinks/list` |
+| `TariffsView.vue` | Тарифы | `POST /api/tariffs/list` |
+| `SubscriptionsView.vue` | Подписки | `/api/subscriptions/digest` |
+| `SiteUsersView.vue` | Пользователи сайта | `/api/siteusers/digest` |
+| `SitePlaylistsView.vue` | Плейлисты | `/api/siteplaylists/digest` |
+| `ShareLinksView.vue` | Share-ссылки | `/api/sharelinks/digest` |
 | `SongEditorView.vue` | Редактор песни (открытие SongEdit) | `/api/song/...` |
 | `PlayerView.vue` | Плеер (headless-режим для рендера + обычный) | `/api/public/player/...` |
-| `PublishView.vue` | Публикации | `/api/publish/list` |
-| `PublishTemplatesView.vue` | Шаблоны публикаций | `/api/publish/templates` |
+| `PublishView.vue` | Публикации | `/api/publicationsdigest` |
+| `PublishTemplatesView.vue` | Шаблоны публикаций | `/api/vk/templates`, `/api/telegram/templates` |
 | `SponsrSyncView.vue` | Sync с Sponsr | (см. SponsrSyncScheduler) |
 | `SyncView.vue` | Двух-БД sync | `/api/sync/...` |
 | `ProcessesView.vue` | Async-очередь | `/api/admin/processes` |

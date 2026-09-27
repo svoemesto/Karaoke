@@ -51,8 +51,8 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 | Термин | Определение | Пример в коде |
 | --- | --- | --- |
-| **MLT (melt)** | Формат проекта видеоредактора melt | `mlt/mko/*.kt`, `MLTProject.kt` |
-| **Стем (Stem)** | Разделённая аудио-дорожка (vocals / acc) | `Stems.kt`, `vocals.flac` |
+| **MLT (melt)** | Формат проекта видеоредактора melt | `mlt/mko/*.kt`, `mlt/MltGenerator.kt` |
+| **Стем (Stem)** | Разделённая аудио-дорожка (vocals / acc) | `model/StemJob.kt`, `vocals.flac` |
 | **AudioAnalize** | Локальный CLI для аудио-анализа (заменяет Demucs/Sheetsage в текущей кодовой базе) | `AudioAnalize.kt`, `AudioAnalize2.kt` |
 | **LYRICS** | Версия рендера: acc(1.0)+voc(1.0), 1920×1080@60fps | `RenderVersion.LYRICS` |
 | **KARAOKE** | Версия рендера: acc(1.0)+voc(0.0), 1920×1080@60fps | `RenderVersion.KARAOKE` |

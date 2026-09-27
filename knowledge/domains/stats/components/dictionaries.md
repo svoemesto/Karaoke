@@ -120,8 +120,16 @@ fun computeFunnel(): FunnelStats {
 }
 ```
 
-**Использование**: webvue3 `/api/admin/stats/funnel` + `docs/strategy/growth.md`
-(baseline-funnel для отслеживания роста).
+**Использование**: `docs/strategy/growth.md` (baseline-funnel для
+отслеживания роста).
+
+> **[WARN] Поправка 2026-09-27: эндпоинта `/api/admin/stats/funnel` (и типа
+> `FunnelStats`) в коде нет** — grep по `*.kt`/`*.js`/`*.vue` даёт 0
+> вхождений. Алгоритм воронки выше — ЗАДУМАННЫЙ (см. [WARN] в
+> [domain.md](../domain.md) и [event-funnel.md](event-funnel.md)). Реальная
+> статистика отдаётся `GET /api/stats/*` (`StatsController`:
+> `/api/stats/summary`, `/by-type`, `/by-song`, `/top-users`,
+> `/top-listened`, `/monetization`).
 
 ## Зависимости | Dependencies
 

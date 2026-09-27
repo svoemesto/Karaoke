@@ -27,7 +27,9 @@
 | `APPROVED` | Админ одобрил, pipeline запущен. |
 | `REJECTED` | Админ отклонил. |
 
-**Место определения**: `karaoke-app/.../model/ApprovalStatus.kt`.
+**Место определения**: [WARN] файла ApprovalStatus.kt в репозитории нет
+(проверено 2026-09-27) — см. [domain](../domain.md); реальные статусы —
+`model/SongAssignmentStatus.kt`.
 
 **Использование**:
 
@@ -43,7 +45,9 @@
 | `5` | LYRICS + KARAOKE рендер | `RenderVersion.LYRICS`, `KARAOKE` |
 | `6` | DEMO рендер + Telegram-новость | `RenderVersion.DEMO` |
 
-**Место определения**: `karaoke-app/.../model/TargetIdStatus.kt`.
+**Место определения**: [WARN] файла TargetIdStatus.kt в репозитории нет
+(проверено 2026-09-27); целевой статус задаётся через `SongState.kt` /
+`model/SongAssignmentStatus.kt`.
 
 **Связь с [catalog domain](../../catalog/domain.md)**: `idStatus=5`
 означает `RENDERED`, `idStatus=6` — `APPROVED` (см.
@@ -63,8 +67,9 @@
 | `assignment_not_mine` | 403 | Попытка revoke чужого задания. |
 | `review_already_done` | 409 | Повторный approve/reject. |
 
-**Место определения**: константы в `PublicSongEditorController.kt`,
-`AdminReviewTaskController.kt`.
+**Место определения**: константы в `karaoke-web/.../controllers/PublicSongeditorController.kt`
+(регистр в имени файла важен) и `karaoke-app/.../controllers/SongEditorController.kt`;
+файла AdminReviewTaskController.kt в репозитории нет (проверено 2026-09-27).
 
 **Запрещено**: расхождение error code между контроллером и документацией.
 Любое изменение error code = обновить эту таблицу.

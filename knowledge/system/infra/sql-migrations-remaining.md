@@ -116,8 +116,12 @@ ALTER TABLE tbl_authors ADD is_special_order BOOLEAN DEFAULT false;
 
 ## NNN 28-30+
 
-**NNN 28**: (если есть — `28_publishing.sql`).
-**NNN 29-30**: (если есть — `29_stem_jobs_cleanup.sql`, `30_subscription.sql`).
+**NNN 28**: `28_rename_settings_to_songs.sql` (переименование tbl_settings → tbl_songs).
+**NNN 29**: `29_albums.sql` (таблица альбомов + `tbl_songs.album_id`).
+**NNN 30**: `30_song_coauthors.sql` (соавторы, `tbl_song_authors`).
+
+[WARN] Прежние имена 28_publishing.sql / 29_stem_jobs_cleanup.sql /
+30_subscription.sql в репозитории не найдены (проверено 2026-09-27).
 
 ## Связь
 

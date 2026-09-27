@@ -12,7 +12,7 @@
 | `useSiteSubscription` | `karaoke-public/.../useSiteSubscription.js` | 81 | Подписка на сайт (scope=SITE) |
 | `useSongSubscription` | `karaoke-public/.../useSongSubscription.js` | 60 | Подписка на 1 песню (scope=SONG) |
 | `useSongSubscriptions` | `karaoke-public/.../useSongSubscriptions.js` | 53 | Module-level singleton — Set<id> песен с подпиской |
-| `usePlayerGestureUnlock` | `karaoke-web/.../usePlayerGestureUnlock.js` (175) | 175 | Gesture unlock для мобильного плеера |
+| `usePlayerGestureUnlock` | [WARN] JS-файла в репозитории нет (проверено 2026-09-27); backend — `karaoke-web/.../services/PlayerGestureUnlockService.kt`, клиентский плеер — `karaoke-public/src/player/KaraokePlayer.js` | — | Gesture unlock для мобильного плеера |
 | `editorStatus` | `karaoke-public/.../editorStatus.js` | 9 | ENUM-метки статусов редактора |
 
 ## Детальные контракты

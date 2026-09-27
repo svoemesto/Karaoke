@@ -22,7 +22,7 @@
 
 ### `StatBySong` — singleton с AtomicInteger-полями
 
-- **Где**: `karaoke-app/src/main/kotlin/.../StatsService.kt`.
+- **Где**: `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt`.
 - **Поля**:
   - `totalSongs: AtomicInteger` — всего песен в каталоге.
   - `openAccessSongs: AtomicInteger` — `AccessMode.OPEN`.

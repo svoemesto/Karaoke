@@ -44,7 +44,7 @@
 | `Album` | `tbl_albums` | `AlbumsSyncTarget`: `albums`, LOCAL_TO_SERVER | `/api/albums/*` | `Albums/store.js` |
 | `Author` | `tbl_authors` | `AuthorsSyncTarget`: `authors`, LOCAL_TO_SERVER | `/api/authors/*` | `Authors/store.js` |
 | `Pictures` | `tbl_pictures` | `PicturesSyncTarget`: `pictures`, LOCAL_TO_SERVER | `POST /api/pictures/updatepicture`, `POST /api/pictures/picturesdigests`, `GET /api/picture/file` | `Pictures/store.js` |
-| `News` | `tbl_news` | `NewsSyncTarget`: `news`, LOCAL_TO_SERVER | `/api/news/*` | `News/store.js` + `NewsTemplates/store.js` |
+| `News` | `tbl_news` | `NewsSyncTarget`: `news`, LOCAL_TO_SERVER | `/api/news/*` | `News/store.js` + компонент `NewsTemplates/NewsTemplatesEditor.vue` |
 | `Dictionary` | `tbl_dictionaries` | `DictionariesSyncTarget`: `dictionaries`, LOCAL_TO_SERVER | `/api/dictionaries/*` | `Dictionaries/store.js` |
 | `SongCoAuthor` | `tbl_song_authors` | `SongCoAuthorsSyncTarget`: `songcoauthors`, LOCAL_TO_SERVER | через `SongEditorController` | — |
 | `SongShareLink` | `tbl_song_share_links` | `ShareLinksSyncTarget`: `sharelinks`, SERVER_TO_LOCAL | `SiteShareLinksController` (karaoke-web), `ShareLinksAdminController` | `ShareLinks/store.js` |
@@ -244,7 +244,8 @@ LOCAL_TO_SERVER`; операции — по флагам `sync_pictures_*`).
 **Шаблоны**: `NewsTemplateService.kt` + `NewsTemplateController.kt` —
 готовые шаблоны для `category=air|premium|feature`.
 
-**Vuex**: `webvue3/src/components/News/store.js` + `NewsTemplates/store.js`.
+**Vuex**: `webvue3/src/components/News/store.js` (отдельного NewsTemplates-store нет;
+UI — `webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue`).
 
 **Ловушки**:
 

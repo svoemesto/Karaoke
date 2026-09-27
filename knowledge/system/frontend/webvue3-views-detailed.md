@@ -23,7 +23,7 @@
 | 5 | `PicturesView.vue` | `views/PicturesView.vue` | `Pictures/PicturesTable` | Картинки |
 | 6 | `DictionariesView.vue` | `views/DictionariesView.vue` | `Dictionaries/DictionariesTable` | Словари |
 | 7 | `NewsView.vue` | `views/NewsView.vue` | `News/NewsTable` | Новости (с пагинацией 35/page) |
-| 8 | `NewsTemplatesView.vue` | `views/NewsTemplatesView.vue` | `NewsTemplates/NewsTemplatesTable` | Шаблоны |
+| 8 | — | — | `NewsTemplates/NewsTemplatesEditor.vue` (вкладка в `PublishTemplatesView.vue`, стр. 21) | Шаблоны (отдельного view нет) |
 | 9 | `ListeningHistoryView.vue` | `views/ListeningHistoryView.vue` | `ListeningHistory/ListeningHistoryTable` | История |
 | 10 | `PublicSettingsView.vue` | `views/PublicSettingsView.vue` | `PublicSettings/PublicSettingsTable` | Публичные настройки |
 | 11 | `PromotionsView.vue` | `views/PromotionsView.vue` | `Promotions/PromotionsTable` | Акции |
@@ -34,7 +34,7 @@
 | 16 | `SitePlaylistsView.vue` | `views/SitePlaylistsView.vue` | `SitePlaylists/SitePlaylistsTable` | Плейлисты (read-only) |
 | 17 | `ShareLinksView.vue` | `views/ShareLinksView.vue` | `ShareLinks/ShareLinksTable` | Share-ссылки |
 | 18 | `SongEditorView.vue` | `views/SongEditorView.vue` | `SongEditor/SongEdit` (nested) | **Сложный** — открывает SongEdit.vue |
-| 19 | `PlayerView.vue` | `views/PlayerView.vue` | `Player.vue` | Плеер (headless + обычный) |
+| 19 | `PlayerView.vue` | `views/PlayerView.vue` | `player/KaraokePlayer.js` | Плеер (headless + обычный) |
 | 20 | `PublishView.vue` | `views/PublishView.vue` | `Publish/PublishTable` | Публикации |
 | 21 | `PublishTemplatesView.vue` | `views/PublishTemplatesView.vue` | — | Шаблоны публикаций |
 | 22 | `SponsrSyncView.vue` | `views/SponsrSyncView.vue` | `SponsrSync/SponsrSyncView` | Sync с Sponsr |

@@ -158,18 +158,20 @@ related:
 
 ## Архитектура
 
-- **Модели**: `karaoke-app/.../model/Stat.kt`, `SiteEvent.kt`.
-- **Сервисы**: `karaoke-app/.../service/StatsService.kt`, `BotDetectionService.kt`.
-- **Scheduler**: `karaoke-app/.../schedulers/StatsCacheScheduler.kt` (60-минутный).
+- **Модели**: `karaoke-app/.../model/StatBySong.kt`, `WebEvent.kt`.
+- **Сервисы**: `karaoke-app/.../services/StatsCache.kt` (TTL-кеш агрегатов);
+  сервиса bot-detection (BotDetectionService.kt) в репозитории нет.
+- **Scheduler**: `karaoke-web/.../services/StatsCacheScheduler.kt` (часовой cron + dirty-триггер).
 - **БД**: `tbl_settings` (legacy), `tbl_events`.
 
 ## Код (физическая реализация)
 
-- Frontend: `karaoke-public/src/components/StatsView.vue`, `LatestNewsBlock.vue`.
+- Frontend: `karaoke-public/src/components/LatestNewsSection.vue` (блок новостей на главной;
+  публичного `StatsView.vue` в karaoke-public нет — admin-статистика ниже).
 - Frontend: `webvue3/src/views/StatsView.vue` (admin — ленивая загрузка по
   активной вкладке, `loadDataForActiveTab`; было «11 параллельных endpoint'ов»
   до спеки 362, см. `knowledge/system/frontend/store-stats.md`).
 - Приёмка вкладок админ-статистики: `webvue3/scripts/check-stats-tabs.mjs`
   (spec `478-fix-admin-stats-tabs`, OP #184).
-- Frontend: `webvue3/src/store/modules/stats/store.js` (Vuex module с StatsSnapshot).
+- Frontend: `webvue3/src/components/Stats/store.js` (Vuex module с StatsSnapshot).
 - Backend API: `GET /api/public/stats/{summary,by-type,by-song,countries,referrers,by-year,webevents}`.

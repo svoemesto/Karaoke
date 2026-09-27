@@ -35,9 +35,9 @@ Target оставлен переключаемым (как у Чата) для *
 
 ## Hot paths
 
-- **`/api/news/list`** — дайджест (текущая страница).
-- **`/api/news/save`** — создать/обновить.
-- **`/api/news/delete`** — удалить.
+- **`POST /api/news/list`** — дайджест (текущая страница).
+- **`POST /api/news/create`** / **`POST /api/news/update`** — создать/обновить.
+- **`POST /api/news/delete`** — удалить.
 
 ## Pagination (specs/090-news-pagination)
 

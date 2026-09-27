@@ -109,7 +109,7 @@ Producer'ы для отображения **аккордов** на экране
    template()` и `filterQtblend(mkoBackChordsProducerRect)`; `filePlaylist()`
    начинается с `blank(inOffsetVideo)`.
 
-## Каталог (10 файлов)
+## Каталог (9 файлов)
 
 | # | Mko | ProducerType | Что |
 |---|---|---|---|

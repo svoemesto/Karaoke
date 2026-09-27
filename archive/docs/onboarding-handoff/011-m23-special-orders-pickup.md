@@ -75,7 +75,7 @@ store/modules/zakroma.js и composables/usePlayerReadiness.js — там вся 
    `is_special_order` в БД будут null).
 3. Бэкенд `/api/public/zakroma?specialBucket=true` — одним запросом список
    спецзаказных авторов + их песни с правильной группировкой.
-4. Создать `SpecialBucketView.vue` + маршрут `/special-bucket` + ссылку
+4. Создать `SpecialBucketView.vue` (в репозитории отсутствует — пункт плана, проверено 2026-09-27) + маршрут `/special-bucket` + ссылку
    в навигации (главная или футер).
 5. Удалить старую логику (`virtualSpecialZak`, `displayedZakroma`,
    `isSpecialBucketSelected`) из `ZakromaView.vue`.

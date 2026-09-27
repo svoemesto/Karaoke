@@ -43,7 +43,7 @@
   `tbl_site_chat_messages`) — append-only PROD-only.
 - **MUST**: `songId=0` (нет привязки к `Song`/`tbl_songs`).
 - **MUST**: файл передаётся karaoke-app через HTTP с `X-Internal-Secret`
-  (см. [DEVELOPMENT.md#premium-фича-создать-минусовку-из-аудиофайла-stemjob-tbl_stem_jobs](../../DEVELOPMENT.md)).
+  (см. [DEVELOPMENT.md#premium-фича-создать-минусовку-из-аудиофайла-stemjob-tbl_stem_jobs](../../../DEVELOPMENT.md)).
 - **MUST**: премиум-доступ проверяется на стороне karaoke-web
   (через `tbl_site_users` и подписку).
 - **SHOULD**: `Demucs5` (5 стемов) значительно дольше `Demucs2`
@@ -66,5 +66,5 @@
 - [`StemJobsAdminController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StemJobsAdminController.kt) — admin-управление
 - [`StemJobPollScheduler.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt) — polling из karaoke-web
 - [`StemJobCleanup.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobCleanup.kt) — очистка старых заданий
-- [`tbl_stem_jobs.sql`](../../deploy/karaoke-db/) — таблица
-- [`docs/stemjobs-admin-guide.md`](../stemjobs-admin-guide.md) — настройка и эксплуатация
+- [`22_stem_jobs.sql`](../../../deploy/karaoke-db/22_stem_jobs.sql) — таблица
+- Админ-гайд по StemJob (`docs/stemjobs-admin-guide.md`) в репозитории отсутствует — эксплуатация описана в разделе ниже.

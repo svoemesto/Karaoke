@@ -62,7 +62,7 @@
 ## Инварианты / правила
 
 - **MUST**: `ProcessBuilder.redirectErrorStream(true)` ВСЕГДА (см.
-  [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../CONTRIBUTING.md)).
+  [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../../CONTRIBUTING.md)).
   `false` ЗАПРЕЩЁН — буфер stderr переполняется.
 - **MUST**: каждый новый `KaraokeProcessTypes` имеет явное `runFunctionWithArgs`
   ИЛИ вызов `Utils.execute*` через subprocess. Нет «магических» путей

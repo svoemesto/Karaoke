@@ -59,7 +59,7 @@ WO_VKG / BOOSTY_SPONSR и т.д.), привязанную к публикаци�
 ### Цвет и потребители
 
 `SongDTO.color` / `SongDTOdigest.color` остаются существующими полями DTO. Контрактная таблица —
-[`contracts/song-state-color.md`](../../specs/155-song-state-colors/contracts/song-state-color.md).
+[`contracts/song-state-color.md`](../../../specs/155-song-state-colors/contracts/song-state-color.md).
 Фронт-рендер — везде только через `:style="{ backgroundColor: data.item.color }"`
 (`SongsTable.vue`, `PublishTableBodyTd.vue`); никаких логических веток по `SongState` во Vue
 не остаётся.
@@ -99,15 +99,15 @@ WO_VKG / BOOSTY_SPONSR и т.д.), привязанную к публикаци�
   осталась без цвета — проверять, что `loadListFromDb` действительно применил fallback.
 - **SSE/обновление строки**: `SongDTO.color` обновляется через тот же endpoint `/song/update`
   и пробрасывается в Vuex; для проверки согласованности цвета между таблицами достаточно
-  выполнить quickstart-шаг 5 из [`quickstart.md`](../../specs/155-song-state-colors/quickstart.md).
+  выполнить quickstart-шаг 5 из [`quickstart.md`](../../../specs/155-song-state-colors/quickstart.md).
 
 ## Ссылки
 
-- [Спека фичи `specs/155-song-state-colors/spec.md`](../../specs/155-song-state-colors/spec.md) — FR-001..FR-013, SC-001..SC-005.
-- [Контракт цвета `specs/155-song-state-colors/contracts/song-state-color.md`](../../specs/155-song-state-colors/contracts/song-state-color.md).
-- [Контракт endpoint `specs/155-song-state-colors/contracts/publications-date-filter.md`](../../specs/155-song-state-colors/contracts/publications-date-filter.md).
-- [Технический план `specs/155-song-state-colors/plan.md`](../../specs/155-song-state-colors/plan.md).
-- [Quickstart `specs/155-song-state-colors/quickstart.md`](../../specs/155-song-state-colors/quickstart.md).
+- [Спека фичи `specs/155-song-state-colors/spec.md`](../../../specs/155-song-state-colors/spec.md) — FR-001..FR-013, SC-001..SC-005.
+- [Контракт цвета `specs/155-song-state-colors/contracts/song-state-color.md`](../../../specs/155-song-state-colors/contracts/song-state-color.md).
+- [Контракт endpoint `specs/155-song-state-colors/contracts/publications-date-filter.md`](../../../specs/155-song-state-colors/contracts/publications-date-filter.md).
+- [Технический план `specs/155-song-state-colors/plan.md`](../../../specs/155-song-state-colors/plan.md).
+- [Quickstart `specs/155-song-state-colors/quickstart.md`](../../../specs/155-song-state-colors/quickstart.md).
 - [Документ `docs/features/songs-table.md`](./songs-table.md) — административная таблица песен (потребитель `color`).
 - [Документ `docs/features/song-free-access.md`](./song-free-access.md) — семантика `isFreelyAvailableNow` / `free`.
 - [Документ `docs/features/dual-db-sync.md`](./dual-db-sync.md) — почему цвет **не** сохраняется в БД (производное значение).

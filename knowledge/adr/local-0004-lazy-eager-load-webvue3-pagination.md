@@ -4,7 +4,7 @@
 * **Date**: 2026-08-14
 * **Deciders**: команда Karaoke
 
-> **English version**: [../../../livedocs-en/decisions/local-0004-lazy-eager-load-webvue3-pagination.md](../../../livedocs-en/decisions/local-0004-lazy-eager-load-webvue3-pagination.md)
+> **English version**: `../../../livedocs-en/decisions/local-0004-lazy-eager-load-webvue3-pagination.md`
 >
 > **Note**: this is **local** ADR — описывает конвенцию в коде (а не
 > глобальное архитектурное решение).
@@ -144,11 +144,11 @@ export default {
 
 ## References
 
-- [architecture/webvue3-patterns.md](../../webvue3-patterns.md) — Vuex pagination persistence (смежная).
-- [features/176-authors-new-albums-badge.md](../../features/176-authors-new-albums-badge.md) —
+- [architecture/webvue3-patterns.md](../system/frontend/vuex-patterns.md) — Vuex pagination persistence (смежная).
+- [features/176-authors-new-albums-badge.md](../../specs/176-authors-new-albums-badge/spec.md) —
   пример polling для бейджа (не realtime, но похожий паттерн).
-- [architecture/observability.md](../../observability.md) — где живёт SSE Hub.
-- [architecture/cache-invalidation.md](../../cache-invalidation.md) — SSE live-updates.
+- [architecture/observability.md](../domains/sse/domain.md) — где живёт SSE Hub.
+- [architecture/cache-invalidation.md](../domains/caching/components/caching-patterns.md) — SSE live-updates.
 
 ## Код
 

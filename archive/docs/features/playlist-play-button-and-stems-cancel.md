@@ -212,16 +212,16 @@ HTTP-запросы на каждый рендер плейлиста (premium �
 
 ## Ссылки
 
-- Спека: [`specs/190-playlist-play-button-and-stems-cancel/spec.md`](../../specs/190-playlist-play-button-and-stems-cancel/spec.md)
-- План: [`specs/190-playlist-play-button-and-stems-cancel/plan.md`](../../specs/190-playlist-play-button-and-stems-cancel/plan.md)
-- Research: [`specs/190-playlist-play-button-and-stems-cancel/research.md`](../../specs/190-playlist-play-button-and-stems-cancel/research.md)
-- Data model: [`specs/190-playlist-play-button-and-stems-cancel/data-model.md`](../../specs/190-playlist-play-button-and-stems-cancel/data-model.md)
-- API-контракт: [`specs/190-playlist-play-button-and-stems-cancel/contracts/api-public-playlist-detail.md`](../../specs/190-playlist-play-button-and-stems-cancel/contracts/api-public-playlist-detail.md)
-- Quickstart (ручные сценарии): [`specs/190-playlist-play-button-and-stems-cancel/quickstart.md`](../../specs/190-playlist-play-button-and-stems-cancel/quickstart.md)
-- LiveDoc: [`livedocs/features/190-playlist-play-button-and-stems-cancel.md`](../../livedocs/features/190-playlist-play-button-and-stems-cancel.md)
-- Domain: [`livedocs/domain/publishing.md`](../../livedocs/domain/publishing.md), [`livedocs/domain/rendering.md`](../../livedocs/domain/rendering.md)
-- Architecture: [`livedocs/architecture/webvue3-patterns.md`](../../livedocs/architecture/webvue3-patterns.md)
-- Связанный LiveDoc (тот же плеер): [`livedocs/features/101-audio-transpose-player.md`](../../livedocs/features/101-audio-transpose-player.md)
+- Спека: [`specs/190-playlist-play-button-and-stems-cancel/spec.md`](../../../specs/190-playlist-play-button-and-stems-cancel/spec.md)
+- План: [`specs/190-playlist-play-button-and-stems-cancel/plan.md`](../../../specs/190-playlist-play-button-and-stems-cancel/plan.md)
+- Research: [`specs/190-playlist-play-button-and-stems-cancel/research.md`](../../../specs/190-playlist-play-button-and-stems-cancel/research.md)
+- Data model: [`specs/190-playlist-play-button-and-stems-cancel/data-model.md`](../../../specs/190-playlist-play-button-and-stems-cancel/data-model.md)
+- API-контракт: [`specs/190-playlist-play-button-and-stems-cancel/contracts/api-public-playlist-detail.md`](../../../specs/190-playlist-play-button-and-stems-cancel/contracts/api-public-playlist-detail.md)
+- Quickstart (ручные сценарии): [`specs/190-playlist-play-button-and-stems-cancel/quickstart.md`](../../../specs/190-playlist-play-button-and-stems-cancel/quickstart.md)
+- Спека: [`specs/190-playlist-play-button-and-stems-cancel/spec.md`](../../../specs/190-playlist-play-button-and-stems-cancel/spec.md)
+- Domain: [`knowledge/domains/publishing/domain.md`](../../../knowledge/domains/publishing/domain.md), [`knowledge/domains/rendering/domain.md`](../../../knowledge/domains/rendering/domain.md)
+- Architecture: [`knowledge/system/frontend/vuex-patterns.md`](../../../knowledge/system/frontend/vuex-patterns.md)
+- Связанный документ (тот же плеер): [`player-transpose.md`](./player-transpose.md)
 
 ## Сценарии ручной проверки
 

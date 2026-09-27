@@ -119,10 +119,10 @@ N/A, но и не нужны).
 
 ## Ссылки
 
-- [Constitution § I](.specify/memory/constitution.md) — NON-NEGOTIABLE.
-- [L1-system-context.md](../L1-system-context.md) — где Ollama/SearXNG/Sheetsage
+- [Constitution § I](../../.specify/memory/constitution.md) — NON-NEGOTIABLE.
+- [L1-system-context.md](../system/01-context.md) — где Ollama/SearXNG/Sheetsage
   упоминаются как внешние системы (на самом деле — локальные).
-- [L3-components.md](../L3-components.md) — LLM Integration компонент.
+- [L3-components.md](../domains/integration/domain.md) — LLM Integration компонент.
 - [ADR-0004](0004-karaoke-app-admin-only.md) — где живёт ML-инфраструктура.
-- [architecture/dual-db-access.md](dual-db-access.md) — как karaoke-web
+- [architecture/dual-db-access.md](../domains/persistence/domain.md) — как karaoke-web
   доступ к БД (read-only).

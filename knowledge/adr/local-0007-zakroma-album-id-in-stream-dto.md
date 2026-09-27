@@ -5,7 +5,7 @@
 * **Deciders**: команда Karaoke
 * **Issue**: OpenProject #70 (spec 356)
 
-> **English version**: [../../../livedocs-en/decisions/local-0007-zakroma-album-id-in-stream-dto.md](../../../livedocs-en/decisions/local-0007-zakroma-album-id-in-stream-dto.md)
+> **English version**: `../../../livedocs-en/decisions/local-0007-zakroma-album-id-in-stream-dto.md`
 >
 > **Note**: this is **local** ADR — описывает конкретный технический паттерн в `karaoke-web` (а не глобальное архитектурное решение).
 
@@ -87,8 +87,8 @@ data class ZakromaAlbumMetaPublicDto(
 - [deploy/karaoke-db/29_albums.sql](../../deploy/karaoke-db/29_albums.sql) — оригинальная схема `tbl_albums`
 - [deploy/karaoke-db/44_author_song_counts.sql](../../deploy/karaoke-db/44_author_song_counts.sql) — паттерн триггера для `tbl_authors` (Pass 286)
 - [deploy/karaoke-db/49_albums_song_counts.sql](../../deploy/karaoke-db/49_albums_song_counts.sql) — триггер для `tbl_albums` (Pass 357)
-- [specs/286-author-song-counts-cache](../specs/286-author-song-counts-cache/spec.md) — прецедент денормализации
-- [specs/356-zakroma-albums-by-author/spec.md](../specs/356-zakroma-albums-by-author/spec.md) — Issue #70
+- [specs/286-author-song-counts-cache](../../specs/286-author-song-counts-cache/spec.md) — прецедент денормализации
+- [specs/356-zakroma-albums-by-author/spec.md](../../specs/356-zakroma-albums-by-author/spec.md) — Issue #70
 - [docs/features/zakroma-albums-by-author.md](../../docs/features/zakroma-albums-by-author.md) — per-feature документ
 
 ## История

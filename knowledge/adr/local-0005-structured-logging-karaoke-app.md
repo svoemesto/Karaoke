@@ -4,7 +4,7 @@
 * **Date**: 2026-08-14
 * **Deciders**: команда Karaoke
 
-> **English version**: [../../../livedocs-en/decisions/local-0005-structured-logging-karaoke-app.md](../../../livedocs-en/decisions/local-0005-structured-logging-karaoke-app.md)
+> **English version**: `../../../livedocs-en/decisions/local-0005-structured-logging-karaoke-app.md`
 >
 > **Note**: this is **local** ADR — описывает конвенцию логирования
 > (а не глобальное архитектурное решение).
@@ -142,7 +142,7 @@ private val log = LoggerFactory.getLogger("process")
 ## References
 
 - Constitution § VIII.5 — секреты через env (не в логах).
-- [architecture/observability.md](../../observability.md) — где логи
+- [architecture/observability.md](../domains/monitoring/domain.md) — где логи
   наблюдаются (RenderQueueStalledCheck, алерты).
 - MDC: https://logback.qos.ch/manual/mdc.html
 

@@ -94,7 +94,7 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 ## Структура компонентов (C4 L3)
 
 - [log-categories](components/log-categories.md) — В Karaoke есть **соглашение о SLF4J-категориях**: компоненты логируют через `infra.*` категории для удобного grep'а в…
-- [monitor-checks-detailed](components/monitor-checks-detailed.md) — детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](monitor-checks.md).
+- [monitor-checks-detailed](components/monitor-checks-detailed.md) — детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](components/monitor-checks.md).
 - [monitor-checks](components/monitor-checks.md) — Эта компонента — единая точка регистрации всех проверок мониторинга. Каждая проверка реализует `MonitorCheck` интерфейс…
 - [monitor-core](components/monitor-core.md) — базовые классы `MonitorContext`, `MonitorCheck`, `MonitorAlert`, `MonitorRegistry`.
 

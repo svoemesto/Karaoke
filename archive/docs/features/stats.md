@@ -81,7 +81,7 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 
 ### Кеш агрегатов на dashboard (StatsCache, Pass 51)
 
-Спека [174-fix-stats-connection-leak](../../specs/174-fix-stats-connection-leak/spec.md)
+Спека [174-fix-stats-connection-leak](../../../specs/174-fix-stats-connection-leak/spec.md)
 добавляет **in-process TTL-кеш на 60 секунд** для 6 чистых агрегатов
 в `StatsController` (FR-004):
 
@@ -119,7 +119,7 @@ HTTP-запросов** к `/api/stats/*` при каждом открытии �
 как footgun (10-12 параллельных HTTP).
 
 **Применено в спеке #362** (Pass 362, Issue #79, OpenProject #79): см.
-[`specs/362-fix-stats-view-element-not-found/spec.md`](../../specs/362-fix-stats-view-element-not-found/spec.md).
+[`specs/362-fix-stats-view-element-not-found/spec.md`](../../../specs/362-fix-stats-view-element-not-found/spec.md).
 Корневая причина бага #79 — race между apexcharts (vue3-apexcharts) и 11
 параллельными HTTP от `reloadAll()`: apexcharts `render()` не находил
 DOM-элемент → `Element not found` в консоли. Lazy load устраняет race,
@@ -166,7 +166,7 @@ short-circuit'ит и не шлёт HTTP.
 
 **Приёмка**: `webvue3/scripts/check-stats-tabs.mjs` — обход 8 вкладок с
 проверкой, что каждая запросила свои endpoint'ы и вышла из состояния загрузки.
-См. [`specs/478-fix-admin-stats-tabs/spec.md`](../../specs/478-fix-admin-stats-tabs/spec.md).
+См. [`specs/478-fix-admin-stats-tabs/spec.md`](../../../specs/478-fix-admin-stats-tabs/spec.md).
 
 ### Обработка сбоя БД — `503 stats.unavailable` (US3)
 
@@ -175,10 +175,11 @@ short-circuit'ит и не шлёт HTTP.
 и телом `{"errorCode":"stats.unavailable","retryAfterSeconds":10,"endpoint":"/api/stats/..."}` —
 по образцу спеки 167 (`share.internal`).
 
-Фронт (`webvue3`) показывает компонент `<DbOverloadBanner>` вместо пустых
-графиков — текст «БД перегружена. Retry через N секунд» + кнопка
-«Retry now» (FR-005). Кнопка disabled на `retryAfterSeconds` с обратным
-отсчётом; один авто-retry через `retryAfterSeconds` (FR-011).
+[WARN] Компонент `<DbOverloadBanner>` (FR-005/FR-011 спеки 174) в репозитории
+**отсутствует** (проверено 2026-08-12 в спеке 174 и повторно 2026-09-27:
+`grep -rn "DbOverload\|stats.unavailable" webvue3/src karaoke-public/src` → 0).
+Бэкенд при сбое БД отдаёт `503 stats.unavailable` с `Retry-After`, но фронт его
+пока не перехватывает — вместо баннера остаются пустые графики.
 
 В кеше не сохраняется failed body — `StatsCache.put` вызывается только
 после успешного `compute()`, чтобы не засорить кеш 503-ответами.
@@ -263,17 +264,17 @@ pgMaxConnections + timestamp`. `permitAll()` — admin-зона, доступ п
 - [`StatsDebugController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StatsDebugController.kt) — debug endpoint с `pg_stat_activity` счётчиком
 - [`StatsResponseUtils.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsResponseUtils.kt) — top-level `statsUnavailableResponse()` для `503 stats.unavailable`
 - [`PublicApiController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt) — JSON для главной `karaoke-public`
-- Vue: [`webvue3/src/components/Stats/`](../../webvue3/src/components/Stats/), [`DbOverloadBanner.vue`](../../webvue3/src/components/Stats/DbOverloadBanner.vue), [`karaoke-public/src/views/HomeView.vue`](../../karaoke-public/src/views/HomeView.vue)
+- Vue: [`webvue3/src/components/Stats/`](../../webvue3/src/components/Stats/), [`karaoke-public/src/views/HomeView.vue`](../../karaoke-public/src/views/HomeView.vue)
 
 ### Связанные документы
 
 - [dual-db-sync.md](./dual-db-sync.md) — синхронизация `tbl_web_event` LOCAL↔SERVER
 - [ci-lint-enforcement.md](./ci-lint-enforcement.md) — почему нет `@Cacheable`
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — правила оформления кода
+- [CONTRIBUTING.md](../../../CONTRIBUTING.md) — правила оформления кода
 - [special-orders.md](./special-orders.md) — `Zakroma.getZakroma`/`getZakromaBySpecialOrder` теперь тоже фильтруют по `id_status>=6`
-- [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — согласование счётчика «в коллекции» с листингами
-- [specs/022-song-status-lifecycle/spec.md](../../specs/022-song-status-lifecycle/spec.md) — расширение жизненного цикла статуса до 7 значений, перенос порога готовности на `>=6`
-- [specs/174-fix-stats-connection-leak/spec.md](../../specs/174-fix-stats-connection-leak/spec.md) — lazy load табов + 60s TTL + 503 stats.unavailable + `<DbOverloadBanner>`. SC-001..SC-005. Соседняя задача для контекста: спеки [087-fix-shared-db-connection](../../specs/087-fix-shared-db-connection/spec.md), [091-fix-connection-leak](../../specs/091-fix-connection-leak/spec.md), [167-fix-share-claim-500](../../specs/167-fix-share-claim-500/spec.md) (паттерн `share.internal`).
-- [specs/478-fix-admin-stats-tabs/spec.md](../../specs/478-fix-admin-stats-tabs/spec.md) — фикс регресса #184 (вкладки, кроме KPI, пустые) + приёмка `webvue3/scripts/check-stats-tabs.mjs`.
+- [specs/013-song-status-filter/spec.md](../../../specs/013-song-status-filter/spec.md) — согласование счётчика «в коллекции» с листингами
+- [specs/022-song-status-lifecycle/spec.md](../../../specs/022-song-status-lifecycle/spec.md) — расширение жизненного цикла статуса до 7 значений, перенос порога готовности на `>=6`
+- [specs/174-fix-stats-connection-leak/spec.md](../../../specs/174-fix-stats-connection-leak/spec.md) — lazy load табов + 60s TTL + 503 stats.unavailable + `<DbOverloadBanner>`. SC-001..SC-005. Соседняя задача для контекста: спеки [087-fix-shared-db-connection](../../../specs/087-fix-shared-db-connection/spec.md), [091-fix-connection-leak](../../../specs/091-fix-connection-leak/spec.md), [167-fix-share-claim-500](../../../specs/167-fix-share-claim-500/spec.md) (паттерн `share.internal`).
+- [specs/478-fix-admin-stats-tabs/spec.md](../../../specs/478-fix-admin-stats-tabs/spec.md) — фикс регресса #184 (вкладки, кроме KPI, пустые) + приёмка `webvue3/scripts/check-stats-tabs.mjs`.
 - [webvue3/scripts/check-stats-tabs.mjs](../../webvue3/scripts/check-stats-tabs.mjs) — воспроизводимая проверка вкладок «Статистики».
-- [specs/174-fix-stats-connection-leak/quickstart.md](../../specs/174-fix-stats-connection-leak/quickstart.md) — 6 ручных сценариев валидации (SC-001..SC-005)
+- [specs/174-fix-stats-connection-leak/quickstart.md](../../../specs/174-fix-stats-connection-leak/quickstart.md) — 6 ручных сценариев валидации (SC-001..SC-005)

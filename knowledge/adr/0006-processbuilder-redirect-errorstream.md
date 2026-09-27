@@ -7,7 +7,7 @@
 ## Context
 
 `karaoke-app` запускает **OS-подпроцессы** через `KaraokeProcess` (см.
-[queue-lanes.md](../queue-lanes.md)):
+[queue-lanes.md](../domains/processing/components/async-process-queue.md)):
 
 - **ffmpeg** — мультиплексирование видео.
 - **melt (MLT/melt)** — рендеринг караоке-видео.
@@ -42,11 +42,11 @@ val pb = ProcessBuilder(cmd).redirectErrorStream(false)
 **`redirectErrorStream(true)` сливает stderr в stdout**, который мы **уже**
 читаем через `BufferedReader` (для прогресса `time=`, `NN%`).
 
-**NON-NEGOTIABLE**: см. [Constitution § IV](.specify/memory/constitution.md).
+**NON-NEGOTIABLE**: см. [Constitution § IV](../../.specify/memory/constitution.md).
 
 ## Прогресс-парсинг через stdout
 
-См. [mlt-pipeline.md](../mlt-pipeline.md) и [queue-lanes.md](../queue-lanes.md):
+См. [mlt-pipeline.md](../domains/rendering/components/mlt-pipeline.md) и [queue-lanes.md](../domains/processing/components/async-process-queue.md):
 
 | Tool | Pattern | Пример |
 |------|---------|--------|
@@ -98,7 +98,7 @@ class KaraokeProcess(
   не поможет).
 - ✅ Code review: каждый новый `ProcessBuilder()` ОБЯЗАН иметь
   `.redirectErrorStream(true)`.
-- ✅ Runtime: monitoring watch на stalled процессы (см. [observability.md](../observability.md)).
+- ✅ Runtime: monitoring watch на stalled процессы (см. [observability.md](../domains/monitoring/domain.md)).
 
 ## Alternatives Considered
 
@@ -135,6 +135,6 @@ stderr-pipe переполнится).
 ## Ссылки
 
 - Constitution § IV — async-очередь задач с парсингом stdout.
-- [architecture/queue-lanes.md](../queue-lanes.md) — паттерн прогресс-парсинга.
-- [architecture/mlt-pipeline.md](../mlt-pipeline.md) — примеры использования.
-- [architecture/observability.md](../observability.md) — мониторинг stalled процессов.
+- [architecture/queue-lanes.md](../domains/processing/components/async-process-queue.md) — паттерн прогресс-парсинга.
+- [architecture/mlt-pipeline.md](../domains/rendering/components/mlt-pipeline.md) — примеры использования.
+- [architecture/observability.md](../domains/monitoring/domain.md) — мониторинг stalled процессов.

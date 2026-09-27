@@ -223,8 +223,8 @@ Action pinned на `v1.9.0`. Версия 1.10.0 меняет формат `--ac
 ## Ссылки
 
 - [.github/workflows/lint.yml](../../.github/workflows/lint.yml) — workflow.
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — правила, которые CI enforced.
-- [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — Принцип VI (Code Standards, NON-NEGOTIABLE).
+- [CONTRIBUTING.md](../../../CONTRIBUTING.md) — правила, которые CI enforced.
+- [.specify/memory/constitution.md](../../../.specify/memory/constitution.md) — Принцип VI (Code Standards, NON-NEGOTIABLE).
 - [tools/baseline-stats.sh](../../tools/baseline-stats.sh) — счётчики baseline.
 - [tools/check-eslint-baseline.sh](../../tools/check-eslint-baseline.sh) — ESLint baseline-aware чек.
 - [tools/generate-eslint-baseline.sh](../../tools/generate-eslint-baseline.sh) — регенерация baseline.

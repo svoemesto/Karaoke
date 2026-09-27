@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.KaraokeProperties
 import org.postgresql.util.PSQLException
+import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -45,7 +46,7 @@ import kotlin.reflect.jvm.isAccessible
  * **Ловушки (см. DEVELOPMENT.md):**
  * - `loadList` бросает NPE на `SQL NULL`, если Kotlin-поле объявлено
  *   non-null. **Nullable-колонки → nullable-поля в Kotlin**.
- * - `save()` молча проглатывает UNIQUE-конфликты и другие SQLException
+ * - `save()` НЕ пробрасывает UNIQUE-конфликты и другие SQLException (логирует
  *   в `try/catch` вокруг `executeUpdate()`. Для сущностей с UNIQUE-индексом
  *   проверяйте конфликт ДО [save] в контроллере.
  * - На больших таблицах (18k+ записей) `save()` с diff может быть
@@ -159,15 +160,17 @@ interface KaraokeDbTable {
             try {
                 ps.executeUpdate()
             } catch (e: Exception) {
-                val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
-                println(errorMessage)
+                // Поведение прежнее (не пробрасываем — см. конфликт с ADR local-0002
+                // в knowledge/domains/persistence/domain.md), но через SLF4J, как
+                // требует ADR local-0005, а не println.
+                log.warn("Не удалось сохранить запись в таблице {}: {}", getTableName(), e.message, e)
             }
             ps.close()
 
             try {
                 SNS.send(messageRecordChange)
             } catch (e: Exception) {
-                println(e.message)
+                log.warn("Не удалось разослать SSE recordChange для {}: {}", getTableName(), e.message, e)
             }
             val saved =
                 loadById(
@@ -223,6 +226,9 @@ interface KaraokeDbTable {
     }
 
     companion object {
+        /** Логгер по конвенции ADR local-0005 (SLF4J, не println). */
+        private val log = LoggerFactory.getLogger(KaraokeDbTable::class.java)
+
         /**
          * Запись in-memory кеша для результата SQL к `information_schema.columns`.
          * Неизменяемая (`val`-only) — после создания не мутируется, что позволяет безопасно

@@ -4,7 +4,7 @@
 * **Date**: 2026-08-14
 * **Deciders**: команда Karaoke
 
-> **English version**: [../../../livedocs-en/decisions/local-0006-logging-and-error-handling-karaoke-web.md](../../../livedocs-en/decisions/local-0006-logging-and-error-handling-karaoke-web.md)
+> **English version**: `../../../livedocs-en/decisions/local-0006-logging-and-error-handling-karaoke-web.md`
 >
 > **Note**: this is **local** ADR — описывает конвенцию для `karaoke-web`
 > (отличную от `karaoke-app`, см. local-0005).
@@ -129,8 +129,8 @@ data class ApiError(val code: String, val message: String)
 
 - [local-0005-structured-logging-karaoke-app.md](local-0005-structured-logging-karaoke-app.md) — аналогичный паттерн для `karaoke-app`.
 - Constitution § VIII.5 — секреты через env (не в логах).
-- [architecture/observability.md](../../observability.md) — где логи наблюдаются.
-- [architecture/idempotency.md](../../idempotency.md) — cross-cutting patterns.
+- [architecture/observability.md](../domains/monitoring/domain.md) — где логи наблюдаются.
+- `architecture/idempotency.md` — cross-cutting patterns.
 
 ## Код
 

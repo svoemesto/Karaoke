@@ -264,19 +264,16 @@ new Date(epochMs).toLocaleString('ru-RU', {
 ## Ссылки
 
 - `karaoke-web/.../services/SongShareLinkService.kt` ([исходник](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt), KDoc)
-- [proposal.md](../../openspec/changes/add-song-share-link/proposal.md)
-- [specs/guest-share-link/spec.md](../../openspec/changes/add-song-share-link/specs/guest-share-link/spec.md)
-- [specs/guest-share-link-admin/spec.md](../../openspec/changes/add-song-share-link/specs/guest-share-link-admin/spec.md)
-- [design.md](../../openspec/changes/add-song-share-link/design.md)
-- [Pass 43 в architecture-notes.md](../architecture-notes.md) — запись об этом PR.
-- [Pass 50 в architecture-notes.md](../architecture-notes.md) — запись о hotfix `167-fix-share-claim-500` (разделение `share.internal` vs `share.notFound`).
-- [specs/167-fix-share-claim-500/spec.md](../../specs/167-fix-share-claim-500/spec.md) — спека hotfix.
-- [specs/167-fix-share-claim-500/plan.md](../../specs/167-fix-share-claim-500/plan.md) — план hotfix + FR-014 Audit Conclusion.
-- [specs/167-fix-share-claim-500/quickstart.md](../../specs/167-fix-share-claim-500/quickstart.md) — 7 manual scenarios + rollback.
+- Исходный OpenSpec-change `add-song-share-link` удалён из репозитория; актуальная спека — [`specs/164-complete-guest-share-link/spec.md`](../../../specs/164-complete-guest-share-link/spec.md).
+- [Pass 43 в architecture-notes.md](../../../docs/architecture-notes.md) — запись об этом PR.
+- [Pass 50 в architecture-notes.md](../../../docs/architecture-notes.md) — запись о hotfix `167-fix-share-claim-500` (разделение `share.internal` vs `share.notFound`).
+- [specs/167-fix-share-claim-500/spec.md](../../../specs/167-fix-share-claim-500/spec.md) — спека hotfix.
+- [specs/167-fix-share-claim-500/plan.md](../../../specs/167-fix-share-claim-500/plan.md) — план hotfix + FR-014 Audit Conclusion.
+- [specs/167-fix-share-claim-500/quickstart.md](../../../specs/167-fix-share-claim-500/quickstart.md) — 7 manual scenarios + rollback.
 
 ## Админ-таблица «/sharelinks» (Pass 51+)
 
-> Per Convection FR-009 (см. [.specify/memory/constitution.md](../../.specify/memory/constitution.md) и [AGENTS.md](../../AGENTS.md) «Per-feature doc»), это per-feature-документ для подсистемы share-ссылок.
+> Per Convection FR-009 (см. [.specify/memory/constitution.md](../../../.specify/memory/constitution.md) и [AGENTS.md](../../../AGENTS.md) «Per-feature doc»), это per-feature-документ для подсистемы share-ссылок.
 > Поэтому **секция админ-таблицы** живёт здесь, а не в отдельном документе.
 
 ### Что
@@ -287,7 +284,7 @@ new Date(epochMs).toLocaleString('ru-RU', {
 
 - `POST /api/sharelinks/digest` — список с фильтрами (target, page, pageSize, `filterActiveOnly`, `filterOwnerId`, `filterSongId`, `filterCreatedFrom`, `filterCreatedTo`, sortBy, sortDir).
 - Контроллер: [`SubscriptionsController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ShareLinksAdminController.kt) (в `karaoke-app`, как и `SiteUsersController` / `SitePlaylistsController`).
-- Контракт: [specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md](../../specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md).
+- Контракт: [specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md](../../../specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md).
 
 ### Frontend
 

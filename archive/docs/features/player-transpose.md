@@ -179,17 +179,17 @@ Helper `KaraokePlayer._shortKey(key)` возвращает краткую фор
 
 ## Ссылки
 
-- [spec.md](../../specs/101-audio-transpose-player/spec.md) — спецификация
+- [spec.md](../../../specs/101-audio-transpose-player/spec.md) — спецификация
   фичи (FR-001..FR-018, success criteria, edge cases)
-- [plan.md](../../specs/101-audio-transpose-player/plan.md) — план
+- [plan.md](../../../specs/101-audio-transpose-player/plan.md) — план
   реализации (Technical Context, Constitution Check)
-- [research.md](../../specs/101-audio-transpose-player/research.md) —
+- [research.md](../../../specs/101-audio-transpose-player/research.md) —
   выбор pitch-shift библиотеки (изначально Tone.PitchShift, потом SoundTouch)
-- [data-model.md](../../specs/101-audio-transpose-player/data-model.md) —
+- [data-model.md](../../../specs/101-audio-transpose-player/data-model.md) —
   сущности (`_transpose`, оригинальные буферы, аудио-граф)
-- [contracts/player-transpose-ui-contract.md](../../specs/101-audio-transpose-player/contracts/player-transpose-ui-contract.md) —
+- [contracts/player-transpose-ui-contract.md](../../../specs/101-audio-transpose-player/contracts/player-transpose-ui-contract.md) —
   контракт UI (меню, бейдж, JS-API, серверный контракт БЕЗ изменений)
-- [quickstart.md](../../specs/101-audio-transpose-player/quickstart.md) —
+- [quickstart.md](../../../specs/101-audio-transpose-player/quickstart.md) —
   7 сценариев ручной валидации (SC-001..SC-006 + FR-018)
 - `webvue3/src/player/KaraokePlayer.js` — реализация (меню «Тональность»,
   `_transposeBuffer`, `_applyTranspose`, `setTranspose`,

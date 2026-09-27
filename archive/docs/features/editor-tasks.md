@@ -3,8 +3,8 @@
 > **Status**: active
 > **Feature Key**: `editor-tasks`
 > **Branch**: `154-editor-tasks-manage`
-> **Spec**: [`specs/154-editor-tasks-manage/spec.md`](../../specs/154-editor-tasks-manage/spec.md)
-> **Plan**: [`specs/154-editor-tasks-manage/plan.md`](../../specs/154-editor-tasks-manage/plan.md)
+> **Spec**: [`specs/154-editor-tasks-manage/spec.md`](../../../specs/154-editor-tasks-manage/spec.md)
+> **Plan**: [`specs/154-editor-tasks-manage/plan.md`](../../../specs/154-editor-tasks-manage/plan.md)
 > **Last Updated**: 2026-08-13 (Pass 51-3 — фича 184: добавлен radio-выбор статуса песни 5/6 в `ReviewModal`; см. секцию «Дополнение: выбор статуса при апруве (spec 184)» ниже)
 
 ## Что делает
@@ -93,7 +93,7 @@
 
 > **Status**: active
 > **Branch**: `182-editor-self-assign-tasks`
-> **Spec**: [`specs/182-editor-self-assign-tasks/spec.md`](../../specs/182-editor-self-assign-tasks/spec.md)
+> **Spec**: [`specs/182-editor-self-assign-tasks/spec.md`](../../../specs/182-editor-self-assign-tasks/spec.md)
 
 ### Что делает
 Даёт активным редакторам возможность самостоятельно брать свободные песни в работу прямо из публичного каталога «Закрома» — без участия админа. Снижает нагрузку на админа и ускоряет реакцию редакторов.
@@ -138,7 +138,7 @@
 
 > **Status**: active
 > **Branch**: `184-approve-status-choice`
-> **Spec**: [`specs/184-approve-status-choice/spec.md`](../../specs/184-approve-status-choice/spec.md)
+> **Spec**: [`specs/184-approve-status-choice/spec.md`](../../../specs/184-approve-status-choice/spec.md)
 
 ### Что делает
 В `ReviewModal` (админская модалка ревью задания) появляется radio-group **«Финальный статус песни»** с двумя опциями: «5 — Маркеры проверены» и «6 — Готова» (default 6). При выборе 5 — `POST /api/songeditor/approve?idStatus=5`; бэкенд выставляет `tbl_songs.id_status=5` и **не запускает** рендер DEMO и sync related-таблиц (но пушит одобренную разметку на PROD как обычно).
@@ -195,9 +195,9 @@
 - **Контракт `/api/public/zakroma` — стабильный JSON**. Добавление поля `assignment: null` для НЕ-self-assign-редакторов безопасно для всех существующих фронтов (Vue/JsPatches читают через опциональную цепочку `?.`, и не падают на `null`).
 
 ### Ссылки
-- Спецификация: [`specs/182-editor-self-assign-tasks/spec.md`](../../specs/182-editor-self-assign-tasks/spec.md)
+- Спецификация: [`specs/182-editor-self-assign-tasks/spec.md`](../../../specs/182-editor-self-assign-tasks/spec.md)
 - Контракты: [`specs/182-editor-self-assign-tasks/contracts/`](../../specs/182-editor-self-assign-tasks/contracts/)
-- Quickstart (10 сценариев ручной валидации): [`specs/182-editor-self-assign-tasks/quickstart.md`](../../specs/182-editor-self-assign-tasks/quickstart.md)
+- Quickstart (10 сценариев ручной валидации): [`specs/182-editor-self-assign-tasks/quickstart.md`](../../../specs/182-editor-self-assign-tasks/quickstart.md)
 - Существующая таблица редакторов (UI-паттерн): [`songs-table.md`](./songs-table.md)
 - Dual-DB Sync (sync-цель `songassignments`): [`dual-db-sync.md`](./dual-db-sync.md)
 
@@ -295,18 +295,18 @@
 
 ## Ссылки
 
-- Спека: [`specs/154-editor-tasks-manage/spec.md`](../../specs/154-editor-tasks-manage/spec.md)
-- План: [`specs/154-editor-tasks-manage/plan.md`](../../specs/154-editor-tasks-manage/plan.md)
-- Research: [`specs/154-editor-tasks-manage/research.md`](../../specs/154-editor-tasks-manage/research.md)
-- Data Model: [`specs/154-editor-tasks-manage/data-model.md`](../../specs/154-editor-tasks-manage/data-model.md)
+- Спека: [`specs/154-editor-tasks-manage/spec.md`](../../../specs/154-editor-tasks-manage/spec.md)
+- План: [`specs/154-editor-tasks-manage/plan.md`](../../../specs/154-editor-tasks-manage/plan.md)
+- Research: [`specs/154-editor-tasks-manage/research.md`](../../../specs/154-editor-tasks-manage/research.md)
+- Data Model: [`specs/154-editor-tasks-manage/data-model.md`](../../../specs/154-editor-tasks-manage/data-model.md)
 - Контракты: [`specs/154-editor-tasks-manage/contracts/`](../../specs/154-editor-tasks-manage/contracts/)
-- Quickstart (16 сценариев ручной валидации): [`specs/154-editor-tasks-manage/quickstart.md`](../../specs/154-editor-tasks-manage/quickstart.md)
+- Quickstart (16 сценариев ручной валидации): [`specs/154-editor-tasks-manage/quickstart.md`](../../../specs/154-editor-tasks-manage/quickstart.md)
 - Существующая таблица редакторов (UI-паттерн): [`songs-table.md`](./songs-table.md)
 - Dual-DB Sync (sync-цель `songassignments`): [`dual-db-sync.md`](./dual-db-sync.md)
 
 ## Контракт per-feature документа
 
-Структура соответствует [`specs/001-code-standards-docs/contracts/per-feature-doc.md`](../../specs/001-code-standards-docs/contracts/per-feature-doc.md):
+Структура соответствует [`specs/001-code-standards-docs/contracts/per-feature-doc.md`](../../../specs/001-code-standards-docs/contracts/per-feature-doc.md):
 
 - **Что делает** — обзор (1-2 параграфа).
 - **Зачем** — решаемая проблема.

@@ -125,7 +125,7 @@
   попадает, Constitution Principle VII).
 - Шаблоны `vkTemplateAir` / `vkTemplatePremium` — многострочные
   String в `KaraokeProperties`; редактор — отдельный UI в `webvue3`
-  (`VkTemplatesEditor.vue`), не generic Properties UI.
+  ([`NewsTemplatesEditor.vue`](../../webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue)), не generic Properties UI.
 - Неизвестные плейсхолдеры в шаблоне (например, `{nonexistent}`) —
   literal-текст (FR-023, не падаем, не заменяем).
 - Готовность песни (FR-022) — статус ≥ 6 + флаги готовности плеера (то
@@ -179,15 +179,15 @@
 
 ### Ручная проверка (quickstart)
 
-См. [`specs/130-vk-preview-generation/quickstart.md`](../../specs/130-vk-preview-generation/quickstart.md)
+См. [`specs/130-vk-preview-generation/quickstart.md`](../../../specs/130-vk-preview-generation/quickstart.md)
 — 5 сценариев: отдельный прогрев, AIR/PREMIUM публикация, идемпотентность,
 отказ при ошибке prewarm, отделение ошибки VK от ошибки изображения.
 
 ## Превью через photos.saveWallPhoto (specs/138)
 
-> **Полная спецификация**: [`specs/138-vk-photo-preview-attachment/spec.md`](../../specs/138-vk-photo-preview-attachment/spec.md).
-> **Контракты**: [`specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md`](../../specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md).
-> **Quickstart**: [`specs/138-vk-photo-preview-attachment/quickstart.md`](../../specs/138-vk-photo-preview-attachment/quickstart.md).
+> **Полная спецификация**: [`specs/138-vk-photo-preview-attachment/spec.md`](../../../specs/138-vk-photo-preview-attachment/spec.md).
+> **Контракты**: [`specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md`](../../../specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md).
+> **Quickstart**: [`specs/138-vk-photo-preview-attachment/quickstart.md`](../../../specs/138-vk-photo-preview-attachment/quickstart.md).
 
 ### Проблема и решение
 
@@ -316,19 +316,19 @@ VK API `wall.post` при бот-публикации **не парсит URL** 
 
 ## Ссылки
 
-- Spec: [`specs/121-vk-news-auto-publish/spec.md`](../../specs/121-vk-news-auto-publish/spec.md)
-- Plan: [`specs/121-vk-news-auto-publish/plan.md`](../../specs/121-vk-news-auto-publish/plan.md)
-- Tasks: [`specs/121-vk-news-auto-publish/tasks.md`](../../specs/121-vk-news-auto-publish/tasks.md)
-- Research: [`specs/121-vk-news-auto-publish/research.md`](../../specs/121-vk-news-auto-publish/research.md)
+- Spec: [`specs/121-vk-news-auto-publish/spec.md`](../../../specs/121-vk-news-auto-publish/spec.md)
+- Plan: [`specs/121-vk-news-auto-publish/plan.md`](../../../specs/121-vk-news-auto-publish/plan.md)
+- Tasks: [`specs/121-vk-news-auto-publish/tasks.md`](../../../specs/121-vk-news-auto-publish/tasks.md)
+- Research: [`specs/121-vk-news-auto-publish/research.md`](../../../specs/121-vk-news-auto-publish/research.md)
 - **specs/130 прогрев превью**:
-  - [`specs/130-vk-preview-generation/spec.md`](../../specs/130-vk-preview-generation/spec.md)
-  - [`specs/130-vk-preview-generation/research.md`](../../specs/130-vk-preview-generation/research.md)
-  - [`specs/130-vk-preview-generation/contracts/vk-preview-warmup.md`](../../specs/130-vk-preview-generation/contracts/vk-preview-warmup.md)
-  - [`specs/130-vk-preview-generation/quickstart.md`](../../specs/130-vk-preview-generation/quickstart.md)
+  - [`specs/130-vk-preview-generation/spec.md`](../../../specs/130-vk-preview-generation/spec.md)
+  - [`specs/130-vk-preview-generation/research.md`](../../../specs/130-vk-preview-generation/research.md)
+  - [`specs/130-vk-preview-generation/contracts/vk-preview-warmup.md`](../../../specs/130-vk-preview-generation/contracts/vk-preview-warmup.md)
+  - [`specs/130-vk-preview-generation/quickstart.md`](../../../specs/130-vk-preview-generation/quickstart.md)
 - **specs/138 надёжное превью через прикрепление фото**:
-  - [`specs/138-vk-photo-preview-attachment/spec.md`](../../specs/138-vk-photo-preview-attachment/spec.md)
-  - [`specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md`](../../specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md)
-  - [`specs/138-vk-photo-preview-attachment/quickstart.md`](../../specs/138-vk-photo-preview-attachment/quickstart.md)
+  - [`specs/138-vk-photo-preview-attachment/spec.md`](../../../specs/138-vk-photo-preview-attachment/spec.md)
+  - [`specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md`](../../../specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md)
+  - [`specs/138-vk-photo-preview-attachment/quickstart.md`](../../../specs/138-vk-photo-preview-attachment/quickstart.md)
 - Образец (Telegram-Фаза 2): [`telegram-auto-publish.md`](./telegram-auto-publish.md),
   `specs/113-telegram-demo-publish/`
 - Связанные фичи: `specs/089-auto-news-song-release` (авто-новости

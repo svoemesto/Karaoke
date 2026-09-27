@@ -46,7 +46,7 @@ Karaoke-видео — это не просто видео со звуком и 
   это влияет на набор визуальных слоёв (например, для `poetry` нет
   `MkoChords`).
 - **MUST**: `redirectErrorStream(true)` для `ProcessBuilder` при запуске
-  `melt` (см. [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../CONTRIBUTING.md)).
+  `melt` (см. [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../../CONTRIBUTING.md)).
 - **SHOULD**: новые визуальные слои добавляются как новый `Mko*` класс в
   `mlt/mko/`, не правкой `MltGenerator` напрямую.
 - **SHOULD**: `KaraokeProperties` — единственное место для глобальных

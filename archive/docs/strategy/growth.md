@@ -4,7 +4,7 @@
 > **Назначение**: фиксация продуктовых решений по воронке роста
 > **Связанные документы**:
 > - [growth-audit.md](./growth-audit.md) — полный аудит (37+ гипотез, детальный анализ)
-> - [AGENTS.md](../../AGENTS.md) — runtime-инструкции для AI-агента (краткая выжимка)
+> - [AGENTS.md](../../../AGENTS.md) — runtime-инструкции для AI-агента (краткая выжимка)
 > - [specs/](../../specs/) — spec.md на конкретные фичи
 
 ---
@@ -171,9 +171,9 @@ Anti-fraud нужен только если/когда добавим trial.
 | **QW-1** ✅ | Таблица «FREE vs PREMIUM» | H2.1 | 2-3 дня | ↑↑ registration→premium |
 
 **Готовятся отдельно** (spec.md):
-- [QW-9: страница «О проекте»](../../specs/003-about-page/spec.md) — ✅ сделано (`4240b98`)
-- [QW-2: 5 причин зарегистрироваться](../../specs/004-reasons-to-register/spec.md) — ⏸️ on hold, не хватает реализованных бенефитов регистрации
-- [QW-1: FREE vs PREMIUM](../../specs/005-free-vs-premium/spec.md)
+- [QW-9: страница «О проекте»](../../../specs/003-about-page/spec.md) — ✅ сделано (`4240b98`)
+- [QW-2: 5 причин зарегистрироваться](../../../specs/004-reasons-to-register/spec.md) — ⏸️ on hold, не хватает реализованных бенефитов регистрации
+- [QW-1: FREE vs PREMIUM](../../../specs/005-free-vs-premium/spec.md)
 
 ---
 
@@ -285,9 +285,9 @@ Anti-fraud нужен только если/когда добавим trial.
 ## 8. Cross-refs
 
 - [growth-audit.md](./growth-audit.md) — полный аудит со всеми гипотезами и обоснованиями
-- [AGENTS.md](../../AGENTS.md) — runtime-инструкции (раздел «Стратегия роста»)
-- [constitution.md](../../.specify/memory/constitution.md) — непреложные принципы
-- [public-modules.md](../../docs/public-modules.md) — публичные модули
+- [AGENTS.md](../../../AGENTS.md) — runtime-инструкции (раздел «Стратегия роста»)
+- [constitution.md](../../../.specify/memory/constitution.md) — непреложные принципы
+- Публичные модули — см. [`knowledge/public/c4-overview.md`](../../../knowledge/public/c4-overview.md) (прежний `docs/public-modules.md` удалён).
 - [features/](../../docs/features/) — 11 ключевых подсистем
 - [specs/](../../specs/) — spec.md на конкретные фичи
 

@@ -286,7 +286,7 @@ curl -X POST "http://prod-host:8897/api/properties/setproperty" \
    песням, у которых date/time наступило в окне `checkOnAirWindow`).
 
 Подробные скриншоты UI-подтверждений и альтернативные пути отката — в
-[`specs/124-news-flags-backfill/quickstart.md`](../../specs/124-news-flags-backfill/quickstart.md).
+[`specs/124-news-flags-backfill/quickstart.md`](../../../specs/124-news-flags-backfill/quickstart.md).
 
 ## Ссылки
 
@@ -294,9 +294,9 @@ curl -X POST "http://prod-host:8897/api/properties/setproperty" \
   полная спека: spec.md (3 user stories, 18 FR, 11 SC), plan.md, research.md
   (9 технических решений), data-model.md (полный JSON-инвентарь), contracts/api.md
   (контракт endpoint'а + kill-switch), quickstart.md (пошаговая валидация).
-- [`docs/architecture-notes.md`](../architecture-notes.md), **Pass 33** —
+- [`docs/architecture-notes.md`](../../../docs/architecture-notes.md), **Pass 33** —
   автопремиум-публикация (Pass 122), ради которой появилась эта фича.
-- [`docs/architecture-notes.md`](../architecture-notes.md), **Pass 34** —
+- [`docs/architecture-notes.md`](../../../docs/architecture-notes.md), **Pass 34** —
   запись этой фичи.
 - [`docs/features/telegram-auto-publish.md`](./telegram-auto-publish.md) —
   секция «Премиум-публикация».

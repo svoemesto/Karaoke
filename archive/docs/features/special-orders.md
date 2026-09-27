@@ -138,10 +138,10 @@
 
 ### Связанные документы
 
-- [specs/008-special-orders/spec.md](../../specs/008-special-orders/spec.md) — исходная спецификация
-- [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — фильтр `id_status>=3` на публичных поверхностях
-- [specs/017-editor-status-bypass/spec.md](../../specs/017-editor-status-bypass/spec.md) — исключение фильтра для "редактора" на публичном сайте
+- [specs/008-special-orders/spec.md](../../../specs/008-special-orders/spec.md) — исходная спецификация
+- [specs/013-song-status-filter/spec.md](../../../specs/013-song-status-filter/spec.md) — фильтр `id_status>=3` на публичных поверхностях
+- [specs/017-editor-status-bypass/spec.md](../../../specs/017-editor-status-bypass/spec.md) — исключение фильтра для "редактора" на публичном сайте
 - [dual-db-sync.md](./dual-db-sync.md) — recordhash-триггеры, `author_in`-фильтр
 - [docs/strategy/growth-audit.md](../strategy/growth-audit.md) — гипотеза H1.20
 - [docs/strategy/growth.md](../strategy/growth.md) — M-23 в roadmap
-- [AGENTS.md](../../AGENTS.md) — Jackson `is`-boolean Q&A
+- [AGENTS.md](../../../AGENTS.md) — Jackson `is`-boolean Q&A

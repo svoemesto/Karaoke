@@ -23,7 +23,7 @@
 ## Decision
 
 Мы используем **Markdown + YAML frontmatter + Mermaid** в каталоге
-`livedocs/` (см. [`livedocs/README.md`](../../README.md)).
+`livedocs/` (см. [`knowledge/README.md`](../README.md)).
 
 **Структура**:
 ```
@@ -72,7 +72,7 @@ livedocs/
   добавится новый слой, нужно обновить скрипт.
 - **Нет версионирования LiveDocs** (semver не применяется; версия — git).
 - **Mermaid-диаграммы** — не полноценные C4 (нет нативной C4-нотации; см.
-  [`livedocs/architecture/c4-level-template.md`](../../templates/c4-level-L1.md)).
+  `livedocs/architecture/c4-level-template.md`).
 
 **Нейтральные**:
 - AI-агент обучен читать Markdown отлично; не требует специального обучения.
@@ -96,10 +96,10 @@ livedocs/
 
 ## Ссылки
 
-- [Спека 189-live-documentation § research D-1](../../../specs/189-live-documentation/research.md) — подробное
+- [Спека 189-live-documentation § research D-1](../../specs/189-live-documentation/research.md) — подробное
   обоснование (10 design decisions).
-- [livedocs/README.md](../../README.md) — корневой манифест LiveDocs.
-- [livedocs/INDEX.md](../../INDEX.md) — карта + decision tree.
-- [AGENTS.md](../../../AGENTS.md) — правило «AI-агент при старте сессии
+- [knowledge/README.md](../README.md) — корневой манифест LiveDocs.
+- `livedocs/INDEX.md` — карта + decision tree.
+- [AGENTS.md](../../AGENTS.md) — правило «AI-агент при старте сессии
   читает LiveDocs первым».
-- [Constitution § I](.specify/memory/constitution.md) — self-contained.
+- [Constitution § I](../../.specify/memory/constitution.md) — self-contained.

@@ -101,12 +101,12 @@ ids.forEach { id ->
 
 ## Ссылки
 
-- [Constitution § II](.specify/memory/constitution.md) — NON-NEGOTIABLE принцип.
-- [livedocs/architecture/data-sync.md](../data-sync.md) — `recordhash` и
+- [Constitution § II](../../.specify/memory/constitution.md) — NON-NEGOTIABLE принцип.
+- [livedocs/architecture/data-sync.md](../domains/processing/components/two-db-sync.md) — `recordhash` и
   `SyncRegistry` (практическое применение принципа).
-- [livedocs/features/087-fix-shared-db-connection.md](../../features/087-fix-shared-db-connection.md) —
+- [livedocs/features/087-fix-shared-db-connection.md](../../specs/087-fix-shared-db-connection/spec.md) —
   ThreadLocal изоляция Connection (последствие фикса 087).
-- [livedocs/features/091-fix-connection-leak.md](../../features/091-fix-connection-leak.md) —
+- [livedocs/features/091-fix-connection-leak.md](../../specs/091-fix-connection-leak/spec.md) —
   утечка JDBC от одноразовых потоков (последствие фикса 087).
-- [Constitution § III](.specify/memory/constitution.md) — обязательное участие
+- [Constitution § III](../../.specify/memory/constitution.md) — обязательное участие
   в `SyncRegistry` для двусторонней синхронизации.

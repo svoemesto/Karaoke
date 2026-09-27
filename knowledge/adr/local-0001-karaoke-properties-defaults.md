@@ -4,7 +4,7 @@
 * **Date**: 2026-08-14
 * **Deciders**: команда Karaoke
 
-> **English version**: [../../../livedocs-en/decisions/local-0001-karaoke-properties-defaults.md](../../../livedocs-en/decisions/local-0001-karaoke-properties-defaults.md)
+> **English version**: `../../../livedocs-en/decisions/local-0001-karaoke-properties-defaults.md`
 >
 > **Note**: this is a **local** ADR — describes a specific subsystem
 > convention (vs global ADR-0001..0006 which describe project-wide decisions).
@@ -77,6 +77,6 @@ init {
 
 ## References
 
-- [livedocs/architecture/decisions/0001-raw-jdbc.md](../../decisions/0001-raw-jdbc.md) — global ADR.
+- [livedocs/architecture/decisions/0001-raw-jdbc.md](0001-raw-jdbc.md) — global ADR.
 - Constitution § VIII.5 — секреты через env.
-- [AGENTS.md](../../../../AGENTS.md) — секция «Ограничения агента».
+- [AGENTS.md](../../AGENTS.md) — секция «Ограничения агента».

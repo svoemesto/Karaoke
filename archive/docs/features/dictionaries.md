@@ -102,7 +102,7 @@ interface TextFileDictionary {
 
 - [`Dictionary.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Dictionary.kt) — entity DB-словаря
 - [`TextFileDictionary.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt) — interface текстового словаря
-- [`CensoredWords.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/CensoredWordsDictionary.kt) — список нецензурных слов
+- [`CensoredWordsDictionary.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/CensoredWordsDictionary.kt) — список нецензурных слов
 - [`DictionariesController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/DictionariesController.kt) — REST CRUD для DB-словарей
 - `ApiController.doTextFileDictionary()` — фасад для фронта в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`
 - `Song.getWhereList()` — потребитель словарей в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`
@@ -111,4 +111,4 @@ interface TextFileDictionary {
 
 - [dual-db-sync.md](./dual-db-sync.md) — как DB-словари попадают на SERVER
 - [llm-lyrics-search.md](./llm-lyrics-search.md) — откуда берутся замены в lyrics
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — правила оформления кода
+- [CONTRIBUTING.md](../../../CONTRIBUTING.md) — правила оформления кода

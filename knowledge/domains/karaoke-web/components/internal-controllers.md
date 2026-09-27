@@ -82,7 +82,7 @@ internal endpoints (admin→web), debug endpoints, share-линки.
   karaoke-app может вызывать (через nginx allowlist).
 
 **Логика**: см. [storage-flow.md](../../storage/components/storage-flow.md)
-+ [stem-job.md](../../../catalog/components/remaining-models.md#stemjob).
++ [stem-job.md](../../catalog/components/remaining-models.md#stemjob).
 
 ### `DebugDbController`
 

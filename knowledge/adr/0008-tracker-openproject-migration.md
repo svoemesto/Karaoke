@@ -125,8 +125,8 @@
 
 ## Связанные документы
 
-- [LiveDoc 295-jira-local-integration.md](../../features/295-jira-local-integration.md)
-- [Spec 295](../../../../specs/295-jira-local-integration/spec.md)
-- [Архивная спека на Jira DC](../../../../specs/295-jira-local-integration/.jira-archived/spec-jira.md) —
+- [LiveDoc 295-jira-local-integration.md](../../docs/features/tracker-local-integration.md)
+- [Spec 295](../../specs/295-jira-local-integration/spec.md)
+- [Архивная спека на Jira DC](../../specs/295-jira-local-integration/.jira-archived/spec-jira.md) —
   хранится для истории и сравнения
-- [tracker-setup.md](../../../../docs/tracker-setup.md) — руководство по установке
+- [tracker-setup.md](../../docs/tracker-setup.md) — руководство по установке

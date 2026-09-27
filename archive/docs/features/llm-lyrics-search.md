@@ -16,7 +16,7 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 структурированные данные из сырого HTML, догадываться о формате аккордов,
 исправлять опечатки. fourget + LM Studio — локальные (self-hosted)
 инструменты, не зависят от внешних SaaS (см.
-[constitution.md#i-self-contained-автопайплайн](../../.specify/memory/constitution.md)).
+[constitution.md#i-self-contained-автопайплайн](../../../.specify/memory/constitution.md)).
 
 ## Как работает (кратко)
 
@@ -193,9 +193,9 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 - **MUST**: `isVpnActive()` проверяется ДО запуска Playwright (если ВПН —
   скрейпинг Яндекс.Музыки заблокирован).
 - **MUST**: результат `AlbumSearchResult` логируется с reason-кодом
-  (см. [DEVELOPMENT.md#поиск-нового-альбома-на-яндексмузыке](../../DEVELOPMENT.md)).
+  (см. [DEVELOPMENT.md#поиск-нового-альбома-на-яндексмузыке](../../../DEVELOPMENT.md)).
 - **MUST**: `redirectErrorStream(true)` для Playwright/Selenium subprocess
-  (см. [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../CONTRIBUTING.md)).
+  (см. [CONTRIBUTING.md#kotlin-processbuilder-redirect-error-stream](../../../CONTRIBUTING.md)).
 - **SHOULD**: кешировать LLM-результаты по хешу (автор + название) —
   повторный поиск той же песни не должен второй раз гонять модель.
 

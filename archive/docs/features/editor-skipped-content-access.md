@@ -3,8 +3,8 @@
 > **Status**: active
 > **Feature Key**: `editor-skipped-content-access`
 > **Branch**: `293-skip-author-toggle`
-> **Spec**: [`specs/293-skip-author-toggle/spec.md`](../../specs/293-skip-author-toggle/spec.md)
-> **Plan**: [`specs/293-skip-author-toggle/plan.md`](../../specs/293-skip-author-toggle/plan.md)
+> **Spec**: [`specs/293-skip-author-toggle/spec.md`](../../../specs/293-skip-author-toggle/spec.md)
+> **Plan**: [`specs/293-skip-author-toggle/plan.md`](../../../specs/293-skip-author-toggle/plan.md)
 > **Last Updated**: 2026-09-02 (Pass 282+ — спека 293)
 
 ## Что делает
@@ -21,7 +21,7 @@ SKIP:
 Галочка «Может работать со SKIP-авторами и песнями» выставляется
 **только админом** в форме редактирования пользователя в
 `webvue3/SiteUsers/edit/SiteUserEdit.vue` (по выбору пользователя в
-`/speckit.specify` — НЕ отображается в `karaoke-public/AccountView.vue`).
+`/speckit.specify` — НЕ отображается в `karaoke-public/src/views/AccountView.vue`).
 
 В `karaoke-public` редактор с галочкой видит визуальный бейдж «SKIP»
 рядом с именем автора / песни — страховка от случайной публикации
@@ -195,16 +195,16 @@ curl -s -X POST 'http://localhost:8897/api/public/share/create/<SKIP_SONG_ID>' \
 
 ## Ссылки
 
-- [Спека: `specs/293-skip-author-toggle/spec.md`](../../specs/293-skip-author-toggle/spec.md)
-- [План: `specs/293-skip-author-toggle/plan.md`](../../specs/293-skip-author-toggle/plan.md)
-- [Research: `specs/293-skip-author-toggle/research.md`](../../specs/293-skip-author-toggle/research.md)
-- [Data model: `specs/293-skip-author-toggle/data-model.md`](../../specs/293-skip-author-toggle/data-model.md)
-- [Quickstart: `specs/293-skip-author-toggle/quickstart.md`](../../specs/293-skip-author-toggle/quickstart.md)
-- [LiveDoc: `livedocs/features/293-skip-author-toggle.md`](../../livedocs/features/293-skip-author-toggle.md)
-- [Self-assign паттерн (аналогия): `archive/docs/features/editor-tasks.md`](../../archive/docs/features/editor-tasks.md)
-- [Share-link flow: `archive/docs/features/guest-share-link.md`](../../archive/docs/features/guest-share-link.md)
-- [SKIP через OG/SEO: `archive/docs/features/seo-html-for-bots.md`](../../archive/docs/features/seo-html-for-bots.md)
-- [SiteUser aggregate: `livedocs/domain/identity.md`](../../livedocs/domain/identity.md)
-- [SKIP-механика: `livedocs/domain/catalog.md`](../../livedocs/domain/catalog.md)
-- [Constitution §III (recordhash): `.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
-- [Constitution §VI FR-009 (per-feature документ): `.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+- [Спека: `specs/293-skip-author-toggle/spec.md`](../../../specs/293-skip-author-toggle/spec.md)
+- [План: `specs/293-skip-author-toggle/plan.md`](../../../specs/293-skip-author-toggle/plan.md)
+- [Research: `specs/293-skip-author-toggle/research.md`](../../../specs/293-skip-author-toggle/research.md)
+- [Data model: `specs/293-skip-author-toggle/data-model.md`](../../../specs/293-skip-author-toggle/data-model.md)
+- [Quickstart: `specs/293-skip-author-toggle/quickstart.md`](../../../specs/293-skip-author-toggle/quickstart.md)
+- Спека: [`specs/293-skip-author-toggle/spec.md`](../../../specs/293-skip-author-toggle/spec.md)
+- [Self-assign паттерн (аналогия): `archive/docs/features/editor-tasks.md`](editor-tasks.md)
+- [Share-link flow: `archive/docs/features/guest-share-link.md`](guest-share-link.md)
+- [SKIP через OG/SEO: `archive/docs/features/seo-html-for-bots.md`](seo-html-for-bots.md)
+- [SiteUser aggregate: `knowledge/domains/identity/domain.md`](../../../knowledge/domains/identity/domain.md)
+- [SKIP-механика: `knowledge/domains/catalog/domain.md`](../../../knowledge/domains/catalog/domain.md)
+- [Constitution §III (recordhash): `.specify/memory/constitution.md`](../../../.specify/memory/constitution.md)
+- [Constitution §VI FR-009 (per-feature документ): `.specify/memory/constitution.md`](../../../.specify/memory/constitution.md)

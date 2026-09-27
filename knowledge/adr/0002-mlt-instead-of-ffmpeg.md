@@ -87,13 +87,13 @@
 
 ## Ссылки
 
-- [Constitution § I](.specify/memory/constitution.md) — self-contained
+- [Constitution § I](../../.specify/memory/constitution.md) — self-contained
   автопайплайн (нет зависимостей от SaaS).
-- [Constitution § IV](.specify/memory/constitution.md) — async-очередь задач
+- [Constitution § IV](../../.specify/memory/constitution.md) — async-очередь задач
   + парсинг stdout (ffmpeg `time=`, melt `NN%`, Sheetsage `NN%|`).
-- [livedocs/domain/processing.md](../../domain/processing.md) — bounded
+- [livedocs/domain/processing.md](../domains/processing/domain.md) — bounded
   context `processing` (Ubiquitous Language MLT/Demucs/Sheetsage).
-- [livedocs/architecture/queue-lanes.md](../queue-lanes.md) — `HEAVY_RENDER`
+- [livedocs/architecture/queue-lanes.md](../domains/processing/components/async-process-queue.md) — `HEAVY_RENDER`
   lane для тяжёлого рендера.
-- [livedocs/architecture/L3-components.md](../L3-components.md) — MLT
+- [livedocs/architecture/L3-components.md](../domains/rendering/components/mlt-generator.md) — MLT
   Generator компонент.

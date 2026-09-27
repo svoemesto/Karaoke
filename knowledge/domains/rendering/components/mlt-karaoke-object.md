@@ -59,7 +59,8 @@ interface MltKaraokeObject {
 - **`trackPlaylist`** — `<playlist>` для track.
 - **`tractor`** — `<tractor>` (главный бинарник).
 - **`tractorSequence`** — `<tractor>` для sequence.
-- **`template`** — `<template>` (повторное использование).
+- **`template`** — разметка `kdenlivetitle` (или иной узел), которую
+  Producer кладёт в `property name="xmldata"`.
 - **`mainFilePlaylistTransformProperties`** — transform properties
   string.
 

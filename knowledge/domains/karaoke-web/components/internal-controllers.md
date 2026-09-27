@@ -23,7 +23,7 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 | 2 | `InternalStatsController` | 2 | `/api/internal/stats/...` | Внутренняя статистика |
 | 3 | `InternalStemJobController` | 3 | `/api/internal/stem-jobs/...` | Скачивание оригинала для StemJob |
 | 4 | `DebugDbController` | 2 | `/api/public/debug/db` | Debug DB (защищённый) |
-| 5 | `SiteShareLinksController` | 4 | `/api/share-links/...` | Управление share-линками (admin) |
+| 5 | `SiteShareLinksController` | 4 | `/api/siteusers/share/...` | Управление share-линками (admin) |
 | 6 | `WebSocketConfig` | 0 | `/ws` | WebSocket/SSE endpoint config |
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
@@ -69,7 +69,10 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 
 **Endpoints** (по grep):
 
-- `/api/internal/stem-jobs/{id}/download-original` — скачивание
+- `/api/internal/stemjobs/{id}/raw` (GET) и `/{id}/ack` (POST) —
+  реальные эндпоинты `InternalStemJobController` (`:46`, `:71`).
+  Прежний путь `/api/internal/stem-jobs/{id}/download-original` не
+  существует (Pass 477). Устаревшее описание: скачивание
   оригинала для StemJob обработки. **Внутренний** — только
   karaoke-app может вызывать (через nginx allowlist).
 
@@ -96,7 +99,7 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 
 **Endpoints** (по grep):
 
-- `/api/share-links/...` — управление share-линками (admin).
+- `/api/siteusers/share/...` — управление share-линками (admin; `SiteShareLinksController`, Pass 477).
 
 ### `WebSocketConfig`
 

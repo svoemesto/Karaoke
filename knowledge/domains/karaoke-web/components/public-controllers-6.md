@@ -79,7 +79,7 @@
 
 ## 6. `PublicSettingsWebController` (3 endpoints, 328 строк)
 
-`/api/public/settings/*` — публичные настройки (live в `tbl_public_settings`):
+`/api/properties/*` — публичные настройки (live в `tbl_public_settings`):
 - `GET /all` — все настройки (для UI).
 - `GET /{key}` — одна.
 - `GET /kdc` — капча (конфиг).
@@ -95,7 +95,7 @@
 
 ## 8. `SiteShareLinksController` (3 endpoints, 136 строк)
 
-`/api/share-links/*` — admin управление share-ссылками.
+`/api/siteusers/share/*` — admin управление share-ссылками (`SiteShareLinksController`, Pass 477).
 
 ## 9. `InternalStatsController` (1 endpoint, 56 строк)
 

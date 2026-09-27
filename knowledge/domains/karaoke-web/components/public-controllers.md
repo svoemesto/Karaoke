@@ -32,12 +32,12 @@
 | 11 | `PublicAccountController` | 4 | `/api/public/account/...` | Личный кабинет (профиль, настройки) |
 | 12 | `PublicVkIdAuthController` | 3 | `/api/public/auth/vk-id/...` | VK ID OAuth (новый flow) |
 | 13 | `PublicVkAuthController` | 3 | `/api/public/auth/vk/...` | VK OAuth (старый flow) |
-| 14 | `PublicSettingsWebController` | 3 | `/api/public/settings/...` | Публичные настройки сайта |
+| 14 | `PublicSettingsWebController` | 3 | `/api/properties/...` (`/setproperty`, `/getproperty`, `/digest`) | Публичные настройки сайта |
 | 15 | `PublicNewsController` | 3 | `/api/public/news/...` | Новости (since, get, mark) |
 | 16 | `PublicPaymentController` | 2 | `/api/public/payment/...` | YooKassa webhook, redirect |
 | 17 | `PublicOgSongController` | 2 | `/api/public/og/...` | Open Graph теги для шеринга |
 | 18 | `PublicHistoryController` | 2 | `/api/public/history/...` | История прослушиваний |
-| 19 | `PublicTypographController` | 1 | `/api/public/typograph/...` | Типографика (утилита) |
+| 19 | `PublicTypographController` | 1 | `POST /api/replacesymbolsinsong` | Типографика (утилита) |
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
 
@@ -66,7 +66,7 @@ Real-time checks `player.readiness` (см.
 
 **Endpoints** (по grep):
 
-- `/api/public/home` — главная страница.
+- [WARN] `/api/public/home` — эндпоинта НЕ существует (проверено Pass 477: grep 0). Главную отдаёт SPA/Thymeleaf, не API.
 - `/api/public/...` — общие endpoint'ы (главная, статистика, счётчики).
 - Включает `fetchFromMinIO` — утилита для получения MinIO-файлов
   через nginx-proxy.
@@ -77,7 +77,9 @@ Real-time checks `player.readiness` (см.
 
 - `POST /api/public/payment/webhook` — YooKassa webhook (асинхронное
   уведомление об оплате). **Критический** — пропуск = потеря платежа.
-- `GET /api/public/payment/redirect` — redirect после оплаты.
+- [WARN] `GET /api/public/payment/redirect` — эндпоинта НЕ существует.
+  Реально у `PublicPaymentController` (`@RequestMapping("/api/public/payment")`)
+  есть только `POST /webhook` (`:40`), Pass 477.
 
 ### `PublicCartController`
 

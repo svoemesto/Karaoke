@@ -180,6 +180,21 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 2. **Все контроллеры `Public*` доступны БЕЗ авторизации** (кроме
    `/api/public/account/*` через `SiteAuthInterceptor`).
 3. **`StorageApiClientWeb` — единственный клиент MinIO** на karaoke-web.
+
+   **[WARN] Инвариант НЕ выполняется (Pass 476).** `StorageApiClientWeb`
+   не инжектится ни в один бин (grep: только объявление
+   `services/StorageApiClientWeb.kt` и упоминание в
+   `config/WebClientConfig.kt`), а **14 контроллеров** напрямую
+   инжектят ядро `KaraokeStorageService`/`StorageApiClient`:
+   `PublicApiController`, `PublicPlayerController`,
+   `PublicPaymentController`, `PublicCartController`,
+   `PublicPlaylistController`, `PublicOgSongController`,
+   `PublicStemJobController`, `PublicSubscriptionController`,
+   `PublicSongEditorController`, `PublicSongeditorController`,
+   `PublicAuthController`, `PublicChatController`,
+   `InternalStemJobController`, `MainController`. Это осознанно
+   зафиксированное расхождение: рефакторинг 14 контроллеров —
+   отдельная задача с риском для прод-путей.
 4. **Cron/scheduler таски** — только безопасные (retention, cleanup,
    stats). Опасные (auto-publish, sync) — на admin-машине.
 

@@ -188,10 +188,12 @@ MLT profile: HD 1080p 60fps, `colorspace=709`.
 `MltNode` — обёртка над XML-узлом:
 ```kotlin
 data class MltNode(
-    val name: String,
-    val fields: MutableMap<String, String> = mutableMapOf(),
-    val body: Any? = null,  // String или List<MltNode>
-)
+    var name: String = "",
+    var fields: MutableMap<String, String> = mutableMapOf(),
+    var body: Any? = null,       // String или List<MltNode>
+    var type: ProducerType? = null,
+    var comment: String = "",
+) : Serializable
 ```
 
 `MltNodeBuilder` — DSL для построения:

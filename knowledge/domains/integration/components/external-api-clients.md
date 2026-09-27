@@ -22,7 +22,10 @@
 Каждый клиент использует SLF4J для логирования (некоторые — `println`,
 см. gaps).
 
-## Сводная таблица
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Контракт каждого клиента — его методы, DTO запроса/ответа, HTTP-клиент
+и источник конфигурации. Ниже — сводка, затем детали по клиентам.
 
 | # | Клиент | Файл | Что делает | Протокол |
 |---|---|---|---|---|
@@ -43,7 +46,7 @@
 
 ---
 
-## 1. `VkApiClient`
+### 1. `VkApiClient`
 
 **Файл**: `karaoke-app/.../services/VkApiClient.kt`.
 
@@ -73,7 +76,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 2. `VkPhotoUploadClient`
+### 2. `VkPhotoUploadClient`
 
 **Файл**: `karaoke-app/.../services/VkPhotoUploadClient.kt`.
 
@@ -92,7 +95,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 3. `VkPreviewWarmupClient`
+### 3. `VkPreviewWarmupClient`
 
 **Файл**: `karaoke-app/.../services/VkPreviewWarmupClient.kt`.
 
@@ -109,7 +112,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 4. `VkTemplateService`
+### 4. `VkTemplateService`
 
 **Файл**: `karaoke-app/.../services/VkTemplateService.kt`.
 
@@ -118,7 +121,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 5. `TelegramApiClient`
+### 5. `TelegramApiClient`
 
 **Файл**: `karaoke-app/.../services/TelegramApiClient.kt`.
 
@@ -141,7 +144,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 7. `TelegramUpdatesConsumer`
+### 7. `TelegramUpdatesConsumer`
 
 **Файл**: `karaoke-app/.../services/TelegramUpdatesConsumer.kt`.
 
@@ -152,7 +155,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 8. `TelegramProxyManager`
+### 8. `TelegramProxyManager`
 
 **Файл**: `karaoke-app/.../services/TelegramProxyManager.kt`.
 
@@ -161,7 +164,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 9. `TelegramAutoPublishService`
+### 9. `TelegramAutoPublishService`
 
 **Файл**: `karaoke-app/.../services/TelegramAutoPublishService.kt`.
 
@@ -174,7 +177,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 10. `LmStudioService`
+### 10. `LmStudioService`
 
 **Файл**: `karaoke-app/.../services/LmStudioService.kt`.
 
@@ -199,7 +202,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 11. `WhisperAsrService`
+### 11. `WhisperAsrService`
 
 **Файл**: `karaoke-app/.../services/WhisperAsrService.kt`.
 
@@ -211,7 +214,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 12. `AlignmentServiceClient`
+### 12. `AlignmentServiceClient`
 
 **Файл**: `karaoke-app/.../services/AlignmentServiceClient.kt`.
 
@@ -223,7 +226,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 13. `GeoIpService`
+### 13. `GeoIpService`
 
 **Файл**: `karaoke-app/.../services/GeoIpService.kt`.
 
@@ -267,7 +270,7 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 ---
 
-## 14. `YandexCaptchaValidationService`
+### 14. `YandexCaptchaValidationService`
 
 **Файл**: `karaoke-web/.../services/YandexCaptchaValidationService.kt`.
 
@@ -275,32 +278,122 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 
 **HTTP**: POST к Yandex Captcha API.
 
-**Используется**: `SiteAuthInterceptor` или аналогичный фильтр для
-защиты login/register.
+**Используется**: `PublicAuthController` (login/register) — капча
+защищает формы аутентификации; `SiteAuthInterceptor` покрывает только
+`/api/public/account/**` и капчу не вызывает.
 
 ---
 
-## Архитектурные решения
+## Логика и Алгоритмы | Logic and Algorithms
 
-### Решение 1: VK / TG / Yandex — все идут через nginx-прокси
+Сквозные алгоритмы, общие для нескольких клиентов:
+
+**Send-mode fallback (VK и Telegram)**: каждый запрос сначала идёт
+**напрямую**; при сетевом сбое клиент переключается на HTTP-прокси
+(`vkProxyUrl` / `telegramProxyUrl`) и запоминает режим на TTL
+(`vkProxyModeTtlMs` / `telegramProxyModeTtlMs`, default 60 с), после
+чего снова пробует напрямую. У VK прокси **опционален**: если
+`vkProxyUrl` пуст, выполняется повторная прямая попытка и бросается
+`VkNetworkException`; оркестраторы (`VkAutoPublishService`,
+`VkAutoPublishScheduler`, `VkPhotoUploadClient`) конвертируют её в
+`SEND_FAILED`. Выбор режима у VK вынесен в чистую функцию
+`VkApiClient.decideSendMode` (тесты `VkApiClientSendModeTest`).
+
+**Загрузка обложки в VK** (`VkPhotoUploadClient.uploadCover`):
+
+1. При `vkPhotoAttachEnabled` — путь `photos.*` c **user-token**:
+   `photos.getWallUploadServer` → POST multipart на `upload_url` →
+   `photos.saveWallPhoto`.
+2. При ошибке авторизации (`error_code in 27/15/5/29`) — fallback на
+   `docs.*` c **community-token** (если `vkDocAttachEnabled`):
+   `docs.getWallUploadServer` → POST multipart → `docs.save`.
+3. Transient-ошибки повторяются внутри цепочки (`transientAttempts = 2`,
+   backoff `transientBackoffMs = 5 000`); `error_code=100` → типизированное
+   исключение.
+4. Полный сбой обоих путей → `VkBothAttachFailedException` →
+   деградация: пост без превью.
+
+**GeoIP-резолв** (`GeoIpService`): двухуровневый кэш — in-memory
+`ConcurrentHashMap` и таблица `tbl_ip_country` в LOCAL-БД
+(`Connection.local()`). Пустая строка `""` — валидный **закэшированный**
+результат «страна не определена» (защита от re-fetch). `resolveMany`:
+память → один `IN`-запрос в БД → недостающие резолвятся по одному с
+паузой 80 мс (~12 req/s), ограничение — `maxFetch` (число внешних
+запросов) и `timeBudgetMs` (бюджет времени). Не поместившиеся
+возвращаются как `""` и **не кэшируются**.
+
+**Yandex SmartCaptcha** (`YandexCaptchaValidationService.validate`): если
+серверный ключ не заведён — проверка пропускается (`true`); пустой
+токен → `false`; иначе POST `/validate` (form: `secret`, `token`,
+`ip`) и результат `status == "ok"`.
+
+**Тонкие ML-клиенты** (`LmStudioService`, `WhisperAsrService`,
+`AlignmentServiceClient`) при любой ошибке (пустой URL, не-2xx,
+исключение) возвращают `null` — retry-политики у них нет, решение
+принимает вызывающий код.
+
+### Архитектурные решения
+
+#### Решение 1: VK / TG / Yandex — все идут через nginx-прокси
 
 См. [storage-flow.md](../../../domains/storage/components/storage-flow.md)
 — та же проблема MTU black-hole. Решение — nginx proxy (см.
 WebClientConfig).
 
-### Решение 2: LM Studio — LAN-only
+#### Решение 2: LM Studio — LAN-only
 
 `host.docker.internal` НЕ подходит. LM Studio слушает конкретный
 LAN IP хоста (НЕ `0.0.0.0`), поэтому URL должен быть настроен через
 `lmStudioUrl` в `KaraokeProperties`.
 
-### Решение 3: VkPreviewWarmupClient — диагностический результат
+#### Решение 3: VkPreviewWarmupClient — диагностический результат
 
 `VkPreviewWarmupResult` НЕ персистится в БД (используется только
 оркестратором). Это сознательное решение — данные нужны только для
 немедленного решения оркестратора, не для аудита.
 
 ---
+
+## Зависимости | Dependencies
+
+**Конфигурация и бины**:
+
+- `KaraokeProperties` — источник URL/токенов/флагов для всех клиентов
+  (`vkAccessToken`, `vkUserAccessToken`, `telegramBotToken`,
+  `telegramBotApiBaseUrl`, `whisperAsrUrl`, `whisperApiKey`,
+  `alignmentServiceUrl`, `lmStudioUrl`, `lmStudioModel`, `lmStudioApiKey`).
+- `WebClient`-бины (`karaoke-web/.../config/WebClientConfig.kt`):
+  `yandexCaptchaWebClient` (baseUrl = `${captcha.proxy-url}` =
+  `http://minio-proxy/smartcaptcha`), `yookassaWebClient`, `@Primary`
+  `smKaraokeWebClient`. `YandexCaptchaValidationService` дополнительно
+  зависит от `CaptchaConfigService` (серверный ключ).
+- Потребители-зависимости: `PublicAuthController` (Captcha),
+  `VkAutoPublishService` / `VkAutoPublishScheduler`,
+  `TelegramAutoPublishService` / `TelegramAutoPublishScheduler`,
+  `TelegramUpdatesConsumer`.
+
+**HTTP-клиенты**: `java.net.http.HttpClient` (VK, Telegram),
+`OkHttpClient` (LM Studio, Whisper, Alignment), Spring `WebClient`
+(Yandex Captcha).
+
+**nginx-proxy (обход MTU black-hole)**:
+
+- Хостовый `minio-proxy` (`extra_hosts: minio-proxy:host-gateway`) с
+  путями `/smartcaptcha`, `/yookassa`, storage — см.
+  `deploy/prod-single-host/docker-compose-web.yml`.
+- Локальный аналог — контейнер `karaoke-minio-proxy`
+  (`deploy/karaoke-web/minio-proxy-local.conf`,
+  `deploy/docker-compose-web.yml`).
+- Telegram — отдельный `karaoke-telegram-proxy` (xray,
+  `deploy/docker-compose-telegram-proxy.yml`, конфиг
+  `/sm-karaoke/system/telegram-proxy/config.json`), которым управляет
+  `TelegramProxyManager`, а не minio-proxy.
+
+**Кэши и хранилище**: `GeoIpService` — in-memory
+`ConcurrentHashMap<ip, country>` + таблица `tbl_ip_country` в LOCAL-БД
+(`Connection.local()`, `deploy/karaoke-db/08_ip_country.sql`);
+VK/Telegram держат in-memory состояние режима прокси (`useProxy`,
+`modeSetAtMs`).
 
 ## Известные TODO
 
@@ -332,6 +425,7 @@ LAN IP хоста (НЕ `0.0.0.0`), поэтому URL должен быть н�
 
 ## Changelog
 
+- **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).
 - **Pass 437** (2026-09-23, issue #161): `VkApiClient` proxy-fallback — прокси
   опционален; добавлена `VkNetworkException`, `decideSendMode` (чистая функция),
   unit-тесты `VkApiClientSendModeTest`. Оркестраторы (`VkAutoPublishService`,

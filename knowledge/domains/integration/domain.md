@@ -47,6 +47,23 @@ docker-сети и подписать SigV4 если нужно. См.
 | **`GeoIpService`** | api.country.is (двухуровневый кэш; батч-резолв с бюджетом времени). |
 | **`YandexCaptchaValidationService`** | SmartCaptcha (Yandex). |
 
+## Публичные контракты (API)
+
+У integration нет входящего `/api/...`: его «публичные контракты» —
+**исходящие** контракты с внешними сервисами. Наружу домен endpoints
+не публикует, потребитель каждого контракта — внутренний код Karaoke
+(входящие API живут в домене [karaoke-web](../karaoke-web/domain.md)).
+
+| Внешний сервис | Протокол / endpoint | Клиент | Потребитель в Karaoke |
+|---|---|---|---|
+| VK Open API | HTTPS `https://api.vk.ru/method` (версия `vkApiVersion`, default `5.199`): `wall.post`, `photos.*`, `docs.*`, `video.save` | `VkApiClient`, `VkPhotoUploadClient`, `VkPreviewWarmupClient` | `VkAutoPublishScheduler` → `VkAutoPublishService.publishToVk` / `onRenderCompleted`; `VkIdTokenRefreshScheduler` → `VkApiClient.refreshVkIdAccessToken` |
+| Telegram Bot API | HTTPS `<telegramBotApiBaseUrl>/bot<token>` (default base `https://api.telegram.org`): `sendVideo`, `getUpdates`, `deleteWebhook` | `TelegramApiClient`, `TelegramUpdatesConsumer` | `TelegramAutoPublishScheduler` → `TelegramAutoPublishService.publishToTelegram` / `onRenderCompleted`; `TelegramUpdatesConsumer` — long-polling |
+| Yandex SmartCaptcha | HTTP POST `/validate` к `captcha.proxy-url` (= `http://minio-proxy/smartcaptcha`) | `YandexCaptchaValidationService` (bean `yandexCaptchaWebClient`) | `PublicAuthController` (login/register) |
+| LM Studio | HTTP POST на `lmStudioUrl` (`/v1/chat/completions`, OpenAI-совместимый) | `LmStudioService` | `TextCorrectorAgent`, `ScraperAgent` (LLM-агенты) |
+| Whisper ASR | HTTP multipart POST на `whisperAsrUrl` | `WhisperAsrService` | SubsEdit «Авто-маркеры» (`SongEditorController`), `Utils` (в т.ч. `FORCED_ALIGN_MARKERS`), `ExportAlignmentDataset` |
+| Forced alignment (`alignment-ml`) | HTTP multipart POST на `alignmentServiceUrl` | `AlignmentServiceClient` | `SongEditorController`, `Utils` (`FORCED_ALIGN_MARKERS`) |
+| GeoIP | HTTP GET `https://api.country.is/<ip>` | `GeoIpService` | `/api/stats/countries` (`StatBySong.getCountryBreakdown`), страница `/api/webevents` |
+
 ## Архитектурные решения
 
 ### Решение 1: nginx-proxy
@@ -122,6 +139,7 @@ Telegram Bot API имеет жёсткий rate-limit (1 запрос/сек н�
 
 ## Changelog
 
+- **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).
 - **Pass 437** (2026-09-23, issue #161): Domain Invariant #4 —
   опциональный прокси не фатален (VK proxy-fallback resilience).
 - **Pass 345** (2026-09-09): Initial. Автор: agent (Karaoke).

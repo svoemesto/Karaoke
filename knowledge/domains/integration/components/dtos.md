@@ -16,7 +16,24 @@ DTO — сериализуемое представление сущностей
 karaoke-web). DTO НЕ содержат бизнес-логики, только поля + Jackson
 аннотации.
 
-## DTO в karaoke-app (26 файлов)
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Контракт DTO — это его поля (тип + источник значения) и endpoint, через
+который он сериализуется. Общий базовый контракт задаёт интерфейс
+`KaraokeDbTableDto`:
+
+| Метод | Вход → Выход | Назначение |
+|---|---|---|
+| `isValid()` | `()` → `Boolean` | Валидация DTO перед записью (default `true`). |
+| `validationErrors()` | `()` → `List<String>` | Список ошибок валидации (default пустой). |
+| `fromDto(database)` | `KaraokeConnection` → `KaraokeDbTable` | Обратный маппинг DTO → entity. |
+
+Типы полей DTO — простые сериализуемые (`Long`, `Int`, `String`,
+`Boolean`, `Double`, `Date?`, вложенные DTO); идентификаторы — `Long`,
+ссылки на автора/альбом — `String` (имя), опциональные поля — nullable
+(`Long?`, `String?`, `Date?`).
+
+### DTO в karaoke-app (26 файлов)
 
 | DTO | Что | Используется в |
 |---|---|---|
@@ -47,7 +64,7 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 | `SubscriptionDto` | Подписка | `/api/subscriptions/list` |
 | `WebEventDTO` | WebEvent | (analytics) |
 
-## DTO в karaoke-web (8 публичных)
+### DTO в karaoke-web (8 публичных)
 
 | DTO | Что | Используется в |
 |---|---|---|
@@ -60,7 +77,21 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 | `ZakromaStreamMessageDto` | Сообщение стрима «Закрома» | `/api/public/zakroma/stream` |
 | `ZakromaStreamMetricDto` | Метрика стрима | (тот же) |
 
-## Jackson конвенции
+## Логика и Алгоритмы | Logic and Algorithms
+
+**Маппинг entity ↔ DTO**: у каждой entity есть `toDTO()`, у DTO —
+`fromDto(database)` (см. `KaraokeDbTableDto`). DTO — плоское
+сериализуемое представление: вложенные сущности разворачиваются в
+`String`-имена или id, служебные поля БД (например, `recordHash`,
+`isDeleted`) в публичные DTO не попадают.
+
+**Сериализация Jackson**: ключ JSON = имя Kotlin-свойства; для
+boolean-полей с `is`-префиксом Kotlin-геттер и Jackson расходятся,
+поэтому там ставится явный `@get:JsonProperty(...)` (примеры:
+`AuthorDTO.isSpecialOrder` → `"isSpecialOrder"`,
+`SiteUserDto.canSelfAssignTasks`, `canWorkWithSkipped`).
+
+### Jackson конвенции
 
 Из CLAUDE.md раздела `Code Style`:
 
@@ -69,20 +100,20 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 То есть `isActive` → `active`, `isPublic` → `public`. Это критично
 для совместимости с JavaScript-фронтом (camelCase vs snake_case).
 
-## Архитектурные решения
+### Архитектурные решения
 
-### Решение 1: DTO ≠ Entity
+#### Решение 1: DTO ≠ Entity
 
 Entity (например, `Song`) содержит **бизнес-логику** (методы
 `save()`, `loadList()`). DTO (`SongDTO`) — только данные для
 сериализации. Чёткое разделение.
 
-### Решение 2: DTO генерируются вручную (не Jackson auto)
+#### Решение 2: DTO генерируются вручную (не Jackson auto)
 
 Jackson может генерировать DTO из entity через `@JsonView`, но
 проект предпочитает явные `*Dto.kt` для контроля над сериализацией.
 
-### Решение 3: Public vs internal DTO
+#### Решение 3: Public vs internal DTO
 
 - **Internal** (`SongDTO`) — для admin (webvue3).
 - **Public** (`SongPublicDto`) — для публичного сайта (ограниченный
@@ -108,4 +139,5 @@ Jackson может генерировать DTO из entity через `@JsonVie
 
 ## Changelog
 
+- **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).
 - **Pass 352** (2026-09-09): Initial. Автор: agent (Karaoke).

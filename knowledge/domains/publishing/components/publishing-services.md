@@ -29,7 +29,43 @@
 | 6 | `TelegramTemplateService` | ? | Шаблоны TG (Pass 343+) |
 | 7 | `VkTemplateService` | ? | Шаблоны VK (Pass 343+) |
 
-## Архитектура
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+### DTO и state
+
+Каждый `*AutoPublishService` имеет:
+
+- `*Result` (DTO с результатом попытки) — `VkAutoPublishResult`,
+  `TelegramAutoPublishResult` (`state`, `messageId`, `error`).
+- `*State` (in-memory state текущих попыток) — `VkAutoPublishState`,
+  `TelegramAutoPublishState`; enum-значения одинаковые:
+  `SCHEDULED`, `RENDERING`, `PUBLISHING`, `PUBLISHED`, `SEND_FAILED`,
+  `CANCELLED`.
+- `*SchedulerStarter` — Spring `@Component`
+  (`VkAutoPublishSchedulerStarter`, `TelegramAutoPublishSchedulerStarter`),
+  поднимает scheduler при старте приложения.
+
+### Точки входа
+
+| Сервис | Метод |
+|---|---|
+| `VkAutoPublishService` (object) | `publishToVk(song, type = PublicationType.AIR, persistPostId = true): VkAutoPublishResult`; `onRenderCompleted(...)` |
+| `TelegramAutoPublishService` (object) | `publishToTelegram(song, allowPastDate = false, publicationType = AIR, persistMessageId = true): TelegramAutoPublishResult`; `onRenderCompleted(songId, publicationType, persistMessageId, success, error)` |
+| `SongReleaseAnnouncementService` (object) | `detectAndAnnounceAvailability(...)`, `checkOnAirWindow(...)`, `backfillNewsAvailableFlag(...)`, `backfillPublishFlags(...)` |
+| `NewsTemplateService` (object) | `template(key, database)`, `render(template, song, news, truncate, database)`, `placeholders()`, `defaultFor(key)`, `descriptionFor(key)`, `categoryFor(key)`, `fieldFor(key)`, `albumYearSuffix(song)`, `bodyDetails(song)` |
+| `TelegramTemplateService` (object) | `templateFor(type: PublicationType)`, `render(template, song, database)`, `placeholders()` |
+| `AdminTaskService` (`@Service`) | `startTask(action, totalCount, block): UUID`, `getTask(taskId): TaskStatus?`; `TaskStatus` (`RUNNING`/`COMPLETED`/`PARTIAL`/`FAILED`) |
+
+### `*TemplateService`
+
+- `VkTemplateService` / `TelegramTemplateService` — шаблоны
+  (placeholder'ы, defaults); `KaraokeProperties` хранит переопределения.
+- `NewsTemplateService` — для 4 категорий (`air` / `premium` /
+  `feature` / другое), см. [entities-catalog.md#news](../../catalog/components/entities-catalog.md#news).
+  Ключи — `newsTemplateAirTitle`/`AirBody`/`PremiumTitle`/`PremiumBody`
+  (`ALLOWED_KEYS`), читаются из `tbl_public_settings` (fail-open на дефолт).
+
+## Логика и Алгоритмы | Logic and Algorithms
 
 ### Шаблоны + Auto-publish
 
@@ -40,23 +76,7 @@ News (category + text + picture + dates)
        → VkApiClient / TelegramApiClient (см. external-api-clients)
 ```
 
-### State (результаты + история)
-
-Каждый `*AutoPublishService` имеет:
-- `*Result` (DTO с результатом попытки) — `VkAutoPublishResult`,
-  `TelegramAutoPublishResult`.
-- `*State` (in-memory state текущих попыток) — `VkAutoPublishState`,
-  `TelegramAutoPublishState`.
-- `*SchedulerStarter` — Spring `@Component` для запуска scheduler'а.
-
-### `*TemplateService`
-
-- `VkTemplateService` / `TelegramTemplateService` — шаблоны
-  (placeholder'ы, defaults).
-- `NewsTemplateService` — для 4 категорий (`air` / `premium` /
-  `feature` / другое), см. [entities-catalog.md#news](../../catalog/components/entities-catalog.md#news).
-
-## Детально: `VkAutoPublishService` (546 строк)
+### Детально: `VkAutoPublishService` (546 строк)
 
 **Файл**: `karaoke-app/.../services/VkAutoPublishService.kt`.
 
@@ -84,7 +104,7 @@ group blocked.
 `@Scheduled`-тик. `VkAutoPublishScheduler.publishNewsWithoutVideo` — то же,
 пост не помечается опубликованным (повтор на следующем тике).
 
-## Детально: `SongReleaseAnnouncementService` (506 строк)
+### Детально: `SongReleaseAnnouncementService` (506 строк)
 
 **Файл**: `karaoke-app/.../services/SongReleaseAnnouncementService.kt`.
 
@@ -97,21 +117,29 @@ group blocked.
 4. Отправляет через `TelegramApiClient` или `VkApiClient` (в
    зависимости от настроек).
 
-## Детально: `TelegramAutoPublishService` (338 строк)
+### Детально: `TelegramAutoPublishService` (338 строк)
 
 **Файл**: `karaoke-app/.../services/TelegramAutoPublishService.kt`.
 
 **Логика** (по KDoc + спецификация `telegram-auto-publish`):
 
-1. **Triggered by** `TelegramAutoPublishScheduler` (каждые 60с).
-2. Находит новости `category=air + publish_at <= now()` + не
-   опубликованные.
-3. Отправляет через `TelegramApiClient.sendMessage` /
-   `sendPhoto`.
-4. Идемпотентность через `news_id_vk/telegram` поле (если
-   `news_id_*` уже есть, не публикуем).
+1. **Triggered by** `TelegramAutoPublishScheduler` (каждые 60с,
+   `fixedDelay`; `resumeRenderingSongs()` + `publishScheduledSongs()`).
+2. Идемпотентность: непустой `song.idTelegramDemo` → `PUBLISHED` без
+   отправки; для `PREMIUM` дополнительно `song.newsPremiumTelegramSent`
+   (страховка от дублей между тиками и ручными вызовами).
+3. `dateTimePublish` в прошлом при `allowPastDate = false` (для
+   `PREMIUM` всегда `true`) → `SCHEDULED` «опоздавшая публикация».
+4. `!song.isContentReady` → `SCHEDULED`.
+5. Нет демо-MP4 нужного размера (лимит
+   `telegramAutoPublishMaxFileSizeMb`, дефолт 50 МБ) → рендер
+   (`RENDER_MP4_DEMO`), состояние `RENDERING`, продолжение через
+   `onRenderCompleted`.
+6. Иначе — `publishFile`: `TelegramApiClient` (`sendVideo`/`sendPhoto`),
+   при `persistMessageId = true` запись `idTelegramDemo` через
+   `Song.saveToDb` (FR-006).
 
-## Детально: `NewsTemplateService` (264 строки)
+### Детально: `NewsTemplateService` (264 строки)
 
 **Файл**: `karaoke-app/.../services/NewsTemplateService.kt`.
 
@@ -119,26 +147,50 @@ group blocked.
 
 ```kotlin
 object NewsTemplateService {
+    const val NEWS_TITLE_MAX_LENGTH = 500
     const val DEFAULT_AIR_TITLE = "..."
     const val DEFAULT_AIR_BODY = "..."
     const val DEFAULT_PREMIUM_TITLE = "..."
     const val DEFAULT_PREMIUM_BODY = "..."
-    
-    fun template(category: String, ...): String { ... }
-    fun placeholders(): Map<String, String> { ... }
-    fun defaultFor(category: String): Pair<String, String> { ... }
-    fun descriptionFor(placeholder: String): String { ... }
-    fun fieldFor(placeholder: String): String { ... }
+    val ALLOWED_KEYS: Set<String> = setOf(/* 4 ключа */)
+    val PLACEHOLDERS: List<PlaceholderInfo> = listOf(/* ... */)
+
+    fun template(key: String, database: KaraokeConnection): String
+    fun render(template: String, song: Song, news: News? = null,
+               truncate: Boolean = true, database: KaraokeConnection = WORKING_DATABASE): String
+    fun placeholders(): List<Map<String, String>>
+    fun defaultFor(key: String): String
+    fun descriptionFor(key: String): String
+    fun categoryFor(key: String): String
+    fun fieldFor(key: String): String
+    fun albumYearSuffix(song: Song): String
+    fun bodyDetails(song: Song): String
 }
 ```
 
-**Placeholders** — `{songId}`, `{author}`, `{album}`, `{date}` и т.д.
+**Ключи**: `newsTemplateAirTitle` / `newsTemplateAirBody` /
+`newsTemplatePremiumTitle` / `newsTemplatePremiumBody` (`ALLOWED_KEYS`);
+значение читается из `tbl_public_settings`, при пустом/ошибке JDBC —
+дефолт (fail-open). `descriptionFor`/`categoryFor`/`fieldFor` —
+метаданные для generic-UI. `render` заменяет `{placeholder}` по
+регулярке, неизвестные оставляет literal-текстом, `truncate = true`
+усекает до `NEWS_TITLE_MAX_LENGTH = 500` (для `body` — `false`).
 
-## Детально: `AdminTaskService` (132 строки)
+**Placeholders** — `{author}`, `{songName}`, `{songNameCensored}`,
+`{year}`, `{album}`, `{albumYearSuffix}`, `{bodyDetails}`, `{link}`,
+`{id}`, `{newsBody}`, `{descriptionHeader}`, `{descriptionFooter}`,
+`{description}`, `{descriptionWithTimecodes}` (см. `PLACEHOLDERS`).
 
-**Файл**: `karaoke-app/.../services/AdminTaskService.kt`.
+### Детально: `AdminTaskService` (132 строки)
 
-**Логика**: утилита для admin-задач (helper-методы).
+**Файл**: `karaoke-app/.../services/AdminTaskService.kt` (Kotlin, `@Service`).
+
+**Логика**: `startTask(action, totalCount, block)` создаёт `UUID`,
+кладёт `TaskStatus` в `ConcurrentHashMap` и запускает `block(progress)`
+в `Executors.newFixedThreadPool(2)`; финальный статус —
+`COMPLETED` (0 ошибок и все успешны) / `PARTIAL` (есть успешные) /
+`FAILED` (иначе); прогресс читается через `getTask(taskId)`.
+Используется bulk-операциями админки (specs/319 US4).
 
 ## Hot paths
 
@@ -172,6 +224,7 @@ object NewsTemplateService {
 
 ## Changelog
 
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 437** (2026-09-23, issue #161): resilience `VkAutoPublishService` /
   `VkAutoPublishScheduler` — сетевые ошибки VK → `SEND_FAILED`, не исключение.
 - **Pass 379** (2026-09-09): Initial. Автор: agent (Karaoke).

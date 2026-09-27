@@ -20,61 +20,55 @@ known gap, зафиксированный ниже. Теперь у обоих �
 предложил создавать новую структуру `storage_file_cache` в БД, **не
 зная** об этих готовых паттернах. Это нарушение Knowledge-first.
 
-## Существующие паттерны
+## Интерфейсы и Контракты | Interfaces and Contracts
 
-### `DedupCache` — дедупликация событий
+### `DedupCache` (`karaoke-web`)
 
 Файл: `karaoke-web/.../services/DedupCache.kt` (86 строк).
 
-**Что делает**: потокобезопасный TTL-кеш для **дедупликации**
-повторяющихся событий. Хранит `key → lastSeenAtMs`. При вызове
-`isDuplicate(key)` возвращает `true`, если тот же ключ был за последние
-`ttlMs`.
+```kotlin
+class DedupCache(private val ttlMs: () -> Long) {
+    fun isDuplicate(key: String): Boolean   // true = дубликат за последние ttlMs
+    fun size(): Int
+    fun clear()
+}
+```
 
-**Где используется**:
+Состояние: `ConcurrentHashMap<String, Long>` (`key → lastSeenAtMs`) +
+`AtomicLong` cleanup counter. `ttlMs` — лямбда, чтобы TTL читался на
+каждом вызове. Единственный потребитель — `SamplingFilter.shouldSkip`
+(дедуп событий `tbl_events`); TTL — `KaraokeProperties.eventsDedupTtlSeconds`,
+ключ — `(restName, canonical(parameters), anonId-or-userId)`.
 
-- `SamplingFilter.shouldSkip` — дедуп событий `tbl_events`.
-- `EventsBuffer` — при батчинге событий в БД.
-
-**TTL**: управляется через `KaraokeProperties.eventsDedupTtlSeconds`.
-
-**Ключ формируется как**: `(restName, canonical(parameters), anonId-or-userId)`.
-
-**Реализация**: `ConcurrentHashMap<String, Long>` + `AtomicLong`
-cleanup counter. **Без внешних зависимостей** (Caffeine/Guava
-намеренно не используются).
-
-**Lazy cleanup**: на каждом N-ном вызове (cleanupEvery = 1000)
-удаляются истёкшие записи. O(1) средняя стоимость, O(1) amortized
-cleanup.
-
-**Почему НЕ Caffeine/Guava**: см. KDoc в файле — «намеренный минимум
-зависимостей, для текущей нагрузки ~30 req/min ConcurrentHashMap
-достаточен».
-
-### `PollingCache<V>` — TTL-кеш для polling-эндпоинтов
+### `PollingCache<V>` (`karaoke-app`)
 
 Файл: `karaoke-app/.../services/PollingCache.kt` (Pass 456; до этого — в
 `karaoke-web`).
 
-**Что делает**: потокобезопасный TTL-кеш **общего назначения** с
-`loader: () -> V`. Хранит `key → (value, expiresAtMs)`. При вызове
-`getOrCompute(key, ttlSeconds, shouldCache, loader)` возвращает кешированное
-значение, если живо, иначе вызывает loader, сохраняет результат с
-TTL и возвращает.
+```kotlin
+class PollingCache<V> {
+    fun getOrCompute(
+        key: String,
+        ttlSeconds: Long,
+        shouldCache: (V) -> Boolean = { true },
+        loader: () -> V,
+    ): V
+    fun size(): Int
+    fun clear()
+}
+private data class CacheEntry<V>(val value: V, val expiresAtMs: Long)
+```
 
-**`shouldCache: (V) -> Boolean`** (Pass 456, по умолчанию `{ true }`) —
-условное кэширование: результат, который кэшировать нельзя, возвращается
-вызывающему, но в кэш не попадает. Мотивирующий случай — детект ВПН
-(`isVpnActive`): «страну определить не удалось» это fail-open, и кэшировать эту
-неудачу нельзя, иначе разовый сетевой сбой «залипнет» на весь TTL и машина с
-включённым ВПН пойдёт в Яндекс.Музыку, где её заблокируют.
+Состояние: `ConcurrentHashMap<String, CacheEntry<V>>` + `AtomicLong`
+cleanup counter. `shouldCache` (Pass 456, по умолчанию `{ true }`) —
+предикат «сохранять ли результат loader'а»: вернув `false`, вызывающий
+получает значение, но в кеше его не остаётся. Мотивирующий случай —
+детект ВПН (`isVpnActive`, `karaoke-app/.../Utils.kt`): «страну
+определить не удалось» это fail-open, и кэшировать эту неудачу нельзя,
+иначе разовый сетевой сбой «залипнет» на весь TTL и машина с включённым
+ВПН пойдёт в Яндекс.Музыку, где её заблокируют.
 
-**`expiresAtMs` считается ПОСЛЕ вызова loader'а** (исправлено в Pass 456; раньше
-`now` снимался до вызова, поэтому медленный loader съедал часть TTL — у детекта
-ВПН loader идёт до 5+5 с на сервис).
-
-**Где используется**:
+Потребители и TTL:
 
 - `PublicNewsController` — `/api/public/news/since` (TTL=60s).
 - `PublicChatController` — `/api/public/account/chat/unreadcount`
@@ -82,17 +76,41 @@ TTL и возвращает.
 - `PublicShareController` — `/api/public/share/heartbeat` (TTL=15s,
   heartbeat 25s, каждый 2-й no-op).
 
-**Реализация**: `ConcurrentHashMap<String, CacheEntry<V>>` +
-`AtomicLong` cleanup counter. Generic по типу V.
+## Логика и Алгоритмы | Logic and Algorithms
 
-**Параллельные вызовы НЕ дедуплицируются**: loader может вызываться
-дважды в race condition. Это приемлемо для polling-кеша — два
-SQL-запроса с интервалом <100ms случаются редко.
+### `DedupCache` — дедупликация событий
 
-**Lazy cleanup**: cleanupEvery = 500.
+1. `isDuplicate(key)` берёт `now` и `cutoff = now - ttlMs()`; через
+   `ConcurrentHashMap.compute` по ключу: если `lastSeen >= cutoff` —
+   возвращает `true` (запись не трогает), иначе пишет `now` и
+   возвращает `false`. `compute` сериализует доступ к ключу атомарно.
+2. **Lazy cleanup**: на каждом N-ном вызове (cleanupEvery = 1000)
+   удаляются истёкшие записи. O(1) средняя стоимость, O(1) amortized
+   cleanup.
+3. **Без внешних зависимостей** (Caffeine/Guava намеренно не
+   используются). Обоснование в KDoc: «намеренный минимум
+   зависимостей, для текущей нагрузки ~30 req/min ConcurrentHashMap
+   достаточен» (N записей при N=10k ≈ 500 КБ heap).
 
-**Почему НЕ Spring `@Cacheable`**: см. KDoc в файле — не хочется
-global cache manager ради 3 endpoints, TTL разный per-endpoint.
+### `PollingCache<V>` — TTL-кеш для polling-эндпоинтов
+
+1. `getOrCompute` читает `store[key]`; если `expiresAtMs >
+   System.currentTimeMillis()` — отдаёт значение **без вызова loader**.
+2. На miss/истечении вызывает `loader()`, и только если
+   `shouldCache(fresh)` — кладёт `CacheEntry(fresh, now + ttlSeconds*1000)`.
+3. **`expiresAtMs` считается ПОСЛЕ вызова loader'а** (исправлено в
+   Pass 456; раньше `now` снимался до вызова, поэтому медленный loader
+   съедал часть TTL — у детекта ВПН loader идёт до 5+5 с на сервис).
+4. **Lazy cleanup**: cleanupEvery = 500, `removeIf { expiresAtMs <= now }`.
+5. **TTL фиксируется на момент создания entry**: если `ttlSeconds`
+   меняется между вызовами, новые записи получают новый TTL, старые —
+   старый.
+6. **Параллельные вызовы НЕ дедуплицируются**: loader может вызываться
+   дважды в race condition. Приемлемо для polling-кеша — два SQL-запроса
+   с интервалом <100ms случаются редко.
+7. **Почему НЕ Spring `@Cacheable`**: не хочется global cache manager
+   ради 3 endpoints, TTL разный per-endpoint, а явный `loader` делает
+   cache-miss path очевидным.
 
 ## Когда использовать какой паттерн
 
@@ -129,6 +147,17 @@ class StorageMetadataCache {
 `storage_file_cache` — это **overengineering**. PollingCache уже
 имеет всё необходимое (lazy cleanup, generic, TTL).
 
+**NB (Pass 486)**: приведённый выше эскиз — уже не «кандидат», а
+реализованный факт. Реальный кеш метаданных — `StorageMetadataCache`
+(`karaoke-app/.../services/StorageMetadataCache.kt`, `@Component`,
+spec #348), и он построен **не** на `PollingCache`: TTL = ∞,
+single source of truth — таблица `tbl_storage_metadata_cache`
+(migration 48), инвалидация write-through из
+`StorageApiClient`/`KaraokeStorageService` (`recordUpload`/`recordDelete`)
++ ручной `POST /api/health/cache/refresh`. Детали —
+[storage-api-client.md](../../storage/components/storage-api-client.md)
+и [health-report.md](../../health/components/health-report.md).
+
 ## Известные ограничения
 
 - **Нет persistence**: оба паттерна чисто in-memory, при рестарте
@@ -164,7 +193,9 @@ class StorageMetadataCache {
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SamplingFilter.kt`
   (использует `DedupCache`)
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsBuffer.kt`
-  (использует `DedupCache`)
+  (упоминает `DedupCache` в KDoc; сам dedup делает `SamplingFilter`)
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageMetadataCache.kt`
+  (вечный кеш метаданных MinIO, spec #348 — см. NB в «Применимость»)
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicChatController.kt`
   (использует `PollingCache`)
 - `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicNewsController.kt`
@@ -189,10 +220,11 @@ class StorageMetadataCache {
 
 ## Changelog
 
-- **Pass 341** (2026-09-09): Initial. Прецедент: задача #69.
-  Автор: agent (Karaoke).
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 456** (2026-09-26): `PollingCache` перенесён в `karaoke-app`
   (закрыт known gap), добавлен `shouldCache`, исправлен расчёт `expiresAtMs`.
   Повод: агент сделал ad-hoc TTL-кэш для детекта ВПН, не зная об этом
   документе — то есть повторил прецедент Pass 340 / спеки #339, ради
   предотвращения которого страница и написана.
+- **Pass 341** (2026-09-09): Initial. Прецедент: задача #69.
+  Автор: agent (Karaoke).

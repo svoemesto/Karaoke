@@ -154,6 +154,51 @@ webhook'а YooKassa продлевает `SiteUser.sitePremiumUntil`.
 **Участвует в LOCAL↔SERVER SyncRegistry** (см.
 [two-db-sync](../processing/components/two-db-sync.md)).
 
+## Публичные контракты (API)
+
+### HTTP-контракты: admin (`karaoke-app`), потребитель — `webvue3`
+
+| Контроллер | Эндпоинты |
+| --- | --- |
+| `TariffsController` (`@RequestMapping("/api/tariffs")`, `:24`) | `POST /api/tariffs/list`, `POST /create`, `POST /update`, `POST /delete` |
+| `PromoController` (`@RequestMapping("/api/promorules")`, `:23`) | `POST /api/promorules/list`, `POST /create`, `POST /update`, `POST /delete` |
+| `SubscriptionsController` (`@RequestMapping("/api/subscriptions")`, `:39`) | `POST /api/subscriptions/digest` — постраничный список подписок с фильтрами (`scope`, `status`, `userId`, `songId`, даты, `sortBy`/`sortDir`) |
+
+Тарифы и промо-правила — **target-aware**: параметр `target=remote` адресует
+прод-БД, иначе LOCAL (`TariffsController.withDb`, `PromoController.withDb`).
+Потребители: `webvue3/src/components/Tariffs/store.js`,
+`webvue3/src/components/Promotions/store.js`,
+`webvue3/src/components/Subscriptions/store.js:66`.
+
+### HTTP-контракты: public (`karaoke-web`), потребитель — `karaoke-public`
+
+| Контроллер | Эндпоинты |
+| --- | --- |
+| `PublicSubscriptionController` (`/api/public/account/subscription`) | `GET /tariffs?scope=`, `GET /price?scope=&songId=&tariffId=`, `POST /create`, `GET /list`, `POST /cancel` |
+| `PublicCartController` (`/api/public/account/cart`) | `GET /list`, `POST /clear`, `POST /toggle?songId=`, `GET /price`, `POST /checkout?disclaimerAccepted=` |
+| `PublicPaymentController` (`/api/public/payment`) | `POST /api/public/payment/webhook` — webhook YooKassa: перепроверяет статус через `PaymentService.verifyAndFetch` и идемпотентно переводит `Subscription.status` → `PAID`; потребитель — YooKassa, не фронт |
+
+Потребители: `karaoke-public/src/services/cartApi.js`,
+`karaoke-public/src/composables/useSiteSubscription.js`,
+`karaoke-public/src/composables/useSongSubscription.js`,
+`karaoke-public/src/views/SubscriptionsView.vue`.
+
+### Internal API
+
+- Модели: `PriceTariff` (`loadAll`, `loadActiveByScope`, `getById`, `getDefault`,
+  `createNew`, `delete`), `PromoRule` (`loadAll`, `loadActive`, `getById`,
+  `createNew`, `delete`, `isCurrentlyActive`, `appliesToScope`), `Subscription`
+  (`loadByUser`, `getById`, `getAllByYookassaPaymentId`, `isSubscribedToSong`,
+  `subscribedSongIds`, `countPaid`, `createNew`), `CartItem` (`loadByUser`,
+  `getByUserAndSong`, `createNew`, `delete`, `deleteByUserAndSongs`).
+- Сервисы `karaoke-web`: `PriceService.computePrice` / `computeCartPrice` (промо +
+  персональная скидка), `PaymentService` (`hasCredentials`, `createPayment`,
+  `createCartPayment`, `chargeRecurring`, `verifyAndFetch`,
+  `newIdempotenceKey`), `SubscriptionRenewalScheduler` (автопродление).
+
+HTTP-API у домена есть: admin-часть — только в `karaoke-app`, публичная — только
+через `karaoke-web`.
+
 ## Структура компонентов (C4 L3)
 
 L3-компонентов у домена пока нет: контекст описан целиком в этом
@@ -282,3 +327,4 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 ## Changelog
 
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

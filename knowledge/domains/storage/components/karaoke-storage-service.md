@@ -19,7 +19,7 @@ download, delete, list, метаданные). Блокирующий (НЕ reac
 - `karaoke-app/.../controllers/StorageController.kt` — admin REST API
   для просмотра/управления файлами.
 
-## Интерфейсы и Контракты
+## Интерфейсы и Контракты | Interfaces and Contracts
 
 ### `KaraokeStorageService` (interface)
 
@@ -61,7 +61,7 @@ data class StorageFileInfo(
 )
 ```
 
-## Логика и Алгоритмы
+## Логика и Алгоритмы | Logic and Algorithms
 
 ### `fileExists` и `fileIsActual` — главные hot path методы
 
@@ -125,21 +125,6 @@ etag в сравнение. (TODO Pass 343+.)
 Используется во ВСЕХ методах, чтобы не получить «не найдено» на
 имени типа `песня%20с%20ёжиком.mp3`.
 
-## Зависимости
-
-- **MinioClient SDK** (`io.minio.*`) — стандартный SDK.
-- **OkHttpClient** (`KaraokeStorageService.kt:175-181`):
-  - `connectTimeout = 10s`
-  - `readTimeout = 30s`
-  - `writeTimeout = 30s`
-  - `connectionPool(0, 1, NANOSECONDS)` — **no connection reuse**.
-    Каждый вызов — новое соединение. Намеренно: защита от
-    устаревших keep-alive на nginx-прокси (см. ADR `local-0003`).
-
-**Аналогичное в `StorageApiClient`** (`StorageApiClient.kt:142-147`):
-те же timeouts (15s/60s/300s), тот же `connectionPool(0, 1,
-NANOSECONDS)`. Решение применено одинаково в обоих клиентах.
-
 ## Edge cases
 
 - `etag` от MinIO может содержать кавычки и сложные символы — при
@@ -150,6 +135,18 @@ NANOSECONDS)`. Решение применено одинаково в обои�
 
 ## Зависимости | Dependencies
 
+- **MinioClient SDK** (`io.minio.*`) — стандартный SDK.
+- **OkHttpClient** (`KaraokeStorageService.kt:175-181`):
+  - `connectTimeout = 10s`
+  - `readTimeout = 30s`
+  - `writeTimeout = 30s`
+  - `connectionPool(0, 1, NANOSECONDS)` — **no connection reuse**.
+    Каждый вызов — новое соединение. Намеренно: защита от
+    устаревших keep-alive на nginx-прокси (см. ADR `local-0003`).
+
+  **Аналогичное в `StorageApiClient`** (`StorageApiClient.kt:142-147`):
+  те же timeouts (15s/60s/300s), тот же `connectionPool(0, 1,
+  NANOSECONDS)`. Решение применено одинаково в обоих клиентах.
 - **HealthReport** (`actionsLocalStorage`): вызывает `fileExists`,
   `downloadFile`, `uploadFile` для восстановления файлов.
 - **Async Process Queue** (Pass 342): repair-процессы могут
@@ -157,6 +154,19 @@ NANOSECONDS)`. Решение применено одинаково в обои�
 - **`StorageApiClient`**: дублирует API, но для remote MinIO через
   HTTP-прокси. **Не использовать как fallback**: разные транспорты,
   разные гарантии.
+
+## Связанные ADR | Related ADRs
+
+- [local-0003-shared-minio-image-cache.md](../../../adr/local-0003-shared-minio-image-cache.md)
+  — MinIO как shared-хранилище: TTL/invalidation правила, atomic
+  put-or-replace (overwrite) при конкурентных upload'ах. На него
+  ссылается сама компонента: `connectionPool(0, 1, NANOSECONDS)` (нет
+  reuse keep-alive на nginx-прокси) и заметка про MinIO overwrite
+  atomic (см. «Зависимости» и «Known gaps»).
+- [0004-karaoke-app-admin-only.md](../../../adr/0004-karaoke-app-admin-only.md)
+  — `karaoke-app` (а значит, и его Spring-бин `KaraokeStorageService`)
+  живёт только на admin-машине; `StorageController` — admin REST API,
+  снаружи не выставляется.
 
 ## Known gaps (TODO для следующих Pass)
 
@@ -182,3 +192,7 @@ NANOSECONDS)`. Решение применено одинаково в обои�
   (см. gaps)
 - `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt`
   (admin REST API)
+
+## Changelog
+
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).

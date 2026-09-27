@@ -67,7 +67,30 @@ high-level диаграмма потоков данных между `karaoke-ap
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Потоки данных
+## Интерфейсы и Контракты | Interfaces and Contracts
+
+Три независимых контракта доступа к хранилищу (полный список
+endpoint'ов — в «Known gaps» ниже):
+
+1. **`KaraokeStorageService`** (local MinIO, прямой `MinioClient` SDK) —
+   `uploadFile` / `downloadFile` / `deleteFile` / `listFiles` /
+   `fileExists` / `getFileInfo` и т.д. Используется `karaoke-app` и
+   `StorageController`. Детали — [karaoke-storage-service.md](karaoke-storage-service.md).
+2. **`StorageApiClient`** (remote MinIO) — тот же интерфейс, но другая
+   реализация: `StorageApiClientImpl` (в `karaoke-app`) и
+   `StorageApiClientWeb` (в `karaoke-web`, reactive `WebClient`, baseUrl
+   `https://sm-karaoke.ru/api/storage`, `@Service`, реализует
+   `StorageApiClient`). См. [storage-api-client.md](storage-api-client.md).
+3. **HTTP-контракт админки**: `StorageController` (`karaoke-app`) —
+   `/api/storage/{upload,url,presigned-url,download,delete,list,exists,
+   bucket/public,bucket/private,bucket/public-status,fileStat,fileInfo,
+   listInfo}`; все методы идут через `KaraokeStorageService` (НЕ через
+   `StorageApiClient`).
+4. **nginx path-proxy** (`minio-proxy`): публичное чтение remote MinIO
+   из `karaoke-public` — HTTP `HEAD`/`GET` без Java-клиента
+   (`PublicApiController.fetchFromMinIO`, `PublicPlayerController.existsInMinIO`).
+
+## Логика и Алгоритмы | Logic and Algorithms
 
 ### Поток 1: Admin загружает файл (write в MinIO)
 
@@ -215,3 +238,7 @@ AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
 - **HealthReport** (`actionsLocalStorage`, `actionsRemoteStorage`).
 - **Async Process Queue** (Pass 342) — `StemJobPollScheduler` и др.
 - **SSE / WebSocket** (P2) — `recomputeAndBroadcast`.
+
+## Changelog
+
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).

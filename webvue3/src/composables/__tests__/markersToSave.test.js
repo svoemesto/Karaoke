@@ -46,7 +46,16 @@ describe('markersToSave: имя поля lockLad (тикет #201)', () => {
 
   test('остальные поля контракта на месте', () => {
     const [m] = markersToSave(SAMPLE)
-    for (const key of ['time', 'label', 'note', 'chord', 'stringLad', 'color', 'position', 'markertype']) {
+    for (const key of [
+      'time',
+      'label',
+      'note',
+      'chord',
+      'stringLad',
+      'color',
+      'position',
+      'markertype',
+    ]) {
       assert.ok(key in m, `ключ ${key} должен присутствовать`)
     }
   })

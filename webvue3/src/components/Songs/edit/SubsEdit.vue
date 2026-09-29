@@ -2630,6 +2630,58 @@ export default {
     },
   },
   beforeUnmount() {
+    // Порядок ВАЖЕН: сначала снимаем всё, что обращается к this.ws, и только
+    // ПОТОМ обнуляем поля. Иначе поздний обработчик успеет дёрнуть обнулённый
+    // this.ws.
+    //
+    // До фикса здесь просто обнуляли поля. Из-за этого после закрытия модалки
+    // слушатели `keydown`/`keyup` оставались висеть на document, а this.ws уже
+    // был null — любое нажатие клавиши в приложении давало
+    // `TypeError: Cannot read properties of null (reading 'isPlaying')`.
+    // Воспроизведено 2026-09-29. Тикет #187 карты wayfinder #186.
+    //
+    // На `isEditMode = false` как на единственный способ снятия НЕ полагаемся:
+    // watcher в beforeUnmount может и не сработать, поэтому removeEventListener
+    // вызываем явно.
+
+    this.isEditMode = false
+    document.removeEventListener('keydown', this.listenerKeyDown, false)
+    document.removeEventListener('keyup', this.listenerKeyUp, false)
+
+    // Обработчики слайдеров были анонимными функциями — снять их было нельзя,
+    // поэтому ссылка на DOM-узел и слушатель переехали в именованные методы.
+    if (this.sliderZoom) this.sliderZoom.removeEventListener('input', this.onSliderZoomInput)
+    if (this.sliderVolume) this.sliderVolume.removeEventListener('input', this.onSliderVolumeInput)
+
+    // Все восемь таймеров: раньше очищались только intervalSkipBackward/SkipForward
+    // (в ветке else watcher'а isEditMode), остальные жили после закрытия.
+    const intervalFields = [
+      'intervalSkipBackward',
+      'intervalSkipForward',
+      'intervalPressZ',
+      'intervalPressC',
+      'intervalPressBL',
+      'intervalPressBR',
+      'intervalPressComma',
+      'intervalPressPeriod',
+    ]
+    for (const field of intervalFields) {
+      if (this[field]) {
+        clearInterval(this[field])
+        this[field] = null
+      }
+    }
+
+    // Wavesurfer: без destroy() инстанс с canvas и всеми region-обработчиками
+    // продолжает жить после закрытия редактора.
+    if (this.ws) {
+      try {
+        this.ws.destroy()
+      } catch (e) {
+        // Уже уничтожен — teardown не должен бросать.
+      }
+    }
+
     this.wsRegions = null
     this.ws = null
     this.dataVoices = null
@@ -2637,13 +2689,6 @@ export default {
     this.sourceMarkers = null
     this.sliderZoom = null
     this.sliderVolume = null
-    this.intervalSkipBackward = null
-    this.intervalSkipForward = null
-    this.intervalPressZ = null
-    this.intervalPressC = null
-    this.intervalPressBL = null
-    this.intervalPressBR = null
-    this.intervalPressBR = null
     this.customConfirmParams = null
   },
   async mounted() {
@@ -2723,18 +2768,15 @@ export default {
       this.visibleEndTime = visibleEndTime
       // this.createMarkers();
     })
-    // Инициализируем слайдеры и навешиваем обработчик события
+    // Инициализируем слайдеры и навешиваем обработчик события.
+    // Обработчики — ИМЕНОВАННЫЕ методы, а не анонимные стрелки: снять анонимный
+    // слушатель в beforeUnmount невозможно, из-за чего он жил после закрытия
+    // модалки (тикет #187).
     this.sliderZoom = document.getElementById('slider-zoom')
-    this.sliderZoom.addEventListener('input', (e) => {
-      const minPxPerSec = e.target.valueAsNumber
-      this.ws.zoom(minPxPerSec)
-    })
+    this.sliderZoom.addEventListener('input', this.onSliderZoomInput)
 
     this.sliderVolume = document.getElementById('slider-volume')
-    this.sliderVolume.addEventListener('input', (e) => {
-      const volume = e.target.valueAsNumber
-      this.ws.setVolume(volume)
-    })
+    this.sliderVolume.addEventListener('input', this.onSliderVolumeInput)
 
     // this.wsRegions.enableDragSelection();
 
@@ -2874,16 +2916,22 @@ export default {
     },
     closeSearchText() {
       this.isSearchTextVisible = false
+      if (this.currentMarker) this.setEditMode(true)
     },
     returnSearchText(returnedText) {
       this.sourceText = returnedText
       this.isSearchTextVisible = false
     },
     doAiTextEditor() {
+      // Гасим хоткеи редактора на время модалки: у неё есть textarea, и
+      // удержание клавиш запускает интервалы повтора поверх гарда в
+      // listenerKeyDown. Тикет #188 карты wayfinder #186.
+      this.isEditMode = false
       this.isAiTextEditorVisible = true
     },
     closeAiTextEditor() {
       this.isAiTextEditorVisible = false
+      if (this.currentMarker) this.setEditMode(true)
     },
     applyAiTextEditor(correctedText) {
       this.sourceText = correctedText
@@ -2963,6 +3011,27 @@ export default {
       }
     },
     listenerKeyDown(e) {
+      // ГЛАВНЫЙ ГАРД: глобальные хоткеи редактора не должны срабатывать, когда
+      // фокус в поле ввода.
+      //
+      // Раньше проверки `document.activeElement` не было вообще: обработчик висит
+      // на document и реагирует на нажатия ЛЮБЫХ элементов. Из-за этого ввод
+      // текста в дочерних модалках (AI-редактор, поиск по тексту) физически
+      // создавал и удалял маркеры на вейвформе: `s` -> deleteMarker,
+      // `w`/`1`/`2`/`3` -> addMarker, `t`/`y`/`u`/`i`/`p` -> addMarker('setting'),
+      // `o` -> addSettingMarker, `x`/`a`/`d`/`q`/`e`/`z`/`c` -> транспорт.
+      //
+      // Проверка по activeElement покрывает ВСЕ модалки с полями ввода, включая
+      // те, что появятся позже, — в отличие от точечных `isEditMode = false`.
+      // Тикет #188 карты wayfinder #186.
+      const el = document.activeElement
+      if (el) {
+        const tag = el.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) {
+          return
+        }
+      }
+
       switch (e.code) {
         case 'KeyX': {
           if (!this.pressedX) {
@@ -4558,6 +4627,9 @@ export default {
       }
     },
     doSearchText() {
+      // Как и в doAiTextEditor: у модалки поиска есть поле ввода, поэтому
+      // хоткеи редактора на время её показа гасим. Тикет #188.
+      this.isEditMode = false
       this.isSearchTextVisible = true
     },
     getSelectedText() {
@@ -4908,6 +4980,14 @@ export default {
       this.wsRegions = this.ws.registerPlugin(RegionsPlugin.create())
 
       this.loadSong()
+    },
+    onSliderZoomInput(e) {
+      const minPxPerSec = e.target.valueAsNumber
+      if (this.ws) this.ws.zoom(minPxPerSec)
+    },
+    onSliderVolumeInput(e) {
+      const volume = e.target.valueAsNumber
+      if (this.ws) this.ws.setVolume(volume)
     },
     lockladButtonClass() {
       return this.currentMarker.lockLad === 'true' ? 'se-group-button-active' : ''

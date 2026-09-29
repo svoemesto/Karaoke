@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.1.0 | **Last updated**: 2026-09-15 (Pass 379 wayfinder #113 final compaction).
+> **Версия**: 3.2.0 | **Last updated**: 2026-09-29 (PR #589: процесс wayfinder → исполнение).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -133,6 +133,26 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 **Failure**: потеря итераций на гипотезы, лог прямо указывал на причину.
 **Source**: `docs/ops/log-correlation.md`.
 
+## Tier-1: Hard Gate — Процесс: wayfinder → исполнение (PR #589)
+
+**Rule**: Большая туманная задача — сначала wayfinder-карта решений
+(`.scratch/karaoke/wayfinding/<усилие>/map.md`). Карта закрыта → лид
+классифицирует остаток работы (большая/маленькая) и **владелец решает**:
+маленькая — лид делает сам, спека не нужна; большая — issue-задача
+`.scratch/karaoke/issues/issues_NNNN.md` → `speckit-specify` → спека уходит
+владельцу → **СТОП** → по слову владельца долгоживущий субагент ведёт
+`speckit-plan → speckit-tasks → speckit-analyze → speckit-implement`, лид
+ревьюит каждый шаг по фактам с диска. Лид обращается к владельцу только когда
+нужно менять спеку: **спека — контракт**, правки FR/SC — только словом владельца.
+Трекер проекта (OpenProject, `tools/tracker.sh`) не отменяется: `.scratch/` —
+слой процесса команды, при наличии Issue ID действует OpenProject-workflow выше.
+
+**Failure**: исполнение «в тумане» без карты и спеки; спека как черновик
+(правки FR/SC «по ходу» без слова владельца).
+**Source**: `~/.dsh/romario-team/wayfinding-operations.md` + `subagents.md`
+(командные инструкции, установлены 2026-09-29); раскладка рабочего слоя —
+`.scratch/karaoke/README.md`.
+
 ## Tier-2: Каталог guards (Pass 379)
 
 | Rule | Source | Tool |
@@ -150,6 +170,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 | Pass 373 Docker | Этот файл (Tier-1) | `check-docker-config.sh` |
 | Pass 374 Containers | Этот файл (Tier-1) | `check-container-restart.sh` |
 | Pass 375 Frontend | Этот файл (Tier-1) | `check-frontend-build.sh` |
+| Процесс wayfinder → исполнение | Этот файл (Tier-1) | manual review |
 
 ## Tier-2: Hard Gate — TOP-11 ловушек
 
@@ -184,6 +205,9 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.2.0** (2026-09-29, PR #589): Процесс команды «wayfinder → исполнение» —
+  карты решений и issue-задачи в `.scratch/karaoke/`, спека — контракт,
+  длинная цепочка speckit — в долгоживущем субагенте с ревью лида.
 - **3.1.0** (Pass 379 wayfinder #113 final compaction): 296 → 200 строк.
 - **3.0.0** (Pass 379 wayfinder #113): TOP-rewrite. 682 → 296 строк. **BREAKING CHANGE**.
 - **2.8.0** (Pass 379 follow-up): Subagent workspace isolation + governance-PR #486.

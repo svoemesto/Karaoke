@@ -364,10 +364,10 @@
                   type="button"
                   @click="onOffLocklad()"
                 >
-                  locklad
+                  lockLad
                 </button>
                 <!--                <div class="se-item-left-label">LockLad:</div>-->
-                <!--                <input class="se-item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">-->
+                <!--                <input class="se-item-left-input-field" v-model="currentMarker.lockLad" @focus="setEditMode(false)" @blur="setEditMode(true)">-->
               </div>
             </div>
             <div id="waveform" class="se-item-waveform" />
@@ -1371,7 +1371,7 @@ export default {
         note: '',
         chord: '',
         stringLad: '',
-        locklad: '',
+        lockLad: '',
         position: '',
         color: '',
       },
@@ -1779,7 +1779,7 @@ export default {
               }
               const noteLength = note.length
               // Находим номер струны и номер лада, подставляем их в массив stringNote
-              const sn = marker.locklad
+              const sn = marker.lockLad
                 ? [marker.stringLad.split('|')[0], marker.stringLad.split('|')[1]]
                 : stringsForAllNotes[stringsForAllNotesIndex]
               marker.stringLad = sn[0] + '|' + sn[1]
@@ -2933,7 +2933,7 @@ export default {
           note: marker.note,
           chord: marker.chord,
           stringLad: marker.stringLad,
-          locklad: marker.locklad,
+          lockLad: marker.lockLad,
           color: marker.color,
           position: marker.position,
           markertype: marker.markertype,
@@ -4876,7 +4876,7 @@ export default {
       this.loadSong()
     },
     lockladButtonClass() {
-      return this.currentMarker.locklad === 'true' ? 'se-group-button-active' : ''
+      return this.currentMarker.lockLad === 'true' ? 'se-group-button-active' : ''
     },
     merkerButtonClass(isShow) {
       return isShow === true ? 'se-group-button-active' : ''
@@ -4912,10 +4912,10 @@ export default {
       this.beat = beat
     },
     onOffLocklad() {
-      if (this.currentMarker.locklad === 'true') {
-        this.currentMarker.locklad = ''
+      if (this.currentMarker.lockLad === 'true') {
+        this.currentMarker.lockLad = ''
       } else {
-        this.currentMarker.locklad = 'true'
+        this.currentMarker.lockLad = 'true'
       }
     },
     onOffShowMarkerType(markerType) {

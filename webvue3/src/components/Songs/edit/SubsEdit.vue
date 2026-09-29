@@ -1479,6 +1479,11 @@ export default {
         chord: '',
         position: '',
         color: '',
+        // Инвариант: у ЛЮБОГО элемента sourceMarkers есть ключ `region`.
+        // Значение может быть null (тип скрыт, либо аудио ещё не готово), но
+        // отсутствовать не должно — иначе `x.region.…` падает в TypeError.
+        // См. тикет #192 карты #186 и #190.
+        region: null,
       }
     },
     markerTypesToShow() {
@@ -2118,10 +2123,6 @@ export default {
         this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
         this.sourceMarkers = []
         this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
-        // clearRegions() — БЕЗУСЛОВНО, независимо от того, есть ли маркеры у НОВОГО голоса: иначе при
-        // переключении на голос без разметки регионы предыдущего голоса оставались висеть на вейвформе
-        // (условие ниже раньше оборачивало и очистку тоже, а не только заполнение).
-        this.wsRegions.clearRegions()
         if (this.loadedMarkers.length > 0) {
           for (let index = 0; index < this.loadedMarkers.length; index++) {
             let marker = Object.assign({}, this.loadedMarkers[index])
@@ -2131,13 +2132,19 @@ export default {
             ) {
               console.log('ignored')
             } else {
-              marker.region = this.createRegionMarker(marker)
+              // Регион создаёт только redrawMarkers() в конце обработчика.
+              // См. инвариант в createRegionMarker (тикет #190).
+              marker.region = null
               this.sourceMarkers.push(marker)
             }
           }
           this.createBeatMarkers()
         }
         this.syncMarkersFromSpecTags()
+        // Единственная точка создания регионов. Здесь же очищаются регионы
+        // предыдущего голоса — раньше это делал отдельный clearRegions(),
+        // который не видел ещё не сохранённые wavesurfer-регионы.
+        this.redrawMarkers()
       },
     },
     sound: {
@@ -2178,13 +2185,13 @@ export default {
         this.sourceSyllables = this.getSyllables
         this.updateMarkersBySyllables()
         this.syncMarkersFromSpecTags()
-        // FIX #019: updateMarkersBySyllables() вызывает marker.region.setContent(...) и
-        // setOptions({ color }) для syllables-маркеров. В wavesurfer regions-plugin это перерисовывает
-        // регион, и в зависимости от версии плагина `start` сбрасывается на 0 (визуально все
-        // маркеры «слипаются» в нулевой позиции, см. specs/019). Дополнительно: syncMarkersFromSpecTags
-        // только что добавил spec tag-маркеры (через createRegionMarker), их регионы уже созданы
-        // корректно. Но updateMarkersBySyllables() ДО syncMarkersFromSpecTags мог сбросить позиции
-        // ранее созданных маркеров — redrawMarkers ниже восстанавливает их все за ОДИН проход.
+        // Здесь стоял «FIX #019» с утверждением, что updateMarkersBySyllables()
+        // сбрасывает позицию региона и redrawMarkers() ниже «восстанавливает её
+        // за один проход». Утверждение было неверным: setContent()/setOptions()
+        // в wavesurfer 7.12.1 не трогают start (проверено чтением исходника
+        // plugins/regions.esm.js). Настоящая причина «призрачных маркеров» —
+        // addRegion() до получения длительности, см. createRegionMarker.
+        // Комментарий удалён намеренно, чтобы его не прочитали как контракт.
         this.redrawMarkers()
         this.tail = this.getTail
         this.textFormatted = this.getFormattedText
@@ -2221,7 +2228,14 @@ export default {
     },
     currentMarker: {
       handler() {
-        this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker))
+        // `region` бывает null: у dummyMarker, у скрытого типа маркера и до
+        // готовности аудио. Раньше здесь стоял голый вызов без гарда, и
+        // редактор ПАДАЛ в TypeError при каждом открытии песни с маркерами
+        // (getCurrentMarkersIndex отдаёт -1, пока playhead раньше первого
+        // маркера). Воспроизведено 2026-09-29, тикет #192 карты #186.
+        if (this.currentMarker.region) {
+          this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker))
+        }
         this.tail = this.getTail
         this.textFormatted = this.getFormattedText
         this.notesFormatted = this.getFormattedNotes
@@ -2637,37 +2651,19 @@ export default {
     this.initWavesurfer()
     this.isEditMode = true
 
-    // Навешиваем `ws.on('decode', ...)` ДО первого `await` (КРИТИЧНО для #017).
-    // Иначе если аудио загрузится быстрее, чем мы дождёмся `getSourceMarkers` (кэш браузера,
-    // маленький файл, быстрый канал), событие `decode` сработает ДО установки handler'а
-    // — handler никогда не запустится, и регионы не будут пересозданы после очистки.
-    //
-    // Handler делает три вещи (порядок КРИТИЧЕН):
-    //   1) обновляет duration/visibleStartTime/visibleEndTime
-    //   2) `clearRegions()` — БЕЗУСЛОВНО, иначе при повторном `decode` (re-decode трека) или
-    //      при ручном `loadSong()` из watcher `sound` старые регионы останутся висеть;
-    //      см. тот же фикс в watcher `currentVoice` ниже.
-    //   3) re-create регионов из `sourceMarkers` (ЕСЛИ они уже заполнены). Если аудио
-    //      загрузилось раньше маркеров, `sourceMarkers` пуст — handler ничего не делает,
-    //      а `mounted()` ниже вручную пересоздаст регионы после `await getSourceMarkers`
-    //      (см. `if (this.duration > 0)`).
-    //
-    // Зачем re-create (а не только clear): в #016 мы перенесли заполнение `sourceMarkers`
-    // в `mounted()` ДО `sourceText`, чтобы `sourceText` watcher не срабатывал с пустым
-    // массивом (см. specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.2). Но
-    // `createRegionMarker()` → `addRegion({ start: marker.time })`, вызванный ДО загрузки
-    // аудио, создаёт регион в wavesurfer с `duration=0` → `pixelsPerSecond=NaN` → регион
-    // «залипает» в позиции 0. Без re-create пользователь видит красную линию в нуле
-    // вплоть до первого `redrawMarkers()` (например, переключение `markerTypesToShow`).
+    // ЕДИНСТВЕННАЯ точка, где длительность аудио становится известна и
+    // регионы создаются заново. Раньше здесь стоял свой цикл создания
+    // регионов, а ниже — компенсирующий проход `if (this.duration > 0)`.
+    // Оба создавали регионы ДО готовности аудио, где `clampPosition` при
+    // `totalDuration === 0` необратимо обнуляет `start` — отсюда
+    // «призрачные маркеры на нулевой позиции» и четыре фикса подряд.
+    // Не возвращать эти проходы: инвариант держится в createRegionMarker.
+    // См. тикет #190 карты #186.
     this.ws.on('decode', () => {
       this.duration = this.ws.getDuration()
       if (this.visibleStartTime < 0) this.visibleStartTime = 0
       if (this.visibleEndTime < 0) this.visibleEndTime = this.duration
-      this.wsRegions.clearRegions()
-      for (let index = 0; index < this.sourceMarkers.length; index++) {
-        let marker = this.sourceMarkers[index]
-        marker.region = this.createRegionMarker(marker)
-      }
+      this.redrawMarkers()
     })
 
     // Порядок присваиваний КРИТИЧЕН (specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.2):
@@ -2688,26 +2684,21 @@ export default {
         ) {
           console.log('ignored')
         } else {
-          marker.region = this.createRegionMarker(marker)
+          // Регион здесь НЕ создаём: до готовности аудио addRegion обнулит
+          // позицию (см. createRegionMarker). Создаст их redrawMarkers() ниже
+          // или обработчик ws.on('decode'), если аудио уже готово.
+          marker.region = null
           this.sourceMarkers.push(marker)
         }
       }
       this.createBeatMarkers()
     }
 
-    // Если аудио уже загружено (decode сработал РАНЬШЕ, чем мы дождались маркеров —
-    // кэш браузера, быстрый канал), регионы, созданные выше, «залипли» в позиции 0
-    // (см. длинный комментарий к `ws.on('decode')` выше). Пересоздаём их вручную с
-    // уже известной duration. Это покрывает «быстрый» сценарий загрузки; «медленный»
-    // сценарий (аудио ещё не загружено) обрабатывает сам `ws.on('decode')` после
-    // наполнения `sourceMarkers` ниже.
-    if (this.duration > 0) {
-      this.wsRegions.clearRegions()
-      for (let index = 0; index < this.sourceMarkers.length; index++) {
-        let marker = this.sourceMarkers[index]
-        marker.region = this.createRegionMarker(marker)
-      }
-    }
+    // Если аудио уже было декодировано (decode сработал раньше маркеров —
+    // кэш браузера, быстрый канал), redrawMarkers() в обработчике выше отработал
+    // с пустым sourceMarkers. Этот единственный вызов досоздаёт регионы.
+    // Если аудио ещё не готово — вызов будет пустым, регионы создаст 'decode'.
+    this.redrawMarkers()
 
     this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
     this.indexTabsVariant = await this.$store.getters.getIndexTabsVariant
@@ -2799,8 +2790,10 @@ export default {
               }
 
               const indexToInsert = this.sourceMarkers.indexOf(markerToMove)
-              markerToMove.region.remove()
-              markerToMove.region = null
+              if (markerToMove.region) {
+                markerToMove.region.remove()
+                markerToMove.region = null
+              }
 
               newMarker.region = this.createRegionMarker(newMarker)
               this.sourceMarkers.splice(indexToInsert, 1, newMarker)
@@ -2810,13 +2803,20 @@ export default {
         }
       } else {
         if (region.drag === true) {
-          let marker = this.sourceMarkers.filter((item) => item.region.id === region.id)[0]
+          // Гард на `item.region`: у скрытых типов маркеров и до готовности
+          // аудио region === null (см. инвариант в createRegionMarker), а этот
+          // обработчик срабатывает на каждое перетаскивание.
+          let marker = this.sourceMarkers.filter(
+            (item) => item.region && item.region.id === region.id,
+          )[0]
           console.log('dragged marker', marker)
           if (marker) {
             marker.time = region.start
             const indexToInsert = this.sourceMarkers.indexOf(marker)
-            marker.region.remove()
-            marker.region = null
+            if (marker.region) {
+              marker.region.remove()
+              marker.region = null
+            }
             marker.region = this.createRegionMarker(marker)
             this.sourceMarkers.splice(indexToInsert, 1, marker)
           }
@@ -3432,17 +3432,30 @@ export default {
       for (let i = 0; i < this.sourceMarkers.length; i++) {
         let marker = this.sourceMarkers[i] //Object.assign({} , this.sourceMarkers[i]);
         if (marker.markertype === 'syllables') {
+          // Регион обновляем только если он существует. Раньше стоял голый
+          // вызов: у скрытого типа маркера и до готовности аудио region === null,
+          // и метод падал в TypeError на каждом нажатии клавиши
+          // (тикет #192 карты #186).
+          //
+          // Отдельно отмечу: research-тикет #195 предлагал «не трогать регионы
+          // здесь вовсе», но это сломало бы живое обновление текста на вейвформе
+          // при печати — метод существует именно для этого. Поэтому не убираем,
+          // а гардим.
           if (index >= this.sourceSyllables.length) {
             marker.label = ''
-            marker.region.setContent(this.getRegionContentFromMarker(marker))
+            if (marker.region) {
+              marker.region.setContent(this.getRegionContentFromMarker(marker))
+            }
             this.sourceMarkers.splice(i, 1, marker)
             // eslint-disable-next-line
             counter++
           } else if (marker.label !== this.sourceSyllables[index] || marker.color !== color) {
             marker.label = this.sourceSyllables[index]
             marker.color = color
-            marker.region.setOptions({ color: color })
-            marker.region.setContent(this.getRegionContentFromMarker(marker))
+            if (marker.region) {
+              marker.region.setOptions({ color: color })
+              marker.region.setContent(this.getRegionContentFromMarker(marker))
+            }
             this.sourceMarkers.splice(i, 1, marker)
             // eslint-disable-next-line
             counter++
@@ -4085,16 +4098,31 @@ export default {
       }
     },
     createRegionMarker(marker) {
-      if (this.isShowMarkerType(marker.markertype)) {
-        return this.wsRegions.addRegion({
-          start: marker.time,
-          content: this.getRegionContentFromMarker(marker),
-          color: marker.color,
-          id: this.generateUUID(), //marker.markertype
-        })
-      } else {
-        return null
-      }
+      // ГЛАВНЫЙ ИНВАРИАНТ (тикет #190, карта #186).
+      //
+      // `addRegion()` ДО получения длительности аудио необратимо ломает позицию
+      // региона. В wavesurfer.js 7.12.1 конструктор Region делает
+      //   this.start = this.clampPosition(t.start)
+      //   clampPosition(t) = Math.max(0, Math.min(this.totalDuration, t))
+      // а при `getDuration() === 0` это даёт 0 для ЛЮБОГО t. Дальше addRegion
+      // сам сохраняет регион по `once('ready')`, вызывая `_setTotalDuration(d)`,
+      // а тот — лишь `this.totalDuration = d; this.renderPosition()` и НЕ
+      // пересчитывает start. Итог: регион навсегда остаётся с start = 0 —
+      // это и есть «призрачный маркер на нулевой позиции».
+      //
+      // Поэтому до готовности аудио регион не создаём ВООБЩЕ: вернём null,
+      // а создаст их единственная точка — redrawMarkers() после готовности.
+      //
+      // Проверено чтением исходника node_modules/wavesurfer.js/dist/plugins/regions.esm.js.
+      if (!this.ws || !this.wsRegions) return null
+      if (this.ws.getDuration() === 0) return null
+      if (!this.isShowMarkerType(marker.markertype)) return null
+      return this.wsRegions.addRegion({
+        start: marker.time,
+        content: this.getRegionContentFromMarker(marker),
+        color: marker.color,
+        id: this.generateUUID(), //marker.markertype
+      })
     },
     generateUUID() {
       // Public Domain/MIT
@@ -4117,6 +4145,10 @@ export default {
     },
     deleteMarker() {
       let currentMarker = this.sourceMarkers[this.currentMarkersIndex]
+      // Гард: hotkey 'S' вызывается и при currentMarkersIndex === -1, когда
+      // currentMarkers[-1] === undefined. Раньше — TypeError на `.markertype`.
+      // См. тикет #192 карты #186.
+      if (currentMarker === undefined) return
       let isBpm = currentMarker.markertype === 'setting' && currentMarker.label.startsWith('BPM|')
       let diff = Math.abs(currentMarker.time - this.currentTime)
       if (diff < 0.002) {
@@ -4128,8 +4160,10 @@ export default {
           this.currentMarkersIndex--
           currentMarker = this.sourceMarkers[this.currentMarkersIndex]
         }
-        currentMarker.region.remove()
-        currentMarker.region = null
+        if (currentMarker.region) {
+          currentMarker.region.remove()
+          currentMarker.region = null
+        }
         this.sourceMarkers.splice(this.currentMarkersIndex, 1)
         this.updateMarkersBySyllables()
         // this.createMarkers(true);
@@ -5094,10 +5128,24 @@ export default {
       return this.markerTypesToShow.includes(markerType)
     },
     redrawMarkers() {
-      // clearRegions() — БЕЗУСЛОВНО: раньше вызывался только когда sourceMarkers уже непуст, из-за
-      // чего перерисовка на пустой список (например, после переключения на голос без разметки)
-      // оставляла старые регионы висеть на вейвформе.
+      if (!this.wsRegions) return
       this.wsRegions.clearRegions()
+      // Единственная точка создания регионов во всём компоненте.
+      //
+      // Пока длительность аудио неизвестна, создавать нечего: addRegion до
+      // готовности необратимо обнуляет start (см. комментарий в
+      // createRegionMarker). `ws.on('decode')` в mounted() вызовет этот метод
+      // ещё раз, когда длительность станет известна, — тогда регионы и будут
+      // созданы, ровно один раз.
+      //
+      // Здесь же обнуляем `region` у всех маркеров: инвариант «ключ region
+      // есть, значение может быть null» должен выполняться всегда, иначе
+      // код, читающий `marker.region`, упадёт на скрытых типах маркеров
+      // (тикет #192 карты #186).
+      for (let index = 0; index < this.sourceMarkers.length; index++) {
+        this.sourceMarkers[index].region = null
+      }
+      if (!this.ws || this.ws.getDuration() === 0) return
       for (let index = 0; index < this.sourceMarkers.length; index++) {
         let marker = this.sourceMarkers[index]
         marker.region = this.createRegionMarker(marker)

@@ -297,6 +297,64 @@ Exit codes:
 - `2` — каталог уже существует (use `--force`).
 - `3` — ошибка tracker.sh.
 
+## Wayfinding в OpenProject (карты решений)
+
+Процесс команды «wayfinder → исполнение» (живые инструкции:
+`~/.dsh/romario-team/wayfinding-operations.md`; скилл `wayfinder` включается
+вручную) в проекте Karaoke выражается через OpenProject. Локальные
+`issues_NNNN.md` здесь **не ведутся** — это адаптация командной раскладки под наш
+трекер: семантика карты, тикетов, claim/frontier и тумана та же.
+
+### Как выражаются карта и тикеты
+
+| Понятие wayfinder | В OpenProject |
+|---|---|
+| Карта усилия (map) | Work package в проекте `karaoke` (id 3), тип `Task` (id 1), тема `[wayfinder] <усилие>` |
+| Тело карты (Destination / Notes / Decisions so far / Not yet specified / Out of scope) | описание этого work package |
+| Тикет-решение | отдельный work package `Task`: тема — название решения, первая строка описания `Map: #<ID карты>`, далее блоки Type / Status / Blocked by / Question / Answer |
+| Зависимости (`Blocked by`) | строки `Blocked by: #N, #M` в описании тикета; проверяются чтением этих work packages (relations не заводим) |
+| `OPEN` | статус `New` (id 1) без assignee |
+| `CLAIMED` | `In progress` (id 7) + assignee (`claim-issue`) |
+| `RESOLVED` | `Closed` (id 12) + комментарий-ответ |
+
+### Операции
+
+```bash
+# 1. Карта усилия (одна на усилие; создаёт лид)
+bash tools/tracker.sh create-issue --project-id 3 --type-id 1 \
+     --subject "[wayfinder] <усилие>" --description "<тело карты>"
+
+# 2. Тикет-решение — один work package на вопрос (первая строка описания: Map: #N)
+bash tools/tracker.sh create-issue --project-id 3 --type-id 1 \
+     --subject "<вопрос — это имя тикета>" --description "Map: #N ..."
+
+# 3. Claim
+bash tools/tracker.sh claim-issue <ID>
+
+# 4. Frontier: открытые work packages проекта + чтение кандидатов
+bash tools/tracker.sh list-issues --project-id 3 --status open
+bash tools/tracker.sh get-issue <ID>        # Map: #N, Blocked by, assignee
+
+# 5. Разрешение: ответ комментарием + закрытие
+bash tools/tracker.sh add-comment <ID> --file answer.md
+bash tools/tracker.sh close-issue <ID>
+```
+
+Правила: одна сессия — не больше одного тикета; ответ живёт комментарием,
+артефакты — ссылками; в `Decisions so far` карты добавляется суть решения и
+`#ID` тикета; туман и «вне скоупа» — разделами тела карты.
+
+### Переход к исполнению
+
+Классификация остатка работы (большая/маленькая) — **решает владелец**
+(`AGENTS.md` § «Hard Gate — Процесс: wayfinder → исполнение»). Маленькая: владелец
+выбирает — лид делает сам или через спеку. Большая: issue-задача work package
+(`create-issue`) → `speckit-specify` → спека уходит владельцу → **СТОП** → по слову
+владельца долгоживущий субагент ведёт `speckit-plan → speckit-tasks →
+speckit-analyze → speckit-implement`, лид ревьюит каждый шаг по фактам с диска →
+после merge штатные 4 шага OpenProject-workflow (см. выше: `add-comment` →
+`mark-review` → ревью владельца → `close-issue`).
+
 ## Troubleshooting
 
 | Проблема | Решение |

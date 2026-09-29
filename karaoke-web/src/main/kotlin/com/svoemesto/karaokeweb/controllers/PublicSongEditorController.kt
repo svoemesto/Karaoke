@@ -54,8 +54,14 @@ class PublicSongEditorController(
 ) {
     private val db get() = WORKING_DATABASE
 
-    // Терпимый к неизвестным ключам декодер — маркеры с фронта несут поля admin-формата (locklad и т.п.),
-    // которых нет в SourceMarker; строгий Json.Default бросил бы на них.
+    // Терпимый к неизвестным ключам декодер: маркеры с фронта могут нести поля, которых нет
+    // в SourceMarker (служебные и т.п.), и строгий Json.Default бросил бы на них.
+    //
+    // ВНИМАНИЕ, история: этот комментарий раньше приводил `locklad` как «поле admin-формата,
+    // которого нет в SourceMarker». На деле это была опечатка в регистре: фронты отправляли
+    // `locklad`, тогда как поле называется `lockLad` (SourceMarker), и ignoreUnknownKeys молча
+    // выбрасывал значение. Фича «прибить ноту к струне/ладу» не работала ни разу.
+    // Каноническое имя — `lockLad`, как в SourceMarker. См. тикет #201 карты #186.
     private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser

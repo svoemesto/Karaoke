@@ -529,7 +529,7 @@ export function buildTail(syllables, curSyllableIndex) {
 }
 
 // Очищает маркеры для сохранения (как getMarkersToSave — без uid и служебных полей). Формат
-// идентичен admin-редактору; note/chord/stringLad/locklad оставляем пустыми (минимальный редактор).
+// идентичен admin-редактору; note/chord/stringLad/lockLad оставляем пустыми (минимальный редактор).
 export function markersToSave(markers) {
   return markers.map((m) => ({
     time: m.time,
@@ -537,7 +537,7 @@ export function markersToSave(markers) {
     note: '',
     chord: '',
     stringLad: '',
-    locklad: '',
+    lockLad: '',
     color: m.color || '',
     position: m.position || 'bottom',
     markertype: m.markertype,

@@ -545,7 +545,7 @@ export function markersToSave(markers) {
     note: '',
     chord: '',
     stringLad: '',
-    locklad: '',
+    lockLad: '',
     color: m.color || '',
     position: m.position || 'bottom',
     markertype: m.markertype,

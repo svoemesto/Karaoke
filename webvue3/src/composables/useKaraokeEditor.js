@@ -542,10 +542,16 @@ export function markersToSave(markers) {
   return markers.map((m) => ({
     time: m.time,
     label: m.label || '',
-    note: '',
-    chord: '',
-    stringLad: '',
-    lockLad: '',
+    // note/chord/stringLad/lockLad лёгкий редактор НЕ редактирует — но обязан
+    // пронести их без изменений. Раньше здесь стояли пустые строки, а путь
+    // одобрения волонтёрской правки (`SongEditorController` -> `Song.setSourceMarkers`)
+    // полностью заменяет список маркеров голоса в БД. Итог: любое одобрение
+    // стирало у голоса ноты, аккорды и привязку к ладу, заполненные админом.
+    // Тикет #200 карты wayfinder #186.
+    note: m.note || '',
+    chord: m.chord || '',
+    stringLad: m.stringLad || '',
+    lockLad: m.lockLad || '',
     color: m.color || '',
     position: m.position || 'bottom',
     markertype: m.markertype,
@@ -558,6 +564,12 @@ export function markersFromServer(list) {
     uid: nextUid(),
     time: m.time,
     label: m.label || '',
+    // Читаем поля, которые лёгкий редактор не редактирует, — иначе они терялись
+    // уже в браузере и markersToSave нечего было бы пронести. Тикет #200.
+    note: m.note || '',
+    chord: m.chord || '',
+    stringLad: m.stringLad || '',
+    lockLad: m.lockLad || '',
     color: m.color || '',
     position: m.position || 'bottom',
     markertype: m.markertype,

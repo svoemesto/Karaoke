@@ -109,3 +109,5 @@ docs/api/typedoc-*/
 # разными фичами коммит этого файла даёт merge-конфликт при каждом слиянии веток (см. PR #133/#134).
 .specify/feature.json
 ```
+# Локальные разовые артефакты (AGENTS.md, .scratch/karaoke/README.md)
+.scratch/

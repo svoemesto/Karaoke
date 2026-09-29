@@ -1,9 +1,9 @@
 # Karaoke Project Guidelines (Claude Code)
 
-> **Версия**: 1.3.0 | **Final compaction** (Pass 379 wayfinder #114, 2026-09-15).
-> 130 → 95 строк. Cross-references only. **Single source of truth**: `AGENTS.md` v3.1.0.
+> **Версия**: 1.4.0 | **Процесс wayfinder → исполнение** (PR #589, 2026-09-29).
+> 95 строк. Cross-references only. **Single source of truth**: `AGENTS.md` v3.2.0.
 
-## 🚦 Все правила — в AGENTS.md v3.1.0
+## 🚦 Все правила — в AGENTS.md v3.2.0
 
 - **MUST #0 Knowledge-first pre-flight** → `AGENTS.md` Tier-1.
 - **Hard Gates (Pass 372-375, 358, 353)** → `AGENTS.md` Tier-1.
@@ -14,12 +14,13 @@
 - **Knowledge SSoT** → `AGENTS.md` Tier-1 + `knowledge/README.md`.
 - **Machine-specific exceptions** → `AGENTS.md` Tier-1 (таблица nsa-i9/dev-pc).
 - **Subagent isolation** → `AGENTS.md` Tier-1.
+- **Процесс wayfinder → исполнение** (карты решений + speckit в субагенте) → `AGENTS.md` Tier-1.
 
 ## 🚦 Рекомендации для Claude Code (не дублируют AGENTS.md)
 
 1. **При старте сессии**: `cat AGENTS.md | head -100` — знать обязательные правила.
 2. **Перед правкой кода фичи**: обновить `docs/features/<slug>.md` (FR-009).
-3. **Перед commit**: 7 проверок из AGENTS.md v3.1.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
+3. **Перед commit**: 7 проверок из AGENTS.md v3.2.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
 4. **При отладке**: сначала `docker logs`, потом гипотезы (Pass 358).
 5. **Если grep по `knowledge/` ничего не нашёл**: зафиксировать в `spec.md` явно «Searched: ... → no relevant docs».
 
@@ -51,13 +52,15 @@
 ## 🚦 Ключевые правила (Claude Code-specific)
 
 - **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
-- **Secrets**: НЕ коммитить. См. AGENTS.md v3.1.0 § «Hard Gate: Secrets».
+- **Secrets**: НЕ коммитить. См. AGENTS.md v3.2.0 § «Hard Gate: Secrets».
 - **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
 - **Force-push в main/master**: нельзя.
 - **`git commit --no-verify`**: только в крайнем случае.
 
 ## Changelog
 
+- **1.4.0** (PR #589, 2026-09-29): синхронизация с `AGENTS.md` v3.2.0 — добавлен
+  процесс команды wayfinder → исполнение (ссылка в списке правил).
 - **1.3.0** (Pass 379 wayfinder #114 final compaction): 130 → 95 строк. Удалены
   Project Overview, Key Docs, Tech Stack, Workflow, Code Style, Working with
   Documentation (всё — в `DEVELOPMENT.md` или `AGENTS.md`).

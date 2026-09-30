@@ -51,24 +51,13 @@ export function escapeHtml(text) {
 }
 
 /**
- * Превращает слово-образец в кусок регулярки, где «е» и «ё» взаимозаменяемы.
+ * Экранирует слово словаря для использования как буквальной части регулярки.
  *
  * @param {string} word - слово из словаря
  * @returns {string} фрагмент регулярки
  */
-function flexibleWordPattern(word) {
-  let out = ''
-  for (const ch of word) {
-    const lower = ch.toLowerCase()
-    if (lower === 'е' || lower === 'ё') {
-      // Класс с «ё» и без диакритики: часть шрифтов/движков не имеет «ё»,
-      // и без неё слово просто не нашлось бы.
-      out += '[еёЁ]'
-    } else {
-      out += ch.replace(RE_SPECIAL, '\\$&')
-    }
-  }
-  return out
+function literalWordPattern(word) {
+  return word.replace(RE_SPECIAL, '\\$&')
 }
 
 /**
@@ -85,7 +74,7 @@ export function buildHighlightRegex(words) {
   const body = list
     .slice()
     .sort((a, b) => b.length - a.length)
-    .map(flexibleWordPattern)
+    .map(literalWordPattern)
     .join('|')
   return new RegExp(`(?<![${WORD_CHAR}])(?:${body})(?![${WORD_CHAR}])`, 'giu')
 }

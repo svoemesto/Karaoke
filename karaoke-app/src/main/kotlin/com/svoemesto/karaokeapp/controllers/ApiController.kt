@@ -4996,16 +4996,34 @@ class ApiController(
         @RequestParam(required = true) dictValue: String,
         @RequestParam(required = true) dictAction: String,
     ) {
-        TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
-        SNS.send(
-            SseNotification.message(
-                Message(
-                    type = "info",
-                    head = "Действия со словарями",
-                    body = "Действие «$dictAction», словарь «$dictName», слово «$dictValue» прошло успешно",
+        // ВАЖНО: результат doAction проверяется. Раньше он игнорировался, и
+        // уведомление «прошло успешно» уходило ВСЕГДА — в том числе когда словарь
+        // не зарегистрирован в TEXT_FILE_DICTS и doAction молча вернул false.
+        // Пользователь видел «готово», а в tbl_dictionaries ничего не менялось.
+        val done = TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
+        if (done) {
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Действия со словарями",
+                        body = "Действие «$dictAction», словарь «$dictName», слово «$dictValue» прошло успешно",
+                    ),
                 ),
-            ),
-        )
+            )
+        } else {
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "error",
+                        head = "Действия со словарями",
+                        body =
+                            "Действие «$dictAction» НЕ выполнено: словарь «$dictName» не найден " +
+                                "или не поддерживает это действие. Слово «$dictValue» НЕ сохранено.",
+                    ),
+                ),
+            )
+        }
     }
 
     // Разовый импорт значений словарей из старых текстовых файлов (/sm-karaoke/system/*.txt) в

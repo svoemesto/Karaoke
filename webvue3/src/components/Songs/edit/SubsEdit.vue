@@ -5582,6 +5582,63 @@ export default {
     },
     redrawMarkers() {
       if (!this.wsRegions) return
+      // #191: раньше здесь стоял clearRegions() и полное пересоздание всех
+      // регионов. Замерено на песне 11718 (2170 маркеров), три операции:
+      //   clearRegions()             — 1978 мс
+      //   создание 2170 регионов     —  127 мс
+      //   setOptions по 2170 регионам —  8.9 мс
+      // То есть удаление дороже создания в 15 раз, и полная перерисовка стоила
+      // ~2.1 с НА КАЖДОЕ нажатие клавиши — при измеренных 2.4 с на нажатие это
+      // 98% времени. Теперь регионы обновляются на месте, а полная перерисовка
+      // осталась только на тот случай, когда регионы ещё создавать нельзя.
+      //
+      // Оптимизация возможна потому, что объекты маркеров переживают вызовы
+      // (в updateMarkersBySyllables Object.assign закомментирован), а значит
+      // вместе с ними переживает и ссылка marker.region.
+      if (!this.ws || this.ws.getDuration() === 0) {
+        this.wsRegions.clearRegions()
+        for (let index = 0; index < this.sourceMarkers.length; index++) {
+          this.sourceMarkers[index].region = null
+        }
+        return
+      }
+      this.syncRegionsInPlace()
+    },
+
+    // Точечное обновление регионов без полной перерисовки (#191).
+    syncRegionsInPlace() {
+      const seen = new Set()
+      for (let index = 0; index < this.sourceMarkers.length; index++) {
+        let marker = this.sourceMarkers[index]
+        if (!this.isShowMarkerType(marker.markertype)) {
+          // Скрытый тип: регион не должен висеть. Убираем, если был.
+          if (marker.region) {
+            marker.region.remove()
+            marker.region = null
+          }
+          continue
+        }
+        if (marker.region) {
+          const region = marker.region
+          seen.add(region)
+          if (region.start !== marker.time) region.setOptions({ start: marker.time })
+          if (region.color !== marker.color) region.setOptions({ color: marker.color })
+          const content = this.getRegionContentFromMarker(marker)
+          if (region.content !== content) region.setContent(content)
+        } else {
+          marker.region = this.createRegionMarker(marker)
+          if (marker.region) seen.add(marker.region)
+        }
+      }
+      // Регионы, чей маркер исчез из списка.
+      const alive = this.wsRegions.getRegions()
+      for (let index = 0; index < alive.length; index++) {
+        if (!seen.has(alive[index])) alive[index].remove()
+      }
+    },
+
+    redrawMarkersFull() {
+      if (!this.wsRegions) return
       this.wsRegions.clearRegions()
       // Единственная точка создания регионов во всём компоненте.
       //

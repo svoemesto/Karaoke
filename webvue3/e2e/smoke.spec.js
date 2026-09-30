@@ -49,4 +49,14 @@ test.describe('инфраструктура e2e', () => {
     expect(response.status()).toBeLessThan(500)
     await expect(page.locator('#app[data-v-app]')).toHaveCount(1)
   })
+
+  // #199: в DOM было ДВА элемента с id="app" — точка монтирования из index.html
+  // и ещё один, который рисовал App.vue внутри неё. Не-scoped правило `#app`
+  // (flex-контейнер высотой 100vh) применялось к обоим.
+  test('id="app" в DOM ровно один', async ({ page }) => {
+    await page.goto('/songs')
+    await expect(page.locator('#app[data-v-app]')).toHaveCount(1)
+    const count = await page.evaluate(() => document.querySelectorAll('#app').length)
+    expect(count, 'точка монтирования и корень приложения не должны делить один id').toBe(1)
+  })
 })

@@ -233,8 +233,12 @@ HALF_OPEN→OPEN, circuit не восстанавливался даже при 
   `blockingScheduler = Schedulers.boundedElastic()` (единый на bean). Теперь
   `.timeout(timeoutSeconds)` реально возвращает управление (≈5s), а не ждёт блокировку.
 - OkHttp в `StorageApiClientImpl`: `connectTimeout`/`readTimeout` выровнены с
-  `storage.file-exists-timeout-seconds` (5s) вместо 15s/60s. `writeTimeout` (300s)
+  `storage.file-exists-timeout-seconds` (20s) вместо 15s/60s. `writeTimeout` (300s)
   не изменён — он не участвует в `fileExists`.
+
+  Позже (см. «Два клиента: метаданные и перекачка файлов») эти таймауты
+  оставлены только для операций с метаданными; для перекачки файлов заведён
+  отдельный клиент с длинным `readTimeout`.
 - `HealthReport.actionsLocalStorage` FastFail-лог исправлен: `circuit=OPEN storage=remote`
   (circuit защищает **remote** MinIO, а не локальный).
 
@@ -383,6 +387,76 @@ probe-путь после cooldown. `acquire()` не изменён.
       Это by design или gap?
 - [ ] **`decodeFileNameIfEncoded`** дублируется в обоих импл —
       нужен общий helper в `karaoke-app/.../services/`.
+
+## Два клиента: метаданные и перекачка файлов
+
+`StorageApiClientImpl` держит **два** `MinioClient`, потому что у них
+противоположные требования к таймаутам.
+
+| | `storageClient` | `transferClient` |
+|---|---|---|
+| назначение | операции с метаданными: `bucketExists`, `statObject`, `list` | `putObject`, скачивание |
+| `connectTimeout` | `storage.file-exists-timeout-seconds` (20s) | то же |
+| `readTimeout` | 20s | `storage.upload-read-timeout-seconds` (900s) |
+| `writeTimeout` | 300s | 900s |
+
+**Почему нельзя увеличить таймаут у одного клиента.** Значение
+`file-exists-timeout-seconds` подобрано под связку с circuit breaker
+(см. Pass 426): при `connectTimeout` больше `timeoutSeconds + watchdogBuffer`
+блокирующий вызов не прерывался, и circuit залипал в `HALF_OPEN`. Поднятие
+общего таймаута сломает эту связку.
+
+**Почему одного таймаута не хватало.** `readTimeout` применялся и к
+`putObject`. MinIO на большом файле идёт многочастевой передачей и ждёт ответа
+сервера на каждую часть; на удалённый хост 20 секунд не выдерживаются:
+
+```text
+Ошибка при загрузке файла в удаленное хранилище: java.net.SocketTimeoutException: timeout
+executeUploadToRemoteStore: загрузка '...mp3' -> '...' не удалась
+```
+
+Сторону записи (`writeTimeout`) к 300s подняли, сторону ответа — нет.
+
+## Лимиты размера запроса на загрузку
+
+Загрузка проходит через несколько слоёв, и лимит меньше 100 МБ где-то одном
+означает отказ для длинных песен (mp3 ~50 МБ).
+
+| слой | значение | где |
+|---|---|---|
+| `spring.servlet.multipart.max-file-size` | 100MB | `karaoke-app/.../application.yml` |
+| `spring.servlet.multipart.max-request-size` | 110MB | там же |
+| nginx `client_max_body_size` | 1024m | `webvue3/nginx_webvue3.conf` |
+| nginx таймауты | 600s | там же |
+| `server.tomcat.connection-timeout` | 600000 мс | `karaoke-app/.../application.yml` |
+
+**`max-request-size` больше `max-file-size`** — не опечатка: он считает весь
+запрос вместе с multipart-обвязкой (границы частей, заголовки, прочие поля
+формы). При равных значениях файл ровно в 100 МБ не проходит.
+
+### Ловушка: молчаливо проигнорированная настройка
+
+Блок `spring.servlet.multipart` был вложен в `spring.thymeleaf.servlet`.
+Такого пути в Spring Boot не существует, а `ignoreUnknownFields=true` по
+умолчанию — **настройка молча выбрасывалась**, и действовали дефолты Boot
+(1 МБ на файл, 10 МБ на запрос). Загрузка 50 МБ не могла пройти никогда.
+
+Проверять вложенность таких блоков надо явно: Spring Boot не сообщает о
+неизвестных свойствах.
+
+### Ловушка: 20M в легаси-конфигах
+
+`client_max_body_size 20M` остался в `deploy/prod-single-host/nginx.conf`,
+`deploy/web-server-deploy/deploy/nginx.conf` и в инструкции
+`deploy/Настройка сервера.md`. На работающий стек эти файлы не подхватываются,
+но конфиг, взятый из инструкции, упрётся в 20 МБ.
+
+### Живой конфиг nginx
+
+`webvue3/nginx_webvue3.conf` подключается монтированием в контейнер через
+`deploy/.env: WEBVUE3_PATH_TO_NGINX_CONF`. Правки в
+`deploy/new_comp/.../nginx_webvue3.conf.template` работающим стеком **не
+подхватываются**.
 
 ## Код
 

@@ -1207,6 +1207,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import { highlightWords } from '../../../utils/highlightWords.js'
+import { findMarkerIndexByTime } from '../../../utils/markerIndex.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
 import WhisperDebugModal from './WhisperDebugModal.vue'
@@ -2105,30 +2106,15 @@ export default {
       return result
     },
     getCurrentSyllablesIndex() {
-      let markers = this.sourceMarkers.filter((item) => item.markertype === 'syllables')
-      const diff = 0.02
-      if (markers.length > 0 && this.currentTime < markers[0].time - diff) return -1
-      for (let i = 0; i < markers.length - 1; i++) {
-        let marker = markers[i]
-        let nextMarker = markers[i + 1]
-        if (this.currentTime >= marker.time - diff && this.currentTime < nextMarker.time - diff) {
-          return i
-        }
-      }
-      return markers.length - 1
+      return findMarkerIndexByTime(this.visibleSyllables, this.currentTime)
     },
+    // Раньше здесь был линейный проход по всем маркерам (2170 на песне 11718),
+    // вызываемый на каждой смене маркера и на каждом timeupdate. Теперь это
+    // двоичный поиск: маркеры отсортированы по времени, ответ находится за
+    // O(log n) без выделения памяти. Поведение не изменилось — эквивалентность
+    // линейному оригиналу доказана фаззингом в utils/__tests__/markerIndex.test.js.
     getCurrentMarkersIndex() {
-      let markers = this.sourceMarkers
-      const diff = 0.02
-      if (markers.length > 0 && this.currentTime < markers[0].time - diff) return -1
-      for (let i = 0; i < markers.length - 1; i++) {
-        let marker = markers[i]
-        let nextMarker = markers[i + 1]
-        if (this.currentTime >= marker.time - diff && this.currentTime < nextMarker.time - diff) {
-          return i
-        }
-      }
-      return markers.length - 1
+      return findMarkerIndexByTime(this.sourceMarkers, this.currentTime)
     },
     voice() {
       return this.dataVoices.length ? this.dataVoices[this.currentVoice] : []
@@ -2167,6 +2153,13 @@ export default {
     dictNameOptions() {
       const builtIn = 'Слова для внимания'
       return this.dictNames.includes(builtIn) ? this.dictNames : [builtIn, ...this.dictNames]
+    },
+    // Слоговые маркеры для getCurrentSyllablesIndex. Раньше массив строился
+    // filter() ВНУТРИ функции, то есть на каждый вызов заново — при 1822 слогах
+    // это новая копия массива на каждой смене маркера. Вынесено в computed:
+    // пересчитывается только при изменении sourceMarkers.
+    visibleSyllables() {
+      return this.sourceMarkers.filter((item) => item.markertype === 'syllables')
     },
     sourceTextHighlightHtml() {
       return highlightWords(this.sourceText, this.attentionWords)
@@ -5218,10 +5211,23 @@ export default {
     // innerText, а не textContent: он отдаёт ровно то, что видит человек
     // (переводы строк, а не сырые \n внутри служебных узлов contenteditable).
     onSourceTextInput() {
-      const el = this.$refs.sourceTextEditor
-      if (!el) return
-      this.sourceText = el.innerText
+      this.sourceText = this.readEditorText()
       this.scheduleRehighlight()
+    },
+    // Текст блока ИСХОДНОГО ТЕКСТА в терминах модели.
+    //
+    // Зачем не el.innerText напрямую: при отрисовке мы ставим хвостовой <br>
+    // (без него пустой contentedEditable схлопывается по высоте), и innerText
+    // возвращает из-за него ЛИШНИЙ перевод строки. Из-за этого el.innerText
+    // всегда на один символ длиннее this.sourceText, гард в syncSourceTextDom
+    // никогда не срабатывал, и содержимое перерисовывалось на КАЖДОМ нажатии —
+    // каретку выбрасывало в произвольное место (воспроизведено: ввод символа с
+    // позиции 2 попадал на позицию 117, внутрь слова «Все»).
+    readEditorText() {
+      const el = this.$refs.sourceTextEditor
+      if (!el) return ''
+      const t = el.innerText
+      return t.endsWith('\n') ? t.slice(0, -1) : t
     },
     // Пересчёт подсветки ПОСЛЕ набора, с задержкой.
     //
@@ -5243,17 +5249,7 @@ export default {
     // caretOffsetIn), потому что перерисовка меняет и узлы, и их структуру —
     // ссылку на Range сохранить нельзя.
     rehighlightSourceText() {
-      const el = this.$refs.sourceTextEditor
-      if (!el) return
-      const sel = window.getSelection()
-      const hasCaretHere = sel && sel.rangeCount > 0 && el.contains(sel.anchorNode)
-      const caret = hasCaretHere ? caretOffsetIn(el, sel.anchorNode, sel.anchorOffset) : null
-      el.innerHTML = this.sourceTextHighlightHtml + '<br>'
-      this.sourceHtmlRenderedDictVersion = this.dictVersion
-      if (caret !== null) {
-        el.focus()
-        setCaretOffsetIn(el, Math.min(caret, this.sourceText.length))
-      }
+      this.renderSourceHtmlWithCaret()
     },
     // Вставка из буфера — ТОЛЬКО как обычный текст. Без этого кусок из Word или
     // из самого редактора (кто-то скопирует подсвеченный фрагмент) вставился бы
@@ -5274,11 +5270,31 @@ export default {
     syncSourceTextDom() {
       const el = this.$refs.sourceTextEditor
       if (!el) return
-      const textMatches = el.innerText === this.sourceText
+      const textMatches = this.readEditorText() === this.sourceText
       const dictMatches = this.sourceHtmlRenderedDictVersion === this.dictVersion
       if (textMatches && dictMatches) return
+      // Каретку сохраняем: перерисовка innerHTML без этого выбрасывает
+      // выделение, и Chrome ставит его в произвольное место поблизости —
+      // при вводе символ оказывался не там, где печатали (воспроизведено:
+      // ввод с позиции 2 попадал на 116, внутрь слова «Все»).
+      this.renderSourceHtmlWithCaret()
+    },
+
+    // Единая точка записи innerHTML блока ИСХОДНОГО ТЕКСТА. Каретка
+    // сохраняется и восстанавливается по смещению в координатах документа,
+    // поэтому одинаково корректна и для перерисовки с подсветкой, и без неё.
+    renderSourceHtmlWithCaret() {
+      const el = this.$refs.sourceTextEditor
+      if (!el) return
+      const sel = window.getSelection()
+      const hasCaretHere = sel && sel.rangeCount > 0 && el.contains(sel.anchorNode)
+      const caret = hasCaretHere ? caretOffsetIn(el, sel.anchorNode, sel.anchorOffset) : null
       el.innerHTML = this.sourceTextHighlightHtml + '<br>'
       this.sourceHtmlRenderedDictVersion = this.dictVersion
+      if (caret !== null) {
+        el.focus()
+        setCaretOffsetIn(el, Math.min(caret, this.sourceText.length))
+      }
     },
     lockladButtonClass() {
       return this.currentMarker.lockLad === 'true' ? 'se-group-button-active' : ''

@@ -2917,6 +2917,12 @@ export default {
     freeTimeSlots() {
       return this.$store.getters.getFreeTimeSlots
     },
+    // #218: ревизия разметки из стора — сигнал, что форматтеры устарели.
+    // Через геттер: состояние модуля лежит под ключом 'song', прямой доступ
+    // state.sourceMarkersRevision давал бы всегда undefined.
+    sourceMarkersRevision() {
+      return this.$store.getters.getSourceMarkersRevision
+    },
 
     mainLink() {
       return this.prefixMainLink + this.song.id
@@ -3107,6 +3113,13 @@ export default {
         // #217: без .catch() отклонённый промис даёт unhandled rejection, а запись
         // в this.* после размонтирования — обновление мёртвого компонента.
         // Пять одинаковых цепочек свёрнуты в одну, чтобы обработка была одна.
+        //
+        // #218 (проверено замером на старом коде): этот watcher срабатывает
+        // ТОЛЬКО при смене песни. commit('saveSong') меняет snapshotSong, а
+        // currentSong не трогает, поэтому автосейв поля форматтеры НЕ
+        // перезапрашивает: смена песни — 3 запроса, правка поля + автосейв — 0.
+        // Прежняя формулировка #218 («перезапрос на каждый автосейв») была
+        // неверной; см. комментарий к задаче.
         const store = this.$store
         const targets = [
           ['getAuthorPictureBase64Promise', 'imageAuthorBase64'],
@@ -3129,6 +3142,26 @@ export default {
         this.reloadAssignmentStatus()
         this.loadCoAuthors()
       },
+    },
+    // #218: сохранение разметки. До этого правка текста/аккордов НЕ обновляла
+    // форматтеры — SongEdit продолжал показывать прежний текст до перезахода на
+    // песню. Три билдера считаются из sourceMarkers, поэтому повод обновления —
+    // именно сохранение разметки, а не изменение currentSong.
+    sourceMarkersRevision() {
+      if (this.isUnmounted) return
+      const store = this.$store
+      const fetchInto = (action, field) => {
+        store
+          .dispatch(action)
+          .then((value) => {
+            if (!this.isUnmounted) this[field] = value
+          })
+          .catch((error) => {
+            // eslint-disable-next-line no-console
+            console.error(`Ошибка загрузки ${action}:`, error)
+          })
+      }
+      this.loadFormatters(fetchInto)
     },
     // На случай когда сервер ещё не отдаёт songType (старая БД/билд) — подставляем дефолт 'song'.
     'song.songType': {
@@ -3839,6 +3872,16 @@ export default {
       this.$store
         .dispatch('removeSongCoAuthorPromise', { songId: this.song.id, authorId })
         .then(() => this.loadCoAuthors())
+    },
+    // --- #218: перезапрос форматтеров только когда их содержимое могло измениться ---
+    // Три билдера на бэкенде (Song.getTextFormatted/getFormattedNotes/getFormattedChords)
+    // считаются ТОЛЬКО из sourceMarkers. Автосейв имени, года, альбома, обложки и т.п.
+    // их не меняет — значит перезапрашивать их на каждое сохранение незачем.
+    // Вызывается при смене песни и при сохранении разметки.
+    loadFormatters(fetchInto) {
+      fetchInto('getTextFormattedPromise', 'textFormatted')
+      fetchInto('getNotesFormattedPromise', 'notesFormatted')
+      fetchInto('getChordsFormattedPromise', 'chordsFormatted')
     },
     // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
     reloadAssignmentStatus() {

@@ -40,6 +40,12 @@ export default {
   state: {
     toSync: false,
     freeTimeSlots: [],
+    // #218: счётчик ревизии разметки. Строго растёт при каждом успешном
+    // сохранении sourceText/sourceMarkers. Служит сигналом, что
+    // formattedTextSong/Tabs/Chords устарели и их надо перезапросить.
+    // Раньше форматтеры перезапрашивались на ЛЮБОЕ изменение песни, то есть
+    // на каждый автосейв, хотя их содержимое меняется только от разметки.
+    sourceMarkersRevision: 0,
     lastSettingType: '',
     lastSettingValue: '',
     lastPriorLyrics: '',
@@ -387,6 +393,13 @@ export default {
     },
     getLastUpdateSong(state) {
       return state.lastUpdateSong
+    },
+    // #218: геттер, а не прямой доступ к state — состояние модуля лежит под
+    // ключом 'song' (state.song.sourceMarkersRevision), тогда как геттеры и
+    // мутации модуля слиты в корень. Читать state.sourceMarkersRevision
+    // из компонента нельзя: там всегда undefined.
+    getSourceMarkersRevision(state) {
+      return state.sourceMarkersRevision
     },
     getSongDiff(state) {
       let result = []
@@ -1538,6 +1551,10 @@ export default {
     setCurrentSongIdOnly(state, currId) {
       state.currentSongId = currId
     },
+    // #218: разметка изменилась — форматтеры надо перезапросить.
+    bumpSourceMarkersRevision(state) {
+      state.sourceMarkersRevision += 1
+    },
     setCurrentSongData(state, { song, songIndex, pageIndex }) {
       state.currentSong = song
       state.currentSongIndex = songIndex
@@ -2566,7 +2583,12 @@ export default {
         indexTabsVariant: payload.indexTabsVariant,
       }
       let request = { method: 'POST', url: '/api/song/savesourcetextmarkers', params: params }
-      return await promisedXMLHttpRequest(request)
+      const result = await promisedXMLHttpRequest(request)
+      // #218: только после успешного сохранения разметки. До этого SongEdit
+      // перезапрашивал форматтеры на каждое изменение песни (в т.ч. автосейв
+      // имени/года/альбома), хотя их содержимое зависит только от разметки.
+      ctx.commit('bumpSourceMarkersRevision')
+      return result
     },
     async getAutoMarkers(ctx, payload) {
       let params = {

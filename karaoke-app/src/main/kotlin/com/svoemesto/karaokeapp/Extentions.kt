@@ -106,6 +106,24 @@ fun String.nullIfEmpty(): String? = if (this.trim() == "" || this == "null") nul
 
 fun String.xmldata(): String = "<?xml version=\"1.0\"?>$this".replace("<", "&lt;")
 
+/**
+ * Экранирование для вставки пользовательского текста в HTML.
+ *
+ * Применять ко ВСЕМ данным, которые приходят от пользователя и уходят в строку
+ * HTML, отдаваемую под `v-html`. Спецсимволов текста песни (слоги, комментарии,
+ * ноты, аккорды) билдеры раньше склеивали сырым — см. #215.
+ *
+ * Порядок замен важен: сначала `&`, иначе амперсанд из вставленных сущностей
+ * (`&lt;`) экранировался бы повторно и получилось бы `&amp;lt;`.
+ */
+fun String.escapeHtml(): String =
+    this
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;")
+
 fun Font.weight(): Int = if (isBold) 75 else 50
 
 fun Font.mlt(): String = "$name;$style;$size"

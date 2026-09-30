@@ -2683,6 +2683,25 @@ export default {
       let request = { method: 'POST', url: '/api/songsdigests', params: params }
       return promisedXMLHttpRequest(request)
     },
+    // Значения словаря из tbl_dictionaries (бэкенд: DictionariesController,
+    // POST /api/dictionaries/list). Используется подсветкой слов с
+    // неоднозначной «ё» в блоке исходного текста редактора (SubsEdit.vue);
+    // сами записи — deploy/karaoke-db/51_ambiguous_yo_dictionary.sql.
+    loadDictionaryValuesPromise(ctx, dictName) {
+      let request = {
+        method: 'POST',
+        url: '/api/dictionaries/list',
+        params: { dictName: dictName },
+      }
+      return promisedXMLHttpRequest(request)
+    },
+    // Имена всех словарей — для выбора словаря в кнопках «добавить/убрать слово».
+    // Раньше имя было зашито в SubsEdit.vue ('Слова с Ё'), и выбрать другой
+    // словарь было невозможно в принципе.
+    loadDictionaryNamesPromise(_ctx) {
+      let request = { method: 'POST', url: '/api/dictionaries/names' }
+      return promisedXMLHttpRequest(request)
+    },
     searchTextForAll(ctx, payload) {
       // payload: { engine, timeout } — оба опциональны (specs/015-search-engine-selection,
       // specs/316-search-timeout-configurable). Всегда forceResearch: true — старые результаты

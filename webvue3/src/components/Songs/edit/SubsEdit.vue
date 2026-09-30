@@ -1045,7 +1045,7 @@
                 <img
                   alt="add to dict"
                   class="se-icon-40"
-                  title="Добавить слово в словарь"
+                  title="Добавить слово в выбранный словарь"
                   src="../../../assets/svg/icon_dict_add_e.svg"
                 />
               </button>
@@ -1053,7 +1053,7 @@
                 <img
                   alt="remove from dict"
                   class="se-icon-40"
-                  title="Удалить слово из словаря"
+                  title="Удалить слово из выбранного словаря"
                   src="../../../assets/svg/icon_dict_remove_e.svg"
                 />
               </button>
@@ -1150,11 +1150,27 @@
               Комментарий…
             </button>
           </div>
-          <textarea
+          <!--
+            Блок исходного текста. contenteditable вместо textarea — по решению
+            владельца: нужен и набор текста, и форматирование подсветки
+            (жирный + жёлтый фон). Вариант с зеркальным слоем ПОД textarea давал
+            либо только фон без жирного, либо (слой сверху, текст textarea
+            прозрачный) — центрирование и уход каретки в сторону.
+
+            v-model здесь НЕ используется намеренно: contenteditable нельзя
+            двусторонне связать, содержимое синхронизируется вручную —
+            onSourceTextInput пишет в sourceText, watcher sourceText обратно
+            обновляет DOM, но ТОЛЬКО если текст реально разошёлся (иначе
+            каретка прыгает в начало при каждом нажатии).
+          -->
+          <div
             id="editor"
             ref="sourceTextEditor"
-            v-model="sourceText"
-            class="se-grid-item-sourcetext"
+            class="se-grid-item-sourcetext se-sourcetext-ce"
+            contenteditable="true"
+            spellcheck="false"
+            @input="onSourceTextInput"
+            @paste="onSourceTextPaste"
             @focus="setEditMode(false)"
             @blur="setEditMode(true)"
           />
@@ -1190,6 +1206,7 @@ import Hover from 'wavesurfer.js/dist/plugins/hover.esm.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
+import { highlightWords } from '../../../utils/highlightWords.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
 import WhisperDebugModal from './WhisperDebugModal.vue'
@@ -1321,6 +1338,65 @@ function insertSpecTagAtCursorImpl(text, selectionStart, selectionEnd, tagText) 
   }
 }
 
+// ==========================================================================================
+// Курсор в contentedEditable (#editor).
+//
+// У textarea были selectionStart/selectionEnd/setSelectionRange. У contentedEditable
+// их нет — позиция каретки живёт в Selection/Range, и это единственное, что здесь
+// используется. Функции чистые и вынесены наверх файла, чтобы их можно было
+// вызвать и из метода, и из теста без монтирования компонента.
+// ==========================================================================================
+
+/** Смещение узла внутри элемента в «плоских» координатах текста (0-based). */
+function caretOffsetIn(root, node, offsetInNode) {
+  if (!root || !node) return 0
+  const sel = window.getSelection()
+  // Считаем длину текста от начала root до точки селекции через Range — это
+  // учитывает любую вложенность (<mark>, <b>, <br>), в отличие от ручного обхода.
+  const range = document.createRange()
+  try {
+    range.selectNodeContents(root)
+    range.setEnd(node, offsetInNode)
+    return range.toString().length
+  } finally {
+    range.detach?.()
+  }
+  void sel
+}
+
+/** Ставит каретку в элемент contentedEditable по смещению в «плоских» координатах. */
+function setCaretOffsetIn(root, targetOffset) {
+  if (!root) return
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let acc = 0
+  let lastTextNode = null
+  let node = walker.nextNode()
+  while (node) {
+    const len = (node.nodeValue || '').length
+    if (acc + len >= targetOffset) {
+      lastTextNode = node
+      const range = document.createRange()
+      range.setStart(node, Math.max(0, Math.min(len, targetOffset - acc)))
+      range.collapse(true)
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+      return
+    }
+    acc += len
+    node = walker.nextNode()
+  }
+  // Мимо всех текстовых узлов (пустой элемент или хвост после <br>) — ставим
+  // каретку в самый конец содержимого элемента.
+  const range = document.createRange()
+  range.selectNodeContents(root)
+  range.collapse(false)
+  const sel = window.getSelection()
+  sel.removeAllRanges()
+  sel.addRange(range)
+  void lastTextNode
+}
+
 /**
  * Inline-редактор текста песни с поддержкой аккордов и меток.
  *
@@ -1386,6 +1462,18 @@ export default {
       textFormatted: '',
       notesFormatted: '',
       chordsFormatted: '',
+      // Словарь слов, требующих внимания, из tbl_dictionaries. Подгружается при
+      // открытии редактора. Пустой массив — не ошибка: подсветка просто не
+      // рисуется, редактор работает.
+      attentionWords: [],
+      // Сколько слов словаря было учтено при ПОСЛЕДНЕЙ отрисовке DOM. -1 = ещё
+      // ни разу. Нужен, чтобы поймать момент, когда словарь приехал уже после
+      // первой отрисовки текста: без него подсветка не появлялась никогда,
+      // потому что текст в DOM совпадал с моделью и sync решал «трогать нечего».
+      sourceHtmlRenderedDictSize: -1,
+      // Словари для кнопок «добавить/убрать слово». Раньше имя словаря было
+      // зашито в коде ('Слова с Ё') — выбрать другой было нельзя.
+      dictNames: [],
       sourceSyllables: [],
       loadedMarkers: [],
       sourceMarkers: [],
@@ -2057,6 +2145,25 @@ export default {
     getSyllables() {
       return computeSyllables(this.getProcessedSourceText)
     },
+    // Исходный текст с подсвеченными словами словаря, готовый для вставки в
+    // contenteditable (разметка #editor, класс .se-sourcetext-ce).
+    //
+    // ВАЖНО: это НЕ привязывается через v-html. При каждом нажатии клавиши
+    // Vue перерисовал бы содержимое contenteditable и сбросил каретку в начало —
+    // печатать было бы невозможно. В DOM это попадает только из syncSourceTextDom(),
+    // и только когда текст в модели РЕАЛЬНО разошёлся с тем, что нарисовано.
+    // Сама подсветка (экранирование + сопоставление) — в utils/highlightWords.js.
+    // Список словарей для выбора в модалке. «Слова для внимания» добавляется
+    // ВСЕГДА, даже когда записей в нём ещё нет: /api/dictionaries/names отдаёт
+    // только те словари, где уже есть строки, и пустой новый словарь из-за
+    // этого просто исчезал бы из списка — а выбрать его надо, чтобы наполнить.
+    dictNameOptions() {
+      const builtIn = 'Слова для внимания'
+      return this.dictNames.includes(builtIn) ? this.dictNames : [builtIn, ...this.dictNames]
+    },
+    sourceTextHighlightHtml() {
+      return highlightWords(this.sourceText, this.attentionWords)
+    },
     // Тег-якоря для syncMarkersFromSpecTags(): для каждого распознанного тега на отдельной строке -
     // после какого ординального индекса sourceSyllables он стоит. syllableIndex считается через тот
     // же computeSyllables() на РЕАЛЬНОМ префиксе обработанных строк (не на приближении), поэтому
@@ -2197,6 +2304,11 @@ export default {
         this.textFormatted = this.getFormattedText
         this.notesFormatted = this.getFormattedNotes
         this.chordsFormatted = this.getFormattedChords
+        // Обновить contenteditable (#editor), если текст разошёлся с DOM.
+        // syncSourceTextDom САМ решает, нужно ли это: пока пользователь печатает,
+        // onSourceTextInput уже синхронизировал модель с DOM и касаться нечего —
+        // иначе каретка прыгала бы в начало на каждом нажатии.
+        this.syncSourceTextDom()
       },
     },
     currentTime: {
@@ -2757,6 +2869,10 @@ export default {
 
     this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
     this.indexTabsVariant = await this.$store.getters.getIndexTabsVariant
+    // Словарь подсветки «ё». Не await намеренно: словарь не блокирует
+    // показ редактора, а подсветка появится, как только он приедет.
+    this.loadAttentionWords()
+    this.loadDictNames()
 
     // Навешиваем остальные обработчики событий на Wavesurfer (play/pause/timeupdate/...).
     // `decode` уже навешен выше, ДО первого `await` — это требование #017 (см. выше).
@@ -2952,8 +3068,18 @@ export default {
     // функция (см. верх файла), сам метод только читает/пишет DOM textarea и this.sourceText.
     insertSpecTagAtCursor(tagBody) {
       const el = this.$refs.sourceTextEditor
-      const selectionStart = el ? el.selectionStart : this.sourceText.length
-      const selectionEnd = el ? el.selectionEnd : this.sourceText.length
+      if (!el) return
+      // contentedEditable: позиция каретки берётся из Selection/Range, а не из
+      // selectionStart/selectionEnd — их у такого элемента просто нет.
+      const sel = window.getSelection()
+      let selectionStart = this.sourceText.length
+      let selectionEnd = this.sourceText.length
+      if (sel && sel.rangeCount > 0 && el.contains(sel.anchorNode)) {
+        selectionStart = caretOffsetIn(el, sel.anchorNode, sel.anchorOffset)
+        selectionEnd = sel.isCollapsed
+          ? selectionStart
+          : caretOffsetIn(el, sel.focusNode, sel.focusOffset)
+      }
       const { text, cursorPos } = insertSpecTagAtCursorImpl(
         this.sourceText,
         selectionStart,
@@ -2962,9 +3088,8 @@ export default {
       )
       this.sourceText = text
       this.$nextTick(() => {
-        if (!el) return
         el.focus()
-        el.setSelectionRange(cursorPos, cursorPos)
+        setCaretOffsetIn(el, cursorPos)
       })
     },
     // Комментарий требует текста значения - тот же паттерн window.prompt, что и addComment() в
@@ -4659,12 +4784,16 @@ export default {
       this.isSearchTextVisible = true
     },
     getSelectedText() {
-      let textComponent = document.getElementById('editor')
-      if (textComponent.selectionStart !== undefined) {
-        let startPos = textComponent.selectionStart
-        let endPos = textComponent.selectionEnd
-        return textComponent.value.substring(startPos, endPos)
-      }
+      // У contentedEditable нет selectionStart/selectionEnd/.value — выделение
+      // живёт в Selection. Старая проверка `selectionStart !== undefined` на
+      // contentedEditable всегда давала false, из-за чего кнопки «добавить/убрать
+      // слово в словарь» молча ничего не делали.
+      const el = document.getElementById('editor')
+      if (!el) return undefined
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return undefined
+      if (!el.contains(sel.anchorNode)) return undefined
+      return sel.toString()
     },
     eraseMarkers() {
       this.customConfirmParams = {
@@ -4878,34 +5007,47 @@ export default {
       }
     },
     addAccent() {
-      let textComponent = document.getElementById('editor')
-      if (textComponent.selectionStart !== undefined) {
-        let startPos = textComponent.selectionStart
-        let endPos = textComponent.selectionEnd
-        let textAccent = '\u0301'
-        let textBefore = textComponent.value.substring(0, startPos)
-        let textAfter = textComponent.value.substring(endPos)
-        let textSelected = textComponent.value.substring(startPos, endPos)
-        let result = textBefore + textSelected + textAccent + textAfter
-        this.sourceText = result
-      }
+      // Как и getSelectedText: contentedEditable не имеет .value/selectionStart.
+      // Диакритику вставляем в позицию каретки штатным способом — сначала
+      // схлопываем выделение к его концу, иначе insertText ЗАМЕНИТ выделенное.
+      const el = document.getElementById('editor')
+      const sel = window.getSelection()
+      if (!el || !sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) return
+      const range = sel.getRangeAt(0)
+      range.collapse(false)
+      sel.removeAllRanges()
+      sel.addRange(range)
+      document.execCommand('insertText', false, '\u0301')
+      this.onSourceTextInput()
     },
     addWordToDict() {
       let selectedText = this.getSelectedText()
       if (selectedText) {
         this.customConfirmParams = {
           header: 'Добавление слова в словарь',
-          body: `Добавить слово «<strong>${selectedText.toLowerCase()}</strong>» в словарь слов с буквой Ё?`,
+          body: `Добавить слово «<strong>${selectedText.toLowerCase()}</strong>»?`,
           timeout: 10,
-          callback: this.doAddWordToDict,
+          // Выбор словаря — полем в самой модалке, тем же способом, каким
+          // выбирается движок поиска при повторном поиске текста (SearchText.vue,
+          // openResearchConfirm). Отдельный селект в тулбаре стоял не там.
+          fields: [
+            {
+              fldName: 'dictName',
+              fldLabel: 'Словарь',
+              fldIsSelect: true,
+              fldOptions: this.dictNameOptions,
+              fldValue: this.dictNameOptions[0],
+            },
+          ],
+          callback: (ret) => this.doAddWordToDict(ret.dictName),
         }
         this.selectedText = selectedText.toLowerCase()
         this.isCustomConfirmVisible = true
       }
     },
-    doAddWordToDict() {
+    doAddWordToDict(dictName) {
       let params = {
-        dictName: 'Слова с Ё',
+        dictName: dictName,
         dictValue: this.selectedText,
         dictAction: 'add',
       }
@@ -4915,18 +5057,27 @@ export default {
       let selectedText = this.getSelectedText()
       if (selectedText) {
         this.customConfirmParams = {
-          header: 'Удаление слова в словаря',
-          body: `Удалить слово «<strong>${selectedText.toLowerCase()}</strong>» из словарь слов с буквой Ё?`,
+          header: 'Удаление слова из словаря',
+          body: `Удалить слово «<strong>${selectedText.toLowerCase()}</strong>»?`,
           timeout: 10,
-          callback: this.doRemoveWordFromDict,
+          fields: [
+            {
+              fldName: 'dictName',
+              fldLabel: 'Словарь',
+              fldIsSelect: true,
+              fldOptions: this.dictNameOptions,
+              fldValue: this.dictNameOptions[0],
+            },
+          ],
+          callback: (ret) => this.doRemoveWordFromDict(ret.dictName),
         }
         this.selectedText = selectedText.toLowerCase()
         this.isCustomConfirmVisible = true
       }
     },
-    doRemoveWordFromDict() {
+    doRemoveWordFromDict(dictName) {
       let params = {
-        dictName: 'Слова с Ё',
+        dictName: dictName,
         dictValue: this.selectedText,
         dictAction: 'remove',
       }
@@ -5014,6 +5165,73 @@ export default {
     onSliderVolumeInput(e) {
       const volume = e.target.valueAsNumber
       if (this.ws) this.ws.setVolume(volume)
+    },
+    // Загрузка словаря «Слова для внимания» для подсветки в блоке исходного
+    // текста. Словарь ОБЩИЙ: подсветка показывает всё, что в нём лежит, ничего
+    // не зная про конкретные правила. Первым набором пошла неоднозначная «ё»,
+    // но это не ограничение словаря.
+    // Ошибка НЕ роняет редактор: без словаря подсветка просто не рисуется.
+    // Имена словарей для выпадающего списка рядом с кнопками словаря.
+    // Значение по умолчанию — «Слова для внимания»: именно его читает подсветка,
+    // и добавлять слова туда полезнее всего прямо во время вычитки.
+    async loadDictNames() {
+      try {
+        const raw = await this.$store.dispatch('loadDictionaryNamesPromise')
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        this.dictNames = (parsed && parsed.names) || []
+      } catch (e) {
+        console.log('Не удалось загрузить список словарей: ' + e)
+        this.dictNames = []
+      }
+    },
+    async loadAttentionWords() {
+      try {
+        const raw = await this.$store.dispatch('loadDictionaryValuesPromise', 'Слова для внимания')
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        const items = (parsed && parsed.dictionaries) || []
+        this.attentionWords = items.map((it) => it.dictValue).filter((v) => !!v)
+        // Словарь приезжает ПОСЛЕ первой отрисовки текста (загрузка не awaited),
+        // поэтому текст уже в DOM, но без единой подсветки. Без этого вызова
+        // syncSourceTextDom не сработал бы: текст в DOM совпадает с моделью, и он
+        // справедливо решил бы, что трогать нечего.
+        this.syncSourceTextDom()
+      } catch (e) {
+        console.log('Не удалось загрузить словарь «Слова для внимания»: ' + e)
+        this.attentionWords = []
+      }
+    },
+    // Пользователь что-то напечатал/удалил: читаем текст из DOM в модель.
+    // innerText, а не textContent: он отдаёт ровно то, что видит человек
+    // (переводы строк, а не сырые \n внутри служебных узлов contenteditable).
+    onSourceTextInput() {
+      const el = this.$refs.sourceTextEditor
+      if (!el) return
+      this.sourceText = el.innerText
+    },
+    // Вставка из буфера — ТОЛЬКО как обычный текст. Без этого кусок из Word или
+    // из самого редактора (кто-то скопирует подсвеченный фрагмент) вставился бы
+    // вместе с <span>/<font> и попал бы в sourceText, а оттуда — в текст песни.
+    onSourceTextPaste(e) {
+      e.preventDefault()
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain')
+      // execCommand('insertText') — устаревший, но единственный способ вставить
+      // строку в contentedEditable по позиции каретки, сохранив её. Альтернатива
+      // вручную через Range не восстанавливает историю отмены.
+      document.execCommand('insertText', false, text)
+    },
+    // Приводит DOM к модели, но ТОЛЬКО если они разошлись. Пока пользователь
+    // печатает, onSourceTextInput уже положил в модель ровно то, что в DOM, —
+    // расхождения нет, значит DOM не трогаем и каретка не прыгает. Сюда же
+    // попадают ВНЕШНИЕ правки (AI-редактор, загрузка текста песни) — для них
+    // расхождение есть, и DOM обновляется.
+    syncSourceTextDom() {
+      const el = this.$refs.sourceTextEditor
+      if (!el) return
+      const textMatches = el.innerText === this.sourceText
+      const dictMatches = this.sourceHtmlRenderedDictSize === this.attentionWords.length
+      if (textMatches && dictMatches) return
+      el.innerHTML = this.sourceTextHighlightHtml + '<br>'
+      this.sourceHtmlRenderedDictSize = this.attentionWords.length
     },
     lockladButtonClass() {
       return this.currentMarker.lockLad === 'true' ? 'se-group-button-active' : ''
@@ -5779,6 +5997,91 @@ export default {
   grid-column: 1 / 3;
   grid-row: 4 / 6;
   background-color: #eeeeee;
+}
+
+/* ==========================================================================================
+   Блок исходного текста: contenteditable + жирная жёлтая подсветка слов,
+   требующих внимания (словарь «Слова для внимания» в tbl_dictionaries).
+
+   ИСТОРИЯ СХЕМ, ЧТОБЫ НЕ ПОВТОРИТЬ:
+   1) textarea + зеркальный слой ПОД ним, текст рисует textarea. Надёжно —
+      каретка всегда на своих буквах, — но <mark> рисуется по метрикам обычного
+      начертания, и жирный шрифт получить нельзя.
+   2) слой СВЕРХУ, у textarea прозрачный текст. Жирный получается, но на живом
+      редакторе текст стал центрированным, а каретка ушла в сторону: буквы рисует
+      div, каретку — textarea, и две независимые системы разъезжаются при любом
+      расхождении метрик. Редактировать стало невозможно.
+   3) contenteditable (текущая схема). Текст и его начертание рисует ОДИН и тот
+      же элемент, поэтому жирный работает и каретка не разъезжается. Цена —
+      синхронизацию с моделью и вставку текста приходится делать руками
+      (onSourceTextInput / onSourceTextPaste / watcher sourceText).
+   ========================================================================================== */
+.se-grid-item-sourcetext {
+  grid-column: 1 / 3;
+  grid-row: 4 / 6;
+  background-color: #eeeeee;
+  /* Размер по-прежнему задаёт CSS-сетка: элемент остаётся её grid-item. */
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 21px;
+  padding: 2px;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 8;
+  text-align: left;
+  overflow-y: auto;
+  outline: none;
+}
+
+/* Жирный на жёлтом — то, ради чего contenteditable и выбран.
+   ::v-deep ОБЯЗАТЕЛЕН: подсвеченные узлы приходят через innerHTML, а элементы,
+   вставленные мимо шаблона, НЕ получают атрибут скоупа Vue — без ::v-deep
+   правило к ним не применилось бы вовсе. Используется <span>, а не <mark>:
+   на <mark> bootstrap-reboot давал бледный фон #fff3cd и — что хуже — блочный
+   display, от которого подсвеченное слово УЕЗЖАЛО на отдельную строку, ломая
+   вёрстку текста песни. Обычный <span> с классом чужих правил не несёт. */
+/* СЕРОЬЁЗНО: этот блок исходного текста — grid-элемент родительской сетки, и
+   в компоненте есть оставшееся ОТЛАДОЧНОЕ правило
+       [class^=se-grid-item] { display: grid; ... }
+   из которого этот блок тоже получает display:grid. А его ПОТОМКИ при этом
+   становятся grid-элементами, а CSS блокифицирует их: `display: inline`
+   превращается в `block` — даже если задать inline-стилем (блокификация идёт
+   ПОСЛЕ каскада). Из-за этого каждое подсвеченное слово вставало на отдельную
+   строку во всю ширину.
+
+   Раньше это было незаметно: textarea не содержит дочерних ЭЛЕМЕНТОВ, блокировать
+   нечего. С contentedEditable стало видно.
+
+   Лечится здесь, а не удалением отладочного правила: то задевает раскладку всего
+   редактора, и это отдельная задача. Селектор из двух классов нужен, чтобы
+   перебить [class^=se-grid-item] по специфичности (0,3 против 0,2). */
+.se-grid-item-sourcetext.se-sourcetext-ce {
+  display: block;
+}
+
+/* Жирный на жёлтом — то, ради чего contenteditable и выбран. */
+.se-sourcetext-ce ::v-deep span.se-hl-attention {
+  display: inline;
+  background-color: #ffff00;
+  color: inherit;
+  font-weight: bold;
+  border-radius: 2px;
+  padding: 0;
+}
+.se-sourcetext-ce ::v-deep mark.se-hl-attention {
+  background-color: #ffff00;
+  color: inherit;
+  font-weight: bold;
+  border-radius: 2px;
+  padding: 0;
+  /* ЯВНО inline. По умолчанию <mark> инлайновый, но в собранном приложении
+     getComputedStyle давал display: block — и подсвеченное слово УЕЗЖАЛО на
+     отдельную строку, ломая вёрстку текста песни. Источник правила вне файлов
+     компонента (в style.css и в самом SubsEdit.vue правила для mark нет),
+     поэтому задаём display здесь — иначе непонятно, где ещё оно всплывёт. */
+  display: inline;
 }
 
 .se-grid-item-tail {

@@ -1,7 +1,10 @@
 server:
   port: 8899
   tomcat:
-    connection-timeout: 300000 # 300000 миллисекунд = 5 минут. Установите нужное значение.
+    # 10 минут: синхронно с client_body_timeout в nginx (600s). Было 300000 (5 мин) —
+    # на 100MB по медленному каналу Tomcat обрывал соединение ПОСЛЕ приёма тела,
+    # файл доходил до MinIO, а клиент получал ошибку.
+    connection-timeout: 600000
     # specs/245-storage-download-streaming: -1 снимает дефолтное ограничение Tomcat (2 MB)
     # на размер swallow'а тела ответа, чтобы streaming download MP4 100+ MB не резался.
     max-swallow-size: -1
@@ -14,6 +17,30 @@ server:
       max: 50
 
 spring:
+  servlet:
+    multipart:
+      # БЫЛО: блок стоял уровнем ниже — внутри `spring.thymeleaf.servlet`:
+      #     thymeleaf:
+      #       servlet:
+      #         multipart:
+      #           max-file-size: 10MB
+      # Spring Boot такой путь не знает, настройка МОЛЧА игнорировалась, и
+      # действовало умолчание Boot (1MB на файл, 10MB на запрос). Загрузка
+      # длинной песни (mp3 ~50MB) падала с 413:
+      #   org.springframework.web.multipart.MaxUploadSizeExceededException
+      # Воспроизведено на POST /api/storage/upload 2026-09-30.
+      # Теперь блок на своём уровне, как в karaoke-web (там 200MB).
+      # Должно быть НЕ МЕНЬШЕ, чем nginx client_max_body_size (1024m в
+      # nginx_webvue3.conf.template) и лимит хранилища — иначе отказ придёт
+      # раньше, с непонятным 413.
+      # max-file-size — сам файл; max-request-size — ВЕСЬ запрос, включая
+      # multipart-обвязку (границы, заголовки частей, остальные поля формы).
+      # Из-за этого файл ровно в 100MB не проходит при max-request-size: 100MB:
+      # запрос оказывается чуть больше. Проверено 2026-09-30: 50MB проходит,
+      # ровно 100MB — 413 MaxUploadSizeExceededException. Поэтому у запроса
+      # запас 10% на обвязку.
+      max-file-size: 100MB
+      max-request-size: 110MB
   thymeleaf:
     check-template-location: true
     prefix: classpath:/templates/
@@ -22,9 +49,6 @@ spring:
     encoding: UTF-8
     servlet:
       content-type: text/html
-      multipart:
-        max-file-size: 10MB
-        max-request-size: 10MB
     cache: false
   main:
     allow-bean-definition-overriding: true
@@ -74,6 +98,13 @@ storage:
   # OkHttp connect/read (remote). Local — свои 10s/30s, не затронут.
   # Watchdog-дедлайн станет 20 + buffer 10 = 30s.
   file-exists-timeout-seconds: 20
+  # Таймаут ОТВЕТА сервера при передаче файлов (putObject/download) в удалённое
+  # хранилище. Отдельный от file-exists-timeout-seconds: тот настроен под лёгкие
+  # запросы метаданных и связан с circuit-breaker (Pass 426), а многочастовая
+  # загрузка большого файла на удалённый хост эти 20 секунд не выдерживала —
+  # java.net.SocketTimeoutException: timeout, executeUploadToRemoteStore падал на
+  # mp3 ~50MB. Воспроизведено 2026-09-30.
+  upload-read-timeout-seconds: 900
   circuit-breaker-threshold: 5
   circuit-breaker-cooldown-seconds: 30
   # NEW (Pass 372, спека #405): watchdog для HALF_OPEN state — если probe завис

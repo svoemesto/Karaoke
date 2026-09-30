@@ -21,6 +21,21 @@ http {
       client_max_body_size 1024m;
       server_name  localhost;
 
+      # Таймауты для загрузки больших файлов (mp3 длинных песен ~50-100MB).
+      # Умолчания nginx: client_body_timeout 60s, proxy_read_timeout 60s,
+      # proxy_send_timeout 60s. 60 секунд на тело файла не хватает на медленной
+      # закачке, и клиент получает 504/connection reset уже ПОСЛЕ того, как
+      # бэкенд начал принимать файл. Значения — с запасом на 100MB.
+      # Проверено: загрузка 50MB проходит за ~1с на localhost, но на реальном
+      # канале до админской машины тело может идти минутами.
+      client_body_timeout 600s;
+      proxy_connect_timeout 600s;
+      proxy_send_timeout 600s;
+      proxy_read_timeout 600s;
+      # Не буферизовать тело запроса на диске целиком: при 100MB это лишняя
+      # запись и лишняя задержка перед передачей бэкенду.
+      proxy_request_buffering off;
+
       location = /nginx-test {
           return 200 "Nginx Test Hit!\n";
       }

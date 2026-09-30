@@ -139,21 +139,58 @@ class StorageApiClientImpl(
     private val storageMetadataCache: StorageMetadataCache,
     @Qualifier("remoteStorageCircuitBreaker") private val storageCircuitBreaker: StorageCircuitBreaker,
     @Value($$"${storage.file-exists-timeout-seconds:20}") private val fileExistsTimeoutSeconds: Long,
+    @Value($$"${storage.upload-read-timeout-seconds:900}") private val uploadReadTimeoutSeconds: Long,
 ) : StorageApiClient {
+    /**
+     * Клиент для ОПЕРАЦИЙ С МЕТАДАННЫМИ (bucketExists, statObject, list и т.п.).
+     *
+     * Таймауты здесь намеренно короткие (20с) и связаны с circuit-breaker:
+     * см. комментарий Pass 426 выше — при connectTimeout больше circuit-timeout
+     * блокирующий вызов не прерывался и circuit залипал в HALF_OPEN.
+     * Для метаданных 20с с большим запасом.
+     */
     private val storageClient: MinioClient =
         run {
             val httpClient =
                 OkHttpClient
                     .Builder()
                     .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
-                    // Pass 426 (#150): connect/read timeout выровнены с
-                    // storage.file-exists-timeout-seconds (Pass 430, #154: 20s).
-                    // Pass 426: раньше connectTimeout=15s был больше circuit-timeout(5s)
-                    // + watchdog-buffer(10s), из-за чего блокирующий вызов не прерывался
-                    // и circuit залипал в HALF_OPEN.
                     .connectTimeout(fileExistsTimeoutSeconds, TimeUnit.SECONDS)
                     .readTimeout(fileExistsTimeoutSeconds, TimeUnit.SECONDS)
                     .writeTimeout(300, TimeUnit.SECONDS)
+                    .build()
+            MinioClient
+                .builder()
+                .endpoint(remoteEndpoint)
+                .credentials(storageKey, storageSecret)
+                .httpClient(httpClient)
+                .build()
+        }
+
+    /**
+     * Отдельный клиент для ПЕРЕКАЧКИ ФАЙЛОВ (putObject, download).
+     *
+     * Зачем отдельный: `readTimeout` в [storageClient] настроен под лёгкий запрос
+     * метаданных, но он же применялся к загрузке. MinIO на больших файлах идёт
+     * многочастевой передачей и на каждую часть ждёт ответа сервера — на удалённый
+     * хост эти 20 секунд не выдерживаются, и загрузка обрывалась:
+     *   java.net.SocketTimeoutException: timeout
+     *   executeUploadToRemoteStore: загрузка '...mp3' -> '...' не удалась
+     * Воспроизведено на mp3 ~50MB, 2026-09-30. Сторону записи кстати давали 300с
+     * (writeTimeout) — сторону ответа увеличили только здесь.
+     *
+     * Увеличивать таймаут у [storageClient] нельзя: сломается связка с
+     * circuit-breaker, ради которой он и настроен на 20с.
+     */
+    private val transferClient: MinioClient =
+        run {
+            val httpClient =
+                OkHttpClient
+                    .Builder()
+                    .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+                    .connectTimeout(fileExistsTimeoutSeconds, TimeUnit.SECONDS)
+                    .readTimeout(uploadReadTimeoutSeconds, TimeUnit.SECONDS)
+                    .writeTimeout(uploadReadTimeoutSeconds, TimeUnit.SECONDS)
                     .build()
             MinioClient
                 .builder()
@@ -215,7 +252,7 @@ class StorageApiClientImpl(
                     base
                 }
             val response =
-                storageClient.putObject(
+                transferClient.putObject(
                     PutObjectArgs
                         .builder()
                         .bucket(bucketName)

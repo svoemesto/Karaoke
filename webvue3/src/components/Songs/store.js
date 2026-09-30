@@ -1977,7 +1977,13 @@ export default {
       ctx.commit('setCurrentSongField', payload)
     },
     saveSong(ctx, params) {
-      params.id = ctx.state.currentSongId
+      // #216: params.id — идентификатор той песни, правки которой собирает вызывающий
+      // (берётся из объекта песни, а не из currentSongId). Без этого цель сохранения
+      // определялась в момент отправки, и при переходе на другую песню правка уходила
+      // в неё. Фолбэк на currentSongId — для вызовов, которые id не передали.
+      if (!params.id) {
+        params.id = ctx.state.currentSongId
+      }
       let request = { method: 'POST', url: '/api/song/update', params: params }
 
       // 1. КРИТИЧНО: Добавляем return!

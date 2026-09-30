@@ -2663,6 +2663,9 @@ export default {
       autoSaveDelayMs: 1000,
       saveTimer: undefined,
       isSaving: false,
+      // #217: компонент размонтирован. Гасит перевзвод таймера автосейва и
+      // защищает от записи в состояние из поздно пришедших промисов.
+      isUnmounted: false,
       // Фаза 2 автопубликации (specs/113-telegram-demo-publish): блокирует повторные клики
       // кнопки «Опубликовать сейчас» во время асинхронного sendVideo с retry (до 5+ минут).
       isPublishingTelegram: false,
@@ -3101,21 +3104,28 @@ export default {
     },
     song: {
       handler() {
-        this.$store
-          .dispatch('getAuthorPictureBase64Promise')
-          .then((image) => (this.imageAuthorBase64 = image))
-        this.$store
-          .dispatch('getAlbumPictureBase64Promise')
-          .then((image) => (this.imageAlbumBase64 = image))
-        this.$store
-          .dispatch('getTextFormattedPromise')
-          .then((textFormatted) => (this.textFormatted = textFormatted))
-        this.$store
-          .dispatch('getNotesFormattedPromise')
-          .then((notesFormatted) => (this.notesFormatted = notesFormatted))
-        this.$store
-          .dispatch('getChordsFormattedPromise')
-          .then((chordsFormatted) => (this.chordsFormatted = chordsFormatted))
+        // #217: без .catch() отклонённый промис даёт unhandled rejection, а запись
+        // в this.* после размонтирования — обновление мёртвого компонента.
+        // Пять одинаковых цепочек свёрнуты в одну, чтобы обработка была одна.
+        const store = this.$store
+        const targets = [
+          ['getAuthorPictureBase64Promise', 'imageAuthorBase64'],
+          ['getAlbumPictureBase64Promise', 'imageAlbumBase64'],
+          ['getTextFormattedPromise', 'textFormatted'],
+          ['getNotesFormattedPromise', 'notesFormatted'],
+          ['getChordsFormattedPromise', 'chordsFormatted'],
+        ]
+        targets.forEach(([action, field]) => {
+          store
+            .dispatch(action)
+            .then((value) => {
+              if (!this.isUnmounted) this[field] = value
+            })
+            .catch((error) => {
+              // eslint-disable-next-line no-console
+              console.error(`Ошибка загрузки ${action}:`, error)
+            })
+        })
         this.reloadAssignmentStatus()
         this.loadCoAuthors()
       },
@@ -3779,6 +3789,15 @@ export default {
       this.$store.dispatch('loadAuthorsDigests', {})
     }
     this.loadCoAuthors()
+  },
+
+  // #217: размонтирование гасит таймер автосейва. Без этого сохранение
+  // срабатывало на мёртвом компоненте, а executeSave перевзводил таймер снова —
+  // цикл сохранения жил дольше страницы.
+  beforeUnmount() {
+    this.isUnmounted = true
+    clearTimeout(this.saveTimer)
+    this.saveTimer = undefined
   },
 
   methods: {
@@ -5683,14 +5702,18 @@ export default {
       this.isSaving = true
 
       try {
-        // Собираем актуальные изменения
-        let params = {}
+        // Собираем актуальные изменения.
+        // #216: id берём из САМОГО объекта песни, из которого считан diff, а не из
+        // currentSongId в сторе. Песня меняется в сторе раньше, чем догружается её
+        // новое содержимое, поэтому currentSongId в этот момент уже указывает на
+        // СЛЕДУЮЩУЮ песню, и правка ушла бы в неё вместо своей.
+        let params = { id: this.song.id }
         for (let diffItem of this.diff) {
           params[diffItem.name] = diffItem.new
         }
 
         // Если изменений нет (например, нажали кнопку вручную, но всё уже сохранено)
-        if (Object.keys(params).length === 0) {
+        if (Object.keys(params).length === 1) {
           this.isSaving = false
           return
         }
@@ -5700,7 +5723,9 @@ export default {
 
         // ПОСТ-ОБРАБОТКА:
         // Проверяем, не появились ли новые изменения ПОКА шёл запрос к серверу
-        if (this.diff.length > 0) {
+        // #217: после размонтирования таймер перевзводить нельзя — он продлил бы
+        // цикл сохранения на уже мёртвом компоненте.
+        if (!this.isUnmounted && this.diff.length > 0) {
           // Если появились, сразу ставим их в очередь на следующий автосейв
           this.saveTimer = setTimeout(this.executeSave, this.autoSaveDelayMs)
         }

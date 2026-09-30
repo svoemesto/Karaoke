@@ -2,7 +2,7 @@
 <template>
   <BApp>
     <router-view v-if="route.path.startsWith('/player')" />
-    <div v-else id="app">
+    <div v-else class="app-root">
       <!-- Основной контейнер с двумя колонками -->
       <div class="app-container">
         <!-- Левая колонка для навигации -->
@@ -758,7 +758,14 @@ export default {
 
 <style>
 /* Эти стили в основном касаются общего оформления, тостов и таблиц */
-#app {
+/* Селектор класса, а не #app (Pass 199).
+   В index.html есть <div id="app"> — точка монтирования Vue (app.mount('#app')).
+   Раньше App.vue рисовал ВНУТРИ неё ещё один <div id="app">, и это не-scoped
+   правило применялось к обоим: два flex-контейнера высотой 100vh, вложенных
+   друг в друга. На живом контейнере: document.querySelectorAll('#app').length === 2.
+   Правило переименовано на класс, чтобы стилизовался ровно один элемент —
+   тот, что принадлежит компоненту. Точка монтирования остаётся без стилей. */
+.app-root {
   font-family: Avenir, Helvetica, Arial, sans-serif !important;
   font-weight: 300 !important;
   -webkit-font-smoothing: antialiased;

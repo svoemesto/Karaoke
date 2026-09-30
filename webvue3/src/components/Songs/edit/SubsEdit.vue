@@ -1399,6 +1399,24 @@ function setCaretOffsetIn(root, targetOffset) {
 }
 
 /**
+ * Границы выделения в элементе в координатах его текста.
+ *
+ * Нужна вставке из буфера: пока фрагмент не вставлен, выделение ещё стоит на
+ * прежнем месте, и по нему считается, что именно заменяем.
+ * null — выделение вне блока, тогда вставку надо отдать execCommand.
+ */
+function selectionOffsetsIn(root) {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return null
+  const range = sel.getRangeAt(0)
+  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null
+  return {
+    start: caretOffsetIn(root, range.startContainer, range.startOffset),
+    end: caretOffsetIn(root, range.endContainer, range.endOffset),
+  }
+}
+
+/**
  * Inline-редактор текста песни с поддержкой аккордов и меток.
  *
  * Содержит:
@@ -5322,11 +5340,39 @@ export default {
     // вместе с <span>/<font> и попал бы в sourceText, а оттуда — в текст песни.
     onSourceTextPaste(e) {
       e.preventDefault()
-      const text = (e.clipboardData || window.clipboardData).getData('text/plain')
-      // execCommand('insertText') — устаревший, но единственный способ вставить
-      // строку в contentedEditable по позиции каретки, сохранив её. Альтернатива
-      // вручную через Range не восстанавливает историю отмены.
-      document.execCommand('insertText', false, text)
+      const el = this.$refs.sourceTextEditor
+      const text = (e.clipboardData || window.clipboardData)
+        .getData('text/plain')
+        .replace(/\r\n/g, '\n')
+      const sel = el ? selectionOffsetsIn(el) : null
+
+      // Без переносов строк execCommand безопасен: он кладёт текст как есть,
+      // innerText читает его верно, а история отмены сохраняется.
+      if (!text.includes('\n') || !sel) {
+        document.execCommand('insertText', false, text)
+        return
+      }
+
+      // С переносами execCommand небезопасен: Chrome оборачивает фрагмент в
+      // блоки — «A\n\nB» превращается в «A<div><br></div><div>B</div>». Разрыв
+      // блока и <br> внутри него innerText считает ДВАМИ переводами строки,
+      // поэтому каждая пустая строка раздваивалась (воспроизведено: модель
+      // получала «A\n\n\nB»). Штатная отрисовка блока держит текст с \n (CSS
+      // white-space: pre-wrap), поэтому считаем результат сами и кладём в
+      // модель — блок перерисуется в правильной форме.
+      const before = this.sourceText
+      this.sourceText = before.slice(0, sel.start) + text + before.slice(sel.end)
+      this.scheduleRehighlight()
+      // Каретку ставим ПОСЛЕ перерисовки: renderSourceHtmlWithCaret() восстанавливает
+      // её из снимка ДО innerHTML, то есть увела бы в начало вставки.
+      this.$nextTick(() => {
+        if (this.isUnmounted) return
+        const editor = this.$refs.sourceTextEditor
+        if (editor) {
+          editor.focus()
+          setCaretOffsetIn(editor, Math.min(sel.start + text.length, this.sourceText.length))
+        }
+      })
     },
     // Приводит DOM к модели, но ТОЛЬКО если они разошлись. Пока пользователь
     // печатает, onSourceTextInput уже положил в модель ровно то, что в DOM, —

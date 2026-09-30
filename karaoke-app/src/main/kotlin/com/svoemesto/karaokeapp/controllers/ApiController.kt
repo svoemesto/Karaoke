@@ -3337,7 +3337,9 @@ class ApiController(
                 val strText = song.convertMarkersToSrt(voice)
                 val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
                 File(pathToFile).writeText(strText)
-                runCommand(listOf("chmod", "666", pathToFile))
+                // #213: было chmod 666 через внешний процесс, вне try/catch —
+                // отказ chmod возвращал ошибку уже после применения маркеров.
+                setSongFilePermissions(pathToFile)
                 true
             } ?: false
         }
@@ -3395,7 +3397,9 @@ class ApiController(
             try {
                 val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
                 File(pathToFile).writeText(strText)
-                runCommand(listOf("chmod", "666", pathToFile))
+                // #213: было chmod 666 — файл доступен на запись любому
+                // пользователю, а внешний процесс для этого не нужен.
+                setSongFilePermissions(pathToFile)
             } catch (_: Exception) {
                 println("Ошибка при создании файла субтитров.")
             }

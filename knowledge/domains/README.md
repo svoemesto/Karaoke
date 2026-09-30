@@ -73,6 +73,9 @@ knowledge/domains/<name>/
   - `store-songs.md`, `store-song-editor.md`, `store-sync.md`,
     `store-properties.md`, `store-site-users.md` — отдельные
     детальные store docs (Pass 371, 382).
+  - `subs-edit-admin-editor.md` — админский редактор SubsEdit: contenteditable,
+    инкрементальная перерисовка регионов, подсветка словаря, экранирование
+    перед `v-html`.
   - `composable-karaoke-editor.md`, `composable-player-readiness.md`,
     `composable-use-auth.md`, `composable-use-player-access.md`,
     `composable-use-share-link.md` — отдельные детальные composable

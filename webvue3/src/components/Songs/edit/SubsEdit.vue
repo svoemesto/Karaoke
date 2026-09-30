@@ -3965,8 +3965,24 @@ export default {
       return result
     },
     goToPreviousMarker(markertype) {
-      for (let i = this.currentMarkersIndex - 1; i >= 0; i--) {
+      const diff = 0.02
+      // Старт с currentMarkersIndex, а не с currentMarkersIndex - 1.
+      //
+      // Смысл currentMarkersIndex (см. getCurrentMarkersIndex): это маркер,
+      // чей ВРЕМЕННОЙ ИНТЕРВАЛ [marker.time, nextMarker.time) содержит
+      // currentTime, то есть последний маркер, который указатель УЖЕ ПРОШЁЛ.
+      // Поэтому предыдущим относительно позиции указателя является именно он,
+      // а не тот, что стоит за ним. Старт с -1 перескакивал через него.
+      //
+      // Воспроизведено 2026-09-30: указатель между маркерами 100 и 101,
+      // один вызов вёл на 99 вместо 100. Вперёд (goToNextMarker) при этом
+      // вёл правильно — он стартует с +1, а -1 здесь асимметрично.
+      //
+      // Маркеры, на которых указатель ещё не побывал (time >= currentTime),
+      // пропускаем — на них мы не можем стоять.
+      for (let i = this.currentMarkersIndex; i >= 0; i--) {
         let currentMarker = this.sourceMarkers[i]
+        if (currentMarker.time >= this.currentTime - diff) continue
         if (
           this.isShowMarkerType(currentMarker.markertype) &&
           (markertype === undefined || currentMarker.markertype === markertype)

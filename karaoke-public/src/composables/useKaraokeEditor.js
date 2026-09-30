@@ -192,13 +192,6 @@ export function syncMarkersFromSpecTags(markers, sourceText) {
       anchor.syllableIndex < syllablePositions.length
         ? syllablePositions[anchor.syllableIndex]
         : markers.length
-    const windowStart =
-      anchor.syllableIndex > 0 ? syllablePositions[anchor.syllableIndex - 1] + 1 : 0
-
-    const alreadyExists = markers
-      .slice(windowStart, insertPos)
-      .some((m) => m.markertype === anchor.markertype && m.label === anchor.label)
-    if (alreadyExists) return
 
     const prevMarker = insertPos > 0 ? markers[insertPos - 1] : null
     const nextMarker = insertPos < markers.length ? markers[insertPos] : null
@@ -206,7 +199,30 @@ export function syncMarkersFromSpecTags(markers, sourceText) {
     const nextStartTime = nextMarker ? nextMarker.time : prevEndTime
     const gap = Math.max(0, nextStartTime - prevEndTime)
     // Тот же приём, что backend newLineMarkerTime (лид-ин 1с перед следующим маркером).
-    const time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+    let time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+    // FIX #018 (#202): если prevMarker и nextMarker оба около нуля, формула
+    // prevEndTime + gap/2 даёт ~0.05, и маркер рисуется «слипшимся» с линией 0 —
+    // пользователь видит красную полосу в нуле. Сдвигаем на 0.5s вперёд.
+    if (time < 0.5) {
+      time = prevEndTime + 0.5
+    }
+
+    // Дедупликация по ВРЕМЕННОМУ диапазону [prevEndTime, max(nextStartTime, time)],
+    // а не по индексному окну (как было). Индексный вариант не идемпотентен:
+    // sortMarkers() при равенстве времени сортирует по markertype и может вытеснить
+    // уже вставленный тег-маркер за пределы индексного окна, после чего тот же
+    // anchor вставляется ещё раз — массив маркеров раздувается. В редакторе с
+    // автосохранением это уезжает в черновик без участия пользователя.
+    // Канон — админский SubsEdit.syncMarkersFromSpecTags.
+    const windowEnd = Math.max(nextStartTime, time)
+    const alreadyExists = markers.some(
+      (m) =>
+        m.markertype === anchor.markertype &&
+        m.label === anchor.label &&
+        m.time >= prevEndTime &&
+        m.time <= windowEnd,
+    )
+    if (alreadyExists) return
 
     markers.splice(insertPos, 0, {
       uid: nextUid(),

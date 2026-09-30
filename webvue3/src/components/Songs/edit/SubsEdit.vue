@@ -1206,7 +1206,7 @@ import Hover from 'wavesurfer.js/dist/plugins/hover.esm.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
-import { highlightWords } from '../../../utils/highlightWords.js'
+import { escapeHtml, highlightWords } from '../../../utils/highlightWords.js'
 import { findMarkerIndexByTime } from '../../../utils/markerIndex.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
@@ -1689,13 +1689,13 @@ export default {
               // Если в маркере не пустой лейбл (т.е. есть слог)
               if (marker.label) {
                 txt = marker.label.replaceAll('_', ' ') // Заменяем подчеркивания на пробелы
-                txtHtml = marker.label.replaceAll('_', '&nbsp;')
+                txtHtml = escapeHtml(marker.label).replaceAll('_', '&nbsp;') // #193
                 // Если был перенос строки - инициализируем новые переменны (3 пробела + слог)
                 if (wasBr) {
                   txt = '   ' + this.uppercaseFirstLetter(txt)
                   txtHtml =
                     '&nbsp;&nbsp;&nbsp;' +
-                    this.uppercaseFirstLetter(marker.label).replaceAll('_', '&nbsp;')
+                    escapeHtml(this.uppercaseFirstLetter(marker.label)).replaceAll('_', '&nbsp;')
                 }
               } else {
                 // Если в маркере пустой лейбл - пробел в тексте
@@ -1712,7 +1712,7 @@ export default {
               // Находим аккорд
               lineChordsIsEmpty = false
               chord = marker.chord
-              chordHtml = chord
+              chordHtml = escapeHtml(chord) // #193: chord приходит из маркера песни
 
               // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
               let vowelPosition = 0
@@ -1858,13 +1858,13 @@ export default {
             if (marker.label) {
               endOfWord = marker.label.endsWith('_') // Это конец слова если слог заканчивается подчёркиванием
               txt = marker.label.replaceAll('_', ' ') // Заменяем подчеркивания на пробелы
-              txtHtml = marker.label.replaceAll('_', '&nbsp;')
+              txtHtml = escapeHtml(marker.label).replaceAll('_', '&nbsp;') // #193
               // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
               if (wasBr) {
                 txt = '   ' + this.uppercaseFirstLetter(txt)
                 txtHtml =
                   '&nbsp;&nbsp;&nbsp;' +
-                  this.uppercaseFirstLetter(marker.label).replaceAll('_', '&nbsp;')
+                  escapeHtml(this.uppercaseFirstLetter(marker.label)).replaceAll('_', '&nbsp;')
                 strings = ['E||-', 'B||-', 'G||-', 'D||-', 'A||-', 'e||-']
               }
             } else {
@@ -1882,7 +1882,7 @@ export default {
               // Находим ноту и октаву ноты
               const noteParts = marker.note.split('|')
               note = noteParts[0]
-              noteHtml = noteParts[0]
+              noteHtml = escapeHtml(noteParts[0]) // #193: note приходит из маркера песни
               if (noteParts.length > 1) {
                 noteOctave = noteParts[1]
               }
@@ -2020,7 +2020,7 @@ export default {
                 if (marker.label.startsWith('COMMENT|')) {
                   let txt = marker.label.split('|')[1]
                   result += SPAN_STYLE_COMMENT
-                  result += this.uppercaseFirstLetter(txt.replaceAll('_', ' '))
+                  result += escapeHtml(this.uppercaseFirstLetter(txt.replaceAll('_', ' '))) // #193: label от пользователя
                   result += '</span>'
                   result += '<br>'
                 }
@@ -2046,7 +2046,7 @@ export default {
               txt = this.uppercaseFirstLetter(txt)
               wasBr = false
             }
-            result += txt
+            result += escapeHtml(txt) // #193: txt из label'а песни
             result += '</span>'
             break
           }
@@ -2106,10 +2106,10 @@ export default {
       if (textCurr === '') {
         textCurr = '~'
       }
-      result += SPAN_STYLE_TAIL_CURR + textCurr + '</span>'
-      result += SPAN_STYLE_TAIL_NEXT + textNext + '</span>'
+      result += SPAN_STYLE_TAIL_CURR + escapeHtml(textCurr) + '</span>' // #193
+      result += SPAN_STYLE_TAIL_NEXT + escapeHtml(textNext) + '</span>' // #193
       if (textEnd !== '') {
-        result += SPAN_STYLE_TAIL_END + textEnd.replaceAll('_', ' ').trim() + '</span>'
+        result += SPAN_STYLE_TAIL_END + escapeHtml(textEnd.replaceAll('_', ' ').trim()) + '</span>' // #193
       }
       return result
     },

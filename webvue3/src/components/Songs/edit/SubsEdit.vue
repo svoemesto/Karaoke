@@ -1466,11 +1466,18 @@ export default {
       // открытии редактора. Пустой массив — не ошибка: подсветка просто не
       // рисуется, редактор работает.
       attentionWords: [],
-      // Сколько слов словаря было учтено при ПОСЛЕДНЕЙ отрисовке DOM. -1 = ещё
+      // Версия словаря и версия, учтённая при ПОСЛЕДНЕЙ отрисовке DOM. -1 = ещё
       // ни разу. Нужен, чтобы поймать момент, когда словарь приехал уже после
       // первой отрисовки текста: без него подсветка не появлялась никогда,
       // потому что текст в DOM совпадал с моделью и sync решал «трогать нечего».
-      sourceHtmlRenderedDictSize: -1,
+      //
+      // Именно ВЕРСИЯ, а не количество слов: добавление уже существующего слова
+      // и пара «добавили + удалили» в одной сессии не меняют размер, и по
+      // размеру перерисовка не сработала бы.
+      dictVersion: 0,
+      sourceHtmlRenderedDictVersion: -1,
+      // Таймер отложенного пересчёта подсветки при наборе (см. scheduleRehighlight).
+      timerRehighlight: null,
       // Словари для кнопок «добавить/убрать слово». Раньше имя словаря было
       // зашито в коде ('Слова с Ё') — выбрать другой было нельзя.
       dictNames: [],
@@ -2778,6 +2785,7 @@ export default {
     // Все восемь таймеров: раньше очищались только intervalSkipBackward/SkipForward
     // (в ветке else watcher'а isEditMode), остальные жили после закрытия.
     const intervalFields = [
+      'timerRehighlight',
       'intervalSkipBackward',
       'intervalSkipForward',
       'intervalPressZ',
@@ -5045,13 +5053,17 @@ export default {
         this.isCustomConfirmVisible = true
       }
     },
-    doAddWordToDict(dictName) {
+    // После записи перечитываем словарь, чтобы подсветка в блоке исходного
+    // текста обновилась СРАЗУ, а не после переоткрытия редактора. Ответ
+    // дожидаемся: перечитывать раньше, чем сервер записал, бессмысленно.
+    async doAddWordToDict(dictName) {
       let params = {
         dictName: dictName,
         dictValue: this.selectedText,
         dictAction: 'add',
       }
-      this.$store.getters.doTfd(params)
+      await this.$store.getters.doTfd(params)
+      await this.loadAttentionWords()
     },
     removeWordFromDict() {
       let selectedText = this.getSelectedText()
@@ -5075,13 +5087,14 @@ export default {
         this.isCustomConfirmVisible = true
       }
     },
-    doRemoveWordFromDict(dictName) {
+    async doRemoveWordFromDict(dictName) {
       let params = {
         dictName: dictName,
         dictValue: this.selectedText,
         dictAction: 'remove',
       }
-      this.$store.getters.doTfd(params)
+      await this.$store.getters.doTfd(params)
+      await this.loadAttentionWords()
     },
     loadSong() {
       // let loadSongStartTime = Date.now();
@@ -5190,10 +5203,11 @@ export default {
         const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
         const items = (parsed && parsed.dictionaries) || []
         this.attentionWords = items.map((it) => it.dictValue).filter((v) => !!v)
-        // Словарь приезжает ПОСЛЕ первой отрисовки текста (загрузка не awaited),
-        // поэтому текст уже в DOM, но без единой подсветки. Без этого вызова
-        // syncSourceTextDom не сработал бы: текст в DOM совпадает с моделью, и он
-        // справедливо решил бы, что трогать нечего.
+        this.dictVersion++
+        // Словарь приезжает ПОСЛЕ первой отрисовки текста (загрузка не awaited) —
+        // текст уже в DOM, но без единой подсветки. И то же самое после
+        // добавления/удаления слова прямо в открытом редакторе: без этого
+        // вызова подсветка появлялась бы только после переоткрытия модалки.
         this.syncSourceTextDom()
       } catch (e) {
         console.log('Не удалось загрузить словарь «Слова для внимания»: ' + e)
@@ -5207,6 +5221,39 @@ export default {
       const el = this.$refs.sourceTextEditor
       if (!el) return
       this.sourceText = el.innerText
+      this.scheduleRehighlight()
+    },
+    // Пересчёт подсветки ПОСЛЕ набора, с задержкой.
+    //
+    // Почему не сразу: перерисовка contentedEditable на каждом нажатии переносит
+    // каретку в начало, печатать становится невозможно. Почему вообще нужен:
+    // syncSourceTextDom() при наборе НЕ срабатывает — текст в DOM уже совпадает
+    // с моделью, и он справедливо решает «трогать нечего». Из-за этого
+    // подсветка оставалась прежней: отредактировали «звезды» -> «звёзды», а
+    // жёлтым продолжало светиться уже несуществующее словарное слово.
+    scheduleRehighlight() {
+      if (this.timerRehighlight) clearTimeout(this.timerRehighlight)
+      this.timerRehighlight = setTimeout(() => {
+        this.timerRehighlight = null
+        this.rehighlightSourceText()
+      }, 350)
+    },
+    // Перерисовывает содержимое блока с подсветкой, возвращая каретку на прежнее
+    // место. Каретка запоминается в «плоских» координатах текста (см.
+    // caretOffsetIn), потому что перерисовка меняет и узлы, и их структуру —
+    // ссылку на Range сохранить нельзя.
+    rehighlightSourceText() {
+      const el = this.$refs.sourceTextEditor
+      if (!el) return
+      const sel = window.getSelection()
+      const hasCaretHere = sel && sel.rangeCount > 0 && el.contains(sel.anchorNode)
+      const caret = hasCaretHere ? caretOffsetIn(el, sel.anchorNode, sel.anchorOffset) : null
+      el.innerHTML = this.sourceTextHighlightHtml + '<br>'
+      this.sourceHtmlRenderedDictVersion = this.dictVersion
+      if (caret !== null) {
+        el.focus()
+        setCaretOffsetIn(el, Math.min(caret, this.sourceText.length))
+      }
     },
     // Вставка из буфера — ТОЛЬКО как обычный текст. Без этого кусок из Word или
     // из самого редактора (кто-то скопирует подсвеченный фрагмент) вставился бы
@@ -5228,10 +5275,10 @@ export default {
       const el = this.$refs.sourceTextEditor
       if (!el) return
       const textMatches = el.innerText === this.sourceText
-      const dictMatches = this.sourceHtmlRenderedDictSize === this.attentionWords.length
+      const dictMatches = this.sourceHtmlRenderedDictVersion === this.dictVersion
       if (textMatches && dictMatches) return
       el.innerHTML = this.sourceTextHighlightHtml + '<br>'
-      this.sourceHtmlRenderedDictSize = this.attentionWords.length
+      this.sourceHtmlRenderedDictVersion = this.dictVersion
     },
     lockladButtonClass() {
       return this.currentMarker.lockLad === 'true' ? 'se-group-button-active' : ''

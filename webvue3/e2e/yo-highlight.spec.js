@@ -1,3 +1,11 @@
+// Блок исходного текста редактора: contentedEditable + подсветка слов словаря.
+//
+// ТЕСТЫ НЕ ЗАВИСЯТ ОТ СОДЕРЖИМОГО СЛОВАРЯ. Словарь «Слова для внимания»
+// наполняет владелец вручную: сегодня в нём одно слово, завтра тридцать. Поэтому
+// везде, где нужна подсветка, словарь подставляется через setDictionary().
+// Первая версия тестов читала словарь из базы и падала, как только владелец
+// добавил в него слово, которого нет в тексте проверяемой песни.
+
 import { test, expect } from '@playwright/test'
 test.setTimeout(180000)
 
@@ -20,6 +28,26 @@ async function openEditor(page) {
   await page.waitForTimeout(7000)
 }
 
+/** Подставляет словарь прямо в компонент — тест не зависит от данных владельца. */
+const setDictionary = (page, words) =>
+  page.evaluate((ws) => {
+    const app = document.querySelector('#app[data-v-app]').__vue_app__
+    const seen = new Set()
+    let i = null
+    const walk = (v) => {
+      if (!v || typeof v !== 'object' || seen.has(v)) return
+      seen.add(v)
+      const n = v.component?.type
+      if (v.component && n && (n.name || n.__name) === 'SubsEdit') i = v.component
+      if (Array.isArray(v.children)) v.children.forEach(walk)
+      if (v.component?.subTree) walk(v.component.subTree)
+    }
+    walk(app._container._vnode)
+    i.proxy.attentionWords = ws
+    i.proxy.dictVersion++
+    i.proxy.syncSourceTextDom()
+  }, words)
+
 const state = (page) =>
   page.evaluate(() => {
     const app = document.querySelector('#app[data-v-app]').__vue_app__
@@ -36,54 +64,43 @@ const state = (page) =>
     walk(app._container._vnode)
     const el = document.querySelector('#editor')
     const marks = el ? el.querySelectorAll('span.se-hl-attention') : []
-    const sel = window.getSelection()
     return {
-      words: i ? (i.proxy.attentionWords || []).length : -1,
       isCE: el ? el.getAttribute('contenteditable') : null,
-      domTextMatchesModel: el
-        ? el.innerText.trim() === (i ? i.proxy.sourceText : '').trim()
-        : false,
       marks: marks.length,
       markBold: marks[0] ? getComputedStyle(marks[0]).fontWeight : null,
       markBg: marks[0] ? getComputedStyle(marks[0]).backgroundColor : null,
       markDisplay: marks[0] ? getComputedStyle(marks[0]).display : null,
       textAlign: el ? getComputedStyle(el).textAlign : null,
-      caretOffset:
-        sel && sel.rangeCount > 0 && el && el.contains(sel.anchorNode)
-          ? sel.getRangeAt(0).startOffset
-          : -1,
+      domTextMatchesModel: el ? el.innerText.replace(/\n$/, '') === i.proxy.sourceText : false,
     }
   })
 
-test('contenteditable: текст по левому краю, каретка на месте, подсветка жирная', async ({
+const markedWords = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('#editor span.se-hl-attention')].map((m) => m.textContent),
+  )
+
+test('contenteditable: текст по левому краю, подсветка жирная, жёлтая и inline', async ({
   page,
 }) => {
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
   await openEditor(page)
   await page.waitForTimeout(1500)
-  const s0 = await state(page)
-  console.log('СОСТОЯНИЕ:', JSON.stringify(s0))
 
-  expect(s0.isCE, 'блок исходного текста должен быть contenteditable').toBe('true')
-  // Словарь наполняет владелец, поэтому проверка НЕ завязана на его размер:
-  // при пустом словаре подсветки просто нет, и это нормальное поведение.
-  expect(s0.words, 'словарь должен загружаться без ошибки').toBeGreaterThanOrEqual(0)
-  expect(s0.textAlign, 'текст должен быть по левому краю').toBe('left')
-  if (s0.words > 0) {
-    expect(s0.marks, 'при непустом словаре слова должны быть подсвечены').toBeGreaterThan(0)
-    expect(s0.markBold, 'подсветка жирная').toBe('700')
-    expect(s0.markBg, 'фон жёлтый').toBe('rgb(255, 255, 0)')
-    expect(s0.markDisplay, 'подсветка inline — слово не должно уезжать на свою строку').toBe(
-      'inline',
-    )
-  } else {
-    test.info().annotations.push({
-      type: 'note',
-      description: 'Словарь «Слова для внимания» пуст — проверки подсветки пропущены',
-    })
-  }
-  expect(s0.domTextMatchesModel, 'текст в DOM должен совпадать с моделью').toBe(true)
+  // «Деметра» в тексте песни 11718 встречается восемь раз.
+  await setDictionary(page, ['Деметра'])
+  await page.waitForTimeout(400)
+  const s = await state(page)
+  console.log('СО СВОИМ СЛОВАРЕМ:', JSON.stringify(s))
+
+  expect(s.isCE, 'блок исходного текста должен быть contenteditable').toBe('true')
+  expect(s.textAlign, 'текст должен быть по левому краю').toBe('left')
+  expect(s.marks, 'слово из словаря должно подсвечиваться').toBeGreaterThan(1)
+  expect(s.markBold, 'подсветка жирная').toBe('700')
+  expect(s.markBg, 'фон жёлтый').toBe('rgb(255, 255, 0)')
+  expect(s.markDisplay, 'подсветка inline — слово не должно уезжать на свою строку').toBe('inline')
+  expect(s.domTextMatchesModel, 'текст в DOM должен совпадать с моделью').toBe(true)
   expect(errors).toEqual([])
 })
 
@@ -93,7 +110,6 @@ test('каретка НЕ прыгает в начало при наборе (э
   await openEditor(page)
   await page.waitForTimeout(1500)
 
-  // Ставим каретку внутрь текста, печатаем и смотрим, что она осталась там же.
   await page.evaluate(() => {
     const el = document.querySelector('#editor')
     el.focus()
@@ -105,37 +121,65 @@ test('каретка НЕ прыгает в начало при наборе (э
     s.removeAllRanges()
     s.addRange(r)
   })
-  const before = await state(page)
+  const before = await page.evaluate(() => window.getSelection().getRangeAt(0).startOffset)
   await page.keyboard.type('Ж')
   await page.waitForTimeout(700)
-  const after = await state(page)
-  console.log(
-    'ДО:',
-    JSON.stringify({ off: before.caretOffset }),
-    'ПОСЛЕ:',
-    JSON.stringify({ off: after.caretOffset }),
-  )
-
-  // Каретка должна сдвинуться ВПЕРЁД на 1, а не схлопнуться в 0.
-  expect(after.caretOffset, 'каретка должна быть после введённой буквы, а не в начале').toBe(
-    before.caretOffset + 1,
-  )
+  const after = await page.evaluate(() => window.getSelection().getRangeAt(0).startOffset)
+  console.log('КАРЕТКА:', before, '->', after)
+  expect(after, 'каретка должна быть после введённой буквы, а не в начале').toBe(before + 1)
 })
 
-test('печать в середине текста не ломает подсветку и выравнивание', async ({ page }) => {
+test('правка подсвеченного слова снимает подсветку НА ЛЕТУ, каретка остаётся на месте', async ({
+  page,
+}) => {
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
   await openEditor(page)
   await page.waitForTimeout(1500)
-  await page.locator('#editor').click()
-  await page.keyboard.press('Control+Home')
-  await page.keyboard.type('Всё поёт ')
-  await page.waitForTimeout(1200)
-  const s = await state(page)
-  console.log('ПОСЛЕ ПЕЧАТИ:', JSON.stringify(s))
-  expect(s.textAlign).toBe('left')
-  const words = await page.evaluate(() =>
-    [...document.querySelectorAll('#editor span.se-hl-attention')].map((m) => m.textContent),
-  )
-  console.log('ПОДСВЕЧЕНО:', JSON.stringify(words))
-  if (s.words > 0) expect(words).toContain('Всё')
-  expect(s.domTextMatchesModel, 'DOM и модель не разошлись').toBe(true)
+
+  await setDictionary(page, ['Деметра'])
+  await page.waitForTimeout(400)
+  const before = await markedWords(page)
+  console.log('ПОСЛЕ ЗАГРУЗКИ СЛОВАРЯ:', before.length, before)
+  expect(before.length, 'слово из словаря должно подсвечиваться').toBeGreaterThan(1)
+
+  // Каретка в конец подсвеченного слова + один символ — слово перестаёт быть словарным.
+  await page.evaluate(() => {
+    const el = document.querySelector('#editor')
+    el.focus()
+    const node = el.querySelector('span.se-hl-attention').firstChild
+    const r = document.createRange()
+    r.setStart(node, node.nodeValue.length)
+    r.collapse(true)
+    const s = window.getSelection()
+    s.removeAllRanges()
+    s.addRange(r)
+  })
+  await page.keyboard.type('Х')
+  await page.waitForTimeout(1200) // debounce 350 мс + перерисовка
+
+  const after = await markedWords(page)
+  const caret = await page.evaluate(() => {
+    const el = document.querySelector('#editor')
+    const s = window.getSelection()
+    if (!s || s.rangeCount === 0) return null
+    const r = s.getRangeAt(0)
+    return el.innerText.slice(0, r.startOffset).slice(-8)
+  })
+  console.log('ПОСЛЕ ПРАВКИ:', after.length, 'каретка перед:', JSON.stringify(caret))
+  expect(after.length, 'подсвеченных слов стало на одно меньше').toBe(before.length - 1)
+  expect(caret, 'каретка стоит сразу после введённой буквы').toBe('ДеметраХ')
+  expect(errors).toEqual([])
+})
+
+test('«е» и «ё» — разные слова: «все» в словаре не подсвечивает «всё»', async ({ page }) => {
+  await openEditor(page)
+  await page.waitForTimeout(1500)
+  await setDictionary(page, ['все'])
+  await page.waitForTimeout(400)
+
+  const words = await markedWords(page)
+  const withYo = words.filter((w) => w.toLowerCase().includes('ё'))
+  console.log('ПОДСВЕЧЕНО ПРИ СЛОВАРЕ «все»:', JSON.stringify(words), '| с «ё»:', withYo.length)
+  expect(withYo, '«всё» не должно подсвечиваться словарным «все»').toEqual([])
 })

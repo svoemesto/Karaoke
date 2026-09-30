@@ -32,7 +32,7 @@ describe('buildHighlightRegex', () => {
     assert.equal(buildHighlightRegex(['', '   ']), null)
   })
 
-  test('«е» и «ё» взаимозаменяемы', () => {
+  test('регистр не важен, буквы — да', () => {
     // ВАЖНО: не используем re.test() по кругу — с флагом 'g' регулярка
     // запоминает lastIndex между вызовами, и второй test() провалится
     // независимо от логики. В проде используется matchAll, который
@@ -41,19 +41,28 @@ describe('buildHighlightRegex', () => {
       const re = buildHighlightRegex([w])
       return new RegExp(re.source, re.flags.replace('g', '')).test(t)
     }
-    assert.ok(matches('всё', 'всё'))
-    assert.ok(matches('всё', 'все'))
-    assert.ok(matches('всё', 'ВСЁ'))
-    assert.ok(matches('всё', 'ВСЕ'))
+    assert.ok(matches('всё', 'всё'), 'точное совпадение')
+    assert.ok(matches('всё', 'ВСЁ'), 'регистр не важен')
+    assert.ok(!matches('всё', 'все'), '«е» вместо «ё» — другое слово')
+    assert.ok(!matches('звезды', 'звёзды'), 'другая буква — другое слово')
   })
 })
 
 describe('highlightWords', () => {
-  test('подсвечивает оба написания одного слова', () => {
+  test('слово словаря подсвечивается в любом регистре', () => {
     const html = highlightWords('Все ушли домой, всё пропало', DICT)
-    assert.equal(
-      html,
-      '<span class="se-hl-attention">Все</span> ушли домой, <span class="se-hl-attention">всё</span> пропало',
+    assert.equal(html, 'Все ушли домой, <span class="se-hl-attention">всё</span> пропало')
+  })
+
+  // Требование владельца: «звезды» в словаре НЕ должно подсвечивать «звёзды».
+  // Раньше «е» и «ё» были взаимозаменяемы, и подсветка оставалась — в том числе
+  // после правки текста, когда слово уже перестало быть словарным.
+  test('«е» и «ё» НЕ взаимозаменяемы: разные слова', () => {
+    const html = highlightWords('звёзды и звезды', ['звезды'])
+    assert.ok(html.includes('<span class="se-hl-attention">звезды</span>'))
+    assert.ok(
+      !html.includes('<span class="se-hl-attention">звёзды</span>'),
+      'ё-форма не должна подсвечиваться: ' + html,
     )
   })
 
@@ -88,11 +97,11 @@ describe('highlightWords', () => {
   })
 
   test('БЕЗОПАСНОСТЬ: текст песни экранируется и не может стать разметкой', () => {
-    const html = highlightWords('<img src=x onerror=alert(1)> все', DICT)
+    const html = highlightWords('<img src=x onerror=alert(1)> всё', DICT)
     assert.ok(!html.includes('<img'), 'тег из текста не должен попасть в HTML: ' + html)
     assert.ok(html.includes('&lt;img'), 'должен быть экранирован: ' + html)
     assert.ok(
-      html.includes('<span class="se-hl-attention">все</span>'),
+      html.includes('<span class="se-hl-attention">всё</span>'),
       'подсветка при этом работает',
     )
   })
@@ -103,13 +112,15 @@ describe('highlightWords', () => {
     assert.ok(html.includes('&lt;b&gt;'))
   })
 
-  test('переводы строк и пустые совпадения не ломают разметку', () => {
+  test('переводы строк не ломают разметку', () => {
+    // «всё» в словаре, «все» — нет: при точном совпадении подсветится одно.
     const html = highlightWords('все\nвсё\r\nвсем', DICT)
     assert.equal(
       (html.match(/<span class="se-hl-attention">/g) || []).length,
-      2,
-      'совпадений ровно два',
+      1,
+      'совпадение ровно одно: ' + html,
     )
+    assert.ok(html.includes('\n'), 'переводы строк сохранены')
   })
 
   test('пустой словарь — просто экранированный текст, без подсветки', () => {
@@ -124,16 +135,13 @@ describe('highlightWords', () => {
 
   test('слово с дефисом из словаря матчится целиком', () => {
     assert.ok(highlightWords('подъём', ['подъём']).includes('<span class="se-hl-attention"'))
-    assert.ok(
-      highlightWords('подъем', ['подъём']).includes('<span class="se-hl-attention"'),
-      '«е» вместо «ё»',
-    )
-    // «подъехал» — не вариант «подъём» (там х вместо м), подсветки быть не должно
+    assert.ok(highlightWords('подъезд', ['подъём']).includes('подъезд'))
+    // «подъехал» — не «подъём» (там х вместо м), подсветки быть не должно
     assert.ok(!highlightWords('подъехал', ['подъём']).includes('<span class="se-hl-attention"'))
     // «подъёмник» — ДРУГОЕ слово, и граница слова его отвергает: именно для
     // этого в WORD_CHAR входит и дефис, и кириллица. Если бы «подъём» матчился
     // как префикс, подсветка съедала бы хвост любого слова на «подъём».
-    assert.ok(!highlightWords('подъёмник', ['подъём']).includes('<mark'))
+    assert.ok(!highlightWords('подъёмник', ['подъём']).includes('<span class="se-hl-attention"'))
     assert.ok(highlightWords('подъёмник', ['подъёмник']).includes('<span class="se-hl-attention"'))
   })
 })

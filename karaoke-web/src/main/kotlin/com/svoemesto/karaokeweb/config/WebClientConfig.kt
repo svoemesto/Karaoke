@@ -18,13 +18,22 @@ import java.util.Base64
 class WebClientConfig {
     // @Primary: другие места (например StorageApiClientWeb) инжектят WebClient без @Qualifier —
     // без @Primary Spring не сможет выбрать бин из нескольких и приложение не стартует.
+    //
+    // Базовый URL вынесен в настройку storage.web-base-url. Раньше он был зашит
+    // строкой в коде, и это означало, что ЛОКАЛЬНЫЙ запуск karaoke-web отправлял
+    // все операции хранилища (загрузку, получение URL, удаление) на ПРОДОВЫЙ
+    // sm-karaoke.ru. Значение по умолчанию — ровно то, что было в коде, поэтому
+    // на проде поведение не меняется ни на байт; но при локальной разработке
+    // адрес переопределяется переменной окружения.
     @Bean
     @Primary
-    fun smKaraokeWebClient(): WebClient =
+    fun smKaraokeWebClient(
+        @Value("\${storage.web-base-url:https://sm-karaoke.ru/api/storage}") storageWebBaseUrl: String,
+    ): WebClient =
         WebClient
             .builder()
-            .baseUrl("https://sm-karaoke.ru/api/storage") // Устанавливаем базовый URL
-            .defaultHeader("User-Agent", "Your-Kotlin-App") // Пример установки заголовка по умолчанию
+            .baseUrl(storageWebBaseUrl)
+            .defaultHeader("User-Agent", "Your-Kotlin-App")
             // Здесь можно добавить настройки для аутентификации, таймаутов и т.д.
             .build()
 

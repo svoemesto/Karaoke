@@ -3,6 +3,9 @@ package com.svoemesto.karaokeapp
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import java.awt.Color
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.attribute.PosixFilePermission
 import java.awt.Font
 import java.io.File
 import java.sql.Timestamp
@@ -47,6 +50,45 @@ fun String.rightFileNameSymbols(): String = SanitizePath.run { sanitizePathSegme
 fun String.sanitizeSongFileName(): String = SanitizePath.run { sanitizePathSegment() }
 
 fun String.rightFileName(): String = SanitizePath.run { sanitizePath() }
+
+/**
+ * Права на файл, который создаёт приложение: владелец читает и пишет, остальные —
+ * только читают. Справо: тикет #213.
+ *
+ * Раньше здесь был `runCommand(listOf("chmod", "666", pathToFile))`, и у него
+ * три проблемы:
+ *
+ * 1. **Файл доступен на запись ЛЮБОМУ пользователю системы** (666), хотя пишет
+ *    эти файлы только приложение — контейнер работает под root, и он же
+ *    единственный писатель. Право на запись «для всех» не нужно никому.
+ * 2. **Внешний процесс ради одной операции.** Список аргументов передаётся
+ *    без shell, поэтому инъекции нет, но подпроцесс — это лишний запуск
+ *    на каждый сохранённый субтитр.
+ * 3. **Отказ ломал сохранение.** На одном из сайтов `chmod` стоял ВНЕ
+ *    try/catch, уже после того, как маркеры были приняты в память через
+ *    `setSourceMarkers()`: запрос возвращал ошибку при фактически применённых
+ *    правках.
+ *
+ * Права выставляются в процессе JVM, атомарно, без подпроцесса. Ошибка
+ * логируется и НЕ прерывает сохранение: файл уже создан, отсутствие прав на
+ * чтение для сторонних инструментов — повод разобраться, но не причина
+ * объявлять правку несохранённой.
+ */
+fun setSongFilePermissions(pathToFile: String) {
+    try {
+        Files.setPosixFilePermissions(
+            Path.of(pathToFile),
+            setOf(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.GROUP_READ,
+                PosixFilePermission.OTHERS_READ,
+            ),
+        )
+    } catch (e: Exception) {
+        println("Не удалось выставить права на файл '$pathToFile': ${e.message}")
+    }
+}
 
 fun String.getWords(): List<String> {
     val result: MutableList<String> = mutableListOf()

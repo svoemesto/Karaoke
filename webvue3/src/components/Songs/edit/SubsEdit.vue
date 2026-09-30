@@ -1539,6 +1539,14 @@ export default {
       activeRegion: null,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      // #189: сохранение в полёте и признак того, что нужно повторить.
+      saving: false,
+      saveQueued: false,
+      // #189: компонент размонтирован. Проверяется после каждого await в
+      // асинхронных обработчиках (смена голоса, mounted): без неё поздний
+      // ответ сети писал в состояние уже снятого компонента и дёргал
+      // this.ws, который к тому моменту равен null.
+      isUnmounted: false,
       isAutoMarkersLoading: false,
       isForcedAlignLoading: false,
       isWhisperDebugVisible: false,
@@ -2240,8 +2248,12 @@ export default {
         // syncMarkersFromSpecTags() корраптит их spec tag-маркерами из НОВОГО текста. См.
         // specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.4.
         this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
+        // #189: после await компонент мог быть уже размонтирован (пользователь
+        // закрыл модалку или быстро переключил голос). Писать дальше нельзя.
+        if (this.isUnmounted) return
         this.sourceMarkers = []
         this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
+        if (this.isUnmounted) return
         if (this.loadedMarkers.length > 0) {
           for (let index = 0; index < this.loadedMarkers.length; index++) {
             let marker = Object.assign({}, this.loadedMarkers[index])
@@ -2764,6 +2776,9 @@ export default {
     },
   },
   beforeUnmount() {
+    // #189: с этого момента асинхронные обработчики обязаны прекращаться.
+    // Проверяется сразу после каждого await.
+    this.isUnmounted = true
     // Порядок ВАЖЕН: сначала снимаем всё, что обращается к this.ws, и только
     // ПОТОМ обнуляем поля. Иначе поздний обработчик успеет дёрнуть обнулённый
     // this.ws.
@@ -3112,14 +3127,43 @@ export default {
       if (!text || !text.trim()) return
       this.insertSpecTagAtCursor('comment:' + text.trim())
     },
-    save() {
+    // Сохранение. #189: раньше был голый dispatch без await и без catch, поэтому
+    // два быстрых нажатия «Сохранить» давали два параллельных
+    // POST /api/song/savesourcetextmarkers, и порядок их записи не гарантирован —
+    // более ранний ответ мог перетереть более поздний, то есть терялись правки.
+    // Пользователь о сбое тоже не узнавал: промис отбрасывался молча.
+    //
+    // Теперь сохранения выстроены в очередь: пока идёт текущее, следующее
+    // помечает флаг и выполняется сразу после. Ошибка показывается, а не
+    // проглатывается.
+    async save() {
       this.addEndMarker()
-      this.$store.dispatch('saveSourceTextAndMarkers', {
-        voice: this.currentVoice,
-        sourceText: this.sourceText,
-        sourceMarkers: JSON.stringify(this.getMarkersToSave()),
-        indexTabsVariant: this.indexTabsVariant,
-      })
+      if (this.saving) {
+        // Уже сохраняем — не запускаем второй POST параллельно, а запоминаем,
+        // что нужно повторить. Повтор уйдёт в той же функции после текущего.
+        this.saveQueued = true
+        return
+      }
+      this.saving = true
+      try {
+        await this.$store.dispatch('saveSourceTextAndMarkers', {
+          voice: this.currentVoice,
+          sourceText: this.sourceText,
+          sourceMarkers: JSON.stringify(this.getMarkersToSave()),
+          indexTabsVariant: this.indexTabsVariant,
+        })
+      } catch (e) {
+        this.customConfirmParams = {
+          header: 'Ошибка сохранения',
+          body: 'Не удалось сохранить правки: ' + (e && e.message ? e.message : e),
+        }
+      } finally {
+        this.saving = false
+      }
+      if (this.saveQueued) {
+        this.saveQueued = false
+        await this.save()
+      }
     },
     getMarkersToSave() {
       return this.sourceMarkers.map(function (marker) {
@@ -4692,21 +4736,31 @@ export default {
         ).length
       }
     },
+    // #189: эндпоинт /api/song/diffbeatsinc МУТИРУЕТ — на бэкенде
+    // `song.fields[DIFFBEATS] = (song.diffBeats + 1); song.saveToDb()`.
+    // Здесь он вызывался ЧЕТЫРЕ раза подряд, то есть одно нажатие кнопки
+    // увеличивало diffBeats на 4 и делало четыре записи в БД. Вызываем один раз.
     async doDiffBeatsInc() {
-      let diff = await this.$store.dispatch('getDiffBeatsInc')
-      diff = await this.$store.dispatch('getDiffBeatsInc')
-      diff = await this.$store.dispatch('getDiffBeatsInc')
-      diff = await this.$store.dispatch('getDiffBeatsInc')
-      if (diff >= 0) {
-        this.doChordsDel()
-        await this.doChordsAdd()
-      }
+      await this.changeDiffBeats('getDiffBeatsInc')
     },
     async doDiffBeatsDec() {
-      let diff = await this.$store.dispatch('getDiffBeatsDec')
-      diff = await this.$store.dispatch('getDiffBeatsDec')
-      diff = await this.$store.dispatch('getDiffBeatsDec')
-      diff = await this.$store.dispatch('getDiffBeatsDec')
+      await this.changeDiffBeats('getDiffBeatsDec')
+    },
+
+    // Общая часть смены размера долей: ОДИН вызов мутирующего эндпоинта,
+    // обработка отказа. Раньше try/catch не было вовсе — reject давал
+    // unhandled rejection, и пользователь не понимал, почему ничего не изменилось.
+    async changeDiffBeats(action) {
+      let diff = -1
+      try {
+        diff = await this.$store.dispatch(action)
+      } catch (e) {
+        this.customConfirmParams = {
+          header: 'Ошибка смены размера долей',
+          body: 'Не удалось изменить размер долей: ' + (e && e.message ? e.message : e),
+        }
+        return
+      }
       if (diff >= 0) {
         this.doChordsDel()
         await this.doChordsAdd()

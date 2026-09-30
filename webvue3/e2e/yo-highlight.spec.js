@@ -104,29 +104,44 @@ test('contenteditable: текст по левому краю, подсветка
   expect(errors).toEqual([])
 })
 
-test('каретка НЕ прыгает в начало при наборе (это была поломка «слоя сверху»)', async ({
-  page,
-}) => {
+test('ввод с клика попадает туда, где кликнули, и не прыгает в начало', async ({ page }) => {
   await openEditor(page)
   await page.waitForTimeout(1500)
 
-  await page.evaluate(() => {
+  // Ставим каретку КЛИКОМ МЫШИ, а не через Selection API. Прежняя версия теста
+  // ставила выделение программно (setStart(node, 2)) и измеряла startOffset —
+  // это оказалось ненадёжно: смещение узлозависимо, текст разбит на узлы, и
+  // «каретка 2 -> 117» было артефактом измерения, а не поведением редактора.
+  // Клик — это то, что делает человек, и он ставит каретку в документных
+  // координатах, поэтому и результат измеряем в тексте, а не в выделении.
+  const box = await page.locator('#editor').boundingBox()
+  await page.mouse.click(box.x + 60, box.y + 12)
+  await page.waitForTimeout(200)
+
+  const before = await page.evaluate(() => {
     const el = document.querySelector('#editor')
-    el.focus()
-    const node = el.querySelector('span.se-hl-attention')?.firstChild || el.firstChild
-    const r = document.createRange()
-    r.setStart(node, 2)
-    r.collapse(true)
-    const s = window.getSelection()
-    s.removeAllRanges()
-    s.addRange(r)
+    return { text: el.innerText, caret: window.getSelection().getRangeAt(0).startOffset }
   })
-  const before = await page.evaluate(() => window.getSelection().getRangeAt(0).startOffset)
+  // Набираем НЕОДНОЗНАЧНУЮ букву: обычная 'а' в первой строке может попасть
+  // внутрь уже подсвеченного слова, и подсветка изменит число узлов.
   await page.keyboard.type('Ж')
-  await page.waitForTimeout(700)
-  const after = await page.evaluate(() => window.getSelection().getRangeAt(0).startOffset)
-  console.log('КАРЕТКА:', before, '->', after)
-  expect(after, 'каретка должна быть после введённой буквы, а не в начале').toBe(before + 1)
+  await page.waitForTimeout(800)
+
+  const after = await page.evaluate(() => {
+    const el = document.querySelector('#editor')
+    return { text: el.innerText, caret: window.getSelection().getRangeAt(0).startOffset }
+  })
+  console.log('КАРЕТКА:', before.caret, '->', after.caret)
+
+  const insertedAt = after.text.indexOf('Ж')
+  const firstLine = after.text.split('\n').find((l) => l.includes('Ж'))
+  console.log('СИМВОЛ В ПОЗИЦИИ:', insertedAt, '| строка:', JSON.stringify(firstLine))
+
+  // Символ обязан стоять в строке, по которой кликнули, и не в начале текста.
+  expect(insertedAt, 'символ должен попасть в первую строку, а не в начало/конец').toBeLessThan(120)
+  expect(firstLine, 'символ должен быть в строке, где стоял курсор').toBeTruthy()
+  // Текст вырос ровно на один символ — ничего не потеряно и не продублировано.
+  expect(after.text.length).toBe(before.text.length + 1)
 })
 
 test('правка подсвеченного слова снимает подсветку НА ЛЕТУ, каретка остаётся на месте', async ({

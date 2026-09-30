@@ -5949,10 +5949,18 @@ export default {
   grid-template-rows: 50px 271px 50px 50px 1fr 50px;
 }
 
+/* Раскладка ячеек редактора: центрирование содержимого в каждой ячейке.
+   Отладочные `outline: 1px #f90 dashed` и `background-color: goldenrod`
+   отсюда убраны 2026-09-30 — они висели в рабочем коде и красили весь редактор.
+
+   ВНИМАНИЕ, это правило остаётся опасным для contentedEditable: из-за
+   `display: grid` потомки блока исходного текста становятся grid-элементами,
+   а CSS блокифицирует их ПОСЛЕ каскада — `display: inline` на span становится
+   `block`, и каждое подсвеченное слово встаёт на отдельную строку. Из-за этого
+   для блока исходного текста специфичность повышена ниже
+   (.se-grid-item-sourcetext.se-sourcetext-ce). Не понижайте её до одного класса. */
 [class^='se-grid-item'] {
-  outline: 1px #f90 dashed;
   display: grid;
-  background-color: goldenrod;
   align-items: center;
   justify-content: center;
 }

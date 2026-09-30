@@ -2214,6 +2214,18 @@ export default {
     },
   },
   watch: {
+    // Pass 194: клампинг индекса варианта строя перенесён сюда из
+    // getStringsForAllNotesInSong(). Тот метод вызывается из computed
+    // lstIndexesTabsVariant, то есть исполнялся В ФАЗЕ RENDER, и присваивание
+    // this.indexTabsVariant = ... было мутацией состояния из computed — computed
+    // обязан быть чистым. Побочный эффект (clamp) живёт в watcher'е, где ему
+    // и место. Зависимости у метода от indexTabsVariant не было — только запись.
+    lstIndexesTabsVariant: {
+      handler(variants) {
+        if (this.indexTabsVariant > variants.length - 1) this.indexTabsVariant = variants.length - 1
+      },
+      immediate: true,
+    },
     currentVoice: {
       async handler() {
         if (this.currentVoice === this.dataVoices.length) {
@@ -5607,10 +5619,6 @@ export default {
           result.push(variant.variant)
         }
       }
-
-      if (this.indexTabsVariant > result.length - 1) this.indexTabsVariant = result.length - 1
-
-      console.log('result', result)
 
       return result
     },

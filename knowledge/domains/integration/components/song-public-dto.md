@@ -39,9 +39,9 @@ API/UI публичного сайта (`/api/public/song/...`).
 | `freelyAvailableNow` | Boolean | Доступен ли бесплатно СЕЙЧАС |
 | `freeAccessWindowEndText` | String? | Текст "доступно до..." |
 | `songPictureUrl` | String | URL обложки (через nginx-proxy) |
-| `formattedTextSong` | String | Текст песни (с разметкой) |
-| `formattedTextTabs` | String | Табы (гитара) |
-| `formattedTextChords` | String | Аккорды |
+| `formattedTextSong` | String | Текст песни (HTML, **экранированный** — см. § «Экранирование») |
+| `formattedTextTabs` | String | Табы (гитара), HTML, экранированный |
+| `formattedTextChords` | String | Аккорды, HTML, экранированный |
 | `description` | String | Описание |
 | `shortDescription` | String | Краткое описание |
 | `warning` | String | Предупреждение |
@@ -122,11 +122,48 @@ Boolean-поля намеренно **без** `is`-префикса (`onAir`, `
 - [usePlayerAccess.md](../../../system/frontend/composable-use-player-access.md) —
   consumer.
 
+## Экранирование: поля formattedText* содержат готовый HTML
+
+Три поля отдаются как **готовый HTML** и рендерятся через `v-html` без
+обработки на клиенте:
+
+- `karaoke-public/src/views/SongView.vue` — страница песни, **публичный сайт**;
+- `karaoke-public/src/views/EditorWorkView.vue` — лёгкий редактор контрибьютора;
+- `webvue3/src/components/Songs/edit/SongEdit.vue` — админка;
+- `webvue3/src/components/SongEditor/SongKaraokeEditorView.vue` — админка.
+
+Значит экранирование обязано выполняться **на стороне билдера**, в
+`karaoke-app`. Сборка: `Song.getTextFormatted()`, `Song.getFormattedNotes()`,
+`Song.getFormattedChords()` (`model/Song.kt`). Пользовательский текст — это
+`marker.label` (слог, комментарий), `marker.note`, `marker.chord`; всё это
+проходит через `String.escapeHtml()` (`Extentions.kt`).
+
+Полезной нагрузки в разметке нет: это `<span>` со style-атрибутами и `<br>`,
+ничего, что требовало бы сырого HTML от пользователя. Экранирование ничего
+не ломает; подчёркивание `_` (маркер конца слова) не затрагивается.
+
+Прецедент, по которому это правило и появилось (#215): то же самое поле
+экранировалось в одном пути и не экранировалось в другом —
+`PublicOgSongController.kt` вызывает `escape(...)` при сборке OG-картинки,
+а JSON-API отдавал строку без экранирования. Два вывода:
+
+1. **Экранирование на входе, а не на выходе.** Если строка уже собрана как
+   HTML, экранировать её целиком на отдаче нельзя — сломется вся разметка.
+   Экранировать нужно точечно, в момент, когда значение входит в HTML-буфер.
+2. **Каждый новый `v-html` на эти данные обязан ссылаться на это правило.**
+
+Обратная проверка при регрессии: экранирование не должно менять выдачу для
+песни без спецсимволов. Для песни 11718 («Говорит Деметра») контрольная сумма
+выдачи `POST /api/song/textformatted` после починки не изменилась.
+
 ## Известные TODO
 
 - [ ] **Контракт полей `idVk*`** — как именно OID/ID используются фронтом.
 
 ## Changelog
 
+- **#215** (2026-09-30): добавлен раздел «Экранирование» — `formattedText*`
+  отдаются как готовый HTML под `v-html` публичного сайта, экранирование
+  выполняется в билдерах `Song.kt`. Автор: agent (Karaoke).
 - **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).
 - **Pass 440** (2026-09-09): Initial. Автор: agent (Karaoke).

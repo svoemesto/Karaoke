@@ -4091,17 +4091,22 @@ class Song(
                                     txtHtml = "♪&nbsp;&nbsp;"
                                 } else {
                                     txt = marker.label
-                                    txtHtml = txt.replace(" ", "&nbsp;")
+                                    txtHtml = txt.escapeHtml().replace(" ", "&nbsp;")
                                 }
                             } else if (marker.markertype == Markertype.SYLLABLES.value) {
                                 // Если в маркере не пустой лейбл (т.е. Есть слог)
                                 if (marker.label.isNotEmpty()) {
                                     txt = marker.label.replace("_", " ") // Заменяем подчеркивания на пробелы
-                                    txtHtml = marker.label.replace("_", "&nbsp;")
+                                    txtHtml = marker.label.escapeHtml().replace("_", "&nbsp;")
                                     // Если был перенос строки - инициализируем новые переменны (3 пробела + слог)
                                     if (wasBr) {
                                         txt = "   " + txt.uppercaseFirstLetter()
-                                        txtHtml = "&nbsp;&nbsp;&nbsp;" + marker.label.uppercaseFirstLetter().replace("_", "&nbsp;")
+                                        txtHtml =
+                                            "&nbsp;&nbsp;&nbsp;" +
+                                            marker.label
+                                                .escapeHtml()
+                                                .uppercaseFirstLetter()
+                                                .replace("_", "&nbsp;")
                                     }
                                 } else {
                                     if (marker.markertype == Markertype.CHORD.value) {
@@ -4126,7 +4131,7 @@ class Song(
                                 val newNote = MusicNote.entries[newIndexNote]
 
                                 chord = newNote.names.first() + musicChord!!.names.first()
-                                chordHtml = chord
+                                chordHtml = chord.escapeHtml()
 
                                 // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
                                 fun String.firstVowelIndex(): Int {
@@ -4242,11 +4247,16 @@ class Song(
                         if (marker.label.isNotEmpty()) {
                             endOfWord = marker.label.endsWith("_") // Это конец слова если слог заканчивается подчёркиванием
                             txt = marker.label.replace("_", " ") // Заменяем подчеркивания на пробелы
-                            txtHtml = marker.label.replace("_", "&nbsp;")
+                            txtHtml = marker.label.escapeHtml().replace("_", "&nbsp;")
                             // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
                             if (wasBr) {
                                 txt = "   " + txt.uppercaseFirstLetter()
-                                txtHtml = "&nbsp;&nbsp;&nbsp;" + marker.label.uppercaseFirstLetter().replace("_", "&nbsp;")
+                                txtHtml =
+                                    "&nbsp;&nbsp;&nbsp;" +
+                                    marker.label
+                                        .escapeHtml()
+                                        .uppercaseFirstLetter()
+                                        .replace("_", "&nbsp;")
                                 strings = mutableListOf("E||-", "B||-", "G||-", "D||-", "A||-", "e||-")
                             }
                         } else {
@@ -4264,7 +4274,7 @@ class Song(
                             // Находим ноту и октаву ноты
                             val noteParts = marker.note.split("|")
                             note = noteParts[0]
-                            noteHtml = noteParts[0]
+                            noteHtml = noteParts[0].escapeHtml()
                             noteOctave = if (noteParts.size > 1) noteParts[1] else ""
                             val noteLength = note.length
                             // Находим номер струны и номер лада, подставляем их в массив stringNote
@@ -4393,11 +4403,16 @@ class Song(
                         if (marker.label.isNotEmpty()) {
                             endOfWord = marker.label.endsWith("_") // Это конец слова если слог заканчивается подчёркиванием
                             txt = marker.label.replace("_", " ") // Заменяем подчеркивания на пробелы
-                            txtHtml = marker.label.replace("_", " ")
+                            txtHtml = marker.label.escapeHtml().replace("_", " ")
                             // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
                             if (wasBr) {
                                 txt = "   " + txt.uppercaseFirstLetter()
-                                txtHtml = "   " + marker.label.uppercaseFirstLetter().replace("_", " ")
+                                txtHtml =
+                                    "   " +
+                                    marker.label
+                                        .escapeHtml()
+                                        .uppercaseFirstLetter()
+                                        .replace("_", " ")
                                 strings = mutableListOf("E‖⎼", "B‖⎼", "G‖⎼", "D‖⎼", "A‖⎼", "e‖⎼")
                             }
                         } else {
@@ -4415,7 +4430,7 @@ class Song(
                             // Находим ноту и октаву ноты
                             val noteParts = marker.note.split("|")
                             note = noteParts[0]
-                            noteHtml = noteParts[0]
+                            noteHtml = noteParts[0].escapeHtml()
                             noteOctave = if (noteParts.size > 1) noteParts[1] else ""
                             val noteLength = note.length
                             // Находим номер струны и номер лада, подставляем их в массив stringNote
@@ -4514,7 +4529,7 @@ class Song(
                             "COMMENT| " -> result.append("<br>")
                             else -> {
                                 if (marker.label.startsWith("COMMENT|")) {
-                                    val txt = marker.label.split("|")[1]
+                                    val txt = marker.label.split("|")[1].escapeHtml()
                                     result.append(spanStyleComment)
                                     result.append(txt.replace("_", " ").uppercaseFirstLetter())
                                     result.append("</span>")
@@ -4531,7 +4546,7 @@ class Song(
                     Markertype.SYLLABLES.value -> {
                         if (marker.label.isNotEmpty()) {
                             result.append(spanStyle)
-                            var txt = marker.label.replace("_", " ")
+                            var txt = marker.label.escapeHtml().replace("_", " ")
                             if (wasBr) {
                                 txt = txt.uppercaseFirstLetter()
                                 wasBr = false

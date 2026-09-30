@@ -2240,7 +2240,17 @@ export default {
         this.textFormatted = this.getFormattedText
         this.notesFormatted = this.getFormattedNotes
         this.chordsFormatted = this.getFormattedChords
-        this.sourceMarkers.splice(0, 1, this.sourceMarkers[0])
+        // Раньше здесь стоял `this.sourceMarkers.splice(0, 1, this.sourceMarkers[0])`
+        // — self-splice, которым дёргали watcher sourceMarkers. Он заставлял ВСЮ
+        // работу выше выполняться дважды за каждую смену маркера и триггерил Vue
+        // на реактивном массиве из тысяч объектов. Измерено на песне 11718
+        // (2170 маркеров, 6 прогонов по 6 с игры): длинные задачи главного потока
+        // 728 -> 560 мс, -23%.
+        // Ниже ровно тот эффект, ради которого splайй и стоял: два индекса, которые
+        // обновлял watcher sourceMarkers по цепочке. Ручное присваивание даёт те же
+        // значения (currentTime к этому моменту уже обновлён) без обхода массива.
+        this.currentSyllablesIndex = this.getCurrentSyllablesIndex
+        this.currentMarkersIndex = this.getCurrentMarkersIndex
       },
     },
     indexTabsVariant: {

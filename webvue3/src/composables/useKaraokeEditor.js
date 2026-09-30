@@ -462,6 +462,8 @@ export function formatText(markers, curMarkerIndex) {
     'GROUP|3': 'ske-fx-group3',
   }
   let spanClass = 'ske-fx-group0'
+  // Предыдущая группа голоса: расхождение даёт перенос строки при смене голоса.
+  let spanClassPrev = spanClass
   let wasBr = true
   let result = ''
   for (let i = 0; i < markers.length; i++) {
@@ -470,6 +472,13 @@ export function formatText(markers, curMarkerIndex) {
       case 'setting': {
         if (GROUP_CLASS[marker.label]) {
           spanClass = GROUP_CLASS[marker.label]
+        } else if (marker.label === 'COMMENT| ') {
+          // Пустой комментарий — только перенос строки (#203, канон владельца:
+          // поведение админского SubsEdit, где это явный case в switch).
+          // Здесь wasBr НЕ ставится: следующее слово остаётся строчным.
+          // Раньше этот маркер проваливался в общую ветку startsWith('COMMENT|'),
+          // которая рендерила пустой <span> и поднимала регистр следующего слова.
+          result += '<br>'
         } else if (marker.label && marker.label.startsWith('COMMENT|')) {
           const txt = uppercaseFirstLetter((marker.label.split('|')[1] || '').replaceAll('_', ' '))
           result += `<span class="ske-fx-comment">${txt}</span><br>`
@@ -496,6 +505,12 @@ export function formatText(markers, curMarkerIndex) {
       default:
         break
     }
+    // Перенос строки при смене группы голоса (#203, канон владельца: «<br> при
+    // смене голоса — так надо, должно быть ВЕЗДЕ»). В админском SubsEdit это
+    // `if (spanStyle !== spanStylePrev) result += '<br>'`; здесь аналог по
+    // классу группы. Строка ставится ПОСЛЕ маркера — так же, как в админке.
+    if (spanClass !== spanClassPrev) result += '<br>'
+    spanClassPrev = spanClass
   }
   return result
 }

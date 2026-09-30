@@ -22,7 +22,10 @@ services:
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8
       - CORS_ALLOWED_ORIGINS=http://localhost:7906,http://127.0.0.1:7906
-      - APP_MAX_FILE_SIZE=10MB
+      # APP_MAX_FILE_SIZE удалён 2026-09-30: он перекрывал app.max-file-size,
+      # но это поле в коде никогда не читалось, и файл с настройками тем самым
+      # врал о лимите загрузки. Настоящий лимит — spring.servlet.multipart
+      # в karaoke-app/src/main/resources/application.yml.
       - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
       - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
       - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}

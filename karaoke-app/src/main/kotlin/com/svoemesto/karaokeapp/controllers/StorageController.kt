@@ -7,7 +7,6 @@ import io.minio.StatObjectResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.InputStreamResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
@@ -29,9 +28,18 @@ class StorageController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(StorageController::class.java)
 
-    @Suppress("unused")
-    @Value($$"${app.max-file-size}") // можно задать в application.yml
-    private val maxFileSize: String = "100MB"
+    // Лимита размера здесь НЕТ намеренно. Раньше стояло
+    //   @Suppress("unused") @Value(app.max-file-size) private val maxFileSize = "100MB"
+    // — поле, которое нигде не читалось, при этом перекрытое переменной окружения
+    // APP_MAX_FILE_SIZE=10MB в docker-compose-app-new-comp.yml. То есть файл
+    // с настройками прямо утверждал, что лимит загрузки 10MB, и это была ложь:
+    // настоящий лимит задаёт spring.servlet.multipart (application.yml), и до
+    // 2026-09-30 он сам был сломан (блок был вложен в spring.thymeleaf и молча
+    // игнорировался, работал дефолт Boot в 1MB).
+    // Свою проверку размера сюда не тащим: файл в MinIO отдаёт
+    // KaraokeStorageService, а лимит запроса и так отсекает Spring раньше
+    // входа в контроллер — отдельная проверка давала бы второе место с
+    // другим числом.
 
     @PostMapping("/upload")
     fun uploadFile(

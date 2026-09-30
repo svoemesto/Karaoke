@@ -67,6 +67,12 @@ stemjobs:
   internal-secret: ${STEMJOBS_INTERNAL_SECRET:}
 
 storage:
+  # Базовый URL хранилища для исходящих вызовов из karaoke-web (загрузка, url,
+  # presigned-url, download, delete). Раньше был зашит в WebClientConfig строкой
+  # "https://sm-karaoke.ru/api/storage", из-за чего ЛОКАЛЬНЫЙ запуск бил в ПРОД.
+  # Значение по умолчанию совпадает с прежним — поведение на проде не изменено.
+  # Для локальной разработки задайте STORAGE_WEB_BASE_URL=http://localhost:7906/api/storage
+  web-base-url: ${STORAGE_WEB_BASE_URL:https://sm-karaoke.ru/api/storage}
   key: ${STORAGE_KEY}
   secret: ${STORAGE_SECRET}
   folder: ${STORAGE_FOLDER}

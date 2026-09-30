@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.mlt.mko.*
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.textfiledictionary.AttentionWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
@@ -150,9 +151,16 @@ const val WEBVUE_PROPERTIES_FILE_PATH = "/sm-karaoke/system/webvue_properties.tx
 const val YANDEX_AUTH_STATE_PATH = "/sm-karaoke/system/yandex_auth_state.json"
 const val SPONSR_AUTH_STATE_PATH = "/sm-karaoke/system/sponsr_auth_state.json"
 
+// Реестр словарей для фасада TextFileDictionary. ВАЖНО: попадание сюда —
+// обязательное условие того, что словарь вообще работает. doAction() ищет
+// обработчик по имени словаря и для незарегистрированного имени МОЛЧА
+// возвращает false: слово не пишется, а вызывающий эндпоинт раньше всё равно
+// рапортовал «прошло успешно». Добавление словаря в tbl_dictionaries без
+// записи здесь даёт молчаливо неработающую кнопку.
 val TEXT_FILE_DICTS =
     mapOf(
         "Слова с Ё" to YoWordsDictionary::class.java,
+        "Слова для внимания" to AttentionWordsDictionary::class.java,
         "Censored" to CensoredWordsDictionary::class.java,
         "Sync Ids" to SyncIdsDictionary::class.java,
     )

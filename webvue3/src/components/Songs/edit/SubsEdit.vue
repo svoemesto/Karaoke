@@ -1171,6 +1171,7 @@
             spellcheck="false"
             @input="onSourceTextInput"
             @paste="onSourceTextPaste"
+            @keydown="onSourceTextKeydown"
             @focus="setEditMode(false)"
             @blur="setEditMode(true)"
           />
@@ -1351,9 +1352,8 @@ function insertSpecTagAtCursorImpl(text, selectionStart, selectionEnd, tagText) 
 /** Смещение узла внутри элемента в «плоских» координатах текста (0-based). */
 function caretOffsetIn(root, node, offsetInNode) {
   if (!root || !node) return 0
-  const sel = window.getSelection()
   // Считаем длину текста от начала root до точки селекции через Range — это
-  // учитывает любую вложенность (<mark>, <b>, <br>), в отличие от ручного обхода.
+  // учитывает любую вложенность (<mark>, <b>), в отличие от ручного обхода.
   const range = document.createRange()
   try {
     range.selectNodeContents(root)
@@ -1362,7 +1362,6 @@ function caretOffsetIn(root, node, offsetInNode) {
   } finally {
     range.detach?.()
   }
-  void sel
 }
 
 /** Ставит каретку в элемент contentedEditable по смещению в «плоских» координатах. */
@@ -5297,6 +5296,33 @@ export default {
     onSourceTextInput() {
       this.sourceText = this.readEditorText()
       this.scheduleRehighlight()
+    },
+    // Enter обрабатываем сами, а не отдаём браузеру.
+    //
+    // Проблема та же, что и при вставке многоабзацного текста: браузер на Enter
+    // создаёт блок (<div><br></div>), а блок в модели считается переводом строки
+    // ДВАЖДЫ — за него и за собственный <br>. Наблюдалось и лишнее «АБВ\n\n» на
+    // одно нажатие, и возврат каретки на строку назад: смещение, посчитанное по
+    // DOM, оказывалось на единицу меньше модельного. Вставляем перевод в модель
+    // сами — тогда и текст, и каретка точные.
+    onSourceTextKeydown(e) {
+      if (e.key !== 'Enter') return
+      const el = this.$refs.sourceTextEditor
+      const sel = el ? selectionOffsetsIn(el) : null
+      if (!sel) return
+      e.preventDefault()
+      this.sourceText = this.sourceText.slice(0, sel.start) + '\n' + this.sourceText.slice(sel.end)
+      this.scheduleRehighlight()
+      // Каретка — ПОСЛЕ перерисовки: renderSourceHtmlWithCaret() восстанавливает
+      // её из снимка ДО innerHTML, то есть увела бы в начало строки.
+      this.$nextTick(() => {
+        if (this.isUnmounted) return
+        const editor = this.$refs.sourceTextEditor
+        if (editor) {
+          editor.focus()
+          setCaretOffsetIn(editor, Math.min(sel.start + 1, this.sourceText.length))
+        }
+      })
     },
     // Текст блока ИСХОДНОГО ТЕКСТА в терминах модели.
     //

@@ -35,7 +35,7 @@
 | Образ MinIO | `minio/minio:latest` (Hub 404) | `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z` |
 | `/minio/` в nginx | `89.125.103.63:9000` | `127.0.0.1:8890` + HTTP-кэш 24 ч |
 | `karaoke-web`/`karaoke-public` | порт наружу | loopback (наружу — host-nginx) |
-| stream allow-list (5433) | несколько IP | admin-машина: `83.137.50.231` + `185.26.28.199` (адрес плавает; предыдущий оставлен, смена 2026-10-02) |
+| stream allow-list (5433) | несколько IP | admin-машина: `185.26.28.109`, `83.137.50.231`, `185.26.28.199` (адрес плавает; все известные оставлены, слово владельца 2026-10-07) |
 | `DB_REMOTE_HOST` | `188.119.64.111` | `188.127.240.124` |
 | heap `karaoke-web` | `-Xmx1048m` | `-Xmx1200m` (3.8 ГБ RAM) |
 | `docker-compose` | v1 пакет | враппер `exec docker compose "$@"` |

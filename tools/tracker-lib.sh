@@ -444,18 +444,25 @@ tracker_claim_issue() {
     local response current_status current_assignee_link
     response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "claim-issue-get")
 
-    current_status=$(echo "$response" | jq -r '.status.title // .status.name // "unknown"')
+    current_status=$(echo "$response" | jq -r '._embedded.status.name // ._links.status.title // "unknown"')
     current_assignee_link=$(echo "$response" | jq -r '._links.assignee.href // empty')
 
     echo "DEBUG: #${id} current status='${current_status}'" >&2
 
     # Получаем ID пользователя-агента через /api/v3/users?search=username
     local agent_id
-    agent_id=$(tracker_http_request GET "/api/v3/users?search=${TRACKER_AGENT_USER}&pageSize=1" "" "claim-issue-user-search" \
-        | jq -r '._embedded.elements[0].id // empty')
+    # ВАЖНО: поиск в OpenProject нечёткий. На запрос «ai-agent» он может
+    # вернуть другого пользователя — наблюдалось, что возвращался id=7
+    # вместо id=6 (ai-agent). Тот пользователь не член проекта, и claim
+    # падал с 422 «The chosen user is not allowed to be 'Assignee'» —
+    # ошибка выглядит как нехватка прав, хотя дело в неверном id.
+    # Поэтому login фильтруется явно, а не берётся elements[0].
+    agent_id=$(tracker_http_request GET "/api/v3/users?search=${TRACKER_AGENT_USER}&pageSize=100" "" "claim-issue-user-search" \
+        | jq -r --arg u "${TRACKER_AGENT_USER}" \
+                '._embedded.elements[] | select(.login == $u) | .id' | head -1)
 
     if [ -z "$agent_id" ]; then
-        echo "${C_RED}ERROR${C_RESET}: пользователь ${TRACKER_AGENT_USER} не найден" >&2
+        echo "${C_RED}ERROR${C_RESET}: пользователь ${TRACKER_AGENT_USER} не найден по точному login" >&2
         return 5
     fi
 
@@ -532,7 +539,7 @@ tracker_close_issue() {
     # Получаем текущий статус + lockVersion
     local response current_status lock_version
     response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "close-issue-get")
-    current_status=$(echo "$response" | jq -r '.status.title // .status.name // "unknown"')
+    current_status=$(echo "$response" | jq -r '._embedded.status.name // ._links.status.title // "unknown"')
     lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
 
     if [ "$current_status" = "Closed" ]; then
@@ -578,7 +585,7 @@ tracker_mark_review() {
 
     local response current_status lock_version
     response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "mark-review-get")
-    current_status=$(echo "$response" | jq -r '.status.title // .status.name // "unknown"')
+    current_status=$(echo "$response" | jq -r '._embedded.status.name // ._links.status.title // "unknown"')
     lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
 
     if [ "$current_status" = "In review" ]; then

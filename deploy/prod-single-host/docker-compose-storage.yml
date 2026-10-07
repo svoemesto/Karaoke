@@ -12,7 +12,7 @@ services:
     container_name: karaoke-storage
     ports:
       # Наружу не открываем (#172): API доступен host-nginx и admin-машине.
-      # 8890 (API) — loopback; admin (83.137.50.231) ходит сюда для remote storage.
+      # 8890 (API) — loopback; admin (83.137.50.231, 185.26.28.199) ходит сюда для remote storage.
       - "127.0.0.1:${STORAGE_PORT_HOST}:${STORAGE_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера
       - "127.0.0.1:${STORAGE_CONSOLE_PORT_HOST}:${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}" # console
     command: server /data --console-address ":${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}"

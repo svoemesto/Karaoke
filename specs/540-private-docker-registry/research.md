@@ -20,11 +20,12 @@
 
 | Артефакт | Что из него взято |
 |---|---|
-| `.scratch/karaoke/registry/research-registry-software.md` (sha256 `01bb1442…`) | инвентарь образов с замерами, сравнение кандидатов, черновик конфига, 12 открытых вопросов |
-| `.scratch/karaoke/registry/stand/RESULTS.md` | RSS Zot 49.9→114.3 МиБ, сохранение upstream-пути, ловушка `onDemand` без `content`, матрица авторизации |
-| `.scratch/karaoke/registry/stand/config.json` | рабочий конфиг Zot (с `content: [{"prefix": "library/**"}]`) |
-| `.scratch/karaoke/registry/bodies/map-v7.md` | финальное тело карты #274: все решения владельца |
-| `.scratch/karaoke/registry/research-cert-renewal.md` (sha256 `1da03317…`) | сертификат: кто продлевает, что будет при просрочке, схема мониторинга `notAfter` |
+| [`evidence/research-registry-software.md`](./evidence/research-registry-software.md) (sha256 `01bb1442…`) | инвентарь образов с замерами, сравнение кандидатов, черновик конфига, 12 открытых вопросов |
+| [`evidence/stand/RESULTS.md`](./evidence/stand/RESULTS.md) | RSS Zot 49.9→114.3 МиБ, сохранение upstream-пути, ловушка `onDemand` без `content`, матрица авторизации |
+| [`evidence/stand/config.json`](./evidence/stand/config.json) | рабочий конфиг Zot (с `content: [{"prefix": "library/**"}]`) |
+| [`evidence/stand/config-blanket-ondemand.json`](./evidence/stand/config-blanket-ondemand.json) | **контрпример**: `onDemand` без `content` → 503 |
+| `.scratch/karaoke/registry/bodies/map-v7.md` (в репозиторий не коммитится: черновики писем) | финальное тело карты #274: все решения владельца |
+| [`evidence/research-cert-renewal.md`](./evidence/research-cert-renewal.md) (sha256 `1da03317…`) | сертификат: кто продлевает, что будет при просрочке, схема мониторинга `notAfter` |
 | [`specs/165-migration-one-server-research/tls-certificate.md`](../165-migration-one-server-research/tls-certificate.md) | риск № 6 (напоминатель/мониторинг) — открыт с 2026-09-23 |
 
 ---

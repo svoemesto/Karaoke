@@ -20,11 +20,11 @@
 
 | Артефакт | Что из него взято |
 |---|---|
-| [`.scratch/karaoke/registry/research-registry-software.md`](../../.scratch/karaoke/registry/research-registry-software.md) (sha256 `01bb1442…`) | инвентарь образов с замерами, сравнение кандидатов, черновик конфига, 12 открытых вопросов |
-| [`.scratch/karaoke/registry/stand/RESULTS.md`](../../.scratch/karaoke/registry/stand/RESULTS.md) | RSS Zot 49.9→114.3 МиБ, сохранение upstream-пути, ловушка `onDemand` без `content`, матрица авторизации |
-| [`.scratch/karaoke/registry/stand/config.json`](../../.scratch/karaoke/registry/stand/config.json) | рабочий конфиг Zot (с `content: [{"prefix": "library/**"}]`) |
-| [`.scratch/karaoke/registry/bodies/map-v7.md`](../../.scratch/karaoke/registry/bodies/map-v7.md) | финальное тело карты #274: все решения владельца |
-| [`.scratch/karaoke/registry/research-cert-renewal.md`](../../.scratch/karaoke/registry/research-cert-renewal.md) (sha256 `1da03317…`) | сертификат: кто продлевает, что будет при просрочке, схема мониторинга `notAfter` |
+| `.scratch/karaoke/registry/research-registry-software.md` (sha256 `01bb1442…`) | инвентарь образов с замерами, сравнение кандидатов, черновик конфига, 12 открытых вопросов |
+| `.scratch/karaoke/registry/stand/RESULTS.md` | RSS Zot 49.9→114.3 МиБ, сохранение upstream-пути, ловушка `onDemand` без `content`, матрица авторизации |
+| `.scratch/karaoke/registry/stand/config.json` | рабочий конфиг Zot (с `content: [{"prefix": "library/**"}]`) |
+| `.scratch/karaoke/registry/bodies/map-v7.md` | финальное тело карты #274: все решения владельца |
+| `.scratch/karaoke/registry/research-cert-renewal.md` (sha256 `1da03317…`) | сертификат: кто продлевает, что будет при просрочке, схема мониторинга `notAfter` |
 | [`specs/165-migration-one-server-research/tls-certificate.md`](../165-migration-one-server-research/tls-certificate.md) | риск № 6 (напоминатель/мониторинг) — открыт с 2026-09-23 |
 
 ---

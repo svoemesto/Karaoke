@@ -4,7 +4,11 @@ services:
     # minio/minio удалён с Docker Hub (2026-04-25, 404) → Quay.
     # Версия запинена ровно та, что работала на старом storage (RELEASE.2025-09-07,
     # формат xl-single совместим). Решение wayfinder #177.
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    # Pass 540 (FR-007/FR-008): образ взят из НАШЕГО registry и пинован.
+    # Пин — платформенный манифест нашего registry; он отличается от quay-дайджеста
+    # (индекс multi-arch) при том же содержимом. См. registry/images.lock § История.
+    # Переключение вступает в силу при следующем пересоздании контейнера.
+    image: sm-karaoke.ru:5443/mirror/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
     environment:
       - MINIO_ACCESS_KEY=${STORAGE_KEY}
       - MINIO_SECRET_KEY=${STORAGE_SECRET}

@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build-stage
+FROM sm-karaoke.ru:5443/library/node:22-alpine AS build-stage
 
 ARG VERSION
 ARG APP_VERSION
@@ -13,6 +13,6 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY ./webvue3/ .
 RUN npm run build
 
-FROM nginx:stable AS production-stage
+FROM sm-karaoke.ru:5443/library/nginx:stable AS production-stage
 RUN mkdir /app
 COPY --from=build-stage /app/dist /app

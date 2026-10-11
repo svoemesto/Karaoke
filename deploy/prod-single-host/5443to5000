@@ -1,0 +1,49 @@
+# 5443to5000 — host-nginx: HTTPS на порту 5443 → registry на 127.0.0.1:5000
+#
+# Канон прода: файл кладётся в /etc/nginx/sites-enabled/ (раскладка `80to8897`:
+# «порт наружу → порт сервиса»). Применение: `nginx -t && systemctl reload nginx`
+# (reload, НЕ restart — не рвём активные соединения, FR-012).
+#
+# Контракт целиком — specs/540-private-docker-registry/contracts/registry-transport.md § 2.
+# Сертификат — СУЩЕСТВУЮЩИЙ сертификат домена (/etc/keys/www.sm-karaoke.ru.{crt,key});
+# новый сертификат и поддомен не выпускаются (решение владельца #285).
+
+server {
+    listen 5443 ssl;
+    server_name sm-karaoke.ru;
+
+    ssl_certificate     /etc/keys/www.sm-karaoke.ru.crt;
+    ssl_certificate_key /etc/keys/www.sm-karaoke.ru.key;
+
+    # В http{} этого nginx стоит `client_max_body_size 20M` (nginx.conf) — для контейнерного
+    # образа 5.4 ГБ это даст 413. Официальный рецепт distribution:
+    # «disable any limits to avoid HTTP 413 for large image uploads».
+    client_max_body_size 0;
+
+    # «required to avoid HTTP 411» — официальный рецепт distribution (docker push шлёт chunked).
+    chunked_transfer_encoding on;
+
+    # Не буферизовать гигабайты на диск в /var/lib/nginx/tmp.
+    proxy_request_buffering off;
+
+    location /v2/ {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+
+        # «required for docker client's sake» — docker сверяет Host.
+        proxy_set_header Host              $http_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 5.4 ГБ на медленном канале: не обрывать по таймауту (SC-002 — 9 из 10 попыток).
+        proxy_connect_timeout 10s;
+        proxy_send_timeout    900;
+        proxy_read_timeout    900;
+    }
+
+    # Единственная открытая поверхность — /v2/ (FR-002).
+    location / {
+        return 404;
+    }
+}

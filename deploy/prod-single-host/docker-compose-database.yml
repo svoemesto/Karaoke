@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   karaoke-db:
-    image: postgres:16
+    image: sm-karaoke.ru:5443/mirror/library/postgres:16@sha256:75adc2a65806c96bc0e59030230bfe3f1c1b0d6d8f8181a8913e2b8b53bdc166
     environment:
       POSTGRES_USER: ${DB_SERVER_POSTGRES_USER}
       POSTGRES_PASSWORD: ${DB_SERVER_POSTGRES_PASSWORD}

@@ -1,0 +1,132 @@
+{
+  "distSpecVersion": "1.1.1",
+  "storage": {
+    "rootDirectory": "/var/lib/registry",
+    "gc": true,
+    "gcDelay": "2h",
+    "gcInterval": "24h",
+    "retention": {
+      "dryRun": false,
+      "delay": "24h",
+      "policies": [
+        {
+          "repositories": [
+            "karaoke/**"
+          ],
+          "deleteUntagged": true,
+          "keepTags": [
+            {
+              "mostRecentlyPushedCount": 10,
+              "pushedWithin": "2160h"
+            }
+          ]
+        },
+        {
+          "repositories": [
+            "mirror/**"
+          ],
+          "deleteUntagged": true
+        },
+        {
+          "repositories": [
+            "**"
+          ],
+          "deleteUntagged": true,
+          "keepUntagged": {
+            "pulledWithin": "720h"
+          }
+        }
+      ]
+    }
+  },
+  "http": {
+    "address": "0.0.0.0",
+    "port": "5000",
+    "realm": "karaoke-registry",
+    "compat": [
+      "docker2s2"
+    ],
+    "auth": {
+      "htpasswd": {
+        "path": "/etc/zot/htpasswd"
+      },
+      "failDelay": 5
+    },
+    "accessControl": {
+      "repositories": {
+        "karaoke/**": {
+          "policies": [
+            {
+              "users": [
+                "karaoke"
+              ],
+              "actions": [
+                "read",
+                "create",
+                "update",
+                "delete"
+              ]
+            }
+          ]
+        },
+        "mirror/**": {
+          "policies": [
+            {
+              "users": [
+                "karaoke"
+              ],
+              "actions": [
+                "read",
+                "create",
+                "update",
+                "delete"
+              ]
+            }
+          ]
+        },
+        "library/**": {
+          "policies": [
+            {
+              "users": [
+                "karaoke"
+              ],
+              "actions": [
+                "read"
+              ]
+            }
+          ]
+        },
+        "**": {
+          "policies": []
+        }
+      }
+    },
+    "readTimeout": "2h",
+    "writeTimeout": "2h"
+  },
+  "log": {
+    "level": "info"
+  },
+  "extensions": {
+    "sync": {
+      "enable": true,
+      "registries": [
+        {
+          "urls": [
+            "https://registry-1.docker.io"
+          ],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 3,
+          "retryDelay": "5m",
+          "syncTimeout": "2h",
+          "content": [
+            {
+              "prefix": "library/**"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

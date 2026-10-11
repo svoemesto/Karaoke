@@ -7,6 +7,14 @@
 
 `deploy/do.sh` — **единая точка входа** для всех операций deploy/build/start/stop на admin-машине. 40 функций. Bash.
 
+Публикация и получение контейнерных образов (спек 540 / issue #286) идут через **свой
+registry** — см. [registry.md](registry.md). Логин оформлен одной функцией
+`do_registry_login`: сервер указывается явно (`REGISTRY_HOST`), пароль подаётся через
+stdin. Раньше логин шёл **без сервера** (уходил в Docker Hub, а имя пользователя
+подставлялось из `DOCKER_REGISTRY` — это namespace Hub, не хост), и пароль попадал в
+`argv`. Пока `DUAL_PUSH=1`, `do_push_*` дополнительно зеркалит образ в Hub
+(`do_push_hub`) — это окно перехода, не штатный режим.
+
 ## Архитектура
 
 ### Группы функций (по KDoc/usage)
@@ -45,6 +53,18 @@
 
 **NB**: точная сигнатура — см. исходник `deploy/do.sh`.
 
+## Переменные (из `do.env`, вне git)
+
+| Переменная | Смысл |
+|---|---|
+| `REGISTRY_HOST` | хост:порт **для логина** (напр. `sm-karaoke.ru:5443`) |
+| `REGISTRY_USER`, `REGISTRY_PASSWORD` | креды проекта |
+| `DOCKER_REGISTRY` | префикс имён образов проекта (`sm-karaoke.ru:5443/karaoke`) |
+| `DUAL_PUSH` | `1` — зеркалить в Docker Hub, `0` — только свой registry |
+| `DOCKER_HUB_USER`, `DOCKER_HUB_PASSWORD` | namespace-архив Hub (нужен, только пока `DUAL_PUSH=1`) |
+
+Шаблон — `deploy/prod-single-host/do.env.example`.
+
 ## Использование
 
 ```bash
@@ -75,4 +95,7 @@ cd deploy
 
 ## Changelog
 
+- **Pass 540** (2026-10-11): логин переведён на явный сервер + `--password-stdin`,
+  добавлены логины в `pull_*`, введено окно dual-push (`DUAL_PUSH`), `demucs` больше
+  не тегируется `latest`. issue #286 / wayfinder #274.
 - **Pass 355** (2026-09-09): Initial. Автор: agent (Karaoke).

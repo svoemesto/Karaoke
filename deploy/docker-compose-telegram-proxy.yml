@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   karaoke-telegram-proxy:
-    image: ghcr.io/xtls/xray-core:latest
+    image: sm-karaoke.ru:5443/mirror/xtls/xray-core:latest@sha256:4198aa816f04eeacde6470f4f07947eb4f701a1bba3657e366636681eaae5855
     container_name: karaoke-telegram-proxy
     command: ["run", "-c", "/usr/local/etc/xray/config.json"]
     volumes:

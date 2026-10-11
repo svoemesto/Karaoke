@@ -19,11 +19,22 @@ fi
 echo "=== Сборка Docker образа karaoke-public ==="
 bash do.sh build_public
 
-echo "=== Push в Docker Hub ==="
+echo "=== Push в registry (см. do.env: DOCKER_REGISTRY; DUAL_PUSH зеркалит в Hub) ==="
 bash do.sh push_public
 
 echo "=== Pull и restart на сервере ==="
-ssh root@"${PROD_HOST}" "cd Karaoke/deploy && bash do.sh pull_public"
+# Pass 540 (issue #286): после pull проверяем, что на сервере действительно НОВЫЙ образ.
+# `Status: Downloaded newer image` — признак, что pull забрал свежий манифест;
+# `Image is up to date` при новом push — сигнал, что что-то не доехало.
+PULL_OUT="$(ssh root@"${PROD_HOST}" "cd Karaoke/deploy && bash do.sh pull_public" 2>&1)"
+printf '%s\n' "$PULL_OUT"
+if printf '%s' "$PULL_OUT" | grep -q 'Downloaded newer image'; then
+  echo "=== OK: на сервере образ обновлён ==="
+elif printf '%s' "$PULL_OUT" | grep -q 'Image is up to date'; then
+  echo "WARN: на сервере 'Image is up to date' — проверьте, что push прошёл и тег совпал" >&2
+else
+  echo "WARN: в выводе pull нет ни 'Downloaded newer image', ни 'Image is up to date' — проверьте вручную" >&2
+fi
 
 echo "=== Готово ==="
 announce "PUBLIC обновлён на сервере" "Конт+эйнер фронт+энда с+айта обновл+ён на с+ервере" "1"

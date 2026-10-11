@@ -1,0 +1,39 @@
+# images.lock — карта пинов сторонних контейнерных образов (FR-008, FR-018)
+#
+# Единственный источник правды о том, какие сторонние образы живут в нашем registry
+# и на каком дайджесте они зафиксированы. Заполняется `tools/registry-vendor.sh`,
+# проверяется им же в режиме `--verify`.
+#
+# Формат — markdown-таблица; парсер (awk по '|') не должен ломаться:
+#   | upstream_ref | our_ref | digest | checked_at |
+#
+# Правила (contracts/image-naming.md § 3.2):
+#   * `our_ref` всегда в namespace `mirror/**` — исходный путь upstream сохраняется,
+#     хост upstream (`docker.io/`, `ghcr.io/`, `quay.io/`) отбрасывается;
+#   * в `library/**` не пушим никогда (это read-only зона pull-through, инвариант I-2);
+#   * плавающий тег допустим только вместе с `@sha256:`; `digest` — обязателен для
+#     всех строк, у которых `our_ref` используется прод-хостом (FR-007);
+#   * изменение пина — новой строкой в «Истории», прежний дайджест не переписывается молча.
+#
+# Порядок строк: сначала пять небиблиотечных образов решения #279, затем базовые
+# образы прода (`minio` — FR-007, `postgres` — решение #276) и база сборки Demucs
+# (`nvidia/cuda` — FR-017). Собственный `demucs` здесь не указан: он собирается нами
+# (`do_build_demucs`, § 3.1 контракта), а не переносится от upstream.
+
+| upstream_ref | our_ref | digest | checked_at |
+|---|---|---|---|
+| docker.io/searxng/searxng:latest | sm-karaoke.ru:5443/mirror/searxng/searxng:latest | sha256:f3e639582391a481a7a9965d8a3611319cc8561f03929277cca0a8b4cd610830 | 2026-10-11 |
+| docker.io/luuul/4get:1.0.44 | sm-karaoke.ru:5443/mirror/luuul/4get:1.0.44 | sha256:a7b0806812fc682afa957f0a214c7bc3d4aebad775fa28d6ec1993209833b5ab | 2026-10-11 |
+| docker.io/ollama/ollama:latest | sm-karaoke.ru:5443/mirror/ollama/ollama:latest | sha256:44833c52df2a164cc1238a96ce100123c8e54082b85c5e235a9cb5a7adc55f27 | 2026-10-11 |
+| docker.io/hwdsl2/whisper-server:cuda | sm-karaoke.ru:5443/mirror/hwdsl2/whisper-server:cuda | sha256:5770bc3344bc6ed87195e6ef14cc6aca24e1ad248773a1f381e9ca4e220aec4c | 2026-10-11 |
+| ghcr.io/xtls/xray-core:latest | sm-karaoke.ru:5443/mirror/xtls/xray-core:latest | sha256:4198aa816f04eeacde6470f4f07947eb4f701a1bba3657e366636681eaae5855 | 2026-10-11 |
+| quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z | sm-karaoke.ru:5443/mirror/minio/minio:RELEASE.2025-09-07T16-13-09Z | sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2 | 2026-10-11 |
+| docker.io/library/postgres:16 | sm-karaoke.ru:5443/mirror/library/postgres:16 | sha256:75adc2a65806c96bc0e59030230bfe3f1c1b0d6d8f8181a8913e2b8b53bdc166 | 2026-10-11 |
+| docker.io/nvidia/cuda:12.6.2-base-ubuntu22.04 | sm-karaoke.ru:5443/mirror/nvidia/cuda:12.6.2-base-ubuntu22.04 | sha256:00dc1cc76046560ff8939b3c22607020b62d17448baf752dda25c95618c66d29 | 2026-10-11 |
+
+## История изменений пинов
+
+| дата | our_ref | было | стало | причина |
+|---|---|---|---|---|
+| — | — | — | — | первичное заполнение выполняется `registry-vendor.sh` |
+| 2026-10-11 | `mirror/minio/minio:RELEASE.2025-09-07T16-13-09Z` | — | `sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2` | **Происхождение и действующий пин различаются — это не ошибка.** Перенос сделан из локальной копии: `quay.io/minio/minio` отдаёт 401 на любой тег, в Docker Hub репозитория нет. У quay образ был **индексом** multi-arch (`sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e` — он же остался в `RepoDigests` прода), а наш registry хранит **платформенный манифест** (`mediaType: application/vnd.docker.distribution.manifest.v2+json`, `config.digest` = `sha256:69b2ec20…`, 9 слоёв) с дайджестом `sha256:a1a8bd4a…`. Контент идентичен — доказано совпадением `.Id` = `sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e` и `Created` = `2025-09-07T18:42:37.017942402Z` у образа на проде и у копии на admin. Пиновать **обязано** дайджестом нашего registry: по `sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e` `docker pull` получил бы 404, потому что такого манифеста у нас нет. `image:` прода переключается на этот пин в задачах T018–T022 (owner-гейт). |

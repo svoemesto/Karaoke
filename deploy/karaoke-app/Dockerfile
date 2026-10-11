@@ -1,5 +1,5 @@
 # ===== Этап: Подготовка Java-приложения =====
-FROM openjdk:17-ea-jdk-slim AS java-app-builder
+FROM sm-karaoke.ru:5443/library/openjdk:17-ea-jdk-slim AS java-app-builder
 
 ARG VERSION
 ARG APP_VERSION
@@ -20,7 +20,7 @@ RUN cp /usr/local/openjdk-17/lib/security/cacerts /tmp/cacerts_working && \
 COPY karaoke-app-${APP_VERSION}.jar /tmp/app.jar
 
 # ===== Финальный Этап: Создание итогового образа =====
-FROM ubuntu:22.04
+FROM sm-karaoke.ru:5443/library/ubuntu:22.04
 
 # Блок 1: системные пакеты + зависимости Playwright + unzip
 # BuildKit apt cache избавляет от повторного скачивания пакетов при пересборке

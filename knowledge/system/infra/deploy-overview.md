@@ -29,6 +29,7 @@
 |---|---|---|
 | `~/Karaoke/deploy/` | Admin-машина | **Основной** deploy отсюда |
 | `deploy/prod-single-host/` | Репо | **Канон** однохостового прода (из реального `/root/Karaoke/deploy`) |
+| `deploy/prod-single-host/registry/` | Репо | **Приватный registry**: `config.json`, `htpasswd` (не в git), `images.lock`, `RUNBOOK.md` |
 | `deploy/web-server-deploy/deploy/` | Репо (legacy) | Устаревшая двуххостовая копия, **deprecated** — не использовать |
 
 Каждая содержит свои `do.sh`, `docker-compose-*.yml`,
@@ -76,6 +77,7 @@ NB: `Dockerfile*` несколько штук = эксперименты с ра
 | `docker-compose-whisper.yml` | Whisper ASR service |
 | `docker-compose-telegram-proxy.yml` | Telegram SOCKS proxy |
 | `tracker-docker-compose.yml` | OpenProject tracker (для задач) |
+| `prod-single-host/docker-compose-registry.yml` | Приватный registry (Zot) на прод-хосте, `127.0.0.1:5000` |
 
 ## nginx конфигурации
 
@@ -96,6 +98,25 @@ NB: `Dockerfile*` несколько штук = эксперименты с ра
 | `announce.sh` | Анонс в Telegram/VK после деплоя |
 | `prune-images.sh` | Очистка старых Docker images |
 | `analyze-prod-incident.sh` | Анализ prod incident |
+
+## Приватный registry (с 2026-10-11)
+
+Образы проекта больше не берутся с Docker Hub: они живут в своём registry на том же
+прод-хосте. Подробности — [registry.md](registry.md); здесь только место в раскладке.
+
+| Что | Где |
+|---|---|
+| Контейнер `karaoke-registry` (Zot v2.1.22) | `deploy/prod-single-host/docker-compose-registry.yml`, слушает `127.0.0.1:5000` |
+| Наружу | host-nginx `deploy/prod-single-host/5443to5000` → HTTPS `sm-karaoke.ru:5443`, тот же сертификат домена |
+| Конфиг, креды, пины | `deploy/prod-single-host/registry/{config.json,htpasswd,images.lock}` (монтируются как каталог `/etc/zot:ro`) |
+| Данные | `/sm-karaoke/system/registry` (bind-mount, вне docker-конфайнмента) |
+| Значения в `do.env` | `REGISTRY_HOST`, `REGISTRY_USER`, `REGISTRY_PASSWORD`, `DOCKER_REGISTRY=sm-karaoke.ru:5443/karaoke`, `DUAL_PUSH` |
+
+Сборка на admin берёт базовые образы из нашего registry (`FROM
+sm-karaoke.ru:5443/library/…`), прод получает свои образы вендорингом
+(`mirror/**`), сторонние образы переносятся `tools/registry-vendor.sh` по
+`registry/images.lock`. Guard R-04/R-05 (`tools/check-docker-image-tags.sh`)
+расширен под registry-квалифицированные имена.
 
 ## Секреты
 
@@ -137,6 +158,10 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 
 ## Changelog
 
+- **Pass 540** (2026-10-11): Приватный контейнерный registry на прод-хосте (Zot,
+  `127.0.0.1:5000` + host-nginx `5443to5000`); сборка и прод переведены на
+  `sm-karaoke.ru:5443`; guard тегов расширен под registry-квалифицированные имена.
+  issue #286 / wayfinder #274; подробности — [registry.md](registry.md).
 - **Pass 440** (2026-09-23): Переезд прод+MinIO на один хост (`188.127.240.124`).
   Канон — `deploy/prod-single-host/`; `web-server-deploy/` deprecated. wayfinder #165 / спека #178.
 - **Pass 354** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -43,6 +43,10 @@ __pycache__/
 /deploy/prod-single-host/.env
 /deploy/prod-single-host/do.env
 
+# registry: реальный htpasswd (bcrypt-креды проектов), спека 540 / issue #286.
+# Шаблон htpasswd.example — трекаем. Проверка: git ls-files | grep -i htpasswd → пусто.
+/deploy/prod-single-host/registry/htpasswd
+
 # Tracker local integration secrets (Constitution § VIII, spec 295)
 # Реальный файл .env.local-tracker содержит API-токены и пароли БД трекера.
 .env.local-tracker

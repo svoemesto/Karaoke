@@ -13,18 +13,23 @@
 /root/Karaoke/deploy/                  # этот каталог (do.sh, compose, nginx, бэкапы)
   ├── do.sh, do.env, .env              # do.env/.env — реальные секреты (scp, НЕ в git)
   ├── docker-compose-{database,storage,web,public}.yml
+  ├── docker-compose-registry.yml      # приватный registry (Zot), 127.0.0.1:5000
   ├── nginx.conf                       # host-nginx: stream{5433} + http
   ├── 80to8897                         # sites-enabled:443/:80 (sm-karaoke.ru)
+  ├── 5443to5000                       # sites-enabled:5443 (registry, TLS)
+  ├── registry/                        # config.json, htpasswd (не в git), images.lock, RUNBOOK.md
   ├── karaoke-db/                      # init-скрипты Postgres (docker-entrypoint-initdb.d)
   ├── karaoke-db-backup.{sh,service,timer}   # бэкап 05:00, retention 7 дн
   └── karaoke-docker-prune.{service,timer}   # prune 04:15
 
 /sm-karaoke/system/Караоке-db          # Postgres data (DB_FOLDER)
 /sm-karaoke/system/Караоке-storage     # MinIO data (STORAGE_FOLDER)
+/sm-karaoke/system/registry            # registry data (bind-mount, вне docker-конфайнмента)
 /sm-karaoke/system/dumps               # дампы БД
 /etc/keys/www.sm-karaoke.ru.{crt,key}  # TLS fullchain + key
 /etc/nginx/nginx.conf                  # = nginx.conf отсюда
 /etc/nginx/sites-enabled/80to8897      # = 80to8897 отсюда
+/etc/nginx/sites-enabled/5443to5000    # = 5443to5000 отсюда
 ```
 
 ## Отличия от legacy (двуххостового) deploy

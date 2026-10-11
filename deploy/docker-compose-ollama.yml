@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   ollama:
-    image: ollama/ollama:latest
+    image: sm-karaoke.ru:5443/mirror/ollama/ollama:latest@sha256:44833c52df2a164cc1238a96ce100123c8e54082b85c5e235a9cb5a7adc55f27
     container_name: ollama
     restart: unless-stopped
     ports:

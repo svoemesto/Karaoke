@@ -1,0 +1,42 @@
+# docker-compose-registry.yml — приватный registry (Zot) на прод-хосте sm-karaoke.ru
+#
+# Канон прода: deploy/prod-single-host/ → /root/Karaoke/deploy/ .
+# Наружу не публикуется: TLS и маршрутизацию делает host-nginx (sites-enabled/5443to5000),
+# контейнер слушает только loopback. Так же опубликован MinIO (127.0.0.1:8890).
+#
+# Запуск:  docker compose -f docker-compose-registry.yml up -d
+# Проверка: bash tools/registry-smoke.sh sm-karaoke.ru:5443   (с admin-машины)
+#
+# ВАЖНО: контейнерный healthcheck здесь НАМЕРЕННО отсутствует — образ Zot не содержит
+# shell и HTTP-клиента (`docker run --entrypoint sh …` → "exec: sh: executable file not
+# found in $PATH"), поэтому `healthcheck:` был бы фикцией. Живучесть проверяется снаружи
+# скриптом tools/registry-smoke.sh: `GET /v2/` без кредов обязан вернуть 401 —
+# это и есть признак «процесс жив и аутентификация включена».
+
+services:
+  karaoke-registry:
+    # Единственный образ, который НЕ может приехать из нашего registry (иначе
+    # получится замкнутый круг). Поэтому он пинован по дайджесту (FR-008).
+    image: ghcr.io/project-zot/zot:v2.1.22@sha256:96cda11459ce6f8c60da3b03f03e9f67fd11b3ae2d82c4c04c92b3c608996080
+    container_name: karaoke-registry
+    restart: unless-stopped
+    # Только loopback: наружу — через host-nginx на 5443.
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      # Данные — вне docker-конфайнмента, поэтому `docker image prune` и
+      # karaoke-docker-prune.timer их не касаются (рост ограничивает retention Zot).
+      - /sm-karaoke/system/registry:/var/lib/registry
+      # Каталог целиком, а НЕ отдельные файлы — это принципиально.
+      # Bind-mount ФАЙЛА привязан к inode: правка htpasswd (sed -i, scp, mv)
+      # заменяет файл, и контейнер продолжает видеть СТАРЫЙ — проверено на стенде
+      # 2026-10-11: удалённый из файла пользователь по-прежнему получал 200,
+      # Zot держал устаревшую карту кредов. Смонтированный каталог даёт
+      # fsnotify-события, и Zot перечитывает и htpasswd, и config.json на лету,
+      # без перезапуска — а это и есть FR-004/SC-004.
+      - ./registry:/etc/zot:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

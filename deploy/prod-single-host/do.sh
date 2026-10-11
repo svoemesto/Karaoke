@@ -23,6 +23,29 @@ fi
 
 source ${DEPLOY_DIR}/do.env
 
+# Pass 540 (issue #286): логин в НАШ registry — явный сервер + пароль через stdin.
+# Было: логин без сервера — уходил в Docker Hub, пароль был виден в `ps`
+# (дефект №1 карты #274).
+# Pass 540 (issue #286), инцидент 2026-10-11: страховка от «сначала снести,
+# потом обнаружить, что образа нет». Порядок обязан быть таким: pull →
+# проверка → и только потом остановка/старт. Здесь — вторая линия обороны:
+# start_* отказывается работать, если образа нет локально.
+function require_image() { # $1 = полная ссылка на контейнерный образ
+  if ! ${DOCKER} image inspect "$1" >/dev/null 2>&1; then
+    echo "ERROR: контейнерного образа $1 нет локально — старт отменён (сначала pull)." >&2
+    return 1
+  fi
+}
+
+function do_registry_login() {
+  if [[ -z "${REGISTRY_HOST:-}" || -z "${REGISTRY_USER:-}" ]]; then
+    echo "ERROR: REGISTRY_HOST/REGISTRY_USER не заданы в do.env" >&2
+    return 1
+  fi
+  printf '%s' "${REGISTRY_PASSWORD:-}" \
+    | ${DOCKER} login "${REGISTRY_HOST}" -u "${REGISTRY_USER}" --password-stdin
+}
+
 function build_web() {
   echo "Building WEB module"
   ${DOCKER} image build $DEPLOY_DIR/karaoke-web-jar/ \
@@ -34,12 +57,17 @@ function build_web() {
 
 function pull_web() {
   echo "Pull WEB image from registry"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
-  ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:1"
+  do_registry_login || { echo "ERROR: логин в registry не удался — контейнер НЕ трогаем." >&2; return 1; }
+  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:1"; then
+    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-web:1 не скачан — контейнер НЕ трогаем." >&2
+    return 1
+  fi
+  require_image "$DOCKER_REGISTRY/karaoke-web:1" || return 1
   do_start_web
 }
 
 function do_start_public() {
+  require_image "$DOCKER_REGISTRY/karaoke-public:1" || return 1
   do_stop_public
   echo "Старт PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
@@ -52,8 +80,12 @@ function do_stop_public() {
 
 function pull_public() {
   echo "Pull PUBLIC image from registry"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
-  ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:1"
+  do_registry_login || { echo "ERROR: логин в registry не удался — контейнер НЕ трогаем." >&2; return 1; }
+  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:1"; then
+    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-public:1 не скачан — контейнер НЕ трогаем." >&2
+    return 1
+  fi
+  require_image "$DOCKER_REGISTRY/karaoke-public:1" || return 1
   do_start_public
 }
 
@@ -69,6 +101,7 @@ function do_stop_db() {
 }
 
 function do_start_web() {
+  require_image "$DOCKER_REGISTRY/karaoke-web:1" || return 1
   do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml up -d

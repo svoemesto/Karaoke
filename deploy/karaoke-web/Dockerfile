@@ -1,4 +1,4 @@
-FROM eclipse-temurin:22-jre-jammy
+FROM sm-karaoke.ru:5443/library/eclipse-temurin:22-jre-jammy
 ARG VERSION
 ARG APP_VERSION
 

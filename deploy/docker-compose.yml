@@ -56,7 +56,7 @@ services:
     command: ${APP_JAVA_OPTS} -jar /app.jar
 
   searxng:
-    image: searxng/searxng:latest
+    image: sm-karaoke.ru:5443/mirror/searxng/searxng:latest@sha256:f3e639582391a481a7a9965d8a3611319cc8561f03929277cca0a8b4cd610830
     container_name: searxng
     ports:
       - "8888:8080"
@@ -77,7 +77,7 @@ services:
   # актуальный на момент написания тег (проверить hub.docker.com/r/luuul/4get/tags
   # перед деплоем на прод и при необходимости обновить).
   fourget:
-    image: luuul/4get:1.0.44
+    image: sm-karaoke.ru:5443/mirror/luuul/4get:1.0.44@sha256:a7b0806812fc682afa957f0a214c7bc3d4aebad775fa28d6ec1993209833b5ab
     container_name: fourget
     ports:
       - "8889:80"

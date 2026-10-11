@@ -22,9 +22,9 @@ C4-модель верхнего уровня:
   и определение страны для VPN-проверки).
 - [`frontend/`](frontend/) — 38 документов по `webvue3/` и `karaoke-public/`:
   Vuex-паттерны, store-docs по компонентам, composables, views.
-- [`infra/`](infra/) — 15 документов по инфраструктуре репозитория: `tools/`,
-  `deploy/`, `do.sh`, `specs/`, pre-commit-хуки, governance-документы,
-  SQL-миграции, per-feature-документы.
+- [`infra/`](infra/) — 16 документов по инфраструктуре репозитория: `tools/`,
+  `deploy/`, `do.sh`, `registry` (приватный контейнерный registry), `specs/`,
+  pre-commit-хуки, governance-документы, SQL-миграции, per-feature-документы.
 
 Реестр доменов и компонентов — в
 [`domains/README.md`](../domains/README.md); там же перечислены подкаталоги

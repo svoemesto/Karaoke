@@ -11,7 +11,7 @@ version: '3.8'
 services:
   # GPU-версия Whisper (основная, быстрая)
   whisper-asr:
-    image: hwdsl2/whisper-server:cuda
+    image: sm-karaoke.ru:5443/mirror/hwdsl2/whisper-server:cuda@sha256:5770bc3344bc6ed87195e6ef14cc6aca24e1ad248773a1f381e9ca4e220aec4c
     container_name: whisper-asr
     restart: always
     init: true
@@ -67,7 +67,7 @@ services:
 
   # CPU-версия Whisper (fallback, если GPU не справился с VRAM)
   whisper-asr-cpu:
-    image: hwdsl2/whisper-server:cuda
+    image: sm-karaoke.ru:5443/mirror/hwdsl2/whisper-server:cuda@sha256:5770bc3344bc6ed87195e6ef14cc6aca24e1ad248773a1f381e9ca4e220aec4c
     container_name: whisper-asr-cpu
     restart: always
     init: true

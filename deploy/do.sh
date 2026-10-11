@@ -71,6 +71,51 @@ echo "COMPOSE = $COMPOSE"
 
 source "${DEPLOY_DIR}/announce.sh"
 
+# Pass 540 (issue #286): логин в НАШ registry.
+# Было: логин БЕЗ указания сервера — уходил в Docker Hub, а имя пользователя
+# подставлялось из DOCKER_REGISTRY (это namespace Hub `svoemestodev`, не хост);
+# пароль при этом попадал в argv и был виден в `ps`.
+# Стало: сервер указывается явно (REGISTRY_HOST), пароль подаётся через stdin.
+# Значения живут в do.env (вне git), шаблон — prod-single-host/do.env.example.
+function do_registry_login() {
+  if [[ -z "${REGISTRY_HOST:-}" || -z "${REGISTRY_USER:-}" ]]; then
+    echo "ERROR: REGISTRY_HOST/REGISTRY_USER не заданы в do.env — логин в registry невозможен" >&2
+    return 1
+  fi
+  printf '%s' "${REGISTRY_PASSWORD:-}" \
+    | ${DOCKER} login "${REGISTRY_HOST}" -u "${REGISTRY_USER}" --password-stdin
+}
+
+# Pass 540 (issue #286): окно dual-push (FR-015, решение владельца #280).
+# DUAL_PUSH=1 — публикуем И в наш registry, И в Docker Hub (namespace-архив для отката,
+#   максимум до двух успешных прод-деплоев или месяц);
+# DUAL_PUSH=0 — только наш registry (SC-008: доля внешних реестров в пути доставки — ноль).
+# Дефолт 0: молчаливый push в Hub без явного DUAL_PUSH=1 недопустим.
+# Если Hub недоступен — это WARN, а не падение: наш push уже состоялся, прод деплоится.
+DUAL_PUSH="${DUAL_PUSH:-0}"
+DOCKER_HUB_USER="${DOCKER_HUB_USER:-svoemestodev}"
+DOCKER_HUB_PASSWORD="${DOCKER_HUB_PASSWORD:-${DOCKER_PASSWORD:-}}"
+
+function do_hub_login() {
+  [[ "$DUAL_PUSH" == "1" ]] || return 0
+  printf '%s' "${DOCKER_HUB_PASSWORD}" \
+    | ${DOCKER} login docker.io -u "${DOCKER_HUB_USER}" --password-stdin >/dev/null 2>&1
+}
+
+# Зеркалит уже собранный образ в Docker Hub (только в окне dual-push).
+# $1 — имя образа, $2 — тег.
+function do_push_hub() {
+  [[ "$DUAL_PUSH" == "1" ]] || return 0
+  local name="$1" tag="$2"
+  if ! ${DOCKER} tag "${DOCKER_REGISTRY}/${name}:${tag}" "${DOCKER_HUB_USER}/${name}:${tag}"; then
+    echo "WARN: не удалось проставить тег Hub для ${name}:${tag}" >&2
+    return 0
+  fi
+  if ! ${DOCKER} push "${DOCKER_HUB_USER}/${name}:${tag}" >/dev/null 2>&1; then
+    echo "WARN: push в Docker Hub не прошёл (${name}:${tag}) — окно dual-push, деплой не блокируем" >&2
+  fi
+}
+
 function do_build() {
   bl_begin karaoke-web "build" karaoke-app karaoke-web; local rc=$?
   [ "$rc" = 10 ] && return 0
@@ -80,9 +125,13 @@ function do_build() {
   bl_release
 }
 
+  # Pass 540 (issue #286): провал сборки ОБЯЗАН давать ненулевой код.
+  # Раньше функции заканчивались вызовом announce, который съедал статус,
+  # и деплой шёл дальше (push → pull на проде) с несуществующим образом.
+  # Контракт: contracts/do-sh-cli.md § 4 — деплой успешен, только если шаг вернул 0.
 function build_jars() {
   echo "Building jars"
-  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar karaoke-web:bootJar --parallel
+  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar karaoke-web:bootJar --parallel || return $?
   announce "Все модули скомпилированы" "Все м+одули скомпил+ированы"
 }
 
@@ -96,38 +145,38 @@ function build_images() {
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
-   -f $DEPLOY_DIR/karaoke-app/Dockerfile
+   -f $DEPLOY_DIR/karaoke-app/Dockerfile || return $?
 
   ${DOCKER} image build $BASE_DIR/karaoke-web/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" \
-   -f $DEPLOY_DIR/karaoke-web/Dockerfile
+   -f $DEPLOY_DIR/karaoke-web/Dockerfile || return $?
 
   announce "Все модули собраны" "Все м+одули с+обраны"
 }
 
 function build_start_app() {
   echo "Building APP module and start"
-  do_build_app
+  do_build_app || return $?
   do_start
 }
 
 function build_start_web() {
   echo "Building WEB module and start"
-  do_build_web
+  do_build_web || return $?
   do_start_web
 }
 
 function build_start_webvue3() {
   echo "Building WEBVUE3 module and start"
-  do_build_webvue3
+  do_build_webvue3 || return $?
   do_start_webvue3
 }
 
 function build_start_public() {
   echo "Building PUBLIC module and start"
-  do_build_public
+  do_build_public || return $?
   do_start_public
 }
 
@@ -136,13 +185,13 @@ function do_build_app() {
   bl_begin karaoke-app "build_app"; local rc=$?
   [ "$rc" = 10 ] && return 0
   echo "Building APP module"
-  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
+  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar || return $?
   cp $DEPLOY_DIR/karaoke-app/files/* "${BASE_DIR}/karaoke-app/build/libs/"
   ${DOCKER} image build $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
-   -f $DEPLOY_DIR/karaoke-app/Dockerfile
+   -f $DEPLOY_DIR/karaoke-app/Dockerfile || return $?
   bl_commit
   bl_release
   # Бажное использование --no-daemon в GRADLE приводило к OOM (Kotlin 2.2 не компилируется
@@ -157,13 +206,13 @@ function do_build_app_nocache() {
   FORCE=1 bl_begin karaoke-app "build_app_nocache"; local rc=$?
   [ "$rc" = 10 ] && return 0
   echo "Building APP module"
-  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
+  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar || return $?
   cp $DEPLOY_DIR/karaoke-app/files/* "${BASE_DIR}/karaoke-app/build/libs/"
   ${DOCKER} image build --no-cache $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
-   -f $DEPLOY_DIR/karaoke-app/Dockerfile
+   -f $DEPLOY_DIR/karaoke-app/Dockerfile || return $?
   bl_commit
   bl_release
   announce "Сборка karaoke-app без кеша" "Бэк адм+инки с+обран без к+еша"
@@ -171,9 +220,10 @@ function do_build_app_nocache() {
 
 function do_build_demucs() {
   echo "Building DEMUCS module"
+  # Pass 540 (FR-008): плавающий тег `latest` недопустим — образ тегируется версией сборки.
   ${DOCKER} image build $DEPLOY_DIR/karaoke-app/files/ \
-   -t "$DOCKER_REGISTRY/demucs:latest" \
-   -f $DEPLOY_DIR/karaoke-app/DockerfileDemucs
+   -t "$DOCKER_REGISTRY/demucs:${BUILD_VERSION}" \
+   -f $DEPLOY_DIR/karaoke-app/DockerfileDemucs || return $?
   announce "Сборка demucs" "М+одуль дем+укс с+обран"
 }
 
@@ -182,12 +232,12 @@ function do_build_web() {
   bl_begin karaoke-web "build_web"; local rc=$?
   [ "$rc" = 10 ] && return 0
   echo "Building WEB module"
-  cd ${BASE_DIR} && ${GRADLE} clean karaoke-web:bootJar
+  cd ${BASE_DIR} && ${GRADLE} clean karaoke-web:bootJar || return $?
   ${DOCKER} image build $BASE_DIR/karaoke-web/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" \
-   -f $DEPLOY_DIR/karaoke-web/Dockerfile
+   -f $DEPLOY_DIR/karaoke-web/Dockerfile || return $?
   bl_commit
   bl_release
   announce "Сборка karaoke-web" "Бэк с+айта с+обран"
@@ -196,14 +246,14 @@ function do_build_web() {
 function do_build_webvue3() {
   echo "Building WEBVUE3 module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
-    -t "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue3/Dockerfile
+    -t "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue3/Dockerfile || return $?
   announce "Сборка karaoke-webvue3" "Фронт адм+инки с+обран"
 }
 
 function do_build_public() {
   echo "Building PUBLIC module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
-    -t "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-public/Dockerfile
+    -t "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-public/Dockerfile || return $?
    announce "Сборка karaoke-public" "Фронт с+айта с+обран"
 }
 
@@ -322,45 +372,54 @@ function do_stop_app() {
 
 function do_push() {
   echo "Pushing images"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  do_registry_login
+  do_hub_login
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
+  do_push_hub karaoke-app "${BUILD_VERSION}"
+  do_push_hub karaoke-web "${BUILD_VERSION}"
+  do_push_hub karaoke-webvue3 "${BUILD_VERSION}"
   announce "Pushing!"
 }
 
 function do_push_app() {
   echo "Pushing APP"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  do_registry_login
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
+  do_push_hub karaoke-app "${BUILD_VERSION}"
   announce "П+ушинг апп"
 }
 
 function do_push_demucs() {
   echo "Pushing DEMUCS"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
-  ${DOCKER} image push "$DOCKER_REGISTRY/demucs:latest"
+  do_registry_login
+  ${DOCKER} image push "$DOCKER_REGISTRY/demucs:${BUILD_VERSION}"
+  do_push_hub demucs "${BUILD_VERSION}"
   announce "П+ушинг дем+укс"
 }
 
 function do_push_web() {
   echo "Pushing WEB"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  do_registry_login
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
+  do_push_hub karaoke-web "${BUILD_VERSION}"
   announce "П+ушинг веб"
 }
 
 function do_push_webvue3() {
   echo "Pushing WEBVUE3"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  do_registry_login
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
+  do_push_hub karaoke-webvue3 "${BUILD_VERSION}"
   announce "П+ушинг вебвь+ю"
 }
 
 function do_push_public() {
   echo "Pushing PUBLIC"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  do_registry_login
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}"
+  do_push_hub karaoke-public "${BUILD_VERSION}"
   announce "П+ушинг п+аблик"
 }
 
@@ -387,12 +446,14 @@ function do_ps() {
 
 function do_pull_app() {
   echo "Pulling APP"
+  do_registry_login
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml pull
   announce "П+уллинг апп"
 }
 
 function do_pull_web() {
   echo "Pulling WEB"
+  do_registry_login
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml pull
   announce "П+уллинг вэб"
 }
@@ -405,6 +466,7 @@ function do_pull_webvue() {
 
 function do_pull_webvue3() {
   echo "Pulling WEBVUE3"
+  do_registry_login
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml pull
   announce "П+уллинг вэбь+ю"
 }
@@ -499,7 +561,7 @@ create_clear_db) do_create_clear_db ;;
     load, build_start - (re)builds jars, images and (re)starts containers
     build - builds jars and images
     build_app - builds karaoke-app image
-    build_demucs - builds demucs image (GPU/CUDA-enabled), tagged \$DOCKER_REGISTRY/demucs:latest
+    build_demucs - builds demucs image (GPU/CUDA-enabled), tagged \$DOCKER_REGISTRY/demucs:\$BUILD_VERSION
     push_demucs - pushes demucs image to DOCKER_REGISTRY
     build_web - builds karaoke-web image
     build_start_app - builds karaoke-app image and (re)starts containers

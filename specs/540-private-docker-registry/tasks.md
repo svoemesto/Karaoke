@@ -185,7 +185,9 @@ TLS-сертификата, от которого зависит доступн�
 - [X] T046 Прогон документационных гейтов (FR-013, R-32): `python3 tools/lint-knowledge.py`, `bash tools/check-knowledge-structure.sh` (ожидание 9/9), `bash tools/check-feature-doc.sh docs/features/private-docker-registry.md` (exit 0) — сценарий Q11, `quickstart.md`
 - [X] T047 Финальный сквозной прогон `quickstart.md` (Q1–Q12) и проверка гигиены: `bash tools/check-docker-image-tags.sh` (+ `--selftest`), `bash -n` по изменённым `*.sh`, `git ls-files | grep -iE 'htpasswd$|\.env$|do\.env$'` → пусто, `git status` без неожиданных файлов (FR-013, R-32/FR-009) — `quickstart.md`
 - [X] T048 Git-гейт (Tier-1, AGENTS.md § CI-gate для master): `git push -u origin 540-private-docker-registry`, `gh pr create --base master`, `gh pr checks` → **7/7 PASS** (включая `tools/check-docker-image-tags.sh --quiet` из `.github/workflows/lint.yml`); merge — только после зелёного CI и слова владельца, без `--delete-branch` — `.github/workflows/lint.yml`
-- [ ] T049 (report.md готов; шаги трекера — после merge) Оформить `specs/540-private-docker-registry/report.md` (REQUIRED артефакт) и выполнить шаги OpenProject-workflow после merge: `bash tools/tracker.sh add-comment 286 --file specs/540-private-docker-registry/report.md`, затем `bash tools/tracker.sh mark-review 286` — `specs/540-private-docker-registry/report.md`
+- [X] T049 Оформить `specs/540-private-docker-registry/report.md` (REQUIRED артефакт) и выполнить шаги OpenProject-workflow после merge: `bash tools/tracker.sh add-comment 286 --file specs/540-private-docker-registry/report.md`, затем `bash tools/tracker.sh mark-review 286`.
+  **Выполнено 2026-10-11 после merge #631:** `report.md` в репозитории,
+  комментарий к issue добавлен (id 1027), статус переведён в `In review` — `specs/540-private-docker-registry/report.md`
 
 ---
 
@@ -348,6 +350,7 @@ Docker-демоне конфликтуют (Pass 379, принцип IX.3) — �
 
 ## После implement (вне цепочки — по ревью владельца)
 
-- [ ] T050 Закрыть issue #286: `bash tools/tracker.sh close-issue 286` — шаг 6 workflow из
+- [X] T050 Закрыть issue #286: `bash tools/tracker.sh close-issue 286` — шаг 6 workflow из
   `spec.md` § OpenProject Tracking; выполняется **после** приёмки владельцем, а не
-  исполнителем — `specs/540-private-docker-registry/report.md`
+  исполнителем — `specs/540-private-docker-registry/report.md`.
+  **Закрыто 2026-10-11** по ревью владельца (issue #286 и карта #274 закрыты).

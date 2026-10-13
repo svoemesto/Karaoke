@@ -81,6 +81,14 @@
                 "update",
                 "delete"
               ]
+            },
+            {
+              "users": [
+                "dub2000"
+              ],
+              "actions": [
+                "read"
+              ]
             }
           ]
         },
@@ -91,6 +99,17 @@
                 "karaoke"
               ],
               "actions": [
+                "read",
+                "create",
+                "update",
+                "delete"
+              ]
+            },
+            {
+              "users": [
+                "dub2000"
+              ],
+              "actions": [
                 "read"
               ]
             }
@@ -98,6 +117,21 @@
         },
         "**": {
           "policies": []
+        },
+        "dub2000/**": {
+          "policies": [
+            {
+              "users": [
+                "dub2000"
+              ],
+              "actions": [
+                "read",
+                "create",
+                "update",
+                "delete"
+              ]
+            }
+          ]
         }
       }
     },

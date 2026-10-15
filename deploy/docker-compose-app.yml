@@ -3,6 +3,12 @@ services:
 
   karaoke-app:
     container_name: karaoke-app
+    # init: true — docker ставит в контейнер docker-init (tini) как PID 1. Без него PID 1 — сам
+    # java, а JVM пожинает только те процессы, что запустила сама: осиротевшие после рендера
+    # headless_shell (родитель — драйвер Playwright, умирающий раньше браузера) перевешиваются
+    # на PID 1 и остаются зомби навсегда. Замер 2026-10-15: 3477 зомби за ~1.7 суток работы
+    # контейнера (issue #304). Тот же эффект — для любых других осиротевших детей.
+    init: true
     image: ${DOCKER_REGISTRY}/karaoke-app:${BUILD_VERSION}
     ports:
       - ${APP_PORT_HOST}:${APP_PORT_INSIDE_CONTAINER}

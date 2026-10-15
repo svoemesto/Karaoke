@@ -132,6 +132,16 @@ ADR-0006). Без этого ffmpeg заполнит stderr и процесс з
 **[WARN] Headless Chromium на проде** требует `--no-sandbox` в
 `chrome-launch-args`. Иначе вылетает с permission denied.
 
+**[WARN] Контейнер `karaoke-app` обязан стартовать с init (tini)** —
+`init: true` в `deploy/docker-compose-app.yml` и `deploy/docker-compose.yml`.
+Иначе PID 1 внутри контейнера — сам `java`, а JVM пожинает только те
+процессы, что запустила сама: осиротевшие после рендера `headless_shell`
+(их родитель — драйвер Playwright, который умирает раньше браузера)
+перевешиваются на PID 1 и остаются зомби **навсегда**. Замер 2026-10-15:
+3477 зомби за ~1.7 суток работы контейнера (issue #304). Корректный
+`browser.close()` в `finally` от этого не спасает — процесс к тому моменту
+уже осиротел и о его `waitpid` спрашивать некому, кроме PID 1.
+
 ## Связанные ADR | Related ADRs
 
 - [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md)

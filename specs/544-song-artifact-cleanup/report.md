@@ -156,6 +156,38 @@ Constitution § «Рабочий процесс»):
 класс `SRT`; класс удаляется только по утверждённому отчёту сухого прогона, поэтому риск
 ограничен и вынесен на приёмку.
 
+## Инцидент на первом старте и его исправление (P0, 2026-10-16)
+
+**Симптом.** После выката `karaoke-app` не стартовал:
+`IllegalStateException: Property APP_WORK_ON_SERVER should be initialized before get`
+→ `BeanCreationException: Error creating bean with name 'cleanupController'` → контейнер вышел с кодом 1.
+
+**Причина.** `ArtifactCleanupPlanner` имел значение по умолчанию
+`roots: List<String> = PROJECT_ROOT_FOLDERS`, которое Kotlin вычисляет **в конструкторе**.
+`CleanupController` — eager-бин Spring, он создаётся раньше, чем `KaraokeAppService`
+выставит `APP_WORK_ON_SERVER`; обращение к `PROJECT_ROOT_FOLDERS` тянуло
+`Constants.<clinit>` → `WORKING_DATABASE = Connection.local()` → `Connection.<clinit>`,
+который читает `APP_WORK_ON_SERVER`. Порядок инициализации не совпал — приложение упало.
+
+**Почему не поймали раньше.** Ни один гейт этого не видит: компиляция, ktlint, doc-гейты и
+unit-тесты проходят; в CI **нет job'а с запуском тестов и нет smoke-старта приложения**.
+Дефект виден только при фактическом старте контейнера.
+
+**Исправление.** Корни обхода вычисляются лениво — поле `roots` по умолчанию `null`,
+обращение к `PROJECT_ROOT_FOLDERS` перенесено в `effectiveRoots()`, вызываемый только из
+`plan()`, то есть уже после старта. Явно переданные корни (тесты) по-прежнему работают.
+
+**Регрессионный тест.** `karaoke-app/src/test/.../services/cleanup/ArtifactCleanupStartupWiringTest.kt`
+(4 теста): конструктор контроллера и сервиса с параметрами по умолчанию не трогает глобалы
+приложения; поле `roots` остаётся пустым до первого `plan()`; явный override не подменяется.
+Проверено, что тест **падает** на старом коде: с жадным вычислением воспроизводятся
+`ExceptionInInitializerError` и `NoClassDefFoundError: Could not initialize class ConstantsKt`
+— то есть страж ловит именно этот класс дефекта.
+
+**Пробел инфраструктуры (вне этой поставки).** Стоит завести проверку старта приложения
+(smoke) в деплое или в CI — иначе следующий дефект порядка инициализации снова дойдёт
+до боевого контейнера.
+
 ## Что осталось за владельцем
 
 1. **T030 — разовый массовый прогон чистки** (у агента нет прав записи в `/sm-karaoke`).

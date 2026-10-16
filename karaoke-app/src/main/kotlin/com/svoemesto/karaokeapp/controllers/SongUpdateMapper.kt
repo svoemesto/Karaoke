@@ -257,6 +257,10 @@ object SongUpdateMapper {
                     val oldFileName = song.fileName
                     song.fileName = sanitized
                     song.renameCascadeExtraArtifacts(oldFileName)
+                    // issue #323: каскад не покрывал исходник, [key].json, flac-стемы, вложения
+                    // done_files и симлинки — после переименования проверка здоровья показывала
+                    // AUDIO_SONG/AUDIO_ACCOMPANIMENT/AUDIO_VOCAL по LOCAL_FILESYSTEM.
+                    song.renameAllArtifacts(oldFileName)
                 }
             }
         }

@@ -324,3 +324,23 @@ enum class KaraokeFileType(
     val willBeInLocalStorage: Boolean get() = locations.contains(KaraokeFileTypeLocations.LOCAL_STORAGE)
     val willBeInRemoteStorage: Boolean get() = locations.contains(KaraokeFileTypeLocations.REMOTE_STORAGE)
 }
+
+/**
+ * Суффиксы в именах публикационных картинок песни: `<файл> [karaoke].png` и т.п.
+ *
+ * Один список на два места: реестр классов уборки (`services/cleanup/ArtifactCleanupClass.kt`,
+ * specs/544) и полное переименование артефактов песни (`model/Song.renameAllArtifacts`,
+ * issue #323). Состав сверен с `UtilsPictures.kt` (там же, где картинки создаются).
+ */
+val PUBLICATION_PICTURE_NAME_SUFFIXES: List<String> =
+    listOf(
+        "[karaoke]",
+        "[lyrics]",
+        "[chords]",
+        "[tabs]",
+        "[sponsr]",
+        "[VKlink]",
+        "[VK]",
+        "[boosty]",
+        "[files]",
+    )

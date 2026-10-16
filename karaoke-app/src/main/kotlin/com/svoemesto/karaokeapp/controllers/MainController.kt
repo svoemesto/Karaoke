@@ -505,7 +505,9 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         song?.let {
-            if (SongRenderContext(song, SongVersion.LYRICS).hasChords) {
+            // specs/544-song-artifact-cleanup (FR-007): признак аккордов считается по
+            // маркерам разметки из БД (Song.hasChords), без чтения файлов субтитров.
+            if (song.hasChords) {
                 return KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_CHORDS, true, 1, threadId = threadId?.toInt() ?: 0)
             }
         }
@@ -527,7 +529,8 @@ class MainController(
             )
         val result: MutableList<Long> = mutableListOf()
         song?.let {
-            val hasChords = SongRenderContext(song, SongVersion.LYRICS).hasChords
+            // specs/544 (FR-007): по маркерам из БД, без чтения файлов субтитров
+            val hasChords = song.hasChords
             result.add(KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_LYRICS, true, 4, threadId = threadId?.toInt() ?: 0))
             result.add(KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 4, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
@@ -561,7 +564,8 @@ class MainController(
             )
         val result: MutableList<Long> = mutableListOf()
         song?.let {
-            val hasChords = SongRenderContext(song, SongVersion.LYRICS).hasChords
+            // specs/544 (FR-007): по маркерам из БД, без чтения файлов субтитров
+            val hasChords = song.hasChords
             result.add(KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 2, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
                 result.add(
@@ -692,10 +696,7 @@ class MainController(
                 )
             text = song?.let {
                 song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-                val strText = song.convertMarkersToSrt(voice)
-                val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
-                File(pathToFile).writeText(strText)
-                runCommand(listOf("chmod", "666", pathToFile))
+                // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
                 "OK"
             } ?: "Error"
         }
@@ -1469,28 +1470,8 @@ class MainController(
         return "text"
     }
 
-    @GetMapping("/song/{id}/createkdenlivefiles")
-    fun createKdenliveFiles(
-        @PathVariable id: Long,
-        @RequestParam(required = false) overrideKdenliveFile: Boolean = true,
-        @RequestParam(required = false) overrideKdenliveSubsFile: Boolean = false,
-        model: Model,
-    ): String {
-        val song =
-            Song.loadFromDbById(
-                id = id,
-                database = WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            )
-        val text =
-            song?.let {
-                song.createKdenliveFiles(overrideKdenliveFile, overrideKdenliveSubsFile)
-                "OK"
-            } ?: "Error"
-        model.addAttribute("text", text)
-        return "text"
-    }
+    // specs/544-song-artifact-cleanup (FR-009): эндпоинт /song/{id}/createkdenlivefiles удалён
+    // вместе с писателем .kdenlive-файлов; вызовов во фронтендах не было.
 
     @PostMapping("/songs/createkaraokeall")
     fun getSongsCreateKaraokeAll(
@@ -1835,7 +1816,7 @@ class MainController(
             songValue.fields[SongField.RESULT_VERSION] = song_resultVersion
             songValue.fields[SongField.ID_STATUS] = select_status
             songValue.saveToDb()
-            songValue.saveToFile()
+            // specs/544 (FR-006): sidecar-файл состояния не пишется.
 //            if (song_idBoosty != "") {
 //                songValue.createVKDescription()
 //            }
@@ -2024,7 +2005,7 @@ class MainController(
             songValue.fields[SongField.RESULT_VERSION] = song_resultVersion
             songValue.fields[SongField.ID_STATUS] = select_status
             songValue.saveToDb()
-            songValue.saveToFile()
+            // specs/544 (FR-006): sidecar-файл состояния не пишется.
 //            if (song_idBoosty != "") {
 //                songValue.createVKDescription()
 //            }

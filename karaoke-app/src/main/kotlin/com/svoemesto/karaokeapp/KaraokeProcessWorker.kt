@@ -1324,12 +1324,8 @@ class KaraokeProcessWorker {
          * @see archive/docs/features/dual-db-sync.md
          */
         private fun applyRenderSideEffect(songLocal: Song) {
-            songLocal.sourceMarkersList.forEachIndexed { voice, _ ->
-                val strText = songLocal.convertMarkersToSrt(voice)
-                val fileName = "${songLocal.rootFolder}/${songLocal.fileName}.voice${voice + 1}.srt"
-                File(fileName).writeText(strText)
-                runCommand(listOf("chmod", "666", fileName))
-            }
+            // specs/544-song-artifact-cleanup (FR-008): .srt-файлы больше не пишутся;
+            // разметка голосов сохраняется в БД, экспорт — функцией Song.convertMarkersToSrt.
             songLocal.createKaraoke(createLyrics = true, createKaraoke = true)
             KaraokeProcess.createProcess(
                 song = songLocal,

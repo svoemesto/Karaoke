@@ -23,7 +23,7 @@
 | `NEW (1)` | `PROCESSING (2)` | `SongStatusChanged` | редактор взял задание | `Identity` editor + [processing](../../processing/domain.md) |
 | `PROCESSING (2)` | `STEMS_READY (3)` | `SongStatusChanged` | обработка завершена (см. drift note) | [processing](../../processing/domain.md) |
 | `STEMS_READY (3)` | `MARKED (4)` | `SongStatusChanged` | редактор расставил маркеры | `Identity` editor |
-| `MARKED (4)` | `RENDERED (5)` | `SongStatusChanged` | MP4 готов, лежит в MinIO | [rendering](../../rendering/domain.md) (melt worker) |
+| `MARKED (4)` | `RENDERED (5)` | `SongStatusChanged` | видео отрендерено (Playwright), лежит в `done_files` рядом с песней + копия в `/sm-karaoke/store` | [rendering](../../rendering/domain.md) (Playwright; melt заморожен) |
 | `RENDERED (5)` | `APPROVED (6)` | `SongStatusChanged` | редактор одобрил | `Identity` editor |
 | любой | `SongPublished` | — | `publishDate` истёк | `SongService.isContentReady()` |
 | любой | `SongSkipped` | — | добавлен тег `SKIP` | `Identity` admin |
@@ -59,7 +59,10 @@
 > webvue3.
 
 1. Обработка (`AudioAnalize` + смежные workers) завершена.
-2. Результаты складываются в MinIO (для стемов — `stems/<songId>/`).
+2. flac-стемы остаются **локально** (`hdemucs_mmi/`); в MinIO попадают только
+   mp3-стемы — после конвертации и загрузки в оба хранилища (specs/544, FR-016).
+   Источник истины для mp3-стемов и картинок — MinIO, для исходников и flac-стемов —
+   локальный диск admin-машины.
 3. `Song.idStatus = 3`.
 4. Доменное событие `SongStatusChanged(2→3)`.
 
@@ -73,10 +76,14 @@
 
 ### Шаг 5. Рендер (`RENDERED`)
 
-1. `rendering` worker стартует melt с `MltProp` (~150 параметров из
-   `KaraokeProperties.kt`).
-2. MP4 (одна или три версии: LYRICS/KARAOKE/DEMO) складывается в
-   MinIO `done_files/<songId>/`.
+1. Рендер выполняет Playwright (`PlayerMp4RenderService` — кадры,
+   `PlayerMp4MuxService` — муксинг; specs/544, FR-017). Легаси-конвейер melt
+   заморожен и не обслуживает новые песни (см.
+   [mlt-pipeline](../../rendering/components/mlt-pipeline.md)).
+2. Видео складывается в `done_files/` рядом с песней и копируется в
+   `/sm-karaoke/store`; **в MinIO видео не загружается** — там только mp3-стемы и
+   картинки (specs/544, FR-016). Демо-ролик публикации хранится только до конца
+   шага публикации, затем удаляется (FR-001).
 3. `Song.idStatus = 5`.
 4. Доменное событие `SongStatusChanged(4→5)`.
 5. См. [rendering domain](../../rendering/domain.md) для деталей.

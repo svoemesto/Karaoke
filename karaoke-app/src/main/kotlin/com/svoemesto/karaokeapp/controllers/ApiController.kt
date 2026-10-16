@@ -1669,7 +1669,9 @@ class ApiController(
             )
         val text =
             song?.let {
-                SongRenderContext(song, SongVersion.KARAOKE)
+                // specs/544-song-artifact-cleanup (FR-008): SongRenderContext больше не
+                // конструируется ради побочного эффекта — он перезаписывал .srt-файлы,
+                // а результат конструирования здесь не использовался.
                 val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -2984,7 +2986,7 @@ class ApiController(
             )
 
         song.saveToDb()
-        song.saveToFile()
+        // specs/544-song-artifact-cleanup (FR-006): sidecar-файл состояния не пишется.
 
         // specs/143-song-free-access-window + specs/286-author-song-counts-cache +
         // specs/369-free-after-onair-flag: уведомляем karaoke-web только если
@@ -3334,12 +3336,9 @@ class ApiController(
                 )
             result = song?.let {
                 song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-                val strText = song.convertMarkersToSrt(voice)
-                val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
-                File(pathToFile).writeText(strText)
-                // #213: было chmod 666 через внешний процесс, вне try/catch —
-                // отказ chmod возвращал ошибку уже после применения маркеров.
-                setSongFilePermissions(pathToFile)
+                // specs/544-song-artifact-cleanup (FR-008): файлы субтитров больше не
+                // создаются — разметка голосов живёт в БД (sourceMarkers) и доступна для
+                // экспорта по запросу (Song.convertMarkersToSrt остаётся чистой функцией).
                 true
             } ?: false
         }
@@ -3393,16 +3392,7 @@ class ApiController(
                 emptyList()
             }
             song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-            val strText = song.convertMarkersToSrt(voice)
-            try {
-                val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
-                File(pathToFile).writeText(strText)
-                // #213: было chmod 666 — файл доступен на запись любому
-                // пользователю, а внешний процесс для этого не нужен.
-                setSongFilePermissions(pathToFile)
-            } catch (_: Exception) {
-                println("Ошибка при создании файла субтитров.")
-            }
+            // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
             song.setSourceText(voice, sourceText)
             song.setIndexTabsVariant(indexTabsVariant)
             true

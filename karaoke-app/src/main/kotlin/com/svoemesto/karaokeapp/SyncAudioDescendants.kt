@@ -11,7 +11,6 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
 import kotlin.concurrent.thread
@@ -371,7 +370,7 @@ object SyncAudioDescendants {
             child.audioCompareHistory = mergeCompareHistory(child, parent.id, similarityPercent, deltaMs)
             child.fields[SongField.ID_STATUS] = PARENT_READY_STATUS.toString()
             child.saveToDbLocked()
-            writeSrtFiles(child)
+            // specs/544-song-artifact-cleanup (FR-008): .srt-файлы больше не пишутся.
         } finally {
             inSync.remove()
         }
@@ -397,19 +396,6 @@ object SyncAudioDescendants {
             ),
         )
         return Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), history)
-    }
-
-    private fun writeSrtFiles(child: Song) {
-        child.sourceMarkersList.indices.forEach { voice ->
-            try {
-                val srt = child.convertMarkersToSrt(voice)
-                val pathToFile = "${child.rootFolder}/${child.fileName}.voice${voice + 1}.srt"
-                File(pathToFile).writeText(srt)
-                runCommand(listOf("chmod", "666", pathToFile))
-            } catch (e: Exception) {
-                println("[sync-audio] child=${child.id} — ошибка записи .srt (голос ${voice + 1}): ${e.message}")
-            }
-        }
     }
 
     // --- Массовая админ-функция ----------------------------------------------------------

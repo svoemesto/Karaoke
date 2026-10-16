@@ -60,9 +60,12 @@ enum class KaraokeFileType(
         description = "Минусовка в формате mp3",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        // specs/544-song-artifact-cleanup (FR-004): локальная копия mp3-стема больше не
+        // ожидается — она удаляется после успешной загрузки в оба хранилища, а источником
+        // истины остаются LOCAL_STORAGE и REMOTE_STORAGE. Без этой правки проверка здоровья
+        // ставила бы FF_MP3_*-задачи на каждой песне без локальной копии.
         locations =
             listOf(
-                KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
                 KaraokeFileTypeLocations.LOCAL_STORAGE,
                 KaraokeFileTypeLocations.REMOTE_STORAGE,
             ),
@@ -83,9 +86,12 @@ enum class KaraokeFileType(
         description = "Чистый голос в формате mp3",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        // specs/544-song-artifact-cleanup (FR-004): локальная копия mp3-стема больше не
+        // ожидается — она удаляется после успешной загрузки в оба хранилища, а источником
+        // истины остаются LOCAL_STORAGE и REMOTE_STORAGE. Без этой правки проверка здоровья
+        // ставила бы FF_MP3_*-задачи на каждой песне без локальной копии.
         locations =
             listOf(
-                KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
                 KaraokeFileTypeLocations.LOCAL_STORAGE,
                 KaraokeFileTypeLocations.REMOTE_STORAGE,
             ),
@@ -106,9 +112,12 @@ enum class KaraokeFileType(
         description = "Бас в формате mp3",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        // specs/544-song-artifact-cleanup (FR-004): локальная копия mp3-стема больше не
+        // ожидается — она удаляется после успешной загрузки в оба хранилища, а источником
+        // истины остаются LOCAL_STORAGE и REMOTE_STORAGE. Без этой правки проверка здоровья
+        // ставила бы FF_MP3_*-задачи на каждой песне без локальной копии.
         locations =
             listOf(
-                KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
                 KaraokeFileTypeLocations.LOCAL_STORAGE,
                 KaraokeFileTypeLocations.REMOTE_STORAGE,
             ),
@@ -129,9 +138,12 @@ enum class KaraokeFileType(
         description = "Ударные в формате mp3",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        // specs/544-song-artifact-cleanup (FR-004): локальная копия mp3-стема больше не
+        // ожидается — она удаляется после успешной загрузки в оба хранилища, а источником
+        // истины остаются LOCAL_STORAGE и REMOTE_STORAGE. Без этой правки проверка здоровья
+        // ставила бы FF_MP3_*-задачи на каждой песне без локальной копии.
         locations =
             listOf(
-                KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
                 KaraokeFileTypeLocations.LOCAL_STORAGE,
                 KaraokeFileTypeLocations.REMOTE_STORAGE,
             ),
@@ -152,9 +164,12 @@ enum class KaraokeFileType(
         description = "Мелодия без баса и ударных в формате mp3",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        // specs/544-song-artifact-cleanup (FR-004): локальная копия mp3-стема больше не
+        // ожидается — она удаляется после успешной загрузки в оба хранилища, а источником
+        // истины остаются LOCAL_STORAGE и REMOTE_STORAGE. Без этой правки проверка здоровья
+        // ставила бы FF_MP3_*-задачи на каждой песне без локальной копии.
         locations =
             listOf(
-                KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
                 KaraokeFileTypeLocations.LOCAL_STORAGE,
                 KaraokeFileTypeLocations.REMOTE_STORAGE,
             ),

@@ -4,6 +4,10 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.PublicationType
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.model.SongOutputFile
+import com.svoemesto.karaokeapp.model.SongVersion
+import com.svoemesto.karaokeapp.services.cleanup.ArtifactCleanupAutomation
+import com.svoemesto.karaokeapp.services.cleanup.ArtifactCleanupClass
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.sql.SQLException
@@ -311,9 +315,51 @@ class PremiumAutoPublishScheduler {
             song.premiumAutoPublishState = if (!tgSuccess || !vkSuccess) "FAILED" else "COMPLETE"
             // specs/357-folder-import-overwrite (FR-140): PremiumAutoPublishScheduler — scheduled task, объект song может жить минуты.
             song.saveToDbLocked()
+            // specs/544-song-artifact-cleanup (FR-001): демо-ролик не хранится после шага
+            // публикации — удаляем и при успехе, и при исчерпании попыток. Повторная
+            // публикация отрендерит его заново (FR-002), ручных шагов не требуется.
+            ArtifactCleanupAutomation.deleteAfterStage(
+                classId = ArtifactCleanupClass.DEMO_MP4,
+                path = song.pathToFileRenderMp4ForVersion(RenderVersion.DEMO),
+            )
+            // FR-005: публикационные картинки удаляем только когда обе площадки получили
+            // успех — при неудаче они ещё нужны повторной попытке. Решение о наборе классов
+            // вынесено в ArtifactCleanupAutomation.stageClassesAfterPublish (проверяемо тестом).
+            if (ArtifactCleanupClass.PUBLICATION_PNG in
+                ArtifactCleanupAutomation.stageClassesAfterPublish(tgSuccess = tgSuccess, vkSuccess = vkSuccess)
+            ) {
+                ArtifactCleanupAutomation.deleteAfterStage(
+                    classId = ArtifactCleanupClass.PUBLICATION_PNG,
+                    paths = publicationPicturePaths(song),
+                )
+            }
             return true
         }
         return false
+    }
+
+    /**
+     * Пути публикационных картинок песни (specs/544, FR-005).
+     *
+     * Считаются теми же геттерами, которыми картинки создаются
+     * (`UtilsPictures.kt`: `createSongPicture`, `createVKLinkPicture`,
+     * `createSponsrTeaserPicture`, `createBoostyTeaserPicture`,
+     * `createBoostyFilesPicture`), чтобы удалялось ровно созданное и ничего лишнего.
+     * Картинки воссоздаются из данных песни по запросу (FR-005).
+     */
+    private fun publicationPicturePaths(song: Song): List<String> {
+        val vkBase = song.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS)
+        return listOf(
+            song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS),
+            song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE),
+            song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.CHORDS),
+            song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.TABS),
+            vkBase.replace(" [lyrics] VK", " [VKlink]"),
+            vkBase.replace(" [lyrics] VK", " [VK]"),
+            song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER),
+            song.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER),
+            song.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES),
+        )
     }
 
     private fun maxAttempts(): Long = KaraokeProperties.getLong("premiumAutoPublishMaxAttempts").let { if (it <= 0) 3L else it }

@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.nio.file.Files
 import kotlin.properties.Delegates
 
 /**
@@ -810,6 +811,10 @@ data class HealthReport(
                                                 "karaokeFileType" to karaokeFileType.name,
                                                 "storageFileName" to storageFileName,
                                                 "bucketName" to storageBucketName,
+                                                // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                                // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                                // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                                "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                             ),
                                     )
                                 }
@@ -879,6 +884,10 @@ data class HealthReport(
                                             "karaokeFileType" to karaokeFileType.name,
                                             "storageFileName" to storageFileName,
                                             "bucketName" to storageBucketName,
+                                            // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                            // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                            // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                            "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                         ),
                                 )
                             }
@@ -1164,6 +1173,10 @@ data class HealthReport(
                                                 "karaokeFileType" to karaokeFileType.name,
                                                 "storageFileName" to storageFileName,
                                                 "bucketName" to storageBucketName,
+                                                // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                                // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                                // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                                "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                             ),
                                     )
                                 }
@@ -1233,6 +1246,10 @@ data class HealthReport(
                                             "karaokeFileType" to karaokeFileType.name,
                                             "storageFileName" to storageFileName,
                                             "bucketName" to storageBucketName,
+                                            // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                            // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                            // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                            "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                         ),
                                 )
                             }
@@ -2357,7 +2374,75 @@ data class HealthReport(
                 }
             }
 
+            // specs/544-song-artifact-cleanup (FR-015, research R7): каталоги симлинков
+            // проверяются ЦЕЛИКОМ, а не только в связке с существующим файлом-целью.
+            // Раньше битые ссылки и посторонние файлы в symlink_* не замечались вовсе —
+            // именно поэтому на дисках оставались ссылки на удалённые видео и мусор вида
+            // symlink_mp4/download.svg.
+            result.addAll(symlinkFolderReports(song))
+
             return result
+        }
+
+        /**
+         * Проверка каталогов симлинков песни целиком (specs/544, FR-015).
+         *
+         * Каталоги: [Song.pathToSymlinkFolderMP4], [Song.pathToSymlinkFolderPNG],
+         * [Song.pathToSymlinkFolderSponsr]. Ожидаемым содержимым считается только
+         * символическая ссылка с существующей целью; битая ссылка, обычный файл или
+         * подкаталог внутри `symlink_*` — нарушение с готовым действием удаления.
+         *
+         * @see specs/544-song-artifact-cleanup/data-model.md
+         */
+        private fun symlinkFolderReports(song: Song): List<HealthReport> {
+            val folders =
+                listOf(
+                    song.pathToSymlinkFolderMP4,
+                    song.pathToSymlinkFolderPNG,
+                    song.pathToSymlinkFolderSponsr,
+                )
+            val reports = mutableListOf<HealthReport>()
+            folders.forEach { folder ->
+                val folderFile = File(folder)
+                if (!folderFile.isDirectory) return@forEach
+                val entries =
+                    try {
+                        Files.list(folderFile.toPath()).use { it.toList() }
+                    } catch (e: Exception) {
+                        println("symlinkFolderReports: не удалось прочитать '$folder': ${e.message}")
+                        return@forEach
+                    }
+                entries.forEach { entry ->
+                    val path = entry.toString()
+                    val isLink = Files.isSymbolicLink(entry)
+                    val targetExists = Files.exists(entry)
+                    val isRegular = Files.isRegularFile(entry)
+                    val broken = isLink && !targetExists
+                    val foreign = !isLink && !isRegular
+                    val plainFile = isRegular && !isLink
+                    if (broken || foreign || plainFile) {
+                        val reason =
+                            when {
+                                broken -> "Битая символическая ссылка (цель удалена)"
+                                foreign -> "Посторонний объект в каталоге ссылок (не ссылка и не файл)"
+                                else -> "Посторонний файл в каталоге ссылок"
+                            }
+                        reports.add(
+                            HealthReport(
+                                healthReportType = FILE_VIOLATION,
+                                song = song,
+                                description = "${File(folder).name}/${File(path).name}",
+                                healthReportStatus = ERROR,
+                                canResolve = true,
+                                problemText = reason,
+                                solutionText = "Удалить '$path'",
+                                solutionActions = listOf(actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = path)),
+                            ),
+                        )
+                    }
+                }
+            }
+            return reports
         }
 
         // Типы заданий, которые HealthReport ставит в очередь как автоисправление. Только для них

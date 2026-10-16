@@ -3,6 +3,13 @@
 > **Домен**: [rendering](../domain.md)
 > **Компонент**: детальный MLT/melt пайплайн рендеринга караоке-видео.
 > Включает mko-классы, JPEG quality трюк, CPU-limit и lane-разделение.
+>
+> **[FROZEN]** Конвейер melt **заморожен** (specs/544, FR-017): новые песни
+> рендерит Playwright (`PlayerMp4RenderService` + `PlayerMp4MuxService`), а код
+> перестал создавать файлы проектов рендера (`.mlt`/`.kdenlive`/`.run`) —
+> specs/544, FR-009. Описанное ниже сохраняется как историческая справка о
+> легаси-пути; типы процессов `MELT_*` остаются в коде и выводятся из
+> эксплуатации отдельным решением.
 
 ## Ответственность | Responsibility
 
@@ -60,7 +67,7 @@ Song (idStatus=4: MARKED)
   ↓
 [5] JPEG quality 95 trick для text-слоёв
   ↓
-[6] MP4 → MinIO done_files/<songId>/<version>.mp4
+[6] MP4 → локально done_files/<song> <version>.mp4 (+ копия в /sm-karaoke/store)
   ↓
 [7] Event VideoRendered → Song.idStatus = 5
 ```
@@ -81,11 +88,13 @@ Song (idStatus=4: MARKED)
 
 **[WARN]** Качество ниже 0.90 даёт артефакты вокруг текста. Не уменьшать.
 
-### Шаг [6]: выход MP4 в MinIO
+### Шаг [6]: выход MP4 (легаси-описание, исправлено specs/544)
 
-- Ключ: `done_files/<songId>/<version>.mp4`.
-- Версии: `lyrics`, `karaoke`, `demo` (lowercase для URL).
-- `SongPublicDTO.videoUrl` строится из этого ключа + MinIO endpoint.
+- **Было (неверно)**: «MP4 → MinIO `done_files/<songId>/<version>.mp4`».
+- **Факт**: видео складывается в `done_files/` рядом с песней и копируется в
+  `/sm-karaoke/store`; **в MinIO видео не загружается** — там только mp3-стемы и
+  картинки (specs/544, FR-016).
+- Версии: `lyrics`, `karaoke`, `demo` (суффиксы `[lyrics]`/`[karaoke]`/`[demo]`).
 
 ## Зависимости | Dependencies
 

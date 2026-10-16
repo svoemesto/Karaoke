@@ -136,6 +136,34 @@ fun Song.isContentReady(): Boolean =
 кешируется через [caching context](../../../adr/0001-raw-jdbc.md)
 (см. `StatBySong` AtomicInteger-кеш).
 
+### Вердикты классов артефактов (`ArtifactCleanupClass`, specs/544)
+
+`ArtifactCleanupClass` (`karaoke-app/.../services/cleanup/ArtifactCleanupClass.kt`) —
+реестр классов файлов песни: единственное место правды о том, что с каким артефактом
+делаем. Им пользуются и автоматическая уборка на шагах жизненного цикла, и разовая
+чистка истории (`/api/cleanup`).
+
+| Вердикт | Смысл |
+| --- | --- |
+| `PROTECTED` | Не удаляется ничем и никогда (исходный flac, flac-стемы). |
+| `KEEP` | Остаётся как есть — у артефакта есть читатель. |
+| `STOP_CREATING` | Код перестал создавать артефакт. |
+| `DELETE_AFTER_STAGE` | Удаляется на шаге жизненного цикла (например, в конце публикации). |
+| `DELETE_EXISTING` | Удаляется разовой чисткой истории. |
+| `NOT_TOUCH` | Есть читатель — руками не трогать. |
+
+Порядок чистки (`cleanupOrder` 1..7) идёт от крупных низкорисковых классов к мелким:
+демо-ролики → локальные mp3-стемы → публикационные картинки → проекты рендера →
+sidecar-состояние → субтитры → гигиена.
+
+**Вне модели `KaraokeFileType`.** Файлы `.song`/`.settings` (сериализованное состояние
+песни), `.srt`/`.srt.backup`, `.mlt`/`.kdenlive`/`.run` в `KaraokeFileType` НЕ входят,
+поэтому проверка здоровья их не аудирует. Состояние песни в них больше не пишется:
+источник истины — БД (`Song.saveToDb`), а разметка голосов выгружается по запросу
+функцией `Song.convertMarkersToSrt` (specs/544, FR-006/FR-008).
+
+Значения вердиктов в БД и API не хранятся (схема БД не меняется) — это код.
+
 ## Зависимости | Dependencies
 
 - → [song-lifecycle](song-lifecycle.md) — жизненный цикл `IdStatus`.
@@ -144,6 +172,8 @@ fun Song.isContentReady(): Boolean =
   рендер завершён.
 - → [processing](../../processing/domain.md) — `IdStatus=3` означает, что
   стемы готовы.
+- → [storage](../../storage/domain.md) — политика содержимого MinIO (mp3-стемы и
+  картинки; specs/544, FR-016).
 
 ## Связанные ADR | Related ADRs
 

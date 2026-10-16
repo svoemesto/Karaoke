@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.services.cleanup
 
+import com.svoemesto.karaokeapp.PUBLICATION_PICTURE_NAME_SUFFIXES
+
 import com.svoemesto.karaokeapp.model.SongOutputFile
 
 /**
@@ -152,18 +154,7 @@ enum class ArtifactCleanupClass(
                 CleanupFileMatcher(
                     subFolder = CLEANUP_DONE_FILES_FOLDER,
                     extensions = listOf(".png"),
-                    nameContainsAny =
-                        listOf(
-                            "[karaoke]",
-                            "[lyrics]",
-                            "[chords]",
-                            "[tabs]",
-                            "[sponsr]",
-                            "[VKlink]",
-                            "[VK]",
-                            "[boosty]",
-                            "[files]",
-                        ),
+                    nameContainsAny = PUBLICATION_PICTURE_NAME_SUFFIXES,
                 ),
             ),
     ),

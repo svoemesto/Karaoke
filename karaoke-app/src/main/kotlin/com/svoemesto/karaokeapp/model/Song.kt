@@ -6061,6 +6061,101 @@ class Song(
         }
     }
 
+    /**
+     * Полное переименование артефактов песни при смене имени файла (issue #323).
+     *
+     * Дополняет [renameCascadeExtraArtifacts] тем, что тот не покрывал: исходный аудиофайл,
+     * `[key].json`, flac-стемы в `hdemucs_mmi`, вложения `done_files`/`done_chords`/`sheetsage`,
+     * символические ссылки в `symlink_*` и объекты публикационных картинок в обоих хранилищах.
+     * До этой правки перечисленное оставалось со старым именем, и проверка здоровья сразу
+     * показывала `AUDIO_SONG`/`AUDIO_ACCOMPANIMENT`/`AUDIO_VOCAL` по `LOCAL_FILESYSTEM`.
+     *
+     * Локальная часть выполняется [SongArtifactRenamer]; правило совпадения имён там же.
+     * Метод идемпотентен: отсутствующие файлы и уже перенесённые объекты пропускаются.
+     *
+     * @param oldFileName прежнее значение [fileName] (в момент вызова поле уже содержит новое).
+     * @see specs/323-complete-song-rename
+     */
+    fun renameAllArtifacts(oldFileName: String) {
+        if (oldFileName == fileName) return
+
+        val renamed = SongArtifactRenamer.renameLocal(rootFolder, oldFileName, fileName)
+        if (renamed.isNotEmpty()) {
+            println("[renameAllArtifacts] переименовано локальных артефактов: ${renamed.size}")
+        }
+
+        val oldStorageFileName = "$author/$year - $album/$oldFileName"
+        PUBLICATION_PICTURE_NAME_SUFFIXES.forEach { suffix ->
+            moveStorageObject(
+                oldKey = "$oldStorageFileName $suffix.png",
+                newKey = "$storageFileName $suffix.png",
+                description = "картинка $suffix",
+            )
+        }
+    }
+
+    /**
+     * Перенести объект из старого ключа в новый в обоих хранилищах (локальном и удалённом).
+     *
+     * Если объект есть локально на диске — он используется как источник, иначе объект
+     * скачивается из старого ключа во временный файл. Старый ключ удаляется только после
+     * успешной загрузки нового. Отсутствие объекта в хранилище — не ошибка.
+     */
+    private fun moveStorageObject(
+        oldKey: String,
+        newKey: String,
+        description: String,
+    ) {
+        val localSourcePath = localPathForStorageKey(oldKey)?.takeIf { File(it).exists() }
+
+        try {
+            if (storageService.fileExists(storageBucketName, oldKey)) {
+                if (localSourcePath != null) {
+                    storageService.uploadFile(storageBucketName, newKey, localSourcePath)
+                } else {
+                    val tmp = File.createTempFile("song-rename-", ".png")
+                    try {
+                        storageService.downloadFile(storageBucketName, oldKey, tmp.absolutePath)
+                        storageService.uploadFile(storageBucketName, newKey, tmp.absolutePath)
+                    } finally {
+                        tmp.delete()
+                    }
+                }
+                storageService.deleteFile(storageBucketName, oldKey)
+            }
+        } catch (e: Exception) {
+            println("[renameAllArtifacts] локальное хранилище, $description: ${e.message}")
+        }
+
+        try {
+            if (storageApiClient.fileExists(storageBucketName, oldKey)) {
+                if (localSourcePath != null) {
+                    storageApiClient.uploadFile(storageBucketName, newKey, localSourcePath)
+                } else {
+                    val tmp = File.createTempFile("song-rename-remote-", ".png")
+                    try {
+                        storageApiClient.downloadFile(storageBucketName, oldKey, tmp.absolutePath)
+                        storageApiClient.uploadFile(storageBucketName, newKey, tmp.absolutePath)
+                    } finally {
+                        tmp.delete()
+                    }
+                }
+                storageApiClient.deleteFile(storageBucketName, oldKey).block()
+            }
+        } catch (e: Exception) {
+            println("[renameAllArtifacts] удалённое хранилище, $description: ${e.message}")
+        }
+    }
+
+    /**
+     * Локальный файл, соответствующий ключу хранилища, — если он вообще бывает на диске.
+     *
+     * Для картинок публикации это `done_files/<имя> [метка].png`; ключ хранилища начинается с
+     * `автор/год - альбом/`, поэтому имя файла — всё, что идёт после последнего `/`.
+     */
+    private fun localPathForStorageKey(storageKey: String): String? =
+        storageKey.substringAfterLast('/').takeIf { it.isNotBlank() }?.let { "$rootFolder/done_files/$it" }
+
     // specs/544-song-artifact-cleanup (FR-009): createKdenliveFiles() удалён — файлы
     // .kdenlive/.kdenlive.srt больше не создаются (читателей в коде не было).
 

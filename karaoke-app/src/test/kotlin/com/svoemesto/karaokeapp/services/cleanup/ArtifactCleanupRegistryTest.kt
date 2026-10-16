@@ -17,8 +17,78 @@ import org.junit.jupiter.api.Test
  */
 class ArtifactCleanupRegistryTest {
     @Test
-    fun `реестр содержит все 16 классов из data-model`() {
-        assertEquals(16, ArtifactCleanupClass.entries.size)
+    fun `реестр содержит все 17 классов из data-model`() {
+        // 16 исходных + MLT_PROJECTS (KEEP), выделенный решением владельца 2026-10-16
+        assertEquals(17, ArtifactCleanupClass.entries.size)
+    }
+
+    @Test
+    fun `MLT-проекты не удаляются - их читает живой melt-конвейер`() {
+        // Решение владельца 2026-10-16 (вариант A): .mlt создаётся и НЕ удаляется —
+        // аргументы MELT_*-процессов ссылаются на done_projects/*.mlt (KaraokeProcess.kt:1135-1147)
+        val mlt = ArtifactCleanupClass.MLT_PROJECTS
+        assertEquals(setOf(ArtifactCleanupVerdict.KEEP), mlt.verdicts)
+        assertTrue(mlt.isProtected, "KEEP обязан отбиваться API так же, как PROTECTED")
+        assertFalse(mlt.isDeletable)
+        assertFalse(mlt.isDeletedAfterStage)
+        assertEquals(0, mlt.cleanupOrder, "класс не участвует в разовой чистке")
+        assertEquals(2_198L, mlt.expectedFileCount)
+        assertTrue(mlt.matchers.any { ".mlt" in it.extensions })
+    }
+
+    @Test
+    fun `ни один удаляемый класс не матчит файлы mlt`() {
+        // Дефект, найденный на ревью: DONE_PROJECTS матчил done_projects/*.mlt — разовая
+        // чистка класса 4 снесла бы проекты, нужные melt-конвейеру (нарушение SC-008)
+        ArtifactCleanupClass.entries
+            .filter { it.isDeletable || it.isDeletedAfterStage }
+            .forEach { cls ->
+                cls.matchers.forEach { matcher ->
+                    assertFalse(
+                        matcher.matchesPath("song.mlt", ArtifactCleanupClass.DONE_PROJECTS_FOLDER),
+                        "${cls.name} не должен матчить .mlt",
+                    )
+                }
+            }
+    }
+
+    @Test
+    fun `классы с читателем не удаляются ни одним путём`() {
+        ArtifactCleanupClass.entries
+            .filter {
+                ArtifactCleanupVerdict.KEEP in it.verdicts || ArtifactCleanupVerdict.NOT_TOUCH in it.verdicts
+            }.forEach { cls ->
+                assertTrue(cls.isProtected, "${cls.name}: класс с читателем должен отбиваться API")
+                assertFalse(cls.isDeletable, "${cls.name}: не может быть DELETE_EXISTING")
+                assertFalse(cls.isDeletedAfterStage, "${cls.name}: не может быть DELETE_AFTER_STAGE")
+            }
+    }
+
+    @Test
+    fun `файлы сохранённых классов не попадают ни в один удаляемый класс`() {
+        // Сквозная проверка пересечений (пункт 4 ревью): представители KEEP/NOT_TOUCH
+        // прогоняются через то же правило матчинга, что использует планировщик.
+        val saved =
+            listOf(
+                Triple("song [lyrics].txt", ArtifactCleanupClass.DONE_FILES_FOLDER, ArtifactCleanupClass.SONG_TXT),
+                Triple("song [sheetsage].pdf", ArtifactCleanupClass.SHEETSAGE_FOLDER, ArtifactCleanupClass.SHEETSAGE),
+                Triple("song [key].json", "", ArtifactCleanupClass.KEY_JSON),
+                Triple("song.mlt", ArtifactCleanupClass.DONE_PROJECTS_FOLDER, ArtifactCleanupClass.MLT_PROJECTS),
+                Triple("key_bpm.csv", "", ArtifactCleanupClass.KEY_BPM_CSV),
+            )
+        val deletable = ArtifactCleanupClass.entries.filter { it.isDeletable || it.isDeletedAfterStage }
+        saved.forEach { (fileName, parent, owner) ->
+            assertTrue(
+                owner.matchers.any { it.matchesPath(fileName, parent) },
+                "${owner.name}: собственный матчер должен узнавать '$fileName'",
+            )
+            deletable.forEach { cls ->
+                assertFalse(
+                    cls.matchers.any { it.matchesPath(fileName, parent) },
+                    "'$fileName' (${owner.name}) не должен попадать в удаляемый класс ${cls.name}",
+                )
+            }
+        }
     }
 
     @Test
@@ -57,6 +127,9 @@ class ArtifactCleanupRegistryTest {
         val orders = ordered.map { it.cleanupOrder }
         assertEquals(orders.sorted(), orders, "cleanupOrder должен быть неубывающим в порядке чистки")
         assertTrue(orders.all { it in 1..7 }, "cleanupOrder участвующих классов лежит в 1..7: $orders")
+        // Набор различных значений строго возрастает и покрывает шаги 1..7 без пропусков:
+        // внутри шага возможно несколько классов (3 — картинки, 7 — гигиена).
+        assertEquals((1..7).toList(), orders.distinct())
     }
 
     @Test

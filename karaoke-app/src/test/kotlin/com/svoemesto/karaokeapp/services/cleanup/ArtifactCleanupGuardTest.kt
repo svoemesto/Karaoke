@@ -198,6 +198,40 @@ class ArtifactCleanupGuardTest {
     }
 
     @Test
+    fun `plan на MLT-проекты отклоняется - их читает живой melt-конвейер`() {
+        // Дефект ревью: класс 4 матчил done_projects/*.mlt и снёс бы 2 198 файлов,
+        // на которые ссылаются MELT_*-процессы. Теперь .mlt — отдельный класс с KEEP.
+        val mlt = songFile("song.mlt")
+        val e = runCatching { service().plan("MLT_PROJECTS") }.exceptionOrNull()
+
+        assertTrue(e is CleanupException, "ожидался CleanupException, получено: $e")
+        assertEquals(400, (e as CleanupException).code)
+        assertEquals("protected_class", e.errorCode)
+        assertTrue(Files.exists(mlt), "ни один .mlt не должен быть удалён")
+    }
+
+    @Test
+    fun `планировщик сам отбивает сохранённые классы`() {
+        // Вторая линия защиты: даже в обход сервиса планировщик не строит отчёт по классу
+        // с читателем (KEEP/NOT_TOUCH/PROTECTED) — это 400, а не пустой отчёт.
+        val planner = ArtifactCleanupPlanner(roots = listOf(tempDir.toString()))
+        ArtifactCleanupClass.entries.filter { it.isProtected }.forEach { cls ->
+            val e = runCatching { planner.plan(cls) }.exceptionOrNull()
+            assertTrue(e is CleanupException, "${cls.name}: планировщик обязан отбить защищённый класс")
+            assertEquals(400, (e as CleanupException).code)
+        }
+    }
+
+    @Test
+    fun `удаляемые классы планировщик принимает`() {
+        val planner = ArtifactCleanupPlanner(roots = listOf(tempDir.toString()))
+        ArtifactCleanupClass.deletable().forEach { cls ->
+            val plan = planner.plan(cls)
+            assertNotNull(plan.fingerprint)
+        }
+    }
+
+    @Test
     fun `предпосылка порядка работ для локальных mp3-стемов выполнена`() {
         // FR-004/FR-013: класс STEMS_MP3_LOCAL допускается к чистке только после правки
         // модели ожидаемых файлов. Проверяем, что предпосылка действительно выполнена —

@@ -83,8 +83,16 @@ class ArtifactCleanupPlanner(
      * @throws IllegalArgumentException если класс защищён или не участвует в разовой чистке.
      */
     fun plan(classId: ArtifactCleanupClass): CleanupPlan {
-        require(!classId.isProtected) { "класс ${classId.name} защищён и не может быть удалён (FR-010)" }
-        require(classId.isDeletable) { "класс ${classId.name} не участвует в разовой чистке" }
+        if (classId.isProtected) {
+            throw CleanupException(
+                400,
+                "protected_class",
+                "класс ${classId.name} не удаляется (вердикты ${classId.verdicts.map { it.name }}) — FR-010",
+            )
+        }
+        if (!classId.isDeletable) {
+            throw CleanupException(400, "not_deletable", "класс ${classId.name} не участвует в разовой чистке")
+        }
 
         val entries = mutableListOf<CleanupPlanEntry>()
         roots
@@ -142,42 +150,9 @@ class ArtifactCleanupPlanner(
         if (!Files.isRegularFile(path)) return false
 
         return classId.matchers.any { matcher ->
-            parentMatches(matcher, parentName) &&
-                extensionMatches(matcher, fileName) &&
-                nameMatches(matcher, fileName) &&
-                sizeMatches(matcher, path)
+            matcher.matchesPath(fileName = fileName, parentFolderName = parentName, sizeBytes = sizeOf(path))
         }
     }
-
-    private fun parentMatches(
-        matcher: CleanupFileMatcher,
-        parentName: String,
-    ): Boolean =
-        if (matcher.subFolder.isEmpty()) {
-            // корень папки песни (там же, где исходный flac) — не известный подкаталог
-            !ArtifactCleanupClass.KNOWN_SUBFOLDERS.contains(parentName)
-        } else {
-            matcher.subFolder == parentName
-        }
-
-    private fun extensionMatches(
-        matcher: CleanupFileMatcher,
-        fileName: String,
-    ): Boolean = matcher.extensions.isEmpty() || matcher.extensions.any { fileName.endsWith(it) }
-
-    private fun nameMatches(
-        matcher: CleanupFileMatcher,
-        fileName: String,
-    ): Boolean {
-        if (matcher.nameExactly.isNotEmpty() && fileName != matcher.nameExactly) return false
-        if (matcher.nameContainsAny.isNotEmpty() && matcher.nameContainsAny.none { fileName.contains(it) }) return false
-        return true
-    }
-
-    private fun sizeMatches(
-        matcher: CleanupFileMatcher,
-        path: Path,
-    ): Boolean = matcher.maxBytes?.let { sizeOf(path) <= it } ?: true
 
     private fun sizeOf(path: Path): Long =
         try {

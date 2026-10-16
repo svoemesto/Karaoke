@@ -203,19 +203,38 @@ enum class ArtifactCleanupClass(
         matchers = listOf(CleanupFileMatcher(subFolder = CLEANUP_SHEETSAGE_FOLDER)),
     ),
     DONE_PROJECTS(
-        title = "Проекты рендера (done_projects + .kdenlive в корне)",
+        title = "Мёртвые проекты рендера (done_projects + .kdenlive в корне)",
         verdicts = setOf(ArtifactCleanupVerdict.STOP_CREATING, ArtifactCleanupVerdict.DELETE_EXISTING),
         cleanupOrder = 4,
-        expectedFileCount = 8_650,
-        expectedBytes = gigibytes(8.7),
-        note = "Код перестаёт создавать (FR-009); замороженный melt-конвейер, читателей нет",
+        // 8 650 файлов / 8,7 ГБ по инвентаризации включали 2 198 *.mlt (4,3 ГБ) — они выделены
+        // в отдельный класс MLT_PROJECTS с вердиктом KEEP (решение владельца 2026-10-16).
+        expectedFileCount = 6_452,
+        expectedBytes = gigibytes(4.4),
+        note = "Код перестаёт создавать (FR-009 сужен 2026-10-16: .kdenlive/.run); читателей у .kdenlive/.run/.txt нет. .mlt — отделяемый класс MLT_PROJECTS",
         matchers =
             listOf(
                 CleanupFileMatcher(
                     subFolder = CLEANUP_DONE_PROJECTS_FOLDER,
-                    extensions = listOf(".mlt", ".kdenlive", ".run", ".txt"),
+                    extensions = listOf(".kdenlive", ".run", ".txt"),
                 ),
                 CleanupFileMatcher(subFolder = "", extensions = listOf(".kdenlive")),
+            ),
+    ),
+    MLT_PROJECTS(
+        title = "MLT-проекты рендера (живой melt-конвейер)",
+        verdicts = setOf(ArtifactCleanupVerdict.KEEP),
+        cleanupOrder = 0,
+        expectedFileCount = 2_198,
+        expectedBytes = gigibytes(4.3),
+        note =
+            "Остаётся: файл читается живым (хотя и замороженным в развитии) melt-конвейером — " +
+                "аргументы MELT_LYRICS/MELT_KARAOKE/MELT_CHORDS ссылаются на done_projects/*.mlt " +
+                "(KaraokeProcess.kt:1135-1147), а сами процессы ставятся из MainController.kt:470,489,511,534 " +
+                "и KaraokeProcessWorker.applyRenderSideEffect. Удаление сломало бы их (SC-008); " +
+                "решение владельца 2026-10-16 (вариант A): .mlt создаётся и НЕ удаляется",
+        matchers =
+            listOf(
+                CleanupFileMatcher(subFolder = CLEANUP_DONE_PROJECTS_FOLDER, extensions = listOf(".mlt")),
             ),
     ),
     SRT(
@@ -299,9 +318,19 @@ enum class ArtifactCleanupClass(
     ),
     ;
 
-    /** Класс защищён от удаления: API чистки отклоняет его всегда (FR-010). */
+    /**
+     * Класс не удаляется ничем: API чистки отклоняет его всегда (FR-010).
+     *
+     * Сюда входят все вердикты, при которых удаление запрещено: `PROTECTED` (неприкосновенный
+     * источник — исходники и flac-стемы), `KEEP` (файл живой и нужный, например `.mlt` для
+     * melt-конвейера) и `NOT_TOUCH` (есть читатель, трогать руками нельзя). Без `KEEP` в этом
+     * списке класс `MLT_PROJECTS` можно было бы удалить через `plan`/`apply`.
+     */
     val isProtected: Boolean
-        get() = ArtifactCleanupVerdict.PROTECTED in verdicts || ArtifactCleanupVerdict.NOT_TOUCH in verdicts
+        get() =
+            ArtifactCleanupVerdict.PROTECTED in verdicts ||
+                ArtifactCleanupVerdict.KEEP in verdicts ||
+                ArtifactCleanupVerdict.NOT_TOUCH in verdicts
 
     /** Класс участвует в разовой чистке истории. */
     val isDeletable: Boolean get() = ArtifactCleanupVerdict.DELETE_EXISTING in verdicts
@@ -344,6 +373,44 @@ enum class ArtifactCleanupClass(
         fun byId(classId: String): ArtifactCleanupClass? =
             entries.firstOrNull { it.name.equals(classId.trim(), ignoreCase = true) }
     }
+}
+
+/**
+ * Подходит ли файл под матчер: расположение + имя + размер.
+ *
+ * @param parentFolderName имя каталога-родителя файла; пустой [CleanupFileMatcher.subFolder]
+ *   означает корень папки песни (родитель не из [ArtifactCleanupClass.KNOWN_SUBFOLDERS]).
+ */
+fun CleanupFileMatcher.matchesPath(
+    fileName: String,
+    parentFolderName: String,
+    sizeBytes: Long = 0L,
+): Boolean {
+    val parentOk =
+        if (subFolder.isEmpty()) {
+            !ArtifactCleanupClass.KNOWN_SUBFOLDERS.contains(parentFolderName)
+        } else {
+            subFolder == parentFolderName
+        }
+    return parentOk && matchesFileName(fileName, sizeBytes)
+}
+
+/**
+ * Подходит ли файл под матчер по имени и размеру (расположение проверяет вызывающая сторона).
+ *
+ * Вынесено из [ArtifactCleanupPlanner] в общий код, чтобы реестр, планировщик и тесты
+ * пользовались одним правилом: именно на этом правиле ловятся пересечения классов
+ * (например, `.mlt` не должен попадать ни в один удаляемый класс — FR-010/FR-013).
+ */
+fun CleanupFileMatcher.matchesFileName(
+    fileName: String,
+    sizeBytes: Long = 0L,
+): Boolean {
+    if (nameExactly.isNotEmpty() && fileName != nameExactly) return false
+    if (extensions.isNotEmpty() && extensions.none { fileName.endsWith(it) }) return false
+    if (nameContainsAny.isNotEmpty() && nameContainsAny.none { fileName.contains(it) }) return false
+    if (maxBytes != null && sizeBytes > maxBytes) return false
+    return true
 }
 
 private fun kibibytes(value: Double): Long = (value * 1024.0).toLong()

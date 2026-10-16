@@ -91,24 +91,70 @@ OK: All 677 cross-links valid
 
 $ bash tools/check-feature-doc.sh docs/features/*.md
 ==> Все документы валидны
+
+$ bash tools/check-knowledge-cross-links.sh
+[1/2] Проверка относительных путей в Markdown...
+[2/2] Проверка related: slugs (basic)...
+Total link checks: 677 (skipped 0 placeholder(s))
+OK: All 677 cross-links valid
 ```
+
+> Гейт `check-knowledge-cross-links.sh` добавлен в список после ревью: его не было в T037,
+> и CI падал на сломанной ссылке `../rendering/components/mlt-pipeline.md` (исправлена лидом).
 
 **Юнит-тесты** (`:karaoke-app:test`, фильтр по новым классам; в CI тестов нет —
 Constitution § «Рабочий процесс»):
 
 | Класс тестов | Тестов | Результат |
 |---|---|---|
-| `ArtifactCleanupRegistryTest` | 9 | 0 failures |
+| `ArtifactCleanupRegistryTest` | 13 | 0 failures |
 | `CleanupJournalTest` | 8 | 0 failures |
 | `DemoMp4CleanupTest` | 10 | 0 failures |
 | `StemsMp3LocalDeleteTest` | 6 | 0 failures |
 | `HealthReportMp3LocationsTest` | 5 | 0 failures |
-| `ArtifactCleanupGuardTest` | 13 | 0 failures |
+| `ArtifactCleanupGuardTest` | 16 | 0 failures |
 | `HasChordsFromDbTest` | 8 | 0 failures |
 | `RenameWithoutSidecarTest` | 6 | 0 failures |
 
 Фронтенды (`webvue3/`, `karaoke-public/`) в этой поставке не менялись — `npm run lint`/`build`
 для них не запускались.
+
+## Исправлено после ревью лида (2026-10-16)
+
+**Решение владельца (вариант A)**: FR-009 сужен до `.kdenlive`/`.run`; `.mlt` продолжает
+создаваться (его читает живой melt-конвейер), вывод `MELT_*`-процессов из эксплуатации —
+отдельная работа.
+
+**Найденный на ревью дефект**: матчер класса `DONE_PROJECTS` включал расширение `.mlt`,
+то есть разовая чистка класса 4 снесла бы 2 198 файлов `done_projects/*.mlt` — ровно те, на
+которые ссылаются аргументы `MELT_*`-процессов (`KaraokeProcess.kt:1135-1147`). Это нарушало
+бы решение владельца и SC-008.
+
+Что сделано:
+
+- из `DONE_PROJECTS` убран `.mlt`; объёмы класса пересчитаны (6 452 файла ≈4,4 ГБ вместо
+  8 650 / 8,7 ГБ), `note` исправлен — «читателей нет» верно для `.kdenlive`/`.run`/`.txt`;
+- добавлен отдельный класс `MLT_PROJECTS` (`done_projects/*.mlt`, 2 198 файлов / 4,3 ГБ) с
+  вердиктом `KEEP` и пояснением, почему `.mlt` остаётся;
+- `KEEP` включён в `isProtected`: теперь API чистки отбивает такие классы так же, как
+  `PROTECTED`/`NOT_TOUCH` (иначе `MLT_PROJECTS` можно было бы удалить через `plan`/`apply`);
+- отказ планировщика переведён с `require` (давал бы 500) на `CleanupException` → `400`;
+- правило матчинга вынесено в общий код (`CleanupFileMatcher.matchesPath` /
+  `matchesFileName`), им пользуются и планировщик, и тесты;
+- тесты: реестр 13 (+4), предохранители 16 (+3) — проверяют, что `.mlt` не попадает ни в один
+  удаляемый класс, что `plan`/`apply` по `MLT_PROJECTS` отклоняются (400) и что представители
+  всех классов `KEEP`/`NOT_TOUCH` (`song [lyrics].txt`, `song [sheetsage].pdf`,
+  `song [key].json`, `song.mlt`, `key_bpm.csv`) не попадают ни в один удаляемый класс.
+
+**Проверка остальных матчеров (пункт 4 ревью)**: пересечений с `KEEP`/`NOT_TOUCH` не найдено.
+`HYGIENE_JUNK` не матчит `key_bpm.csv` (точное имя) и `LogoAlbum.png` (требуется имя из
+списка или каталог/расширение видео); `SRT` ограничен корнем папки песни и расширениями
+`.srt`/`.srt.backup` — в известные подкаталоги (`done_files`, `sheetsage`, `hdemucs_mmi`,
+`symlink_*`) не заходит; `SONG_SIDECAR` — только `.song`/`.settings`. Единственное
+наблюдение: правило «корень папки песни = родитель, не входящий в известные подкаталоги»
+означает, что файл `.srt` во вложенной пользовательской папке внутри альбома тоже попадёт в
+класс `SRT`; класс удаляется только по утверждённому отчёту сухого прогона, поэтому риск
+ограничен и вынесен на приёмку.
 
 ## Что осталось за владельцем
 

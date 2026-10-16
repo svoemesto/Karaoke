@@ -20,10 +20,23 @@ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin 
 cd /home/nsa/Karaoke/deploy && bash do.sh start_app
 
 # 3. Флаги проверки (по умолчанию уборка выключена, сухой прогон включён)
-curl -s http://localhost:8898/api/properties | grep -E "cleanup(Enabled|DryRun)"
+for k in cleanupEnabled cleanupDryRun; do
+  curl -s -X POST http://localhost:8898/api/properties/getproperty --data-urlencode "key=$k"; echo
+done
 ```
 
 Ожидаемо: `cleanupEnabled=false`, `cleanupDryRun=true`.
+
+**Включение уборки для сценариев, где проверяется факт удаления** (SC-001, SC-002):
+
+```bash
+for kv in "cleanupEnabled=true" "cleanupDryRun=false"; do
+  curl -s -X POST http://localhost:8898/api/properties/setproperty --data-urlencode "${kv%%=*}=${kv#*=}"; echo
+done
+```
+
+Без этого демо-ролик и локальные mp3 остаются на месте **по замыслу** (FR-011: уборка
+по умолчанию выключена, сухой прогон включён).
 
 **Замер «до»** (сохранить для сравнения после чистки):
 
@@ -36,6 +49,8 @@ python3 /home/nsa/Karaoke/.scratch/karaoke/305-disk-artifacts/analyze.py > /tmp/
 
 ## Сценарий 1 — демо-ролики не копятся (US1, SC-001, SC-007)
 
+0. Включить уборку (см. § Предусловия, шаг 3): `cleanupEnabled=true`, `cleanupDryRun=false` —
+   иначе файл останется по замыслу и SC-001 проверен не будет.
 1. Выбрать тестовую песню и поставить публикацию в Telegram (и/или ВК) из админки.
 2. Дождаться завершения шага публикации.
 3. Проверить:

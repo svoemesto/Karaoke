@@ -99,8 +99,8 @@ MinIO и удалённый MinIO) завершились успешно. Реа
 
 ## R5. Снятие мёртвых писателей
 
-**Decision**: удалить запись `.song` (`Song.saveToFile` и его вызовы в
-`Song.kt:5277`, `ApiController.kt:2987`, `MainController.kt:1838`, `:2027`),
+**Decision**: удалить запись `.song` (`Song.saveToFile` — объявление `Song.kt:5970`,
+вызовы `Song.kt:5277`, `ApiController.kt:2987`, `MainController.kt:1838`, `:2027`),
 мёртвый загрузчик `Song.loadFromFile` (`Song.kt:8361`), создание `.kdenlive`/`.run`
 (`Song.createKdenliveFiles`, `Song.kt:6090-6102`; `Song.kt:6119-6157`) и файлов
 проектов рендера (`Functions.kt:450-477`), а также `.srt`-запись в семи местах.

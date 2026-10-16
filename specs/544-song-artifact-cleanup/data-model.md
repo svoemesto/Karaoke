@@ -50,7 +50,7 @@
 | `MP3_ACCOMPANIMENT`, `MP3_VOCAL`, `MP3_DRUMS`, `MP3_BASS`, `MP3_OTHER` | `LOCAL_FILESYSTEM`, `LOCAL_STORAGE`, `REMOTE_STORAGE` | `LOCAL_STORAGE`, `REMOTE_STORAGE` | проверка здоровья перестаёт считать отсутствие локальной копии нарушением и перестаёт ставить `FF_MP3_*` |
 | `AUDIO_SONG` (`<song>.flac`) | `LOCAL_FILESYSTEM` | без изменений | защищённый класс |
 | `AUDIO_ACCOMPANIMENT` / `AUDIO_VOCAL` / `AUDIO_BASS` / `AUDIO_DRUMS` / `AUDIO_OTHER` (flac-стемы) | `LOCAL_FILESYSTEM` | без изменений | защищённый класс; авторемонт `DEMUCS2` сохраняется |
-| `PICTURE_PUBLICATION`, `PICTURE_SONGVERSION` | `LOCAL_FILESYSTEM` | без изменений | публикационные картинки удаляются после публикации; чтобы не было пересоздания — снять ожидание в ветках `HealthReport` (см. FR-005) |
+| `PICTURE_PUBLICATION`, `PICTURE_SONGVERSION` | `LOCAL_FILESYSTEM` | без изменений | публикационные картинки удаляются после публикации (FR-005); правка ожиданий не нужна: оба типа уже входят в `LEGACY_MLT_FILE_TYPES` (`HealthReport.kt:1363-1375`) и пропускаются циклом (`:1504-1505`) — авторемонт по ним не запускается |
 | `VIDEO_SONGVERSION_1080P/720P` | `LOCAL_FILESYSTEM` | без изменений | видео (`[lyrics]`/`[karaoke]`) не входит в чистку |
 | `.srt`, `.song`, `.settings`, `.mlt`, `.kdenlive` | в `KaraokeFileType` отсутствуют | без изменений | вне модели здоровья — удаляются без последствий для ремонта |
 

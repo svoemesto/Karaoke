@@ -114,7 +114,9 @@ specs/544-song-artifact-cleanup/
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/
 ├── KaraokeFileType.kt                     # локации типов (модель ожидаемых файлов)
 ├── KaraokeProperties.kt                   # флаги уборки и режима сухого прогона
-├── HealthReport.kt                        # ветки MP3_*, PICTURE_*, покрытие symlink_*
+├── HealthReport.kt                        # ветки MP3_* (снять ожидание локальной копии),
+│                                          # новый обход каталогов symlink_*
+│                                          # (PICTURE_*/VIDEO_*/PROJECT_* уже в LEGACY_MLT_FILE_TYPES)
 ├── KaraokeProcess.kt                      # FF_MP3_* (удаление после загрузки), SYMLINK
 ├── Utils.kt                               # executeRenderMp4, upload-задачи, удаление путей
 ├── UtilsPictures.kt                       # создание картинок публикации

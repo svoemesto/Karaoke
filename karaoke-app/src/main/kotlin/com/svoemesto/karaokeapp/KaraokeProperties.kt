@@ -2348,4 +2348,36 @@ val listKaraokeProperties =
         KaraokeProperty(key = "ui.listening_history.rows_per_page", defaultValue = 500, description = "Количество строк на странице в таблице «История прослушиваний» (передаётся как pageSize в /api/listeninghistory/digest)"),
         KaraokeProperty(key = "ui.processes.rows_per_page", defaultValue = 50, description = "Количество строк на странице в таблице «Процессы» (передаётся как limit в /api/admin/processes)"),
         KaraokeProperty(key = "ui.news.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Новости»"),
+        // specs/544-song-artifact-cleanup: флаги автоуборки артефактов песни (FR-011).
+        // cleanupEnabled=false по умолчанию — поведение идентично сегодняшнему, пока
+        // владелец не включит уборку осознанно. cleanupDryRun=true по умолчанию — даже
+        // при включённой уборке сначала только сообщаем, что было бы удалено.
+        KaraokeProperty(
+            key = "cleanupEnabled",
+            defaultValue = false,
+            description =
+                "Автоуборка артефактов песни (specs/544): удаление после этапов жизненного цикла. " +
+                    "false (дефолт) — поведение идентично прежнему, ничего не удаляется",
+        ),
+        KaraokeProperty(
+            key = "cleanupDryRun",
+            defaultValue = true,
+            description =
+                "Автоуборка артефактов песни: сухой прогон. true (дефолт) — логируем, " +
+                    "что было бы удалено, и не удаляем ничего",
+        ),
+        KaraokeProperty(
+            key = "cleanupJournalDir",
+            defaultValue = "/sm-karaoke/system/cleanup-logs",
+            description =
+                "Каталог журнала удалений (TSV: путь, размер, класс, результат, дата, " +
+                    "кто утвердил, runId)",
+        ),
+        KaraokeProperty(
+            key = "cleanupPlanVolumeTolerancePercent",
+            defaultValue = 10,
+            description =
+                "Допустимое расхождение (в процентах) между объёмом класса в отчёте сухого " +
+                    "прогона и ожидаемым объёмом из реестра классов; больше — предупреждение в отчёте",
+        ),
     )

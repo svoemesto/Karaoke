@@ -110,7 +110,7 @@ description: "Task list for 544-song-artifact-cleanup"
 - [x] T019 [US3] Вырезать чтение `.srt` и запись `.srt.backup` из `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongRenderContext.kt` (строки 101-147). `Song.convertMarkersToSrt(voice: Int)` (`model/Song.kt:5147`) СОХРАНИТЬ как чистую функцию экспорта — FR-008 требует доступности разметки для экспорта по запросу
 - [x] T020 [US3] Удалить 7 мест записи `.srt` (все — `File(pathToFile).writeText(srt)`): `controllers/ApiController.kt:3338` и `:3398`, `controllers/MainController.kt:696`, `controllers/SongEditorController.kt:390`, `SyncAudioDescendants.kt:406`, `KaraokeProcessWorker.kt:1329`, `Utils.kt:5190` (внутри `autoAssignOriginalByWaveform`) (FR-008)
 - [x] T021 [US3] Считать `hasChords` по маркерам из БД: заменить `SongRenderContext(song, SongVersion.LYRICS).hasChords` в `controllers/MainController.kt:508`, `:530`, `:564` на вычисление по `sourceMarkers`/`getSourceMarkers` (research.md R4, FR-007)
-- [ ] T022 [US3] (ЧАСТИЧНО: .run/.kdenlive сделаны; .mlt НЕ трогали — см. примечание §11) Убрать писателей проектов рендера: `fun createKdenliveFiles(...)` (`model/Song.kt:6090-6102`), запись `*.run` в `Song.createKaraoke(...)` (`model/Song.kt:6119-6157`), запись `.kdenlive`/`.mlt`/`.run` в `Functions.kt:450-477`; мёртвое имя `nameFileRenderMp4` (`model/Song.kt:555`, строка `"$fileName [render].mp4"`); в `model/SongOutputFile.kt` удалить осиротевшие члены (`PROJECT`, `SUBTITLE`, `RUN`, `MLT` — только те, у которых после правки не осталось читателей) (research.md R5, FR-009)
+- [x] T022 [US3] (ЗАКРЫТА в суженном объёме по слову владельца 2026-10-16: `.kdenlive`/`.run` — сделано; `.mlt` оставлен по FR-009, см. примечание §11) Убрать писателей мёртвых проектов рендера: `fun createKdenliveFiles(...)` (`model/Song.kt:6090-6102`), запись `*.run` в `Song.createKaraoke(...)` (`model/Song.kt:6119-6157`), запись `.kdenlive`/`.mlt`/`.run` в `Functions.kt:450-477`; мёртвое имя `nameFileRenderMp4` (`model/Song.kt:555`, строка `"$fileName [render].mp4"`); в `model/SongOutputFile.kt` удалить осиротевшие члены (`PROJECT`, `SUBTITLE`, `RUN`, `MLT` — только те, у которых после правки не осталось читателей) (research.md R5, FR-009)
 - [x] T023 [P] [US3] Тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/HasChordsFromDbTest.kt`: `hasChords` истинен по маркерам типа `CHORDS` и ложен без них — без обращения к файлам `.srt` (FR-007)
 - [x] T024 [P] [US3] Тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/RenameWithoutSidecarTest.kt`: переименование песни при отсутствии `.song`/`.settings`/`.srt` не падает и не создаёт файлы заново (edge case spec.md, FR-006)
 - [x] T025 [US3] Компиляционный гейт после удаления писателей: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin` — убрать осиротевшие ссылки/импорты (`createKdenliveFiles`, `saveToFile`, `loadFromFile` и пр.)
@@ -278,6 +278,10 @@ US3 (прекращение производства мёртвого) → US5 (
    выведя из эксплуатации MELT-процессы, значит поставить их в заведомо падающее состояние
    (SC-008 «ноль регрессий»). Выполнено безопасное подмножество T022: удалены писатели
    `*.run` (читателей нет) и `Song.createKdenliveFiles` вместе с эндпоинтом
-   `/song/{id}/createkdenlivefiles` (вызовов во фронтендах нет). Решение по `.mlt`
-   (сузить FR-009 до `.kdenlive`/`.run` либо вывести MELT-процессы из эксплуатации) —
-   слово владельца.
+   `/song/{id}/createkdenlivefiles` (вызовов во фронтендах нет).
+
+   **РЕШЕНО владельцем 2026-10-16 (вариант A): FR-009 сужен до `.kdenlive`/`.run`.**
+   `.mlt` остаётся и продолжает создаваться — его читает живой melt-конвейер; вывод
+   MELT-процессов из эксплуатации — отдельная работа, в эту поставку не входит.
+   `spec.md` FR-009 приведён в соответствие; класс `MLT_PROJECTS` в реестре получил
+   вердикт `KEEP` (`data-model.md` §1). T022 закрыта в суженном объёме.

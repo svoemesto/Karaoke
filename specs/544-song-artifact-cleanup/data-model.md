@@ -26,7 +26,8 @@
 | `CHORDS_PNG` | `done_chords/*.png`, `done_files/* [chords].png` | учтено в п.3 | `DELETE_AFTER_STAGE` | после успешной публикации | 3 |
 | `SONG_TXT` | `done_files/* {[karaoke],[lyrics]}.txt` | 76 МБ / 29 792 | `KEEP` | — | — |
 | `SHEETSAGE` | `sheetsage/*.{pdf,midi,ly,beattimes.txt}` | 1,8 ГБ / 30 673 | `KEEP` | — | — |
-| `DONE_PROJECTS` | `done_projects/*.{mlt,kdenlive,run,txt}`, `*.kdenlive` в корне | ≈8,7 ГБ / 8 650 | `STOP_CREATING` + `DELETE_EXISTING` | — | 4 |
+| `DONE_PROJECTS` (`.kdenlive`, `.run`, `.txt`) | `done_projects/*.{kdenlive,run,txt}`, `*.kdenlive` в корне | ≈4,4 ГБ | `STOP_CREATING` + `DELETE_EXISTING` | — | 4 |
+| `MLT_PROJECTS` (`.mlt`) | `done_projects/*.mlt` | 4,3 ГБ / 2 198 | `KEEP` (уточнение владельца 2026-10-16) | — | — |
 | `SRT` | `*.srt`, `*.srt.backup`, `*.kdenlive.srt` | 243 МБ / 23 748 | `STOP_CREATING` + `DELETE_EXISTING` | — | 6 |
 | `SONG_SIDECAR` | `*.song`, `*.settings` | 1,2 ГБ / 32 863 | `STOP_CREATING` + `DELETE_EXISTING` | — | 5 |
 | `KEY_JSON` | `<song> [key].json` | 553 КБ / 15 743 | `KEEP` | — | — |

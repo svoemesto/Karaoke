@@ -79,7 +79,7 @@
 1. Рендер выполняет Playwright (`PlayerMp4RenderService` — кадры,
    `PlayerMp4MuxService` — муксинг; specs/544, FR-017). Легаси-конвейер melt
    заморожен и не обслуживает новые песни (см.
-   [mlt-pipeline](../rendering/components/mlt-pipeline.md)).
+   [mlt-pipeline](../../rendering/components/mlt-pipeline.md)).
 2. Видео складывается в `done_files/` рядом с песней и копируется в
    `/sm-karaoke/store`; **в MinIO видео не загружается** — там только mp3-стемы и
    картинки (specs/544, FR-016). Демо-ролик публикации хранится только до конца

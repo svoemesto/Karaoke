@@ -79,12 +79,17 @@ ls "/sm-karaoke/done2/<Author>/<Album>/done_files/" | grep -i demo   # ожид�
 
 ```bash
 ls "/sm-karaoke/done2/<Author>/<Album>/hdemucs_mmi/" | grep -E "\.mp3$"   # ожидаемо: пусто
-curl -s -X POST http://localhost:8898/api/song/gethealthreportlist \
-  -H 'Content-Type: application/json' -d '{"songIds":[<songId>]}' | python3 -m json.tool | head -40
+# отчёт возвращает ТОЛЬКО нарушения (пустой список = нарушений нет)
+curl -s -X POST http://localhost:8898/api/song/healthReportList \
+  --data-urlencode "id=<songId>" | python3 -m json.tool | head -40
 ```
 
 **Ожидаемо**: локальных mp3 нет; объекты в локальном и удалённом MinIO на месте; в
 отчёте здоровья **нет** `FILE_VIOLATION` по mp3 и **нет** задачи `FF_MP3_*`.
+
+> Эндпоинт проверки здоровья — `POST /api/song/healthReportList?id=<songId>`
+> (`ApiController.kt:7748`), возвращает только нарушения. Параметр передаётся как request-param,
+> тела JSON у него нет.
 
 4. Подождать 24 часа (или прогнать полную проверку здоровья вручную) и убедиться, что
    задачи перекодирования не появились (SC-006).
@@ -167,8 +172,8 @@ find /sm-karaoke/done1 /sm-karaoke/done2 -path "*/symlink_*" -xtype l | head    
 find /sm-karaoke/done1 /sm-karaoke/done2 -path "*/symlink_*" -name "*.svg" | head  # ожидаемо: пусто
 
 # Проверка здоровья должна их замечать (после правки покрытия)
-curl -s -X POST http://localhost:8898/api/song/gethealthreportlist \
-  -H 'Content-Type: application/json' -d '{"songIds":[<songId>]}' | grep -i symlink
+curl -s -X POST http://localhost:8898/api/song/healthReportList \
+  --data-urlencode "id=<songId>" | grep -i symlink
 ```
 
 **Ожидаемо**: мусора нет; искусственно созданный посторонний файл в `symlink_*`

@@ -5241,17 +5241,8 @@ fun autoAssignOriginalByWaveform(
     song.formattedTextTabs = song.getFormattedNotes()
     song.formattedTextChords = song.getFormattedChords()
 
-    // Запись .srt по каждому голосу — как в /song/savesourcetextmarkers.
-    song.sourceMarkersList.indices.forEach { voice ->
-        try {
-            val srt = song.convertMarkersToSrt(voice)
-            val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
-            File(pathToFile).writeText(srt)
-            runCommand(listOf("chmod", "666", pathToFile))
-        } catch (_: Exception) {
-            println("Ошибка при создании файла субтитров для песни ${song.id}, голос ${voice + 1}.")
-        }
-    }
+    // specs/544-song-artifact-cleanup (FR-008): запись .srt-файлов убрана (было «как в
+    // /song/savesourcetextmarkers»); разметка остаётся в БД.
 
     // 3) Переводим песню в статус 2 (TEXT_CHECK) и сохраняем всё одним saveToDbLocked().
     // specs/299-song-fields-overwrite-race-condition (FR-014): применяем изменения к `song` напрямую

@@ -19,7 +19,6 @@ import com.svoemesto.karaokeapp.model.SongAssignmentStatus
 import com.svoemesto.karaokeapp.model.SourceMarker
 import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.rightFileName
-import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -385,14 +384,8 @@ class SongEditorController(
                     val prevVoiceCount = song.sourceMarkersList.size
                     for (voice in markersPerVoice.indices) {
                         song.setSourceMarkers(voice, markersPerVoice[voice])
-                        val srt = song.convertMarkersToSrt(voice)
-                        try {
-                            val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
-                            File(pathToFile).writeText(srt)
-                            runCommand(listOf("chmod", "666", pathToFile))
-                        } catch (_: Exception) {
-                            println("Ошибка при создании файла субтитров при апруве задания $id (голос $voice).")
-                        }
+                        // specs/544-song-artifact-cleanup (FR-008): файл субтитров при апруве
+                        // больше не пишется — разметка сохраняется в БД.
                         song.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
                     }
                     // Хвостовые голоса, удалённые пользователем в черновике (были в Song, но их больше

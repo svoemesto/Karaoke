@@ -106,14 +106,14 @@ description: "Task list for 544-song-artifact-cleanup"
 
 **Independent Test**: импорт новой песни + разметка → перечисленных файлов нет, признак аккордов истинен (quickstart.md сценарий 3).
 
-- [ ] T018 [US3] Убрать писателей sidecar-состояния в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`: объявление `fun saveToFile()` (5970) и вызовы `Song.kt:5277`, `controllers/ApiController.kt:2987`, `controllers/MainController.kt:1838`, `:2027`; мёртвый `fun loadFromFile(...)` (8361, вызовов в репозитории нет); осиротевшие пути `fileSongAbsolutePath` (1804), `fileSongAbsolutePathLegacy` (1807), `fileSongOrLegacySettingsAbsolutePath` (1814) и их использование в `saveToDb` (5943), переименовании (6030, 6608-6616); упростить `renameCascadeExtraArtifacts` (6007) (research.md R5, FR-006)
-- [ ] T019 [US3] Вырезать чтение `.srt` и запись `.srt.backup` из `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongRenderContext.kt` (строки 101-147). `Song.convertMarkersToSrt(voice: Int)` (`model/Song.kt:5147`) СОХРАНИТЬ как чистую функцию экспорта — FR-008 требует доступности разметки для экспорта по запросу
-- [ ] T020 [US3] Удалить 7 мест записи `.srt` (все — `File(pathToFile).writeText(srt)`): `controllers/ApiController.kt:3338` и `:3398`, `controllers/MainController.kt:696`, `controllers/SongEditorController.kt:390`, `SyncAudioDescendants.kt:406`, `KaraokeProcessWorker.kt:1329`, `Utils.kt:5190` (внутри `autoAssignOriginalByWaveform`) (FR-008)
-- [ ] T021 [US3] Считать `hasChords` по маркерам из БД: заменить `SongRenderContext(song, SongVersion.LYRICS).hasChords` в `controllers/MainController.kt:508`, `:530`, `:564` на вычисление по `sourceMarkers`/`getSourceMarkers` (research.md R4, FR-007)
-- [ ] T022 [US3] Убрать писателей проектов рендера: `fun createKdenliveFiles(...)` (`model/Song.kt:6090-6102`), запись `*.run` в `Song.createKaraoke(...)` (`model/Song.kt:6119-6157`), запись `.kdenlive`/`.mlt`/`.run` в `Functions.kt:450-477`; мёртвое имя `nameFileRenderMp4` (`model/Song.kt:555`, строка `"$fileName [render].mp4"`); в `model/SongOutputFile.kt` удалить осиротевшие члены (`PROJECT`, `SUBTITLE`, `RUN`, `MLT` — только те, у которых после правки не осталось читателей) (research.md R5, FR-009)
-- [ ] T023 [P] [US3] Тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/HasChordsFromDbTest.kt`: `hasChords` истинен по маркерам типа `CHORDS` и ложен без них — без обращения к файлам `.srt` (FR-007)
-- [ ] T024 [P] [US3] Тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/RenameWithoutSidecarTest.kt`: переименование песни при отсутствии `.song`/`.settings`/`.srt` не падает и не создаёт файлы заново (edge case spec.md, FR-006)
-- [ ] T025 [US3] Компиляционный гейт после удаления писателей: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin` — убрать осиротевшие ссылки/импорты (`createKdenliveFiles`, `saveToFile`, `loadFromFile` и пр.)
+- [x] T018 [US3] Убрать писателей sidecar-состояния в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`: объявление `fun saveToFile()` (5970) и вызовы `Song.kt:5277`, `controllers/ApiController.kt:2987`, `controllers/MainController.kt:1838`, `:2027`; мёртвый `fun loadFromFile(...)` (8361, вызовов в репозитории нет); осиротевшие пути `fileSongAbsolutePath` (1804), `fileSongAbsolutePathLegacy` (1807), `fileSongOrLegacySettingsAbsolutePath` (1814) и их использование в `saveToDb` (5943), переименовании (6030, 6608-6616); упростить `renameCascadeExtraArtifacts` (6007) (research.md R5, FR-006)
+- [x] T019 [US3] Вырезать чтение `.srt` и запись `.srt.backup` из `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongRenderContext.kt` (строки 101-147). `Song.convertMarkersToSrt(voice: Int)` (`model/Song.kt:5147`) СОХРАНИТЬ как чистую функцию экспорта — FR-008 требует доступности разметки для экспорта по запросу
+- [x] T020 [US3] Удалить 7 мест записи `.srt` (все — `File(pathToFile).writeText(srt)`): `controllers/ApiController.kt:3338` и `:3398`, `controllers/MainController.kt:696`, `controllers/SongEditorController.kt:390`, `SyncAudioDescendants.kt:406`, `KaraokeProcessWorker.kt:1329`, `Utils.kt:5190` (внутри `autoAssignOriginalByWaveform`) (FR-008)
+- [x] T021 [US3] Считать `hasChords` по маркерам из БД: заменить `SongRenderContext(song, SongVersion.LYRICS).hasChords` в `controllers/MainController.kt:508`, `:530`, `:564` на вычисление по `sourceMarkers`/`getSourceMarkers` (research.md R4, FR-007)
+- [ ] T022 [US3] (ЧАСТИЧНО: .run/.kdenlive сделаны; .mlt НЕ трогали — см. примечание §11) Убрать писателей проектов рендера: `fun createKdenliveFiles(...)` (`model/Song.kt:6090-6102`), запись `*.run` в `Song.createKaraoke(...)` (`model/Song.kt:6119-6157`), запись `.kdenlive`/`.mlt`/`.run` в `Functions.kt:450-477`; мёртвое имя `nameFileRenderMp4` (`model/Song.kt:555`, строка `"$fileName [render].mp4"`); в `model/SongOutputFile.kt` удалить осиротевшие члены (`PROJECT`, `SUBTITLE`, `RUN`, `MLT` — только те, у которых после правки не осталось читателей) (research.md R5, FR-009)
+- [x] T023 [P] [US3] Тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/HasChordsFromDbTest.kt`: `hasChords` истинен по маркерам типа `CHORDS` и ложен без них — без обращения к файлам `.srt` (FR-007)
+- [x] T024 [P] [US3] Тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/RenameWithoutSidecarTest.kt`: переименование песни при отсутствии `.song`/`.settings`/`.srt` не падает и не создаёт файлы заново (edge case spec.md, FR-006)
+- [x] T025 [US3] Компиляционный гейт после удаления писателей: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin` — убрать осиротевшие ссылки/импорты (`createKdenliveFiles`, `saveToFile`, `loadFromFile` и пр.)
 
 **Checkpoint**: новые песни больше не порождают мёртвые артефакты.
 
@@ -269,3 +269,15 @@ US3 (прекращение производства мёртвого) → US5 (
    `Functions.kt:498` — то есть `done_chords/*.png` сегодня не производятся, и
    автоматического удаления для них нет. Для класса работает только разовая чистка
    (`DELETE_EXISTING`), что и зафиксировано в T012.
+11. **T022 остановлена на `.mlt`: FR-009 конфликтует с живым кодом.** `Functions.createKaraoke`
+   (`Functions.kt:450-477`) пишет `.mlt`, а его читает замороженный, но ЖИВОЙ melt-конвейер:
+   тип процесса `MELT_LYRICS`/`MELT_KARAOKE`/`MELT_CHORDS` создаётся из `MainController.kt:470,489,511,534`
+   и из `KaraokeProcessWorker.applyRenderSideEffect` (который сам вызывает
+   `Song.createKaraoke` → `Functions.createKaraoke`), а аргументы melt ссылаются на
+   `done_projects/*.mlt` (`KaraokeProcess.kt:1135-1147`). Прекратить писать `.mlt`, не
+   выведя из эксплуатации MELT-процессы, значит поставить их в заведомо падающее состояние
+   (SC-008 «ноль регрессий»). Выполнено безопасное подмножество T022: удалены писатели
+   `*.run` (читателей нет) и `Song.createKdenliveFiles` вместе с эндпоинтом
+   `/song/{id}/createkdenlivefiles` (вызовов во фронтендах нет). Решение по `.mlt`
+   (сузить FR-009 до `.kdenlive`/`.run` либо вывести MELT-процессы из эксплуатации) —
+   слово владельца.

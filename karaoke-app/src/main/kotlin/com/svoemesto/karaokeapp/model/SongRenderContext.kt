@@ -2,7 +2,6 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltText
-import java.io.File
 import java.io.Serializable
 import kotlin.math.absoluteValue
 
@@ -96,276 +95,16 @@ data class SongRenderContext(
         if (!woInit) {
 //            val beatMs = if (song.ms == 0L) (60000.0 / song.bpm).toLong() else song.ms
 
-            val mapFiles = mutableListOf<String>()
-            // Считываем сабы
-            var listFile = getListFiles(song.rootFolder, ".srt", "${song.fileName}.voice")
-            var bodyText = song.sourceText
-            if (listFile.isEmpty()) {
-                listFile = getListFiles(song.rootFolder, ".srt", "${song.fileName}.srt")
-                bodyText = song.sourceText
-                if (listFile.isEmpty()) {
-                    listFile = getListFiles(song.rootFolder, ".srt", "${song.fileName}.kdenlive")
-                    val listFileTxt = getListFiles(song.rootFolder, ".txt", song.fileName)
-                    if (listFileTxt.size == 1) {
-                        bodyText = File(listFileTxt[0]).readText(Charsets.UTF_8)
-                    }
-                }
-            }
-            listFile.sorted().forEach { mapFiles.add(it) }
-            // Если текстовый файл один
-            if (bodyText != "") {
-
-                // Считываем тест из первого файла сабов и заменяем в нём тильды
-                if (mapFiles.isNotEmpty()) {
-                    var bodySubs =
-                        File(mapFiles[0])
-                            .readText(Charsets.UTF_8)
-                            .replace("~", "")
-                            .replace("Введите текст", "")
-                            .replace("[G0]", "[SETTING]|GROUP|0")
-                            .replace("[G1]", "[SETTING]|GROUP|1")
-                            .replace("[G2]", "[SETTING]|GROUP|2")
-                            .replace("[G3]", "[SETTING]|GROUP|3")
-                            .replace("[C]", "[SETTING]|COMMENT| ")
-                    // Если в тексте сабов присутствует строка замены
-                    if (bodySubs.contains(endString)) {
-                        // Бэкапим файл (если еще нет бэкапа)
-                        val fileText = File("${mapFiles[0]}.backup")
-                        if (fileText.exists()) {
-                            bodySubs =
-                                fileText
-                                    .readText(Charsets.UTF_8)
-                                    .replace("~", "")
-                                    .replace("Введите текст", "")
-                                    .replace("[G0]", "[SETTING]|GROUP|0")
-                                    .replace("[G1]", "[SETTING]|GROUP|1")
-                                    .replace("[G2]", "[SETTING]|GROUP|2")
-                                    .replace("[G3]", "[SETTING]|GROUP|3")
-                                    .replace("[C]", "[SETTING]|COMMENT| ")
-                        } else {
-                            fileText.writeText(bodySubs)
-                        }
-
-                        // Заполняем список слогов
-                        val slogs = getSyllables(bodyText)
-
-                        println(bodySubs)
-                        println(slogs)
-
-                        val body =
-                            File(mapFiles[0])
-                                .readText(Charsets.UTF_8)
-                                .replace("~", "")
-                                .replace("Введите текст", "")
-                                .replace("[G0]", "[SETTING]|GROUP|0")
-                                .replace("[G1]", "[SETTING]|GROUP|1")
-                                .replace("[G2]", "[SETTING]|GROUP|2")
-                                .replace("[G3]", "[SETTING]|GROUP|3")
-                                .replace("[C]", "[SETTING]|COMMENT| ")
-
-                        // Считываем сабы в блоки
-                        val blocks = body.split("\\n\\n+".toRegex())
-                        val listSubtitleFileElements: MutableList<SubtitleFileElement> = mutableListOf()
-                        val listSubtitleFileElementsRepeated1: MutableList<SubtitleFileElement> = mutableListOf()
-                        val listSubtitleFileElementsRepeated2: MutableList<SubtitleFileElement> = mutableListOf()
-
-                        var isRepeated1 = false
-                        var nextSubIsFirstRepeated1 = false
-                        var repeatOffset1 = 0L
-                        var isRepeated2 = false
-                        var nextSubIsFirstRepeated2 = false
-                        var repeatOffset2 = 0L
-
-                        // Проходимся по блокам
-                        blocks.forEach { block ->
-                            val blocklines = block.split("\n")
-                            val id = if (blocklines.isNotEmpty() && blocklines[0] != "") blocklines[0].toLong() else 0
-                            val startEnd = if (blocklines.size > 1) blocklines[1] else ""
-                            if (startEnd != "" && id != 0L) {
-                                var text = if (blocklines.size > 2) blocklines[2] else ""
-                                val se = startEnd.split(" --> ")
-                                val startFrame = convertTimecodeToFrames(se[0].replace(",", "."))
-                                val endFrame = convertTimecodeToFrames(se[1].replace(",", "."))
-
-                                // Если текущий саб - отметка начала повтора
-                                if (text.contains(repeat1StartString) || text.contains(repeat2StartString)) {
-                                    // Устанавливаем флаги и пропускаем этот саб
-                                    if (text.contains(repeat1StartString)) {
-                                        isRepeated1 = true
-                                        nextSubIsFirstRepeated1 = true
-                                    }
-                                    if (text.contains(repeat2StartString)) {
-                                        isRepeated2 = true
-                                        nextSubIsFirstRepeated2 = true
-                                    }
-                                } else {
-                                    // Если текущий саб - отметка конца повтора
-                                    if (text.contains(repeat1EndString) || text.contains(repeat2EndString)) {
-                                        // Снимаем флаг и пропускаем этот саб
-                                        if (text.contains(repeat1EndString)) {
-                                            isRepeated1 = false
-                                        }
-                                        if (text.contains(repeat2EndString)) {
-                                            isRepeated2 = false
-                                        }
-                                    } else {
-
-                                        // Если текущий саб - отметка начала вставки повтора
-                                        if (text.contains(repeat1PastString)) {
-                                            // Надо добавить в общий лист все элементы из повторного листа со сдвигом на оффсет
-                                            val repeatPastOffset = startFrame
-                                            listSubtitleFileElementsRepeated1.forEach {
-                                                listSubtitleFileElements.add(
-                                                    SubtitleFileElement(
-                                                        startFrame = it.startFrame - repeatOffset1 + repeatPastOffset,
-                                                        endFrame = it.endFrame - repeatOffset1 + repeatPastOffset,
-                                                        text = it.text,
-                                                        isStartOfLine = it.isStartOfLine,
-                                                        isEndOfLine = it.isEndOfLine,
-                                                        isSetting = it.isSetting,
-                                                    ),
-                                                )
-                                            }
-                                        } else if (text.contains(repeat2PastString)) {
-                                            // Надо добавить в общий лист все элементы из повторного листа со сдвигом на оффсет
-                                            val repeatPastOffset = startFrame
-                                            listSubtitleFileElementsRepeated2.forEach {
-                                                listSubtitleFileElements.add(
-                                                    SubtitleFileElement(
-                                                        startFrame = it.startFrame - repeatOffset2 + repeatPastOffset,
-                                                        endFrame = it.endFrame - repeatOffset2 + repeatPastOffset,
-                                                        text = it.text,
-                                                        isStartOfLine = it.isStartOfLine,
-                                                        isEndOfLine = it.isEndOfLine,
-                                                        isSetting = it.isSetting,
-                                                    ),
-                                                )
-                                            }
-                                        } else {
-                                            // Если текущий саб - первый в повторе - запоминаем оффсет
-                                            if (nextSubIsFirstRepeated1) {
-                                                nextSubIsFirstRepeated1 = false
-                                                repeatOffset1 = startFrame
-                                            }
-                                            if (nextSubIsFirstRepeated2) {
-                                                nextSubIsFirstRepeated2 = false
-                                                repeatOffset2 = startFrame
-                                            }
-                                            // Заносим саб в общий лист
-                                            listSubtitleFileElements.add(
-                                                SubtitleFileElement(
-                                                    startFrame,
-                                                    endFrame,
-                                                    text,
-                                                    false,
-                                                    false,
-                                                    (
-                                                        text.uppercase().startsWith("[SETTING]|") ||
-                                                            text == "//\\\\"
-                                                    ),
-                                                ),
-                                            )
-                                            // Если саб в повторе - заносим его еще и в лист повторов
-                                            if (isRepeated1) {
-                                                listSubtitleFileElementsRepeated1.add(
-                                                    SubtitleFileElement(
-                                                        startFrame,
-                                                        endFrame,
-                                                        text,
-                                                        false,
-                                                        false,
-                                                        (
-                                                            text.uppercase().startsWith("[SETTING]|") ||
-                                                                text == "//\\\\"
-                                                        ),
-                                                    ),
-                                                )
-                                            }
-                                            if (isRepeated2) {
-                                                listSubtitleFileElementsRepeated2.add(
-                                                    SubtitleFileElement(
-                                                        startFrame,
-                                                        endFrame,
-                                                        text,
-                                                        false,
-                                                        false,
-                                                        (
-                                                            text.uppercase().startsWith("[SETTING]|") ||
-                                                                text == "//\\\\"
-                                                        ),
-                                                    ),
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        listSubtitleFileElements.sortBy { it.startFrame }
-                        var isStartLine = true
-                        var indexSlog = 0
-                        for (i in 0 until listSubtitleFileElements.size - 1) {
-                            val currSubElement = listSubtitleFileElements[i]
-                            val nextSubElement = listSubtitleFileElements[i + 1]
-                            if (!currSubElement.isSetting && !currSubElement.text.contains(endString)) {
-                                currSubElement.endFrame = nextSubElement.startFrame
-                                currSubElement.isStartOfLine = isStartLine
-                                currSubElement.isEndOfLine = nextSubElement.text.contains(endString)
-                                isStartLine = currSubElement.isEndOfLine
-                                if (indexSlog < slogs.size) {
-                                    val txt =
-                                        if (currSubElement.isEndOfLine) {
-                                            slogs[indexSlog].substring(
-                                                0,
-                                                slogs[indexSlog].length - 1,
-                                            )
-                                        } else {
-                                            slogs[indexSlog]
-                                        }
-                                    currSubElement.text =
-                                        "${if (currSubElement.isStartOfLine) "//" else ""}${if (currSubElement.isStartOfLine) {
-                                            txt
-                                                .uppercaseFirstLetter()
-                                        } else {
-                                            txt
-                                        }}${if (currSubElement.isEndOfLine) "\\\\" else ""}"
-                                    indexSlog++
-                                    if (indexSlog == slogs.size) {
-                                        val lastSymbol = currSubElement.text.substring(currSubElement.text.length - 3)
-                                        currSubElement.text = currSubElement.text.substring(0, currSubElement.text.length - 3)
-                                        currSubElement.isEndOfLine = false
-                                        listSubtitleFileElements.add(
-                                            SubtitleFileElement(
-                                                startFrame = currSubElement.endFrame,
-                                                endFrame = currSubElement.endFrame + 5,
-                                                text = lastSymbol,
-                                                isStartOfLine = false,
-                                                isEndOfLine = true,
-                                                isSetting = false,
-                                            ),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        listSubtitleFileElements.sortBy { it.startFrame }
-
-                        var newBody = ""
-                        listSubtitleFileElements.filter { !it.text.contains(endString) }.forEachIndexed { index, element ->
-                            newBody +=
-                                "${index + 1}\n${convertFramesToTimecode(
-                                    element.startFrame,
-                                ).replace(".",",")} --> ${convertFramesToTimecode(element.endFrame).replace(".",",")}\n${element.text}\n\n"
-                        }
-                        File(mapFiles[0]).writeText(newBody)
-                    }
-                }
-            }
+            // specs/544-song-artifact-cleanup (FR-008): .srt-файлы больше не читаются,
+            // не перезаписываются и не бэкапятся. Источник разметки — БД
+            // (`Song.sourceMarkersList`), а её SRT-представление даёт
+            // `Song.convertMarkersToSrt` — та же функция, которой разметка выгружается
+            // по запросу (FR-008). До этой правки контекст зависел от файлов на диске и
+            // после разовой чистки субтитров не собрал бы ничего.
+            val voiceIds = song.sourceMarkersList.indices.toList()
 
             val listVoices = mutableListOf<SongRenderVoice>()
-            for (voiceId in listFile.indices) {
+            for (voiceId in voiceIds) {
 
                 val chords: MutableList<Chord> = mutableListOf()
                 val listLines = mutableListOf<SongRenderVoiceLine>()
@@ -376,7 +115,8 @@ data class SongRenderContext(
                 var widthLinePx = 0.0
                 var lineText = ""
                 var maxWidthLineText = ""
-                val body = File(mapFiles[voiceId]).readText(Charsets.UTF_8)
+                // specs/544 (FR-008): тело голоса строится из маркеров БД, а не из .srt-файла
+                val body = song.convertMarkersToSrt(voiceId)
 
                 var group = 0
 

@@ -466,13 +466,10 @@ class Song(
                 it.note.isNotBlank()
         }
 
+    // specs/544-song-artifact-cleanup (FR-007): признак аккордов считается по маркерам
+    // разметки из БД (см. [hasChordsInMarkers]) — без чтения файлов субтитров.
     @get:JsonIgnore
-    val hasChords: Boolean get() =
-        sourceMarkersList.flatten().any {
-            it.markertype in
-                listOf(Markertype.SYLLABLES.value, Markertype.CHORD.value) &&
-                it.chord.isNotBlank()
-        }
+    val hasChords: Boolean get() = hasChordsInMarkers(sourceMarkersList.flatten())
 
     @get:JsonIgnore
     val countVoices: Int get() = sourceMarkersList.size
@@ -552,6 +549,10 @@ class Song(
     val nameFileKaraoke: String get() = "$fileName [karaoke].mp4".rightFileName()
     val nameFileChords: String get() = "$fileName [chords].mp4".rightFileName()
     val nameFileMelody: String get() = "$fileName [tabs].mp4".rightFileName()
+
+    // specs/544-song-artifact-cleanup (FR-009): имя [render]-видео СОХРАНЕНО, хотя файл
+    // практически мёртв (на дисках 1 экземпляр): у него есть читатель — ручное
+    // воспроизведение через smplayer ([pathToFileRenderMp4], Song.kt:3451-3460).
     val nameFileRenderMp4: String get() = "$fileName [render].mp4".rightFileName()
 
     fun nameFileRenderMp4ForVersion(version: com.svoemesto.karaokeapp.services.RenderVersion): String =
@@ -1801,17 +1802,10 @@ class Song(
 
     @Suppress("unused")
     val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
-    val fileSongAbsolutePath: String get() = "$rootFolder/$fileName.song"
 
-    /** Устаревшее расширение файла метаданных (specs/125-rename-remaining-song-artifacts). */
-    private val fileSongAbsolutePathLegacy: String get() = "$rootFolder/$fileName.settings"
-
-    /**
-     * Путь к файлу метаданных песни на диске: `.song`, если уже существует, иначе
-     * `.settings` — обратная совместимость с песнями, обработанными до переименования
-     * расширения. Новые/пересохранённые файлы всегда пишутся как `.song` (см. [saveToFile]).
-     */
-    val fileSongOrLegacySettingsAbsolutePath: String get() = if (File(fileSongAbsolutePath).exists()) fileSongAbsolutePath else fileSongAbsolutePathLegacy
+    // specs/544-song-artifact-cleanup (FR-006): пути sidecar-файлов состояния песни
+    // (.song / .settings) удалены вместе с их писателями и читателем — сериализованное
+    // состояние больше не создаётся, источник истины — БД.
     val fileSearchedLinksAbsolutePath: String get() = "$rootFolder/$fileName [searched links].xml"
 
     @Suppress("unused")
@@ -5196,7 +5190,7 @@ class Song(
      * Алгоритм:
      * 1. Если [readonly] — выход (ничего не делаем).
      * 2. Если `id == 0L` — новая запись: `createDbInstance(this, database)` создаёт
-     *    запись, `saveToFile()` сохраняет файлы в MinIO, `processInfo()` инициализирует
+     *    запись, `processInfo()` инициализирует
      *    пустые поля.
      * 3. Если `id != 0L` — существующая запись: загружается актуальное состояние из
      *    БД, вычисляется field-level [getDiff] с текущим in-memory состоянием,
@@ -5272,10 +5266,8 @@ class Song(
                 fields[SongField.NAME_CENSORED] = songName.censored(database)
             }
             markNewsAvailableIfReady()
-            val newSett = createDbInstance(this, database)
-            newSett?.let {
-                newSett.saveToFile()
-            }
+            // specs/544 (FR-006): sidecar-файл состояния больше не пишется.
+            createDbInstance(this, database)
         } else {
             markNewsAvailableIfReady()
             val savedSong =
@@ -5940,7 +5932,6 @@ class Song(
     ) {
         if (withFiles) {
             if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
-            if (File(fileSongOrLegacySettingsAbsolutePath).exists()) File(fileSongOrLegacySettingsAbsolutePath).deleteOnExit()
             if (File(vocalsNameFlac).exists()) File(vocalsNameFlac).deleteOnExit()
             if (File(accompanimentNameFlac).exists()) File(accompanimentNameFlac).deleteOnExit()
         }
@@ -5967,17 +5958,9 @@ class Song(
         SNS.send(messageRecordDelete)
     }
 
-    fun saveToFile() {
-        if (File(rootFolder).exists()) {
-            var txt = ""
-            SongField.entries.forEach { settingField ->
-                if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
-            }
-            val pathToFile = fileSongAbsolutePath.rightFileName()
-            File(pathToFile).writeText(txt)
-            runCommand(listOf("chmod", "666", pathToFile))
-        }
-    }
+    // specs/544-song-artifact-cleanup (FR-006): saveToFile() удалён — сериализованное
+    // состояние песни (.song/.settings) больше не создаётся. Источник истины — БД
+    // (Song.saveToDb); легаси-имя .settings не пишется и не читается.
 
     /**
      * Доводит до нового [fileName] артефакты, которые НЕ покрывает существующий
@@ -5987,7 +5970,7 @@ class Song(
      * в обоих хранилищах (локальном [storageService] и удалённом [storageApiClient]).
      *
      * Вызывается из `ApiController.songs2Update` СРАЗУ ПОСЛЕ присвоения `this.fileName`
-     * нового (уже санитайзированного) значения, но ДО [saveToDb]/[saveToFile] — [oldFileName]
+     * нового (уже санитайзированного) значения, но ДО [saveToDb] — [oldFileName]
      * должен быть значением поля, снятым ДО этого присваивания.
      *
      * Best-effort вперёд (specs/124-filename-sanitization-rename, FR-010): ошибка на одном
@@ -6009,7 +5992,6 @@ class Song(
 
         val oldKdenliveFileName = "$rootFolder/$oldFileName.kdenlive"
         val oldKdenliveSubsFileName = "$rootFolder/$oldFileName.kdenlive.srt"
-        val oldFileSongAbsolutePath = "$rootFolder/$oldFileName.song"
 
         try {
             val oldFile = File(oldKdenliveFileName)
@@ -6022,14 +6004,6 @@ class Song(
             if (oldFile.exists()) oldFile.renameTo(File(kdenliveSubsFileName))
         } catch (e: Exception) {
             println("[renameCascadeExtraArtifacts] Не удалось переименовать .kdenlive.srt: ${e.message}")
-        }
-        try {
-            val oldFile = File(oldFileSongAbsolutePath)
-            // Новый sidecar пишется отдельно через saveToFile() под уже новым именем — здесь
-            // только подчищаем "осиротевший" файл под старым именем, если он остался.
-            if (oldFile.exists() && oldFileSongAbsolutePath != fileSongAbsolutePath) oldFile.delete()
-        } catch (e: Exception) {
-            println("[renameCascadeExtraArtifacts] Не удалось удалить устаревший sidecar-файл: ${e.message}")
         }
 
         val stemMp3Specs =
@@ -6087,19 +6061,8 @@ class Song(
         }
     }
 
-    fun createKdenliveFiles(
-        overrideKdenliveFile: Boolean = true,
-        overrideKdenliveSubsFile: Boolean = false,
-    ) {
-        val kdenliveFile = File(kdenliveFileName)
-        if (!kdenliveFile.exists() || overrideKdenliveFile) {
-            kdenliveFile.writeText(kdenliveTemplate)
-        }
-        val kdenliveSubsFile = File(kdenliveSubsFileName)
-        if (!kdenliveSubsFile.exists() || overrideKdenliveSubsFile) {
-            kdenliveSubsFile.writeText(subsTemplate)
-        }
-    }
+    // specs/544-song-artifact-cleanup (FR-009): createKdenliveFiles() удалён — файлы
+    // .kdenlive/.kdenlive.srt больше не создаются (читателей в коде не было).
 
     fun createKaraoke(songVersion: SongVersion) {
         when (songVersion) {
@@ -6116,55 +6079,9 @@ class Song(
         createChords: Boolean = false,
         createMelody: Boolean = false,
     ) {
-        val pathToMltLyrics = getOutputFilename(SongOutputFile.MLT, SongVersion.LYRICS)
-        val pathToMltKaraoke = getOutputFilename(SongOutputFile.MLT, SongVersion.KARAOKE)
-        val pathToMltChords = getOutputFilename(SongOutputFile.MLT, SongVersion.CHORDS)
-        val pathToMltTABS = getOutputFilename(SongOutputFile.MLT, SongVersion.TABS)
-
-        val txtLyric = "echo \"$pathToMltLyrics\"\nmelt -progress \"$pathToMltLyrics\"\n\n"
-        val txtKaraoke = "echo \"$pathToMltKaraoke\"\nmelt -progress \"$pathToMltKaraoke\"\n\n"
-        val txtChords = "echo \"$pathToMltChords\"\nmelt -progress \"$pathToMltChords\"\n\n"
-        val txtMelody = "echo \"$pathToMltTABS\"\nmelt -progress \"$pathToMltTABS\"\n\n"
-
-        val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}"
-        val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}"
-
-        val fileNameRunLyrics = getOutputFilename(SongOutputFile.RUN, SongVersion.LYRICS)
-        val fileRunLyrics = File(fileNameRunLyrics)
-        Files.createDirectories(Path(fileRunLyrics.parent))
-        runCommand(listOf("chmod", "777", fileRunLyrics.parent))
-
-        fileRunLyrics.writeText(txtLyric)
-        runCommand(listOf("chmod", "777", fileNameRunLyrics))
-
-        val fileNameRunKaraoke = getOutputFilename(SongOutputFile.RUN, SongVersion.KARAOKE)
-        val fileRunKaraoke = File(fileNameRunKaraoke)
-        fileRunKaraoke.writeText(txtKaraoke)
-        runCommand(listOf("chmod", "777", fileNameRunKaraoke))
-
-        if (createChords && hasChords) {
-            val fileNameRunChords = getOutputFilename(SongOutputFile.RUN, SongVersion.CHORDS)
-            val fileRunChords = File(fileNameRunChords)
-            fileRunChords.writeText(txtChords)
-            runCommand(listOf("chmod", "777", fileNameRunChords))
-        }
-
-        if (createMelody && hasMelody) {
-            val fileNameRunTabs = getOutputFilename(SongOutputFile.RUN, SongVersion.TABS)
-            val fileRunTabs = File(fileNameRunTabs)
-            fileRunTabs.writeText(txtMelody)
-            runCommand(listOf("chmod", "777", fileNameRunTabs))
-        }
-
-//        val fileNameRunAllLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]")
-//        val fileRunAllLyrics = File(fileNameRunAllLyrics)
-//        fileRunAllLyrics.writeText(songTxtAll)
-//        runCommand(listOf("chmod", "777", fileNameRunAllLyrics))
-
-//        val fileNameRunAllWoLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]")
-//        val fileRunAllWoLyrics = File(fileNameRunAllWoLyrics)
-//        fileRunAllWoLyrics.writeText(songTxtWOLyrics)
-//        runCommand(listOf("chmod", "777", fileNameRunAllWoLyrics))
+        // specs/544-song-artifact-cleanup (FR-009): файлы-скрипты *.run больше не создаются —
+        // читателей в репозитории не было (inventory §3.11), а сами скрипты запускали melt,
+        // конвейер которого заморожен (R8: зафиксировать заморозку melt в Knowledge).
 
         if (createLyrics) {
             createKaraoke(this, SongVersion.LYRICS)
@@ -6602,18 +6519,6 @@ class Song(
                             settOldVersion.pathToFileSheetsageBeattimes,
                         ).toFile()
                         .renameTo(Paths.get(settNewVersion.pathToFileSheetsageBeattimes).toFile())
-                }
-                if (Paths
-                        .get(
-                            settOldVersion.fileSongOrLegacySettingsAbsolutePath,
-                        ).toFile()
-                        .exists()
-                ) {
-                    Paths
-                        .get(
-                            settOldVersion.fileSongOrLegacySettingsAbsolutePath,
-                        ).toFile()
-                        .renameTo(Paths.get(settNewVersion.fileSongOrLegacySettingsAbsolutePath).toFile())
                 }
 //                if (Paths.get("~/Karaoke/karaoke-web/src/main/resources/static/tmp/${settNewVersion.id}.png").toFile().exists()) createVKLinkPictureWeb(settNewVersion)
 //                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)).toFile().exists()) createBoostyFilesPicture(settNewVersion)
@@ -8357,47 +8262,8 @@ class Song(
             ps.close()
         }
 
-        @Suppress("unused")
-        fun loadFromFile(
-            pathToSettingsFile: String,
-            readonly: Boolean = false,
-            database: KaraokeConnection,
-        ): Song {
-            val song = Song(database)
-            song.readonly = readonly
-            val settingFilePath = Path(pathToSettingsFile)
-            val settingRoot = settingFilePath.parent.toString()
-            val settingFileNameList =
-                settingFilePath.fileName
-                    .toString()
-                    .split(".")
-                    .toMutableList()
-            settingFileNameList.removeLast()
-            val settingFileName = settingFileNameList.joinToString(".")
-
-            song.rootFolder = settingRoot
-            song.fileName = settingFileName
-
-            val body = File(pathToSettingsFile).readText(Charsets.UTF_8)
-            body.split("\n").forEach { line ->
-                val settingList = line.split("=")
-                if (settingList.size > 1) {
-                    val settingName = settingList[0].uppercase()
-                    val settingValue = settingList[1] + (if (settingList.size == 3) "=" + settingList[2] else "")
-                    val settingField =
-                        if (SongField.entries.map { it.name }.contains(
-                                settingName,
-                            )
-                        ) {
-                            SongField.valueOf(settingName)
-                        } else {
-                            null
-                        }
-                    settingField?.let { song.fields[settingField] = settingValue.trim() }
-                }
-            }
-            return song
-        }
+        // specs/544-song-artifact-cleanup (FR-006): loadFromFile удалён — единственный
+        // читатель sidecar-состояния (.song/.settings); вызовов в репозитории не было.
 
         /**
          * Результат [createFromPath]: добавленные песни и общее число подходящих по расширению

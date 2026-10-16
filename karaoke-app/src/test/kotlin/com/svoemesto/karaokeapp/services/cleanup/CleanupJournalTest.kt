@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.services.cleanup
 
+import com.svoemesto.karaokeapp.model.SongOutputFile
+
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -18,6 +20,8 @@ import java.time.LocalDate
  * @see specs/544-song-artifact-cleanup/data-model.md
  */
 class CleanupJournalTest {
+    private val videoExt = "." + SongOutputFile.VIDEO.extension
+
     @TempDir
     lateinit var tempDir: Path
 
@@ -28,7 +32,7 @@ class CleanupJournalTest {
 
     @Test
     fun `первая запись создаёт файл класса с заголовком TSV`() {
-        val ok = journal().appendDeleted("/sm-karaoke/done2/A/B/done_files/x [demo].mp4", 100L, "DEMO_MP4", "Сергей Новиков", "r-1")
+        val ok = journal().appendDeleted("/sm-karaoke/done2/A/B/done_files/x [demo]" + videoExt, 100L, "DEMO_MP4", "Сергей Новиков", "r-1")
 
         assertTrue(ok)
         val rows = lines("DEMO_MP4")
@@ -74,7 +78,7 @@ class CleanupJournalTest {
     fun `разные классы пишутся в разные файлы`() {
         val j = journal()
         j.appendDeleted("/a/1.srt", 1L, "SRT", "owner", "r-4")
-        j.appendDeleted("/a/1.mp4", 1L, "DEMO_MP4", "owner", "r-4")
+        j.appendDeleted("/a/1" + videoExt, 1L, "DEMO_MP4", "owner", "r-4")
 
         assertFalse(Files.readAllLines(j.journalPath("SRT")).isEmpty())
         assertFalse(Files.readAllLines(j.journalPath("DEMO_MP4")).isEmpty())

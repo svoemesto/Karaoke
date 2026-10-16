@@ -70,13 +70,25 @@ data class CleanupPlan(
  * **Ни один вызов этого класса не удаляет файлы** — планировщик только читает каталоги и
  * строит отчёт. Удаление выполняет [ArtifactCleanupService] по утверждённому отчёту.
  *
- * @param roots корни обхода; по умолчанию — рабочие каталоги admin-машины
- *   (`PROJECT_ROOT_FOLDERS`: work/done1/done2).
+ * @param roots корни обхода; `null` — рабочие каталоги admin-машины
+ *   ([effectiveRoots]: `PROJECT_ROOT_FOLDERS` — work/done1/done2), вычисляются при первом
+ *   обращении, а не в конструкторе. Прецедент P0 (2026-10-16): вычисление `Constants`
+ *   в конструкторе ломало старт приложения — `Constants.<clinit>` тянет `Connection`,
+ *   которому нужен `APP_WORK_ON_SERVER`, выставляемый `KaraokeAppService` позже по
+ *   жизненному циклу Spring.
  * @see specs/544-song-artifact-cleanup/data-model.md
  */
 class ArtifactCleanupPlanner(
-    private val roots: List<String> = PROJECT_ROOT_FOLDERS,
+    private val roots: List<String>? = null,
 ) {
+    /**
+     * Корни обхода, вычисляемые **при первом обращении**, а не в конструкторе.
+     *
+     * Обращение к `Constants` отсюда безопасно: `plan()` вызывается только по HTTP-запросу,
+     * то есть когда приложение уже стартовало.
+     */
+    private fun effectiveRoots(): List<String> = roots ?: PROJECT_ROOT_FOLDERS
+
     /**
      * Построить отчёт сухого прогона по классу.
      *
@@ -95,7 +107,7 @@ class ArtifactCleanupPlanner(
         }
 
         val entries = mutableListOf<CleanupPlanEntry>()
-        roots
+        effectiveRoots()
             .map { File(it) }
             .filter { it.isDirectory }
             .forEach { root -> collect(root, classId, entries) }

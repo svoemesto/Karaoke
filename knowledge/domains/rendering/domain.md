@@ -24,7 +24,10 @@ related:
 
 - Принимает Song (idStatus=6 + маркеры + стемы) и выбранную версию
   (`LYRICS` / `KARAOKE` / `DEMO`).
-- Возвращает MP4 в MinIO (см. [L2-containers](../../system/02-containers.md)).
+- Возвращает видео в `done_files/` рядом с песней (+ копия в `/sm-karaoke/store`);
+  **в MinIO видео не загружается** — там только mp3-стемы и картинки
+  (specs/544, FR-016; см. [L2-containers](../../system/02-containers.md)).
+  Легаси-конвейер melt заморожен: новые песни рендерит Playwright.
 - Включает CPU-лимиты для предотвращения starvation UI.
 
 **Почему выделено из processing**:

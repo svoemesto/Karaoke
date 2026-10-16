@@ -211,8 +211,19 @@ stats-инфраструктуры (кеш метрик + `pg_stat_activity`), �
   описана, занимает 50 строк; критична для player UX.
 - [ ] **`executeResolvable`** (`HealthReport.kt:2252`) — точка входа
   repair-loop, не описана.
-- [ ] **`LEGACY_MLT_FILE_TYPES`** (строка 1107) — set из 4 типов,
-  помечен как legacy; нужно понять, планируется ли удаление.
+- [~] **`LEGACY_MLT_FILE_TYPES`** (`HealthReport.kt:1363-1375`) — set из
+  **8** типов (`PICTURE_PUBLICATION`, `PICTURE_SONGVERSION`,
+  `VIDEO_SONGVERSION_1080P/720P`, `PROJECT_SONGVERSION_RUN/MLT/KDENLIVE/TXT`),
+  пропускаемых циклом по `KaraokeFileType.entries` (`:1504-1505`). Уточнено
+  specs/544 (FR-017): это не «кандидаты на удаление», а **граница аудита** —
+  HealthReport проверяет только типы из `KaraokeFileType`, поэтому наследие MLT
+  (`.mlt`/`.kdenlive`/`.run`) им не аудируется вовсе. Файлы проектов рендера
+  теперь и не создаются (specs/544, FR-009).
+- [x] **Каталоги симлинков аудируются целиком** (specs/544, FR-015):
+  `symlinkFolderReports` (`HealthReport.kt`) обходит `symlink_mp4`,
+  `symlink_png`, `symlink_sponsr` и сообщает о битых ссылках, посторонних
+  файлах и вложенных объектах — раньше такие объекты не замечались, если
+  файла-цели не было на диске.
 - [ ] **`StatsCache` / `StatsDebugController`** — связь HealthReport
   с admin-метриками не описана.
 - [ ] **webvue3 сторона**: `HealthReportView.vue` (нужно найти

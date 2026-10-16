@@ -155,10 +155,10 @@ description: "Task list for 544-song-artifact-cleanup"
 
 **Purpose**: обязательные гейты и артефакты трекера.
 
-- [ ] T036 Обязательные проверки после изменения (AGENTS.md Pass 239+245, `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`): `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`; `./gradlew :karaoke-web:ktlintCheck`; `./gradlew :karaoke-app:bootJar :karaoke-web:bootJar --parallel`. Фронтенды (`webvue3/`, `karaoke-public/`) в этой поставке не меняются — `npm run lint`/`build` для них не запускаются (зафиксировать факт в `report.md`)
-- [ ] T037 [P] Прогнать гейты документации и SSoT: `bash tools/check-no-mp4-mentions.sh --quiet` (R-11; новые строки с `mp4` в `karaoke-app/src/**/*.kt` вне тестов не должны появиться — baseline НЕ перегенерировать без слова владельца), `python3 tools/check-ssot-impact.py`, `python3 tools/lint-knowledge.py`, `bash tools/check-knowledge-structure.sh`, `bash tools/check-feature-doc.sh docs/features/*.md`
-- [ ] T038 [P] Добавить запись о поставке в `docs/architecture-notes.md` (Constitution VI/VII)
-- [ ] T039 [P] Создать черновик `specs/544-song-artifact-cleanup/report.md` — REQUIRED-артефакт трекера (#321): что сделано, факты с диска (объёмы до/после), результаты гейтов, что осталось за владельцем (разовый прогон, перезапуск `karaoke-app`); это же — источник для `tools/tracker.sh add-comment 321 --file …`
+- [x] T036 Обязательные проверки после изменения (AGENTS.md Pass 239+245, `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`): `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`; `./gradlew :karaoke-web:ktlintCheck`; `./gradlew :karaoke-app:bootJar :karaoke-web:bootJar --parallel`. Фронтенды (`webvue3/`, `karaoke-public/`) в этой поставке не меняются — `npm run lint`/`build` для них не запускаются (зафиксировать факт в `report.md`)
+- [x] T037 [P] Прогнать гейты документации и SSoT: `bash tools/check-no-mp4-mentions.sh --quiet` (R-11; новые строки с `mp4` в `karaoke-app/src/**/*.kt` вне тестов не должны появиться — baseline НЕ перегенерировать без слова владельца), `python3 tools/check-ssot-impact.py`, `python3 tools/lint-knowledge.py`, `bash tools/check-knowledge-structure.sh`, `bash tools/check-feature-doc.sh docs/features/*.md`
+- [x] T038 [P] Добавить запись о поставке в `docs/architecture-notes.md` (Constitution VI/VII)
+- [x] T039 [P] Создать черновик `specs/544-song-artifact-cleanup/report.md` — REQUIRED-артефакт трекера (#321): что сделано, факты с диска (объёмы до/после), результаты гейтов, что осталось за владельцем (разовый прогон, перезапуск `karaoke-app`); это же — источник для `tools/tracker.sh add-comment 321 --file …`
 - [ ] T040 Приёмка по `quickstart.md` и замер эффекта: `df -h` до/после, сверка SC-001…SC-009 из `spec.md`, дозапись результатов в `report.md`; передать лиду на ревью
 
 ---

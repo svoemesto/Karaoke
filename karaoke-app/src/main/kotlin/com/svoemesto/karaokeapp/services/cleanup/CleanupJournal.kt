@@ -78,10 +78,11 @@ class CleanupJournal(
         val path = journalPath(record.classId)
         return try {
             val isNew = !Files.exists(path)
-            val line = buildString {
-                if (isNew) append(HEADER_LINE)
-                append(formatRecord(record))
-            }
+            val line =
+                buildString {
+                    if (isNew) append(HEADER_LINE)
+                    append(formatRecord(record))
+                }
             Files.write(
                 path,
                 line.toByteArray(Charsets.UTF_8),

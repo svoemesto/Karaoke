@@ -97,6 +97,48 @@ object ArtifactCleanupAutomation {
             if (tgSuccess && vkSuccess) add(ArtifactCleanupClass.PUBLICATION_PNG)
         }
 
+    /**
+     * Удалять ли локальную копию mp3-стема (FR-003).
+     *
+     * Только когда загрузка в оба хранилища успешна. Fail-closed: неизвестность
+     * (проверка второго хранилища не удалась) означает «не удалять» — иначе можно
+     * уничтожить единственную оставшуюся копию.
+     */
+    fun shouldDeleteLocalCopy(
+        deleteWhenBothStoresHave: Boolean,
+        counterpartStoreHasFile: Boolean,
+    ): Boolean = deleteWhenBothStoresHave && counterpartStoreHasFile
+
+    /**
+     * Удалить локальную копию, если объект уже есть в обоих хранилищах (FR-003).
+     *
+     * @param localPath путь локальной копии (mp3-стем в папке песни);
+     * @param deleteWhenBothStoresHave признак того, что локальная копия этого типа не
+     *   обязана храниться (модель `KaraokeFileType.locations` без `LOCAL_FILESYSTEM`);
+     * @param counterpartStoreHasFile есть ли объект во втором хранилище;
+     * @return `true`, если файл был удалён.
+     */
+    fun deleteLocalCopyIfBothStoresHave(
+        localPath: String,
+        deleteWhenBothStoresHave: Boolean,
+        counterpartStoreHasFile: Boolean,
+    ): Boolean {
+        if (!shouldDeleteLocalCopy(deleteWhenBothStoresHave, counterpartStoreHasFile)) {
+            if (deleteWhenBothStoresHave) {
+                println("[cleanup] локальная копия '$localPath' оставлена: объект есть не во всех целевых хранилищах (FR-003)")
+            }
+            return false
+        }
+        return try {
+            val deleted = Files.deleteIfExists(File(localPath).toPath())
+            if (deleted) println("[cleanup] локальная копия удалена (объект есть в обоих хранилищах): $localPath")
+            deleted
+        } catch (e: Exception) {
+            println("[cleanup] локальную копию '$localPath' удалить не удалось: ${e.message}")
+            false
+        }
+    }
+
     /** Удалить один путь на шаге жизненного цикла. */
     fun deleteAfterStage(
         classId: ArtifactCleanupClass,

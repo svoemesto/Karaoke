@@ -82,8 +82,10 @@ class CleanupJournalTest {
 
         assertFalse(Files.readAllLines(j.journalPath("SRT")).isEmpty())
         assertFalse(Files.readAllLines(j.journalPath("DEMO_MP4")).isEmpty())
-        assertTrue(j.journalPath("SRT").fileName.toString().endsWith("-SRT.tsv"))
-        assertTrue(j.journalPath("DEMO_MP4").fileName.toString().endsWith("-DEMO_MP4.tsv"))
+        val srtPath = j.journalPath("SRT").fileName.toString()
+        val demoPath = j.journalPath("DEMO_MP4").fileName.toString()
+        assertTrue(srtPath.endsWith("-SRT.tsv"))
+        assertTrue(demoPath.endsWith("-DEMO_MP4.tsv"))
     }
 
     @Test

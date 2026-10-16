@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.services.cleanup
 
+import com.svoemesto.karaokeapp.model.SongOutputFile
+
 /**
  * Каталоги папки песни, по которым раскладываются артефакты.
  *
@@ -12,6 +14,14 @@ const val CLEANUP_DONE_FILES_FOLDER = "done_files"
 const val CLEANUP_DONE_PROJECTS_FOLDER = "done_projects"
 const val CLEANUP_DONE_CHORDS_FOLDER = "done_chords"
 const val CLEANUP_SHEETSAGE_FOLDER = "sheetsage"
+
+/**
+ * Расширение видеофайлов (демо-ролик, мёртвое имя `[render]`).
+ *
+ * Берётся из существующего источника [SongOutputFile.VIDEO], а не литералом: правило R-11
+ * (см. AGENTS.md, Tier-2 «Каталог guards») запрещает новые упоминания расширения в исходниках.
+ */
+private val CLEANUP_VIDEO_EXTENSION = "." + SongOutputFile.VIDEO.extension
 
 /** Каталоги симлинков песни (`Song.kt:1777-1779`). */
 val CLEANUP_SYMLINK_FOLDERS = listOf("symlink_mp4", "symlink_png", "symlink_sponsr")
@@ -125,7 +135,7 @@ enum class ArtifactCleanupClass(
             listOf(
                 CleanupFileMatcher(
                     subFolder = CLEANUP_DONE_FILES_FOLDER,
-                    extensions = listOf(".mp4"),
+                    extensions = listOf(CLEANUP_VIDEO_EXTENSION),
                     nameContainsAny = listOf("[demo]"),
                 ),
             ),
@@ -136,13 +146,24 @@ enum class ArtifactCleanupClass(
         cleanupOrder = 3,
         expectedFileCount = 44_651,
         expectedBytes = gigibytes(20.6),
-        note = "Воссоздаются из данных песни; набор суффиксов задан UtilsPictures.kt — расхождение видно как warning отчёта (FR-005)",
+        note = "Воссоздаются из данных песни; набор суффиксов взят из UtilsPictures.kt: [lyrics]/[karaoke]/[chords]/[tabs]/[sponsr]/[VKlink]/[VK]/[boosty]/[files] (FR-005)",
         matchers =
             listOf(
                 CleanupFileMatcher(
                     subFolder = CLEANUP_DONE_FILES_FOLDER,
                     extensions = listOf(".png"),
-                    nameContainsAny = listOf("[karaoke]", "[lyrics]", "[sponsr]", "[vklink]", "[vkgroup]", "song_banner"),
+                    nameContainsAny =
+                        listOf(
+                            "[karaoke]",
+                            "[lyrics]",
+                            "[chords]",
+                            "[tabs]",
+                            "[sponsr]",
+                            "[VKlink]",
+                            "[VK]",
+                            "[boosty]",
+                            "[files]",
+                        ),
                 ),
             ),
     ),
@@ -245,7 +266,7 @@ enum class ArtifactCleanupClass(
         cleanupOrder = 7,
         expectedFileCount = 0,
         expectedBytes = mebibytes(900.0),
-        note = "Битые симлинки, 1-байтные txt в hdemucs_mmi, result_key_bpm_finder.json, *.kdenlive_back*, мёртвое имя [render].mp4 (FR-015)",
+        note = "Битые симлинки, 1-байтные txt в hdemucs_mmi, result_key_bpm_finder.json, *.kdenlive_back*, мёртвое имя [render]-видео (FR-015)",
         matchers =
             listOf(
                 CleanupFileMatcher(subFolder = CLEANUP_STEMS_FOLDER, extensions = listOf(".txt"), maxBytes = 1L),
@@ -253,7 +274,7 @@ enum class ArtifactCleanupClass(
                 CleanupFileMatcher(subFolder = "", nameContainsAny = listOf(".kdenlive_back")),
                 CleanupFileMatcher(
                     subFolder = CLEANUP_DONE_FILES_FOLDER,
-                    extensions = listOf(".mp4"),
+                    extensions = listOf(CLEANUP_VIDEO_EXTENSION),
                     nameContainsAny = listOf("[render]"),
                 ),
             ),

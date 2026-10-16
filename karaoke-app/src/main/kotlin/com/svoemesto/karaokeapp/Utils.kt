@@ -7,6 +7,7 @@ import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import com.svoemesto.karaokeapp.llm.LyricsFinderService
+import com.svoemesto.karaokeapp.services.cleanup.ArtifactCleanupAutomation
 import com.svoemesto.karaokeapp.mlt.MltObject
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
@@ -4326,6 +4327,10 @@ fun executeUploadToLocalStore(
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
     val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
+    // specs/544-song-artifact-cleanup (FR-003): источник — локальная копия, которая не
+    // обязана храниться. Удаляем её после успешной загрузки, только если объект уже есть
+    // и в удалённом хранилище (условие «все целевые загрузки успешны»).
+    val deleteWhenBothStoresHave = params["deleteWhenBothStoresHave"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageService = KSS_APP
     val song =
@@ -4368,6 +4373,15 @@ fun executeUploadToLocalStore(
             size = totalSize,
         )
         if (deleteAfterUpload) Files.deleteIfExists(file.toPath())
+        // specs/544-song-artifact-cleanup (FR-003): локальная копия удаляется только когда
+        // объект уже есть в ОБОИХ хранилищах. Здесь только что завершилась загрузка в
+        // локальное — проверяем удалённое. deleteAfterUpload выше относится к временному
+        // файлу загрузки и этой веткой не покрывается.
+        ArtifactCleanupAutomation.deleteLocalCopyIfBothStoresHave(
+            localPath = pathToFile,
+            deleteWhenBothStoresHave = deleteWhenBothStoresHave,
+            counterpartStoreHasFile = remoteStoreHasFile(bucketName, storageFileName),
+        )
         return true
     }
     // Нет ни в хранилище, ни на диске — загружать нечего. Раньше возвращался true
@@ -4385,6 +4399,10 @@ fun executeUploadToRemoteStore(
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
     val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
+    // specs/544-song-artifact-cleanup (FR-003): источник — локальная копия, которая не
+    // обязана храниться. Удаляем её после успешной загрузки в удалённое хранилище, только
+    // если объект уже есть и в локальном (условие «все целевые загрузки успешны»).
+    val deleteWhenBothStoresHave = params["deleteWhenBothStoresHave"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageApiClient = SAC_APP
     val song =
@@ -4433,6 +4451,13 @@ fun executeUploadToRemoteStore(
             return false
         }
         if (deleteAfterUpload) Files.deleteIfExists(File(pathToFile).toPath())
+        // specs/544-song-artifact-cleanup (FR-003): удалённая загрузка только что завершилась —
+        // проверить локальное хранилище и удалить локальную копию, если объект есть в обоих.
+        ArtifactCleanupAutomation.deleteLocalCopyIfBothStoresHave(
+            localPath = pathToFile,
+            deleteWhenBothStoresHave = deleteWhenBothStoresHave,
+            counterpartStoreHasFile = localStorageHasFile(bucketName, storageFileName),
+        )
         return true
     }
     // Нет ни в хранилище, ни на диске — загружать нечего. Раньше возвращался true
@@ -4441,6 +4466,39 @@ fun executeUploadToRemoteStore(
     println("executeUploadToRemoteStore: нечего загружать — '$pathToFile' отсутствует на диске, а '$storageFileName' нет в удалённом хранилище")
     return false
 }
+
+/**
+ * Есть ли объект в локальном хранилище (specs/544, FR-003).
+ *
+ * Отдельная обёртка, а не прямой вызов [KSS_APP], чтобы условие «обе загрузки успешны»
+ * читалось в одном месте и не размножало прямое обращение к глобалу по коду.
+ */
+private fun localStorageHasFile(
+    bucketName: String,
+    storageFileName: String,
+): Boolean =
+    try {
+        KSS_APP.fileExists(bucketName = bucketName, fileName = storageFileName)
+    } catch (e: Exception) {
+        println("localStorageHasFile: проверка '$storageFileName' не удалась: ${e.message}")
+        false
+    }
+
+/**
+ * Есть ли объект в удалённом хранилище (specs/544, FR-003).
+ *
+ * Fail-closed: при ошибке проверки возвращаем `false`, то есть локальная копия НЕ удаляется.
+ */
+private fun remoteStoreHasFile(
+    bucketName: String,
+    storageFileName: String,
+): Boolean =
+    try {
+        SAC_APP.fileExists(bucketName = bucketName, fileName = storageFileName)
+    } catch (e: Exception) {
+        println("remoteStoreHasFile: проверка '$storageFileName' не удалась: ${e.message}")
+        false
+    }
 
 fun executeRenderMp4(
     params: Map<String, String>,

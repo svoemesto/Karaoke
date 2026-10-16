@@ -810,6 +810,10 @@ data class HealthReport(
                                                 "karaokeFileType" to karaokeFileType.name,
                                                 "storageFileName" to storageFileName,
                                                 "bucketName" to storageBucketName,
+                                                // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                                // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                                // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                                "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                             ),
                                     )
                                 }
@@ -879,6 +883,10 @@ data class HealthReport(
                                             "karaokeFileType" to karaokeFileType.name,
                                             "storageFileName" to storageFileName,
                                             "bucketName" to storageBucketName,
+                                            // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                            // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                            // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                            "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                         ),
                                 )
                             }
@@ -1164,6 +1172,10 @@ data class HealthReport(
                                                 "karaokeFileType" to karaokeFileType.name,
                                                 "storageFileName" to storageFileName,
                                                 "bucketName" to storageBucketName,
+                                                // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                                // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                                // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                                "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                             ),
                                     )
                                 }
@@ -1233,6 +1245,10 @@ data class HealthReport(
                                             "karaokeFileType" to karaokeFileType.name,
                                             "storageFileName" to storageFileName,
                                             "bucketName" to storageBucketName,
+                                            // specs/544-song-artifact-cleanup (FR-003): если локальная копия этого типа больше
+                                            // не ожидается моделью (KaraokeFileType.locations без LOCAL_FILESYSTEM), удалить её
+                                            // после успешной загрузки — но только когда объект есть и во втором хранилище.
+                                            "deleteWhenBothStoresHave" to (!karaokeFileType.willBeInFileSystem).toString(),
                                         ),
                                 )
                             }

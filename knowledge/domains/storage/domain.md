@@ -313,6 +313,10 @@ UI: `webvue3` — кнопка «Сбросить кеш» в `HealthReportTable
 (песни текущей страницы). Формулы имён файлов — `StorageCacheReset`
 (единый источник, тест `StorageCacheResetTest`).
 
+Модалка Health Report открывается и при **нуле записей** (OpenProject #325):
+`HealthReportTableHeader` получает id песни пропом `songId`, кнопка сброса не
+зависит от длины списка. `Repair All` при пустом списке недоступна.
+
 **Ловушка (прецедент 2026-09-24):** после смены `storage.remote-endpoint`
 **обязателен** сброс кеша (`refresh-all?source=REMOTE` или UI-кнопка) — иначе
 health-report ошибочно показывает «0 ошибок», а файлы в новом MinIO отсутствуют.

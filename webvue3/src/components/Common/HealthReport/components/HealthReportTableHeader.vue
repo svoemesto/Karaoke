@@ -11,7 +11,6 @@
     <button
       type="button"
       class="hrl-table-header-button-reset-cache"
-      :disabled="healthReportList.length === 0"
       title="Сбросить кеш хранилища для этой песни и перечитать реальное состояние MinIO"
       @click="resetStorageCache"
     >
@@ -34,25 +33,34 @@ export default {
       required: true,
       defaults: [],
     },
+    // OpenProject #325: id песни передаётся явно — при нуле записей HR список пуст,
+    // и раньше songId было взять неоткуда, поэтому сброс кеша был недоступен.
+    songId: {
+      type: [String, Number],
+      default: null,
+    },
   },
   computed: {
     healthReportListCanRepair() {
       return this.healthReportList.filter((healthReport) => healthReport.canResolve)
     },
-    songId() {
+    effectiveSongId() {
+      if (this.songId !== null && this.songId !== undefined && this.songId !== '') {
+        return this.songId
+      }
       return this.healthReportList.length > 0 ? this.healthReportList[0].songId : null
     },
   },
   methods: {
     repairAll() {
       if (this.healthReportList.length === 0) return
-      this.$store.dispatch('repairAllPromise', this.songId)
+      this.$store.dispatch('repairAllPromise', this.effectiveSongId)
     },
     // Спека #446: сброс persistent-кеша хранилища для одной песни; после — перезапрос
     // health-report (loadHealthReportList), чтобы увидеть актуальное состояние MinIO.
     resetStorageCache() {
-      if (this.songId === null) return
-      const songId = this.songId
+      if (this.effectiveSongId === null) return
+      const songId = this.effectiveSongId
       this.$store.dispatch('resetStorageCachePromise', [songId]).then(() => {
         this.$store.dispatch('loadHealthReportList', songId)
       })

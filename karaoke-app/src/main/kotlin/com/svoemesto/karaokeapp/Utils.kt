@@ -4225,6 +4225,11 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
     if (words.isEmpty()) return false
 
     var anyVoiceProcessed = false
+    // specs/547-drop-empty-song-voices: собираем результат по голосам и применяем его ОДНИМ
+    // сохранением (setAllVoices). Иначе первое же сохранение в цикле запускает нормализацию
+    // пустых голосов и сдвигает нумерацию — следующие голоса легли бы не на свои индексы.
+    val textsResult = song.sourceTextList.toMutableList()
+    val markersResult = song.sourceMarkersList.toMutableList()
     for (voice in song.sourceTextList.indices) {
         val sourceText = song.getSourceText(voice)
         if (sourceText.isBlank()) continue
@@ -4237,11 +4242,14 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
         val syllableTimes = response.syllables.map { (it.startMs / 1000.0) to (it.endMs / 1000.0) }
         val markers = WhisperMarkerAligner.buildMarkersFromSyllableTimes(reconciledText, syllableTimes) ?: continue
 
-        song.setSourceMarkers(voice, markers)
-        if (reconciledText != sourceText) song.setSourceText(voice, reconciledText)
+        while (markersResult.size <= voice) markersResult.add(emptyList())
+        while (textsResult.size <= voice) textsResult.add("")
+        markersResult[voice] = markers
+        textsResult[voice] = reconciledText
         anyVoiceProcessed = true
     }
     if (!anyVoiceProcessed) return false
+    song.setAllVoices(markers = markersResult, texts = textsResult)
 
     if (song.idStatus == 3L) {
         song.fields[SongField.ID_STATUS] = "4"

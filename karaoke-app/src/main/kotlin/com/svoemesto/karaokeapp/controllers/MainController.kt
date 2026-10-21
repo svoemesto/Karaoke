@@ -443,11 +443,13 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        text = song?.let {
-            song.setSourceText(voice, sourceText)
-            song.updateMarkersFromSourceText(voice)
-            "OK"
-        } ?: "Error"
+        text =
+            song?.let {
+                // specs/547: текст и маркеры одного голоса — одним сохранением (research R4).
+                song.setSourceTextAndMarkers(voice = voice, text = sourceText, markers = song.getSourceMarkers(voice))
+                song.updateMarkersFromSourceText(voice)
+                "OK"
+            } ?: "Error"
 //        }
         model.addAttribute("text", text)
         return "text"
@@ -694,11 +696,20 @@ class MainController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
-            text = song?.let {
-                song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-                // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
-                "OK"
-            } ?: "Error"
+            text =
+                song?.let {
+                    val markers =
+                        try {
+                            Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
+                        } catch (e: Exception) {
+                            println("Ошибка при парсинге маркеров для песни $id: ${e.message}")
+                            return@let "Error"
+                        }
+                    // specs/547: текст и маркеры одного голоса — одним сохранением (research R4).
+                    song.setSourceTextAndMarkers(voice = voice, text = song.getSourceText(voice), markers = markers)
+                    // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
+                    "OK"
+                } ?: "Error"
         }
         model.addAttribute("text", text)
         return "text"

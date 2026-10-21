@@ -12,13 +12,16 @@ fun getVoices(
     songVersion: SongVersion,
 ): List<SongVoice> {
     val listOfVoices: MutableList<SongVoice> = mutableListOf()
-    val countNotEmptyVoices = song.sourceMarkersList.filter { it.isNotEmpty() }.size
+    // specs/547-drop-empty-song-voices (US3): обходим именно НЕПУСТЫЕ голоса по их индексам, а не
+    // первые N позиций списка. Иначе пустой голос в середине «съедал» реальный голос, идущий после
+    // него (например, разметка [A, пусто, B] — голос B не попадал в рендер).
+    val voiceIndices = nonEmptyVoiceIndices(song.sourceMarkersList)
 
-    if (countNotEmptyVoices == 0) return listOfVoices
+    if (voiceIndices.isEmpty()) return listOfVoices
     val startSilentOffsetMs = song.getStartSilentOffsetMs()
-    for (voiceIndex in 0 until countNotEmptyVoices) {
+    for ((position, voiceIndex) in voiceIndices.withIndex()) {
         val voice = SongVoice(rootId = song.id)
-        voice.voiceId = voiceIndex
+        voice.voiceId = position
         voice.rootSongLengthMs = song.songLengthMs
         voice.rootStartSilentOffsetMs = song.getStartSilentOffsetMs()
 

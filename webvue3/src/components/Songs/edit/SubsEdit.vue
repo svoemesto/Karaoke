@@ -3163,12 +3163,16 @@ export default {
       }
       this.saving = true
       try {
-        await this.$store.dispatch('saveSourceTextAndMarkers', {
+        const result = await this.$store.dispatch('saveSourceTextAndMarkers', {
           voice: this.currentVoice,
           sourceText: this.sourceText,
           sourceMarkers: JSON.stringify(this.getMarkersToSave()),
           indexTabsVariant: this.indexTabsVariant,
         })
+        // specs/547-drop-empty-song-voices (FR-010): сервер мог удалить пустой голос и сдвинуть
+        // нумерацию. Приводим локальное состояние к ответу, иначе следующее сохранение уйдёт не в
+        // тот голос (или создаст лишний).
+        await this.applySavedVoiceState(result)
       } catch (e) {
         this.customConfirmParams = {
           header: 'Ошибка сохранения',
@@ -3180,6 +3184,34 @@ export default {
       if (this.saveQueued) {
         this.saveQueued = false
         await this.save()
+      }
+    },
+    // specs/547-drop-empty-song-voices: согласовать список голосов редактора с данными песни
+    // после сохранения. voice == -1 — сохранённый голос удалён как пустой, переходим на последний
+    // реальный; иначе — переходим на новый индекс сохранённого голоса.
+    async applySavedVoiceState(result) {
+      if (!result) return
+      const count = Number(result.countVoices)
+      if (!Number.isFinite(count) || count <= 0) return
+      const hadExtraVoices = Array.isArray(this.dataVoices) && this.dataVoices.length > count
+      if (hadExtraVoices) {
+        // Голоса удалены — перечитываем список с сервера, чтобы локальное состояние совпадало
+        // с данными песни (US4). Если запрос не удался — просто усекаем локальный список.
+        try {
+          const voices = await this.$store.dispatch('refreshSongVoices')
+          if (Array.isArray(voices) && voices.length === count) {
+            this.dataVoices = voices
+          } else {
+            this.dataVoices.splice(count)
+          }
+        } catch (_e) {
+          this.dataVoices.splice(count)
+        }
+      }
+      const voice = Number(result.voice)
+      const target = Number.isFinite(voice) && voice >= 0 && voice < count ? voice : count - 1
+      if (this.currentVoice !== target) {
+        this.currentVoice = target
       }
     },
     getMarkersToSave() {

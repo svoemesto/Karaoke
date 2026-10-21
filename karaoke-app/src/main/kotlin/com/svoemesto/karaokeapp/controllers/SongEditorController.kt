@@ -382,12 +382,15 @@ class SongEditorController(
                 // администратор получает типизированную ошибку вместо необработанного HTTP 500.
                 try {
                     val prevVoiceCount = song.sourceMarkersList.size
-                    for (voice in markersPerVoice.indices) {
-                        song.setSourceMarkers(voice, markersPerVoice[voice])
-                        // specs/544-song-artifact-cleanup (FR-008): файл субтитров при апруве
-                        // больше не пишется — разметка сохраняется в БД.
-                        song.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
-                    }
+                    // specs/547-drop-empty-song-voices (FR-011): весь набор голосов применяется
+                    // ОДНИМ сохранением. Цикл setSourceMarkers писал каждый голос отдельно, а
+                    // нормализация пустых голосов выполняется внутри сохранения — пустой средний
+                    // голос удалялся бы прямо в цикле и следующие голоса легли бы не на свои индексы.
+                    // specs/544-song-artifact-cleanup (FR-008): файл субтитров при апруве не пишется.
+                    song.setAllVoices(
+                        markers = markersPerVoice,
+                        texts = markersPerVoice.indices.map { textsPerVoice.getOrElse(it) { "" } },
+                    )
                     // Хвостовые голоса, удалённые пользователем в черновике (были в Song, но их больше
                     // нет в присланном списке) — обрезаем.
                     if (markersPerVoice.size < prevVoiceCount) {
@@ -887,16 +890,13 @@ class SongEditorController(
             val song =
                 Song.loadFromDbById(id, Connection.local(), storageService = storageService, storageApiClient = storageApiClient)
                     ?: return mapOf("ok" to false, "error" to "song_not_found")
-            val voiceCount = maxOf(song.countVoices, parsedMarkers.size)
-            for (v in 0 until voiceCount) {
-                val markers = parsedMarkers.getOrNull(v) ?: emptyList()
-                song.setSourceMarkers(v, markers)
-                val text = parsedTexts.getOrNull(v) ?: ""
-                song.setSourceText(v, text)
-            }
-            if (parsedMarkers.size < song.countVoices) {
-                song.truncateVoicesTo(parsedMarkers.size)
-            }
+            // specs/547-drop-empty-song-voices (FR-011): весь набор голосов применяется ОДНИМ
+            // сохранением. Цикл setSourceMarkers/setSourceText писал каждый голос отдельно, а
+            // нормализация пустых голосов выполняется внутри сохранения — пустой голос удалялся бы
+            // прямо в цикле и следующие голоса легли бы не на свои индексы.
+            // Раньше здесь был цикл `for (v in 0 until maxOf(song.countVoices, parsedMarkers.size))`
+            // с последующим truncateVoicesTo; итоговое состояние то же: набор из payload.
+            song.setAllVoices(markers = parsedMarkers, texts = parsedTexts)
             return mapOf("ok" to true, "voiceCount" to song.countVoices, "idStatus" to song.idStatus)
         } else {
             return withDb(target) { db ->

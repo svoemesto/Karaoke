@@ -28,6 +28,7 @@ import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
+import kotlin.jvm.Transient
 import kotlin.math.abs
 import org.slf4j.LoggerFactory
 
@@ -476,6 +477,22 @@ class Song(
 
     @Suppress("unused")
     val countNotEmptyVoices: Int get() = sourceMarkersList.filter { it.isNotEmpty() }.size
+
+    /**
+     * Результат нормализации голосов последнего сохранения (specs/547-drop-empty-song-voices).
+     *
+     * Живёт только в памяти: API сохранения голоса по нему вычисляет новый индекс голоса после
+     * удаления пустого (FR-010). Сбрасывается в начале каждого `saveToDb()`; в JSON/БД не уходит.
+     *
+     * @see docs/features/drop-empty-song-voices.md
+     */
+    @get:JsonIgnore
+    @Transient
+    var lastVoiceNormalization: VoiceNormalization? = null
+
+    // specs/547-drop-empty-song-voices: WARN-лог нормализации голосов — факт удаления и fail-safe
+    // при нечитаемых данных (FR-012). Категория по конвенции infra.<subsystem>.<feature>.
+    private val voiceNormalizeLog = LoggerFactory.getLogger("infra.song.voices")
 
     @get:JsonIgnore
     val sourceUnmute: List<Pair<Double, Double>> get() {
@@ -3776,6 +3793,122 @@ class Song(
         }
     }
 
+    /**
+     * Записывает текст и маркеры одного голоса **одним** сохранением
+     * (specs/547-drop-empty-song-voices, research R4).
+     *
+     * Зачем не два вызова [setSourceMarkers] + [setSourceText]: каждый из них сохраняет песню
+     * сразу, а нормализация пустых голосов выполняется внутри `saveToDb()`. После удаления
+     * пустого голоса второй вызов `setSourceText` попал бы в ветку «дописать в конец» и вернул
+     * бы пустой голос обратно уже в `source_text` — списки текстов и маркеров разошлись бы.
+     *
+     * @param voice индекс голоса с нуля; если равен числу голосов — голос добавляется
+     * @param text текст голоса (может быть пустым)
+     * @param markers маркеры голоса (может быть пустым списком)
+     *
+     * @see docs/features/drop-empty-song-voices.md
+     */
+    fun setSourceTextAndMarkers(
+        voice: Int,
+        text: String,
+        markers: List<SourceMarker>,
+    ) {
+        if (voice < 0) return
+
+        val markersLst = sourceMarkersList.toMutableList()
+        val textsLst = sourceTextList.toMutableList()
+        while (markersLst.size <= voice) markersLst.add(emptyList())
+        while (textsLst.size <= voice) textsLst.add("")
+        markersLst[voice] = markers
+        textsLst[voice] = text
+        sourceMarkers = Json.encodeToString(markersLst)
+        sourceText = Json.encodeToString(textsLst)
+
+        resultText = getText()
+        formattedTextSong = getTextFormatted()
+        formattedTextTabs = getFormattedNotes()
+        formattedTextChords = getFormattedChords()
+
+        // specs/547: saveToDbLocked() защищает от перезатирания параллельной правки (specs/299)
+        // и запускает нормализацию голосов внутри saveToDb().
+        saveToDbLocked()
+    }
+
+    /**
+     * Заменяет **весь** набор голосов песни одним сохранением
+     * (specs/547-drop-empty-song-voices, T008).
+     *
+     * Нужен применению черновика онлайн-редактора: цикл `setSourceMarkers` по голосам писал бы
+     * каждый голос отдельным сохранением, а нормализация удаляла бы пустой средний голос прямо
+     * внутри цикла — следующие голоса легли бы не на свои индексы.
+     *
+     * @param markers маркеры по голосам — первичный список, задаёт число голосов
+     * @param texts тексты по голосам; недостающие дополняются пустой строкой
+     *
+     * @see docs/features/drop-empty-song-voices.md
+     */
+    fun setAllVoices(
+        markers: List<List<SourceMarker>>,
+        texts: List<String>,
+    ) {
+        if (markers.isEmpty()) return
+
+        val normalizedMarkers = markers
+        val normalizedTexts = markers.indices.map { texts.getOrNull(it).orEmpty() }
+        sourceMarkers = Json.encodeToString(normalizedMarkers)
+        sourceText = Json.encodeToString(normalizedTexts)
+
+        resultText = getText()
+        formattedTextSong = getTextFormatted()
+        formattedTextTabs = getFormattedNotes()
+        formattedTextChords = getFormattedChords()
+
+        saveToDbLocked()
+    }
+
+    /**
+     * Нормализация голосов перед сохранением (specs/547-drop-empty-song-voices, T009).
+     *
+     * Удаляет пустые голоса с индексом больше нуля (текст пуст И маркеров нет), пересчитывает
+     * производные тексты и запоминает результат в [lastVoiceNormalization].
+     *
+     * Гард (research R3): песня, загруженная с `withoutMarkersAndText = true`, не содержит полей
+     * голосов в `fields` — нормализация такой песни записала бы пустой текст в БД.
+     *
+     * Fail-safe (FR-012): нечитаемые данные голосов — нормализация пропускается, сохранение
+     * продолжается обычным путём, факт пишется в лог.
+     *
+     * @see docs/features/drop-empty-song-voices.md
+     */
+    private fun normalizeVoicesBeforeSave() {
+        lastVoiceNormalization = null
+        val rawMarkers = fields[SongField.SOURCE_MARKERS]
+        val rawTexts = fields[SongField.SOURCE_TEXT]
+        if (!canNormalize(hasMarkersField = rawMarkers != null, hasTextField = rawTexts != null)) return
+
+        val markers = parseVoiceMarkers(rawMarkers)
+        val texts = parseVoiceTexts(rawTexts)
+        if (markers == null || texts == null) {
+            voiceNormalizeLog.warn("song.voices.normalize_skipped: songId=$id reason=parse_failed")
+            return
+        }
+
+        val normalization = normalizeVoices(texts, markers)
+        if (!normalization.changed) return
+
+        fields[SongField.SOURCE_MARKERS] = Json.encodeToString(normalization.markers)
+        fields[SongField.SOURCE_TEXT] = Json.encodeToString(normalization.texts)
+        // Производные тексты — только при фактическом удалении (редкое событие, research R6).
+        resultText = getText()
+        formattedTextSong = getTextFormatted()
+        formattedTextTabs = getFormattedNotes()
+        formattedTextChords = getFormattedChords()
+        lastVoiceNormalization = normalization
+        voiceNormalizeLog.warn(
+            "song.voices.normalized: songId=$id removed=${normalization.removedIndices.joinToString(",")} count=${normalization.count}",
+        )
+    }
+
     fun setIndexTabsVariant(ind: Int) {
         fields[SongField.INDEX_TABS_VARIANT] = ind.toString()
         saveToDb()
@@ -5257,6 +5390,10 @@ class Song(
 
     fun saveToDb() {
         if (readonly) return
+        // specs/547-drop-empty-song-voices (FR-001/FR-002): пустые голоса (кроме первого)
+        // удаляются при ЛЮБОМ сохранении песни — до вычисления diff, чтобы UPDATE записал уже
+        // нормализованные source_text/source_markers.
+        normalizeVoicesBeforeSave()
         if (id == 0L) {
             // specs/277-song-name-censored: baseline-автозаполнение song_name_censored для НОВЫХ
             // песен (INSERT-ветка). Раньше baseline срабатывал только в UPDATE-ветке ниже, и песни,

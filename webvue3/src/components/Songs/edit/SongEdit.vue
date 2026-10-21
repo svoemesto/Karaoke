@@ -2299,12 +2299,7 @@
             >
               {{ isFindingAudioParent ? 'Поиск…' : 'Найти похожую по аудио' }}
             </button>
-            <button
-              class="group-button"
-              :disabled="songHealthReports.length === 0"
-              title="Health Report"
-              @click="showHealthReportTable"
-            >
+            <button class="group-button" title="Health Report" @click="showHealthReportTable">
               Health Report ({{ songHealthReports.length }})
             </button>
             <BDropdown text="Создать ..." class="d-grid" menu-class="w-100">

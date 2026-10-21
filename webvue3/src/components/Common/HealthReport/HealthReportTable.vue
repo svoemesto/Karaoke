@@ -2,8 +2,8 @@
   <transition name="modal-fade">
     <div class="hrt-modal-backdrop">
       <div class="health-report-table-root">
-        <HealthReportTableHeader :health-report-list="healthReportList" />
-        <HealthReportTableBody :health-report-list="healthReportList" />
+        <HealthReportTableHeader :health-report-list="healthReportList" :song-id="id" />
+        <HealthReportTableBody :health-report-list="healthReportList" :is-loading="isLoading" />
         <HealthReportTableFooter @close="close" />
       </div>
     </div>
@@ -26,7 +26,7 @@ export default {
   components: { HealthReportTableHeader, HealthReportTableFooter, HealthReportTableBody },
   props: {
     id: {
-      type: String,
+      type: [String, Number],
       required: true,
     },
   },
@@ -34,17 +34,16 @@ export default {
     healthReportList() {
       return this.$store.getters.getHealthReportList
     },
-  },
-  watch: {
-    healthReportList: {
-      handler() {
-        if (this.healthReportList.length === 0) {
-          this.close()
-        }
-      },
+    isLoading() {
+      return this.$store.getters.getHealthReportListIsLoading
     },
   },
   mounted() {
+    // OpenProject #325: модалка должна открываться и при нуле записей HR,
+    // иначе недоступна кнопка «Сбросить кеш» (она работает по id песни,
+    // а не по списку отчётов). Список предыдущей песни сбрасываем, чтобы
+    // не показывать чужие строки, пока идёт запрос.
+    this.$store.commit('updateHealthReportList', [])
     this.$store.dispatch('loadHealthReportList', this.id)
   },
   methods: {

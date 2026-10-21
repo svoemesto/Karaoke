@@ -15,6 +15,9 @@ export default {
     getHealthReportList(state) {
       return state.healthReportList
     },
+    getHealthReportListIsLoading(state) {
+      return state.healthReportListIsLoading
+    },
   },
   mutations: {
     updateHealthReportList(state, result) {
@@ -29,15 +32,19 @@ export default {
       const params = { id: id }
       let request = { method: 'POST', url: '/api/song/healthReportList', params: params }
       ctx.commit('setHealthReportListIsLoading', true)
-      promisedXMLHttpRequest(request)
+      return promisedXMLHttpRequest(request)
         .then((data) => {
           let result = JSON.parse(data)
           // console.log('loadHealthReportList result', result);
           ctx.commit('updateHealthReportList', result)
-          ctx.commit('setHealthReportListIsLoading', false)
         })
         .catch((error) => {
           console.log(error)
+        })
+        .finally(() => {
+          // OpenProject #325: модалка HR живёт и при нуле записей, поэтому флаг
+          // загрузки обязан сбрасываться и при ошибке — иначе останется «Загрузка…».
+          ctx.commit('setHealthReportListIsLoading', false)
         })
     },
     repairOneRecord(ctx, item) {

@@ -1,5 +1,9 @@
 <template>
   <div class="hrl-table-body">
+    <div v-if="isLoading" class="hrl-table-placeholder">Загрузка…</div>
+    <div v-else-if="healthReportList.length === 0" class="hrl-table-placeholder">
+      Записей Health Report нет — нарушений не найдено
+    </div>
     <health-report-table-row
       v-for="healthReport in healthReportList"
       :key="healthReport.songId"
@@ -26,6 +30,12 @@ export default {
       required: true,
       defaults: [],
     },
+    // OpenProject #325: при нуле записей HR модалка остаётся открытой,
+    // поэтому нужен явный индикатор загрузки/пустого списка.
+    isLoading: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {}
@@ -51,5 +61,11 @@ export default {
 <style scoped>
 .hrl-table-body {
   width: fit-content;
+}
+
+.hrl-table-placeholder {
+  padding: 8px 12px;
+  font-size: small;
+  color: #666;
 }
 </style>

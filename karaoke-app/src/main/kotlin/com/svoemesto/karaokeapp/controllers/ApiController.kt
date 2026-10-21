@@ -3325,24 +3325,27 @@ class ApiController(
         @RequestParam voice: Int,
         @RequestParam(required = false) sourceMarkers: String = "",
     ): Boolean {
-        var result = false
-        if (sourceMarkers.trim() != "") {
-            val song =
-                Song.loadFromDbById(
-                    id = id,
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                )
-            result = song?.let {
-                song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-                // specs/544-song-artifact-cleanup (FR-008): файлы субтитров больше не
-                // создаются — разметка голосов живёт в БД (sourceMarkers) и доступна для
-                // экспорта по запросу (Song.convertMarkersToSrt остаётся чистой функцией).
-                true
-            } ?: false
-        }
-        return result
+        if (sourceMarkers.trim() == "") return false
+        val song =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return false
+        val markers =
+            try {
+                Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
+            } catch (e: Exception) {
+                println("Ошибка при парсинге маркеров для песни $id: ${e.message}")
+                return false
+            }
+        // specs/547: текст и маркеры одного голоса — одним сохранением (research R4).
+        song.setSourceTextAndMarkers(voice = voice, text = song.getSourceText(voice), markers = markers)
+        // specs/544-song-artifact-cleanup (FR-008): файлы субтитров больше не
+        // создаются — разметка голосов живёт в БД (sourceMarkers) и доступна для
+        // экспорта по запросу (Song.convertMarkersToSrt остаётся чистой функцией).
+        return true
     }
 
     // Сохраняем исходный текст для войса
@@ -3359,15 +3362,27 @@ class ApiController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )
-        return song?.let {
-            song.setSourceText(voice, sourceText)
-            song.updateMarkersFromSourceText(voice)
-            true
-        } ?: false
+            ) ?: return false
+        // specs/547: текст и маркеры — одним сохранением, затем пересборка подписей слогов.
+        song.setSourceTextAndMarkers(voice = voice, text = sourceText, markers = song.getSourceMarkers(voice))
+        song.updateMarkersFromSourceText(voice)
+        return true
     }
 
-    // Сохраняем исходный текст и маркеры для войса
+    /**
+     * Сохраняет текст и маркеры одного голоса (specs/547-drop-empty-song-voices, US1).
+     *
+     * Текст и маркеры пишутся **одним** сохранением: иначе после удаления пустого голоса второй
+     * вызов вернул бы его обратно (research R4). Ответ несёт новый индекс сохранённого голоса,
+     * потому что нормализация могла удалить голоса и сдвинуть нумерацию (FR-010).
+     *
+     * @return `{ok: true, voice: <индекс после сохранения>, countVoices: <N>}`;
+     *         `voice = -1`, если сохранённый голос удалён как пустой;
+     *         `{ok: false, error: song_not_found|bad_markers|bad_voice}` при ошибке
+     *
+     * @see specs/547-drop-empty-song-voices/contracts/save-voice-endpoint.md
+     * @see docs/features/drop-empty-song-voices.md
+     */
     @PostMapping("/song/savesourcetextmarkers")
     @ResponseBody
     fun saveSourceTextAndMarkers(
@@ -3376,27 +3391,38 @@ class ApiController(
         @RequestParam sourceText: String,
         @RequestParam sourceMarkers: String,
         @RequestParam indexTabsVariant: Int,
-    ): Boolean {
+    ): Map<String, Any> {
         val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )
-        return song?.let {
+            ) ?: return mapOf("ok" to false, "error" to "song_not_found")
+
+        if (voice < 0 || voice > song.countVoices) return mapOf("ok" to false, "error" to "bad_voice")
+
+        val markers =
             try {
                 Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
-            } catch (_: Exception) {
-                println("Ошибка при парсинге маркеров.")
-                emptyList()
+            } catch (e: Exception) {
+                // specs/547 (FR-012): битые маркеры не записываем — правки остаются в редакторе.
+                println("Ошибка при парсинге маркеров для песни $id: ${e.message}")
+                return mapOf("ok" to false, "error" to "bad_markers")
             }
-            song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-            // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
-            song.setSourceText(voice, sourceText)
-            song.setIndexTabsVariant(indexTabsVariant)
-            true
-        } ?: false
+
+        // Вариант строя — в то же сохранение, без отдельного saveToDb().
+        song.fields[SongField.INDEX_TABS_VARIANT] = indexTabsVariant.toString()
+        song.setSourceTextAndMarkers(voice = voice, text = sourceText, markers = markers)
+        // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
+
+        // mapVoice() == null означает «сохранённый голос удалён как пустой» → -1 (контракт).
+        val newVoice = song.lastVoiceNormalization?.let { it.mapVoice(voice) ?: -1 } ?: voice
+        return mapOf(
+            "ok" to true,
+            "voice" to newVoice,
+            "countVoices" to song.countVoices,
+        )
     }
 
     // Создаём караоке

@@ -2583,12 +2583,48 @@ export default {
         indexTabsVariant: payload.indexTabsVariant,
       }
       let request = { method: 'POST', url: '/api/song/savesourcetextmarkers', params: params }
-      const result = await promisedXMLHttpRequest(request)
+      const raw = await promisedXMLHttpRequest(request)
+      // specs/547-drop-empty-song-voices: сервер вернул объект {ok, voice, countVoices} вместо
+      // голого true. voice — индекс сохранённого голоса ПОСЛЕ нормализации (-1, если голос
+      // удалён как пустой), countVoices — сколько голосов осталось. Без этого редактор после
+      // сдвига нумерации писал бы в чужой голос (FR-010).
+      let result = null
+      try {
+        result = JSON.parse(raw)
+      } catch (_e) {
+        result = null
+      }
+      if (result && result.ok === false) {
+        throw new Error(result.error || 'Не удалось сохранить разметку')
+      }
       // #218: только после успешного сохранения разметки. До этого SongEdit
       // перезапрашивал форматтеры на каждое изменение песни (в т.ч. автосейв
       // имени/года/альбома), хотя их содержимое зависит только от разметки.
       ctx.commit('bumpSourceMarkersRevision')
-      return result
+      return (
+        result || {
+          ok: true,
+          voice: payload.voice,
+          countVoices: null,
+        }
+      )
+    },
+    // specs/547-drop-empty-song-voices (FR-010): актуальный список голосов песни после
+    // сохранения, в котором нормализация удалила пустые голоса. Возвращает массив
+    // [{voice, text, markers, syllables}] — в том же виде, что отдаёт /api/song/voices.
+    async refreshSongVoices(ctx) {
+      const raw = await promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/song/voices',
+        params: { id: ctx.state.currentSongId },
+      })
+      let parsed = null
+      try {
+        parsed = JSON.parse(raw)
+      } catch (_e) {
+        parsed = null
+      }
+      return (parsed && parsed.voices) || []
     },
     async getAutoMarkers(ctx, payload) {
       let params = {

@@ -29,6 +29,8 @@ stdin. Раньше логин шёл **без сервера** (уходил в
 - `do_build_web` — karaoke-web.
 - `do_build_webvue` / `do_build_webvue3` — старая/новая admin UI.
 - `do_build_public` — karaoke-public.
+- `do_build_frontend_image` — общий helper для webvue3/public: ретраи при сетевых
+  ошибках и проброс `NODE_IMAGE`/`NGINX_IMAGE` (OpenProject #327).
 
 **Build + start (~6 функций)**:
 
@@ -62,8 +64,33 @@ stdin. Раньше логин шёл **без сервера** (уходил в
 | `DOCKER_REGISTRY` | префикс имён образов проекта (`sm-karaoke.ru:5443/karaoke`) |
 | `DUAL_PUSH` | `1` — зеркалить в Docker Hub, `0` — только свой registry |
 | `DOCKER_HUB_USER`, `DOCKER_HUB_PASSWORD` | namespace-архив Hub (нужен, только пока `DUAL_PUSH=1`) |
+| `NODE_IMAGE` | переопределение базового node-образа для webvue3/public (по умолчанию registry-образ) |
+| `NGINX_IMAGE` | переопределение базового nginx-образа для webvue3/public (по умолчанию registry-образ) |
+| `FRONTEND_BUILD_ATTEMPTS` | число попыток сборки фронтенда при сетевой ошибке (по умолчанию 3) |
 
 Шаблон — `deploy/prod-single-host/do.env.example`.
+
+## Устойчивость сборки фронтендов (OpenProject #327)
+
+Dockerfile'ы `deploy/karaoke-webvue3/Dockerfile` и
+`deploy/karaoke-public/Dockerfile`:
+
+- базовые образы вынесены в `ARG NODE_IMAGE` / `ARG NGINX_IMAGE` (дефолты —
+  registry-образы `sm-karaoke.ru:5443/library/...`);
+- зависимости ставятся `npm ci --prefer-offline --no-audit --no-fund` с
+  cache-mount `/root/.npm` и `fetch-retries`/`fetch-timeout`.
+
+`do_build_frontend_image` делает до `FRONTEND_BUILD_ATTEMPTS` попыток, но только
+если в логе есть сетевая ошибка (`ETIMEDOUT`, `timeout awaiting response headers`,
+`failed to do request`, `Could not resolve host`, `npm error network` и т.п.).
+Ошибка Dockerfile/кода повтор не запускает.
+
+При недоступном registry локальная сборка не требует `docker tag`:
+
+```bash
+cd deploy
+NODE_IMAGE=node:22-alpine NGINX_IMAGE=nginx:stable ./do.sh build_webvue3
+```
 
 ## Использование
 
@@ -95,6 +122,9 @@ cd deploy
 
 ## Changelog
 
+- **2026-10-22** (OpenProject #327): `npm ci` + cache/retries в Dockerfile'ах
+  webvue3/public; `ARG NODE_IMAGE`/`ARG NGINX_IMAGE` и env-overrides; helper
+  `do_build_frontend_image` с ретраями только при сетевых ошибках.
 - **Pass 540** (2026-10-11): логин переведён на явный сервер + `--password-stdin`,
   добавлены логины в `pull_*`, введено окно dual-push (`DUAL_PUSH`), `demucs` больше
   не тегируется `latest`. issue #286 / wayfinder #274.

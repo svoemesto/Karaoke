@@ -93,6 +93,17 @@ bash do.sh start [all] / stop [all] / start_db / stop_db / push / pull / ps
 
 `deploy/do.env` / `deploy/.env` hold the environment (ports, registry, host folder mounts).
 
+**Устойчивость сборки фронтендов** (OpenProject #327). Dockerfile'ы `webvue3` и
+`karaoke-public` ставят зависимости через `npm ci` с cache-mount и ретраями npm;
+`do.sh` делает до 3 попыток при сетевой ошибке. Если registry
+`sm-karaoke.ru:5443` недоступен, базовые образы можно переопределить без
+`docker tag`:
+```bash
+NODE_IMAGE=node:22-alpine NGINX_IMAGE=nginx:stable bash do.sh build_webvue3
+```
+Число попыток — `FRONTEND_BUILD_ATTEMPTS` (по умолчанию 3; повтор только при
+сетевой ошибке, не при ошибке Dockerfile/кода).
+
 **Подробности о деплое** — [knowledge/system/infra/deploy-overview.md](./knowledge/system/infra/deploy-overview.md).
 
 ## Architecture notes (durable-карта)

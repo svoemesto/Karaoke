@@ -243,18 +243,65 @@ function do_build_web() {
   announce "Сборка karaoke-web" "Бэк с+айта с+обран"
 }
 
+# Сборка фронтенд-образа с ретраями и переопределением базовых образов.
+# OpenProject #327: таймауты npm/registry не должны ронять деплой.
+# NODE_IMAGE/NGINX_IMAGE (env) пробрасываются в Dockerfile; FRONTEND_BUILD_ATTEMPTS
+# задаёт число попыток (по умолчанию 3). Повтор — только при сетевой ошибке.
+function do_build_frontend_image() {
+  local image_name="$1"
+  local dockerfile="$2"
+  local attempts="${FRONTEND_BUILD_ATTEMPTS:-3}"
+  local base_args=()
+  local log
+  local attempt=1
+  local rc=0
+
+  if ! [[ "${attempts}" =~ ^[0-9]+$ ]] || [[ "${attempts}" -lt 1 ]]; then
+    attempts=3
+  fi
+
+  if [[ -n "${NODE_IMAGE:-}" ]]; then base_args+=(--build-arg "NODE_IMAGE=${NODE_IMAGE}"); fi
+  if [[ -n "${NGINX_IMAGE:-}" ]]; then base_args+=(--build-arg "NGINX_IMAGE=${NGINX_IMAGE}"); fi
+
+  log="$(mktemp)"
+  while [[ "${attempt}" -le "${attempts}" ]]; do
+    echo "Building ${image_name} image (attempt ${attempt}/${attempts})"
+    ${DOCKER} image build "$BASE_DIR/" \
+      --build-arg VERSION="${BUILD_VERSION}" \
+      "${base_args[@]}" \
+      -t "$DOCKER_REGISTRY/${image_name}:${BUILD_VERSION}" \
+      -f "${dockerfile}" 2>&1 | tee "${log}"
+    rc=${PIPESTATUS[0]}
+    if [[ "${rc}" -eq 0 ]]; then
+      rm -f "${log}"
+      return 0
+    fi
+    if ! grep -qiE 'ETIMEDOUT|timeout awaiting response headers|failed to do request|Temporary failure in name resolution|Could not resolve host|i/o timeout|TLS handshake timeout|connection reset by peer|unexpected EOF|npm error network' "${log}"; then
+      echo "Сборка ${image_name} упала не по сети — повтор не выполняется" >&2
+      rm -f "${log}"
+      return "${rc}"
+    fi
+    attempt=$((attempt + 1))
+    if [[ "${attempt}" -le "${attempts}" ]]; then
+      local delay=$((attempt * 10))
+      echo "Сетевая ошибка; повтор через ${delay}с..." >&2
+      sleep "${delay}"
+    fi
+  done
+  rm -f "${log}"
+  return "${rc}"
+}
+
 function do_build_webvue3() {
   echo "Building WEBVUE3 module"
-  ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
-    -t "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue3/Dockerfile || return $?
+  do_build_frontend_image "karaoke-webvue3" "$DEPLOY_DIR/karaoke-webvue3/Dockerfile" || return $?
   announce "Сборка karaoke-webvue3" "Фронт адм+инки с+обран"
 }
 
 function do_build_public() {
   echo "Building PUBLIC module"
-  ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
-    -t "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-public/Dockerfile || return $?
-   announce "Сборка karaoke-public" "Фронт с+айта с+обран"
+  do_build_frontend_image "karaoke-public" "$DEPLOY_DIR/karaoke-public/Dockerfile" || return $?
+  announce "Сборка karaoke-public" "Фронт с+айта с+обран"
 }
 
 function do_start() {

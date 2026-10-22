@@ -2286,7 +2286,7 @@ class ApiController(
             )
         val publications =
             when (filterCond) {
-                "unpublish" -> {
+                "unpublish", "undone" -> {
                     CrossSong.unpublications(listOfSongs)
                 }
                 "skiped" -> {

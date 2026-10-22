@@ -7991,10 +7991,6 @@ class Song(
 
             if (args.containsKey("flag_exclusive")) where += "CASE WHEN exclusive = true THEN '+' ELSE '-' END='${args["flag_exclusive"]}'"
             if (args.containsKey("flag_free")) where += "CASE WHEN free = true THEN '+' ELSE '-' END='${args["flag_free"]}'"
-            if (args.containsKey("unpublish")) {
-                where +=
-                    "publish_date = '' AND publish_time = '' AND ((exclusive = true AND id_sponsr = '') OR exclusive = false)"
-            }
 
             if (args.containsKey("filter_status_process_lyrics")) {
                 where +=

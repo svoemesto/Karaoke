@@ -67,6 +67,13 @@
     </button>
     <button class="action-button" @click="clickActionButton('fromnotdone')">С неготовой</button>
     <button class="action-button" @click="clickActionButton('unpublish')">UNPUBLISH</button>
+    <button
+      class="action-button"
+      title="UNDONE — не готово (idStatus < 6), кроме skip-авторов и SKIP-песен"
+      @click="clickActionButton('undone')"
+    >
+      UNDONE
+    </button>
     <button class="action-button" @click="clickActionButton('skiped')">SKIPED</button>
   </div>
 </template>
@@ -77,7 +84,7 @@ import { stringDDMMYYaddDays } from '../../../lib/utils'
 /**
  * Компонент «Publish Table Footer»: легенда из пяти состояний песни (DONE / TODAY / ON_AIR /
  * EXCLUSIVE / IN_WORK), управление окном публикаций (дата/диапазон) и командные кнопки
- * (С начала / С сегодня / … / UNPUBLISH / SKIPED). Цвета кнопок синхронизированы с backend —
+ * (С начала / С сегодня / … / UNPUBLISH / UNDONE / SKIPED). Цвета кнопок синхронизированы с backend —
  * `Song.state.color`, см. `specs/155-song-state-colors/contracts/song-state-color.md` и
  * `archive/docs/features/song-state-colors.md`.
  *

@@ -163,7 +163,7 @@ class CrossSong {
                         fields.isAccessible = true
                         (fields.get(it) as Map<*, *>)[columnField] as String
                     }.map { it.value.size }
-                    .max()
+                    .maxOrNull() ?: 0
 
             val rows = (1..countRows).map { it.toString() }
 
@@ -236,7 +236,7 @@ class CrossSong {
                         fields.isAccessible = true
                         (fields.get(it) as Map<*, *>)[columnField] as String
                     }.map { it.value.size }
-                    .max()
+                    .maxOrNull() ?: 0
 
             val rows = (1..countRows).map { it.toString() }
 

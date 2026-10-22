@@ -41,6 +41,11 @@
 переводит потомка в 5 (см. [audio-descendant-sync](audio-descendant-sync.md)).
 Это не меняет сами коды `IdStatus` — только их использование в данном механизме.
 
+**Использование в админских фильтрах публикаций** (OpenProject #326):
+UNPUBLISH показывает только `idStatus = 6` (полностью готово, но публикация не
+назначена); UNDONE — `idStatus < 6`, включая 5 («отрендерено, ждёт approve»).
+См. [docs/features/publications-filters.md](../../../../docs/features/publications-filters.md).
+
 **Запрещено**:
 
 - Хардкод числовых литералов `1..6` в коде или SQL — только

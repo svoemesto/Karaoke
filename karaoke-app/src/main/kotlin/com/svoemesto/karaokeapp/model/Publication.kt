@@ -1722,16 +1722,46 @@ class Publication(
                     filterDateTo = ""
                 }
             } else if (filterCond == "unpublish") {
+                // #326: только полностью готовые (статус 6), без назначенной
+                // публикации (пусты и дата, и время), не free и не skip.
                 return Song
                     .loadListFromDb(
-                        mapOf("unpublish" to "+"),
+                        mapOf(
+                            "id_status" to "6",
+                            "filter_free" to "false",
+                            "publish_date" to "-",
+                            "publish_time" to "-",
+                        ),
                         database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                         withoutMarkersAndText = true,
                     ).filter {
-                        it.author !in
-                            skipedAuthors
+                        PublicationFilters.isUnpublished(
+                            idStatus = it.idStatus,
+                            publishDate = it.date,
+                            publishTime = it.time,
+                            free = it.free,
+                            authorSkipped = it.author in skipedAuthors,
+                            tags = it.tags,
+                        )
+                    }
+            } else if (filterCond == "undone") {
+                // #326: всё, что не полностью готово (статус < 6, включая 5),
+                // кроме skip. Дата/время и free намеренно не фильтруются.
+                return Song
+                    .loadListFromDb(
+                        mapOf("id_status" to "<6"),
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        withoutMarkersAndText = true,
+                    ).filter {
+                        PublicationFilters.isUndone(
+                            idStatus = it.idStatus,
+                            authorSkipped = it.author in skipedAuthors,
+                            tags = it.tags,
+                        )
                     }
             } else if (filterCond == "skiped") {
                 return Song

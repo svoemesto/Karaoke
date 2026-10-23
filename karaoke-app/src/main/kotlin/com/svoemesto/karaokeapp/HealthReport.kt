@@ -764,7 +764,7 @@ data class HealthReport(
 
             if (canBe) { // Файл должен быть
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
-                    if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
+                    if (existsInLocalFileSystem && diskCopyIsAuthoritative(karaokeFileType)) { // Файл реально есть на диске (existsInLocalFileSystem)
                         // Pass 434 (#158): size файла берём из кеша (getFileInfo),
                         // а не отдельным statObject в MinIO. fileIsActual(path) =
                         // сравнение размера файла на диске с size из хранилища.
@@ -821,6 +821,24 @@ data class HealthReport(
                                 actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
                             }
                         }
+                    } else if (existsInLocalFileSystem) {
+                        // wayfinder #330: для storage-only типов дисковая копия — побочный продукт
+                        // ленивой конвертации плеера, а не версия файла. Сверяем хранилища, диск не читаем.
+                        val localInfo =
+                            cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
+                                storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
+                            }
+                        val remoteInfo =
+                            cachedFileInfo("REMOTE", storageBucketName, storageFileName, remoteStorageCircuitBreaker) {
+                                storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
+                                    ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
+                            }
+                        if (storageActuality(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                            healthReportStatus = WARNING
+                            canBeResolved = false
+                            problemText = STORAGE_MISMATCH_PROBLEM_TEXT
+                            solutionText = STORAGE_MISMATCH_SOLUTION_TEXT
+                        }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
                         val remoteFileExistsLoader: () -> Boolean = {
@@ -838,14 +856,23 @@ data class HealthReport(
                                     storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
                                         ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                                 }
-                            val fileIsActual = storageFileInfo == null || remoteFileInfo == null || storageFileInfo.size == remoteFileInfo.size
+                            val fileIsActual = storageActuality(storageFileInfo, remoteFileInfo) == StorageActuality.OK
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
                                 canBeResolved = false
                                 problemText =
-                                    "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в удалённом хранилище он не совпадает"
-                                solutionText = "Решить проблему в рамках другого задания"
+                                    if (diskCopyIsAuthoritative(karaokeFileType)) {
+                                        "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в удалённом хранилище он не совпадает"
+                                    } else {
+                                        STORAGE_MISMATCH_PROBLEM_TEXT
+                                    }
+                                solutionText =
+                                    if (diskCopyIsAuthoritative(karaokeFileType)) {
+                                        "Решить проблему в рамках другого задания"
+                                    } else {
+                                        STORAGE_MISMATCH_SOLUTION_TEXT
+                                    }
                             }
                         } else {
                             healthReportStatus = WARNING
@@ -1123,7 +1150,7 @@ data class HealthReport(
 
             if (canBe) { // Файл должен быть
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInRemoteStore)
-                    if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
+                    if (existsInLocalFileSystem && diskCopyIsAuthoritative(karaokeFileType)) { // Файл реально есть на диске (existsInLocalFileSystem)
                         // Pass 434 (#158): size из кеша (getFileInfo), без statObject.
                         val remoteInfo =
                             cachedFileInfo("REMOTE", storageBucketName, storageFileName, remoteStorageCircuitBreaker) {
@@ -1183,6 +1210,24 @@ data class HealthReport(
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
                         }
+                    } else if (existsInLocalFileSystem) {
+                        // wayfinder #330: для storage-only типов дисковая копия не эталон —
+                        // сверяем удалённое хранилище с локальным, диск не читаем.
+                        val remoteInfo =
+                            cachedFileInfo("REMOTE", storageBucketName, storageFileName, remoteStorageCircuitBreaker) {
+                                storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
+                                    ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
+                            }
+                        val localInfo =
+                            cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
+                                storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
+                            }
+                        if (storageActuality(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                            healthReportStatus = WARNING
+                            canBeResolved = false
+                            problemText = STORAGE_MISMATCH_PROBLEM_TEXT
+                            solutionText = STORAGE_MISMATCH_SOLUTION_TEXT
+                        }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
                         val localFileExistsLoaderAlt1: () -> Boolean = {
@@ -1200,14 +1245,23 @@ data class HealthReport(
                                     storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
                                         ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                                 }
-                            val fileIsActual = storageFileInfo == null || remoteFileInfo == null || storageFileInfo.size == remoteFileInfo.size
+                            val fileIsActual = storageActuality(storageFileInfo, remoteFileInfo) == StorageActuality.OK
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
                                 canBeResolved = false
                                 problemText =
-                                    "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в локальном хранилище он не совпадает"
-                                solutionText = "Решить проблему в рамках другого задания"
+                                    if (diskCopyIsAuthoritative(karaokeFileType)) {
+                                        "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в локальном хранилище он не совпадает"
+                                    } else {
+                                        STORAGE_MISMATCH_PROBLEM_TEXT
+                                    }
+                                solutionText =
+                                    if (diskCopyIsAuthoritative(karaokeFileType)) {
+                                        "Решить проблему в рамках другого задания"
+                                    } else {
+                                        STORAGE_MISMATCH_SOLUTION_TEXT
+                                    }
                             }
                         } else {
                             healthReportStatus = WARNING
@@ -2749,3 +2803,35 @@ data class HealthReport(
         }
     }
 }
+
+/**
+ * Является ли файл на диске эталоном актуальности для этого типа (wayfinder #330).
+ *
+ * Для типов без [KaraokeFileTypeLocations.LOCAL_FILESYSTEM] локальная копия не ожидается
+ * моделью (specs/544) и может появляться как побочный продукт ленивой конвертации плеера
+ * (`convertFlacToMp3`). Такая копия не участвует в проверке актуальности: сравниваются
+ * только объекты LOCAL и REMOTE. Для остальных типов диск остаётся источником истины.
+ *
+ * @see specs/552-mp3-stem-actuality/spec.md FR-001, FR-006
+ */
+internal fun diskCopyIsAuthoritative(karaokeFileType: KaraokeFileType): Boolean = karaokeFileType.willBeInFileSystem
+
+/** Вердикт согласованности объектов двух хранилищ. */
+internal enum class StorageActuality { OK, MISMATCH }
+
+/**
+ * Сравнивает объекты LOCAL и REMOTE (wayfinder #333: только размер).
+ *
+ * `null` означает «размер неизвестен» (нет строки в кеше метаданных) — это не расхождение,
+ * иначе неполный кеш давал бы ложные предупреждения.
+ *
+ * @see specs/552-mp3-stem-actuality/spec.md FR-002…FR-004
+ */
+internal fun storageActuality(local: StorageFileInfo?, remote: StorageFileInfo?): StorageActuality =
+    if (local == null || remote == null || local.size == remote.size) StorageActuality.OK else StorageActuality.MISMATCH
+
+/** Текст проблемы при реальном расхождении хранилищ (wayfinder #330/#333). */
+internal const val STORAGE_MISMATCH_PROBLEM_TEXT = "Размеры файлов в локальном и удалённом хранилищах различаются"
+
+/** Текст решения при реальном расхождении хранилищ: автоматически выбрать сторону нельзя. */
+internal const val STORAGE_MISMATCH_SOLUTION_TEXT = "Приведите хранилища к согласию вручную"

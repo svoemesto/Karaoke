@@ -4254,12 +4254,21 @@ class Song(
                                 lineChordsIsEmpty = false
 
                                 val (musicChord, musicNote) = MusicChord.getChordNote(marker.chord)
-                                var newIndexNote = MusicNote.entries.indexOf(musicNote!!) - capo
-                                if (newIndexNote < 0) newIndexNote += MusicNote.entries.size
-                                val newNote = MusicNote.entries[newIndexNote]
+                                if (musicChord == null || musicNote == null) {
+                                    // BR-071 (аудит #336, пакет PKG-S2-10): аккорд вне
+                                    // справочника MusicChord (N.C., C/H, Cadd11, опечатка)
+                                    // раньше давал NPE и ронял сохранение голоса (500).
+                                    // Неизвестный аккорд рендерим как есть, без транспозиции.
+                                    chord = marker.chord
+                                    chordHtml = chord.escapeHtml()
+                                } else {
+                                    var newIndexNote = MusicNote.entries.indexOf(musicNote) - capo
+                                    if (newIndexNote < 0) newIndexNote += MusicNote.entries.size
+                                    val newNote = MusicNote.entries[newIndexNote]
 
-                                chord = newNote.names.first() + musicChord!!.names.first()
-                                chordHtml = chord.escapeHtml()
+                                    chord = newNote.names.first() + musicChord.names.first()
+                                    chordHtml = chord.escapeHtml()
+                                }
 
                                 // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
                                 fun String.firstVowelIndex(): Int {
@@ -5316,7 +5325,9 @@ class Song(
         return result
     }
 
-    override fun save() = saveToDb()
+    override fun save() {
+        saveToDb()
+    }
 
     /**
      * Сохранить текущее состояние песни в БД.
@@ -5389,8 +5400,19 @@ class Song(
         }
     }
 
-    fun saveToDb() {
-        if (readonly) return
+    /**
+     * Сохраняет песню в БД (INSERT/UPDATE через diff).
+     *
+     * BR-102 (аудит #336, пакет PKG-S2-10): возвращает `true` только если запись реально
+     * выполнена (или записывать было нечего). Ошибка биндинга/`executeUpdate` больше не
+     * деградирует в «успех»: метод пишет лог, откатывает statement и возвращает `false`.
+     * Сигнатура обратно совместима — 70+ вызовов игнорируют результат.
+     *
+     * @return true — данные в БД актуальны; false — сохранить не удалось (вызывающий обязан
+     *   не считать результат применённым; [saveToDbLocked] делает rollback).
+     */
+    fun saveToDb(): Boolean {
+        if (readonly) return false
         // specs/547-drop-empty-song-voices (FR-001/FR-002): пустые голоса (кроме первого)
         // удаляются при ЛЮБОМ сохранении песни — до вычисления diff, чтобы UPDATE записал уже
         // нормализованные source_text/source_markers.
@@ -5406,10 +5428,23 @@ class Song(
             markNewsAvailableIfReady()
             // specs/544 (FR-006): sidecar-файл состояния больше не пишется.
             createDbInstance(this, database)
+            return true
         } else {
             markNewsAvailableIfReady()
             val savedSong =
                 loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+
+            // BR-101 (аудит #336, пакет PKG-S2-10): null означает «строки нет» только теперь,
+            // когда loadFromDbById пробрасывает SQLException. Раньше сбой чтения был
+            // неотличим от удаления и saveToDb молча выходил по пустому diff — правка
+            // пользователя терялась, эндпоинт отвечал успехом.
+            if (savedSong == null) {
+                println(
+                    "[${Timestamp.from(Instant.now())}] WARN song.save_skipped: songId=$id строка не найдена в БД; " +
+                        "сохранение НЕ выполнено (fail-closed)",
+                )
+                return false
+            }
 
             // При сохранении проверяем и меняем если надо номера версий на площадках. Если на площадке 0 и было изменение id - обновляем
             if (savedSong !== null) {
@@ -5595,7 +5630,7 @@ class Song(
             // specs/288-prod-diagnostics-logging: фикс — см. выше. setStr и bindValues формируются
             // ПОСЛЕ baseline-логики, чтобы включить все изменённые поля (включая явно добавленный
             // `song_name_censored`).
-            if (diff.isEmpty()) return
+            if (diff.isEmpty()) return true
 
             // Порог показа песни в публичном плеере (см. PublicPlayerController.stemsReady: idStatus>=6
             // + флаги готовности, specs/022-song-status-lifecycle). Если статус меняют напрямую (правка
@@ -5616,19 +5651,23 @@ class Song(
                 )
 
             val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
-            if (setStr != "") {
+            if (setStr == "") return true
+            run {
                 val sql = "UPDATE tbl_songs SET $setStr WHERE id = ?"
 
                 val connection = database.getConnection()
                 if (connection == null) {
                     println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                    return
+                    return false
                 }
                 val ps = connection.prepareStatement(sql)
 
                 var index = 1
-                diff.filter { it.recordDiffRealField }.forEach {
-                    try {
+                // BR-102: ошибка биндинга отменяет UPDATE целиком. Раньше исключение
+                // проглатывалось на каждом параметре, executeUpdate получал невыставленный
+                // параметр, а вызывающий видел «сохранено».
+                try {
+                    for (it in diff.filter { it.recordDiffRealField }) {
                         when (it.recordDiffValueNew) {
                             // album_id — единственное nullable-поле в этой сущности (настоящий FK,
                             // ON DELETE SET NULL) — без этой ветки null записался бы как строка "null"
@@ -5643,20 +5682,38 @@ class Song(
                             is Boolean -> ps.setBoolean(index, it.recordDiffValueNew)
                             else -> ps.setString(index, it.recordDiffValueNew.toString())
                         }
-                    } catch (e: Exception) {
-                        val errorMessage = "Не удалось сохранить запись в БД. Поле «${it.recordDiffName}» имеет значение «${it.recordDiffValueNew}», несовместимое с форматом данных этого поля в БД. Оригинальный текст ошибки: «${e.message}»"
-                        println(errorMessage)
+                        index++
                     }
-                    index++
-                }
-                ps.setLong(index, id)
-                try {
-                    ps.executeUpdate()
+                    ps.setLong(index, id)
                 } catch (e: Exception) {
-                    val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
+                    val errorMessage = "Не удалось сохранить запись в БД. Ошибка привязки параметров UPDATE: «${e.message}»"
                     println(errorMessage)
+                    try {
+                        ps.close()
+                    } catch (_: Exception) {
+                    }
+                    return false
                 }
+                val updatedRows =
+                    try {
+                        ps.executeUpdate()
+                    } catch (e: Exception) {
+                        val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
+                        println(errorMessage)
+                        try {
+                            ps.close()
+                        } catch (_: Exception) {
+                        }
+                        return false
+                    }
                 ps.close()
+                if (updatedRows <= 0) {
+                    println(
+                        "[${Timestamp.from(Instant.now())}] WARN song.save_no_rows: songId=$id UPDATE затронул 0 строк " +
+                            "(строка удалена или параллельно изменена) — сохранение НЕ выполнено",
+                    )
+                    return false
+                }
 
                 // specs/413-sync-audio-descendants (#141): хук синхронизации аудио-потомков.
                 // Вызывается после успешного UPDATE; saveToDbLocked() подавляет этот вызов
@@ -5728,6 +5785,7 @@ class Song(
                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
                 }
             }
+            return true
         }
     }
 
@@ -5779,20 +5837,17 @@ class Song(
     fun saveToDbLocked(): Boolean {
         if (readonly) {
             println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_skipped: songId=$id readonly=true; falling back to unlocked saveToDb()")
-            saveToDb()
-            return true
+            return saveToDb()
         }
         if (id == 0L) {
             // INSERT-ветка — блокировка не нужна (строки ещё нет в БД).
-            saveToDb()
-            return true
+            return saveToDb()
         }
 
         val connection = database.getConnection()
         if (connection == null) {
             println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_failed: songId=$id no connection available; falling back to unlocked saveToDb()")
-            saveToDb()
-            return true
+            return saveToDb()
         }
 
         val previousAutoCommit = connection.autoCommit
@@ -5825,7 +5880,6 @@ class Song(
                 connection.rollback()
                 committed = false // уже откатили
                 saveToDb()
-                true
             } else {
                 // FR-160 (спека 357): детектируем race overlap — поля, где `this` пытается
                 // записать значение, отличное от того, что в БД (то есть параллельная транзакция
@@ -5852,20 +5906,31 @@ class Song(
                 //
                 // specs/413-sync-audio-descendants (#141): хук аудио-потомков подавляем на время
                 // pre-commit saveToDb() — воркер должен видеть уже зафиксированный статус родителя.
-                SyncAudioDescendants.suppressTriggers { saveToDb() }
-                connection.commit()
-                committed = true
-                // Хук — после commit: статус родителя уже виден другим соединениям.
-                try {
-                    SyncAudioDescendants.onSongSaved(
-                        song = this,
-                        previous = savedSong,
-                        changedContentFields = getDiff(this, savedSong).map { it.recordDiffName }.toSet(),
-                    )
-                } catch (e: Exception) {
-                    println("[sync-audio] hook error songId=$id: ${e.message}")
+                // BR-102 (аудит #336, пакет PKG-S2-10): коммитим ТОЛЬКО если saveToDb() реально
+                // записал данные. Раньше провал executeUpdate игнорировался, транзакция
+                // коммитилась, и вызывающий получал `true` («применено»), хотя в БД ничего не
+                // изменилось.
+                val saved = SyncAudioDescendants.suppressTriggers { saveToDb() }
+                if (!saved) {
+                    connection.rollback()
+                    committed = false
+                    println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_not_applied: songId=$id saveToDb() вернул false — rollback")
+                    false
+                } else {
+                    connection.commit()
+                    committed = true
+                    // Хук — после commit: статус родителя уже виден другим соединениям.
+                    try {
+                        SyncAudioDescendants.onSongSaved(
+                            song = this,
+                            previous = savedSong,
+                            changedContentFields = getDiff(this, savedSong).map { it.recordDiffName }.toSet(),
+                        )
+                    } catch (e: Exception) {
+                        println("[sync-audio] hook error songId=$id: ${e.message}")
+                    }
+                    true
                 }
-                true
             }
         } catch (e: java.sql.SQLException) {
             val sqlState = e.sqlState ?: ""
@@ -5965,18 +6030,39 @@ class Song(
 
         // Если исходный файл существует - ничего не помешает копированию
         if (!doSkip) {
+            // BR-109 (аудит #336, пакет PKG-S2-10): scPath/scRenameTemplate приходят из
+            // запроса; здесь — defense in depth (эндпоинты уже валидируют и возвращают 400).
+            // Без этого каталог/имя уводили запись за пределы экспортного корня.
+            val safePath =
+                SmartCopyPathPolicy.validateExportRoot(scPath)
+                    ?: run {
+                        println("SmartCopy: путь '$scPath' запрещён политикой — копирование пропущено")
+                        return
+                    }
+            val safeTemplate =
+                if (scRenameTemplate == "") {
+                    ""
+                } else {
+                    SmartCopyPathPolicy.sanitizeDestinationTemplate(scRenameTemplate)
+                        ?: run {
+                            println("SmartCopy: шаблон имени '$scRenameTemplate' запрещён политикой — копирование пропущено")
+                            return
+                        }
+                }
+
             // Задаём папку назначения в зависимости он необходимости создавать сабфолдеры для авторов
             val destinationFileFolder =
                 if (scCreateSubfoldersAuthors) {
-                    "$scPath/${this.author.rightFileNameSymbols()}"
+                    "$safePath/${this.author.rightFileNameSymbols()}"
                 } else {
-                    scPath
+                    safePath
                 }
 
             // Проверим наличие папки назначения и если её нет - создадим
             if (!File(destinationFileFolder).exists()) {
                 Files.createDirectories(Path(destinationFileFolder))
-                runCommand(listOf("chmod", "777", destinationFileFolder))
+                // BR-109: каталог экспорта не должен быть всемирно записываемым (было 777).
+                runCommand(listOf("chmod", "755", destinationFileFolder))
             }
 
             // Найдём имя и путь конечного файла, принимая во внимание шаблон переименования
@@ -5985,9 +6071,9 @@ class Song(
             val sourceFileName = Path(sourceFilePathAndName).fileName.toString()
 
             val destinationFileName =
-                if (scRenameTemplate != "") {
+                if (safeTemplate != "") {
                     var fileName =
-                        scRenameTemplate
+                        safeTemplate
                             .replace("{author}", this.author)
                             .replace("{name}", this.songName)
                             .replace("{year}", this.year.toString())
@@ -5998,9 +6084,19 @@ class Song(
                     if (scResolution == "720p") fileName += " 720p"
                     fileName += ".mp4"
 
-                    fileName
+                    // Подстановки {author}/{name} могли вернуть `/` или `..` уже после
+                    // проверки шаблона — санитайзим итоговое имя ещё раз.
+                    SmartCopyPathPolicy.sanitizeDestinationFileName(fileName)
+                        ?: run {
+                            println("SmartCopy: итоговое имя '$fileName' запрещено политикой — копирование пропущено")
+                            return
+                        }
                 } else {
-                    sourceFileName
+                    SmartCopyPathPolicy.sanitizeDestinationFileName(sourceFileName)
+                        ?: run {
+                            println("SmartCopy: имя исходного файла '$sourceFileName' запрещено политикой — копирование пропущено")
+                            return
+                        }
                 }
 
             val destinationFilePathAndName = "$destinationFileFolder/$destinationFileName"
@@ -6039,7 +6135,8 @@ class Song(
 
                 args.add(listOf("cp", sourceFilePathAndName, destinationFilePathAndName))
                 argsDescription.add("Copy new file")
-                args.add(listOf("chmod", "666", destinationFilePathAndName))
+                // BR-109: 644 вместо 666 — файл читают все, пишет только владелец.
+                args.add(listOf("chmod", "644", destinationFilePathAndName))
                 argsDescription.add("chmod new file")
 
                 context["args"] = args
@@ -6438,8 +6535,24 @@ class Song(
         fieldsValues.add(Pair("description", song.description))
         fieldsValues.add(Pair("short_description", song.shortDescription))
         fieldsValues.add(Pair("warning", song.warning))
-        // player_readiness_flags намеренно не добавляется — как и audio_compare_history, полагается
-        // на DEFAULT '{}' колонки (см. deploy/karaoke-db/26_player_readiness_flags.sql).
+        // BR-108 (аудит #336, пакет PKG-S2-10): список колонок отставал от схемы — при
+        // INSERT в tbl_songs/tbl_songs_sync терялись флаги доступа, связь с альбомом и
+        // аудио-родитель, поэтому recordhash вставленной строки не сходился с исходной.
+        // album_id — nullable FK: при null колонку не пишем (DEFAULT NULL), иначе
+        // построитель превратил бы null в строку "null".
+        song.albumId?.let { fieldsValues.add(Pair("album_id", it)) }
+        fieldsValues.add(Pair("root_id", song.rootId))
+        fieldsValues.add(Pair("free", song.free))
+        fieldsValues.add(Pair("free_after_on_air", song.freeAfterOnAir))
+        fieldsValues.add(Pair("audio_parent_id", song.audioParentId))
+        fieldsValues.add(Pair("audio_similarity_percent", song.audioSimilarityPercent))
+        fieldsValues.add(Pair("audio_delta_ms", song.audioDeltaMs))
+        fieldsValues.add(Pair("audio_compare_history", song.audioCompareHistory))
+        fieldsValues.add(Pair("player_readiness_flags", song.playerReadinessFlags))
+        // Колонка `exclusive` остаётся непереносимой: в сущности Song нет её поля (значение
+        // читается/фильтруется только сырым SQL, см. getWhereList «exclusive»). Это
+        // зафиксировано в отчёте specs/373-pkg-s2-10/report.md как «за владельцем»:
+        // чтобы переносить её, нужно поле в сущности и SongField.
 
         return "INSERT INTO tbl_songs${if (sync) "_sync" else ""} (${fieldsValues.joinToString(
             ", ",
@@ -8118,10 +8231,16 @@ class Song(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
             withoutMarkersAndText: Boolean = false,
+            // BR-101 (аудит #336, пакет PKG-S2-10): при true SQL-ошибка пробрасывается,
+            // а не превращается в пустой список. Списочные endpoint'ы по умолчанию
+            // сохраняют прежнее fail-soft поведение; одиночная загрузка (loadFromDbById)
+            // обязана отличать «строки нет» от «ошибка чтения».
+            throwOnError: Boolean = false,
         ): List<Song> {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                if (throwOnError) throw SQLException("Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -8327,6 +8446,7 @@ class Song(
 
                 return result
             } catch (e: SQLException) {
+                if (throwOnError) throw e
                 e.printStackTrace()
             } finally {
                 try {
@@ -8354,6 +8474,8 @@ class Song(
                     sync = sync,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
+                    // BR-101: сбой чтения не должен выглядеть как «песни нет».
+                    throwOnError = true,
                 ).firstOrNull()
             return setting
         }
@@ -8434,6 +8556,7 @@ class Song(
                     sync = false,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
+                    throwOnError = true,
                 ).firstOrNull()
             return setting
         }
@@ -8468,6 +8591,34 @@ class Song(
             ps.setLong(1, id)
             ps.executeUpdate()
             ps.close()
+        }
+
+        /**
+         * BR-104 (аудит #336, пакет PKG-S2-10): DTO списка песен с пакетным заполнением
+         * `albumName`.
+         *
+         * [toDTO] больше не делает SELECT по `tbl_albums` на каждую песню; имена альбомов
+         * берутся ОДНИМ запросом [Album.getAlbumsByIds]. Использовать для любых списков
+         * песен (таблица, дайджест), где UI показывает название альбома.
+         */
+        fun toDTOsWithAlbumNames(
+            songs: List<Song>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SongDTO> {
+            val dtos = songs.map { it.toDTO() }
+            val albumIds = songs.mapNotNull { it.albumId }.filter { it > 0L }.distinct()
+            if (albumIds.isEmpty()) return dtos
+            val names =
+                Album
+                    .getAlbumsByIds(
+                        ids = albumIds,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    ).mapValues { it.value.name }
+            return dtos.map { dto -> dto.copy(albumName = names[dto.albumId] ?: "") }
         }
 
         // specs/544-song-artifact-cleanup (FR-006): loadFromFile удалён — единственный
@@ -8951,10 +9102,10 @@ class Song(
             songType = songType.dbValue,
             haveSourceText = haveSourceText,
             albumId = albumId ?: 0L,
-            albumName =
-                albumId?.let { aid ->
-                    Album.getAlbumById(aid, database = database, storageService = storageService, storageApiClient = storageApiClient)?.name
-                } ?: "",
+            // BR-104 (аудит #336, пакет PKG-S2-10): toDTO() больше НЕ ходит в БД за именем
+            // альбома. Раньше каждая песня списка давала отдельный SELECT по tbl_albums
+            // (N+1 на 18k строк). Имя заполняется пакетно — см. Song.toDTOsWithAlbumNames().
+            albumName = "",
         )
 
     fun copyFieldsFromAnother(

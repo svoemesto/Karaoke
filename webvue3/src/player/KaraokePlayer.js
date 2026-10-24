@@ -35,6 +35,12 @@ export default class KaraokePlayer {
       // редактор) пересоздаёт плеер / подменяет данные при каждом изменении черновика.
       this._mode = 'inlineData'
       this._inlineData = songIdOrOptions.inlineData
+      // BR-484: в этой ветке songId не присваивался, поэтому меню «Сохранить файл»
+      // собирало URL `/api/song/undefined/playerfile` и молча падало (ошибка уходила
+      // только в console). id песни есть в inlineData (поле `id`).
+      this.songId = songIdOrOptions.inlineData?.id ?? null
+      this.assignmentId = null
+      this.target = null
       // Необязательная высота корневого div плеера (по умолчанию '100vh'). В режиме обычной full-page
       // страницы (PlayerView.vue) контейнер занимает весь viewport, поэтому 100vh корректно. В режиме
       // модального окна редактора (SongKaraokeEditorView) контейнер ограничен высотой модалки (~440px),
@@ -1154,6 +1160,18 @@ export default class KaraokePlayer {
     drums: { urlField: 'audioDrumsUrl', suffix: 'drums' },
   }
 
+  // BR-485: подписи версии на сплэше офлайн-рендера. Набор обязан покрывать все
+  // значения бэкендового enum `RenderVersion` (LYRICS/KARAOKE/CHORDS/TABS/DEMO):
+  // для CHORDS и TABS карта раньше не содержала ключей, поэтому третий блок
+  // сплэша (подпись версии + комментарий) в готовом ролике не рисовался вовсе.
+  static RENDER_VERSION_SPLASH = Object.freeze({
+    LYRICS: { label: 'Lyrics', comment: 'Song' },
+    KARAOKE: { label: 'Karaoke', comment: 'Accompaniment' },
+    CHORDS: { label: 'Chords', comment: 'Chords' },
+    TABS: { label: 'Tabs', comment: 'Tabs' },
+    DEMO: { label: 'Karaoke (Demo)', comment: 'Ознакомительный фрагмент' },
+  })
+
   _buildMenu() {
     const menuBtn = this.container.querySelector('#kp-menu-btn')
     const menu = this.container.querySelector('#kp-menu')
@@ -1431,7 +1449,10 @@ export default class KaraokePlayer {
   }
 
   // Admin API URL for the full .smkaraoke container of the currently loaded song ('api' mode only).
+  // BR-484: без songId URL был бы `/song/undefined/playerfile`; возвращаем null,
+  // чтобы вызывающий код показал ошибку, а не уходил в заведомо битый запрос.
   _getPlayerFileUrl() {
+    if (!this.songId) return null
     return `${this.apiBase}/song/${this.songId}/playerfile`
   }
 
@@ -1464,14 +1485,36 @@ export default class KaraokePlayer {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         blob = await resp.blob()
       } else {
-        const resp = await fetch(this._getPlayerFileUrl())
+        const fileUrl = this._getPlayerFileUrl()
+        // BR-484: id песни неизвестен (например, старый inline-режим без `id`) —
+        // сообщаем пользователю, а не шлём запрос на `/song/undefined/playerfile`.
+        if (!fileUrl) throw new Error('song id is unknown')
+        const resp = await fetch(fileUrl)
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         blob = await resp.blob()
       }
       await this._saveBlob(blob, suggestedName, 'application/x-smkaraoke', ['.smkaraoke'])
     } catch (e) {
-      if (e?.name !== 'AbortError') console.error('Save failed:', e)
+      if (e?.name === 'AbortError') return
+      // BR-484: раньше ошибка уходила только в console — пользователь не получал
+      // ни файла, ни сообщения. Показываем её в пункте меню.
+      this._notifyMenuError('Не удалось сохранить файл')
+      console.error('Save failed:', e)
     }
+  }
+
+  // BR-484: кратко показать в меню «Сохранить файл», что операция не удалась
+  // (в плеере нет тостов; пункт меню — единственный видимый элемент экспорта).
+  _notifyMenuError(message) {
+    const label = this.container?.querySelector?.('#kp-menu-save span')
+    if (!label) return
+    const original = label.textContent
+    label.textContent = message
+    if (this._menuErrorTimer) clearTimeout(this._menuErrorTimer)
+    this._menuErrorTimer = setTimeout(() => {
+      label.textContent = original
+      this._menuErrorTimer = null
+    }, 4000)
   }
 
   // Shared "save this blob to disk" logic for both stem export and full-file save: native
@@ -2662,7 +2705,10 @@ export default class KaraokePlayer {
       const fadeIn = Math.min(1, (dt - tailStart) / 1.0)
       const fadeOut =
         dt >= tailStart + tailDur - 1.0 ? Math.max(0, (tailStart + tailDur - dt) / 1.0) : 1
-      this._renderDemoEndScreen(ctx, W, H, fadeIn * fadeOut)
+      // BR-483: время кадра передаём явно — от него зависит анимация стрелок,
+      // иначе офлайн-рендер (кадры снимаются не в реальном времени) использовал
+      // стенное время и давал невоспроизводимый результат.
+      this._renderDemoEndScreen(ctx, W, H, fadeIn * fadeOut, dt)
     }
     if (!this._offline) this._updateControls(dt)
   }
@@ -2867,7 +2913,11 @@ export default class KaraokePlayer {
   }
 
   // DEMO end screen: logo (H/2) + two text lines + animated ▼ arrows flanking "Ссылка"
-  _renderDemoEndScreen(ctx, W, H, alpha) {
+  // `timeSec` — время кадра (тот же источник, что `_forcedTime`/`_getDisplayTime()`).
+  // BR-483: анимация не должна зависеть от `Date.now()`: офлайн-рендер снимает кадры
+  // не в реальном времени, и стрелки «скакали» случайно, а повторный рендер той же
+  // песни давал другой файл (нарушение инварианта PlayerMp4RenderService).
+  _renderDemoEndScreen(ctx, W, H, alpha, timeSec = 0) {
     if (this._renderVersion !== 'DEMO' || alpha <= 0) return
     ctx.save()
     ctx.globalAlpha = alpha
@@ -2934,7 +2984,8 @@ export default class KaraokePlayer {
     const textRightX = W / 2 + line2W / 2
     const arrowCenterX = padH // distance from text edge
     const line2CenterY = line2Y + fontSz / 2
-    const bounce = Math.sin(Date.now() / 300) * 8 * (H / 1080)
+    // BR-483: фаза анимации — по времени кадра (сек), период 2π·0.3 ≈ 1.88 с.
+    const bounce = Math.sin(timeSec / 0.3) * 8 * (H / 1080)
 
     ctx.font = `700 ${fontSz}px sans-serif`
     ctx.fillStyle = '#f80'
@@ -3220,12 +3271,12 @@ export default class KaraokePlayer {
       )
 
       // Block 3: Version label + comment (cyan)
-      const versionMap = {
-        LYRICS: { label: 'Lyrics', comment: 'Song' },
-        KARAOKE: { label: 'Karaoke', comment: 'Accompaniment' },
-        DEMO: { label: 'Karaoke (Demo)', comment: 'Ознакомительный фрагмент' },
+      // BR-485: единый источник подписей — статическая карта, покрывающая весь
+      // RenderVersion (иначе для CHORDS/TABS блок версии молча пропускался).
+      const ver = KaraokePlayer.RENDER_VERSION_SPLASH[this._renderVersion]
+      if (!ver) {
+        console.warn('[KaraokePlayer] no splash label for render version', this._renderVersion)
       }
-      const ver = versionMap[this._renderVersion]
       if (ver && block3H > 0) {
         const fontFamily = 'Roboto, sans-serif'
         let lo = 8,

@@ -256,7 +256,7 @@ BR-254,P-07,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt
 BR-255,P-07,LEAK,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt,2590,2604,files-walk-no-close:utils,TODO,lead-verified,
 BR-256,P-07,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt,1607,1618,bpm-csv-catch:utils,TODO,lead-verified,
 BR-257,P-07,DATA,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt,2132,2349,searchtext-html:utils,TODO,lead-verified,
-BR-258,P-06,SEC,S1,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt,193,196,public-bucket-stems:storage,в работе,lead-verified,361
+BR-258,P-06,SEC,S1,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt,193,196,public-bucket-stems:storage,исправлено,lead-verified,361
 BR-259,P-06,RACE,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobCleanup.kt,52,71,description-match-race:stem,TODO,lead-verified,
 BR-260,P-06,DATA,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt,82,101,working-before-insert:stem,TODO,lead-verified,
 BR-261,P-06,PERF,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt,104,118,iam-token-no-cache:ai,TODO,lead-verified,

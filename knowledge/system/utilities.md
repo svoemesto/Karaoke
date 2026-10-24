@@ -582,3 +582,18 @@ issue #53.
   цели синхронизации (BR-251), конечный обход авторов (BR-266); legacy-страницы
   karaoke-app — пагинация и отказ от мёртвого STOMP (BR-200/201/206/214). Автор: agent (Karaoke).
 - **Pass 341 P3c** (2026-09-09): Initial detailed. Автор: agent (Karaoke).
+
+## BR-110/BR-112: кэш waveform и страница истории (аудит #336)
+
+- `WaveformCompare.envelopeCache` — LRU на 64 записи
+  (`ENVELOPE_CACHE_MAX_ENTRIES`) с удалением прежнего ключа того же файла при
+  смене mtime. Раньше `ConcurrentHashMap` без вытеснения хранил огибающую каждой
+  версии стема навсегда (4-мин песня ≈ 96 КБ).
+- `ListeningHistoryController.digest` выполняет фильтр/сортировку/пагинацию в
+  SQL (`EXISTS` по `tbl_songs`, `ORDER BY`, `LIMIT/OFFSET`, отдельный
+  `COUNT(*)`) и грузит песни только для страницы. Раньше читалась вся
+  `tbl_listening_history` без LIMIT.
+
+**Ловушка.** `KaraokeDbTable.loadList` с `limit = 0` означает «без LIMIT»;
+пагинация в Kotlin после полной загрузки не ограничивает ни память, ни время.
+Регрессии: `WaveformCompareCacheTest`, `ListeningHistoryQueryTest`.

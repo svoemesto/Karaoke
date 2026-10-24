@@ -164,3 +164,20 @@ MP4 в MinIO не перекодируются автоматически. Дл�
 ## Связанные ADR | Related ADRs
 
 - ADR по admin UI для KaraokeProperties (TODO).
+
+## BR-133/BR-148: свойства читаются и пишутся безопасно (аудит #336)
+
+- `PropertiesFileDictionary` (`/sm-karaoke/system/webvue_properties.txt`) пишет
+  значение в Base64 с префиксом `b64:` и через `writePropertiesFileAtomic`
+  (tmp + `ATOMIC_MOVE`) под общим lock. Чтение поддерживает старый формат без
+  префикса и пропускает битую строку с WARN, не роняя старт приложения.
+- Изменяемые настройки не кэшируются в конструкторах синглтонов:
+  `VkPreviewWarmupClient` читает `vkPreviewWarmupEnabled` на каждом `warmup()`,
+  `VkPhotoUploadClient` — токены и `vkPhotoAttachEnabled`/`vkDocAttachEnabled` на
+  каждом вызове. Иначе выключение флага или повторная авторизация не действуют
+  до перезапуска `karaoke-app`.
+
+**Ловушка.** Значение с переводом строки — легальный POST-параметр
+`/api/setwebvueprop`. Без кодирования оно даёт вторую строку без разделителя, и
+следующий старт падает на разборе файла. Регрессии:
+`PropertiesFileDictionaryTest`, `VkPropertiesRefreshTest`.

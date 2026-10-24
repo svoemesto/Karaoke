@@ -400,3 +400,30 @@ LOCAL+REMOTE (включая `exists=false`). Нужен после сброса
 - **Аудит BR-558** (2026-10-24, OpenProject #372): добавлено «Решение 6» — заголовки безопасности в host-nginx и исключение `nosniff` для MinIO-контура. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).
 - **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): бакет `stemjobs` — приватный (ключи `<jobId>/…`), добавлено «Решение 5» (перенос приватных объектов в отдельный бакет + стартовый инвариант политики). Автор: agent (Karaoke).
+## BR-141/BR-162: загрузка fail-closed и уборка только своих бакетов (аудит #336)
+
+- `StorageApiClient.uploadFile(pathToFileOnDisk)` при ошибке **бросает**
+  исключение (как `downloadFile`): нет локального файла —
+  `IllegalArgumentException`, сбой загрузки — `RuntimeException`. Раньше
+  возвращался `null`, вызывающий (`executeFinalizeStemJob`) его игнорировал и
+  ставил заданию `DONE` — результат платной функции терялся.
+- `KaraokeStorageService.deleteAllEmptyBuckets()` перебирает только
+  `KARAOKE_STORAGE_BUCKETS` (`karaoke`, `stemjobs`). Раньше удалялся любой
+  пустой бакет инстанса вместе с policy.
+- Вызов уборки из `KaraokeAppService.init` идёт через
+  `cleanupEmptyBucketsOnStartup`: сбой MinIO логируется WARN и **не** валит
+  Spring-контекст.
+
+**Ловушка.** Уборка при старте — необязательная операция. `MinioException`
+ловится внутри, а `ConnectException`/`SocketTimeoutException` — это `IOException`
+и раньше вылетали наружу из `init`, поэтому `karaoke-app` не стартовал при
+недоступном MinIO. Регрессии: `StorageUploadFailClosedTest`,
+`CleanupStartupGuardTest`.
+
+### BR-111: отчёты `ArtifactCleanupService` ограничены
+
+`plans`/`runs` — не `ConcurrentHashMap` без удаления, а LRU:
+`MAX_RETAINED_PLANS = 32`, `MAX_RETAINED_RUNS = 128` + TTL отчёта 30 минут.
+После терминального `apply` отчёт удаляется. Отчёт содержит полный список
+путей (до десятков тысяч), поэтому каждый `POST /api/cleanup/plan` раньше
+навсегда оставлял копию в heap. Регрессия: `CleanupPlanRetentionTest`.

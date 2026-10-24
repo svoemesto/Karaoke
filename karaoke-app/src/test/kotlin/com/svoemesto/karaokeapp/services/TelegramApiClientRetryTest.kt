@@ -40,7 +40,7 @@ class TelegramApiClientRetryTest {
 
     @Test
     fun `connection failure is retried and reported as SEND_FAILED`() {
-        val video = File.createTempFile("tg-retry", ".mp4")
+        val video = File.createTempFile("tg-retry", ".bin")
         video.writeBytes(ByteArray(16))
         try {
             val result =

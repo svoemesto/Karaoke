@@ -176,3 +176,18 @@ Pipeline сам выставит 5/6 после успешного рендер�
 ## Связанные ADR | Related ADRs
 
 - [0001-raw-jdbc](../../../adr/0001-raw-jdbc.md) — БД для хранения.
+
+## BR-128: несколько назначений на песню (аудит #336)
+
+`SongAssignment.loadBySongIds` возвращает `Map<songId, List<SongAssignment>>`.
+Списки упорядочены `preferredAssignmentOrder`: сначала активное назначение
+(`admin_status = 'open'`), затем по убыванию `id`. `composeStatusesForSongIds`
+берёт `preferredAssignment(...)` — детерминированно. Публичная карточка
+(`PublicApiController`) сначала ищет назначение текущего редактора по
+`assigneeId`, иначе берёт предпочтительное.
+
+**Ловушка.** UNIQUE-индекс объявлен только по `(song_id, assignee_id)`, а строка
+после approve не удаляется — несколько строк на песню это норма. `loadList` без
+`ORDER BY` отдаёт их в физическом порядке (UPDATE в PostgreSQL переносит кортеж в
+конец), поэтому `associateBy { songId }` молча выбирал произвольную строку.
+Регрессия: `SongAssignmentPreferenceTest`.

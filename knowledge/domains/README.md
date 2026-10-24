@@ -84,6 +84,9 @@ knowledge/domains/<name>/
     `composable-use-auth.md`, `composable-use-player-access.md`,
     `composable-use-share-link.md` — отдельные детальные composable
     docs (Pass 372, 383).
+  - `karaoke-public-tests.md` — тестовая инфраструктура публичного SPA:
+    юнит-тесты (`node --test`), e2e Playwright, CI-джобы, guard
+    экранирования метки (OpenProject #387, аудит #336 BR-523/524/525).
 - `infra/`:
   - `ci-tools.md` — tools/ (Pass 353).
   - `deploy-overview.md` — deploy/ (Pass 354).

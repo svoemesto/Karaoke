@@ -19,7 +19,7 @@ import { formatText } from '../useReviewModalFormat.js'
 
 // Переключатель активности теста. false — тест включён.
 // Фикс BR-312 (OpenProject #377) сопровождается правкой этой строки.
-const SKIP_UNTIL_BR312 = 'BR-312 не исправлен (OpenProject #377, волна D)'
+const SKIP_UNTIL_BR312 = false // BR-312 исправлен: метка экранируется перед интерполяцией в HTML
 
 const set = (label) => ({ markertype: 'setting', label })
 const syl = (label) => ({ markertype: 'syllables', label })

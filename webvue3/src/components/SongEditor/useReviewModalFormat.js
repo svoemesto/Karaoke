@@ -18,6 +18,26 @@ function uppercaseFirstLetter(s) {
   return s && s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
 
+// Экранирование пользовательского текста перед интерполяцией в HTML-буфер.
+//
+// BR-312 (аудит #336, пакет PKG-S2-14): эта копия formatText — sink админского
+// ReviewModal.vue (`v-html="parsedMarkupHtml"`). Метка `COMMENT|<img onerror=…>`
+// приходит из сохранённого черновика редактора и без экранирования становится
+// живой разметкой в origin админ-панели (stored XSS). Экранируем текст, а не
+// доверяем источнику.
+//
+// Копия канонического webvue3/src/utils/escapeHtml.js. Локальная, а не импорт,
+// потому что tools/check-marker-escape-guard.sh прогоняет этот файл изолированно
+// (копирует один файл в staging-каталог) — импорт сломал бы guard.
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 /**
  * Генерирует HTML-представление разметки с подсветкой текущего слога и группами голоса.
  * Идентично `formatText` в karaoke-public — генерирует span с `class="ke-fx-…"`.
@@ -44,7 +64,7 @@ export function formatText(markers, curMarkerIndex) {
           spanClass = GROUP_CLASS[marker.label]
         } else if (marker.label && marker.label.startsWith('COMMENT|')) {
           const txt = uppercaseFirstLetter((marker.label.split('|')[1] || '').replaceAll('_', ' '))
-          result += `<span class="ke-fx-comment">${txt}</span><br>`
+          result += `<span class="ke-fx-comment">${escapeHtml(txt)}</span><br>`
           wasBr = true
         }
         break
@@ -61,7 +81,7 @@ export function formatText(markers, curMarkerIndex) {
           txt = uppercaseFirstLetter(txt)
           wasBr = false
         }
-        result += txt
+        result += escapeHtml(txt)
         result += '</span>'
         break
       }

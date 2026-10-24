@@ -1,4 +1,5 @@
 import { authPost, authGet } from '../services/authApi'
+import { isRevokeConfirmed } from '../utils/shareRevoke'
 
 // Управление share-ссылками владельца (add-song-share-link). Используется из SongView.vue —
 // кнопка «Временный полный доступ» рядом с ShareButton. Бэкенд: /api/public/share/* (см.
@@ -39,5 +40,6 @@ export function useShareLink() {
     createShareLink,
     getCurrentShareLink,
     revokeShareLink,
+    isRevokeConfirmed,
   }
 }

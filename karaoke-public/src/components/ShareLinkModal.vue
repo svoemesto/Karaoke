@@ -94,6 +94,7 @@ import {
   revokeShareLink,
   SHARE_TTL_OPTIONS,
 } from '../composables/useShareLink'
+import { isRevokeConfirmed } from '../utils/shareRevoke.js'
 import { formatDate } from '../utils/dateFormat.js'
 
 const props = defineProps({
@@ -247,15 +248,31 @@ async function reissue() {
 
 async function revoke() {
   if (!confirm('Отозвать ссылку? Все активные сессии будут завершены.')) return
+  // BR-295 (аудит #336, PKG-S2-14): revokeShareLink() резолвится и на 401/5xx —
+  // локальное «ссылка отозвана» показываем ТОЛЬКО после явного подтверждения
+  // сервера. Иначе ссылка остаётся active=true и продолжает работать, а
+  // единственная сохранённая копия URL стирается из localStorage.
+  const linkId = currentLink.value?.linkId
+  const savedUrl = shareUrl.value || currentLink.value?.url || ''
+  errorMessage.value = ''
   try {
-    const linkId = currentLink.value?.linkId
-    await revokeShareLink(props.songId, 'manual', token.value)
+    const { status, body } = await revokeShareLink(props.songId, 'manual', token.value)
+    if (!isRevokeConfirmed(status, body)) {
+      errorMessage.value =
+        status === 401
+          ? 'Сессия истекла — войдите заново и повторите отзыв. Ссылка пока активна.'
+          : `Сервер не подтвердил отзыв (${status}) — ссылка пока активна, попробуйте ещё раз.`
+      // Ничего не обнуляем: currentLink/URL остаются, чтобы гость мог ей пользоваться,
+      // а владелец — повторить отзыв.
+      if (!shareUrl.value && savedUrl) shareUrl.value = savedUrl
+      return
+    }
     if (linkId) clearSavedUrl(linkId)
     currentLink.value = null
     created.value = false
     shareUrl.value = ''
   } catch (e) {
-    errorMessage.value = 'Не удалось отозвать ссылку'
+    errorMessage.value = 'Нет связи с сервером — отзыв не подтверждён, ссылка пока активна'
   }
 }
 

@@ -437,8 +437,14 @@ export function deleteMarkerAtTime(markers, syllables, currentTime) {
 }
 
 // Гарантирует END-маркер на длительности трека (addEndMarker). Вызывается перед submit.
+// BR-328 (аудит #336, PKG-S2-14): duration равен 0 до события `decode` WaveSurfer (и
+// навсегда остаётся 0, если стем не загрузился). Прежний код создавал END в 0 либо
+// переносил существующий END в 0 — терминальный маркер уезжал в начало трека сразу у
+// ВСЕХ голосов. Пока длительность неизвестна, маркеры не трогаем: submit блокируется
+// в EditorWorkView до успешной загрузки аудио.
 export function ensureEndMarker(markers, duration) {
   if (markers.length === 0) return markers
+  if (!(Number(duration) > 0)) return markers
   const end = markers.find((m) => m.markertype === 'setting' && m.label === 'END')
   if (!end) {
     markers.push({
@@ -454,6 +460,27 @@ export function ensureEndMarker(markers, duration) {
     end.time = duration
   }
   return markers
+}
+
+// Экранирование пользовательского текста перед интерполяцией в HTML-буфер.
+//
+// BR-312 (аудит #336, пакет PKG-S2-14): метка `COMMENT|<произвольный текст>`
+// распознаётся из спецтега `~comment:...~`, который редактор вводит в textarea,
+// без изменений проходит через markersToSave() в сохранённый черновик и затем
+// рендерится этим же formatText() — в т.ч. через `v-html` админского ReviewModal
+// (и в публичном превью EditorWorkView). Живой `<img onerror>` становился
+// разметкой в origin админ-панели (stored XSS).
+//
+// Копия канонического webvue3/src/utils/escapeHtml.js. Локальная, а не импорт,
+// потому что tools/check-marker-escape-guard.sh прогоняет этот файл изолированно
+// (копирует один файл в staging-каталог) — импорт сломал бы guard.
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 // HTML отформатированного текста с подсветкой текущего слога (getFormattedText: syllables +
@@ -488,7 +515,7 @@ export function formatText(markers, curMarkerIndex) {
           result += '<br>'
         } else if (marker.label && marker.label.startsWith('COMMENT|')) {
           const txt = uppercaseFirstLetter((marker.label.split('|')[1] || '').replaceAll('_', ' '))
-          result += `<span class="ke-fx-comment">${txt}</span><br>`
+          result += `<span class="ke-fx-comment">${escapeHtml(txt)}</span><br>`
           wasBr = true
         }
         break
@@ -505,7 +532,7 @@ export function formatText(markers, curMarkerIndex) {
           txt = uppercaseFirstLetter(txt)
           wasBr = false
         }
-        result += txt
+        result += escapeHtml(txt)
         result += '</span>'
         break
       }

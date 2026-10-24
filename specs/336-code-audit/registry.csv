@@ -12,14 +12,14 @@ BR-010,P-37,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/service
 BR-011,P-35,SEC,S1,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt,303,366,public-sql-exec:changerecords,исправлено,lead-verified,357
 BR-012,P-35,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt,329,366,no-transaction:changerecords,исправлено,lead-verified,378
 BR-013,P-35,SEC,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt,965,1023,unpublished-song-leak:public-song,исправлено,lead-verified,378
-BR-014,P-35,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicCartController.kt,160,216,checkout-before-payment:cart,TODO,lead-verified,365
+BR-014,P-35,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicCartController.kt,160,216,checkout-before-payment:cart,исправлено,lead-verified,365
 BR-015,P-35,PERF,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicNewsController.kt,45,57,unbounded-page-size:public,исправлено,lead-verified,378
 BR-016,P-35,ERR,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt,234,262,zero-cache-on-db-error:stats,TODO,lead-verified,385
 BR-017,P-35,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/DebugDbController.kt,58,106,wrong-debug-metrics:debugdb,TODO,lead-verified,401
 BR-018,P-36,SEC,S1,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt,99,106,gesture-token-paywall-bypass:player,исправлено,lead-verified,358
 BR-019,P-36,SEC,S1,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt,50,53,public-settings-write:properties,исправлено,lead-verified,359
-BR-020,P-36,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPaymentController.kt,57,57,webhook-paid-before-fulfillment:payment,TODO,lead-verified,365
-BR-021,P-36,RACE,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSubscriptionController.kt,163,164,duplicate-payment-create:subscription,TODO,lead-verified,365
+BR-020,P-36,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPaymentController.kt,57,57,webhook-paid-before-fulfillment:payment,исправлено,lead-verified,365
+BR-021,P-36,RACE,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSubscriptionController.kt,163,164,duplicate-payment-create:subscription,исправлено,lead-verified,365
 BR-022,P-36,SEC,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt,152,171,skip-bypass:player,исправлено,lead-verified,378
 BR-023,P-36,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSongEditorController.kt,216,225,ignored-null-create-draft:editor,исправлено,lead-verified,378
 BR-024,P-36,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSongEditorController.kt,292,294,refuse-without-status-guard:editor,TODO,lead-verified,401
@@ -512,7 +512,7 @@ BR-510,P-78,BUILD,S3,.github/workflows/lint.yml,139,139,feature-doc-wrong-dir:ci
 BR-511,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,16,42,external-process-no-timeout:test,исправлено,lead-verified,388
 BR-512,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,48,49,test-silently-skipped:test,исправлено,lead-verified,388
 BR-513,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkDateTimeTest.kt,47,58,tz-invariance-not-tested:test,исправлено,lead-verified,388
-BR-514,P-38,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt,84,103,renew-charge-before-save:subscription,TODO,lead-verified,365
+BR-514,P-38,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt,84,103,renew-charge-before-save:subscription,исправлено,lead-verified,365
 BR-515,P-38,ERR,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt,55,55,renew-one-fails-all:subscription,исправлено,lead-verified,378
 BR-516,P-38,LEAK,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt,235,235,claim-ratelimit-leak:share,исправлено,lead-verified,378
 BR-517,P-38,ERR,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt,537,538,debug-println-in-claim:share,TODO,lead-verified,378

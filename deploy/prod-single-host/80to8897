@@ -3,6 +3,52 @@ server {
   server_name sm-karaoke.ru www.sm-karaoke.ru;
   ssl_certificate /etc/keys/www.sm-karaoke.ru.crt;
   ssl_certificate_key /etc/keys/www.sm-karaoke.ru.key;
+
+  # ---------------------------------------------------------------------------
+  # Заголовки безопасности (BR-558, аудит #336, порция P-72-06).
+  #
+  # Почему на уровне server{}, а не http{} в nginx.conf: http{} — общий файл
+  # хоста, а site-конфиг 80to8897 — единственный, который описывает публичный
+  # сайт sm-karaoke.ru; правило живёт рядом с теми location'ами, которых
+  # касается (см. ниже про наследование add_header).
+  #
+  # ВАЖНО — наследование add_header в nginx: директивы наследуются с
+  # предыдущего уровня (http{} → server{} → location{}) ТОЛЬКО если в самом
+  # блоке НЕТ ни одной своей add_header. Поэтому любой location со своими
+  # add_header (у нас это /minio/ и @minio_404) теряет серверные заголовки
+  # целиком — там они объявлены явно, заново.
+  #
+  # always — заголовки должны приходить и на ошибочные ответы (4xx/5xx),
+  # иначе при 404/502 они теряются и защита обходится тривиально.
+  #
+  # X-Frame-Options SAMEORIGIN — защита от clickjacking: сайт с регистрацией
+  # и оплатой (ЮKassa) нельзя встроить в iframe чужого домена. SAMEORIGIN
+  # (а не DENY) — плеер сайта встраивает сам себя в iframe (/player/:id) —
+  # это same-origin, см. karaoke-public/src/views/PlaylistEditView.vue.
+  #
+  # X-Content-Type-Options nosniff — браузер не будет угадывать тип ответа.
+  # НЕ применяем к /minio/ (см. ниже): объекты MinIO кладутся без
+  # Content-Type (PutObjectArgs без contentType) → отдаются как
+  # application/octet-stream, и nosniff может заблокировать показ картинок
+  # автора/обложек в браузере.
+  #
+  # Referrer-Policy strict-origin-when-cross-origin — наружу уходит только
+  # origin (не путь с идентификаторами песен/альбомов), внутри origin — полный
+  # URL. Для публичных share-ссылок это убирает утечку идентификаторов.
+  #
+  # Strict-Transport-Security max-age=31536000 — браузер больше не ходит на
+  # sm-karaoke.ru по http:// (первый запрос не может быть перехвачен/редиректнут).
+  # includeSubDomains НЕ добавляем: поддомены домена не проверялись (правило
+  # владельца — includeSubDomains только после проверки, что все поддомены
+  # работают по HTTPS). www.sm-karaoke.ru обслуживается этим же server-блоком
+  # и получает HSTS отдельно (HSTS действует на хост, а не на путь).
+  # Порт 5443 (private registry) — тоже только TLS, HSTS его не ломает.
+  # ---------------------------------------------------------------------------
+  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Strict-Transport-Security "max-age=31536000" always;
+
   location /minio/ {
     # MinIO теперь локальный контейнер на этом же хосте (переезд #165):
     # 127.0.0.1:8890 → karaoke-storage:9000. MTU black-hole больше нет,
@@ -17,6 +63,19 @@ server {
     # 404-кэшируется на 5 минут (FR-005) — чтобы частые запросы несуществующих картинок
     # (например, анонимные /zakroma без превью) не возвращали 404 из MinIO каждый раз.
     expires 24h;
+    # У этого location есть свои add_header → серверные заголовки безопасности
+    # НЕ наследуются (правило nginx). Поэтому объявляем нужные здесь явно.
+    # nosniff исключён осознанно: объекты MinIO хранятся без Content-Type
+    # (PutObjectArgs без contentType в karaoke-app/services/StorageApiClient.kt)
+    # → отдаются как application/octet-stream; с nosniff браузер может отказаться
+    # показывать картинку автора/обложку альбома (public site грузит их как
+    # /minio/karaoke/<файл>). X-Frame-Options/Referrer-Policy для бинарных
+    # файлов безопасны и оставлены.
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # security-headers-exempt: X-Content-Type-Options (объекты MinIO хранятся без
+    # Content-Type → отдаются как application/octet-stream; nosniff может заблокировать
+    # показ картинки автора/обложки альбома в браузере)
     add_header Cache-Control "public, max-age=86400";
     add_header ETag $upstream_http_etag;
     add_header Last-Modified $upstream_http_last_modified;
@@ -30,6 +89,14 @@ server {
   # @minio_404 — короткий (5 мин) TTL для 404-ответов MinIO (FR-005): превью автора без картинки
   # не должно долбить MinIO каждым запросом от анонимных /zakroma-вкладок.
   location @minio_404 {
+    # Как и у /minio/ выше: свои add_header отключают наследование серверных
+    # заголовков → нужные объявляем явно. nosniff исключён по той же причине
+    # (ответ MinIO-контура отдаётся как application/octet-stream).
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # security-headers-exempt: X-Content-Type-Options (объекты MinIO хранятся без
+    # Content-Type → отдаются как application/octet-stream; nosniff может заблокировать
+    # показ картинки автора/обложки альбома в браузере)
     add_header Cache-Control "public, max-age=300";
     return 404;
   }
@@ -167,6 +234,15 @@ server {
 server {
   listen 80;
   server_name sm-karaoke.ru www.sm-karaoke.ru minio-proxy;
+  # Заголовки безопасности на HTTP-контуре (BR-558, аудит #336 P-72-06).
+  # Набор тот же, что на 443 (см. комментарий в server { listen 443 ssl; } выше),
+  # кроме Strict-Transport-Security: браузер игнорирует HSTS, полученный по
+  # небезопасному каналу (RFC 6797 §7.2), а сам домен живёт по HTTPS — HSTS
+  # присылает 443-блок. Остальные заголовки нужны и тут: /minio/ на 80 отдаёт
+  # те же публичные файлы, а location / — 301-редирект на HTTPS.
+  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
   location /minio/ {
     proxy_pass http://127.0.0.1:8890/;
     proxy_set_header Host $http_host;
@@ -174,6 +250,14 @@ server {
     proxy_read_timeout 60;
     # US4 (FR-003/004/005) — см. аналогичный блок в server { listen 443 ... } выше.
     expires 24h;
+    # Свои add_header отключают наследование серверных заголовков → объявляем
+    # нужные явно; nosniff исключён по причине из 443-блока (объекты MinIO
+    # без Content-Type → application/octet-stream).
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # security-headers-exempt: X-Content-Type-Options (объекты MinIO хранятся без
+    # Content-Type → отдаются как application/octet-stream; nosniff может заблокировать
+    # показ картинки автора/обложки альбома в браузере)
     add_header Cache-Control "public, max-age=86400";
     add_header ETag $upstream_http_etag;
     add_header Last-Modified $upstream_http_last_modified;

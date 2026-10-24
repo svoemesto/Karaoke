@@ -122,6 +122,22 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: заголовки безопасности в прод-nginx (BR-558, аудит #336, OP #372) ===
+      # Статический разбор deploy/prod-single-host/80to8897: каждый server-блок
+      # обязан объявлять X-Frame-Options / X-Content-Type-Options /
+      # Referrer-Policy (+ Strict-Transport-Security для TLS-сервера) с флагом
+      # `always`; location'ы со своими add_header (наследование серверных
+      # заголовков в nginx при этом теряется) объявляют нужные заголовки явно
+      # либо помечены явным исключением с причиной.
+      # Регламент: knowledge/guidelines/security-headers.md.
+      - id: security-headers-guard
+        name: security headers guard (BR-558)
+        entry: python3 tools/check-security-headers.py --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Guard: экранирование текста подтверждений (спека #558, OP #360, BR-123) ===
       # Общий компонент подтверждения по умолчанию выводит текст как ТЕКСТ,
       # сырая разметка — только при явном `allowHtml: true`. Guard проверяет:

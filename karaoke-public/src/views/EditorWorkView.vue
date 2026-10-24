@@ -335,6 +335,14 @@
           Отправить на проверку
         </button>
       </div>
+      <!-- BR-328/BR-330: аудио ещё не декодировано — объясняем, почему отправка невозможна;
+           ошибки сохранения/отправки/возврата показываем текстом, а не молчаливым «Ошибка». -->
+      <p v-if="!(duration > 0)" class="ke-save-error">
+        Аудио ещё не загружено — отправка станет доступна после загрузки стемов.
+      </p>
+      <p v-if="saveError" class="ke-save-error">{{ saveError }}</p>
+      <p v-if="submitError" class="ke-save-error">{{ submitError }}</p>
+      <p v-if="recallError" class="ke-save-error">{{ recallError }}</p>
     </footer>
   </div>
 </template>
@@ -345,6 +353,9 @@ import AppHeader from '../components/AppHeader.vue'
 import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
 import { promisedXMLHttpRequest } from '../lib/utils'
+import { autosaveFlushPlan } from '../utils/autosave.js'
+import { classifyAuthOutcome, describeAuthOutcome } from '../utils/xhrOutcome.js'
+import { destroyWaveform, beginWaveformLoad, endWaveformLoad } from '../utils/wavesurferTeardown.js'
 import {
   splitSyllables,
   syncMarkersFromSpecTags,
@@ -421,6 +432,20 @@ const ALWAYS_ALLOWED_KEYS = new Set([
 export default {
   name: 'EditorWorkView',
   components: { AppHeader },
+  async beforeRouteLeave(to, from, next) {
+    // BR-327 (аудит #336, PKG-S2-14): автосохранение отложено на 3 с. Уход со страницы в этом
+    // окне раньше просто терял правку — таймер гасился без сохранения. Поэтому уход сперва
+    // «дожимает» отложенное сохранение (await), и только потом отпускает маршрут.
+    if (autosaveFlushPlan({ timerArmed: !!this.saveTimer, canEdit: this.canEdit }) === 'flush') {
+      try {
+        await this.saveNow()
+      } catch (e) {
+        // saveNow() сам выставляет saveState/saveError — уход не блокируем, иначе можно
+        // застрять на странице при недоступном сервере.
+      }
+    }
+    next()
+  },
   setup() {
     const { token, user, fetchMe } = useAuth()
     return { token, user, fetchMe }
@@ -463,9 +488,14 @@ export default {
       ...loadEditorSettings(),
       // Сохранение
       saveState: 'idle', // idle | saving | saved | error
+      // BR-330: текст ошибки для пользователя (сеть/таймаут/HTTP) — прежний код показывал только
+      // «Ошибка сохранения» и не различал причины; при сетевом reject состояния зависали.
+      saveError: '',
       saveTimer: null,
       submitting: false,
+      submitError: '',
       recalling: false,
+      recallError: '',
       redrawScheduled: false,
       typographError: '',
       // Превью в настоящем плеере (см. playerToken из fetchTask — привязан к этому заданию,
@@ -650,6 +680,11 @@ export default {
       }
     },
   },
+  created() {
+    // BR-329: нереактивная защита load() от повторного входа (recall() → load() при не-200).
+    // Не в data(): имя с '_' зарезервировано vue/no-reserved-keys и не должно быть реактивным.
+    this._loadingTask = false
+  },
   async mounted() {
     await this.fetchMe()
     if (!this.token) {
@@ -678,12 +713,15 @@ export default {
       this._resizeObserver = null
     }
     for (const code of Object.keys(this.scrubTimers)) clearInterval(this.scrubTimers[code])
-    if (this.saveTimer) clearTimeout(this.saveTimer)
-    try {
-      this.ws && this.ws.destroy()
-    } catch (e) {
-      /* noop */
+    // BR-327: закрытие вкладки/перезагрузка — единственный доступный канал это запрос,
+    // отправленный до выгрузки страницы (XHR может не успеть; keepalive-beacon потребовал бы
+    // токен в теле запроса, то есть поддержки на бэкенде — за владельцем).
+    if (autosaveFlushPlan({ timerArmed: !!this.saveTimer, canEdit: this.canEdit }) === 'flush') {
+      this.saveNow()
     }
+    // BR-329: уничтожаем текущий экземпляр ТОЛЬКО через хелпер, который обнуляет ws/wsRegions —
+    // иначе повторный load()/recall() терял предыдущий WaveSurfer вместе с AudioContext.
+    destroyWaveform(this)
   },
   methods: {
     fmtTime(s) {
@@ -693,6 +731,18 @@ export default {
       return `${m}:${sec.toString().padStart(2, '0')}`
     },
     async load() {
+      // BR-329 (аудит #336, PKG-S2-14): load() вызывается повторно из recall() при любом
+      // не-200. Без защиты два параллельных load() пишут в один state и создают по
+      // WaveSurfer на каждый заход.
+      if (this._loadingTask) return
+      this._loadingTask = true
+      try {
+        await this._loadTask()
+      } finally {
+        this._loadingTask = false
+      }
+    },
+    async _loadTask() {
       this.loading = true
       this.loadError = ''
       const { status, body } = await fetchTask(this.$route.params.id)
@@ -733,6 +783,18 @@ export default {
     },
     async initWaveSurfer() {
       if (!this.$refs.waveform) return
+      // BR-329: новый экземпляр создаём только после уничтожения старого — иначе прежний
+      // WaveSurfer остаётся с аудиоэлементом, AudioContext, timeupdate-обработчиками и
+      // регионами, а ссылка на него теряется (beforeUnmount уничтожает только последний).
+      if (!beginWaveformLoad(this)) return
+      destroyWaveform(this)
+      try {
+        await this._createWaveSurfer()
+      } finally {
+        endWaveformLoad(this)
+      }
+    },
+    async _createWaveSurfer() {
       const { default: WaveSurfer } = await import('wavesurfer.js')
       const { default: RegionsPlugin } = await import('wavesurfer.js/dist/plugins/regions.esm.js')
       const { default: Minimap } = await import('wavesurfer.js/dist/plugins/minimap.esm.js')
@@ -1080,15 +1142,26 @@ export default {
         this.saveTimer = null
       }
       this.saveState = 'saving'
+      this.saveError = ''
       // Сохраняем ВСЕ голоса разом (не только текущий) — задание покрывает всю песню.
       const sourceTexts = JSON.stringify(this.voices.map((v) => v.sourceText))
       const markersPerVoice = JSON.stringify(this.voices.map((v) => markersToSave(v.markers)))
-      const { status, body } = await saveTask(this.$route.params.id, sourceTexts, markersPerVoice)
-      if (status === 200) {
-        this.saveState = 'saved'
-        if (body && body.status) this.status = body.status
-      } else {
+      // BR-330 (аудит #336, PKG-S2-14): authPost реджектит промис на сетевой ошибке, а прежний
+      // код обрабатывал только HTTP-статус. При reject `saveState` навсегда оставался 'saving'
+      // (кнопка «Сохранить» disabled), исключение уходило в unhandled rejection без сообщения.
+      try {
+        const { status, body } = await saveTask(this.$route.params.id, sourceTexts, markersPerVoice)
+        const outcome = classifyAuthOutcome(null, status)
+        if (outcome === 'ok') {
+          this.saveState = 'saved'
+          if (body && body.status) this.status = body.status
+        } else {
+          this.saveState = 'error'
+          this.saveError = describeAuthOutcome(outcome)
+        }
+      } catch (e) {
         this.saveState = 'error'
+        this.saveError = describeAuthOutcome(classifyAuthOutcome(e, 0))
       }
     },
     // --- Превью в плеере ---
@@ -1152,33 +1225,67 @@ export default {
       this.fitPlayerTo16x9()
     },
     async submit() {
-      if (!this.canEdit) return
+      if (!this.canEdit || this.submitting) return
+      // BR-328 (аудит #336, PKG-S2-14): duration = 0 до события `decode` (и навсегда 0, если стем
+      // не загрузился). Отправлять END в 0 нельзя — терминальный маркер уехал бы в начало
+      // трека у всех голосов. Пока аудио не загружено, отправка блокируется с объяснением.
+      if (!(this.duration > 0)) {
+        this.submitError =
+          'Аудио ещё не загружено — дождитесь загрузки стемов и повторите отправку.'
+        return
+      }
       this.submitting = true
-      // Гарантируем END-маркер на длительности трека для КАЖДОГО голоса и сохраняем перед отправкой.
-      for (const v of this.voices) ensureEndMarker(v.markers, this.duration)
-      this.redrawRegions()
-      await this.saveNow()
-      const { status, body } = await submitTask(this.$route.params.id)
-      this.submitting = false
-      if (status === 200) {
-        this.status = (body && body.status) || 'submitted'
-        this.canEdit = false
-      } else {
+      this.submitError = ''
+      try {
+        // Гарантируем END-маркер на длительности трека для КАЖДОГО голоса и сохраняем перед отправкой.
+        for (const v of this.voices) ensureEndMarker(v.markers, this.duration)
+        this.redrawRegions()
+        await this.saveNow()
+        // BR-330: если черновик не сохранился, отправлять нельзя — на проверку ушла бы
+        // предыдущая версия разметки (fail-closed: сначала успешное сохранение).
+        if (this.saveState === 'error') {
+          this.submitError =
+            'Черновик не сохранён — отправка отменена. ' + (this.saveError || 'Повторите сохранение.')
+          return
+        }
+        const { status, body } = await submitTask(this.$route.params.id)
+        const outcome = classifyAuthOutcome(null, status)
+        if (outcome === 'ok') {
+          this.status = (body && body.status) || 'submitted'
+          this.canEdit = false
+        } else {
+          this.saveState = 'error'
+          this.submitError = describeAuthOutcome(outcome)
+        }
+      } catch (e) {
         this.saveState = 'error'
+        this.submitError = describeAuthOutcome(classifyAuthOutcome(e, 0))
+      } finally {
+        this.submitting = false
       }
     },
     // Вернуть в работу, пока задание "на проверке" и админ ещё не вынес вердикт (например, сам
     // пользователь заметил ошибку). Сервер сам проверяет, что статус реально ещё submitted — если
     // админ уже успел одобрить/отклонить, вернётся ошибка, и мы просто перечитаем актуальный статус.
     async recall() {
+      if (this.recalling) return
       this.recalling = true
-      const { status, body } = await recallTask(this.$route.params.id)
-      this.recalling = false
-      if (status === 200) {
-        this.status = (body && body.status) || 'in_progress'
-        this.canEdit = true
-      } else {
-        await this.load()
+      this.recallError = ''
+      // BR-330: сетевой reject не должен оставлять `recalling` включённым навсегда (кнопка
+      // «Вернуть в работу» оставалась disabled до перезагрузки).
+      try {
+        const { status, body } = await recallTask(this.$route.params.id)
+        if (classifyAuthOutcome(null, status) === 'ok') {
+          this.status = (body && body.status) || 'in_progress'
+          this.canEdit = true
+        } else {
+          // Админ мог уже вынести вердикт — перечитываем актуальный статус.
+          await this.load()
+        }
+      } catch (e) {
+        this.recallError = describeAuthOutcome(classifyAuthOutcome(e, 0))
+      } finally {
+        this.recalling = false
       }
     },
     // --- Клавиатура (хоткеи 1:1 с SubsEdit.vue — см. WIRED_KEYS выше) ---
@@ -1896,9 +2003,10 @@ export default {
   border-top: 1px solid var(--km-border);
   padding: 0.6rem 1rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.4rem 1rem;
 }
 .ke-sticky-bottom {
   position: sticky;
@@ -1916,6 +2024,11 @@ export default {
 }
 .ke-save-error {
   color: #d64545;
+  /* BR-328/BR-330: сообщения об ошибках — отдельной строкой под кнопками, а не
+     ещё одним flex-элементом в один ряд с ними. */
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.82rem;
 }
 .ke-footer-btns {
   display: flex;

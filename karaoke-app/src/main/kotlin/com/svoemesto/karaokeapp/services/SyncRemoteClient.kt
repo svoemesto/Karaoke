@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.Karaoke
 import org.slf4j.LoggerFactory
 import java.net.ConnectException
 import java.net.URI
@@ -24,11 +25,21 @@ import javax.net.ssl.SSLException
  * транзиентные ошибки и внутренним `try/catch` (наружу НЕ бросает — возвращает
  * `false`). Логи — категория `infra.sync.remote`.
  *
+ * **Внутренний секрет** (спека 554, OpenProject #357): эндпоинт `POST /changerecords`
+ * на karaoke-web закрыт общим секретом в заголовке `X-Internal-Secret` (второй рубеж —
+ * сетевой фильтр nginx по адресу админской машины). Значение — `Karaoke.syncInternalSecret`,
+ * то же самое задаётся на стороне karaoke-web (`SYNC_INTERNAL_SECRET`). Пустое значение =
+ * секрет не настроен: запрос уйдёт без корректного ключа и будет отклонён (fail-safe).
+ *
  * @see specs/431-sync-resilience/spec.md
+ * @see specs/554-close-public-sql-endpoint/spec.md
  * @see knowledge/domains/processing/components/two-db-sync.md
  */
 object SyncRemoteClient {
     const val URL = "https://sm-karaoke.ru/changerecords"
+
+    /** Заголовок с общим секретом синхронизации (контракт — specs/554-close-public-sql-endpoint). */
+    const val SECRET_HEADER = "X-Internal-Secret"
 
     private val log = LoggerFactory.getLogger("infra.sync.remote")
 
@@ -51,22 +62,37 @@ object SyncRemoteClient {
      *
      * Транзиентные ошибки (`SSLException`, `ConnectException`, `HttpTimeoutException`,
      * `IOException` о таймауте/сбросе) — 1 повтор через [RETRY_DELAY_MS]. Прочие
-     * ошибки — без повтора.
+     * ошибки — без повтора. Ответ **403** (нет/неверный секрет) — отказ по правам,
+     * а не сетевая ошибка: повтор НЕ выполняется (спека 554, FR-008).
      */
-    fun postChangeRecords(body: String): Boolean = postChangeRecords(body) { httpClient.send(it, HttpResponse.BodyHandlers.ofString()) }
+    fun postChangeRecords(body: String): Boolean =
+        postChangeRecords(body, internalSecret = Karaoke.syncInternalSecret) {
+            httpClient.send(it, HttpResponse.BodyHandlers.ofString())
+        }
 
     /**
      * Test-seam: позволяет подменить реальный `send` (и задержку retry) в unit-тестах.
+     *
+     * [internalSecret] — общий секрет синхронизации; в рантайме его подставляет
+     * [postChangeRecords] из `Karaoke.syncInternalSecret`, в unit-тестах — явным значением
+     * (чтобы тесты не зависели от `Karaoke.properties` админской машины). Дефолт `""` означает
+     * «секрет не настроен»: запрос уйдёт без ключа и будет отклонён сервером (fail-safe).
      */
     internal fun postChangeRecords(
         body: String,
         retryDelayMs: Long = RETRY_DELAY_MS,
+        internalSecret: String = "",
         send: (HttpRequest) -> HttpResponse<String>,
     ): Boolean {
         var lastError: Exception? = null
         var attempt = 1
         while (attempt <= 2) {
             try {
+                if (internalSecret.isBlank()) {
+                    // Секрет не настроен: сервер отклонит запрос (fail-safe). Логируем, чтобы
+                    // «молчащая» неработающая синхронизация была видна в журнале.
+                    log.warn("sync:remote:secret_missing — внутренний секрет не настроен, запрос будет отклонён")
+                }
                 val request =
                     HttpRequest
                         .newBuilder()
@@ -74,11 +100,17 @@ object SyncRemoteClient {
                         .timeout(REQUEST_TIMEOUT)
                         .POST(HttpRequest.BodyPublishers.ofString(body))
                         .header("Content-Type", "application/json")
+                        .header(SECRET_HEADER, internalSecret)
                         .build()
                 val response = send(request)
                 val ok = response.statusCode() in 200..299
                 if (ok) {
                     log.info("sync:remote:ok status={} attempt={}", response.statusCode(), attempt)
+                } else if (response.statusCode() == 403) {
+                    // Отказ по правам (нет/неверный внутренний секрет) — сетевой ошибки нет,
+                    // повтор её не исправит (FR-008): тихо отказываем.
+                    log.warn("sync:remote:denied status=403 attempt={} — внутренний секрет не принят, повтор не выполняется", attempt)
+                    return false
                 } else {
                     log.warn("sync:remote:failure attempt={} status={}", attempt, response.statusCode())
                 }

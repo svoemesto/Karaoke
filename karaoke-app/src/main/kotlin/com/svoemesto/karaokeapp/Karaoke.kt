@@ -368,6 +368,19 @@ class Karaoke : Serializable {
                 KaraokeProperties.set("stemJobsInternalSecret", value)
             }
 
+        // Общий секрет для заголовка X-Internal-Secret между karaoke-app и karaoke-web
+        // (эндпоинт POST /changerecords — приём изменений для двуx-БД синхронизации).
+        // Отдельный от stemJobsInternalSecret секрет: свой жизненный цикл и свой потребитель,
+        // отзыв/ротация одного не ломает другой канал. Значение одинаковое на обеих сторонах,
+        // задаётся админом при деплое (karaoke-web: SYNC_INTERNAL_SECRET).
+        // Пусто = секрет не настроен: запросы уйдут без корректного ключа и будут отклонены
+        // сервером (fail-safe, см. specs/554-close-public-sql-endpoint).
+        var syncInternalSecret: String
+            get() = KaraokeProperties.getString("syncInternalSecret")
+            set(value) {
+                KaraokeProperties.set("syncInternalSecret", value)
+            }
+
         // Мониторинг sync-записей в удаленной БД
         var allowUpdateRemote: Boolean
             get() = KaraokeProperties.getBoolean("allowUpdateRemote")

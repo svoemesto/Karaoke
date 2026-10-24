@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -17,8 +18,13 @@ import javax.net.ssl.SSLSession
 /**
  * Pass 431 (#155): тесты устойчивости [SyncRemoteClient] — retry на транзиентные
  * ошибки, отсутствие исключений наружу, отсутствие retry на нетранзиентные.
+ *
+ * Спека 554 (#357): тесты внутреннего секрета синхронизации — заголовок `X-Internal-Secret`
+ * уходит в запрос, а отказ 403 (нет/неверный секрет) НЕ приводит к повторной попытке.
  */
 class SyncRemoteClientTest {
+    private val internalSecret = "test-internal-secret"
+
     private fun response(status: Int): HttpResponse<String> =
         object : HttpResponse<String> {
             override fun statusCode(): Int = status
@@ -114,5 +120,33 @@ class SyncRemoteClientTest {
         assertTrue(SyncRemoteClient.isTransient(java.net.http.HttpTimeoutException("x")))
         assertTrue(SyncRemoteClient.isTransient(java.io.IOException("Connection timed out")))
         assertFalse(SyncRemoteClient.isTransient(IllegalArgumentException("x")))
+    }
+
+    // Спека 554 (#357): внутренний секрет синхронизации.
+
+    @Test
+    fun `request carries internal secret header`() {
+        var captured: HttpRequest? = null
+        val ok =
+            SyncRemoteClient.postChangeRecords("{}", retryDelayMs = 0L, internalSecret = internalSecret) {
+                captured = it
+                response(200)
+            }
+        assertTrue(ok)
+        val header = captured!!.headers().firstValue(SyncRemoteClient.SECRET_HEADER)
+        assertTrue(header.isPresent, "заголовок ${SyncRemoteClient.SECRET_HEADER} должен уходить в запрос")
+        assertEquals(internalSecret, header.get())
+    }
+
+    @Test
+    fun `403 is not retried and returns false`() {
+        val attempts = AtomicInteger(0)
+        val ok =
+            SyncRemoteClient.postChangeRecords("{}", retryDelayMs = 0L, internalSecret = internalSecret) {
+                attempts.incrementAndGet()
+                response(403)
+            }
+        assertFalse(ok, "отказ по правам — это не успех")
+        assertEquals(1, attempts.get(), "403 — отказ по правам, повтор выполняться не должен")
     }
 }

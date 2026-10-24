@@ -145,7 +145,8 @@ karaoke-app сюда не попадает). Авторизацию делает
 - `deploy/docker-compose-web.yml` и
   `deploy/prod-single-host/docker-compose-web.yml` задают только
   `WORK_IN_CONTAINER=1`, `WORK_ON_SERVER`, `DB_*`, `STORAGE_*`,
-  `STEMJOBS_INTERNAL_SECRET` (на проде ещё `CAPTCHA_PROXY_URL`,
+  `STEMJOBS_INTERNAL_SECRET`, `SYNC_INTERNAL_SECRET` (на проде ещё
+  `CAPTCHA_PROXY_URL`,
   `YOOKASSA_*`, `VK_*`, `STORAGE_PROXY_URL`). Переменных
   `KARAOKE_WEB_*` / `KARAOKE_SHARE_*` в deploy нет — то есть на
   2026-09-27 действуют дефолты кода, а переопределение возможно
@@ -199,6 +200,8 @@ karaoke-app сюда не попадает). Авторизацию делает
   `YOOKASSA_SHOP_ID`/`YOOKASSA_SECRET_KEY`→пусто,
   `STEMJOBS_TEMP_DIR`→`/tmp/stemjobs`,
   `STEMJOBS_INTERNAL_SECRET`→пусто,
+  `SYNC_INTERNAL_SECRET`→пусто (секрет синхронизации `POST /changerecords`;
+  пусто = доступ закрыт, fail-safe — спека 554),
   `DB_REMOTE_HOST`→`188.127.240.124`, `DB_REMOTE_PORT`→`8832`,
   `STORAGE_PROXY_URL`→`http://minio-proxy`,
   `VK_APP_ID`→`54704234`, `VK_ID_CLIENT_ID`→`0`, а также
@@ -242,5 +245,6 @@ karaoke-app сюда не попадает). Авторизацию делает
 
 ## Changelog
 
+- **Спека 554** (2026-10-24, OpenProject #357): добавлен параметр `sync.internal-secret` (env `SYNC_INTERNAL_SECRET`) — внутренний секрет эндпоинта `POST /changerecords`; пусто = доступ закрыт (fail-safe). Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Автор: agent (Karaoke).

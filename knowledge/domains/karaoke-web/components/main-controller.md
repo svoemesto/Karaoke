@@ -41,7 +41,7 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
 | URL | Контракт |
 |---|---|
 | `POST /registerevent` | Тело-`Map` с обязательным `eventType` (+ `anonId`); `siteUserId` — query-параметр. Возвращает `Boolean`. |
-| `POST /changerecords` | Тело: `word` (зашифрованное кодовое слово) + `dataCreate`/`dataUpdate`/`dataDelete` (списки SQL-действий). Возвращает `String` (`"OK"` или текст ошибки). |
+| `POST /changerecords` | **Внутренний (server-to-server) эндпоинт**: требует заголовок `X-Internal-Secret` (общий секрет `sync.internal-secret` / env `SYNC_INTERNAL_SECRET`; на стороне `karaoke-app` — `Karaoke.syncInternalSecret`). Без корректного ключа — `403` и ни одной выполненной SQL-команды. Тело: `word` (зашифрованное кодовое слово) + `dataCreate`/`dataUpdate`/`dataDelete` (списки SQL-действий). Возвращает `ResponseEntity<String>`: `200` — текущий ответ сервиса (`"OK"`-строка прежнего формата), `403` — отказ по ключу, `5xx` — внутренняя ошибка **без** текста ошибки БД. |
 | `GET /api/internal/stemjobs/{id}/raw` | Реальный путь; прежний `/api/internal/stem-jobs/{id}/download-original` не существует (Pass 477). См. [internal-stem-job-controller.md](internal-stem-job-controller.md) |
 
 ## Логика и Алгоритмы | Logic and Algorithms
@@ -61,14 +61,27 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
 
 **`POST /changerecords`** (two-DB sync):
 
-1. `Crypto.decrypt(word)` должен совпасть с `Crypto.WORDS_TO_CHECK` —
+1. **Проверка внутреннего секрета** (первый рубеж; второй — сетевой фильтр nginx
+   по адресу админской машины, `deploy/prod-single-host/80to8897`,
+   `location /changerecords`): заголовок `X-Internal-Secret` должен совпасть с
+   `sync.internal-secret` (env `SYNC_INTERNAL_SECRET`). Сравнение выполняется
+   **только при непустом настроенном секрете** — иначе при пустом секрете и пустом
+   заголовке сравнение прошло бы и доступ открылся (ловушка образца
+   `InternalStemJobController.authorized()`, спека 554). При отказе — `403`,
+   ни одной SQL-команды не выполняется, запись в журнал категории
+   `infra.sync.security` (`sync:security:denied`: время, адрес источника, причина;
+   без тела запроса).
+2. `Crypto.decrypt(word)` должен совпасть с `Crypto.WORDS_TO_CHECK` —
    иначе возвращается «Не удалось расшифровать кодовое слово».
-2. Применяет три набора действий к `WORKING_DATABASE`; для строк
+3. Применяет три набора действий к `WORKING_DATABASE`; для строк
    `tbl_songs` запоминает флаг «доступна для новости» **до** изменения
    (`songAvailabilityBefore`, spec `101-song-news-flag`) и детектирует
    переход после применения всего батча.
-3. `Crypto.encrypt`/`decrypt` берут ключ из env, см.
+4. `Crypto.encrypt`/`decrypt` берут ключ из env, см.
    [system/utilities.md](../../../system/utilities.md).
+5. **Текст ошибки БД наружу не возвращается**: при внутренней ошибке клиент
+   получает `5xx` с коротким телом, подробности — в журнал (спека 554, FR-006).
+   Транзакционность применения — отдельная задача (аудит BR-012), здесь не менялась.
 
 **Реализация**: импорты — `KaraokeStorageService`, `StorageApiClient`,
 `SongReleaseAnnouncementService`, `SamplingFilter`, `SiteUserResolver`,
@@ -115,10 +128,16 @@ endpoints для internal). Разделение — по `produces` и типу
 - [ ] **Каждый endpoint** — детальный contract (Pass 343+).
 - [ ] **Thymeleaf-шаблоны** — где определены (Pass 343+).
 - [ ] **`/registerevent` schema** — какие поля, валидация.
-- [ ] **`/changerecords` security** — только internal IP, защита
-      nginx'ом.
+- [x] **`/changerecords` security** — закрыт (спека 554, OpenProject #357): заголовок
+      `X-Internal-Secret` в приложении + `allow`/`deny` по адресу админской машины
+      в nginx (`deploy/prod-single-host/80to8897`).
 
 ## Changelog
+
+- **Спека 554** (2026-10-24, OpenProject #357, аудит BR-011): контракт `POST /changerecords`
+  дополнен требованием заголовка `X-Internal-Secret` (fail-safe), отказом `403` без деталей,
+  нейтральным `5xx` вместо текста ошибки БД и сетевым рубежом nginx (allow/deny по адресу
+  админской машины). Автор: agent (Karaoke).
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции
   «Endpoints …» сведены в «Интерфейсы и Контракты» (два контракта: Thymeleaf

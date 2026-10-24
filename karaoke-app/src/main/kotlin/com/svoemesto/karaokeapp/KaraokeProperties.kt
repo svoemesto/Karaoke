@@ -426,6 +426,11 @@ val listKaraokeProperties =
             description = "Общий секрет заголовка X-Internal-Secret с karaoke-web (STEMJOBS_INTERNAL_SECRET) для «Создать минусовку»",
         ),
         KaraokeProperty(
+            key = "syncInternalSecret",
+            defaultValue = "",
+            description = "Общий секрет заголовка X-Internal-Secret с karaoke-web (SYNC_INTERNAL_SECRET) для эндпоинта двуx-БД синхронизации POST /changerecords. Пусто = секрет не настроен: запросы уйдут без корректного ключа и будут отклонены сервером (fail-safe)",
+        ),
+        KaraokeProperty(
             key = "autoSaveDelayMs",
             defaultValue = 1000L,
             description = "Время (в миллисекундах) задержки перед автосохранением",

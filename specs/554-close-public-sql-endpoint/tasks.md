@@ -29,11 +29,11 @@ description: "Задачи реализации фичи 554 — закрыти�
 
 **Purpose**: подготовить конфигурацию и проверку без изменения поведения.
 
-- [ ] T001 Добавить параметр `sync.internal-secret: ${SYNC_INTERNAL_SECRET:}` в `karaoke-web/src/main/resources/application.yml` (рядом с блоком `stemjobs:`), с комментарием про назначение и fail-safe
-- [ ] T002 [P] Зарегистрировать свойство `syncInternalSecret` (defaultValue = "", описание) в реестре `listKaraokeProperties` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt` (рядом с `stemJobsInternalSecret`)
-- [ ] T003 [P] Добавить доступ `Karaoke.syncInternalSecret` (get/set) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt` (рядом с `stemJobsInternalSecret`)
-- [ ] T004 [P] Прокинуть `SYNC_INTERNAL_SECRET` в `deploy/docker-compose-web.yml`, `deploy/prod-single-host/docker-compose-web.yml`, `deploy/web-server-deploy/deploy/docker-compose-web.yml` (по образцу `STEMJOBS_INTERNAL_SECRET`)
-- [ ] T005 Зарегистрировать новую категорию журнала `infra.sync.security` в `knowledge/domains/monitoring/components/log-categories.md` (таблица категорий)
+- [x] T001 Добавить параметр `sync.internal-secret: ${SYNC_INTERNAL_SECRET:}` в `karaoke-web/src/main/resources/application.yml` (рядом с блоком `stemjobs:`), с комментарием про назначение и fail-safe
+- [x] T002 [P] Зарегистрировать свойство `syncInternalSecret` (defaultValue = "", описание) в реестре `listKaraokeProperties` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt` (рядом с `stemJobsInternalSecret`)
+- [x] T003 [P] Добавить доступ `Karaoke.syncInternalSecret` (get/set) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt` (рядом с `stemJobsInternalSecret`)
+- [x] T004 [P] Прокинуть `SYNC_INTERNAL_SECRET` в `deploy/docker-compose-web.yml`, `deploy/prod-single-host/docker-compose-web.yml`, `deploy/web-server-deploy/deploy/docker-compose-web.yml` (по образцу `STEMJOBS_INTERNAL_SECRET`)
+- [x] T005 Зарегистрировать новую категорию журнала `infra.sync.security` в `knowledge/domains/monitoring/components/log-categories.md` (таблица категорий)
 
 **Checkpoint**: параметры объявлены с обеих сторон, секрет в репозитории отсутствует, поведение не изменилось.
 
@@ -43,10 +43,10 @@ description: "Задачи реализации фичи 554 — закрыти�
 
 **Purpose**: общий фундамент — контракт и проверка доступа, от которой зависят все сценарии.
 
-- [ ] T006 Создать контракт `specs/554-close-public-sql-endpoint/contracts/internal-secret-contract.md` — уже создан в Phase 0; сверить с `research.md` D3/D5 и привести в соответствие
-- [ ] T007 [P] Добавить в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt` проверку доступа: `@Value("\${sync.internal-secret:}")`, сравнение `secret.isNotEmpty() && request.getHeader("X-Internal-Secret") == secret` (fail-safe — см. research D2), метод `authorized(request)`
-- [ ] T008 [P] Добавить в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt` отказ при непрошедшей проверке: HTTP 403, короткий ответ без текста ошибки БД, запись `sync:security:denied` в категорию `infra.sync.security` (время, адрес источника, причина)
-- [ ] T009 [P] Убрать наружу текст ошибки БД из `catch` обработчика `POST /changerecords` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt` (сейчас `return e.message!!`) — вместо него структурированная запись в журнал и нейтральный ответ
+- [x] T006 Создать контракт `specs/554-close-public-sql-endpoint/contracts/internal-secret-contract.md` — уже создан в Phase 0; сверить с `research.md` D3/D5 и привести в соответствие
+- [x] T007 [P] Добавить в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt` проверку доступа: `@Value("\${sync.internal-secret:}")`, сравнение `secret.isNotEmpty() && request.getHeader("X-Internal-Secret") == secret` (fail-safe — см. research D2), метод `authorized(request)`
+- [x] T008 [P] Добавить в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt` отказ при непрошедшей проверке: HTTP 403, короткий ответ без текста ошибки БД, запись `sync:security:denied` в категорию `infra.sync.security` (время, адрес источника, причина)
+- [x] T009 [P] Убрать наружу текст ошибки БД из `catch` обработчика `POST /changerecords` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt` (сейчас `return e.message!!`) — вместо него структурированная запись в журнал и нейтральный ответ
 
 **Checkpoint**: запрос без корректного секрета отклоняется до обращения к БД; текст ошибки БД наружу не уходит.
 
@@ -58,12 +58,12 @@ description: "Задачи реализации фичи 554 — закрыти�
 
 **Independent test**: запрос без ключа с внешнего адреса → отказ, тело ответа без текста ошибки БД, в журнале запись об отказе (quickstart, проверка 1).
 
-- [ ] T010 [US1] Написать тест «запрос без заголовка `X-Internal-Secret` → 403 и ни одной SQL-команды не выполнено» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
-- [ ] T011 [US1] Написать тест «запрос с корректным заголовком → действия применяются, ответ прежний» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
-- [ ] T012 [US1] Написать тест «секрет не настроен (пусто) и заголовок присутствует, но пустой → 403» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt` (ловушка образца, research D2)
-- [ ] T013 [US1] Написать тест «в ответе при отказе нет текста ошибки БД» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
-- [ ] T014 [US1] Добавить сетевой фильтр в `deploy/prod-single-host/80to8897` в `location /changerecords`: `allow 185.26.28.109; allow 83.137.50.231; allow 185.26.28.199; deny all;` с комментарием про плавающий адрес (образец — `deploy/prod-single-host/nginx.conf:22–32, 41–50`)
-- [ ] T015 [US1] Проверить синтаксис изменённого nginx-конфига (`nginx -t` в контейнере) и зафиксировать результат в `specs/554-close-public-sql-endpoint/report.md`
+- [x] T010 [US1] Написать тест «запрос без заголовка `X-Internal-Secret` → 403 и ни одной SQL-команды не выполнено» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
+- [x] T011 [US1] Написать тест «запрос с корректным заголовком → действия применяются, ответ прежний» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
+- [x] T012 [US1] Написать тест «секрет не настроен (пусто) и заголовок присутствует, но пустой → 403» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt` (ловушка образца, research D2)
+- [x] T013 [US1] Написать тест «в ответе при отказе нет текста ошибки БД» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
+- [x] T014 [US1] Добавить сетевой фильтр в `deploy/prod-single-host/80to8897` в `location /changerecords`: `allow 185.26.28.109; allow 83.137.50.231; allow 185.26.28.199; deny all;` с комментарием про плавающий адрес (образец — `deploy/prod-single-host/nginx.conf:22–32, 41–50`)
+- [x] T015 [US1] Проверить синтаксис изменённого nginx-конфига (`nginx -t` в контейнере) и зафиксировать результат в `specs/554-close-public-sql-endpoint/report.md`
 
 **Checkpoint**: внешний запрос не исполняет SQL; попытка видна в журнале; конфиг nginx валиден.
 
@@ -75,10 +75,10 @@ description: "Задачи реализации фичи 554 — закрыти�
 
 **Independent test**: в тестах клиента — заголовок уходит в запрос; ответ 403 не приводит к повтору; существующие тесты ретрая зелёные (quickstart, проверка 2).
 
-- [ ] T016 [US2] Добавить заголовок `X-Internal-Secret` со значением `Karaoke.syncInternalSecret` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClient.kt` (в построении `HttpRequest`)
-- [ ] T017 [US2] Написать тест «в запрос уходит заголовок `X-Internal-Secret`» в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt` (через существующий test-seam `postChangeRecords(body, retryDelayMs, send)`)
-- [ ] T018 [US2] Написать тест «ответ 403 → повторной попытки нет, возвращается false» в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt`
-- [ ] T019 [US2] Проверить, что существующие тесты повторов на сетевых ошибках не изменились (зелёные) — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt`
+- [x] T016 [US2] Добавить заголовок `X-Internal-Secret` со значением `Karaoke.syncInternalSecret` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClient.kt` (в построении `HttpRequest`)
+- [x] T017 [US2] Написать тест «в запрос уходит заголовок `X-Internal-Secret`» в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt` (через существующий test-seam `postChangeRecords(body, retryDelayMs, send)`)
+- [x] T018 [US2] Написать тест «ответ 403 → повторной попытки нет, возвращается false» в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt`
+- [x] T019 [US2] Проверить, что существующие тесты повторов на сетевых ошибках не изменились (зелёные) — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt`
 
 **Checkpoint**: легитимный обмен работает; отказ по правам не повторяется; сетевые ошибки ведут себя как раньше.
 
@@ -90,8 +90,8 @@ description: "Задачи реализации фичи 554 — закрыти�
 
 **Independent test**: один отклонённый запрос → запись в журнале категории `infra.sync.security`; в теле ответа нет текста ошибки БД.
 
-- [ ] T020 [US3] Проверить и дополнить запись об отказе в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt`: время, адрес источника, причина (`missing_secret` / `invalid_secret` / `secret_not_configured`), без тела запроса
-- [ ] T021 [US3] Добавить/обновить тест «в журнале есть запись об отказе и в ней нет тела запроса» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
+- [x] T020 [US3] Проверить и дополнить запись об отказе в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt`: время, адрес источника, причина (`missing_secret` / `invalid_secret` / `secret_not_configured`), без тела запроса
+- [x] T021 [US3] Добавить/обновить тест «в журнале есть запись об отказе и в ней нет тела запроса» в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/controllers/MainControllerChangeRecordsTest.kt`
 
 **Checkpoint**: отказ наблюдаем, деталей не выдаёт.
 
@@ -99,13 +99,13 @@ description: "Задачи реализации фичи 554 — закрыти�
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T022 Обновить per-feature документ `docs/features/internal-secret-sync.md` (FR-009 конституции): назначение, стороны, контракт, fail-safe, порядок выдачи и ротации секрета
-- [ ] T023 Обновить `knowledge/domains/karaoke-web/components/main-controller.md`: контракт `POST /changerecords` теперь требует внутренний секрет; отметить сетевой рубеж nginx
-- [ ] T024 Обновить `knowledge/domains/processing/components/two-db-sync.md`: клиент отправляет `X-Internal-Secret`
-- [ ] T025 Прогнать полный набор проверок проекта: `:karaoke-web:compileKotlin`, `:karaoke-app:compileKotlin`, `:karaoke-web:ktlintCheck`, линтеры фронтов — 7/7 PASS (quickstart, проверка 4)
-- [ ] T026 Проверить, что значение секрета не попало в diff (`git diff master...HEAD | grep -inE 'secret\s*=\s*["'][0-9a-f]{16,}'` → пусто) (quickstart, проверка 5)
+- [x] T022 Обновить per-feature документ `docs/features/internal-secret-sync.md` (FR-009 конституции): назначение, стороны, контракт, fail-safe, порядок выдачи и ротации секрета
+- [x] T023 Обновить `knowledge/domains/karaoke-web/components/main-controller.md`: контракт `POST /changerecords` теперь требует внутренний секрет; отметить сетевой рубеж nginx
+- [x] T024 Обновить `knowledge/domains/processing/components/two-db-sync.md`: клиент отправляет `X-Internal-Secret`
+- [x] T025 Прогнать полный набор проверок проекта: `:karaoke-web:compileKotlin`, `:karaoke-app:compileKotlin`, `:karaoke-web:ktlintCheck`, линтеры фронтов — 7/7 PASS (quickstart, проверка 4)
+- [x] T026 Проверить, что значение секрета не попало в diff (`git diff master...HEAD | grep -inE 'secret\s*=\s*["'][0-9a-f]{16,}'` → пусто) (quickstart, проверка 5)
 - [ ] T027 Написать `specs/554-close-public-sql-endpoint/report.md` для трекера: что было, что изменено, как проверялось, что осталось за владельцем (выдача секрета на боевом хосте, деплой)
-- [ ] T028 Обновить карточку аудита `specs/336-code-audit/findings/P-35.md` (запись P-35-01 / BR-011): статус → «исправлено», ссылка на PR; проставить номер задачи в `specs/336-code-audit/registry.csv` (колонка `work_package`)
+- [x] T028 Обновить карточку аудита `specs/336-code-audit/findings/P-35.md` (запись P-35-01 / BR-011): статус → «исправлено», ссылка на PR; проставить номер задачи в `specs/336-code-audit/registry.csv` (колонка `work_package`)
 
 ---
 

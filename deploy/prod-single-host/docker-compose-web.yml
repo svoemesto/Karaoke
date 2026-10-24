@@ -24,6 +24,10 @@ services:
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
       - DB_REMOTE_HOST=${DB_REMOTE_HOST}
       - DB_REMOTE_PORT=${DB_REMOTE_PORT}
+      # BR-545/BR-557: режим TLS удалённой БД (prefer|require|verify-full).
+      # По умолчанию prefer — как было. Целевое состояние — require/verify-full
+      # после включения TLS на сервере БД (DB_SSL_ON на прод-хосте).
+      - DB_REMOTE_SSL_MODE=${DB_REMOTE_SSL_MODE:-prefer}
       # Обход MTU black-hole для внешних HTTPS-вызовов (см. 80to8897 location /smartcaptcha/) —
       # тот же приём, что STORAGE_PROXY_URL для MinIO.
       - CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptcha

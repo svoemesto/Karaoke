@@ -20,6 +20,20 @@ lateinit var DB_SERVER_POSTGRES_PASSWORD: String
 lateinit var DB_REMOTE_HOST: String
 lateinit var DB_REMOTE_PORT: String
 
+/**
+ * Режим TLS для подключения к удалённой (SERVER) БД — env `DB_REMOTE_SSL_MODE`.
+ *
+ * BR-545 / BR-557 (аудит #336, OpenProject #371): L4-`stream`-прокси прод-хоста
+ * (порт 5433) по умолчанию несёт трафик БЕЗ TLS, а драйвер PostgreSQL при
+ * `sslmode=prefer` молча деградирует в открытый текст. Значение по умолчанию
+ * здесь — `prefer` (поведение как было); целевые состояния:
+ *   * `require`      — TLS есть, сертификат не проверяется;
+ *   * `verify-full`  — TLS + проверка сертификата и имени хоста.
+ * Включать только после того, как на сервере БД включён TLS
+ * (`deploy/prod-single-host/docker-compose-database.yml`, DB_SSL_ON).
+ */
+lateinit var DB_REMOTE_SSL_MODE: String
+
 // @Component
 
 /**
@@ -40,6 +54,7 @@ class KaraokeAppService(
     @Value($$"${db-remote-postgres-password}") val dbRemotePostgresPassword: String,
     @Value($$"${db-remote-host}") val dbRemoteHost: String,
     @Value($$"${db-remote-port}") val dbRemotePort: String,
+    @Value($$"${db-remote-ssl-mode:prefer}") val dbRemoteSslMode: String,
 ) {
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
@@ -50,6 +65,7 @@ class KaraokeAppService(
         DB_SERVER_POSTGRES_PASSWORD = dbRemotePostgresPassword
         DB_REMOTE_HOST = dbRemoteHost
         DB_REMOTE_PORT = dbRemotePort
+        DB_REMOTE_SSL_MODE = dbRemoteSslMode
         SNS = sseNotificationService
         KSS_APP = karaokeStorageService
         SAC_APP = storageApiClient

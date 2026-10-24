@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
 import com.svoemesto.karaokeapp.services.DB_REMOTE_HOST
 import com.svoemesto.karaokeapp.services.DB_REMOTE_PORT
+import com.svoemesto.karaokeapp.services.DB_REMOTE_SSL_MODE
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
 
@@ -158,10 +159,35 @@ class Connection(
                 "jdbc:postgresql://localhost:8832/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
             }
 
-        private fun connectionRemoteUrl(): String =
-            "jdbc:postgresql://$DB_REMOTE_HOST:$DB_REMOTE_PORT/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
+        private fun connectionRemoteUrl(): String = buildRemoteJdbcUrl(DB_REMOTE_HOST, DB_REMOTE_PORT, DB_REMOTE_SSL_MODE)
 
         private fun connectionVirtualUrl(): String =
             "jdbc:postgresql://localhost:2230/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
     }
+}
+
+/**
+ * JDBC-URL удалённой (SERVER) БД.
+ *
+ * BR-545 / BR-557 (аудит #336, OpenProject #371): канал до удалённой БД идёт
+ * через L4-`stream`-прокси прод-хоста (`deploy/prod-single-host/nginx.conf`,
+ * порт 5433) — по умолчанию БЕЗ TLS. Драйвер PostgreSQL в таком случае
+ * молча деградирует в открытый текст (`sslmode=prefer` по умолчанию), то
+ * есть пароль БД и прод-данные идут через интернет незашифрованными.
+ *
+ * Здесь sslmode задаётся ЯВНО, значение — из env `DB_REMOTE_SSL_MODE`
+ * (default `prefer` — поведение как было; `require`/`verify-full` — целевое
+ * состояние после включения TLS на сервере, см.
+ * `deploy/prod-single-host/docker-compose-database.yml`, DB_SSL_ON).
+ *
+ * Пустое значение → параметр не добавляется вовсе (поведение драйвера).
+ */
+internal fun buildRemoteJdbcUrl(
+    host: String,
+    port: String,
+    sslMode: String,
+): String {
+    val base = "jdbc:postgresql://$host:$port/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
+    val mode = sslMode.trim()
+    return if (mode.isEmpty()) base else "$base&sslmode=$mode"
 }

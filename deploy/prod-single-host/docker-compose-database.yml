@@ -9,6 +9,24 @@ services:
       PGDATA: "/var/lib/postgresql/data/16"
       WORK_IN_CONTAINER: 1
     container_name: karaoke-db
+    # BR-545 (аудит #336 / P-73-07, OpenProject #371): управляемое включение
+    # TLS на сервере Postgres.
+    #   * По умолчанию ssl=off — это РОВНО то же значение, что и default в
+    #     PostgreSQL, т.е. поведение прод-хоста не меняется (DB_SSL_ON не
+    #     задан → подставляется off).
+    #   * Включение: DB_SSL_ON=on в deploy/prod-single-host/.env + сертификаты
+    #     в deploy/prod-single-host/certs/postgres/{server.crt,server.key}.
+    #   * На клиенте (admin-машина) — DB_REMOTE_SSL_MODE=require|verify-full
+    #     в .env; см. karaoke-app/.../Connection.kt.
+    # Сертификаты и решение «TLS vs SSH-туннель» — за владельцем.
+    command:
+      - postgres
+      - -c
+      - ssl=${DB_SSL_ON:-off}
+      - -c
+      - ssl_cert_file=${DB_SSL_CERT_FILE:-/certs/postgres/server.crt}
+      - -c
+      - ssl_key_file=${DB_SSL_KEY_FILE:-/certs/postgres/server.key}
     ports:
       - "127.0.0.1:${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера
     networks:

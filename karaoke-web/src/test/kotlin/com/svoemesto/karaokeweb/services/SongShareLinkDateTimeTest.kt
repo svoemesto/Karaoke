@@ -2,7 +2,10 @@ package com.svoemesto.karaokeweb.services
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.TimeZone
 
 /**
  * Золотые числа для тестов — `quickstart.md` §3.
@@ -13,6 +16,11 @@ import java.time.LocalDateTime
  * алгоритмически переводит ms в календарное МСК-время.
  */
 class SongShareLinkDateTimeTest {
+    companion object {
+        /** TZ, под которой функция обязана считать МСК-временем, а не местным временем JVM. */
+        private const val NON_MOSCOW_ZONE = "America/New_York"
+    }
+
     @Test
     fun `toMskLocalDateTime returns 2026-08-11 09-57-36 for epoch 1786431456000`() {
         val ldt = toMskLocalDateTime(1786431456000L)
@@ -47,11 +55,33 @@ class SongShareLinkDateTimeTest {
     @Test
     fun `toMskLocalDateTime is invariant under JVM default timeZone`() {
         // Логика использует явный ZoneId.of("Europe/Moscow"), не ZoneId.systemDefault()
-        // — поэтому работает корректно даже если JVM TZ = America/New_York (FR-014).
-        // Этот тест не меняет системную TZ (она контролируется окружением через
-        // ENV TZ=Asia/Vladivostok ./gradlew :karaoke-web:test), но проверяет,
-        // что функция НЕ читает её из ZoneId.systemDefault().
-        val ldt = toMskLocalDateTime(1786431456000L)
-        assertEquals(9, ldt.hour, "hour must be the Moscow hour, not the JVM TZ hour")
+        // — поэтому должна работать корректно даже если JVM TZ = America/New_York (FR-014).
+        //
+        // BR-513: прежняя версия этого теста НЕ меняла системную TZ — она декларировала
+        // инвариант, но не проверяла его: при фиксированной TZ процесса (Europe/Moscow в CI)
+        // assert проходил бы и после регресса `ZoneId.systemDefault()` внутри функции.
+        // Теперь TZ процесса принудительно меняется (и восстанавливается в finally), поэтому
+        // подмена явной зоны на системную ломает тест.
+        val original = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone(NON_MOSCOW_ZONE))
+            // Самопроверка: тест обязан действительно менять TZ JVM, иначе он ничего не проверяет.
+            assertEquals(NON_MOSCOW_ZONE, ZoneId.systemDefault().id, "the JVM default TZ must actually be changed by this test")
+
+            val ldt = toMskLocalDateTime(1786431456000L)
+            assertEquals(
+                LocalDateTime.of(2026, 8, 11, 9, 57, 36),
+                ldt,
+                "epoch ms must be converted to the Moscow wall clock regardless of the JVM default TZ",
+            )
+
+            // Контроль: в America/New_York тот же момент — 02:57:36, т.е. `ZoneId.systemDefault()`
+            // дал бы другой час. Если это перестанет выполняться, тест теряет смысл.
+            val systemDefaultHour =
+                LocalDateTime.ofInstant(Instant.ofEpochMilli(1786431456000L), ZoneId.systemDefault()).hour
+            assertEquals(2, systemDefaultHour, "control check: the same epoch ms is 02:57 in $NON_MOSCOW_ZONE")
+        } finally {
+            TimeZone.setDefault(original)
+        }
     }
 }

@@ -222,19 +222,38 @@ class Album(
             whereText: String = "",
         ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
-        private fun getWhereList(whereArgs: Map<String, String>): List<String> {
-            val where: MutableList<String> = mutableListOf()
-            if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
-            if (whereArgs.containsKey("author_id")) where += "author_id=${whereArgs["author_id"]}"
-            if (whereArgs.containsKey("year")) where += "year=${whereArgs["year"]}"
-            if (whereArgs.containsKey("name")) where += "name = '${whereArgs["name"]?.replace("'", "''")}'"
+        /**
+         * `WHERE`-условие с параметрами (BR-237): `id`/`author_id`/`year` приводятся
+         * к `Long`, строковые значения (`name`, `name_search`) и `album_type`
+         * биндятся через `?`. `album_type` дополнительно проходит белый список
+         * [AlbumType] — неизвестное значение даёт `1=0` (пустая выборка), как и
+         * раньше, когда оно не совпадало ни с одной строкой.
+         */
+        private fun getWhereList(whereArgs: Map<String, String>): SqlWhere {
+            val where = SqlWhereBuilder()
+            if (whereArgs.containsKey("id")) {
+                val id = whereArgs["id"]?.trim()?.toLongOrNull()
+                if (id == null) where.none() else where.add("id = ?", id)
+            }
+            if (whereArgs.containsKey("author_id")) {
+                val authorId = whereArgs["author_id"]?.trim()?.toLongOrNull()
+                if (authorId == null) where.none() else where.add("author_id = ?", authorId)
+            }
+            if (whereArgs.containsKey("year")) {
+                val year = whereArgs["year"]?.trim()?.toLongOrNull()
+                if (year == null) where.none() else where.add("year = ?", year)
+            }
+            if (whereArgs.containsKey("name")) where.add("name = ?", whereArgs["name"])
             // Частичный поиск по названию для UI-фильтра (в отличие от точного "name" выше,
             // используемого getAlbumByAuthorYearName/findOrCreateForSongImport — их менять нельзя).
             if (whereArgs.containsKey("name_search")) {
-                where += "LOWER(name) LIKE '%${whereArgs["name_search"]?.lowercase()?.replace("'", "''")}%'"
+                where.add("LOWER(name) LIKE ?", "%${whereArgs["name_search"]?.lowercase()}%")
             }
-            if (whereArgs.containsKey("album_type")) where += "album_type = '${whereArgs["album_type"]}'"
-            return where
+            if (whereArgs.containsKey("album_type")) {
+                val albumType = AlbumType.entries.find { it.dbValue == whereArgs["album_type"] }
+                if (albumType == null) where.none() else where.add("album_type = ?", albumType.dbValue)
+            }
+            return where.build()
         }
 
         fun loadList(
@@ -250,7 +269,7 @@ class Album(
                 .loadList(
                     clazz = Album::class,
                     tableName = TABLE_NAME,
-                    whereList = getWhereList(whereArgs),
+                    where = getWhereList(whereArgs),
                     limit = limit,
                     offset = offset,
                     database = database,

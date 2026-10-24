@@ -118,6 +118,36 @@ fallback'ы. Текущее поведение `save()` этому против�
 Аргументы — Map<String, String> для фильтрации (`song_id=123`,
 `is_active=true`). Генерирует `WHERE` clause динамически.
 
+### Параметризованный `WHERE` (`SqlWhere`)
+
+Значения фильтров **никогда** не склеиваются в SQL: они уходят в
+`PreparedStatement` через `?`, а текст запроса содержит только имена
+колонок-константы. Это правило закрывает SQL-инъекции админских фильтров
+(BR-028, BR-100, BR-175, BR-182, BR-237; аудит #336, OpenProject #383).
+
+| Элемент | Роль |
+|---|---|
+| `model/SqlWhere.kt` → `SqlWhere` | фрагменты SQL с `?` + список значений в том же порядке; `bind(ps)` привязывает их |
+| `model/SqlWhere.kt` → `SqlWhereBuilder` | парное добавление «фрагмент + значения» (`add`), константа (`raw`), отказ (`none` → `1=0`) |
+| `KaraokeDbTable.loadList(where = SqlWhere, ...)` | при непустом `params` исполняет через `PreparedStatement`; старый overload `whereList: List<String>` остался для непереведённых вызывающих |
+
+Инварианты:
+
+- **MUST**: значения из `@RequestParam` не попадают в текст SQL ни при каких
+  условиях — только в `SqlWhere.params` (имена таблиц/колонок — константы кода).
+- **MUST**: динамический набор колонок — только белый список (`AlbumType.entries`
+  для `album_type`, список `flag_*`/`filter_*` в `Song.getWhereList`).
+- **MUST**: числовые фильтры разбираются через `toLongOrNull()`; невалидное
+  значение даёт фрагмент `1=0` (пустая выборка), а не «пропустить условие» —
+  иначе фильтр расширил бы выборку.
+- **SHOULD**: новый фильтр добавляется в `getWhereList` парой
+  `where.add("<колонка> = ?", value)`, а не строковой интерполяцией.
+
+Исполнение: `Song.loadListFromDb`/`Song.countMatchingAttr`, `KaraokeProcess.loadList`
+и `KaraokeDbTable.loadList` выбирают `PreparedStatement`, если `params` непуст.
+Регрессия — `karaoke-app/src/test/.../model/SqlInjection*Test.kt`; per-feature
+документ — [sql-injection-hardening](../../../docs/features/sql-injection-hardening.md).
+
 ### Соединение на поток (ThreadLocal) и его жизненный цикл
 
 `KaraokeConnection` кэширует **физическое** `java.sql.Connection` в `ThreadLocal`

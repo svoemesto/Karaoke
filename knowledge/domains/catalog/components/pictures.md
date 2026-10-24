@@ -103,7 +103,7 @@ class Pictures(
 ### Методы (`companion object`)
 
 - `TABLE_NAME = "tbl_pictures"`.
-- `loadList(whereArgs, limit, offset, database, storageService, storageApiClient, ignoreUseInList): List<Pictures>` — фильтры `getWhereList`: `id`, `picture_name` (частичный `LOWER(...) LIKE`), `name` (точный).
+- `loadList(whereArgs, limit, offset, database, storageService, storageApiClient, ignoreUseInList): List<Pictures>` — фильтры `getWhereList`: `id`, `picture_name` (частичный `LOWER(...) LIKE`), `name` (точный). Значения параметризованы (`SqlWhere`, BR-175).
 - `getPictureById(id, ...)` — `KaraokeDbTable.loadById`.
 - `getPicturesByIds(ids, ...)` — пакетный `loadByIds` → `Map<Long, Pictures>`.
 - `getPictureByName(name, ..., ignoreUseInList = true): Pictures?`.

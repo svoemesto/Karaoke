@@ -210,12 +210,22 @@ class Pictures(
             whereText: String = "",
         ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
-        private fun getWhereList(whereArgs: Map<String, String>): List<String> {
-            val where: MutableList<String> = mutableListOf()
-            if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
-            if (whereArgs.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${whereArgs["picture_name"]?.lowercase()}%'"
-            if (whereArgs.containsKey("name")) where += "picture_name = '${whereArgs["name"]}'"
-            return where
+        /**
+         * `WHERE`-условие с параметрами (BR-175): значения `id`/`picture_name`/`name`
+         * приходят из HTTP-фильтров админки и биндятся через `?`, а не склеиваются
+         * в SQL. `id` приводится к `Long`; невалидное значение — `1=0` (пустая выборка).
+         */
+        private fun getWhereList(whereArgs: Map<String, String>): SqlWhere {
+            val where = SqlWhereBuilder()
+            if (whereArgs.containsKey("id")) {
+                val id = whereArgs["id"]?.trim()?.toLongOrNull()
+                if (id == null) where.none() else where.add("id = ?", id)
+            }
+            if (whereArgs.containsKey("picture_name")) {
+                where.add("LOWER(picture_name) LIKE ?", "%${whereArgs["picture_name"]?.lowercase()}%")
+            }
+            if (whereArgs.containsKey("name")) where.add("picture_name = ?", whereArgs["name"])
+            return where.build()
         }
 
         fun loadList(
@@ -231,7 +241,7 @@ class Pictures(
                 .loadList(
                     clazz = Pictures::class,
                     tableName = TABLE_NAME,
-                    whereList = getWhereList(whereArgs),
+                    where = getWhereList(whereArgs),
                     limit = limit,
                     offset = offset,
                     database = database,

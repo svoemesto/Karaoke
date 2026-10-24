@@ -19,6 +19,7 @@ import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -7814,195 +7815,169 @@ class Song(
             }
         }
 
+        /**
+         * Собрать `WHERE`-условие для [loadListFromDb] / [countMatchingAttr] из
+         * фильтров `args` (BR-100).
+         *
+         * Все значения HTTP-фильтров уходят в `PreparedStatement` как `?`
+         * (сами значения — в [SqlWhere.params]); в SQL остаются только имена
+         * колонок-констант. Числовые фильтры (`ids`, `album_id`, `song_bpm`,
+         * `song_tone`, `song_year`, `song_track`, `filter_*`) приводятся к `Long`,
+         * операторы сравнения — белый список `>=|>|<=|<|!=`, флаги — только
+         * `+`/`-`. Невалидное значение даёт `1=0` (пустая выборка), а не
+         * расширение фильтра.
+         *
+         * @param tableName имя таблицы (`tbl_songs`).
+         * @param args карта фильтров из контроллера.
+         * @param sync `true` — таблица `tbl_songs_sync`.
+         * @see SqlWhere
+         */
         fun getWhereList(
             tableName: String,
             args: Map<String, String>,
             sync: Boolean,
-        ): List<String> {
-            val where: MutableList<String> = mutableListOf()
+        ): SqlWhere {
+            val where = SqlWhereBuilder()
+            val table = "$tableName${if (sync) "_sync" else ""}"
 
-            if (args.containsKey("ids")) where += "$tableName${if (sync) "_sync" else ""}.id in (${args["ids"]})"
-            if (args.containsKey("is_sync")) {
-                val syncIds = SyncIdsDictionary().loadList()
-                where +=
-                    if (syncIds.isNotEmpty()) {
-                        "$tableName${if (sync) "_sync" else ""}.id in (${syncIds.joinToString(",")})"
-                    } else {
-                        "$tableName${if (sync) "_sync" else ""}.id < 0"
-                    }
+            fun addIn(
+                column: String,
+                values: List<String>,
+            ) {
+                val numbers = values.map { it.trim().toLongOrNull() }
+                if (numbers.isEmpty() || numbers.any { it == null }) {
+                    where.none()
+                } else {
+                    where.add("$column IN (${numbers.joinToString(", ") { "?" }})", *numbers.toTypedArray())
+                }
             }
 
-            if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
-            if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
-            if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
-            if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
-            if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
+            fun addNumeric(
+                column: String,
+                value: String?,
+            ) {
+                val number = value?.trim()?.toLongOrNull()
+                if (number == null) where.none() else where.add("$column = ?", number)
+            }
+
+            if (args.containsKey("ids")) addIn("$table.id", args["ids"]!!.split(","))
+            if (args.containsKey("is_sync")) {
+                val syncIds = SyncIdsDictionary().loadList()
+                if (syncIds.isNotEmpty()) addIn("$table.id", syncIds) else where.raw("$table.id < 0")
+            }
+
+            if (args.containsKey("file_name")) where.add("LOWER(file_name) = ?", args["file_name"]?.rightFileName()?.lowercase())
+            if (args.containsKey("root_folder")) where.add("LOWER(root_folder) = ?", args["root_folder"]?.rightFileName()?.lowercase())
+            if (args.containsKey("song_name")) where.add("LOWER(song_name) LIKE ?", "%${args["song_name"]?.rightFileName()?.lowercase()}%")
+            if (args.containsKey("song_author")) where.add("LOWER(song_author) LIKE ?", "%${args["song_author"]?.rightFileName()?.lowercase()}%")
+            if (args.containsKey("author")) where.add("LOWER(song_author) = ?", args["author"]?.rightFileName()?.lowercase())
             if (args.containsKey("author_in")) {
                 // Поиск песен по набору реальных имён авторов — используется, когда пользователь ищет
                 // по алиасу (солист/участник группы); набор имён приходит уже резолвленным через
                 // Author.resolveByTerm (см. PublicApiController в karaoke-web).
                 val names = args["author_in"]!!.split(AUTHOR_IN_DELIMITER).filter { it.isNotBlank() }
-                where +=
-                    if (names.isNotEmpty()) {
-                        "LOWER(song_author) IN (${names.joinToString(",") { "'${it.rightFileName().lowercase()}'" }})"
-                    } else {
-                        "1=0"
-                    }
+                if (names.isNotEmpty()) {
+                    where.add(
+                        "LOWER(song_author) IN (${names.joinToString(", ") { "?" }})",
+                        *names.map { it.rightFileName().lowercase() }.toTypedArray(),
+                    )
+                } else {
+                    where.raw("1=0")
+                }
             }
-            if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
-            if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
+            if (args.containsKey("song_album")) where.add("LOWER(song_album) LIKE ?", "%${args["song_album"]?.rightFileName()?.lowercase()}%")
+            if (args.containsKey("album")) where.add("LOWER(song_album) = ?", args["album"]?.rightFileName()?.lowercase())
             // Pass 359 (spec 356): фильтр по FK album_id (tbl_songs.album_id). Используется
             // при переходе на /zakroma/{id}?albumId=N чтобы не гонять ВСЕ песни автора,
             // а только песни нужного альбома. Для legacy `song_album`-виртуальных альбомов
             // (album_id=NULL) этот фильтр не сработает — там останется fallback на song_album.
-            // БЕЗ префикса 'AND' — where это List<String>, элементы joinятся через
-            // " AND " в getWhereList, так что каждый элемент должен быть сам по себе.
-            if (args.containsKey("album_id")) {
-                val aid = args["album_id"]!!
-                where += "album_id = $aid"
-            }
+            if (args.containsKey("album_id")) addNumeric("album_id", args["album_id"])
 
             if (args.containsKey("publish_date")) {
-                var pd = args["publish_date"]!!
-                if (pd[0] == '>') {
-                    pd = pd.substring(1)
-                    where += "to_date(publish_date, 'DD.MM.YY') >= to_date('$pd', 'DD.MM.YY')"
-                } else if (pd.last() == '<') {
-                    pd = pd.dropLast(1)
-                    where += "to_date(publish_date, 'DD.MM.YY') <= to_date('$pd', 'DD.MM.YY')"
-                } else {
-                    where +=
-                        when (pd) {
-                            "-" -> "publish_date = ''"
-                            "+" -> "publish_date <> ''"
-                            else -> "publish_date LIKE '%$pd%'"
-                        }
+                val pd = args["publish_date"]!!
+                when {
+                    pd.isEmpty() -> where.none()
+                    pd[0] == '>' -> where.add("to_date(publish_date, 'DD.MM.YY') >= to_date(?, 'DD.MM.YY')", pd.substring(1))
+                    pd.last() == '<' -> where.add("to_date(publish_date, 'DD.MM.YY') <= to_date(?, 'DD.MM.YY')", pd.dropLast(1))
+                    pd == "-" -> where.raw("publish_date = ''")
+                    pd == "+" -> where.raw("publish_date <> ''")
+                    else -> where.add("publish_date LIKE ?", "%$pd%")
                 }
             }
             if (args.containsKey("publish_time")) {
-                where +=
-                    if (args["publish_time"] == "-") {
-                        "publish_time = ''"
-                    } else if (args["publish_time"] == "+") {
-                        "publish_date <> ''"
+                when (val pt = args["publish_time"]!!) {
+                    "-" -> where.raw("publish_time = ''")
+                    "+" -> where.raw("publish_date <> ''")
+                    else -> where.add("publish_time LIKE ?", "%$pt%")
+                }
+            }
+            if (args.containsKey("status")) where.add("status LIKE ?", "%${args["status"]}%")
+            if (args.containsKey("song_bpm")) addNumeric("song_bpm", args["song_bpm"])
+            if (args.containsKey("song_tone")) addNumeric("song_tone", args["song_tone"])
+            if (args.containsKey("song_year")) addNumeric("song_year", args["song_year"])
+            if (args.containsKey("song_track")) addNumeric("song_track", args["song_track"])
+            if (args.containsKey("song_type")) where.add("song_type = ?", args["song_type"])
+
+            val flagFields =
+                listOf(
+                    "flag_boosty" to "id_boosty",
+                    "flag_sponsr" to "id_sponsr",
+                    "flag_vk" to "id_vk",
+                    "flag_dzen_lyrics" to "id_dzen_lyrics",
+                    "flag_dzen_karaoke" to "id_dzen_karaoke",
+                    "flag_dzen_chords" to "id_dzen_chords",
+                    "flag_dzen_melody" to "id_dzen_melody",
+                    "flag_vk_lyrics" to "id_vk_lyrics",
+                    "flag_vk_karaoke" to "id_vk_karaoke",
+                    "flag_vk_chords" to "id_vk_chords",
+                    "flag_vk_melody" to "id_vk_melody",
+                    "flag_telegram_lyrics" to "id_telegram_lyrics",
+                    "flag_telegram_karaoke" to "id_telegram_karaoke",
+                    "flag_telegram_chords" to "id_telegram_chords",
+                    "flag_telegram_melody" to "id_telegram_melody",
+                    "flag_pl_lyrics" to "id_pl_lyrics",
+                    "flag_pl_karaoke" to "id_pl_karaoke",
+                    "flag_pl_chords" to "id_pl_chords",
+                    "flag_pl_melody" to "id_pl_melody",
+                    "flag_max_lyrics" to "id_max_lyrics",
+                    "flag_max_karaoke" to "id_max_karaoke",
+                    "flag_max_chords" to "id_max_chords",
+                    "flag_max_melody" to "id_max_melody",
+                )
+            flagFields.forEach { (flagName, column) ->
+                if (args.containsKey(flagName)) {
+                    val value = args[flagName]
+                    if (value != "+" && value != "-") {
+                        where.none()
                     } else {
-                        "publish_time LIKE '%${args["publish_time"]}%'"
+                        where.add(
+                            "CASE WHEN $column IS NOT NULL AND $column <> 'null' AND $column <> '' THEN '+' ELSE '-' END = ?",
+                            value,
+                        )
                     }
-            }
-            if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
-            if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
-            if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
-            if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
-            if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
-            if (args.containsKey("song_type")) where += "song_type='${args["song_type"]}'"
-
-            if (args.containsKey("flag_boosty")) {
-                where +=
-                    "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
-            }
-            if (args.containsKey("flag_sponsr")) {
-                where +=
-                    "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
-            }
-            if (args.containsKey("flag_vk")) {
-                where +=
-                    "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
-            }
-            if (args.containsKey("flag_dzen_lyrics")) {
-                where +=
-                    "CASE WHEN id_dzen_lyrics IS NOT NULL AND id_dzen_lyrics <> 'null' AND id_dzen_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_dzen_lyrics"]}'"
-            }
-            if (args.containsKey("flag_dzen_karaoke")) {
-                where +=
-                    "CASE WHEN id_dzen_karaoke IS NOT NULL AND id_dzen_karaoke <> 'null' AND id_dzen_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_dzen_karaoke"]}'"
-            }
-            if (args.containsKey("flag_dzen_chords")) {
-                where +=
-                    "CASE WHEN id_dzen_chords IS NOT NULL AND id_dzen_chords <> 'null' AND id_dzen_chords <> '' THEN '+' ELSE '-' END='${args["flag_dzen_chords"]}'"
-            }
-            if (args.containsKey("flag_dzen_melody")) {
-                where +=
-                    "CASE WHEN id_dzen_melody IS NOT NULL AND id_dzen_melody <> 'null' AND id_dzen_melody <> '' THEN '+' ELSE '-' END='${args["flag_dzen_melody"]}'"
-            }
-            if (args.containsKey("flag_vk_lyrics")) {
-                where +=
-                    "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics"]}'"
-            }
-            if (args.containsKey("flag_vk_karaoke")) {
-                where +=
-                    "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke"]}'"
-            }
-            if (args.containsKey("flag_vk_chords")) {
-                where +=
-                    "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
-            }
-            if (args.containsKey("flag_vk_melody")) {
-                where +=
-                    "CASE WHEN id_vk_melody IS NOT NULL AND id_vk_melody <> 'null' AND id_vk_melody <> '' THEN '+' ELSE '-' END='${args["flag_vk_melody"]}'"
-            }
-            if (args.containsKey("flag_telegram_lyrics")) {
-                where +=
-                    "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
-            }
-            if (args.containsKey("flag_telegram_karaoke")) {
-                where +=
-                    "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
-            }
-            if (args.containsKey("flag_telegram_chords")) {
-                where +=
-                    "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
-            }
-            if (args.containsKey("flag_telegram_melody")) {
-                where +=
-                    "CASE WHEN id_telegram_melody IS NOT NULL AND id_telegram_melody <> 'null' AND id_telegram_melody <> '' THEN '+' ELSE '-' END='${args["flag_telegram_melody"]}'"
-            }
-            if (args.containsKey("flag_pl_lyrics")) {
-                where +=
-                    "CASE WHEN id_pl_lyrics IS NOT NULL AND id_pl_lyrics <> 'null' AND id_pl_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_pl_lyrics"]}'"
-            }
-            if (args.containsKey("flag_pl_karaoke")) {
-                where +=
-                    "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
-            }
-            if (args.containsKey("flag_pl_chords")) {
-                where +=
-                    "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
-            }
-            if (args.containsKey("flag_pl_melody")) {
-                where +=
-                    "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
-            }
-            if (args.containsKey("flag_max_lyrics")) {
-                where +=
-                    "CASE WHEN id_max_lyrics IS NOT NULL AND id_max_lyrics <> 'null' AND id_max_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_max_lyrics"]}'"
-            }
-            if (args.containsKey("flag_max_karaoke")) {
-                where +=
-                    "CASE WHEN id_max_karaoke IS NOT NULL AND id_max_karaoke <> 'null' AND id_max_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_max_karaoke"]}'"
-            }
-            if (args.containsKey("flag_max_chords")) {
-                where +=
-                    "CASE WHEN id_max_chords IS NOT NULL AND id_max_chords <> 'null' AND id_max_chords <> '' THEN '+' ELSE '-' END='${args["flag_max_chords"]}'"
-            }
-            if (args.containsKey("flag_max_melody")) {
-                where +=
-                    "CASE WHEN id_max_melody IS NOT NULL AND id_max_melody <> 'null' AND id_max_melody <> '' THEN '+' ELSE '-' END='${args["flag_max_melody"]}'"
+                }
             }
 
-            if (args.containsKey("flag_exclusive")) where += "CASE WHEN exclusive = true THEN '+' ELSE '-' END='${args["flag_exclusive"]}'"
-            if (args.containsKey("flag_free")) where += "CASE WHEN free = true THEN '+' ELSE '-' END='${args["flag_free"]}'"
+            val booleanFlagFields = listOf("flag_exclusive" to "exclusive", "flag_free" to "free")
+            booleanFlagFields.forEach { (flagName, column) ->
+                if (args.containsKey(flagName)) {
+                    val value = args[flagName]
+                    if (value != "+" && value != "-") {
+                        where.none()
+                    } else {
+                        where.add("CASE WHEN $column = true THEN '+' ELSE '-' END = ?", value)
+                    }
+                }
+            }
 
             if (args.containsKey("filter_status_process_lyrics")) {
-                where +=
-                    "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
+                where.add("LOWER(status_process_lyrics) LIKE ?", "%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%")
             }
             if (args.containsKey("filter_status_process_karaoke")) {
-                where +=
-                    "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
+                where.add("LOWER(status_process_karaoke) LIKE ?", "%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%")
             }
             if (args.containsKey("filter_status_process_demo")) {
-                where +=
-                    "LOWER(status_process_demo) LIKE '%${args["filter_status_process_demo"]?.rightFileName()?.lowercase()}%'"
+                where.add("LOWER(status_process_demo) LIKE ?", "%${args["filter_status_process_demo"]?.rightFileName()?.lowercase()}%")
             }
 
             val listFields =
@@ -8026,46 +8001,41 @@ class Song(
                     Pair("filter_free_after_on_air", "free_after_on_air"),
                 )
 
+            // Оператор — только из белого списка (длинные префиксы первыми, иначе ">=" съест ">").
+            val comparisonOperators = listOf(">=" to ">=", "<=" to "<=", "!=" to "<>", ">" to ">", "<" to "<")
             listFields.forEach { (filterFldName, fldName) ->
                 if (args.containsKey(filterFldName)) {
                     args[filterFldName]!!.split("&&").forEach {
                         val value = it.trim()
-                        where +=
-                            if (value.startsWith(">=")) {
-                                "$tableName${if (sync) "_sync" else ""}.$fldName>=${value.substring(2)}"
-                            } else if (value.startsWith(">")) {
-                                "$tableName${if (sync) "_sync" else ""}.$fldName>${value.substring(1)}"
-                            } else if (value.startsWith("<=")) {
-                                "$tableName${if (sync) "_sync" else ""}.$fldName<=${value.substring(2)}"
-                            } else if (value.startsWith("<")) {
-                                "$tableName${if (sync) "_sync" else ""}.$fldName<${value.substring(1)}"
-                            } else if (value.startsWith("!=")) {
-                                "$tableName${if (sync) "_sync" else ""}.$fldName<>${value.substring(2)}"
-                            } else {
-                                "$tableName${if (sync) "_sync" else ""}.$fldName=$value"
-                            }
+                        val matched = comparisonOperators.firstOrNull { (prefix, _) -> value.startsWith(prefix) }
+                        val operator = matched?.second ?: "="
+                        val rawNumber = if (matched == null) value else value.substring(matched.first.length)
+                        val number = rawNumber.trim().toLongOrNull()
+                        if (number == null) {
+                            where.none()
+                        } else {
+                            where.add("$table.$fldName $operator ?", number)
+                        }
                     }
                 }
             }
 
             if (args.containsKey("tags")) {
-                var tg = args["tags"]!!
-                if (tg[0] == '~') {
-                    tg = tg.substring(1)
-                    where += "tags='${tg.rightFileName()}'"
-                } else if (tg.length > 2 && tg.startsWith("!~")) {
-                    tg = tg.substring(2)
-                    where += "tags NOT LIKE '%${tg.rightFileName()}%'"
-                } else {
-                    where += "LOWER(tags) LIKE '%${tg.rightFileName().lowercase()}%'"
+                val tg = args["tags"]!!
+                when {
+                    tg.startsWith("~") -> where.add("tags = ?", tg.substring(1).rightFileName())
+                    tg.length > 2 && tg.startsWith("!~") -> where.add("tags NOT LIKE ?", "%${tg.substring(2).rightFileName()}%")
+                    else -> where.add("LOWER(tags) LIKE ?", "%${tg.rightFileName().lowercase()}%")
                 }
             }
             if (args.containsKey("text")) {
-                where +=
-                    "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.rightFileName()?.lowercase()}')"
+                where.add(
+                    "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', ?)",
+                    args["text"]?.rightFileName()?.lowercase(),
+                )
             }
 
-            return where
+            return where.build()
         }
 
         /**
@@ -8098,9 +8068,10 @@ class Song(
             val tableNameResolved = TABLE_NAME + if (sync) "_sync" else ""
             val sql =
                 "SELECT COUNT(*) AS cnt FROM $tableNameResolved" +
-                    if (where.isNotEmpty()) " WHERE ${where.joinToString(" AND ")}" else ""
+                    if (!where.isEmpty) " WHERE ${where.joinToString(" AND ")}" else ""
             return try {
                 connection.prepareStatement(sql).use { ps ->
+                    where.bind(ps)
                     ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
                 }
             } catch (e: SQLException) {
@@ -8154,23 +8125,31 @@ class Song(
                 return emptyList()
             }
             var statement: Statement? = null
+            var preparedStatement: PreparedStatement? = null
             var rs: ResultSet? = null
             var sql: String
             val where = getWhereList(tableName = TABLE_NAME, args = args, sync = sync)
 
             try {
-                statement = connection.createStatement()
                 sql = "SELECT * FROM $TABLE_NAME${if (sync) "_sync" else ""}"
                 val limit = args["limit"]?.toInt() ?: 0
                 val offset = args["offset"]?.toInt() ?: 0
 
-                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (!where.isEmpty) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 sql += " ORDER BY $TABLE_NAME${if (sync) "_sync" else ""}.id"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 
-                rs = statement.executeQuery(sql)
+                rs =
+                    if (where.params.isEmpty()) {
+                        statement = connection.createStatement()
+                        statement.executeQuery(sql)
+                    } else {
+                        preparedStatement = connection.prepareStatement(sql)
+                        where.bind(preparedStatement)
+                        preparedStatement.executeQuery()
+                    }
                 val result: MutableList<Song> = mutableListOf()
                 var prevAlbum = ""
                 while (rs.next()) {
@@ -8353,6 +8332,7 @@ class Song(
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
+                    preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
                     e.printStackTrace()
                 }

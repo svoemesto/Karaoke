@@ -109,7 +109,8 @@ two-DB sync, поиск lyrics, авто-публикация.
 - `createFromPath(...)`, `loadListFromDb(...)`, `loadFromDbById(...)`,
   `loadFromDbByIdForUpdate(...)`, `loadListFromDbByIds(...)`,
   `loadListIds(...)`, `loadListAuthors(...)`, `loadListAlbums(...)`,
-  `deleteFromDb(...)`, `listHashes(...)`, `getWhereList(...)`.
+  `deleteFromDb(...)`, `listHashes(...)`, `getWhereList(...)` — возвращает `SqlWhere`
+  (фрагменты с `?` + параметры), см. [persistence](../../persistence/domain.md#параметризованный-where-sqlwhere).
 
 ## Логика и Алгоритмы | Logic and Algorithms
 

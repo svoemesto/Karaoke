@@ -14,6 +14,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -864,6 +865,14 @@ class KaraokeProcess(
             return result
         }
 
+        /**
+         * Загрузить список процессов по фильтрам.
+         *
+         * Фильтры параметризованы (`PreparedStatement` + `?`, BR-028): значения
+         * из HTTP-параметров биндятся, а не склеиваются в SQL. Числовые поля
+         * (`id`, `ids`, `process_order`, `thread_id`, …) приводятся к `Long`;
+         * невалидное значение даёт `1=0` (пустая выборка), а не расширение фильтра.
+         */
         fun loadList(
             args: Map<String, String> = emptyMap(),
             database: KaraokeConnection,
@@ -874,34 +883,57 @@ class KaraokeProcess(
                 return emptyList()
             }
             var statement: Statement? = null
+            var preparedStatement: PreparedStatement? = null
             var rs: ResultSet? = null
             var sql: String
-            val where: MutableList<String> = mutableListOf()
+            val where = SqlWhereBuilder()
+
+            fun addNumeric(
+                column: String,
+                value: String?,
+            ) {
+                val number = value?.trim()?.toLongOrNull()
+                if (number == null) where.none() else where.add("$column = ?", number)
+            }
 
             try {
-                statement = connection.createStatement()
                 sql = "SELECT tbl_processes.*" +
                     " FROM tbl_processes"
-                if (args.containsKey("id")) where += "id=${args["id"]}"
-                if (args.containsKey("ids")) where += "tbl_processes.id in (${args["ids"]})"
-                if (args.containsKey("process_name")) where += "process_name LIKE '%${args["process_name"]}%'"
-                if (args.containsKey("process_status")) where += "process_status = '${args["process_status"]}'"
-                if (args.containsKey("process_order")) where += "process_order=${args["process_order"]}"
-                if (args.containsKey("process_priority")) where += "process_priority=${args["process_priority"]}"
-                if (args.containsKey("process_command")) where += "process_command LIKE '%${args["process_command"]}%'"
-                if (args.containsKey("process_args")) where += "process_args LIKE '%${args["process_args"]}%'"
-                if (args.containsKey("process_description")) where += "process_description LIKE '%${args["process_description"]}%'"
-                if (args.containsKey("song_id")) where += "song_id=${args["song_id"]}"
-                if (args.containsKey("process_type")) where += "process_type = '${args["process_type"]}'"
-                if (args.containsKey("process_prioritet")) where += "process_prioritet = '${args["process_prioritet"]}'"
-                if (args.containsKey("filter_notail")) where += "process_command <> 'tail'"
-                if (args.containsKey("thread_id")) where += "thread_id=${args["thread_id"]}"
+                if (args.containsKey("id")) addNumeric("id", args["id"])
+                if (args.containsKey("ids")) {
+                    val ids = args["ids"]!!.split(",").map { it.trim().toLongOrNull() }
+                    if (ids.isEmpty() || ids.any { it == null }) {
+                        where.none()
+                    } else {
+                        where.add("tbl_processes.id IN (${ids.joinToString(", ") { "?" }})", *ids.toTypedArray())
+                    }
+                }
+                if (args.containsKey("process_name")) where.add("process_name LIKE ?", "%${args["process_name"]}%")
+                if (args.containsKey("process_status")) where.add("process_status = ?", args["process_status"])
+                if (args.containsKey("process_order")) addNumeric("process_order", args["process_order"])
+                if (args.containsKey("process_priority")) addNumeric("process_priority", args["process_priority"])
+                if (args.containsKey("process_command")) where.add("process_command LIKE ?", "%${args["process_command"]}%")
+                if (args.containsKey("process_args")) where.add("process_args LIKE ?", "%${args["process_args"]}%")
+                if (args.containsKey("process_description")) {
+                    where.add("process_description LIKE ?", "%${args["process_description"]}%")
+                }
+                if (args.containsKey("song_id")) addNumeric("song_id", args["song_id"])
+                if (args.containsKey("process_type")) where.add("process_type = ?", args["process_type"])
+                if (args.containsKey("process_prioritet")) addNumeric("process_prioritet", args["process_prioritet"])
+                if (args.containsKey("filter_notail")) where.raw("process_command <> 'tail'")
+                if (args.containsKey("thread_id")) addNumeric("thread_id", args["thread_id"])
 
-                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (!where.isEmpty()) sql += " WHERE ${where.build().joinToString(" AND ")}"
 
-//                println(sql)
-
-                rs = statement.executeQuery(sql)
+                rs =
+                    if (where.isEmpty()) {
+                        statement = connection.createStatement()
+                        statement.executeQuery(sql)
+                    } else {
+                        preparedStatement = connection.prepareStatement(sql)
+                        where.build().bind(preparedStatement)
+                        preparedStatement.executeQuery()
+                    }
                 val result: MutableList<KaraokeProcess> = mutableListOf()
                 while (rs.next()) {
                     val process = KaraokeProcess(database)
@@ -944,6 +976,7 @@ class KaraokeProcess(
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
+                    preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
                     e.printStackTrace()
                 }

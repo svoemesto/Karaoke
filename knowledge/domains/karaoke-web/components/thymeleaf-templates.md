@@ -78,7 +78,14 @@ grep по `templates/*.html`) — при `mode: HTML` префикс прост�
 ```kotlin
 @GetMapping("/")
 fun main(model: Model, request: HttpServletRequest): String {
-    model.addAttribute("total", StatBySong.getCountSongsTotal(database = WORKING_DATABASE))
+    // BR-016: один снимок + состояние (ready / warming_up / error)
+    val counters = StatBySong.getCounters(database = WORKING_DATABASE)
+    model.addAttribute("onSponsr", counters.collection)
+    model.addAttribute("onAir", counters.freeNow)
+    model.addAttribute("exclusive", counters.subscriptionOnly)
+    model.addAttribute("inWork", counters.inWork)
+    model.addAttribute("total", counters.total)
+    model.addAttribute("statsState", counters.state.apiValue)
     model.addAttribute(
         "latestNews",
         try { News.loadPublished(database = WORKING_DATABASE, limit = 5, offset = 0) }
@@ -97,6 +104,11 @@ fun main(model: Model, request: HttpServletRequest): String {
 - **Сбой БД на главной**: `News.loadPublished` обёрнут в `try/catch` —
   `latestNews` остаётся пустым, `main.html` рендерит блок по
   `th:if="${latestNews != null and !#lists.isEmpty(latestNews)}"`.
+- **Счётчики главной при сбое БД** (BR-016): `main.html` получает `statsState`;
+  при `warming_up` вместо `0` рендерится `—`, при `error` — последние успешные
+  числа и предупреждение «БД временно недоступна». `0` показывается только при
+  `ready` (настоящий ноль). Состояние дублируется в разметке атрибутом
+  `data-stats-state` на таблице счётчиков — на него опираются тесты.
 - **Пустой поиск**: `/filter` при суммарной длине запроса `< 3`
   символов отдаёт пустой `song`, не ходя в БД.
 - **Аналитика**: почти каждая страница после сборки модели вызывает
@@ -108,7 +120,8 @@ fun main(model: Model, request: HttpServletRequest): String {
 
 ### Данные страниц (источники)
 
-- `main.html`: 5 счётчиков `StatBySong` + `News.loadPublished(limit = 5)`.
+- `main.html`: 5 счётчиков `StatBySong` + `statsState` (BR-016) +
+  `News.loadPublished(limit = 5)`.
 - `zakroma.html`: `Song.loadListAuthors(...)` (с учётом `canSeeSkipped`)
   + `Zakroma.getZakroma(onlyPublished = true)`.
 - `filter.html`: `Song.loadListAuthors` + `Song.loadListFromDb`

@@ -95,8 +95,10 @@ class KaraokeProperties {
         fun savePropertiesMap() {
             propertiesWriteLock.withLock {
                 try {
+                    // BR-247: права 600 выставляются внутри writePropertiesFileAtomic — на
+                    // временный файл ДО атомарного move, чтобы файл с секретами ни мгновения
+                    // не был доступен на чтение всем. Внешний `chmod 666` после записи убран.
                     writePropertiesFileAtomic(File(pathToFile()), encodePropertiesMap(karaokePropertiesMap))
-                    runCommand(listOf("chmod", "666", pathToFile()))
                 } catch (e: Exception) {
                     println("KaraokeProperties: не удалось сохранить файл ${pathToFile()}: ${e.message}")
                 }
@@ -292,9 +294,29 @@ private fun writePropertiesFileAtomicLocked(
     val tmp = Files.createTempFile(dir.toPath(), "${target.name}.", ".tmp")
     try {
         if (target.exists()) {
-            target.copyTo(backupFileFor(target), overwrite = true)
+            val backup = backupFileFor(target)
+            // BR-247: .bak — копия того же файла с токенами/паролями. Раньше он создавался
+            // с umask-овыми 644 (читаем всем). Теперь копия пишется во временный файл,
+            // получает 600 и только потом публикуется под именем .bak, поэтому окна
+            // «резервная копия уже существует, но ещё читаема всем» нет.
+            val backupTmp = Files.createTempFile(dir.toPath(), "${backup.name}.", ".tmp")
+            try {
+                Files.copy(target.toPath(), backupTmp, StandardCopyOption.REPLACE_EXISTING)
+                setSecretFilePermissions(backupTmp.toFile().path)
+                Files.move(
+                    backupTmp,
+                    backup.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE,
+                )
+            } finally {
+                Files.deleteIfExists(backupTmp)
+            }
         }
         tmp.toFile().writeText(content)
+        // BR-247: 600 на временный файл ДО move — права переносятся на целевой путь вместе
+        // с inode, поэтому окна «файл уже под именем Karaoke.properties, но ещё 644» нет.
+        setSecretFilePermissions(tmp.toFile().path)
         Files.move(
             tmp,
             target.toPath(),

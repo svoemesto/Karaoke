@@ -75,19 +75,82 @@ fun String.rightFileName(): String = SanitizePath.run { sanitizePath() }
  * объявлять правку несохранённой.
  */
 fun setSongFilePermissions(pathToFile: String) {
+    applyPosixPermissions(pathToFile, PUBLISHED_FILE_PERMISSIONS, "файл")
+}
+
+/** Права опубликованного файла: чтение всем, запись — только владельцу (`644`). */
+private val PUBLISHED_FILE_PERMISSIONS: Set<PosixFilePermission> =
+    setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.GROUP_READ,
+        PosixFilePermission.OTHERS_READ,
+    )
+
+/** Права каталога публикации: чтение и обход всем, запись — только владельцу (`755`). */
+private val PUBLISHED_DIRECTORY_PERMISSIONS: Set<PosixFilePermission> =
+    setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE,
+        PosixFilePermission.GROUP_READ,
+        PosixFilePermission.GROUP_EXECUTE,
+        PosixFilePermission.OTHERS_READ,
+        PosixFilePermission.OTHERS_EXECUTE,
+    )
+
+/**
+ * Права файла с секретами: доступ только владельцу (`600`).
+ *
+ * BR-247 (#407): `Karaoke.properties` (и его `.bak`) содержит токены
+ * VK/Telegram/Whisper и internal-secret в открытом виде (Base64 — кодирование,
+ * а не шифрование). `666` делал файл читаемым и перезаписываемым любым
+ * локальным пользователем и любым контейнером с тем же монтированием.
+ */
+private val SECRET_FILE_PERMISSIONS: Set<PosixFilePermission> =
+    setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+    )
+
+/**
+ * Выставляет POSIX-права без внешнего процесса (`chmod`).
+ *
+ * Ошибка логируется и НЕ прерывает вызывающий код: файл уже создан, а сбой
+ * прав — повод разобраться, но не причина объявлять операцию несохранённой.
+ */
+private fun applyPosixPermissions(
+    path: String,
+    permissions: Set<PosixFilePermission>,
+    kind: String,
+) {
     try {
-        Files.setPosixFilePermissions(
-            Path.of(pathToFile),
-            setOf(
-                PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE,
-                PosixFilePermission.GROUP_READ,
-                PosixFilePermission.OTHERS_READ,
-            ),
-        )
+        Files.setPosixFilePermissions(Path.of(path), permissions)
     } catch (e: Exception) {
-        println("Не удалось выставить права на файл '$pathToFile': ${e.message}")
+        println("Не удалось выставить права на $kind '$path': ${e.message}")
     }
+}
+
+/**
+ * BR-115 (#407): опубликованный файл (картинка/превью) — `644`.
+ * Раньше здесь был `chmod 666`: мировое право ЗАПИСИ позволяло подменить
+ * опубликованный артефакт из любого контейнера с тем же томом.
+ */
+fun setPublishedFilePermissions(pathToFile: String) {
+    applyPosixPermissions(pathToFile, PUBLISHED_FILE_PERMISSIONS, "опубликованный файл")
+}
+
+/**
+ * BR-115 (#407): каталог публикации — `755`. `chmod 777` на каталог позволял
+ * любому пользователю/контейнеру добавлять и подменять файлы в нём.
+ */
+fun setPublishedDirectoryPermissions(pathToFolder: String) {
+    applyPosixPermissions(pathToFolder, PUBLISHED_DIRECTORY_PERMISSIONS, "каталог публикации")
+}
+
+/** BR-247 (#407): файл с секретами (в т.ч. резервная копия) — `600`. */
+fun setSecretFilePermissions(pathToFile: String) {
+    applyPosixPermissions(pathToFile, SECRET_FILE_PERMISSIONS, "файл с секретами")
 }
 
 fun String.getWords(): List<String> {

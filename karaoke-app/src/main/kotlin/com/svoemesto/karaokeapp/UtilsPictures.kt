@@ -60,7 +60,7 @@ fun createDzenPicture(pathToAuthor: String) {
     var file = File(pathToFile)
 
     ImageIO.write(resultImage, "png", file)
-    runCommand(listOf("chmod", "666", pathToFile))
+    setPublishedFilePermissions(pathToFile)
 
     textToOverlay = "Lyrics"
     resultImage = BufferedImage(frameW, frameH, imageType)
@@ -99,7 +99,7 @@ fun createDzenPicture(pathToAuthor: String) {
     file = File(pathToFile2)
 
     ImageIO.write(resultImage, "png", file)
-    runCommand(listOf("chmod", "666", pathToFile2))
+    setPublishedFilePermissions(pathToFile2)
 }
 
 fun getVKPictureBase64(song: Song): String {
@@ -210,7 +210,7 @@ fun createVKLinkPictureWeb(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fName))
+        setPublishedFilePermissions(fName)
     } catch (e: Exception) {
         println(e.message)
     }
@@ -284,7 +284,7 @@ fun createVKLinkPicture(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fName))
+        setPublishedFilePermissions(fName)
     } catch (e: Exception) {
         println(e.message)
     }
@@ -351,7 +351,7 @@ fun createVKPicture(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fName))
+        setPublishedFilePermissions(fName)
     } catch (e: Exception) {
         println(e.message)
     }
@@ -437,7 +437,7 @@ fun createBoostyFilesPicture(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fName))
+        setPublishedFilePermissions(fName)
     } catch (e: Exception) {
         println(e.message)
     }
@@ -503,7 +503,7 @@ fun createBoostyTeaserPicture(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fName))
+        setPublishedFilePermissions(fName)
     } catch (e: Exception) {
         println(e.message)
     }
@@ -532,7 +532,7 @@ fun createAuthorPreview(song: Song) {
         val file = File(pathToFilePreview)
         try {
             ImageIO.write(previewBi, "png", file)
-            runCommand(listOf("chmod", "666", pathToFilePreview))
+            setPublishedFilePermissions(pathToFilePreview)
         } catch (e: Exception) {
             println(e.message)
         }
@@ -549,7 +549,7 @@ fun createAlbumPreview(song: Song) {
         val file = File(pathToFilePreview)
         try {
             ImageIO.write(previewBi, "png", file)
-            runCommand(listOf("chmod", "666", pathToFilePreview))
+            setPublishedFilePermissions(pathToFilePreview)
         } catch (e: Exception) {
             println(e.message)
         }
@@ -563,7 +563,7 @@ fun createSongPicture(
     val fileName = song.getOutputFilename(SongOutputFile.PICTURE, songVersion)
     val pathToFolder = File(fileName).parent
     Files.createDirectories(Path(pathToFolder))
-    runCommand(listOf("chmod", "777", pathToFolder))
+    setPublishedDirectoryPermissions(pathToFolder)
 
     val caption = songVersion.text
     val comment = songVersion.textForDescription
@@ -649,7 +649,7 @@ fun createSongPicture(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fileName))
+        setPublishedFilePermissions(fileName)
     } catch (e: Exception) {
         println(e.message)
     }
@@ -848,7 +848,7 @@ fun createSongChordsPicture(
         val resultImage = getSongChordsPicture(song, mltNode)
         val file = File(fileName)
         ImageIO.write(resultImage, "png", file)
-        runCommand(listOf("chmod", "666", fileName))
+        setPublishedFilePermissions(fileName)
     }
 }
 
@@ -1012,7 +1012,7 @@ fun createSponsrTeaserPicture(
 
     try {
         ImageIO.write(area.bi(), "png", file)
-        runCommand(listOf("chmod", "666", fName))
+        setPublishedFilePermissions(fName)
     } catch (e: Exception) {
         println(e.message)
     }

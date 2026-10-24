@@ -320,6 +320,28 @@ jobs:
         # Каждое правило обязано ловить «плохой» пример и не ловить «хороший».
         run: bash tools/check-secret-in-argv.sh --self-test
 
+  # === Guard: нет chmod с правом записи для всех (BR-115/BR-247, OP #407) ===
+  # `chmod 666`/`777` даёт запись любому локальному пользователю и любому
+  # контейнеру с тем же томом: подмена опубликованных картинок и кража
+  # токенов из Karaoke.properties. Нужны 644 (файл), 755 (каталог),
+  # 600 (секреты) — в JVM, без внешнего chmod.
+  # Baseline: tools/check-file-permissions.baseline (legacy-места других
+  # пакетов #336: BR-271/#397 и записи вне пакетов). Новые нарушения не
+  # допускаются.
+  file-permissions-guard:
+    name: file permissions guard (BR-115/BR-247)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check world-writable chmod
+        run: bash tools/check-file-permissions.sh
+
+      - name: Self-test правил guard'а
+        run: bash tools/check-file-permissions.sh --self-test
+
   # === E2E публичного сайта (BR-525) ===
   # Раньше e2e не выполнялись в CI вообще — расхождение «код в master» vs
   # «образ на сервере» обнаруживалось только вручную (прецедент #200–#203).

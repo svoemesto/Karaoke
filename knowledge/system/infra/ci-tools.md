@@ -1,3 +1,19 @@
+- **OpenProject #379** (2026-10-24, аудит #336 волна C, S2): инструменты
+  `tools/` переведены с «проверка имитируется» на «проверка исполняется» —
+  BR-571 `check-do-sh-guards.sh` больше не переписывает отслеживаемый
+  `deploy/karaoke-public/Dockerfile` (эксперимент идёт на копии `deploy/` во
+  временном каталоге); BR-572 `check-feature-doc.sh` учитывает отсутствующий
+  документ как ошибку (раньше — `ERROR` в stdout и exit 0); BR-593/BR-594 креды
+  registry не передаются через argv (`curl --config -`), проверка «неверный
+  пароль → 401» реально отправляет креды, `PENDING` не затирает пин в
+  `images.lock`; BR-595 `generate-eslint-baseline.sh` пишет baseline через
+  `mktemp` + `mv` и различает «нарушения» (код 1) и «ошибка eslint» (код ≥ 2);
+  BR-601 `tracker-poll.sh` не смешивает stderr трекера с данными и возвращает
+  документированные коды 2 (OpenProject недоступен) / 3 (токен истёк).
+  Baseline `tools/check-secret-in-argv.baseline` ужат: из него убраны все
+  записи `registry-smoke.sh` / `registry-vendor.sh` (исправлены здесь); запись
+  `analyze-prod-incident.sh` закрыта отдельно (BR-626, #408 / PR #675) и в
+  baseline не возвращается.
 - **OpenProject #387** (2026-10-24, аудит #336, BR-523): добавлен
   `check-marker-escape-guard.sh` — guard «до/после» для регресс-теста
   экранирования метки комментария: проверяет, что тест взведён (падает на

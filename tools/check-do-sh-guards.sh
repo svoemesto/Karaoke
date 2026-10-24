@@ -17,11 +17,22 @@
 # Код возврата: 0 — оба выполненных опыта прошли, 1 — провал.
 
 set -u
-export DOCKER_CONFIG="${DOCKER_CONFIG:-/home/nsa/Karaoke/.docker}"
-export GRADLE_USER_HOME="${GRADLE_USER_HOME:-/home/nsa/Karaoke/.gradle}"
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY="$REPO/deploy"
+
+# BR-581: пути к .docker/.gradle — из корня репозитория (переносимо между
+# машинами матрицы AGENTS.md), а не зашитый /home/nsa/Karaoke.
+MAIN_ROOT="$REPO"
+_common_dir="$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [[ -n "$_common_dir" && -d "$_common_dir" ]]; then
+  MAIN_ROOT="$(dirname "$_common_dir")"
+fi
+unset _common_dir
+export DOCKER_CONFIG="${DOCKER_CONFIG:-${KARAOKE_DOCKER_CONFIG:-$MAIN_ROOT/.docker}}"
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-${KARAOKE_GRADLE_USER_HOME:-$MAIN_ROOT/.gradle}}"
+unset MAIN_ROOT
+
 DOCKERFILE="$DEPLOY/karaoke-public/Dockerfile"
 PROD_HOST="${PROD_HOST:-188.127.240.124}"
 WITH_PROD=0

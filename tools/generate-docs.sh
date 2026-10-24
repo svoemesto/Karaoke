@@ -17,7 +17,14 @@ if [ "$1" == "--clean" ]; then
     CLEAN=1
 fi
 
-cd "$(dirname "$0")/.."
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
+
+# BR-599: Hard Gate AGENTS.md Tier-1 (Pass 372) требует gradle с
+# GRADLE_USER_HOME. Раньше переменная не задавалась — wrapper писал в
+# ~/.gradle (read-only в DSH-sandbox) и падал с FileNotFoundException.
+# Путь — от корня репозитория (переносимо между машинами матрицы AGENTS.md).
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$REPO_ROOT/.gradle}"
 
 if [ $CLEAN -eq 1 ]; then
     echo "==> Очистка старых выходов..."

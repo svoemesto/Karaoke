@@ -11,6 +11,7 @@ tools/auto-kdoc.py — версия 2
 """
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -19,6 +20,32 @@ DECL_RE = re.compile(
     r'^(public\s+)?(class|object|interface|enum class|sealed class|data class)\s+(\w+)',
 )
 ANNOTATION_RE = re.compile(r'^@\w+(\([^)]*\))?$')
+
+# BR-584: Constitution Principle II (R-07) — в проекте нет JPA/Hibernate
+# (сырой JDBC + recordhash). Генератор не имеет права вставлять такие
+# упоминания в KDoc: они попадали в исходники и противоречили конституции.
+# Тот же набор паттернов использует guard tools/check-no-jpa-imports.sh.
+FORBIDDEN_TOKENS = (
+    'jpa',
+    'hibernate',
+    'javax.persistence',
+    'org.springframework.data.jpa',
+)
+
+
+class GenerationError(Exception):
+    """Ошибка генерации — не писать в исходники, а упасть с понятным текстом."""
+
+
+def assert_no_forbidden(text, where):
+    """Проверяет, что в сгенерированном тексте нет запрещённых упоминаний."""
+    low = text.lower()
+    for token in FORBIDDEN_TOKENS:
+        if token in low:
+            raise GenerationError(
+                f'сгенерированный текст содержит запрещённое упоминание «{token}» ({where}); '
+                f'см. Constitution Principle II / tools/check-no-jpa-imports.sh'
+            )
 
 DIR_TO_SLUG = {
     'model': 'docs/features/dual-db-sync.md',
@@ -126,7 +153,9 @@ def describe(name, kind):
             base = base[:-1]
         return f'DTO для {split_camel(base).lower()}: сериализуемое представление для API/UI.'
     if name.endswith('Entity'):
-        return f'JPA-сущность для {split_camel(name[:-6]).lower()}.'
+        # BR-584: без упоминания JPA — в проекте используется сырой JDBC
+        # (Constitution Principle II, R-07).
+        return f'Сущность домена для {split_camel(name[:-6]).lower()}.'
     if kind == 'enum class':
         return f'Перечисление возможных значений для {words.lower()}.'
     if kind == 'interface':
@@ -150,6 +179,10 @@ def describe(name, kind):
 
 def kdoc_block(name, kind, slug):
     desc = describe(name, kind)
+    # BR-584: результат генерации проверяется ДО записи в исходник —
+    # JPA/Hibernate-упоминания в KDoc недопустимы (Constitution Principle II).
+    assert_no_forbidden(desc, f'описание класса {name}')
+    assert_no_forbidden(slug, f'@see для {name}')
     return [
         '/**',
         f' * {desc}',
@@ -245,6 +278,32 @@ def process(filepath, dry_run=False):
     return len(insertions)
 
 
+def verify_with_jpa_guard():
+    """BR-584: проверяет результат генерации guard'ом check-no-jpa-imports.sh.
+
+    Возвращает 0 — проверка пройдена; 1 — guard нашёл нарушение (R-07);
+    2 — проверку выполнить не удалось (guard не найден) — это тоже ошибка:
+    молча пропускать проверку нельзя.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    guard = repo_root / 'tools' / 'check-no-jpa-imports.sh'
+    if not guard.exists():
+        print(
+            f'ERROR: guard {guard} не найден — результат генерации НЕ ПРОВЕРЕН',
+            file=sys.stderr,
+        )
+        return 2
+    proc = subprocess.run(['bash', str(guard)], cwd=str(repo_root))
+    if proc.returncode != 0:
+        print(
+            'ERROR: tools/check-no-jpa-imports.sh нашёл нарушения — результат '
+            'генерации не соответствует Constitution Principle II (R-07)',
+            file=sys.stderr,
+        )
+        return 1
+    return 0
+
+
 def main():
     dry_run = '--dry-run' in sys.argv
     roots = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -254,11 +313,20 @@ def main():
             for f in files:
                 if not f.endswith('.kt'):
                     continue
-                added = process(os.path.join(r, f), dry_run)
+                try:
+                    added = process(os.path.join(r, f), dry_run)
+                except GenerationError as exc:
+                    print(f'ERROR: {os.path.join(r, f)}: {exc}', file=sys.stderr)
+                    sys.exit(1)
                 if added:
                     total += added
                     print(f'  +{added} {os.path.join(r, f)}')
     print(f'\nTotal: {total} KDoc blocks {"would be" if dry_run else ""} added')
+
+    # BR-584: результат генерации проверяется guard'ом R-07.
+    rc = verify_with_jpa_guard()
+    if rc != 0:
+        sys.exit(rc)
 
 
 if __name__ == '__main__':

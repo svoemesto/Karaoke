@@ -19,8 +19,11 @@
 # Что проверяет:
 #   В git diff HEAD (staged + unstaged) ищет запрещённые паттерны:
 #     - `docker restart <container>` где container в KARAOKE_CONTAINERS
+#       (включая вариант с опциями: `docker restart -t 30 <container>`)
 #     - `docker stop <container>` для контейнеров, требующих consent
-#     - `docker-compose ... restart ...` (минует do.sh)
+#     - `docker start <container>` (обход do.sh, вкл. вариант с опциями)
+#     - `docker-compose ... restart ...` И `docker compose ... restart ...`
+#       (обе формы — v1 через дефис и v2 через пробел; минует do.sh)
 #   Игнорирует строки внутри markdown (blockquotes `>` и codeblocks).
 #
 # Exit codes:
@@ -99,7 +102,8 @@ check_restart_patterns() {
 
     for container in "${KARAOKE_CONTAINERS[@]}"; do
       # Паттерн 1: `docker restart <container>`.
-      if echo "$added_lines" | grep -qE "^\\+.*\\bdocker\\s+restart\\s+${container}\\b" 2>/dev/null; then
+      # В т.ч. с опциями между глаголом и именем: `docker restart -t 30 <c>`.
+      if echo "$added_lines" | grep -qE "^\\+.*\\bdocker\\s+restart\\s+(-[^\\s]+\\s+)*${container}\\b" 2>/dev/null; then
         color_red "❌ НАРУШЕНИЕ: $f содержит 'docker restart $container'"
         color_yellow "   Правило (Pass 374): используй bash deploy/do.sh restart_* (см. AGENTS.md § Перезапуск контейнеров)"
         violation_count=$((violation_count + 1))
@@ -116,9 +120,21 @@ check_restart_patterns() {
         fi
       fi
 
-      # Паттерн 3: `docker-compose ... restart ...` (минует do.sh).
-      if echo "$added_lines" | grep -qE "^\\+.*docker-compose.*\\brestart\\b" 2>/dev/null; then
-        color_red "❌ НАРУШЕНИЕ: $f содержит 'docker-compose ... restart'"
+      # Паттерн 2b: `docker start <container>` — обход deploy/do.sh (заявлен
+      # в шапке guard'а, но ранее не проверялся). Опции после глагола
+      # допускаются: `docker start -a <c>`.
+      if echo "$added_lines" | grep -qE "^\\+.*\\bdocker\\s+start\\s+(-[^\\s]+\\s+)*${container}\\b" 2>/dev/null; then
+        color_red "❌ НАРУШЕНИЕ: $f содержит 'docker start $container'"
+        color_yellow "   Правило (Pass 374): используй bash deploy/do.sh start_* (см. AGENTS.md § Перезапуск контейнеров)"
+        violation_count=$((violation_count + 1))
+        violation_files="${violation_files} ${container}"
+      fi
+
+      # Паттерн 3: `docker-compose ... restart ...` (v1, через дефис) И
+      # `docker compose ... restart ...` (v2, через пробел) — обе формы
+      # минуют do.sh и должны ловиться (BR-574).
+      if echo "$added_lines" | grep -qE "^\\+.*\\bdocker(-|\\s+)compose\\b.*\\brestart\\b" 2>/dev/null; then
+        color_red "❌ НАРУШЕНИЕ: $f содержит 'docker-compose/docker compose ... restart'"
         color_yellow "   Правило (Pass 374): используй bash deploy/do.sh restart_* вместо прямого docker-compose"
         violation_count=$((violation_count + 1))
         violation_files="${violation_files} docker-compose"

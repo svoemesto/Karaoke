@@ -10,10 +10,21 @@ echo "Starting do.sh"
 
 # Pass 372 (OP #83): правило GRADLE_USER_HOME применяется ТРАНЗИТИВНО.
 # Этот скрипт вызывает ./gradlew внутри себя (do_build_app, do_build_web, …).
-# Если GRADLE_USER_HOME не задан И /home/nsa/Karaoke/.gradle не существует —
+# Если GRADLE_USER_HOME не задан И проектный <repo-root>/.gradle не существует —
 # wrapper упадёт с read-only FileNotFoundException. Устанавливаем явно.
+#
+# BR-581: пути выводятся из корня репозитория (общий кэш главного
+# checkout'а), а не зашиты как /home/nsa/Karaoke — иначе на второй машине
+# матрицы AGENTS.md (dev-pc/dev) каталога нет и wrapper падает.
+# Переопределение — KARAOKE_GRADLE_USER_HOME / KARAOKE_DOCKER_CONFIG.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MAIN_ROOT="$PROJECT_ROOT"
+_common_dir="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [[ -n "$_common_dir" && -d "$_common_dir" ]]; then
+  MAIN_ROOT="$(dirname "$_common_dir")"
+fi
 if [[ -z "${GRADLE_USER_HOME:-}" ]]; then
-  export GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle
+  export GRADLE_USER_HOME="${KARAOKE_GRADLE_USER_HOME:-$MAIN_ROOT/.gradle}"
 fi
 # JAVA_HOME часто приходит из /etc/profile.d, но для надёжности — fallback.
 if [[ -z "${JAVA_HOME:-}" ]] && [[ -d /usr/lib/jvm/jdk-18 ]]; then
@@ -24,10 +35,12 @@ fi
 # Этот скрипт вызывает ${DOCKER} image build / buildx внутри себя (do_build_app,
 # do_build_web, …). Без правильного DOCKER_CONFIG buildx падает с read-only в
 # ~/.docker/buildx/activity. В DSH-sandbox нужно явно указывать на проектную
-# /home/nsa/Karaoke/.docker/ (которая writable).
+# <repo-root>/.docker/ (которая writable).
 if [[ -z "${DOCKER_CONFIG:-}" ]]; then
-  export DOCKER_CONFIG=/home/nsa/Karaoke/.docker
+  export DOCKER_CONFIG="${KARAOKE_DOCKER_CONFIG:-$MAIN_ROOT/.docker}"
 fi
+# set -a ещё активен — локальные переменные не должны утекать в env gradle/docker.
+unset _common_dir PROJECT_ROOT MAIN_ROOT
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 BASE_DIR="$(cd "${DEPLOY_DIR}" && cd .. && pwd)"

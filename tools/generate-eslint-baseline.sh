@@ -21,8 +21,11 @@ fi
 MODULE="$1"
 BASELINE_FILE="${MODULE}/.eslint-baseline.json"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 if [ ! -d "$MODULE" ]; then
-  echo "ERROR: директория '$MODULE' не существует"
+  echo "ERROR: диретория '$MODULE' не существует"
   exit 1
 fi
 
@@ -38,6 +41,16 @@ fi
 
 echo "==> Генерация baseline для $MODULE..."
 
+# BR-578: путь пишем ОТНОСИТЕЛЬНО корня репозитория ("webvue3/src/..."),
+# а не абсолютный путь ESLint — иначе baseline не переносится между
+# машинами и worktree'ами. Пути вычисляем ДО смены каталога.
+MODULE_ABS="$(cd "$MODULE" && pwd)"
+case "$MODULE_ABS" in
+  "$REPO_ROOT"/*) MODULE_REL="${MODULE_ABS#"$REPO_ROOT"/}" ;;
+  *)              MODULE_REL="$MODULE" ;;
+esac
+MODULE_BASE="$(basename "$MODULE_ABS")"
+
 # Запускаем eslint с JSON-форматом, парсим нарушения, сохраняем в baseline.
 # max-warnings 99999 чтобы получить ВСЕ нарушения, не падать.
 cd "$MODULE"
@@ -49,10 +62,20 @@ npx eslint . --ext .vue,.js,.ts --format json --max-warnings 99999 > /tmp/eslint
 ESLINT_EXIT=$?
 set -e
 
-# Преобразуем в плоский массив {ruleId, file, line, column, message, severity}
-jq '[.[] | .messages[] | {
+# Преобразуем в плоский массив {ruleId, file, line, column, message, severity}.
+jq --arg repo_root "$REPO_ROOT" --arg module_rel "$MODULE_REL" --arg module_base "$MODULE_BASE" '
+  def norm:
+    . as $p
+    | if ($p | startswith($repo_root + "/")) then ($p | ltrimstr($repo_root + "/"))
+      elif ($p | startswith("/")) then
+        (($p | split("/" + $module_base + "/")) as $parts
+         | if ($parts | length) > 1 then ($module_rel + "/" + ($parts | last)) else $p end)
+      elif ($p | startswith($module_rel + "/")) then ($module_rel + "/" + ($p | ltrimstr($module_rel + "/")))
+      else ($module_rel + "/" + $p)
+      end;
+  [.[] | .filePath as $fp | .messages[] | {
   ruleId: .ruleId,
-  file: .filePath,
+  file: ($fp | norm),
   line: .line,
   column: .column,
   message: .message,

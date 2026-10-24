@@ -123,16 +123,32 @@ class TelegramApiClient {
 
     @Volatile private var modeSetAtMs = 0L
 
+    // BR-142 (аудит #336): прокси-клиент кэшируется, как и directClient. Раньше
+    // новый HttpClient создавался на КАЖДЫЙ запрос (в proxy-режиме — getUpdates
+    // каждые ~25-60 с + каждый sendVideo), и каждый оставлял живой selector-поток
+    // и сокеты до конца процесса. Пересоздаём только при смене telegramProxyUrl.
+    @Volatile private var cachedProxyUrl: String = ""
+
+    @Volatile private var cachedProxyClient: HttpClient? = null
+
     private fun proxyClient(): HttpClient? {
         val proxyUrl = KaraokeProperties.getString("telegramProxyUrl")
         if (proxyUrl.isBlank()) return null
+        cachedProxyClient?.let { if (cachedProxyUrl == proxyUrl) return it }
         val uri = URI(proxyUrl)
         if (uri.host == null || uri.port <= 0) return null
-        return HttpClient
-            .newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .proxy(ProxySelector.of(InetSocketAddress(uri.host, uri.port)))
-            .build()
+        synchronized(this) {
+            cachedProxyClient?.let { if (cachedProxyUrl == proxyUrl) return it }
+            val client =
+                HttpClient
+                    .newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .proxy(ProxySelector.of(InetSocketAddress(uri.host, uri.port)))
+                    .build()
+            cachedProxyUrl = proxyUrl
+            cachedProxyClient = client
+            return client
+        }
     }
 
     private fun baseUrl(): String {
@@ -146,6 +162,8 @@ class TelegramApiClient {
     private fun send(request: HttpRequest): HttpResponse<String> {
         val ttl = KaraokeProperties.getLong("telegramProxyModeTtlMs").let { if (it <= 0) 60_000L else it }
         val now = System.currentTimeMillis()
+        // BR-140: исходная сетевая ошибка не теряется, если прокси не настроен.
+        var directError: Exception? = null
         val shouldTryDirect = !useProxy || (now - modeSetAtMs > ttl)
 
         if (shouldTryDirect) {
@@ -161,13 +179,14 @@ class TelegramApiClient {
                 if (!useProxy) println("TelegramApiClient: прямой доступ к Telegram недоступен (${e.message}), переключение на прокси")
                 useProxy = true
                 modeSetAtMs = now
+                directError = e
                 // падаем ниже - пробуем через прокси
             }
         }
 
         val proxy =
             proxyClient()
-                ?: throw IllegalStateException("Telegram недоступен напрямую, а telegramProxyUrl не задан")
+                ?: throw IllegalStateException("Telegram недоступен напрямую, а telegramProxyUrl не задан", directError)
         return proxy.send(request, HttpResponse.BodyHandlers.ofString())
     }
 
@@ -256,7 +275,23 @@ class TelegramApiClient {
         var lastError: String? = null
 
         for (attempt in 1..maxAttempts) {
-            val result = trySendVideo(channelId, bytes, videoFile.name, caption, boundary)
+            // BR-140 (аудит #336): сеть/таймаут/не-JSON — самый частый класс сбоев —
+            // раньше вылетали из sendVideo с первой попытки, и объявленный retry FR-010
+            // работал только для JSON-ответов с error_code. Оборачиваем попытку целиком.
+            val result =
+                try {
+                    trySendVideo(channelId, bytes, videoFile.name, caption, boundary)
+                } catch (e: Exception) {
+                    lastError = "attempt $attempt failed with ${e.javaClass.simpleName}: ${e.message}"
+                    println("TelegramApiClient.sendVideo: $lastError")
+                    if (attempt < maxAttempts && !sleepBeforeRetry(attempt, backoffScheduleMs)) {
+                        return TelegramAutoPublishResult(
+                            state = TelegramAutoPublishState.SEND_FAILED,
+                            error = "interrupted during backoff on attempt $attempt",
+                        )
+                    }
+                    continue
+                }
             if (result.ok && result.result?.messageId != null) {
                 val messageId = result.result.messageId.toString()
                 println("TelegramApiClient.sendVideo: success on attempt $attempt, message_id=$messageId")
@@ -274,23 +309,35 @@ class TelegramApiClient {
             }
             lastError = "attempt $attempt failed (${code ?: "no code"}): ${result.description ?: "no description"}"
             println("TelegramApiClient.sendVideo: attempt $attempt failed: $lastError")
-            if (attempt < maxAttempts) {
-                val delayMs = backoffScheduleMs.getOrElse(attempt - 1) { backoffScheduleMs.last() }
-                try {
-                    Thread.sleep(delayMs)
-                } catch (_: InterruptedException) {
-                    Thread.currentThread().interrupt()
-                    return TelegramAutoPublishResult(
-                        state = TelegramAutoPublishState.SEND_FAILED,
-                        error = "interrupted during backoff on attempt $attempt",
-                    )
-                }
+            if (attempt < maxAttempts && !sleepBeforeRetry(attempt, backoffScheduleMs)) {
+                return TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.SEND_FAILED,
+                    error = "interrupted during backoff on attempt $attempt",
+                )
             }
         }
         return TelegramAutoPublishResult(
             state = TelegramAutoPublishState.SEND_FAILED,
             error = "retries exhausted: $lastError",
         )
+    }
+
+    /**
+     * Пауза перед следующей попыткой (BR-140). `false` — поток прерван, retry нужно прекратить.
+     * Вынесено из цикла, чтобы одинаково обрабатывать и сетевой сбой, и JSON-ошибку Telegram.
+     */
+    private fun sleepBeforeRetry(
+        attempt: Int,
+        backoffScheduleMs: List<Long>,
+    ): Boolean {
+        val delayMs = backoffScheduleMs.getOrElse(attempt - 1) { backoffScheduleMs.last() }
+        return try {
+            Thread.sleep(delayMs)
+            true
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
     }
 
     // Одна попытка sendVideo — multipart/form-data сборка и отправка через [send] (с прокси-fallback).

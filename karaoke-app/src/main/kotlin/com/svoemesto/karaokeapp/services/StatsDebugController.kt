@@ -44,7 +44,7 @@ class StatsDebugController {
      * и приватный withDb в StatsController (не дублируем helper — он private).
      */
     @PostMapping("/api/stats/debug")
-    fun debug(): ResponseEntity<Map<String, Any>> {
+    fun debug(): ResponseEntity<out Any> {
         val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC))
         val db = Connection.local()
         return try {
@@ -93,11 +93,15 @@ class StatsDebugController {
                     timestamp = timestamp,
                 )
 
-            @Suppress("UNCHECKED_CAST")
-            val response: ResponseEntity<Map<String, Any>> = ResponseEntity.ok(dto as Map<String, Any>)
-            response
+            // BR-143 (аудит #336): раньше здесь был `dto as Map<String, Any>` —
+            // StatsDebugDto не реализует Map, поэтому endpoint стабильно отдавал 500
+            // (ClassCastException) и был бесполезен именно в инциденте.
+            debugResponse(dto)
         } catch (e: SQLException) {
             statsUnavailableResponse("/api/stats/debug", e)
         }
     }
+
+    /** Ответ endpoint'а (BR-143): DTO отдаётся как есть, без приведения к Map. */
+    internal fun debugResponse(dto: StatsDebugDto): ResponseEntity<StatsDebugDto> = ResponseEntity.ok(dto)
 }

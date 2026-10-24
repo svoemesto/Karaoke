@@ -218,6 +218,19 @@ class StorageApiClientImpl(
         }
     }
 
+    /**
+     * Загрузка файла с локального диска.
+     *
+     * BR-141 (аудит #336): раньше любая ошибка (нет локального файла, сеть, отказ
+     * MinIO) печаталась и возвращала `null`; вызывающие результат не проверяли —
+     * `executeFinalizeStemJob` игнорировал `null` и ставил заданию `DONE`, теряя
+     * результат платной функции. Контракт выровнен с [downloadFile], который при
+     * ошибке бросает исключение: «локального файла нет» и «загрузка не удалась»
+     * различимы, а `catch (Exception)` вызывающего снова достижим.
+     *
+     * @throws IllegalArgumentException локального файла нет
+     * @throws RuntimeException загрузка не удалась
+     */
     override fun uploadFile(
         bucketName: String,
         fileName: String,
@@ -225,13 +238,14 @@ class StorageApiClientImpl(
         onProgress: ((Int) -> Unit)?,
     ): String? {
         val file = File(pathToFileOnDisk)
-        if (!file.exists()) return null
+        require(file.exists()) { "Локальный файл не найден: $pathToFileOnDisk" }
         val fileContent = file.readBytes()
         return try {
             uploadFile(bucketName = bucketName, fileName = fileName, fileContent = fileContent, onProgress = onProgress).block()
+                ?: throw RuntimeException("Хранилище вернуло пустой ответ при загрузке '$fileName' в '$bucketName'")
         } catch (e: Exception) {
             println("Ошибка при загрузке файла в удаленное хранилище: ${e.message}")
-            null
+            throw RuntimeException("Не удалось загрузить '$pathToFileOnDisk' в '$bucketName/$fileName'", e)
         }
     }
 

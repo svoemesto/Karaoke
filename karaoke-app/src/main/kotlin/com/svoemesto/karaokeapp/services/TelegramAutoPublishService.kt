@@ -45,6 +45,36 @@ object TelegramAutoPublishService {
     internal var claimStore: TelegramPublishClaimStore = JdbcTelegramPublishClaimStore
 
     /**
+     * Сохраняет состояние публикации с коротким retry (BR-139, аудит #336).
+     *
+     * `Song.saveToDbLocked()` возвращает `false` при `lock_timeout`/`SQLException`
+     * (транзакция откатывается). Раньше результат игнорировался во всех четырёх
+     * местах: успешно полученный `message_id` не записывался, состояние оставалось
+     * `PUBLISHING`, и следующий тик отправлял видео повторно. Здесь — до 3 попыток
+     * с коротким backoff; `false` означает, что запись так и не удалась и вызывающий
+     * обязан вернуть явную ошибку, а не «успех».
+     */
+    internal fun saveWithRetry(
+        song: Song,
+        attempts: Int = 3,
+        backoffMs: Long = 200L,
+    ): Boolean {
+        require(attempts >= 1) { "attempts must be >= 1" }
+        repeat(attempts) { attempt ->
+            if (song.saveToDbLocked()) return true
+            if (attempt < attempts - 1) {
+                try {
+                    Thread.sleep(backoffMs * (attempt + 1))
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return false
+                }
+            }
+        }
+        return false
+    }
+
+    /**
      * Выполняет полный цикл автопубликации одной песни (FR-001, FR-003, FR-006, FR-008,
      * FR-010, FR-011). Вызывается scheduler'ом (плановый тик) или endpoint'ом «Опубликовать
      * сейчас» (ручной триггер). Все шаги, кроме рендера (который ставит асинхронную задачу
@@ -261,8 +291,15 @@ object TelegramAutoPublishService {
         }
         song.telegramAutoPublishState = TelegramAutoPublishState.RENDERING.code
         song.telegramAutoPublishLastError = ""
-        // specs/299: race с ручной правкой через SongEdit — saveToDbLocked обеспечивает атомарность записи
-        song.saveToDbLocked()
+        // specs/299: race с ручной правкой через SongEdit — saveToDbLocked обеспечивает атомарность записи.
+        // BR-139: потерю записи RENDERING нельзя выдавать за успех — иначе resumeRenderingSongs
+        // не подхватит песню, а UI не узнает причину.
+        if (!saveWithRetry(song)) {
+            return TelegramAutoPublishResult(
+                state = TelegramAutoPublishState.SEND_FAILED,
+                error = "render enqueued (processId=$processId), but RENDERING state was not persisted (saveToDbLocked=false)",
+            )
+        }
         return TelegramAutoPublishResult(state = TelegramAutoPublishState.RENDERING)
     }
 
@@ -368,8 +405,18 @@ object TelegramAutoPublishService {
             }
             song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHED.code
             song.telegramAutoPublishLastError = ""
-            // specs/299: см. комментарий выше
-            song.saveToDbLocked()
+            // specs/299: см. комментарий выше.
+            // BR-139: message_id уже получен — потерять его нельзя молча, иначе следующий
+            // тик увидит пустой idTelegramDemo и опубликует видео повторно.
+            if (!saveWithRetry(song)) {
+                return TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.SEND_FAILED,
+                    messageId = result.messageId,
+                    error =
+                        "message_id ${result.messageId} received, but not persisted (saveToDbLocked=false); " +
+                            "state remains PUBLISHING in DB — manual check required to avoid duplicate post",
+                )
+            }
             return result
         }
 
@@ -386,8 +433,15 @@ object TelegramAutoPublishService {
         song.telegramAutoPublishState = TelegramAutoPublishState.SEND_FAILED.code
         song.telegramAutoPublishLastAttemptAt = nowIso8601()
         song.telegramAutoPublishLastError = error
-        // specs/299: см. комментарий выше
-        song.saveToDbLocked()
+        // specs/299: см. комментарий выше.
+        // BR-139: при неудаче SEND_FAILED не сохранится — логируем явно, чтобы оператор
+        // видел расхождение in-memory и БД (следующий тик повторит попытку).
+        if (!saveWithRetry(song)) {
+            println(
+                "WARN TelegramAutoPublishService: SEND_FAILED state for songId=${song.id} " +
+                    "was not persisted (saveToDbLocked=false): $error",
+            )
+        }
     }
 
     private fun nowMoscow(): Date = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time

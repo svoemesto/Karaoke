@@ -2292,8 +2292,8 @@ class ApiController(
         // `SimpleDateFormat.parse` в Publication и валила запрос в HTTP 500 —
         // глобального @ControllerAdvice в приложении нет, поэтому пользователь видел
         // «ошибка сервера» вместо причины. Ошибка формата — ошибка клиента (400).
-        for ((paramName, paramValue) in
-            listOf("filterDateFrom" to filterDateFrom, "filterDateTo" to filterDateTo)) {
+        val dateParams = listOf("filterDateFrom" to filterDateFrom, "filterDateTo" to filterDateTo)
+        for ((paramName, paramValue) in dateParams) {
             if (!paramValue.isNullOrBlank() && parsePublishFilterDate(paramValue) == null) {
                 return ResponseEntity.badRequest().body(
                     mapOf(

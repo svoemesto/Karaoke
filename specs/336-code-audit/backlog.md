@@ -7,20 +7,40 @@
 
 | Severity | Пакетов | Записей BR |
 |---|---:|---:|
-| S1 | 5 | 5 |
-| S2 | 22 | 160 |
+| S1 | 6 | 6 |
+| S2 | 22 | 159 |
 | S3 | 23 | 460 |
-| **Всего** | **50** | **625** |
+| **Всего** | **51** | **625** |
 
 ## Волны
 
 | Волна | Содержание | Пакетов | BR |
 |---|---|---:|---:|
-| A | S1 — публичный периметр, безопасность, деньги (по одной задаче, полный цикл со спекой) | 5 | 5 |
+| A | S1 — публичный периметр, безопасность, деньги (по одной задаче, полный цикл со спекой) | 6 | 6 |
 | B | Сетка доверия: guard-скрипты и тесты, которые не проверяют заявленное (чиним первыми после A) | 6 | 44 |
 | C | Операционные S2: деплой, бэкапы, платежи, синхронизация, безопасность периметра | 9 | 53 |
-| D | Функциональные S2 по модулям | 12 | 104 |
+| D | Функциональные S2 по модулям | 12 | 103 |
 | E | Остаток S3 (гигиена, краевые случаи) | 18 | 419 |
+
+## Связанные локации (находки, слитые с основной записью)
+
+| BR | Дополнительные локации |
+|---|---|
+| BR-003 | локации из P-38: `DebugDbAccessGuard` (IP-allowlist `/api/public/debug/db`), rate-limit claim’ов share-ссылок, `client_ip_hash` в БД |
+| BR-060 | локации из P-06/P-07: `SyncAudioDescendants.kt:173, 333`, `Utils.kt` (одноразовые `thread {}` без `closeThreadConnection()`) |
+| BR-123 | локации из P-43/P-52/P-54/P-57/P-64: `CustomConfirm.vue` → `v-html` (email, имя картинки, автор/словарь/новость), `SyncTable.vue` (ошибка БД с email) |
+| BR-202 | локация из P-39: `karaoke-web/.../templates/filter.html:308–310` (`${songAuthors}` вместо `${authors}`) |
+| BR-312 | локации из P-43/P-58/P-62/P-65: `useKaraokeEditor.js` (karaoke-public), `useReviewModalFormat.js`, `SubsEdit.vue:1703, 4073–4083`, `SongKaraokeEditorView.vue:317` |
+| BR-324 | локация из P-52: `webvue3/src/components/Chat/store.js:164` — первое сообщение в новом диалоге не появляется |
+| BR-457 | локация из P-65: `webvue3/src/composables/useKaraokeEditor.js:152–177` (квадратичный `specTagAnchors`) |
+| BR-499 | корневой `gradle/wrapper/gradle-wrapper.properties:3` (Gradle 8.14) — та же проблема версий wrapper’ов |
+| BR-507 | локации из P-68: e2e и unit-тесты `webvue3` не выполняются в CI (тот же корень «в CI нет сборки и тестов») |
+| BR-525 | локации из P-68: `webvue3/playwright.config.js:29–35` (ветки `process.env.CI` — мёртвый код), 14 файлов `webvue3/e2e/*.spec.js`, 5 файлов `webvue3/src/**/__tests__/*`; НОВОЕ в P-68-01: unit-тесты фронта (`node --test`) не имеют скрипта запуска в `webvue3/package.json` |
+| BR-531 | `karaoke-app/src/test/kotlin/1` (1 916 строк) — тот же MLT с путями `~/Documents/Караоке/…`, потребителей нет (P-30, «Сверки» п.1); `karaoke-app/src/test/kotlin/Неправильный.xml` (7 674 строки) — второй такой же MLT с путями `~/Documents/Караоке/Ю-Питер/…` и `~/Documents/SpaceBox4096/…`, потребителей нет (P-33-01) |
+| BR-551 | тот же корень «секрет в argv»: BR-552 (`deploy/tracker-db-backup.sh`, `docker exec -e PGPASSWORD`), BR-605 (`tools/tracker-lib.sh` — токен OpenProject в `-H "Authorization: Basic …"`), P-75-01 (`tools/analyze-prod-incident.sh` — пароль БД в connection string) |
+| BR-573 | зеркала из P-76 «Сверки»: registry-smoke (пустой каталог → PASS), check-ssot-impact (неразрешимая база → exit 0), lint-knowledge (шаблон не загружен → проверка отключена) |
+| BR-578 | зеркало из P-76: `tools/generate-eslint-baseline.sh:57` — абсолютный `filePath` в ключе baseline (тот же корень) |
+| BR-581 | зеркало из P-76: `tools/registry-vendor.sh:52` — `DOCKER_CONFIG=/home/nsa/Karaoke/.docker` (тот же корень «жёсткий путь») |
 
 ## Пакеты
 
@@ -54,7 +74,7 @@
 |---|---|---|---|
 | BR-019 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt:50` | SEC | закрыть весь `/api/properties/**` административной аутентификацией (перехватчик/`SecurityConfig` matcher), вынести запись в admin-only путь; из `digest`/`getproperty` исключить сек… |
 
-### PKG-BR-123 — stored xss songname confirm…
+### PKG-BR-123 — 25 обработчиков подтверждения собирают `customConfirmParams.body` интерполяцией `this.song.songName` в HTML-ст…
 
 - **Severity:** S1 · **модули:** webvue3 · **BR:** 1
 - **Волна:** A · **Режим:** полный цикл со спекой
@@ -62,7 +82,17 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-123 | `webvue3/src/components/Songs/edit/SongEdit.vue:5034` | SEC |  |
+| BR-123 | `webvue3/src/components/Songs/edit/SongEdit.vue:5034` | SEC | не собирать HTML из имени — передавать имя отдельным текстовым VNode/слотом либо экранировать (`escapeHtml(songName)`) при формировании `body`; в `CustomConfirm` оставить `v-html` … |
+
+### PKG-BR-258 — результаты и исходники премиум-задания «Создать минусовку» кладутся в тот же бакет `karaoke`, что и публичные…
+
+- **Severity:** S1 · **модули:** karaoke-app · **BR:** 1
+- **Волна:** A · **Режим:** полный цикл со спекой
+- **Файлов:** 1 · **Риск:** данные/безопасность
+
+| BR | Файл:строки | Класс | Суть / поправка |
+|---|---|---|---|
+| BR-258 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt:193` | SEC | вынести объекты `stemjobs/` в отдельный приватный бакет (или приватный префикс с явным `Deny` на `stemjobs/*` в политике бакета) и отдавать их только через `PublicStemJobController… |
 
 ### PKG-BR-518 — проверка капчи **fail-open**: при пустом серверном ключе `validate()` возвращает `true` — регистрация проходит…
 
@@ -120,7 +150,7 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-062 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6938` | RACE |  |
+| BR-062 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6938` | RACE | сделать захват атомарным на уровне БД — `UPDATE tbl_songs SET telegram_auto_publish_state='PUBLISHING' WHERE id=? AND id_telegram_demo='' AND telegram_auto_publish_state<>'PUBLISHI… |
 | BR-138 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt:74` | RACE | атомарно «захватывать» публикацию перед `sendVideo` (например, `UPDATE tbl_songs SET … = 'publishing' WHERE id = ? AND (state IS NULL OR state NOT IN ('publishing','rendering')) RE… |
 
 ### PKG-RACE-TARGET — Гонка чтения/записи целевого объекта
@@ -131,7 +161,7 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-397 | `webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue:301` | RACE | перенести запросы из мутаций в экшены, возвращать и `await` промис, показывать ошибку (тост) и закрывать модалку только после успеха; после удаления обновлять дайджест (или splice … |
+| BR-397 | `webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue:301` | RACE | зафиксировать target на всю цепочку сохранения (`const target = this.target`), блокировать select/сохранение на время операции или отменять/игнорировать reload по поколению; перечи… |
 | BR-407 | `webvue3/src/components/Promotions/store.js:39` | RACE | фиксировать target в замыкании запроса и отбрасывать ответ, если он не соответствует текущему `promoRulesTarget` (или вводить номер поколения); блокировать кнопки сохранения/удален… |
 | BR-409 | `webvue3/src/components/ShareLinks/store.js:73` | RACE | помечать каждый запрос target и отбрасывать ответы с target, отличным от текущего; при смене target очищать/блокировать таблицу до прихода ответа; разрушительные действия выполнять… |
 
@@ -146,7 +176,7 @@
 | BR-006 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsBuffer.kt:198` | PERF | убрать `close()` из EventsBuffer (оставить ThreadLocal-кеш как задумано) либо осознанно перейти на пул соединений; сейчас комментарий «вернётся в pool» описывает несуществующий пул… |
 | BR-027 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt:67` | PERF | не закрывать соединение из `getConnection()` в HTTP-потоках; для одноразовой операции использовать отдельное соединение с `use { }` либо оставить кеш как есть. |
 | BR-038 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:733` | LEAK | в `finally` потока `doStart` вызывать `database.closeThreadConnection()` — поток одноразовый, кеш ThreadLocal переиспользовать некому (это тот же паттерн, что уже применён в `Karao… |
-| BR-060 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:5752` | LEAK |  |
+| BR-060 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:5752` | LEAK | обернуть тело каждого `thread {}` в `try { … } finally { WORKING_DATABASE.closeThreadConnection() }` (для `Connection.remote()` — соответствующий экземпляр), либо заменить `thread … |
 | BR-116 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ChatController.kt:39` | PERF | не закрывать соединение в переиспользуемых потоках (полагаться на `ThreadLocal`-кэш) либо вызывать `closeThreadConnection()` только на одноразовых потоках; привести комментарии к ф… |
 
 ### PKG-S2-05 — guards/CI/.github (S2, 3)
@@ -223,17 +253,17 @@
 | BR-031 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1027` | RACE | атомарный claim на стороне worker (`UPDATE … SET process_status='WORKING' WHERE id=? AND process_status='WAITING'` с проверкой числа строк); в `createProcess` не удалять `WAITING`/… |
 | BR-032 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1941` | DATA | хранить `process_chain_id` и номер шага, не запускать шаг N+1, пока N не `DONE`, при `ERROR` останавливать цепочку; агрегированный статус песни обновлять по завершении всей цепочки… |
 | BR-033 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:1104` | ERR | валидировать `args` при создании/редактировании (непустой список непустых списков); в воркере пустые `args` переводить в `ERROR` с причиной, не роняя цикл и не блокируя лейн. |
-| BR-048 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:612` | DATA |  |
-| BR-049 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3173` | SEC |  |
-| BR-050 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2952` | SEC |  |
-| BR-063 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:7042` | DATA |  |
-| BR-064 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4810` | PERF |  |
-| BR-071 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4255` | ERR |  |
-| BR-101 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5410` | ERR |  |
-| BR-102 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5652` | DATA |  |
-| BR-104 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:8974` | PERF |  |
-| BR-108 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:6345` | DATA |  |
-| BR-109 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5966` | SEC |  |
+| BR-048 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:612` | DATA | валидировать список полей на сервере по фиксированному whitelist'у копируемых полей (текст/маркеры/служебные поля контента) и явно отклонять `ID`, `ROOT_FOLDER`, `FILE_NAME` и проч… |
+| BR-049 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3173` | SEC | разрешать только `https`/`http` к явному allowlist'у доменов источников обложек (Яндекс.Музыка, SearXNG-прокси), блокировать loopback/приватные диапазоны и порты, ограничить `Conte… |
+| BR-050 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2952` | SEC | валидировать `rootFolder` на сервере (канонизировать `Path`, требовать префикс разрешённого корня библиотеки, запрещать `..`, симлинки и каталоги вне корня) и не принимать `rootFol… |
+| BR-063 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:7042` | DATA | сохранять только явно изменённые поля через `saveToDbLocked()` (он берёт `SELECT … FOR UPDATE` и не перезаписывает чужие изменения), либо перечитывать песню непосредственно перед ф… |
+| BR-064 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4810` | PERF | спать только непосредственно перед фактическим `getLyricsSearch` (перенести sleep внутрь ветки 4851) и/или выполнять массовый поиск в фоне (executor + SSE-прогресс/итог, как путь B… |
+| BR-071 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4255` | ERR | валидировать аккорд до рендера (неизвестный аккорд — пропускать/помечать, а не `!!`); в `getFormattedChords` заменить `!!` на `?:` с сохранением исходного текста аккорда; для `getT… |
+| BR-101 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5410` | ERR | отличать «строка удалена» от «ошибка чтения» — `loadListFromDb`/`loadFromDbById` должны пробрасывать `SQLException` (или возвращать `Result`/`null` только при пустом `ResultSet`); … |
+| BR-102 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5652` | DATA | `saveToDb` должен возвращать результат (`Boolean`/`Int` из `executeUpdate`) и пробрасывать `SQLException`; `saveToDbLocked` — коммитить только при `updatedRows > 0` и возвращать `f… |
+| BR-104 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:8974` | PERF | убрать запрос из `toDTO()`: заполнять `albumName` пакетно (`Album.getAlbumsByIds` уже существует и используется в `Zakroma.buildFromSongs`, `Album.kt:315`) на уровне сборки списка;… |
+| BR-108 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:6345` | DATA | генерировать список колонок из единственного источника (список полей сущности/`SongField`), а не руками; добавить недостающие колонки, для `player_readiness_flags`/`audio_compare_h… |
+| BR-109 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5966` | SEC | валидировать `scPath` (белый список корней экспорта, `Path.normalize()` + проверка `startsWith(allowedRoot)`), санитайзить `scRenameTemplate` через `sanitizeSongFileName()` и запре… |
 
 ### PKG-S2-11 — karaoke-app: DATA, ERR, LEAK, PERF — 15 BR
 
@@ -264,7 +294,7 @@
 
 - **Severity:** S2 · **модули:** karaoke-app · **BR:** 15
 - **Волна:** D · **Режим:** короткий цикл: ТЗ из карточек аудита
-- **Файлов:** 12 · **Риск:** публичный периметр, данные/безопасность
+- **Файлов:** 11 · **Риск:** публичный периметр, данные/безопасность
 - **Темы внутри:** infinite-loop-unpublications, cache-key-no-params, no-pagination-publications, stomp-broker-missing, form-missing-fields, songs-page-no-pagination…
 
 | BR | Файл:строки | Класс | Суть / поправка |
@@ -282,19 +312,18 @@
 | BR-234 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt:77` | ERR | передавать в функцию `Song.loadListFromDb(...)` (или id из запроса), как в `ApiController`; использовать `THREAD_LANE_*`-константу вместо литерала `1`; возвращать число скопированн… |
 | BR-235 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt:441` | PERF | проверять `voice in 0..song.countVoices` (и `voice >= 0`) до вызова, возвращать 400/JSON `bad_voice`, как в `ApiController.kt:3403`; либо ограничить паддинг в `setSourceTextAndMark… |
 | BR-244 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:144` | RACE | один писатель на файл — `@Synchronized`/`ReentrantLock` вокруг «изменить карту → закодировать → записать», либо очередь записи; уникальный tmp на вызов (`Files.createTempFile(dir, … |
-| BR-251 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:925` | DATA |  |
-| BR-258 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt:193` | SEC | закрывать соединения потоков по контракту specs/091 — в `finally` воркера вызвать `closeThreadConnection()` для `WORKING_DATABASE` (и для тех `Connection.*`, что открывались в этом… |
+| BR-251 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:925` | DATA | проверять `Boolean` каждого вызова `postChangeRecords`; при `false` прерывать операцию и не выполнять удаление из источника (флаг «цель подтверждена» на чанк), возвращать в `SyncRe… |
+| BR-266 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3543` | ERR | заменить рекурсию одним проходом по списку с явным ограничением (не более одного круга) и возвратом `null`, когда проверять некого (`checkLastAlbumYm` уже трактует `null` как `-2`)… |
 
-### PKG-S2-13 — karaoke-app: DATA, ERR — 3 BR
+### PKG-S2-13 — karaoke-app: DATA — 2 BR
 
-- **Severity:** S2 · **модули:** karaoke-app · **BR:** 3
+- **Severity:** S2 · **модули:** karaoke-app · **BR:** 2
 - **Волна:** D · **Режим:** короткий цикл: ТЗ из карточек аудита
-- **Файлов:** 2 · **Риск:** данные/безопасность
-- **Темы внутри:** recursion-stackoverflow, check-then-act-repair, circuit-flags-false
+- **Файлов:** 1 · **Риск:** данные/безопасность
+- **Темы внутри:** check-then-act-repair, circuit-flags-false
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-266 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3543` | ERR |  |
 | BR-278 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt:767` | DATA | заново проверять `File(pathToFile).exists()` непосредственно перед сравнением (и трактовать отсутствие файла как отдельную ветку «диск исчез», без удаления объекта); либо перейти н… |
 | BR-279 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt:2555` | DATA | не писать флаг, если отчёт по этому типу получен из недоступного/непроверенного хранилища (передавать в `reconcilePlayerReadinessFlags` множество «неизвестных» ключей — `FATAL_ERRO… |
 
@@ -337,10 +366,10 @@
 | BR-012 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt:329` | DATA | одна транзакция на батч (`autoCommit=false`, `commit`/`rollback`), ошибки — структурированный код/HTTP-статус вместо `e.message!!`. |
 | BR-013 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt:965` | SEC | применять `onlyPublishedFor` (+ `SKIP`) к точечной загрузке; для не-редактора отдавать 404. Для картинок — та же проверка. |
 | BR-015 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicNewsController.kt:45` | PERF | clamp `size` (например, ≤100) и `page ≥ 0`; для metrics — `@Size(max=…)`/отбрасывание сверх лимита и отдельный `client_max_body_size` на location; при превышении — 400/413. |
-| BR-022 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt:152` | SEC | добавить SKIP-проверку в `access`/`readiness` и в `authorized`/`stemResponse` (или в `loadSong` плеера) по тому же правилу, что `songIsShareablePublic`: SKIP не отдаётся никому, не… |
+| BR-022 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt:152` | SEC |  |
 | BR-023 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSongEditorController.kt:216` | DATA | проверять результат `createDbInstance` и возвращать 5xx/`save_failed`; обрабатывать конкурентную вставку явно (повторное чтение существующего черновика и UPDATE вместо INSERT, либо… |
 | BR-500 | `karaoke-web/src/main/resources/templates/statbysong.html:207` | COMPAT | убрать блок `cntBoosty` (`:206–210`) или заменить на существующее поле DTO; если нужен Boosty — вернуть счётчик в `StatBySongDto` и в SQL `getStatBySong`. |
-| BR-504 | `karaoke-web/src/main/resources/templates/main.html:221` | SEC | кодировать параметры через `encodeURIComponent` (как уже сделано в `webvue3/src/lib/utils.js:71–72`) вместо ручного `replaceAll('&', …)` — во всех трёх местах `filter.html` и трёх … |
+| BR-504 | `karaoke-web/src/main/resources/templates/main.html:221` | SEC | валидировать схему ссылки на стороне записи и на стороне рендера (разрешить только `http(s):`/`/`), а в шаблоне — рендерить ссылку через безопасный префикс/параметр, а не «как есть… |
 | BR-515 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt:55` | ERR | обернуть тело `tryRenew` в `try/catch` и логировать ошибку с `siteUserId` (продолжая цикл); ограничить лог частотой, чтобы один сбойный пользователь не забивал лог на каждом тике. |
 | BR-516 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt:235` | LEAK | чистить карту по TTL (запись удаляется через N минут после последнего обращения — как в `RateLimitInterceptor`), либо хранить счётчики в ограниченном кольцевом буфере/фиксированном… |
 | BR-517 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt:537` | ERR | убрать отладочный `log.error` (нормальный путь — `log.debug`/`log.info` с requestId); в catch — `log.error("…", e)` через SLF4J (стек в логгер), без `println`/`printStackTrace`; ре… |
@@ -354,8 +383,8 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-571 | `tools/check-do-sh-guards.sh:36` | DATA | передавать пароль через `PGPASSWORD`/`.pgpass` или `docker exec -e PGPASSWORD=…` без argv; убрать печать `PSQL_REMOTE` в stdout (заменить на шаблон с плейсхолдером); убрать `eval` … |
-| BR-572 | `tools/check-feature-doc.sh:33` | ERR | вынести «зломанный» Dockerfile во временный каталог и проверять на копии (например, собрать через `docker build -f <tmp>/Dockerfile …`), либо установить `trap 'cp "$DOCKERFILE.guar… |
+| BR-571 | `tools/check-do-sh-guards.sh:36` | DATA | вынести «зломанный» Dockerfile во временный каталог и проверять на копии (например, собрать через `docker build -f <tmp>/Dockerfile …`), либо установить `trap 'cp "$DOCKERFILE.guar… |
+| BR-572 | `tools/check-feature-doc.sh:33` | ERR | в `check_doc` при отсутствии файла увеличивать `errors_total` (и/или в цикле учитывать код возврата `check_doc "$f" || errors_total=$((errors_total+1))`); в CI проверять каталог `d… |
 | BR-593 | `tools/registry-smoke.sh:113` | SEC | передавать в `check` 4-й аргумент `1` и подставлять **заведомо неверный** пароль |
 | BR-594 | `tools/registry-vendor.sh:189` | DATA | не записывать `PENDING` в колонку digest lock-файла (оставить прежнее значение либо |
 | BR-595 | `tools/generate-eslint-baseline.sh:47` | DATA | писать результат во временный файл (`mktemp`) и переносить на место (`mv`) только |
@@ -370,21 +399,21 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-087 | `webvue3/src/components/Songs/edit/SongEdit.vue:2740` | COMPAT |  |
-| BR-088 | `webvue3/src/components/Songs/edit/SongEdit.vue:3099` | DATA |  |
-| BR-093 | `webvue3/src/components/Songs/store.js:2733` | RACE | завести счётчик поколения запроса (`const seq = ++ctx.state.digestRequestSeq`) и коммитить результат только если `seq === state.digestRequestSeq`; `songsDigestIsLoading` заменить н… |
-| BR-124 | `webvue3/src/components/Songs/edit/SongEdit.vue:4398` | ERR |  |
-| BR-125 | `webvue3/src/components/Songs/edit/SongEdit.vue:4016` | RACE |  |
-| BR-370 | `webvue3/src/components/Authors/AuthorsTable.vue:745` | COMPAT | не собирать HTML из данных — передавать текст отдельным пропом/слотом и рендерить `v-text`/экранировать (`escapeHtml`) при формировании `body`; `v-html` оставить только для статичн… |
+| BR-087 | `webvue3/src/components/Songs/edit/SongEdit.vue:2740` | COMPAT | отдавать эти поля клиенту — добавить их в `SongDTO`/`toDTO()` (и в ответ списка, если карточка открывается без `loadSong`), либо отдельным endpoint'ом состояния публикаций с мержем… |
+| BR-088 | `webvue3/src/components/Songs/edit/SongEdit.vue:3099` | DATA | перед сменой песни и в `beforeUnmount` выполнять принудительный `executeSave()` при непустом `diff` (дожидаясь ответа либо отправляя `fetch(..., {keepalive:true})`), а навигацию бл… |
+| BR-093 | `webvue3/src/components/Songs/store.js:2733` | RACE | `return promisedXMLHttpRequest(...).then(...).catch(err => { commit('setSongsDigestIsLoading', false); /* показать ошибку */ }).finally(...)`, либо `async/await` с `try/catch/final… |
+| BR-124 | `webvue3/src/components/Songs/edit/SongEdit.vue:4398` | ERR | либо вызывать `promisedXMLHttpRequest(request)` напрямую (импорт из `lib/utils`), либо зарегистрировать action; `id` брать из `this.song.id`/`getters.getCurrentSongId`, а не из `st… |
+| BR-125 | `webvue3/src/components/Songs/edit/SongEdit.vue:4016` | RACE | фиксировать id песни на момент запроса (`const requestedId = this.song.id`) и применять/открывать ответ только если `requestedId === getCurrentSongId`; для `SubsEdit` передавать `s… |
+| BR-370 | `webvue3/src/components/Authors/AuthorsTable.vue:745` | COMPAT | собирать полный payload, как в `AuthorAliasesModal`/`AlbumsTable` (id + author + ymId + vkId + lastAlbumYm + lastAlbumVk + lastAlbumProcessed + watched + skip + sortOrder), либо за… |
 | BR-379 | `webvue3/src/components/ListeningHistory/store.js:66` | COMPAT | не добавлять ключ `pageSize` при `undefined` (условное присваивание) либо всегда передавать из таблицы `pageSize: this.perPage`; при 400 показывать пользователю сообщение, а не тол… |
-| BR-380 | `webvue3/src/components/Common/HealthReport/store.js:33` | RACE | ввести поколение запроса (например, `healthReportRequestSeq` + `songId`) и коммитить результат только если он соответствует текущей открытой песне; в `repairOneRecord`/`repairAll` … |
-| BR-388 | `webvue3/src/components/Processes/ProcessesTable.vue:395` | DATA | не собирать HTML из имени; передавать в `CustomConfirm` текст и экранировать его (`escapeHtml`) либо добавить в `CustomConfirm` режим plain-text для `body`/`header`. Проверить оста… |
+| BR-380 | `webvue3/src/components/Common/HealthReport/store.js:33` | RACE | отдавать из геттера имена, совпадающие с контрактом (`dictName`, `dictValue`), либо переименовать параметры бэкенда; в `create()` перезагружать с текущим фильтром. |
+| BR-388 | `webvue3/src/components/Processes/ProcessesTable.vue:395` | DATA | вводить поколение выборки (snapshot + фильтр), очищать/помечать `bulkSelectionIds` при каждом изменении фильтра и при ошибке snapshot, блокировать bulk-кнопки до получения snapshot… |
 | BR-399 | `webvue3/src/components/Processes/edit/ProcessEdit.vue:349` | ERR | вызывать `doSave(changes)` в колбэке безусловно (модалка и есть подтверждение) либо добавить в `CustomConfirm.ok()` явный `ret.confirmed = true` и зафиксировать контракт в JSDoc; п… |
 | BR-410 | `webvue3/src/components/ShareLinks/ShareLinksTable.vue:335` | COMPAT | передавать `page`, `perPage`, `sortBy`, `sortDir` и рендерить серверный ответ (или явно грузить весь список, если серверная пагинация не нужна); привести допустимый `perPage` к бэк… |
 | BR-411 | `webvue3/src/components/Publish/components/PublishTableFooter.vue:140` | ERR | при пустой/невалидной дате не вызывать `setDateTo()`, а сбрасывать `dateTo` в пустую строку; валидировать формат на бэкенде и отвечать 400 вместо 500; предусмотреть очистку уже сох… |
-| BR-416 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:231` | DATA | не собирать HTML из данных: передавать в `CustomConfirm` отдельное текстовое поле (рендер через `{{ }}`/`v-text`) или экранировать `email` перед интерполяцией; параллельно — сервер… |
-| BR-417 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:211` | DATA | не собирать payload вручную — использовать `markersToSave()`/`editor.buildPayload()` (как это делают `SongKaraokeEditorView.vue:974–976` и karaoke-public), либо явно переносить `m.… |
-| BR-426 | `webvue3/src/components/SongEditor/store.js:276` | COMPAT | экранировать `marker.label` и текст комментария до интерполяции (готовый `escapeHtml` — `webvue3/src/utils/highlightWords.js:44`) во всех копиях `formatText`. Правка #193 закрыла т… |
+| BR-416 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:231` | DATA | не собирать payload вручную — использовать `markersToSave()`/`editor.buildPayload()` (как это делают `SongKaraokeEditorView.vue:974–976` и karaoke-public), либо явно переносить `m.… |
+| BR-417 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:211` | DATA | ввести явный dirty-флаг; при закрытии с pending-таймером или dirty-состоянием — либо синхронно выполнить `saveNow()` и дождаться результата, либо показать тот же confirm, что для `… |
+| BR-426 | `webvue3/src/components/SongEditor/store.js:276` | COMPAT | собирать `params` условно — добавлять ключ только при непустом значении (как уже сделано в `searchCandidateSongs`, store.js:189–195), либо научить `getParamStringToSend` пропускать… |
 
 ### PKG-S2-18 — webvue3: COMPAT, DATA, ERR, RACE — 13 BR
 
@@ -395,15 +424,15 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-449 | `webvue3/src/components/Songs/edit/SubsEdit.vue:317` | COMPAT |  |
-| BR-450 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3165` | ERR |  |
-| BR-451 | `webvue3/src/components/Songs/edit/SubsEdit.vue:2267` | RACE |  |
+| BR-449 | `webvue3/src/components/Songs/edit/SubsEdit.vue:317` | COMPAT | не пускать произвольный текст в числовое поле — `type="number"` + `@change` с `Number(...)`/`parseFloat` и откатом к прежнему значению при `NaN`; в `getMarkersToSave()` приводить `… |
+| BR-450 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3165` | ERR | в `catch` выставлять `this.isCustomConfirmVisible = true` (и `isAlert: true`), как в остальных 6 местах файла; ошибку также писать в консоль/тост, а `save()` возвращать признак усп… |
+| BR-451 | `webvue3/src/components/Songs/edit/SubsEdit.vue:2267` | RACE | фиксировать запрошенный голос (`const requestedVoice = this.currentVoice`) и применять ответ только при `requestedVoice === this.currentVoice` (счётчик поколений/`AbortController`)… |
 | BR-458 | `webvue3/src/components/Subscriptions/SubscriptionsTable.vue:30` | COMPAT | сделать пагинацию серверной: на `update:page`/`update:per-page`/применение фильтра отправлять `page` и `pageSize` (переименовать параметр), очищать `digest` при смене target; либо,… |
 | BR-459 | `webvue3/src/components/Stats/store.js:443` | RACE | вводить `requestId`/поколение на endpoint и коммитить только ответ последнего запроса (или `AbortController` + сверка `target`/`days`/`page` в момент `then`). |
 | BR-460 | `webvue3/src/components/Stats/store.js:559` | COMPAT | добавить второй endpoint в `tabEndpoints[1]` (или dispatch из `loadDataForActiveTab`) и вернуть `Promise<Boolean>` из action, чтобы TTL взводился по факту загрузки. |
 | BR-461 | `webvue3/src/components/Tariffs/store.js:61` | ERR | `.catch` в каждой мутации с возвратом `false` и показом ошибки (CustomConfirm/alert), откат `editable` к `original` при отказе, проверка `Number.isFinite(priceRub) && priceRub >= 0… |
 | BR-462 | `webvue3/src/components/StemJobs/store.js:51` | DATA | очищать `stemJobs` (или помечать `loadedTarget`) при смене target; при ошибке показывать сообщение и блокировать действия; в `stopStemJob`/`deleteStemJob` добавить `.catch` с уведо… |
-| BR-467 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4137` | ERR |  |
+| BR-467 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4137` | ERR | не предполагать форму поля — брать значение как `marker.chord || marker.label` (и проверять тип/`String()`), а в `case 'chord'` возвращать пустое содержимое, если значения нет; отд… |
 | BR-483 | `webvue3/src/player/KaraokePlayer.js:2937` | DATA | анимировать стрелки по времени кадра (`dt`, тот же источник, что `_forcedTime`), а не по |
 | BR-484 | `webvue3/src/player/KaraokePlayer.js:1435` | ERR | в ветке `inlineData` конструктора задавать `this.songId` (id песни есть в inlineData) |
 | BR-485 | `webvue3/src/player/KaraokePlayer.js:3223` | COMPAT | синхронизировать набор версий с `RenderVersion` (добавить CHORDS и TABS) либо |
@@ -430,7 +459,7 @@
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
 | BR-028 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:885` | SEC | перевести все фильтры на `PreparedStatement` с `?` (включая `ids` → `IN (?, …)`); числовые поля — `setInt/setLong`; при динамическом наборе колонок — белый список имён, значения то… |
-| BR-100 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:7817` | SEC |  |
+| BR-100 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:7817` | SEC | перевести `getWhereList` на параметризованные `?` + `PreparedStatement` (коллекция значений рядом с коллекцией фрагментов); для `filter_*` — парсить значение как число/оператор из … |
 | BR-175 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt:213` | SEC | перейти на параметризованный запрос (`PreparedStatement`/`JdbcTemplate` с `?`) либо, как минимум, приводить `id` к `Long` до подстановки и экранировать `'` в `picture_name`/`name` … |
 | BR-182 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt:174` | SEC | параметризовать все условия (`PreparedStatement` + `?`), `id` — `setLong`; либо переиспользовать экранирование из `Dictionary.getWhereList`. Динамические имена колонок — только из … |
 | BR-237 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt:227` | SEC | параметризовать условия (`PreparedStatement` + `?`), числовые поля приводить к `Long`/`Int` до подстановки, `album_type` — белый список `AlbumType.entries`; `name`/`name_search` ос… |
@@ -514,17 +543,17 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-615 | `webvue3/e2e/measure-input-latency.spec.js:11` | TEST | (1) добавить в `webvue3/package.json` скрипт `"test:unit": "node --test src/**/__tests__/*.test.js"` и джоб в `.github/workflows/lint.yml`, запускающий его (юнит-тесты стенда не тр… |
-| BR-616 | `webvue3/e2e/measure-formatter-vhtml.spec.js:37` | TEST | вынести измерялку из `testDir` (например, в `webvue3/scripts/measure-input-latency.mjs`, вызываемую вручную или отдельным npm-скриптом), либо добавить в конец явное утверждение по … |
-| BR-617 | `webvue3/e2e/measure-formatter-vhtml.spec.js:11` | TEST | либо вынести в измерялку (см. P-68-02), либо проверять заявленный порог (`toBeLessThan(16)`) с явной пометкой «порог согласован владельцем», чтобы файл был либо проверкой, либо изм… |
-| BR-618 | `webvue3/e2e/save-race.spec.js:83` | TEST | использовать относительный путь (`page.request.post('/api/song/textformatted', …)`) — `baseURL` подставится сам; id песни вынести в переменную окружения/`testInfo`; ожидаемый разме… |
-| BR-619 | `webvue3/e2e/tabs-variant.spec.js:68` | TEST | вызвать оба сохранения **внутри одного** `page.evaluate` без промежуточного `await` (например, `Promise.allSettled([inst.proxy.save(), inst.proxy.save()])` или два вызова без `awai… |
-| BR-620 | `webvue3/src/utils/__tests__/highlightWords.test.js:109` | TEST | проверять кламп на данных, где он вообще может сработать: (а) подставлять список вариантов в компонент (как уже сделано со словарём в `yo-highlight.spec.js` — `setDictionary`), либ… |
-| BR-621 | `webvue3/e2e/marker-nav.spec.js:44` | TEST | заменить строку под проверкой на строку со словом **из словаря** (например `'<b>всё</b>'`) и добавить второе утверждение — что внутри тега не оказалось «живой» разметки (`!html.inc… |
-| BR-622 | `webvue3/e2e/ghost-markers.spec.js:125` | TEST | вычислять опорную точку динамически (например, середина массива: `k = Math.floor(vis.length / 2)`) и требовать минимального числа видимых маркеров явной проверкой с внятным сообщен… |
-| BR-623 | `webvue3/e2e/yo-highlight.spec.js:91` | TEST | проверять инвариант «регион на каждый видимый маркер и ни одного региона в нуле, кроме маркеров, у которых в данных `time === 0`» — то есть сравнивать `regionsAtZero` с `markersAtZ… |
-| BR-624 | `webvue3/playwright.config.js:28` | TEST | текст под проверкой тоже задавать тестом (вставлять собственную строку в редактор, как это делает `paste-blank-lines.spec.js`), а ожидания выводить из вставленного текста вместо ко… |
-| BR-625 | `webvue3/e2e/smoke.spec.js:1` | TEST | подтвердить или снять посылку про «общее состояние песни» (заглушки мутаций уже есть) и вернуть `fullyParallel: true`/`workers` по умолчанию; ожидания `waitForTimeout(7000…12000)` … |
+| BR-615 | `webvue3/e2e/measure-input-latency.spec.js:11` | TEST | вынести измерялку из `testDir` (например, в `webvue3/scripts/measure-input-latency.mjs`, вызываемую вручную или отдельным npm-скриптом), либо добавить в конец явное утверждение по … |
+| BR-616 | `webvue3/e2e/measure-formatter-vhtml.spec.js:37` | TEST | либо вынести в измерялку (см. P-68-02), либо проверять заявленный порог (`toBeLessThan(16)`) с явной пометкой «порог согласован владельцем», чтобы файл был либо проверкой, либо изм… |
+| BR-617 | `webvue3/e2e/measure-formatter-vhtml.spec.js:11` | TEST | использовать относительный путь (`page.request.post('/api/song/textformatted', …)`) — `baseURL` подставится сам; id песни вынести в переменную окружения/`testInfo`; ожидаемый разме… |
+| BR-618 | `webvue3/e2e/save-race.spec.js:83` | TEST | вызвать оба сохранения **внутри одного** `page.evaluate` без промежуточного `await` (например, `Promise.allSettled([inst.proxy.save(), inst.proxy.save()])` или два вызова без `awai… |
+| BR-619 | `webvue3/e2e/tabs-variant.spec.js:68` | TEST | проверять кламп на данных, где он вообще может сработать: (а) подставлять список вариантов в компонент (как уже сделано со словарём в `yo-highlight.spec.js` — `setDictionary`), либ… |
+| BR-620 | `webvue3/src/utils/__tests__/highlightWords.test.js:109` | TEST | заменить строку под проверкой на строку со словом **из словаря** (например `'<b>всё</b>'`) и добавить второе утверждение — что внутри тега не оказалось «живой» разметки (`!html.inc… |
+| BR-621 | `webvue3/e2e/marker-nav.spec.js:44` | TEST | вычислять опорную точку динамически (например, середина массива: `k = Math.floor(vis.length / 2)`) и требовать минимального числа видимых маркеров явной проверкой с внятным сообщен… |
+| BR-622 | `webvue3/e2e/ghost-markers.spec.js:125` | TEST | проверять инвариант «регион на каждый видимый маркер и ни одного региона в нуле, кроме маркеров, у которых в данных `time === 0`» — то есть сравнивать `regionsAtZero` с `markersAtZ… |
+| BR-623 | `webvue3/e2e/yo-highlight.spec.js:91` | TEST | текст под проверкой тоже задавать тестом (вставлять собственную строку в редактор, как это делает `paste-blank-lines.spec.js`), а ожидания выводить из вставленного текста вместо ко… |
+| BR-624 | `webvue3/playwright.config.js:28` | TEST | подтвердить или снять посылку про «общее состояние песни» (заглушки мутаций уже есть) и вернуть `fullyParallel: true`/`workers` по умолчанию; ожидания `waitForTimeout(7000…12000)` … |
+| BR-625 | `webvue3/e2e/smoke.spec.js:1` | TEST | вынести id песни в параметр (env/`testInfo`), добавить в набор подготовку данных (создание тестовой песни с нужными маркерами/нотами через API или SQL-фикстуру) — тогда набор перес… |
 
 ### PKG-S3-06 — guards/CI/tools (S3, 7)
 
@@ -534,10 +563,10 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-574 | `tools/check-container-restart.sh:7` | RULE | различать «нет нарушений» и «нет данных»: при пустом наборе — печатать ошибку и возвращать ненулевой код (для `baseline-stats.sh` — считать значение как «N/A», а не «0»); в `check-… |
-| BR-578 | `tools/check-eslint-baseline.sh:76` | COMPAT | строить список поддерживаемых полей **из контроллера пары** (использовать `controller`/`controller_method` из `endpoint-pairs.yml`), а маппер использовать только для пар, которые н… |
-| BR-581 | `tools/check-docker-config.sh:29` | RULE | строить контекст из полного содержимого файла (индекс строки из diff + полный файл), а не из списка добавленных строк; номер строки брать из diff. |
-| BR-584 | `tools/auto-kdoc.py:128` | RULE | в `NAME_SLUG_OVERRIDE` / `CLASS_SLUG_OVERRIDE` / `CLASS_DESCRIPTIONS` использовать актуальный префикс `archive/docs/features/` и существующие слаги; для `auto-kdoc-quality.py` — хр… |
+| BR-574 | `tools/check-container-restart.sh:7` | RULE | добавить паттерны `docker\s+compose\b.*\brestart\b` и `docker\s+start\s+<c>` (и `docker\s+restart\s+(-[^\s]+\s+)*<c>`), убрать зависимость от формы `docker-compose`. |
+| BR-578 | `tools/check-eslint-baseline.sh:76` | COMPAT | нормализовать путь к репозиторию (относительный от корня) при записи baseline и при сравнении; ключ сделать устойчивым к сдвигу строк (ruleId + относительный путь + текст сообщения… |
+| BR-581 | `tools/check-docker-config.sh:29` | RULE | определять ожидаемый путь от корня репозитория (`git rev-parse --show-toplevel`/`.gradle` рядом с ним) либо через матрицу машин; AGENTS.md-команду для gradle/docker сделать перенос… |
+| BR-584 | `tools/auto-kdoc.py:128` | RULE | убрать ветку `Entity` из `describe()` (или переформулировать без упоминания JPA); проверять результат генерации guard’ом `check-no-jpa-imports.sh`. |
 | BR-599 | `tools/generate-docs.sh:28` | RULE | перед вызовами задать `export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$REPO_ROOT/.gradle}"` |
 | BR-602 | `tools/tracker-poll.sh:106` | COMPAT | разделять по пробелу с фиксированным числом колонок (`split(" ")` + `map(select(length>0))`), |
 | BR-611 | `tools/tracker-lib.sh:25` | RULE | в библиотеке не менять настройки вызывающего шелла (`set -euo pipefail` убрать из |
@@ -591,8 +620,8 @@
 | BR-538 | `deploy/karaoke-db/44_author_song_counts.sql:187` | BUILD | `DROP TRIGGER IF EXISTS trg_tbl_songs_update_author_counts ON public.tbl_songs;` перед `CREATE TRIGGER` (либо `CREATE OR REPLACE TRIGGER`, доступный с PostgreSQL 14) и привести шап… |
 | BR-547 | `deploy/prod-single-host/docker-compose-web.yml:53` | BUILD | добавить `healthcheck` (например `curl -fsS http://localhost:${WEB_PORT_INSIDE_CONTAINER}/actuator/health` либо `pg_isready` для БД), `mem_limit`/`cpus` (для `karaoke-web` — около … |
 | BR-548 | `deploy/tts/silero_say.py:79` | SEC | зафиксировать sha256 модели в репозитории/переменной и проверять его после загрузки (`hashlib.sha256` + сравнение, отказ при несовпадении); при несовпадении — не загружать pickle; … |
-| BR-549 | `deploy/prod-single-host/nginx_karaoke-public.conf:19` | SEC | добавить защитные заголовки явно в каждый `location` (и в `server`-блоки host-nginx): `Strict-Transport-Security "max-age=31536000; includeSubDomains"`, `X-Content-Type-Options nos… |
-| BR-550 | `deploy/prod-single-host/nginx_karaoke-public.conf:21` | PERF | привести лимит к фактически допустимому размеру загрузки публичного API (например 20–64 МБ) и продублировать его в host-nginx; отдельно — в `location /api/public` задать свой, мень… |
+| BR-549 | `deploy/prod-single-host/nginx_karaoke-public.conf:19` | SEC | привести лимит к фактически допустимому размеру загрузки публичного API (например 20–64 МБ) и продублировать его в host-nginx; отдельно — в `location /api/public` задать свой, мень… |
+| BR-550 | `deploy/prod-single-host/nginx_karaoke-public.conf:21` | PERF |  |
 | BR-559 | `deploy/new_comp/sm-karaoke-system/deploy/do.sh:5` | BUILD | добавить `set -euo pipefail` (или `set -e` + явные проверки) в начало скрипта; загружать `.env`/`do.env` через безопасный блок `[ -f "$f" ] && . "$f" || { echo "нет файла $f" >&2; … |
 | BR-560 | `deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml:51` | BUILD | добавить `depends_on` + `healthcheck` (с проверкой готовности БД/хранилища) либо `restart: unless-stopped` для `karaoke-app`/`karaoke-web`/`karaoke-webvue`/`karaoke-webvue3`; задат… |
 
@@ -609,41 +638,41 @@
 | BR-035 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/MediaInfo.kt:29` | ERR | `waitFor(timeout)` + проверка exit code + `destroyForcibly()` в `finally`; ошибку возвращать явно и логировать с уровнем, не подменять нулём без следа. |
 | BR-036 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:600` | ERR | логировать исключение со стеком (SLF4J), при сбое recovery не запускать цикл или сигналить в мониторинг; добавить колонку причины ошибки (или писать в `process_description`) и запо… |
 | BR-037 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:963` | DATA | добавить в `loadList` фильтр `process_deleted_at IS NULL` (или явный параметр `includeDeleted`), тот же фильтр — в `hasActiveProcess`; отдавать в DTO признак удаления. |
-| BR-051 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:946` | ERR |  |
-| BR-052 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:558` | ERR |  |
-| BR-053 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3734` | ERR |  |
-| BR-054 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:1378` | COMPAT |  |
+| BR-051 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:946` | ERR | читать значения безопасно (`(map["tempo"] as? String) ?: ""`, `(map["chords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()`), либо отдавать 404/пустой ответ осознанно и … |
+| BR-052 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:558` | ERR | логировать через SLF4J с контекстом (`time`, число строк), возвращать 5xx (или явный признак ошибки в контракте), чтобы polling не терял изменения молча; закрытие ресурсов — через … |
+| BR-053 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3734` | ERR | использовать существующий `loadSongsBatch` (или общий helper) во всех четырёх обработчиках; идемпотентность/`distinct()` — как в `createkaraokeall`. |
+| BR-054 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:1378` | COMPAT | заменить `SongVersion.LYRICS` на `SongVersion.CHORDS` в семи перечисленных местах и выровнять лимиты длины с соседними версиями; добавить тест на различие префиксов версий для chor… |
 | BR-055 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3734` | PERF |  |
-| BR-056 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2484` | RACE |  |
-| BR-057 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3267` | PERF |  |
-| BR-058 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2914` | ERR |  |
-| BR-059 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3875` | ERR |  |
-| BR-061 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:5855` | ERR |  |
-| BR-065 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4714` | PERF |  |
-| BR-066 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:8270` | PERF |  |
-| BR-067 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:8057` | ERR |  |
-| BR-068 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4852` | ERR |  |
-| BR-069 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:8023` | COMPAT |  |
-| BR-070 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6629` | ERR |  |
-| BR-072 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:445` | DATA |  |
-| BR-073 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:217` | DATA |  |
-| BR-074 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:731` | DATA |  |
-| BR-075 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:1007` | RACE |  |
-| BR-076 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4095` | ERR |  |
-| BR-077 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4335` | ERR |  |
-| BR-078 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2153` | ERR |  |
-| BR-079 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2130` | ERR |  |
-| BR-080 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2711` | ERR |  |
-| BR-081 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4406` | ERR |  |
-| BR-082 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:3535` | ERR |  |
-| BR-083 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:263` | PERF |  |
-| BR-084 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:976` | PERF |  |
-| BR-085 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:1895` | ERR |  |
-| BR-086 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4180` | SEC |  |
-| BR-103 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5396` | DATA |  |
-| BR-105 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:8332` | DATA |  |
-| BR-106 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:6066` | DATA |  |
-| BR-107 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:7534` | ERR |  |
+| BR-056 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2484` | RACE | сериализовать доступ к файлу истории (общий lock/`ReentrantLock` на путь), писать атомарно через временный файл + `Files.move(ATOMIC_MOVE)`, а ошибку разбора не превращать в «пусту… |
+| BR-057 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3267` | PERF | считать дату SQL-запросом с `WHERE`/`ORDER BY … LIMIT 1` (или отдельным лёгким `SELECT date …`), не материализуя все песни; для «сегодня» — фильтр по дате в SQL. |
+| BR-058 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:2914` | ERR | логировать SLF4J `warn` с кодом ответа и хостом, проверять `responseCode in 200..299` и логировать не-2xx; при неуспехе — повтор/фолбэк (или явный признак в ответе), чтобы не терят… |
+| BR-059 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:3875` | ERR | привести тексты к фактическому порогу (`>= 4`), лучше — формировать сообщение из той же константы, что и условие. |
+| BR-061 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:5855` | ERR | обернуть тело каждого потока в `try/catch (t: Throwable)` с `println`/SLF4J и `SNS.send(SseNotification.error(...))`, как в 5700–5732; закрытие соединения — см. P-09-13. |
+| BR-065 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4714` | PERF | валидировать даты (`start <= end`, максимум N дней, например 31) и/или выполнять обход в фоновом потоке с SSE-прогрессом; при невалидном формате — 400, а не 500. |
+| BR-066 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:8270` | PERF | писать ZIP сразу в `response.outputStream` (или временный файл и `FileSystemResource`), не держать стемы и архив в heap; `zip`/потоки закрывать в `finally`; ограничить конкурентнос… |
+| BR-067 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:8057` | ERR | вычитывать `process.inputStream` (как `Utils.runProcess`), задавать таймаут через `waitFor(timeout, unit)` с `destroyForcibly()` при истечении, ограничить stderr (`-loglevel error`… |
+| BR-068 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:4852` | ERR | логировать `warn` с `song.id`, движком и `e.message` (как в пути B) и/или агрегировать причины в SSE-сводку (`failedReason`), не меняя поведение подсчёта `minIntervalMs`. |
+| BR-069 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:8023` | COMPAT | возвращать `ResponseEntity<SearchResultDTO>` и явный `404`, либо `404` через `ResponseStatusException`; привести KDoc/контракт и клиент к одному поведению (клиент должен различать … |
+| BR-070 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:6629` | ERR | возвращать `404`/`400` с текстом «путь не найден/не каталог» (и `ResponseEntity`), не подменять путь на `/`; начальный листинг корня — только при явно пустом `path`. |
+| BR-072 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:445` | DATA | в геттере не писать в БД: вернуть fallback и залогировать `ERROR`/`WARN` с `songId` и исходной строкой; нормализацию/миграцию формата вынести в явную операцию (как это сделано для … |
+| BR-073 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:217` | DATA | убрать запись из геттера; вынести «починку» `root_folder` в явную операцию (health-action или импорт) с проверкой однозначности кандидата (ровно один матч + сверка `file_name`/`aud… |
+| BR-074 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:731` | DATA | геттер сделать чистым (только чтение); создание `Pictures` и установку флага перенести в write-путь (импорт, health-action, загрузка обложки); флаг готовности ставить после успешно… |
+| BR-075 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:1007` | RACE | писать флаг точечным SQL (`jsonb_set(player_readiness_flags, '{key}', …)` в одном `UPDATE`) либо под `SELECT … FOR UPDATE` (как `saveToDbLocked`); в идеале — вынести флаги из общег… |
+| BR-076 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4095` | ERR | проверять `voice in sourceMarkersList.indices`; при пустом `variants` возвращать `emptyList()` (как уже сделано для пустых `markersNotes` на 4096) либо явную ошибку валидации марке… |
+| BR-077 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4335` | ERR | `coerceIn(0, size - 1)` с проверкой на пустой список; валидировать `indexTabsVariant` в API (0..N-1) и при загрузке из БД; при выходе за диапазон — сбрасывать на 0 с логом. |
+| BR-078 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2153` | ERR | парсер сделать устойчивым (`getOrNull`, проверки длины, `toDoubleOrNull`), при нештатном файле — `WARN` с `songId`/путём и пустой результат; в `updateBpmAndKeyLV` — `try/catch` на … |
+| BR-079 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2130` | ERR | заменить `Map<String, Any>` на типизированный `data class SheetsageInfo(key: String?, tempo: String?, chords: List<String>, beattimes: List<Double>)` либо вернуть `Map<String, Any?… |
+| BR-080 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:2711` | ERR | `maxOfOrNull { … } ?: 0L` для `songLengthMs`; в `getMltProp` — явная проверка `sourceMarkersList.isEmpty()` с типизированной ошибкой («маркеры не заданы») до разыменования `[0]`; `… |
+| BR-081 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4406` | ERR | валидировать `stringLad` (`toIntOrNull()`, диапазон 0..5, лад ≥ 0) до рендера; при невалидном значении — `WARN` и фолбэк на автоматический подбор строя (ветка `else`). |
+| BR-082 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:3535` | ERR | считать минимум по непустым голосам (`mapNotNull { … minOfOrNull { it } }.minOrNull()`), пустой случай обрабатывать явно (0L); в `catch` — логировать `songId`, а не глушить. |
+| BR-083 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:263` | PERF | `ms` — чистое чтение: значение заполнять при импорте/анализе (как `MediaInfo`/`StorageMetadataCache`), при отсутствии — возвращать `0` без subprocess; запись — только из явного шаг… |
+| BR-084 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:976` | PERF | мемоизировать разобранный `Map` в объекте (инвалидировать при записи поля) либо хранить флаги типизированными полями; `sourceMarkersList` — аналогично кэшировать по значению строки… |
+| BR-085 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:1895` | ERR | использовать уже существующий `parseKeyBpmFileOrNull` (или обернуть чтение/декод в `try/catch`), при неудаче — `WARN` и `Pair("", 0)`; `println` пути заменить на логгер. |
+| BR-086 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4180` | SEC | экранировать **все** интерполируемые значения (`originalKey`, `newKey`, `noteOctave`, `capo`) тем же `escapeHtml()` до сборки HTML; отдельный тест «значение поля с `<` не попадает … |
+| BR-103 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:5396` | DATA | нормализовать не `this`, а объединение «свежая строка из БД + изменения, которые этот объект действительно намерен внести» (трёхсторонний diff по исходному снимку), либо применять … |
+| BR-105 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:8332` | DATA | считать число голосов в SQL (`jsonb_array_length`/`json_array_length` по `source_markers` с фолбэком на `source_text`) или, если фильтр остаётся в памяти, грузить `source_markers` … |
+| BR-106 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:6066` | DATA | сначала DELETE в транзакции, затем — удаление файлов (best-effort с логом результата); `deleteOnExit` заменить на немедленное удаление в `try/catch`; `prepareStatement` — в `use {}… |
+| BR-107 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:7534` | ERR | ловить только `SQLException` с признаком рассинхрона сиквенса (или проверять `sqlState`/сообщение), остальные — пробрасывать; возвращать `null` только после реального отсутствия `g… |
 | BR-114 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/SecurityConfig.kt:42` | SEC | закрыть admin-API на уровне кода (правило `authenticated()` для `/api/**`, кроме явного публичного списка) либо на уровне nginx (`allow/deny` + `auth_basic`); не принимать `X-Admin… |
 
 ### PKG-S3-23 — karaoke-app: BUILD, DATA, ERR, LEAK, PERF, RACE — 40 BR
@@ -743,7 +772,7 @@
 | BR-222 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt:341` | DATA | валидировать `idStatus` до любых мутаций; переводить статус задания атомарным `UPDATE … WHERE admin_status <> 'APPROVED' RETURNING` до/вместе с применением разметки и проверять фак… |
 | BR-223 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt:360` | RACE | атомарный переход статуса (`UPDATE tbl_song_assignments SET admin_status='APPROVED' WHERE id=? AND admin_status<>'APPROVED' RETURNING id`) и запуск push/render только победителем; … |
 | BR-224 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt:463` | ERR | `private val log = LoggerFactory.getLogger(SongEditorController::class.java)` и `log.error("approve:push:failed songId={} durationMs={}", song.id, …, e)`; то же для sync-related; н… |
-| BR-225 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs:0` | COMPAT | заменить `tbl_settings` на `tbl_songs` в 9 файлах (и проверить имена колонок `song_author`/`song_album`/`publish_date` по актуальной схеме `tbl_songs`); добавить `karaoke-app/**/do… |
+| BR-225 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs:0` | COMPAT |  |
 | BR-226 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsController.kt:71` | PERF | single-flight на ключ (например, `ConcurrentHashMap<StatsCacheKey, CompletableFuture<Any>>` или `PollingCache.getOrCompute` с guard'ом), чтобы второй запрос ждал результат первого,… |
 
 ### PKG-S3-25 — karaoke-app: COMPAT, DATA, ERR, LEAK, PERF, RACE, SEC — 40 BR
@@ -771,28 +800,28 @@
 | BR-245 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:155` | ERR | `toLongOrNull`/`toIntOrNull`/`toDoubleOrNull` → 400 с причиной; boolean — явный разбор (`true/false/1/0`, иначе 400); неизвестный ключ — 400/404 вместо no-op; `getDTO`/`getProperty… |
 | BR-246 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:88` | COMPAT | зарегистрировать три ключа в `listKaraokeProperties` с типами и дефолтами из спецификаций (Boolean/`false` для `batch-enabled`, Int/`500` для `batch-max-buffer-size`, Boolean/`true… |
 | BR-248 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:39` | RACE | `@Volatile` + двойная проверка под `synchronized`/`ReentrantLock`; публиковать карту целиком после загрузки (immutable snapshot в `@Volatile`-поле), а не наполнять общий `HashMap` … |
-| BR-249 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:75` | ERR | вернуть из `savePropertiesMap`/`set` результат, на ошибке — 5xx с причиной и записью в лог со стеком (SLF4J); `chmod` выполнять до публикации успеха и не смешивать его ошибку с оши… |
+| BR-249 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:75` | ERR |  |
 | BR-250 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:65` | DATA | разбирать построчно, пропуская битые строки с логом «ключ/строка», а не отклонять файл целиком; при провале загрузки заполнять карту дефолтами всех ключей **до** первой записи; 0-б… |
-| BR-252 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:859` | DATA |  |
-| BR-253 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:262` | RACE |  |
-| BR-254 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:370` | ERR |  |
-| BR-255 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2590` | LEAK |  |
-| BR-256 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:1607` | ERR |  |
-| BR-257 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2132` | DATA |  |
-| BR-259 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobCleanup.kt:52` | RACE | вынести объекты `stemjobs/` в отдельный приватный бакет (или приватный префикс с явным `Deny` на `stemjobs/*` в политике бакета) и отдавать их только через `PublicStemJobController… |
-| BR-260 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt:82` | DATA | сопоставлять шаги по `jobId` (префикс описания/отдельное поле), а не по точной строке; `executeFinalizeStemJob` должен перечитывать статус задания и не финализировать задание в `ER… |
-| BR-261 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt:104` | PERF | ставить `WORKING` только после успешной вставки шага (или откатывать в `ERROR` при `null`); проверять результат `createDbInstance` в обоих местах. |
-| BR-262 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt:345` | ERR | присваивать `Karaoke.requestIamTokenLastTimeMs = currentDateTime` сразу после успешного обновления; ошибку получения токена отделять от ошибки HTTP-поиска (свой тип/сообщение, без … |
-| BR-263 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt:74` | ERR | собирать тело через `ObjectMapper.writeValueAsString` (Jackson уже в зависимостях) или явно экранировать `"`, `\` и управляющие символы в `queryText`. |
-| BR-264 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SyncAudioDescendants.kt:344` | ERR | развести три исхода `ffprobe` (успех / не удалось измерить / превышение лимита) и писать в `errorMessage` фактическую причину. |
-| BR-265 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt:865` | ERR | возвращать различие «пусто» и «ошибка» (исключение/`Result`), в `syncAll` отдавать ошибку вместо `"OK"`, в сводку выводить счётчик ошибок. |
-| BR-267 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3583` | ERR |  |
-| BR-268 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3065` | DATA |  |
-| BR-269 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3674` | LEAK |  |
-| BR-270 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4614` | ERR |  |
-| BR-271 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4102` | SEC |  |
-| BR-272 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4657` | ERR |  |
-| BR-273 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4907` | PERF |  |
+| BR-252 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:859` | DATA | выполнять DELETE+INSERT в одной транзакции (`autoCommit=false`, `commit`/`rollback`) или сначала INSERT с `ON CONFLICT (id) DO UPDATE`; проверку соединения делать до удаления; искл… |
+| BR-253 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:262` | RACE | заменить пару «флаг + присваивание» на `AtomicBoolean.compareAndSet(false, true)` либо `synchronized`-блок; снимать флаг в `finally` (см. P-07-05). |
+| BR-254 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:370` | ERR | обернуть тело потока в `try { … } finally { flag = false }` и снимать флаг также при неудаче создания потока (ставить флаг внутри `try` вокруг `thread {}` либо использовать `Atomic… |
+| BR-255 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2590` | LEAK | `Files.walk(Path(pathToFolder)).use { stream -> stream.filter(...).map(...).toList() }`; ошибки обхода логировать (не глушить) и отличать от «не найдено» — как минимум вернуть приз… |
+| BR-256 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:1607` | ERR | ловить `Exception` (или `RuntimeException`) вокруг разбора строки и считать такую строку пропуском с логированием `id`/файла; заменить `printStackTrace()` на логгер; возвращать счё… |
+| BR-257 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:2132` | DATA | во всех ветках брать текстовое содержимое (`ownText()`/`text()`), а при необходимости сохранить переводы строк — предварительно заменять блочные теги на `\n`; перед записью в `sour… |
+| BR-259 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobCleanup.kt:52` | RACE | сопоставлять шаги по `jobId` (префикс описания/отдельное поле), а не по точной строке; `executeFinalizeStemJob` должен перечитывать статус задания и не финализировать задание в `ER… |
+| BR-260 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt:82` | DATA | ставить `WORKING` только после успешной вставки шага (или откатывать в `ERROR` при `null`); проверять результат `createDbInstance` в обоих местах. |
+| BR-261 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt:104` | PERF | присваивать `Karaoke.requestIamTokenLastTimeMs = currentDateTime` сразу после успешного обновления; ошибку получения токена отделять от ошибки HTTP-поиска (свой тип/сообщение, без … |
+| BR-262 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt:345` | ERR | собирать тело через `ObjectMapper.writeValueAsString` (Jackson уже в зависимостях) или явно экранировать `"`, `\` и управляющие символы в `queryText`. |
+| BR-263 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt:74` | ERR | развести три исхода `ffprobe` (успех / не удалось измерить / превышение лимита) и писать в `errorMessage` фактическую причину. |
+| BR-264 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SyncAudioDescendants.kt:344` | ERR | возвращать различие «пусто» и «ошибка» (исключение/`Result`), в `syncAll` отдавать ошибку вместо `"OK"`, в сводку выводить счётчик ошибок. |
+| BR-265 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt:865` | ERR | логировать причину (`e::class.simpleName`, `message`) и различать в возвращаемом значении сетевой сбой, не-2xx и пустой документ. |
+| BR-267 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3583` | ERR | заменить на `author.ymId != ""` (или `author.ymId.isNotEmpty()`); условие целиком выразить через `Author.haveNewAlbum`. |
+| BR-268 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3065` | DATA | в `getSyllables` обрабатывать все слова (`findAll`/`split` + проход слияния один раз по строке, как уже сделано в `WhisperMarkerAligner.buildTargetWords`, `WhisperMarkerAligner.kt:… |
+| BR-269 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:3674` | LEAK | читать тело в `conn.inputStream.use { it.bufferedReader().use(BufferedReader::readText) }`, а соединение закрывать в `finally { conn.disconnect() }`; ошибку логировать, а не только… |
+| BR-270 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4614` | ERR | `process.waitFor(timeout, TimeUnit.MILLISECONDS)` с `destroyForcibly()` при истечении; `reader.use { }`; убивать и закрывать процесс в `finally`; ограничить объём накапливаемого вы… |
+| BR-271 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4102` | SEC | не собирать shell-строку из значений — передавать аргументы позиционными параметрами (`sh script "$1" "$2"`) или через `exec` с массивом; экранировать `'` как `'\''`; права `700` в… |
+| BR-272 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4657` | ERR | обрабатывать `null` от `getChordNote` (возвращать исходное значение и логировать один раз), убрать `!!`; при пустой тональности не транспонировать. |
+| BR-273 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4907` | PERF | один запрос на весь цикл (или SQL-нормализация с индексом) и `Map` «нормализованное имя → кандидат»; `findDuplicateOriginal`/`searchSongsByNormalizedName` — та же пакетная загрузка… |
 | BR-274 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt:54` | PERF | валидировать соединение только при открытии и после `SQLException` (флаг «помечено битым»), а не в горячем пути; `isValid` — по таймеру/при простое, не на каждый вызов. |
 | BR-275 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt:67` | ERR | передавать в `log.warn` сам объект исключения последним аргументом (SLF4J добавит стек и cause), сохранив placeholder'ы; `println` оставить только с сообщением. |
 
@@ -806,7 +835,7 @@
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
 | BR-276 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt:652` | DATA | заменить ключ на `"voices"`; добавить тест round-trip свойства (запись → чтение). |
-| BR-277 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4738` | ERR |  |
+| BR-277 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:4738` | ERR | использовать `Files.isSymbolicLink(path)` / `Files.deleteIfExists` без предварительного `exists()`, либо `File.exists() || Files.isSymbolicLink()`. |
 | BR-280 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt:752` | PERF | один запрос на песню — `loadList(args = mapOf("song_id" to …))` с фильтрацией по `process_type`/`thread_id`/`process_args` в Kotlin (или `IN`-список типов), результат передавать в … |
 | BR-281 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt:183` | ERR | различать «объекта нет» и «не удалось узнать» (типизированный результат/`Result`/`null` только для «неизвестно» с `WARN`-логом в `catch`), и не считать `null` доказательством актуа… |
 | BR-282 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt:2749` | RACE | брать и снимать guard в `try/finally` вокруг **всего** тела (включая синхронный `recomputeAndBroadcast` и `submit`), либо снимать guard в `catch` перед пробросом. |
@@ -888,14 +917,14 @@
 | BR-348 | `karaoke-public/src/views/PlayerView.vue:87` | LEAK | хранить id таймера (или `AbortController`/флаг `destroyed`) и в `onBeforeUnmount` очищать таймеры и резолвить все `pendingToken` как `null`; в `playPos`/`advanceAfterEnd` проверять… |
 | BR-349 | `karaoke-public/src/views/PlayerView.vue:129` | SEC | в `onParentMessage` проверять `e.origin === window.location.origin` и `e.source === window.parent` (и `e.source === playerIframe`-эквивалент для родителя); на сервере/nginx добавит… |
 | BR-351 | `karaoke-public/src/views/SubscriptionReturnView.vue:150` | LEAK | хранить id таймера и очищать его в `beforeUnmount`; перед `$router.replace` проверять, что компонент ещё смонтирован и маршрут всё ещё `/subscription/return`. |
-| BR-352 | `karaoke-public/src/views/SubscriptionsView.vue:102` | ERR | отдельное состояние ошибки (alert + «Повторить»), не пустой список; на 401 — `clearSession()` и редирект на `/login?redirect=/account/subscriptions`. |
-| BR-353 | `karaoke-public/src/views/ZakromaView.vue:437` | ERR | проверять `status === 200`; при ошибке показывать текст («не удалось отключить автопродление») и не перезагружать список как при успехе; успех подтверждать сообщением. |
-| BR-354 | `karaoke-public/src/views/ZakromaView.vue:189` | COMPAT | выводить состояние из маршрута, а не из обработчика клика: `authorChosen = hasAuthor || specialBucketShown` (или `watch('$route')`, синхронизирующий `authorChosen/selectedAuthorId/… |
-| BR-355 | `karaoke-public/src/views/ZakromaView.vue:905` | ERR | либо добавить авторские поля в NDJSON-сообщение `meta` (и в `ZakromaAlbumMetaPublicDto`/`meta`-DTO), либо гидрировать блок автора из `authorTiles`/отдельного запроса, либо сохранят… |
-| BR-356 | `karaoke-public/src/views/ZakromaView.vue:678` | RACE | retry должен повторять именно запуск стрима с теми же параметрами, что `tryStartZakromaStream` (`author`, `expectedCount`, `albumId`, `force: true`), без навигации; `onAuthorSelect… |
-| BR-357 | `karaoke-public/src/views/ZakromaView.vue:701` | ERR | вернуть в store поколение запроса (`latestRequestId`) или проверять `author`/`albumId` перед коммитом; хранить активный composable и вызывать `cleanup()/cancel()` при старте нового… |
+| BR-352 | `karaoke-public/src/views/SubscriptionsView.vue:102` | ERR | проверять `status === 200`; при ошибке показывать текст («не удалось отключить автопродление») и не перезагружать список как при успехе; успех подтверждать сообщением. |
+| BR-353 | `karaoke-public/src/views/ZakromaView.vue:437` | ERR |  |
+| BR-354 | `karaoke-public/src/views/ZakromaView.vue:189` | COMPAT | либо добавить авторские поля в NDJSON-сообщение `meta` (и в `ZakromaAlbumMetaPublicDto`/`meta`-DTO), либо гидрировать блок автора из `authorTiles`/отдельного запроса, либо сохранят… |
+| BR-355 | `karaoke-public/src/views/ZakromaView.vue:905` | ERR | retry должен повторять именно запуск стрима с теми же параметрами, что `tryStartZakromaStream` (`author`, `expectedCount`, `albumId`, `force: true`), без навигации; `onAuthorSelect… |
+| BR-356 | `karaoke-public/src/views/ZakromaView.vue:678` | RACE |  |
+| BR-357 | `karaoke-public/src/views/ZakromaView.vue:701` | ERR | явное пустое состояние «Автор не найден / у автора нет песен» (или редирект на `/zakroma` с уведомлением), выставлять его после того, как `authorTiles` загружены и тайл не найден; … |
 | BR-358 | `karaoke-public/src/views/ShareView.vue:122` | ERR | развести состояния — `notfound` только для `share.notFound`/`share.tokenMissing`, отдельное `error` (с текстом «сервис недоступен») для 5xx/`share.internal`/сети, с кнопкой «Повтор… |
-| BR-359 | `karaoke-public/src/views/ShareView.vue:141` | ERR | перед переходом в плеер повторно получать claim (или продлевать lease heartbeat'ом, пока лендинг открыт) и не переходить с заведомо истёкшим `expiresAt`; при истечении показывать «… |
+| BR-359 | `karaoke-public/src/views/ShareView.vue:141` | ERR |  |
 | BR-360 | `karaoke-public/src/views/SongView.vue:466` | COMPAT | не заводить новое поле — использовать уже приходящий `contentRemoved` (сервер считает его из `tags` точным сравнением токена) либо добавить в `SongPublicDto` поле `skipped` (как за… |
 | BR-361 | `karaoke-public/src/views/StemJobsView.vue:245` | LEAK | держать таймер на инстансе и заводить его синхронно (до `await`), а в колбэке проверять `this._isUnmounted`/`this.$el`; в `beforeUnmount` выставлять флаг и очищать таймер; либо пер… |
 | BR-362 | `karaoke-public/src/views/StemJobsView.vue:392` | RACE | в `load()` отфильтровывать `job.deleteRequested === true` (или хранить набор локально удалённых id и не добавлять их обратно); после успешного delete не полагаться только на локаль… |
@@ -919,9 +948,9 @@
 | BR-026 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicShareController.kt:219` | ERR | передать `shouldCache = { it.statusCode.is2xxSuccessful || it.statusCode.value() == 410 }`, чтобы 500 не кешировался (как и заявлено в комментарии). |
 | BR-501 | `karaoke-web/src/main/resources/templates/song.html:4` | ERR | в контроллере — при `song == null` отдавать 404 (`ResponseEntity`/`@ResponseStatus`) до рендера; в шаблоне — `th:if="${song != null}"`/`th:unless` с веткой «песня не найдена». |
 | BR-502 | `karaoke-web/src/main/resources/templates/filter.html:479` | ERR | удалить мёртвый блок с `field_author` из `filter.html` (он относится к странице «Закрома») либо восстановить элемент; в общем случае — проверять результат `getElementById` на `null… |
-| BR-503 | `karaoke-web/src/main/resources/templates/filter.html:521` | COMPAT | заменить `${songAuthors}` на `${authors}` (как уже сделано в `zakroma.html:309`) — либо переименовать атрибут в контроллере. |
-| BR-505 | `karaoke-web/src/main/resources/templates/statbysong.html:151` | COMPAT | валидировать схему ссылки на стороне записи и на стороне рендера (разрешить только `http(s):`/`/`), а в шаблоне — рендерить ссылку через безопасный префикс/параметр, а не «как есть… |
-| BR-506 | `karaoke-web/src/main/resources/templates/testpage.html:288` | SEC | либо ссылаться на абсолютный URL admin-хоста с этим endpoint'ом (с указанием, что он доступен только администратору), либо продублировать пагинированную выгрузку в `karaoke-web` (и… |
+| BR-503 | `karaoke-web/src/main/resources/templates/filter.html:521` | COMPAT | кодировать параметры через `encodeURIComponent` (как уже сделано в `webvue3/src/lib/utils.js:71–72`) вместо ручного `replaceAll('&', …)` — во всех трёх местах `filter.html` и трёх … |
+| BR-505 | `karaoke-web/src/main/resources/templates/statbysong.html:151` | COMPAT | либо ссылаться на абсолютный URL admin-хоста с этим endpoint'ом (с указанием, что он доступен только администратору), либо продублировать пагинированную выгрузку в `karaoke-web` (и… |
+| BR-506 | `karaoke-web/src/main/resources/templates/testpage.html:288` | SEC | не «экранировать на входе», а разбирать на клиенте безопасно: выводить готовые `<span>/<br>` через `innerHTML` только для собственной разметки, а пользовательский текст — через `te… |
 | BR-519 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt:265` | DATA | считать лимит с исключением ссылки на ту же песню (например `WHERE owner_site_user_id=? AND active AND song_id<>?`) либо сначала деактивировать заменяемую ссылку и только потом счи… |
 | BR-520 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt:304` | DATA | выполнять отзыв и вставку в одной транзакции (`autoCommit=false` + `commit`/`rollback`, как в `revokeLinkById`), либо вставлять новую ссылку первой и отзывать старую после успешног… |
 | BR-521 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StemJobTempCleanupScheduler.kt:29` | ERR | проверять результат `delete()`/`runCatching` и логировать неудачи (с именем файла и причиной) хотя бы сrate-лимитом; агрегировать счётчик неудачных удалений и отдавать его в метрик… |
@@ -936,16 +965,16 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-573 | `tools/check-endpoint-field-coverage.sh:74` | ERR | в `check_doc` при отсутствии файла увеличивать `errors_total` (и/или в цикле учитывать код возврата `check_doc "$f" || errors_total=$((errors_total+1))`); в CI проверять каталог `d… |
-| BR-575 | `tools/check-container-restart.sh:100` | ERR | добавить паттерны `docker\s+compose\b.*\brestart\b` и `docker\s+start\s+<c>` (и `docker\s+restart\s+(-[^\s]+\s+)*<c>`), убрать зависимость от формы `docker-compose`. |
-| BR-576 | `tools/check-docker-image-tags.sh:200` | ERR | вынести проверку `docker-compose … restart` за пределы цикла по контейнерам (один раз на файл) либо добавить `break`/флаг «паттерн без контейнера». |
-| BR-577 | `tools/check-endpoint-field-coverage.sh:96` | ERR | проверять «похоже на nginx/node» до вынесения вердикта (например, отдельной функцией по исходному `ref`), а не в ветке `n/a`; добавить в `--selftest` кейс, где вердикт `n/a`, но им… |
-| BR-579 | `tools/check-eslint-baseline.sh:54` | ERR | нормализовать путь к репозиторию (относительный от корня) при записи baseline и при сравнении; ключ сделать устойчивым к сдвигу строк (ruleId + относительный путь + текст сообщения… |
-| BR-580 | `tools/check-frontend-build.sh:77` | ERR | сохранять код возврата eslint (`ESLINT_EXIT=$?`), не глушить stderr (или писать его в лог), и явно отличать «eslint упал» (exit ≥ 2 / пустой невалидный JSON) от «найдены нарушения»… |
-| BR-582 | `tools/check-no-legacy-tbl-settings.sh:71` | SEC | определять ожидаемый путь от корня репозитория (`git rev-parse --show-toplevel`/`.gradle` рядом с ним) либо через матрицу машин; AGENTS.md-команду для gradle/docker сделать перенос… |
-| BR-583 | `tools/auto-jsdoc.py:78` | ERR | использовать `mktemp`/`mktemp -d` с `trap`-очисткой (как уже сделано в `check-endpoint-field-coverage.sh` и `check-songedit-field-coverage.sh` в этой же порции). |
-| BR-585 | `tools/auto-kdoc.py:196` | DATA | убрать ветку `Entity` из `describe()` (или переформулировать без упоминания JPA); проверять результат генерации guard’ом `check-no-jpa-imports.sh`. |
-| BR-586 | `tools/check-enforcement.sh:50` | ERR | искать существующий KDoc по признаку закрывающего `*/` с последующим сканированием вверх до `/**` (как это уже сделано в `tools/auto-kdoc-quality.py:89-104`), а не фиксированным ок… |
+| BR-573 | `tools/check-endpoint-field-coverage.sh:74` | ERR | различать «нет нарушений» и «нет данных»: при пустом наборе — печатать ошибку и возвращать ненулевой код (для `baseline-stats.sh` — считать значение как «N/A», а не «0»); в `check-… |
+| BR-575 | `tools/check-container-restart.sh:100` | ERR | вынести проверку `docker-compose … restart` за пределы цикла по контейнерам (один раз на файл) либо добавить `break`/флаг «паттерн без контейнера». |
+| BR-576 | `tools/check-docker-image-tags.sh:200` | ERR | проверять «похоже на nginx/node» до вынесения вердикта (например, отдельной функцией по исходному `ref`), а не в ветке `n/a`; добавить в `--selftest` кейс, где вердикт `n/a`, но им… |
+| BR-577 | `tools/check-endpoint-field-coverage.sh:96` | ERR | строить список поддерживаемых полей **из контроллера пары** (использовать `controller`/`controller_method` из `endpoint-pairs.yml`), а маппер использовать только для пар, которые н… |
+| BR-579 | `tools/check-eslint-baseline.sh:54` | ERR | сохранять код возврата eslint (`ESLINT_EXIT=$?`), не глушить stderr (или писать его в лог), и явно отличать «eslint упал» (exit ≥ 2 / пустой невалидный JSON) от «найдены нарушения»… |
+| BR-580 | `tools/check-frontend-build.sh:77` | ERR | строить контекст из полного содержимого файла (индекс строки из diff + полный файл), а не из списка добавленных строк; номер строки брать из diff. |
+| BR-582 | `tools/check-no-legacy-tbl-settings.sh:71` | SEC | использовать `mktemp`/`mktemp -d` с `trap`-очисткой (как уже сделано в `check-endpoint-field-coverage.sh` и `check-songedit-field-coverage.sh` в этой же порции). |
+| BR-583 | `tools/auto-jsdoc.py:78` | ERR | в `NAME_SLUG_OVERRIDE` / `CLASS_SLUG_OVERRIDE` / `CLASS_DESCRIPTIONS` использовать актуальный префикс `archive/docs/features/` и существующие слаги; для `auto-kdoc-quality.py` — хр… |
+| BR-585 | `tools/auto-kdoc.py:196` | DATA | искать существующий KDoc по признаку закрывающего `*/` с последующим сканированием вверх до `/**` (как это уже сделано в `tools/auto-kdoc-quality.py:89-104`), а не фиксированным ок… |
+| BR-586 | `tools/check-enforcement.sh:50` | ERR | использовать переносимый способ подсчёта (`grep -E` + отдельная проверка `grep -P` с fallback), проверять, что `enforced`/`must_rules` — числа (иначе ошибка и ненулевой код), и зав… |
 | BR-596 | `tools/check-spec-issue-link.py:68` | ERR | извлекать Issue ID в обоих форматах (например, отдельным regex для |
 | BR-597 | `tools/check-subagent-isolation.sh:79` | ERR | проверять код возврата `git log`/`git rev-parse` и завершаться с ненулевым кодом |
 | BR-598 | `tools/generate-docs.sh:13` | ERR | `set -euo pipefail` и явная проверка кода возврата каждого шага |
@@ -970,46 +999,46 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-089 | `webvue3/src/components/Songs/edit/SongEdit.vue:2038` | ERR |  |
-| BR-090 | `webvue3/src/components/Songs/edit/SongEdit.vue:3193` | DATA |  |
-| BR-091 | `webvue3/src/components/Songs/edit/SongEdit.vue:3126` | RACE |  |
-| BR-092 | `webvue3/src/components/Songs/edit/SongEdit.vue:180` | DATA |  |
-| BR-094 | `webvue3/src/components/Songs/store.js:2733` | ERR | `return promisedXMLHttpRequest(...).then(...).catch(err => { commit('setSongsDigestIsLoading', false); /* показать ошибку */ }).finally(...)`, либо `async/await` с `try/catch/final… |
+| BR-089 | `webvue3/src/components/Songs/edit/SongEdit.vue:2038` | ERR | заменить `showMelodyVk` на `showMelodyMax` в блоке Max-вкладки; добавить в шаблонный чек «каждая вкладка использует свои `show*`/`get*`/`openLink*`» (сейчас проверено вручную по вс… |
+| BR-090 | `webvue3/src/components/Songs/edit/SongEdit.vue:3193` | DATA | извлекать id регулярным выражением, допускающим оба вида URL (`/\/smkaraoke\/(?:manage\/post\/)?(\d+)(?:[/?#]|$)/`), и не трогать поле, если id не найден (оставить вставленное знач… |
+| BR-091 | `webvue3/src/components/Songs/edit/SongEdit.vue:3126` | RACE | привязывать каждый запрос к id песни на момент отправки (`const requestedId = this.song.id`) и игнорировать ответ, если `requestedId !== this.song.id`; либо отменять предыдущую пач… |
+| BR-092 | `webvue3/src/components/Songs/edit/SongEdit.vue:180` | DATA | либо валидировать числовые поля на клиенте (парсить перед сохранением, показывать ошибку и не включать поле в diff при невалидном значении), либо валидировать в `SongUpdateMapper` … |
+| BR-094 | `webvue3/src/components/Songs/store.js:2733` | ERR |  |
 | BR-095 | `webvue3/src/components/Songs/store.js:3001` | COMPAT | `JSON.parse(ids)` и сравнение как чисел/строк по элементам (`parsed.includes(String(id))` или `new Set`), либо перевести эндпоинт на JSON-массив и разбирать его. |
 | BR-096 | `webvue3/src/components/Songs/store.js:1770` | RACE | вынести запрос в action, в мутации оставить только присвоение; состояние переключать по подтверждённому сервером результату (`then` в action), блокировать кнопку на время запроса и… |
 | BR-097 | `webvue3/src/components/Songs/store.js:982` | RULE | перенести запись в actions (`async setLastPriorX(ctx,payload){ commit(...); try { await promisedXMLHttpRequest(...) } catch(e){ /* toast/лог */ } }`), в мутациях оставить только `s… |
 | BR-098 | `webvue3/src/components/Songs/store.js:1866` | ERR | перед запросом очищать список (`commit('setCurrentSongHealthReports', [])`) либо в `catch` коммитить пустой список; ошибку показывать в модалке/тосте. |
 | BR-099 | `webvue3/src/components/Songs/store.js:1827` | RULE | заменить прямые записи на `commit` (`setToSync`, `setFreeTimeSlots`, `replaceSongInPage`); после каждого `await` повторять проверку `currId === ctx.state.currentSongId` (или сравни… |
-| BR-126 | `webvue3/src/components/Songs/edit/SongEdit.vue:4355` | COMPAT |  |
-| BR-127 | `webvue3/src/components/Songs/edit/SongEdit.vue:4020` | ERR |  |
-| BR-363 | `webvue3/src/components/Albums/store.js:97` | ERR | возвращать промис и сбрасывать флаг в `finally`; ошибку показывать пользователю (тост/строка в таблице), а не только в консоли. |
-| BR-364 | `webvue3/src/components/Albums/store.js:97` | RACE | ввести счётчик поколения запроса (`seq = ++state.digestRequestSeq`) и коммитить результат только при `seq === state.digestRequestSeq`; флаг загрузки сбрасывать только владельцу пок… |
+| BR-126 | `webvue3/src/components/Songs/edit/SongEdit.vue:4355` | COMPAT | на успех с непустым `messageId` выполнять `setCurrentSongField({name:'idTelegramDemo', value: data.messageId})` (или перечитывать песню), а `success=false` + `state=published` трак… |
+| BR-127 | `webvue3/src/components/Songs/edit/SongEdit.vue:4020` | ERR | обернуть `findAudioParent`/`showSubsEdit` в `try/catch` с тостом; проверять `data` и `voices` перед `JSON.parse`/использованием; `await` удаления и закрывать карточку только при ус… |
+| BR-363 | `webvue3/src/components/Albums/store.js:97` | ERR | ввести счётчик поколения запроса (`seq = ++state.digestRequestSeq`) и коммитить результат только при `seq === state.digestRequestSeq`; флаг загрузки сбрасывать только владельцу пок… |
+| BR-364 | `webvue3/src/components/Albums/store.js:97` | RACE |  |
 | BR-365 | `webvue3/src/components/Albums/AlbumsTable.vue:677` | ERR | передавать в перезагрузку `...this.$store.getters.getAlbumsFilter` (для модалки автора — хотя бы `filterAuthorId` этого автора); при необходимости сохранять и параметры страницы. |
 | BR-366 | `webvue3/src/components/Albums/filter/store.js:84` | PERF | сохранять фильтр на `ok()`/`blur` (или debounce 300–500 мс), а не на каждый `input`; ошибку записи хотя бы логировать/показывать, а не оставлять необработанный промис. |
 | BR-367 | `webvue3/src/components/Authors/AuthorAliasesModal.vue:73` | DATA | перед сохранением перечитывать автора с сервера либо слать только `id` + `aliases` через отдельный endpoint/patch-семантику; как минимум не пересылать поля, которые модалка не реда… |
 | BR-368 | `webvue3/src/components/Authors/AuthorAliasesModal.vue:86` | ERR | проверять `Number(response) !== 0`, при нуле показывать ошибку и не закрывать модалку; `saving` сбрасывать в `finally`. |
 | BR-369 | `webvue3/src/App.vue:200` | ERR | обернуть восстановление настроек в `try/catch` (или `Promise.allSettled` с одним параллельным запросом), а создание polling-таймеров вынести до/вне блока восстановления. |
-| BR-371 | `webvue3/src/components/Chat/store.js:118` | RACE | собирать полный payload, как в `AuthorAliasesModal`/`AlbumsTable` (id + author + ymId + vkId + lastAlbumYm + lastAlbumVk + lastAlbumProcessed + watched + skip + sortOrder), либо за… |
-| BR-372 | `webvue3/src/components/Common/CustomConfirm.vue:203` | LEAK | после успешного `reply` при пустом треде выполнять полную загрузку (`loadChatMessages(currentUserId)`), либо добавлять возвращённое сообщение по id; ответ `reply` проверять (`0` → … |
-| BR-373 | `webvue3/src/components/Authors/store.js:71` | ERR | ввести поколение запроса/идентификатор треда и применять ответ только при совпадении с текущим состоянием (`siteUserId` + `target`); блокировать параллельный poll флагом in-flight;… |
-| BR-374 | `webvue3/src/components/Authors/AuthorsTable.vue:605` | COMPAT | хранить id (`this.timer = setInterval(...)`), очищать его в `beforeUnmount`, в `ok()`/`close()` и по достижении нуля. |
-| BR-375 | `webvue3/src/components/Authors/AuthorsTable.vue:526` | ERR | сбрасывать флаг в `finally`, возвращать промис из action, ошибку показывать в UI (тост/строка), а не только в консоли. |
-| BR-376 | `webvue3/src/components/Authors/AuthorsTable.vue:659` | ERR | `fldValue: item.haveNewAlbum`. |
-| BR-377 | `webvue3/src/components/Authors/AuthorsTable.vue:533` | DATA | `if (item.vkId)`. |
-| BR-378 | `webvue3/src/components/Common/FileExplorer/FileExplorerModal.vue:153` | RACE | сравнивать `String(result) !== '0'` (или `Number(result) > 0`), ошибку показывать пользователю (тост/алерт), модалку закрывать после успешного ответа. |
+| BR-371 | `webvue3/src/components/Chat/store.js:118` | RACE | ввести поколение запроса/идентификатор треда и применять ответ только при совпадении с текущим состоянием (`siteUserId` + `target`); блокировать параллельный poll флагом in-flight;… |
+| BR-372 | `webvue3/src/components/Common/CustomConfirm.vue:203` | LEAK | хранить id (`this.timer = setInterval(...)`), очищать его в `beforeUnmount`, в `ok()`/`close()` и по достижении нуля. |
+| BR-373 | `webvue3/src/components/Authors/store.js:71` | ERR | сбрасывать флаг в `finally`, возвращать промис из action, ошибку показывать в UI (тост/строка), а не только в консоли. |
+| BR-374 | `webvue3/src/components/Authors/AuthorsTable.vue:605` | COMPAT | `fldValue: item.haveNewAlbum`. |
+| BR-375 | `webvue3/src/components/Authors/AuthorsTable.vue:526` | ERR | `if (item.vkId)`. |
+| BR-376 | `webvue3/src/components/Authors/AuthorsTable.vue:659` | ERR | сравнивать `String(result) !== '0'` (или `Number(result) > 0`), ошибку показывать пользователю (тост/алерт), модалку закрывать после успешного ответа. |
+| BR-377 | `webvue3/src/components/Authors/AuthorsTable.vue:533` | DATA | отправлять только изменённые поля (diff), а не весь снимок; на бэкенде — patch-семантика или оптимистичная блокировка (`updated_at`/version) с 409 при расхождении. |
+| BR-378 | `webvue3/src/components/Common/FileExplorer/FileExplorerModal.vue:153` | RACE | сохранять запрошенный путь (или поколение) и применять ответ только при совпадении с текущим; отменять предыдущий запрос (`AbortController`) или игнорировать устаревший; `isBusy` —… |
 | BR-381 | `webvue3/src/components/Common/HealthReport/store.js:41` | ERR | хранить признак ошибки (`healthReportListError`) и показывать её в модалке вместо текста «нарушений не найдено»; пустой успешный ответ и ошибку различать. |
 | BR-382 | `webvue3/src/components/ListeningHistory/ListeningHistoryFilterModal.vue:94` | ERR | хранить фильтры в Vuex (по образцу `Dictionaries/filter/store.js`), собирать параметры загрузки в одном месте (фильтры + page + pageSize) и сбрасывать `currentPage` в 1 при примене… |
 | BR-383 | `webvue3/src/components/ListeningHistory/store.js:75` | RACE | ввести счётчик поколения (`seq = ++state.loadSeq`) и коммитить только при `seq === state.loadSeq`; для сброса страницы использовать флаг/прямой вызов загрузки, не полагаясь на watc… |
-| BR-384 | `webvue3/src/components/Dictionaries/filter/store.js:33` | COMPAT | отдавать из геттера имена, совпадающие с контрактом (`dictName`, `dictValue`), либо переименовать параметры бэкенда; в `create()` перезагружать с текущим фильтром. |
+| BR-384 | `webvue3/src/components/Dictionaries/filter/store.js:33` | COMPAT |  |
 | BR-385 | `webvue3/src/components/Common/SmartCopy/SmartCopyModal.vue:309` | ERR | не закрывать модалку до завершения запроса (закрывать в `.then`/`.catch` после показа результата) либо показывать результат через глобальный тост/`CustomConfirm` родителя; добавить… |
 | BR-386 | `webvue3/src/components/Common/Monitor/store.js:38` | ERR | хранить состояние ошибки загрузки и показывать его в светофоре/модалке (например, серый/красный «нет связи с мониторингом») вместо зелёного; повторять запрос; добавить `.catch` для… |
 | BR-387 | `webvue3/src/components/Common/ProcessWorker.vue:195` | ERR | добавить `.catch` и `try/catch` вокруг `JSON.parse` (как в `checkCountWaiting`), при ошибке показывать неопределённое состояние и не давать переключать очередь до успешной синхрони… |
-| BR-389 | `webvue3/src/components/News/NewsTable.vue:281` | COMPAT | вводить поколение выборки (snapshot + фильтр), очищать/помечать `bulkSelectionIds` при каждом изменении фильтра и при ошибке snapshot, блокировать bulk-кнопки до получения snapshot… |
-| BR-390 | `webvue3/src/components/Pictures/PicturesTable.vue:219` | ERR | сделать `perPage` computed от `getRowsPerPage('news')` (или добавить мутацию/экшен `setNewsPerPage` и синхронизировать с `tableSettings`), передавать `page`/`perPage` в `loadNews` … |
-| BR-391 | `webvue3/src/components/Pictures/store.js:137` | ERR | либо грузить дайджест в `mounted` (страница уже клиентски пагинируется), либо показывать явную подсказку о необходимости применить фильтр и не выдавать пустой список за отсутствие … |
-| BR-392 | `webvue3/src/components/News/store.js:78` | ERR | сбрасывать флаг в `finally`, возвращать промис и показывать ошибку (тост/строка), а не только в консоли. |
-| BR-393 | `webvue3/src/components/News/store.js:85` | RACE | ввести `newsError`/`newsListError` в state, коммитить его в `catch`, показывать в шаблоне; в компоненте показывать ошибку операции (тост/строка), а не только консоль. |
-| BR-394 | `webvue3/src/components/Processes/ProcessesTable.vue:447` | RACE | ввести счётчик поколения запроса в state и коммитить результат только при совпадении; либо отменять предыдущий XHR (`AbortController`) и сбрасывать loading только владельцу поколен… |
+| BR-389 | `webvue3/src/components/News/NewsTable.vue:281` | COMPAT | сделать `perPage` computed от `getRowsPerPage('news')` (или добавить мутацию/экшен `setNewsPerPage` и синхронизировать с `tableSettings`), передавать `page`/`perPage` в `loadNews` … |
+| BR-390 | `webvue3/src/components/Pictures/PicturesTable.vue:219` | ERR | либо грузить дайджест в `mounted` (страница уже клиентски пагинируется), либо показывать явную подсказку о необходимости применить фильтр и не выдавать пустой список за отсутствие … |
+| BR-391 | `webvue3/src/components/Pictures/store.js:137` | ERR | сбрасывать флаг в `finally`, возвращать промис и показывать ошибку (тост/строка), а не только в консоли. |
+| BR-392 | `webvue3/src/components/News/store.js:78` | ERR | ввести `newsError`/`newsListError` в state, коммитить его в `catch`, показывать в шаблоне; в компоненте показывать ошибку операции (тост/строка), а не только консоль. |
+| BR-393 | `webvue3/src/components/News/store.js:85` | RACE | ввести счётчик поколения запроса в state и коммитить результат только при совпадении; либо отменять предыдущий XHR (`AbortController`) и сбрасывать loading только владельцу поколен… |
+| BR-394 | `webvue3/src/components/Processes/ProcessesTable.vue:447` | RACE | не полагаться на watcher при программном сбросе страницы (флаг/`skipNextLoad`), либо ввести поколение запроса в `loadProcesses` и игнорировать устаревшие ответы; грузить страницу о… |
 
 ### PKG-S3-32 — webvue3: COMPAT, DATA, ERR, LEAK, PERF, RACE, SEC — 40 BR
 
@@ -1020,9 +1049,9 @@
 
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
-| BR-395 | `webvue3/src/components/Pictures/store.js:163` | RACE | не полагаться на watcher при программном сбросе страницы (флаг/`skipNextLoad`), либо ввести поколение запроса в `loadProcesses` и игнорировать устаревшие ответы; грузить страницу о… |
-| BR-396 | `webvue3/src/components/Pictures/edit/PictureEdit.vue:299` | ERR | коммитить snapshot из отправленного payload (`Object.assign({}, snapshot, savedDiffs)`), а не из живого `pictureCurrent`; сбрасывать таймер и отменять запрос в `beforeUnmount`. |
-| BR-398 | `webvue3/src/components/Processes/ProcessBulkReportModal.vue:104` | SEC | зафиксировать target на всю цепочку сохранения (`const target = this.target`), блокировать select/сохранение на время операции или отменять/игнорировать reload по поколению; перечи… |
+| BR-395 | `webvue3/src/components/Pictures/store.js:163` | RACE | коммитить snapshot из отправленного payload (`Object.assign({}, snapshot, savedDiffs)`), а не из живого `pictureCurrent`; сбрасывать таймер и отменять запрос в `beforeUnmount`. |
+| BR-396 | `webvue3/src/components/Pictures/edit/PictureEdit.vue:299` | ERR | перенести запросы из мутаций в экшены, возвращать и `await` промис, показывать ошибку (тост) и закрывать модалку только после успеха; после удаления обновлять дайджест (или splice … |
+| BR-398 | `webvue3/src/components/Processes/ProcessBulkReportModal.vue:104` | SEC | при экспорте префиксовать значения, начинающиеся с `= + - @ \t \r`, апострофом/пробелом (или использовать `="..."`-безопасную схему) до общего quoting. |
 | BR-400 | `webvue3/src/components/Processes/edit/ProcessEdit.vue:3` | ERR | вынести error-блок из-под `v-if="process"`; ввести состояние загрузки `loading|loaded|error` и в `error` показывать сообщение с кнопкой «Повторить»/«Закрыть», а не пустую форму и н… |
 | BR-401 | `webvue3/src/components/Processes/store.js:673` | ERR | в `catch` фиксировать терминальное состояние (например `status: 'FAILED'`, текст ошибки) в `bulkTaskStatus` и `bulkOperationReport`, не бросать исключение из таймерного цикла; при … |
 | BR-402 | `webvue3/src/components/Processes/store.js:694` | RACE | передавать в `pollBulkTask` id, с которыми запущена операция, и удалять из `items` только их; для `bulk_update` — перезагружать страницу/`items` по завершении, а не полагаться на с… |
@@ -1035,22 +1064,22 @@
 | BR-413 | `webvue3/src/components/Properties/store.js:54` | ERR | сбрасывать флаг в `catch`/`finally` и возвращать промис из экшена. |
 | BR-414 | `webvue3/src/components/SitePlaylists/store.js:70` | RACE | запоминать запрошенный id и игнорировать ответы с другим id; ввести явное состояние ошибки/загрузки. |
 | BR-415 | `webvue3/src/components/SiteUsers/UserPlaylistsModal.vue:58` | ERR | очищать digest при смене субъекта и показывать состояние ошибки; хранить данные с ключом `siteUserId`. |
-| BR-418 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:218` | DATA | ввести явный dirty-флаг; при закрытии с pending-таймером или dirty-состоянием — либо синхронно выполнить `saveNow()` и дождаться результата, либо показать тот же confirm, что для `… |
-| BR-419 | `webvue3/src/components/SongEditor/SongEditorTable.vue:273` | ERR | dirty-флаг и повторный запуск сохранения в `finally`, либо очередь/сериализация сохранений; `'saved'` ставить только если после старта запроса не было новых `change`. |
-| BR-420 | `webvue3/src/components/SiteUsers/edit/SiteUserEdit.vue:399` | ERR | различать `null`/ошибку в `loadAssignmentById` (например, `result.found`/`error`), показывать текст и не открывать модалку; кнопку «Закрыть» вынести из `v-if="a"`, а `openReview` о… |
-| BR-421 | `webvue3/src/components/SongEditor/AssignModal.vue:269` | RACE | проверять тело ответа (`ok`/Boolean) и ловить reject в actions либо в компоненте; не закрывать диалог/панель до подтверждённого успеха; показывать ошибку в форме (сейчас в `SiteUse… |
-| BR-422 | `webvue3/src/components/SongEditor/AssignModal.vue:235` | ERR | запретить закрытие при `busy` либо ввести флаг отмены, проверяемый в цикле; на закрытии всё равно уведомлять родителя о фактически назначенных песнях (эмит `assigned` до unmount). |
-| BR-423 | `webvue3/src/components/SongEditor/SongEditorTable.vue:261` | RACE | отдельное состояние ошибки (`isError`/текст) и сообщение «Не удалось выполнить поиск», не выдавая сбой за пустой результат. |
-| BR-424 | `webvue3/src/components/SiteUsers/filter/store.js:114` | PERF | счётчик поколений или `AbortController` на каждый reload, коммит только для актуального запроса; на ошибку — видимое сообщение (и не выдавать старый список за новый). |
-| BR-425 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:180` | COMPAT | persist один раз — при «Применить фильтр»/закрытии модалки (debounce или `blur`), а гидратацию делать одним запросом/`Promise.all`; ответы обрабатывать (`catch`). |
-| BR-427 | `webvue3/src/components/SongEditor/store.js:143` | COMPAT | собирать `params` условно — добавлять ключ только при непустом значении (как уже сделано в `searchCandidateSongs`, store.js:189–195), либо научить `getParamStringToSend` пропускать… |
-| BR-428 | `webvue3/src/components/SongEditor/useReviewModalFormat.js:88` | DATA | читать `prop.value` (строкой), как это делают другие потребители (`ResourceLimitToggle.vue:37–38`, `SubsEdit.vue:5020–5027`), и сравнивать значение; при отсутствии/пустом — `'remot… |
-| BR-429 | `webvue3/src/components/Songs/edit/FamilySongsModal.vue:128` | ERR | не дублировать `loadEditorSettings`/`saveEditorSettings` с урезанным набором ключей: читать полный объект и мержить в него partial (либо вынести общий модуль настроек и импортирова… |
-| BR-430 | `webvue3/src/components/SongEditor/SongKaraokeEditorView.vue:1235` | LEAK | добавить `catch` с сообщением об ошибке (отдельное поле/блок) и не показывать «Ничего не найдено» при неуспешном запросе; при ошибке поиска сохранять прежний список с явной пометко… |
-| BR-431 | `webvue3/src/components/SongEditor/SongKaraokeEditorView.vue:978` | LEAK | добавлять `window.addEventListener('blur', ...)` (и/или `visibilitychange`) с остановкой всех `scrubTimers` и восстановлением `playbackRate`, как это делает `stopScrub`. |
-| BR-432 | `webvue3/src/components/Songs/edit/AlbumCoverModal.vue:234` | ERR | при скрытии останавливать и уничтожать инстанс (`this.kpPlayer.destroy(); this.kpPlayer = null`), либо скрывать контейнер через `v-show` и ставить плеер на паузу — но не оставлять … |
-| BR-433 | `webvue3/src/components/SongEditor/store.js:88` | ERR | обернуть обе цепочки в `try/catch` с явным сообщением («Не удалось получить текущую обложку», «Не удалось прочитать файл») и не подменять отказ запроса сообщением об отсутствии кар… |
-| BR-434 | `webvue3/src/components/Songs/edit/AiTextEditorModal.vue:100` | PERF | хранить состояние ошибки в сторе и показывать его в таблице (баннер/тост), при ошибке не выдавать текущий список за актуальный. |
+| BR-418 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:218` | DATA | dirty-флаг и повторный запуск сохранения в `finally`, либо очередь/сериализация сохранений; `'saved'` ставить только если после старта запроса не было новых `change`. |
+| BR-419 | `webvue3/src/components/SongEditor/SongEditorTable.vue:273` | ERR | различать `null`/ошибку в `loadAssignmentById` (например, `result.found`/`error`), показывать текст и не открывать модалку; кнопку «Закрыть» вынести из `v-if="a"`, а `openReview` о… |
+| BR-420 | `webvue3/src/components/SiteUsers/edit/SiteUserEdit.vue:399` | ERR | проверять тело ответа (`ok`/Boolean) и ловить reject в actions либо в компоненте; не закрывать диалог/панель до подтверждённого успеха; показывать ошибку в форме (сейчас в `SiteUse… |
+| BR-421 | `webvue3/src/components/SongEditor/AssignModal.vue:269` | RACE | запретить закрытие при `busy` либо ввести флаг отмены, проверяемый в цикле; на закрытии всё равно уведомлять родителя о фактически назначенных песнях (эмит `assigned` до unmount). |
+| BR-422 | `webvue3/src/components/SongEditor/AssignModal.vue:235` | ERR | отдельное состояние ошибки (`isError`/текст) и сообщение «Не удалось выполнить поиск», не выдавая сбой за пустой результат. |
+| BR-423 | `webvue3/src/components/SongEditor/SongEditorTable.vue:261` | RACE | счётчик поколений или `AbortController` на каждый reload, коммит только для актуального запроса; на ошибку — видимое сообщение (и не выдавать старый список за новый). |
+| BR-424 | `webvue3/src/components/SiteUsers/filter/store.js:114` | PERF | persist один раз — при «Применить фильтр»/закрытии модалки (debounce или `blur`), а гидратацию делать одним запросом/`Promise.all`; ответы обрабатывать (`catch`). |
+| BR-425 | `webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue:180` | COMPAT | разбирать `body.error` и показывать отдельные тексты (минимум для `song_not_found_in_local_db` — «песня не стянута в локальную БД, запустите sync»); сохранить общий текст как fallb… |
+| BR-427 | `webvue3/src/components/SongEditor/store.js:143` | COMPAT | читать `prop.value` (строкой), как это делают другие потребители (`ResourceLimitToggle.vue:37–38`, `SubsEdit.vue:5020–5027`), и сравнивать значение; при отсутствии/пустом — `'remot… |
+| BR-428 | `webvue3/src/components/SongEditor/useReviewModalFormat.js:88` | DATA | не дублировать `loadEditorSettings`/`saveEditorSettings` с урезанным набором ключей: читать полный объект и мержить в него partial (либо вынести общий модуль настроек и импортирова… |
+| BR-429 | `webvue3/src/components/Songs/edit/FamilySongsModal.vue:128` | ERR | добавить `catch` с сообщением об ошибке (отдельное поле/блок) и не показывать «Ничего не найдено» при неуспешном запросе; при ошибке поиска сохранять прежний список с явной пометко… |
+| BR-430 | `webvue3/src/components/SongEditor/SongKaraokeEditorView.vue:1235` | LEAK | добавлять `window.addEventListener('blur', ...)` (и/или `visibilitychange`) с остановкой всех `scrubTimers` и восстановлением `playbackRate`, как это делает `stopScrub`. |
+| BR-431 | `webvue3/src/components/SongEditor/SongKaraokeEditorView.vue:978` | LEAK | при скрытии останавливать и уничтожать инстанс (`this.kpPlayer.destroy(); this.kpPlayer = null`), либо скрывать контейнер через `v-show` и ставить плеер на паузу — но не оставлять … |
+| BR-432 | `webvue3/src/components/Songs/edit/AlbumCoverModal.vue:234` | ERR | обернуть обе цепочки в `try/catch` с явным сообщением («Не удалось получить текущую обложку», «Не удалось прочитать файл») и не подменять отказ запроса сообщением об отсутствии кар… |
+| BR-433 | `webvue3/src/components/SongEditor/store.js:88` | ERR | хранить состояние ошибки в сторе и показывать его в таблице (баннер/тост), при ошибке не выдавать текущий список за актуальный. |
+| BR-434 | `webvue3/src/components/Songs/edit/AiTextEditorModal.vue:100` | PERF | заменить LCS-матрицу на алгоритм с линейной памятью (Майерс/Хиршберг) или ограничить diff по длине (при превышении — не подсвечивать, а показывать результат целиком), с явным лимит… |
 | BR-435 | `webvue3/src/components/Songs/SongsTable.vue:705` | DATA | вычислять страницу по тому же массиву, который реально отдан в `b-table` (передавать в таблицу уже отсортированный список либо учитывать `sortBy` при построении `songIdAndPageId`),… |
 | BR-436 | `webvue3/src/components/Songs/SongsTable.vue:1638` | ERR | не парсить тело — эти эндпоинты ничего не возвращают; показывать результат по факту 2xx, ошибки ловить `.catch` с сообщением. Если нужен результат — вернуть с бэкенда JSON и разбир… |
 | BR-437 | `webvue3/src/components/Songs/SongsTable.vue:1373` | RACE | игнорировать ответ, если набор запрошенных id уже не совпадает с текущим `currentPageSongIds` (или проставлять номер запроса/токен), либо мержить карту, а не заменять её. |
@@ -1075,31 +1104,31 @@
 | BR-446 | `webvue3/src/components/SponsrSync/store.js:86` | ERR | в `catch` очищать `lastResult` (или класть `{ ok:false, messages:[текст ошибки] }`), показывать ошибку в панели; ошибку транспорта отличать от `ok:false` бизнес-ответа. |
 | BR-447 | `webvue3/src/components/Stats/MonetizationPanel.vue:105` | DATA | считать union на бэкенде (`count(distinct id)` по `tbl_site_users` с `OR` тех же условий) и отдавать отдельным полем; либо, если объединение недоступно, честно подписать «не менее … |
 | BR-448 | `webvue3/src/components/Songs/edit/SearchText.vue:301` | ERR | обернуть оба действия в `try/catch/finally`, показывать ошибку (тост/алерт) и при ошибке не оставлять экран в состоянии «всё получилось»; либо возвращать промис в `CustomConfirm` и… |
-| BR-452 | `webvue3/src/components/Songs/edit/SubsEdit.vue:665` | LEAK |  |
-| BR-453 | `webvue3/src/components/Songs/edit/SubsEdit.vue:2889` | ERR |  |
-| BR-454 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3092` | ERR |  |
-| BR-455 | `webvue3/src/components/Songs/edit/SubsEdit.vue:1908` | RULE |  |
-| BR-456 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3268` | ERR |  |
-| BR-457 | `webvue3/src/components/Songs/edit/SubsEdit.vue:2196` | PERF |  |
+| BR-452 | `webvue3/src/components/Songs/edit/SubsEdit.vue:665` | LEAK | вешать `mouseup`/`pointerup` на `window` (или `setPointerCapture`) и очищать все `pressed*` по `blur`/`visibilitychange`; в watcher'ах сначала гасить интервал (`clearInterval`) при… |
+| BR-453 | `webvue3/src/components/Songs/edit/SubsEdit.vue:2889` | ERR | проверять `if (this.isUnmounted) return` после каждого `await` в `mounted()` (как в watcher'е `currentVoice`) и перед блоком навешивания обработчиков; по возможности отменять сами … |
+| BR-454 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3092` | ERR | восстанавливать режим в `returnSearchText` так же, как в `closeSearchText` (или снимать `isEditMode` не в `doSearchText`, а в самом `SearchText` через `focus/blur`-события), чтобы … |
+| BR-455 | `webvue3/src/components/Songs/edit/SubsEdit.vue:1908` | RULE | убрать присваивание из геттера — вычислять локальную пару `[string, lad]` для отрисовки, а `marker.stringLad` писать только по явному действию пользователя (кнопка «зафиксировать л… |
+| BR-456 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3268` | ERR | гасить хоткеи на время любой открытой модалки (`if (this.isCustomConfirmVisible || this.isSearchTextVisible || this.isAiTextEditorVisible || this.isWhisperDebugVisible) return` в н… |
+| BR-457 | `webvue3/src/components/Songs/edit/SubsEdit.vue:2196` | PERF | считать слоги инкрементально — по одному проходу на строку (`computeSyllables(line).length` + накопленный счётчик), либо один раз на весь текст с запоминанием границ строк; тег-яко… |
 | BR-463 | `webvue3/src/components/Subscriptions/SubscriptionsFilterModal.vue:145` | COMPAT | отправлять стенное время без зоны (`YYYY-MM-DD HH:mm:ss`) либо перевести колонку/сравнение на `timestamptz` с явной зоной. |
-| BR-464 | `webvue3/src/components/Sync/SyncTable.vue:208` | RACE | не собирать HTML из данных — передавать массив строк и рендерить `v-for` (либо экранировать каждую строку перед склейкой). |
-| BR-465 | `webvue3/src/components/Stats/store.js:479` | ERR | сериализовать изменения по сущности (очередь/блокировка чекбокса до ответа) либо применять ответ только если его значение совпадает с последним отправленным. |
-| BR-466 | `webvue3/src/components/Sync/store.js:45` | ERR | очищать state перед запросом, возвращать `Promise<Boolean>` и показывать ошибку в модалке (или блокировать открытие до успешной загрузки). |
-| BR-468 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4517` | ERR |  |
-| BR-469 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4394` | ERR |  |
-| BR-470 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3615` | DATA |  |
-| BR-471 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3670` | DATA |  |
-| BR-472 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4854` | ERR |  |
-| BR-473 | `webvue3/src/components/Songs/edit/SubsEdit.vue:5725` | PERF |  |
-| BR-474 | `webvue3/src/components/Songs/edit/SubsEdit.vue:5207` | ERR |  |
-| BR-475 | `webvue3/src/views/HomeView.vue:295` | ERR | экранировать `marker.label` и текст комментария (`escapeHtml` из `webvue3/src/utils/highlightWords.js:44`) перед интерполяцией во всех копиях `formatText` — в `useKaraokeEditor.js`… |
-| BR-476 | `webvue3/src/views/HomeView.vue:880` | ERR | не собирать HTML из полей ввода — передавать в `CustomConfirm` текст и экранировать (`escapeHtml`), либо добавить в `CustomConfirm` режим plain-text для `body`/`header`; отдельно —… |
-| BR-477 | `webvue3/src/views/PublishTemplatesView.vue:280` | ERR | добавить `.catch()` во все цепочки `dispatch(...).then(...)` с показом ошибки в модалке (`isAlert` + `alertType: 'danger'`); для ответов-счётчиков проверять формат (число/строка `'… |
-| BR-478 | `webvue3/src/views/PlayerView.vue:43` | LEAK | сбрасывать `authYmInProgress` в `finally` (или в `.catch`) у обеих команд; при старте выставлять флаг только после успешного ответа, а до него блокировать кнопки отдельным состояни… |
-| BR-479 | `webvue3/src/composables/useKaraokeEditor.js:325` | PERF | ошибку сохранения показывать локально у карточки шаблона (как `tpl.previewError`, `:147–149`), а не общим флагом `error`, который прячет редактор; либо разделить флаги «ошибка загр… |
-| BR-480 | `webvue3/src/composables/useKaraokeEditor.js:608` | COMPAT | ввести в `PlayerView` флаг отмены (`this.destroyed = true` в `onBeforeUnmount`), а в `KaraokePlayer.init` проверять его после каждого `await` и прерывать инициализацию (с закрытием… |
-| BR-481 | `webvue3/src/lib/utils.js:15` | ERR | перевести мини-редактор на `findMarkerIndexByTime` из `webvue3/src/utils/markerIndex.js` (индексы по времени) и не пересобирать `formattedTextHtml` целиком на каждом `timeupdate` (… |
-| BR-482 | `webvue3/src/lib/utils.js:57` | RACE | считать число слогов за один проход (инкрементально накапливать `splitSyllables` по добавленной строке) либо переиспользовать готовый `findMarkerIndexByTime`/кэш разбивки; в любом … |
+| BR-464 | `webvue3/src/components/Sync/SyncTable.vue:208` | RACE | сериализовать изменения по сущности (очередь/блокировка чекбокса до ответа) либо применять ответ только если его значение совпадает с последним отправленным. |
+| BR-465 | `webvue3/src/components/Stats/store.js:479` | ERR | очищать state перед запросом, возвращать `Promise<Boolean>` и показывать ошибку в модалке (или блокировать открытие до успешной загрузки). |
+| BR-466 | `webvue3/src/components/Sync/store.js:45` | ERR | `.catch` в `mounted()` (или внутри action) с состоянием ошибки и текстом в таблице; у `loadSyncAutoStatusPromise` — `.catch(() => null)` вместо молчаливого реджекта. |
+| BR-468 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4517` | ERR | единый хелпер `removeMarkerRegion(marker)` с `if (marker.region) { marker.region.remove(); marker.region = null }` и заменить все шесть вызовов; в `createBeatMarkers` брать длитель… |
+| BR-469 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4394` | ERR | нормализовать индекс (`const idx = Math.max(0, this.currentMarkersIndex)`), а замену разрешать только при `currentMarkersIndex >= 0`; `markerToDelete` проверять на `undefined`; отд… |
+| BR-470 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3615` | DATA | создавать/пересоздавать регион только при `ws.getDuration() > 0` (как `createRegionMarker`) либо пересоздавать его по `decode`; `regionMarkerStart/End` обновлять из событий региона… |
+| BR-471 | `webvue3/src/components/Songs/edit/SubsEdit.vue:3670` | DATA | копировать все поля маркера (`note`, `chord`, `stringLad`, `lockLad` включительно), например `{...markerToCopy, time: newTime, region: undefined}`; chord/note-маркеры без значения … |
+| BR-472 | `webvue3/src/components/Songs/edit/SubsEdit.vue:4854` | ERR | `if (this.sourceMarkers.length === 0) return` в начале метода (и, по желанию, `:disabled="sourceMarkers.length === 0"` на кнопке). |
+| BR-473 | `webvue3/src/components/Songs/edit/SubsEdit.vue:5725` | PERF | хранить сигнатуру отрисованного содержимого на маркере (например, `marker._contentSignature = markertype + '\u0000' + label + '\u0000' + note + '\u0000' + chord`) и сравнивать её, … |
+| BR-474 | `webvue3/src/components/Songs/edit/SubsEdit.vue:5207` | ERR | добавить `.catch((e) => { … })` с сообщением пользователю (тост/`customConfirmParams` + `isCustomConfirmVisible`), фиксировать инстанс (`const ws = this.ws`) и проверять `if (this.… |
+| BR-475 | `webvue3/src/views/HomeView.vue:295` | ERR | добавить `.catch()` во все цепочки `dispatch(...).then(...)` с показом ошибки в модалке (`isAlert` + `alertType: 'danger'`); для ответов-счётчиков проверять формат (число/строка `'… |
+| BR-476 | `webvue3/src/views/HomeView.vue:880` | ERR | сбрасывать `authYmInProgress` в `finally` (или в `.catch`) у обеих команд; при старте выставлять флаг только после успешного ответа, а до него блокировать кнопки отдельным состояни… |
+| BR-477 | `webvue3/src/views/PublishTemplatesView.vue:280` | ERR | ошибку сохранения показывать локально у карточки шаблона (как `tpl.previewError`, `:147–149`), а не общим флагом `error`, который прячет редактор; либо разделить флаги «ошибка загр… |
+| BR-478 | `webvue3/src/views/PlayerView.vue:43` | LEAK | ввести в `PlayerView` флаг отмены (`this.destroyed = true` в `onBeforeUnmount`), а в `KaraokePlayer.init` проверять его после каждого `await` и прерывать инициализацию (с закрытием… |
+| BR-479 | `webvue3/src/composables/useKaraokeEditor.js:325` | PERF | перевести мини-редактор на `findMarkerIndexByTime` из `webvue3/src/utils/markerIndex.js` (индексы по времени) и не пересобирать `formattedTextHtml` целиком на каждом `timeupdate` (… |
+| BR-480 | `webvue3/src/composables/useKaraokeEditor.js:608` | COMPAT | добавить `songType` в контракт ответа редакторского API (`SongEditorController.getById`) и прокинуть его в пропсы мини-редактора и в `buildInlinePlayerData`; заодно сверить остальн… |
+| BR-481 | `webvue3/src/lib/utils.js:15` | ERR | задавать конечный `xhr.timeout` (и обрабатывать `ontimeout` → reject с понятным сообщением), добавить `onabort`; в `setWebvueProp` — обрабатывать отказ (`.catch`) и не считать сохр… |
+| BR-482 | `webvue3/src/lib/utils.js:57` | RACE | дебаунсировать запись фильтра (или писать по факту закрытия модалки — `ok()` уже дублирует финальную запись) и передавать монотонную версию/время изменения, чтобы сервер принимал т… |
 | BR-486 | `webvue3/src/player/KaraokePlayer.js:281` | DATA | считать `_silentOffset` до `_buildFlashTimes()` (переставить две строки в `init()`), либо |
 | BR-488 | `webvue3/vite.config.js:5` | BUILD | добавить в `webvue3/vite.config.js` блок `server.proxy` с маршрутом `'/api'` на адрес `karaoke-app` (порт — из `deploy/do.env`, как в `karaoke-public/vite.config.js`), и/или зафикс… |
 
@@ -1128,5 +1157,5 @@
 | BR | Файл:строки | Класс | Суть / поправка |
 |---|---|---|---|
 | BR-115 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt:564` | SEC | выставить минимально необходимые права (владелец-группа контейнера + `640`/`750`) и настроить общий group/umask на томах; не использовать world-writable биты. |
-| BR-247 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:75` | SEC | `chmod 600` (или `660` с выделенной группой) для файла и `.bak`; секреты — в env/secret-store (инвариант integration #2), в файле — только неконфиденциальные настройки; при выдаче … |
+| BR-247 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:75` | SEC | вернуть из `savePropertiesMap`/`set` результат, на ошибке — 5xx с причиной и записью в лог со стеком (SLF4J); `chmod` выполнять до публикации успеха и не смешивать его ошибку с оши… |
 

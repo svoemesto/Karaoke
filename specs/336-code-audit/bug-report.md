@@ -18,8 +18,8 @@
 
 | Severity | Что означает | Найдено |
 |---|---|---:|
-| S1 | Публичный периметр / безопасность / потеря данных / отказ в проде / деньги | 5 |
-| S2 | Сломанная функция, ограниченный радиус поражения | 151 |
+| S1 | Публичный периметр / безопасность / потеря данных / отказ в проде / деньги | 6 |
+| S2 | Сломанная функция, ограниченный радиус поражения | 150 |
 | S3 | Краевые случаи, админка, гигиена кода и сборки | 469 |
 | — | Требует решения владельца (severity не определена) | 0 |
 | **Всего** | | **625** |
@@ -30,6 +30,7 @@
 
 | BR | Файл:строки | Класс | Корневая причина | Суть |
 |---|---|---|---|---|
+| BR-258 | `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt:193–196` | SEC | `public-bucket-stems:storage` | результаты и исходники премиум-задания «Создать минусовку» кладутся в тот же бакет `karaoke`, что и публичные картинки/mp3, а бакет открыт анонимным `s3:GetObject` на весь префикс (`arn:aws:s3:::$bucketName/*`). Прод-nginx проксирует `/mini |
 | BR-011 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt:303–366` | SEC | `public-sql-exec:changerecords` | `POST /changerecords` — публичный endpoint, который исполняет присланный клиентом SQL. Ни `SecurityConfig`, ни `SiteAuthInterceptor` его не защищают (`SecurityConfig.kt:26–34` — `anyRequest().permitAll()`, `WebMvcConfig.kt:28–35` — только ` |
 | BR-018 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt:99–106` | SEC | `gesture-token-paywall-bypass:player` | полный доступ к стемам выдаётся по «скрытому жесту», который минтится публичным `POST /api/public/events` без какой-либо аутентификации и без проверки права на песню. `authorized()` считает такой токен достаточным основанием для отдачи полн |
 | BR-019 | `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt:50–53` | SEC | `public-settings-write:properties` | весь контроллер `/api/properties/**` доступен анонимно (нет ни `SiteAuthInterceptor`, ни ограничения в `SecurityConfig` — там `/api/**` + `anyRequest` = `permitAll`). `GET /api/properties/getproperty` и `GET /api/properties/digest` отдают п |
@@ -40,7 +41,7 @@
 
 | Модуль | S1 | S2 | S3 | Всего |
 |---|---:|---:|---:|---:|
-| `karaoke-app` | 0 | 58 | 201 | 259 |
+| `karaoke-app` | 1 | 57 | 201 | 259 |
 | `webvue3` | 1 | 29 | 125 | 155 |
 | `karaoke-public` | 0 | 13 | 58 | 71 |
 | `karaoke-web` | 4 | 20 | 22 | 46 |
@@ -51,7 +52,22 @@
 | `build (корень)` | 0 | 0 | 4 | 4 |
 | `karaoke-db` | 0 | 0 | 1 | 1 |
 
-## S1 — критичные: публичный периметр, безопасность, деньги, потеря данных — 5
+## S1 — критичные: публичный периметр, безопасность, деньги, потеря данных — 6
+
+### BR-258 — karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt:193–196 — SEC (S1)
+- **Что не так:** результаты и исходники премиум-задания «Создать минусовку» кладутся в тот же бакет `karaoke`, что и публичные картинки/mp3, а бакет открыт анонимным `s3:GetObject` на весь префикс (`arn:aws:s3:::$bucketName/*`). Прод-nginx проксирует `/minio/<bucket>/<object>` без авторизации. Значит объект `stemjobs/<id>/<stem>.mp3` и пользовательский `original.<ext>` доступны анонимным GET по угадываемому URL, хотя премиум-гейт (`PublicStemJobController` в `karaoke-web`) рассчитан на проверку подписки.
+- **Доказательство:**
+
+    «`val bucket = "karaoke"` / `SAC_APP.uploadFile(bucket, "stemjobs/${job.id}/original.${job.originalExt}", uploadFile.absolutePath)` / `stemFiles.forEach { (stem, file) -> SAC_APP.uploadFile(bucket, "stemjobs/${job.id}/$stem.mp3", file.absolutePath) }`» (StemJobProcessing.kt:193–196, SHA 1977838a);
+    «`"Effect": "Allow",` / `"Principal": {"AWS": ["*"]},` / `"Action": ["s3:GetObject"],` / `"Resource": ["arn:aws:s3:::$bucketName/*"]`» (services/KaraokeStorageService.kt:584–587; тот же шаблон для remote — services/StorageApiClient.kt:454–470);
+    «`location /minio/ {` … `proxy_pass http://127.0.0.1:8890/;`» (deploy/prod-single-host/80to8897:6–10) — без `auth_request`/`allow`/`deny`.
+- **Путь:** анонимный клиент → `GET https://sm-karaoke.ru/minio/karaoke/stemjobs/<id>/acc.mp3` → nginx `/minio/` (замена префикса, без auth) → MinIO `karaoke` (публичная политика выше) → тело объекта. `id` — последовательность `tbl_stem_jobs_id_seq`, перебирается; окно доступности — до `expires_at` (`StemJob.RETENTION_HOURS`, 24 ч), после чего объект удаляется периодической уборкой. Тем же способом доступен `original.<ext>` — файл, загруженный пользователем. Публичность пути `/minio/karaoke/...` подтверждается тем, что `karaoke-web` отдаёт браузеру прямые ссылки `/minio/karaoke/<encoded>` (`PublicPlaylistController.kt:68,80`, `PublicApiController.kt:951`), а `PublicStemJobController.kt:166` сам ходит в `$minioProxyUrl/minio/karaoke/...`.
+- **Поправка:** вынести объекты `stemjobs/` в отдельный приватный бакет (или приватный префикс с явным `Deny` на `stemjobs/*` в политике бакета) и отдавать их только через `PublicStemJobController` с проверкой права, либо короткоживущими presigned-ссылками; заодно пересмотреть политику «весь бакет `karaoke` анонимно читаем».
+- **Найдено в:** P-06 / P-06.md (запись P-06-02)
+- **Автор (git blame):** dev (<dev@localhost>, 2026-07-17, `…/StemJobProcessing.kt:195`).
+- **Корень (root_cause_key):** `public-bucket-stems:storage`
+- **Статус:** TODO
+- **Проверено лидом:** да
 
 ### BR-011 — karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt:303–366 — SEC (S1)
 - **Что не так:** `POST /changerecords` — публичный endpoint, который исполняет присланный клиентом SQL. Ни `SecurityConfig`, ни `SiteAuthInterceptor` его не защищают (`SecurityConfig.kt:26–34` — `anyRequest().permitAll()`, `WebMvcConfig.kt:28–35` — только `/api/public/account/**`, `/api/public/auth/{me,logout}`, `/api/siteusers/**`). Единственная проверка — расшифровать фиксированную константу `Crypto.WORDS_TO_CHECK`. Шифр AES/CBC без MAC, а при отсутствии env `CRYPTO_AES_KEY`/`CRYPTO_AES_IV` `Crypto` берёт захардкоженные в репозитории ключ и IV (`Crypto.kt:36–37`, `45–58`, `60–73`); в deploy-конфигах `CRYPTO_AES_*` не задаётся (`grep` по `deploy/` — 0 совпадений, в `docker-compose-web.yml` переменных нет). Таблицы и SET-текст тоже приходят из запроса: `UPDATE $tableName SET $setTextDecrypted WHERE id = $idRecord`.
@@ -146,7 +162,7 @@
 - **Дополнительные локации (добавлены лидом):** локации из P-43/P-52/P-54/P-57/P-64: `CustomConfirm.vue` → `v-html` (email, имя картинки, автор/словарь/новость), `SyncTable.vue` (ошибка БД с email)
 - **Проверено лидом:** да
 
-## S2 — сломанные функции — 151
+## S2 — сломанные функции — 150
 
 ### BR-509 — .github/workflows/lint.yml:295–317 — BUILD (S2)
 - **Что не так:** шаг «No direct commits to master (Pass 353, final safety net)» выполняется в job `knowledge-structure`, где checkout идёт **без `fetch-depth`**, то есть с глубиной 1 (`actions/checkout@v4` по умолчанию). В таком клоне доступна только одна (tip-)команда, а `git log --first-parent origin/master --since=24.hours --no-merges` либо не находит remote-tracking ref, либо видит единственный коммит. Итог: счётчик `DIRECT_COMMITS` всегда 0, шаг всегда печатает «✅ No direct commits to master in last 24h» и **никогда не падает**. Заявленная в комментарии роль «final safety net» (после branch protection и pre-commit-хука) фактически не работает. Для сравнения: соседний job `ssot-impact` глубину задаёт явно (`fetch-depth: 50`, `:210`).
@@ -1899,21 +1915,6 @@
 - **Найдено в:** P-04 / P-04.md (запись P-04-01)
 - **Автор (git blame):** nsa (<svoemesto@gmail.com>, 2023-05-07, `…/KaraokeProcess.kt:887`); nsa (<svoemesto@gmail.com>, 2023-08-13, `…/KaraokeProcess.kt:888`).
 - **Корень (root_cause_key):** `sql-injection:process-loadlist`
-- **Статус:** TODO
-- **Проверено лидом:** да
-
-### BR-258 — karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt:193–196 — SEC (S2)
-- **Что не так:** результаты и исходники премиум-задания «Создать минусовку» кладутся в тот же бакет `karaoke`, что и публичные картинки/mp3, а бакет открыт анонимным `s3:GetObject` на весь префикс (`arn:aws:s3:::$bucketName/*`). Прод-nginx проксирует `/minio/<bucket>/<object>` без авторизации. Значит объект `stemjobs/<id>/<stem>.mp3` и пользовательский `original.<ext>` доступны анонимным GET по угадываемому URL, хотя премиум-гейт (`PublicStemJobController` в `karaoke-web`) рассчитан на проверку подписки.
-- **Доказательство:**
-
-    «`val bucket = "karaoke"` / `SAC_APP.uploadFile(bucket, "stemjobs/${job.id}/original.${job.originalExt}", uploadFile.absolutePath)` / `stemFiles.forEach { (stem, file) -> SAC_APP.uploadFile(bucket, "stemjobs/${job.id}/$stem.mp3", file.absolutePath) }`» (StemJobProcessing.kt:193–196, SHA 1977838a);
-    «`"Effect": "Allow",` / `"Principal": {"AWS": ["*"]},` / `"Action": ["s3:GetObject"],` / `"Resource": ["arn:aws:s3:::$bucketName/*"]`» (services/KaraokeStorageService.kt:584–587; тот же шаблон для remote — services/StorageApiClient.kt:454–470);
-    «`location /minio/ {` … `proxy_pass http://127.0.0.1:8890/;`» (deploy/prod-single-host/80to8897:6–10) — без `auth_request`/`allow`/`deny`.
-- **Путь:** анонимный клиент → `GET https://sm-karaoke.ru/minio/karaoke/stemjobs/<id>/acc.mp3` → nginx `/minio/` (замена префикса, без auth) → MinIO `karaoke` (публичная политика выше) → тело объекта. `id` — последовательность `tbl_stem_jobs_id_seq`, перебирается; окно доступности — до `expires_at` (`StemJob.RETENTION_HOURS`, 24 ч), после чего объект удаляется периодической уборкой. Тем же способом доступен `original.<ext>` — файл, загруженный пользователем. Публичность пути `/minio/karaoke/...` подтверждается тем, что `karaoke-web` отдаёт браузеру прямые ссылки `/minio/karaoke/<encoded>` (`PublicPlaylistController.kt:68,80`, `PublicApiController.kt:951`), а `PublicStemJobController.kt:166` сам ходит в `$minioProxyUrl/minio/karaoke/...`.
-- **Поправка:** вынести объекты `stemjobs/` в отдельный приватный бакет (или приватный префикс с явным `Deny` на `stemjobs/*` в политике бакета) и отдавать их только через `PublicStemJobController` с проверкой права, либо короткоживущими presigned-ссылками; заодно пересмотреть политику «весь бакет `karaoke` анонимно читаем».
-- **Найдено в:** P-06 / P-06.md (запись P-06-02)
-- **Автор (git blame):** dev (<dev@localhost>, 2026-07-17, `…/StemJobProcessing.kt:195`).
-- **Корень (root_cause_key):** `public-bucket-stems:storage`
 - **Статус:** TODO
 - **Проверено лидом:** да
 

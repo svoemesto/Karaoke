@@ -114,43 +114,68 @@ def main() -> None:
         m = re.match(r'BR-(\d+)', r['br_id'])
         br_to_fid[r['br_id']] = f"BR-{m.group(1)}"
 
-    # фиксы лежат по P-идентификаторам; строим BR → fix через порядок карточек
-    # (BR-номер = порядковый номер записи в порции, он не совпадает с P-NN),
-    # поэтому фикс привязываем через реестр: portion + порядок.
-    portion_order: dict[str, list[str]] = collections.defaultdict(list)
-    for r in reg:
-        portion_order[r['portion']].append(r['br_id'])
+    # BR ↔ карточка: по паре (файл, первая строка) — не по порядку.
     fix_by_br: dict[str, str] = {}
     what_by_br: dict[str, str] = {}
+    reg_by_portion: dict[str, list[dict]] = collections.defaultdict(list)
+    for r in reg:
+        reg_by_portion[r['portion']].append(r)
+
+    def parse_heading(head: str):
+        """'### P-06-02: path/to/file.kt:193–196 — SEC (S2)' → (path, first_line)."""
+        m = re.match(r'^(?:###\s*)?(P-[\w\-]+?):\s*(.+?)\s+—\s+([A-Z]+)\s*\((\w+)\)', head)
+        if not m:
+            return None
+        loc = m.group(2).strip()
+        m2 = re.match(r'^(.*?):([0-9]+(?:\s*[–-]\s*[0-9]+)?(?:\s*,\s*[0-9]+(?:\s*[–-]\s*[0-9]+)?)*)$', loc)
+        if not m2:
+            return None
+        path = m2.group(1).strip()
+        nums = [int(x) for x in re.findall(r'\d+', m2.group(2))]
+        return path, (nums[0] if nums else None)
+
     for fn in sorted(os.listdir(FIND)):
         if not fn.endswith('.md'):
             continue
         pid = fn[:-3]
         text = open(os.path.join(FIND, fn), encoding='utf-8').read()
-        cards = re.split(r'\n### ', text)
-        found: list[tuple[str, str, str]] = []
-        for card in cards[1:]:
-            m = re.match(r'(P-\d+[a-z]?-\d+):', card)
-            if not m:
+        for card in re.split(r'\n### ', text)[1:]:
+            head = card.split('\n', 1)[0]
+            parsed = parse_heading(head)
+            if not parsed:
                 continue
-            fix = ''
+            path, line = parsed
+            fix = what = ''
             mm = re.search(r'- \*\*Поправка:?\*\*:?\s*(.+)', card) or \
                  re.search(r'- Поправка:?\s*(.+)', card)
             if mm:
                 fix = mm.group(1).strip()
-            what = ''
             mw = re.search(r'- \*\*Что не так:?\*\*:?\s*(.+)', card) or \
                   re.search(r'- Что не так:?\s*(.+)', card)
             if mw:
                 what = mw.group(1).strip()
-            found.append((m.group(1), fix, what))
-        order = portion_order.get(pid, [])
-        for idx, (_fid, fix, what) in enumerate(found):
-            if idx < len(order):
+            # ищем BR этой порции с тем же файлом и стартовой строкой
+            best = None
+            pid_base = re.sub(r'[a-z]$', '', pid)
+            candidates = reg_by_portion.get(pid, []) + (
+                reg_by_portion.get(pid_base, []) if pid_base != pid else [])
+            for r in candidates:
+                rf = r['file']
+                same_file = (rf == path) or (rf.split('/')[-1] == path.split('/')[-1])
+                if not same_file:
+                    continue
+                try:
+                    rl = int(r['line_start'])
+                except ValueError:
+                    continue
+                if line is None or abs(rl - line) <= 2:
+                    best = r
+                    break
+            if best:
                 if fix:
-                    fix_by_br[order[idx]] = fix
+                    fix_by_br[best['br_id']] = fix
                 if what:
-                    what_by_br[order[idx]] = what
+                    what_by_br[best['br_id']] = what
 
     # ── R1/R2: явные семейства ──────────────────────────────────────────────
     used: set[str] = set()
@@ -288,6 +313,30 @@ def main() -> None:
         pk = [p for p in packages if p['wave'] == wv]
         lines.append(f'| {wv} | {wave_desc[wv]} | {len(pk)} | {sum(len(p["brs"]) for p in pk)} |')
     lines.append('')
+    merged = len(reg) - sum(len(p['brs']) for p in packages)
+    if merged:
+        lines.append(f'> {merged} записей реестра **слиты** с уже существующими BR (см. раздел '
+                     f'«Объединённые и перенесённые записи» в `bug-report.md`) — отдельными пакетами '
+                     f'они не идут, закрываются вместе с основной записью.')
+        lines.append('')
+    # связанные локации (находки, слитые с основной записью) — из отчёта
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            'build_report', os.path.join(ROOT, 'specs/336-code-audit/tools/build_report.py'))
+        br_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(br_mod)
+        extra = getattr(br_mod, 'EXTRA_LOC', {})
+    except Exception as e:  # noqa: BLE001
+        extra = {}
+    if extra:
+        lines.append('## Связанные локации (находки, слитые с основной записью)')
+        lines.append('')
+        lines.append('| BR | Дополнительные локации |')
+        lines.append('|---|---|')
+        for br in sorted(extra, key=lambda x: int(x.split('-')[1])):
+            lines.append(f'| {br} | {extra[br]} |')
+        lines.append('')
     lines.append('## Пакеты')
     lines.append('')
     for p in packages:

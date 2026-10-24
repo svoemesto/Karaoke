@@ -25,6 +25,26 @@ HEAD_RE = re.compile(
 FIELD_RE = re.compile(r'^-\s+\*{0,2}([^:*]{2,40}?)\*{0,2}\s*[:：]\s*(.*)$')
 
 
+EXTRA_LOC = {
+
+    'BR-499': 'корневой `gradle/wrapper/gradle-wrapper.properties:3` (Gradle 8.14) — та же проблема версий wrapper’ов',
+    'BR-003': 'локации из P-38: `DebugDbAccessGuard` (IP-allowlist `/api/public/debug/db`), rate-limit claim’ов share-ссылок, `client_ip_hash` в БД',
+    'BR-123': 'локации из P-43/P-52/P-54/P-57/P-64: `CustomConfirm.vue` → `v-html` (email, имя картинки, автор/словарь/новость), `SyncTable.vue` (ошибка БД с email)',
+    'BR-312': 'локации из P-43/P-58/P-62/P-65: `useKaraokeEditor.js` (karaoke-public), `useReviewModalFormat.js`, `SubsEdit.vue:1703, 4073–4083`, `SongKaraokeEditorView.vue:317`',
+    'BR-324': 'локация из P-52: `webvue3/src/components/Chat/store.js:164` — первое сообщение в новом диалоге не появляется',
+    'BR-457': 'локация из P-65: `webvue3/src/composables/useKaraokeEditor.js:152–177` (квадратичный `specTagAnchors`)',
+    'BR-202': 'локация из P-39: `karaoke-web/.../templates/filter.html:308–310` (`${songAuthors}` вместо `${authors}`)',
+    'BR-531': '`karaoke-app/src/test/kotlin/1` (1 916 строк) — тот же MLT с путями `~/Documents/Караоке/…`, потребителей нет (P-30, «Сверки» п.1); `karaoke-app/src/test/kotlin/Неправильный.xml` (7 674 строки) — второй такой же MLT с путями `~/Documents/Караоке/Ю-Питер/…` и `~/Documents/SpaceBox4096/…`, потребителей нет (P-33-01)',
+    'BR-551': 'тот же корень «секрет в argv»: BR-552 (`deploy/tracker-db-backup.sh`, `docker exec -e PGPASSWORD`), BR-605 (`tools/tracker-lib.sh` — токен OpenProject в `-H "Authorization: Basic …"`), P-75-01 (`tools/analyze-prod-incident.sh` — пароль БД в connection string)',
+    'BR-573': 'зеркала из P-76 «Сверки»: registry-smoke (пустой каталог → PASS), check-ssot-impact (неразрешимая база → exit 0), lint-knowledge (шаблон не загружен → проверка отключена)',
+    'BR-578': 'зеркало из P-76: `tools/generate-eslint-baseline.sh:57` — абсолютный `filePath` в ключе baseline (тот же корень)',
+    'BR-581': 'зеркало из P-76: `tools/registry-vendor.sh:52` — `DOCKER_CONFIG=/home/nsa/Karaoke/.docker` (тот же корень «жёсткий путь»)',
+    'BR-525': 'локации из P-68: `webvue3/playwright.config.js:29–35` (ветки `process.env.CI` — мёртвый код), 14 файлов `webvue3/e2e/*.spec.js`, 5 файлов `webvue3/src/**/__tests__/*`; НОВОЕ в P-68-01: unit-тесты фронта (`node --test`) не имеют скрипта запуска в `webvue3/package.json`',
+    'BR-507': 'локации из P-68: e2e и unit-тесты `webvue3` не выполняются в CI (тот же корень «в CI нет сборки и тестов»)',
+    'BR-060': 'локации из P-06/P-07: `SyncAudioDescendants.kt:173, 333`, `Utils.kt` (одноразовые `thread {}` без `closeThreadConnection()`)',
+}
+
+
 def parse_findings():
     """→ список записей: dict(fid, file, lines, cls, sev, fields{}, path)"""
     out = []
@@ -154,23 +174,6 @@ def main():
 
     merged_extra = collections.defaultdict(list)
     # дополнительные локации, добавленные лидом к существующим записям
-    EXTRA_LOC = {
-        'BR-499': 'корневой `gradle/wrapper/gradle-wrapper.properties:3` (Gradle 8.14) — та же проблема версий wrapper’ов',
-        'BR-003': 'локации из P-38: `DebugDbAccessGuard` (IP-allowlist `/api/public/debug/db`), rate-limit claim’ов share-ссылок, `client_ip_hash` в БД',
-        'BR-123': 'локации из P-43/P-52/P-54/P-57/P-64: `CustomConfirm.vue` → `v-html` (email, имя картинки, автор/словарь/новость), `SyncTable.vue` (ошибка БД с email)',
-        'BR-312': 'локации из P-43/P-58/P-62/P-65: `useKaraokeEditor.js` (karaoke-public), `useReviewModalFormat.js`, `SubsEdit.vue:1703, 4073–4083`, `SongKaraokeEditorView.vue:317`',
-        'BR-324': 'локация из P-52: `webvue3/src/components/Chat/store.js:164` — первое сообщение в новом диалоге не появляется',
-        'BR-457': 'локация из P-65: `webvue3/src/composables/useKaraokeEditor.js:152–177` (квадратичный `specTagAnchors`)',
-        'BR-202': 'локация из P-39: `karaoke-web/.../templates/filter.html:308–310` (`${songAuthors}` вместо `${authors}`)',
-        'BR-531': '`karaoke-app/src/test/kotlin/1` (1 916 строк) — тот же MLT с путями `~/Documents/Караоке/…`, потребителей нет (P-30, «Сверки» п.1); `karaoke-app/src/test/kotlin/Неправильный.xml` (7 674 строки) — второй такой же MLT с путями `~/Documents/Караоке/Ю-Питер/…` и `~/Documents/SpaceBox4096/…`, потребителей нет (P-33-01)',
-        'BR-551': 'тот же корень «секрет в argv»: BR-552 (`deploy/tracker-db-backup.sh`, `docker exec -e PGPASSWORD`), BR-605 (`tools/tracker-lib.sh` — токен OpenProject в `-H "Authorization: Basic …"`), P-75-01 (`tools/analyze-prod-incident.sh` — пароль БД в connection string)',
-        'BR-573': 'зеркала из P-76 «Сверки»: registry-smoke (пустой каталог → PASS), check-ssot-impact (неразрешимая база → exit 0), lint-knowledge (шаблон не загружен → проверка отключена)',
-        'BR-578': 'зеркало из P-76: `tools/generate-eslint-baseline.sh:57` — абсолютный `filePath` в ключе baseline (тот же корень)',
-        'BR-581': 'зеркало из P-76: `tools/registry-vendor.sh:52` — `DOCKER_CONFIG=/home/nsa/Karaoke/.docker` (тот же корень «жёсткий путь»)',
-        'BR-525': 'локации из P-68: `webvue3/playwright.config.js:29–35` (ветки `process.env.CI` — мёртвый код), 14 файлов `webvue3/e2e/*.spec.js`, 5 файлов `webvue3/src/**/__tests__/*`; НОВОЕ в P-68-01: unit-тесты фронта (`node --test`) не имеют скрипта запуска в `webvue3/package.json`',
-        'BR-507': 'локации из P-68: e2e и unit-тесты `webvue3` не выполняются в CI (тот же корень «в CI нет сборки и тестов»)',
-        'BR-060': 'локации из P-06/P-07: `SyncAudioDescendants.kt:173, 333`, `Utils.kt` (одноразовые `thread {}` без `closeThreadConnection()`)',
-    }
 
     used = set()
     records = []

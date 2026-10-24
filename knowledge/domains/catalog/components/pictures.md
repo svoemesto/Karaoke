@@ -186,7 +186,14 @@ MinIO. Исключения при декодировании/загрузке �
 ### Прочее
 
 - `saveToDisk()` — скачивает файл из хранилища и пишет PNG в
-  `/sm-karaoke/system/pictures/$name.png` (`chmod 666`).
+  `/sm-karaoke/system/pictures/$name.png` (`chmod 666`; legacy — место
+  принадлежит другой записи аудита #336, см. baseline
+  `tools/check-file-permissions.baseline`).
+- Картинки/превью, которые генерирует `UtilsPictures.kt` (`createSongPicture`,
+  `createAuthorPreview`, `createAlbumPreview` и др.), публикуются с правами
+  `644`, каталог публикации — `755` (BR-115, OpenProject #407). Раньше было
+  `chmod 666` на файл и `chmod 777` на каталог: опубликованный артефакт мог
+  подменить любой контейнер с тем же томом.
 - `VkPreviewWarmupClient` (`services/VkPreviewWarmupClient.kt`) — генерация
   preview перед публикацией в VK (используется `VkAutoPublishService`).
 - `syncRemotePicturesInStorage` (`Utils.kt:716`) — синхронизация картинок с

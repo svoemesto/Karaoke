@@ -200,6 +200,16 @@ publish10 … publish23: SongDTO?, publish10text … publish23text: String)`.
 `RecordChangeMessage` — часть two-DB sync: `getSetString()` собирает
 `SET`-выражение из `diffs.filter { it.recordDiffRealField }`.
 
+### `Publication`: раскладка стопок и пагинация (BR-188/BR-200)
+
+`getUnPublicationList`/`getSkipedPublicationList` раскладывают неопубликованные песни по
+слотам через `popPublicationStacks(stacks)`: цикл продолжается, пока есть хотя бы одна
+непустая стопка. Раньше условием был захваченный `maxOfOrNull { it.size }`, который внутри
+тела не менялся, — при непустом списке `/unpublications` уходила в вечный цикл и OOM (в
+одном JVM с очередью `KaraokeProcess`). Страница `/publications` режется по
+`PUBLICATION_PAGE_SIZE = 31` день через `pageSlice`/`hasNextPage`, а не рендерит весь
+каталог (было 127 МиБ HTML).
+
 ## Известные TODO
 
 - [ ] `Publication` — есть ли фактическая таблица/колонки (`tbl_publications`
@@ -213,5 +223,7 @@ publish10 … publish23: SongDTO?, publish10text … publish23text: String)`.
 
 ## Changelog
 
+- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): Publication — конечная
+  раскладка стопок и постраничная выдача расписания (BR-188/BR-200). Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 348** (2026-09-09): Initial. Автор: agent (Karaoke).

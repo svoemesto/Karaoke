@@ -241,6 +241,14 @@ L3-компонентов у домена пока нет: контекст оп
    (не дата!). Иначе повтор после сбоя создаёт второе списание.
 7. **`scope=SONG` подписки** не имеют `endDate` (бессрочные).
    `scope=SITE` — имеют.
+8. **Тарифы проверяются до записи (BR-219).** `TariffsController` отклоняет
+   `priceRub < 0` (`bad_price`) и `scope=SITE` с `periodDays <= 0`
+   (`bad_period_days`): иначе оплата не продлевает `sitePremiumUntil`, а
+   отрицательная цена валит публичную `/price` на `coerceIn(0.0, base)`.
+   Ровно один default на scope: `saveWithSingleDefault` снимает прежний флаг
+   и сохраняет новый в одной транзакции, `PriceTariff.getDefault` выбирает
+   детерминированно (`isDefault desc, sortOrder, id`) одним SELECT.
+   Остаточный риск — нет partial unique index в БД (решение за владельцем).
 
 ## Архитектурные решения
 
@@ -349,5 +357,8 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 
 ## Changelog
 
+- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): инварианты тарифов
+  (цена, период SITE, единственный default) и детерминированный `getDefault` (BR-219).
+  Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

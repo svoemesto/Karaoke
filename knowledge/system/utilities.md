@@ -193,6 +193,36 @@ Pass 456).** В первой версии этого раздела было н�
 
 ---
 
+### Синхронизация: цель обязана подтвердить чанк (BR-251)
+
+`updateDatabases` и `setSongToSyncRemoteTable(ids)` отправляют изменения чанками через
+`SyncRemoteClient.postChangeRecords(...)`, который возвращает `Boolean`. До пакета
+PKG-S2-12 (`specs/336-code-audit`, P-07-01) результат игнорировался: при 401/500/таймауте
+синхронизация рапортовала успех, а в режиме «перемещение» удаляла строки из ИСТОЧНИКА —
+данные терялись в обеих БД.
+
+Контракт сейчас:
+
+- `postChunksConfirming(chunks, buildBody, send)` отправляет чанки строго по одному и
+  прекращает работу на первом отказе; нешифруемый `word` (`Crypto.encrypt` → `null`)
+  считается отказом чанка, а не пустым SQL.
+- `SyncResult.error = true` — цель не подтвердила изменения; списки пусты, источник НЕ
+  очищался. `POST /api/sync/run` отвечает `502 sync_target_not_confirmed` вместо `200`.
+- `postChunksConfirming` — чистый шов (принимает `send`), покрыт регрессионными тестами
+  пакета.
+
+### Выбор автора для поиска нового альбома (BR-266)
+
+`getAuthorForRequest` обходил авторов рекурсией без множества посещённых и без предела
+глубины: если ни один автор не подходил, функция уходила в `StackOverflowError` (при
+единственном авторе — немедленно). `Error` не ловится `catch (e: Exception)` в
+`KaraokeProcessWorker.doStart`, и поток очереди останавливался до ручного перезапуска.
+
+Сейчас порядок задаёт `authorRequestOrder(...)`: ровно один круг, начиная со следующего
+после `lastAuthor`; если проверять некого — `null` (вызывающий `checkLastAlbumYm` уже
+трактует `null` как `-2`). Условие отбора — `author.ymId != ""` (сравнение по значению,
+не по ссылке) и `lastAlbumYm == lastAlbumProcessed`.
+
 ## `UtilsPictures.kt` (1019 строк)
 
 ### Что
@@ -450,6 +480,23 @@ UUID-генерация. Используется для:
 
 ---
 
+## Legacy Thymeleaf-страницы karaoke-app (BR-200/201/206/214)
+
+`/songs`, `/songs2`, `/publications`, `/processes` рендерятся в `karaoke-app` (не в
+`karaoke-web`) и после пакета PKG-S2-12 имеют жёсткий контракт:
+
+- Списки отдаются страницей: `LEGACY_PAGE_SIZE = 200` (песни), `PUBLICATION_PAGE_SIZE = 31`
+  (дни расписания). Контроллер кладёт в модель `page`/`hasPrev`/`hasNext`, шаблон рисует
+  `#areaPager` и передаёт `filter_page` в URL. `SELECT *` без `LIMIT` на этих страницах
+  запрещён: `/songs2` без фильтра отдавал 438 МиБ HTML, `/publications` — 127 МиБ.
+- Брокера STOMP/WebSocket в `karaoke-app` нет с 2024-08-15 (`WebSocketConfig` удалён и
+  остался только в `karaoke-web`). Подключаться к нему из шаблонов нельзя; live-статус
+  процессов — polling `GET /process/lastupdated`.
+- `MainController.songsUpdate`/`songs2Update` объявляют отсутствующие в legacy-формах поля
+  (`song_resultVersion`, `song_idBoostyFiles`) как `String?` и не затирают сохранённое
+  значение, если параметр не передан (иначе Spring передавал `null` и Kotlin-проверка
+  бросала NPE → 500 на каждом «Сохранить»).
+
 ## Архитектурные долги
 
 1. **`Utils.kt` слишком большой**: 5366 строк, плоская структура.
@@ -531,4 +578,7 @@ issue #53.
 
 ## Changelog
 
+- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): Utils.kt — подтверждение
+  цели синхронизации (BR-251), конечный обход авторов (BR-266); legacy-страницы
+  karaoke-app — пагинация и отказ от мёртвого STOMP (BR-200/201/206/214). Автор: agent (Karaoke).
 - **Pass 341 P3c** (2026-09-09): Initial detailed. Автор: agent (Karaoke).

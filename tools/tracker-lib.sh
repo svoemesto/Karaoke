@@ -166,6 +166,12 @@ tracker_http_request() {
     # OpenProject Basic Auth принимает username='apikey' и password=API-токен
     # (см. UserBasicAuth warden-strategy). TRACKER_USER используется только
     # для whoami/log; в Authorization header всегда идёт 'apikey'.
+    #
+    # BR-605 (OpenProject #382): заголовок Authorization НЕ передаётся через
+    # argv. Раньше было `-H "Authorization: Basic ${auth_header}"` — base64 от
+    # admin-токена трекера виден в `ps -eo args` ЛЮБОМУ пользователю машины.
+    # Теперь curl получает заголовок через stdin (`--config -`), в argv остаются
+    # только флаги и URL.
     local auth_header
     auth_header=$(printf '%s:%s' "$TRACKER_BASIC_USERNAME" "$TRACKER_BASIC_PASSWORD" | base64 -w 0)
 
@@ -174,20 +180,20 @@ tracker_http_request() {
 
         if [ -n "$body" ]; then
             http_status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+                --config - \
                 -X "$method" \
                 --max-time "$TRACKER_HTTP_TIMEOUT" \
-                -H "Authorization: Basic ${auth_header}" \
                 -H "Content-Type: application/json" \
                 -H "Accept: application/json" \
                 --data-raw "$body" \
-                "$url" 2>/dev/null || echo "000")
+                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"" || echo "000")
         else
             http_status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+                --config - \
                 -X "$method" \
                 --max-time "$TRACKER_HTTP_TIMEOUT" \
-                -H "Authorization: Basic ${auth_header}" \
                 -H "Accept: application/json" \
-                "$url" 2>/dev/null || echo "000")
+                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"" || echo "000")
         fi
 
         end_ts=$(date +%s%N)

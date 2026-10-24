@@ -509,9 +509,9 @@ BR-507,P-78,BUILD,S3,.github/workflows/lint.yml,39,45,ci-no-build-no-test:ci,TOD
 BR-508,P-78,SEC,S3,.github/workflows/lint.yml,50,52,actions-tag-pinned:ci,TODO,lead-verified,391
 BR-509,P-78,BUILD,S2,.github/workflows/lint.yml,295,295,direct-commit-guard-shallow:ci,TODO,lead-verified,369
 BR-510,P-78,BUILD,S3,.github/workflows/lint.yml,139,139,feature-doc-wrong-dir:ci,TODO,lead-verified,369
-BR-511,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,16,42,external-process-no-timeout:test,TODO,lead-verified,388
-BR-512,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,48,49,test-silently-skipped:test,TODO,lead-verified,388
-BR-513,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkDateTimeTest.kt,47,58,tz-invariance-not-tested:test,TODO,lead-verified,388
+BR-511,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,16,42,external-process-no-timeout:test,исправлено,lead-verified,388
+BR-512,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,48,49,test-silently-skipped:test,исправлено,lead-verified,388
+BR-513,P-40,TEST,S3,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkDateTimeTest.kt,47,58,tz-invariance-not-tested:test,исправлено,lead-verified,388
 BR-514,P-38,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt,84,103,renew-charge-before-save:subscription,TODO,lead-verified,365
 BR-515,P-38,ERR,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt,55,55,renew-one-fails-all:subscription,TODO,lead-verified,378
 BR-516,P-38,LEAK,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt,235,235,claim-ratelimit-leak:share,TODO,lead-verified,378
@@ -521,9 +521,9 @@ BR-519,P-38,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/service
 BR-520,P-38,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt,304,336,share-lease-not-slot:share,TODO,lead-verified,401
 BR-521,P-38,ERR,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StemJobTempCleanupScheduler.kt,29,33,cleanup-swallow:stem,TODO,lead-verified,401
 BR-522,P-38,ERR,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/YandexCaptchaValidationService.kt,52,55,captcha-log-swallow:auth,TODO,lead-verified,401
-BR-523,P-50,TEST,S3,karaoke-public/src/composables/__tests__/formatText.test.js,19,69,no-xss-regression-test:test,TODO,lead-verified,387
-BR-524,P-50,TEST,S3,karaoke-public/e2e/public-editor.spec.js,44,58,bundle-text-assertion:test,TODO,lead-verified,387
-BR-525,P-50,TEST,S3,karaoke-public/e2e/public-editor.spec.js,15,28,e2e-not-in-ci:test,TODO,lead-verified,387
+BR-523,P-50,TEST,S3,karaoke-public/src/composables/__tests__/formatText.test.js,19,69,no-xss-regression-test:test,исправлено,lead-verified,387
+BR-524,P-50,TEST,S3,karaoke-public/e2e/public-editor.spec.js,44,58,bundle-text-assertion:test,исправлено,lead-verified,387
+BR-525,P-50,TEST,S3,karaoke-public/e2e/public-editor.spec.js,15,28,e2e-not-in-ci:test,исправлено,lead-verified,387
 BR-526,P-29,SEC,S3,karaoke-app/src/main/resources/test.xml,1,463,pii-fixture-in-jar:resources,TODO,lead-verified,398
 BR-527,P-74,BUILD,S3,build.gradle.kts,45,45,jackson-version-skew:build,TODO,lead-verified,406
 BR-528,P-74,BUILD,S3,gradle/wrapper/gradle-wrapper.properties,1,7,gradle-wrapper-no-checksum:build,TODO,lead-verified,406

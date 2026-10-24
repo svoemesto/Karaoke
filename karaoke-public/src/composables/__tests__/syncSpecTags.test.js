@@ -67,3 +67,35 @@ describe('#202 несколько разных спецтегов', () => {
     assert.equal(types.filter((t) => t === 'setting').length, 1, 'group должен добавиться')
   })
 })
+
+// BR-524 (аудит #336, OpenProject #387): поведение #202 — дедуп по ВРЕМЕННОМУ
+// диапазону, а не по индексному окну — раньше проверялось в e2e ПО ТЕКСТУ
+// минифицированного бандла (регекс /\.time>=\w+&&\w+\.time<=/). Такая проверка
+// зависела от версии минификатора и падала без дефекта. Теперь поведение
+// проверяется по исходникам: дубликатом считается маркер с тем же типом и
+// меткой, чьё ВРЕМЯ попадает в окно [prevEndTime, windowEnd].
+describe('#202 дедуп по временному диапазону', () => {
+  const newlineMarker = (time) => ({ markertype: 'newline', label: '', time })
+
+  test('маркер с той же меткой ВНУТРИ окна — дубликат (не добавляем)', () => {
+    const out = syncMarkersFromSpecTags(
+      [syl('раз', 1), syl('два', 2), syl('три', 3), newlineMarker(2.5)],
+      TEXT,
+    )
+    const newlines = out.filter((m) => m.markertype === 'newline')
+    assert.equal(newlines.length, 1, 'дубликат внутри окна добавляться не должен')
+  })
+
+  test('маркер с той же меткой ВНЕ окна — не дубликат (добавляем)', () => {
+    const out = syncMarkersFromSpecTags(
+      [syl('раз', 1), syl('два', 2), syl('три', 3), newlineMarker(0.5)],
+      TEXT,
+    )
+    const newlines = out.filter((m) => m.markertype === 'newline')
+    assert.equal(
+      newlines.length,
+      2,
+      'метка вне временного окна дубликатом не считается — маркер добавляется',
+    )
+  })
+})

@@ -147,6 +147,30 @@ repos:
         files: '^webvue3/src/.*\.(vue|js)$'
         stages: [pre-commit]
 
+      # === Vue: unit-тесты karaoke-public (node --test) ===
+      # BR-523 / PKG-S3-02 (аудит #336, OpenProject #387): тесты публичного SPA
+      # (src/**/__tests__/*.test.js) не запускались ни в одном хуке и ни в одном
+      # CI-джобе — регрессия проходила молча.
+      - id: karaoke-public-unit-tests
+        name: unit tests (karaoke-public public SPA)
+        entry: bash -c 'cd karaoke-public && npm run test:unit'
+        language: system
+        pass_filenames: false
+        files: '^karaoke-public/src/.*\.(vue|js|ts)$'
+        stages: [pre-commit]
+
+      # === Guard: тест экранирования метки комментария (BR-523) ===
+      # Проверяет, что регрессионный тест «взведён» (падает на уязвимом снимке
+      # кода и проходит на исправленном) и что его skip-состояние соответствует
+      # состоянию production-кода. Фикстуры «до/после» — tools/fixtures/marker-escape/.
+      - id: marker-escape-guard
+        name: marker escape guard (BR-523)
+        entry: bash tools/check-marker-escape-guard.sh
+        language: system
+        pass_filenames: false
+        files: '^karaoke-public/src/composables/useKaraokeEditor\.js$|^webvue3/src/components/SongEditor/useReviewModalFormat\.js$|^karaoke-public/src/composables/__tests__/formatText-escape\.test\.js$|^webvue3/src/components/SongEditor/__tests__/useReviewModalFormat\.test\.js$|^tools/check-marker-escape-guard\.sh$|^tools/fixtures/marker-escape/'
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

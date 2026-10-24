@@ -14,6 +14,17 @@
 //
 // Адрес приложения переопределяется переменной E2E_BASE_URL — это то, что
 // понадобится для CI и для прогона против другого окружения.
+//
+// CI (BR-525, аудит #336, OpenProject #387): джоб `e2e (karaoke-public)` в
+// .github/workflows/lint.yml собирает образ karaoke-public из репозитория,
+// поднимает его и прогоняет тесты. Ветки process.env.CI ниже перестали быть
+// мёртвыми (до BR-525 e2e в CI не запускались вообще):
+//   - forbidOnly — в CI запрещено оставлять test.only (иначе прогон «зелёный»
+//     не из-за всех тестов);
+//   - reporter — в CI отчёт с аннотациями GitHub + HTML-артефакт.
+//
+// BR-524: проверка «контракт развёртывания» помечена тегом @smoke — она не
+// блокирует CI (прогон без неё: `npx playwright test --grep-invert @smoke`).
 
 import { defineConfig, devices } from '@playwright/test'
 
@@ -27,7 +38,10 @@ export default defineConfig({
 
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // Ретраи в CI МАСКИРОВАЛИ нестабильность прогона (аудит #336, P-50-03):
+  // красный прогон «лечился» повтором и не всплывал. Теперь прогон
+  // детерминирован — красное означает красное.
+  retries: 0,
   workers: 1, // админка мутирует общее состояние песни; параллелизм небезопасен
 
   reporter: process.env.CI

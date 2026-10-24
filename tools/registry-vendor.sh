@@ -20,7 +20,9 @@
 # Дайджест манифеста от хоста не зависит, поэтому пины, снятые на стенде, годны и для прода.
 #
 # Креды: REGISTRY_USER/REGISTRY_PASSWORD из окружения или из do.env.
-# Секреты НЕ печатаются. Docker — с DOCKER_CONFIG проекта (Pass 373).
+# Секреты НЕ печатаются и НЕ передаются через argv (`-u user:pass` виден в
+# `ps -eo args` любому пользователю машины) — curl получает их через
+# stdin-конфиг `--config -`. Docker — с DOCKER_CONFIG проекта (Pass 373).
 # =====================================================================
 set -uo pipefail
 
@@ -69,6 +71,16 @@ find_doenv() {
   return 1
 }
 env_val() { sed -n "s/^$1=//p" "$2" | tail -1 | tr -d ' \r'; }
+
+# BR-594: креды не должны попадать в argv curl (`-u user:pass` виден в
+# `ps -eo args`). Передаём их через stdin-конфиг curl (`--config -`).
+cfg_escape() { # экранирование значения для curl --config (кавычки и слэши)
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/ }"
+  printf '%s' "$s"
+}
 
 USER_CRED="${REGISTRY_USER:-}"
 PASS_CRED="${REGISTRY_PASSWORD:-}"
@@ -120,7 +132,9 @@ manifest_digest() { # $1=host:port  $2=<namespace/repo>:<tag>  → дайдже�
   # /v2/mirror/x/y:tag/manifests/tag и «манифест не читается» (проверено).
   repo="${ref%%:*}"
   tag="${ref##*:}"
-  out="$(curl -sS --max-time 30 -u "$USER_CRED:$PASS_CRED" -I \
+  # Креды — через stdin-конфиг curl, не через argv (см. cfg_escape).
+  out="$(printf 'user = "%s:%s"\n' "$(cfg_escape "$USER_CRED")" "$(cfg_escape "$PASS_CRED")" \
+        | curl -sS --max-time 30 --config - -I \
         -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json' \
         "$SCHEME://$h/v2/$repo/manifests/$tag" 2>/dev/null \
         | tr -d '\r' | awk -F': ' 'tolower($1)=="docker-content-digest"{print $2}')"
@@ -142,6 +156,7 @@ info() { printf '  %s\n' "$1"; }
 
 UPDATED="$(mktemp)"; trap 'rm -f "$UPDATED"' EXIT
 : > "$UPDATED"
+LOCK_UPDATED=0
 
 while IFS=$'\t' read -r upstream our_ref digest checked_at; do
   [[ -z "$upstream" ]] && continue
@@ -152,8 +167,16 @@ while IFS=$'\t' read -r upstream our_ref digest checked_at; do
     if [[ -z "$USER_CRED" || -z "$PASS_CRED" ]]; then
       skip "$our_ref — нет кредов для сверки с registry"; continue
     fi
-    if [[ "$digest" == "PENDING" || -z "$digest" ]]; then
-      skip "$our_ref — пин ещё не проставлен (digest=$digest)"; continue
+    if [[ "$digest" == "PENDING" ]]; then
+      # BR-594: "PENDING" в колонке digest означает «пин не зафиксирован»,
+      # а не «нечего проверять». Раньше это значение считалось skip — ранее
+      # записанный дайджест молча переставал проверяться. Теперь это ошибка
+      # проверки: пин надо восстановить вручную.
+      bad "$our_ref — пин не зафиксирован (digest=PENDING): прежний дайджест утерян, восстановите пин вручную"
+      continue
+    fi
+    if [[ -z "$digest" ]]; then
+      skip "$our_ref — пин ещё не проставлен (digest пуст)"; continue
     fi
     have="$(manifest_digest "$(host_of "$target")" "$(path_of "$target")")"
     if [[ -z "$have" ]]; then
@@ -196,16 +219,25 @@ while IFS=$'\t' read -r upstream our_ref digest checked_at; do
   local_digest="$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$target" 2>/dev/null | head -1)"
   local_digest="${local_digest##*@}"
   up_digest="${up_digest##*@}"
+  digest_known=1
   if [[ -z "$new_digest" ]]; then
-    skip "$target — залит, но дайджест из registry не получен"; new_digest="PENDING"
+    # BR-594: дайджест из registry не получен → пин в lock-файле НЕ трогаем.
+    # Раньше здесь подставлялось "PENDING", и оно ЗАПИСЫВАЛОСЬ в колонку
+    # digest, затирая ранее зафиксированный валидный дайджест (sha256:…).
+    # Следующий прогон `--verify` относился к "PENDING" как к skip — то есть
+    # пин, который раньше проверялся, молча переставал проверяться
+    # (терялась фиксация версий, FR-008).
+    skip "$target — залит, но дайджест из registry не получен; пин в lock-файле НЕ изменён"
+    digest_known=0
+    new_digest=""
   elif [[ -n "$local_digest" && "$new_digest" != "$local_digest" ]]; then
     ok "$target — залит; дайджест registry ($new_digest) ≠ локальный ($local_digest) — норма для multi-arch, в lock идёт registry"
   else
     ok "$target — залит, дайджест сохранён ($new_digest)"
   fi
-  printf '%s\t%s\n' "$target" "$new_digest" >> "$UPDATED"
+  printf '%s\t%s\n' "$target" "${new_digest:-<digest-unknown>}" >> "$UPDATED"
 
-  if [[ "$UPDATE_LOCK" == "1" ]]; then
+  if [[ "$UPDATE_LOCK" == "1" && "$digest_known" == "1" ]]; then
     today="$(date -u +%Y-%m-%d)"
     # обновляем строку lock только для этого our_ref
     python3 - "$LOCK" "$our_ref" "$new_digest" "$today" <<'PY'
@@ -220,13 +252,20 @@ for line in p.read_text(encoding='utf-8').splitlines():
     out.append(line)
 p.write_text('\n'.join(out) + '\n', encoding='utf-8')
 PY
+    LOCK_UPDATED=$((LOCK_UPDATED + 1))
+  elif [[ "$UPDATE_LOCK" == "1" ]]; then
+    echo "  WARN: lock-файл НЕ обновлён для $our_ref — прежний пин сохранён (дайджест не получен)" >&2
   fi
 done < <(read_lock)
 
 echo
 echo "--- итог ($MODE): OK=$PASS_CNT FAIL=$FAIL_CNT SKIP=$SKIP_CNT ---"
 if [[ "$UPDATE_LOCK" == "1" && "$MODE" != "verify" ]]; then
-  echo "lock-файл обновлён: $LOCK"
+  if [[ "$LOCK_UPDATED" -gt 0 ]]; then
+    echo "lock-файл обновлён: $LOCK (строк: $LOCK_UPDATED)"
+  else
+    echo "lock-файл НЕ обновлён: $LOCK (пины сохранены как были)"
+  fi
 fi
 [[ "$FAIL_CNT" -gt 0 ]] && { echo "РЕЗУЛЬТАТ: FAIL"; exit 1; }
 echo "РЕЗУЛЬТАТ: OK"

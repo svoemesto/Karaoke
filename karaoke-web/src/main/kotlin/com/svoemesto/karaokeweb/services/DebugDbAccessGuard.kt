@@ -17,7 +17,13 @@ import jakarta.servlet.http.HttpServletRequest
  * необходимости добавляется в будущем — для прод-конфигурации с VPN-сетью
  * `KARAOKE_WEB_DEBUG_DB_ALLOWED_IPS=10.8.0.0/24` нужен CIDR-парсер.
  *
+ * **Источник адреса** — [ClientIpResolver]: `X-Real-IP` (наш nginx перезаписывает его
+ * значением `$remote_addr`) → последний элемент `X-Forwarded-For` → TCP-peer. Клиентский
+ * префикс `X-Forwarded-For` адрес не определяет, поэтому подделать его, чтобы попасть
+ * в allowlist, нельзя (аудит BR-003 «xff-first-element»).
+ *
  * @see archive/docs/features/site-traffic-resilience.md (FR-013)
+ * @see docs/features/client-ip-resolution.md
  * @see KaraokeProperties
  * @see DebugDbController
  */

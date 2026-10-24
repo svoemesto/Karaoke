@@ -134,6 +134,22 @@
 `"song-vk-image"` и лимитами из `KaraokeProperties`
 (`rateLimitSongPicturePerMinute`, `rateLimitSongVkImagePerMinute`).
 
+`$ip` берётся из `util/ClientIpResolver` — единое правило проекта:
+`X-Real-IP` (наш nginx перезаписывает его значением `$remote_addr`) →
+**последний** элемент `X-Forwarded-For` → TCP-peer. Клиентский префикс
+`X-Forwarded-For` ключ не определяет, поэтому подделка заголовка не даёт
+новый bucket и не обходит лимит (аудит BR-003 «xff-first-element»).
+Раньше здесь была своя копия правила «первый элемент XFF» — обход работал.
+
+### Адрес источника запроса (ClientIpResolver)
+
+`util/ClientIpResolver` — единственное место в `karaoke-web`, где решается,
+какой адрес считать адресом источника. Правило и топология описаны в
+[domain.md](../domain.md) («Решение 5»). Потребители: `RateLimitInterceptor`
+(здесь), `DebugDbAccessGuard` (IP-allowlist `/api/public/debug/db`),
+`SongShareLinkService` (rate-limit claim'ов и `client_ip_hash` в БД),
+`MainController.doRegisterEvent` (аналитика `tbl_events`).
+
 ### Share-линки (жизненный цикл)
 
 1. **Создание** (`createLink`): SKIP-тег → `SongSkipped`;
@@ -220,6 +236,11 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 - [x] **YandexCaptcha** — детали (спека 564: fail-closed, четыре исхода, серверный ключ в env).
 
 ## Changelog
+
+- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес
+  источника запроса в `RateLimitInterceptor` теперь берётся из `util/ClientIpResolver`
+  (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer) — своя копия правила
+  «первый элемент XFF» удалена, подделка заголовка больше не обходит лимит.
 
 - **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): `PlayerGestureUnlockService`
   — удалено распознавание «скрытого жеста» (`registerClick`), токен несёт id пользователя и

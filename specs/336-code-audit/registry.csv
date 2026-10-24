@@ -1,7 +1,7 @@
 br_id,portion,class,severity,file,line_start,line_end,root_cause_key,status,review,work_package
 BR-001,P-37,SEC,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicVkIdAuthController.kt,90,91,oauth-anonymous-endpoints:vk-id,TODO,lead-verified,378
 BR-002,P-37,SEC,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicVkIdAuthController.kt,231,231,secret-in-logs:vk-id-token,TODO,lead-verified,378
-BR-003,P-37,SEC,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/RateLimitInterceptor.kt,96,101,xff-first-element:rate-limit,TODO,lead-verified,384
+BR-003,P-37,SEC,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/RateLimitInterceptor.kt,96,101,xff-first-element:rate-limit,исправлено,lead-verified,384
 BR-004,P-37,ERR,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/WebMvcConfig.kt,55,59,shared-singleton-interceptor:rate-limit,TODO,lead-verified,378
 BR-005,P-37,RACE,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PriceService.kt,181,190,nth-free-race:price,TODO,lead-verified,378
 BR-006,P-37,PERF,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsBuffer.kt,198,203,threadlocal-close:events-buffer,TODO,lead-verified,368

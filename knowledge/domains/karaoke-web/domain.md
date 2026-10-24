@@ -69,6 +69,32 @@ sampling, dedup, rate limiting. Все настройки — через
 `KaraokeProperties` (env). См.
 [external-api-clients.md](../integration/components/external-api-clients.md).
 
+### Решение 5: Адрес источника запроса — только то, что клиент не подделывает
+
+Адрес источника запроса (source address) на всём `karaoke-web` определяет
+**один** компонент — `util/ClientIpResolver`. Правило (аудит BR-003
+«xff-first-element», OpenProject #384):
+
+1. `X-Real-IP` — наш host-nginx **перезаписывает** его значением `$remote_addr`
+   (`proxy_set_header X-Real-IP $remote_addr;`), поэтому клиент подделать его не может.
+2. **Последний** непустой элемент `X-Forwarded-For` — fallback для прокси, которые
+   не выставляют `X-Real-IP`: наш nginx дописывает реальный адрес в **конец** цепочки
+   (`$proxy_add_x_forwarded_for`), клиентский **префикс** игнорируется.
+3. `request.remoteHost` — dev-окружение без nginx перед приложением (в контейнере —
+   адрес docker-шлюза `172.18.0.1`).
+
+Потребители правила: `RateLimitInterceptor` (rate-limit картинок),
+`DebugDbAccessGuard` (IP-allowlist `/api/public/debug/db`), `SongShareLinkService`
+(rate-limit claim'ов share-ссылок и `client_ip_hash` в БД), `MainController`
+(аналитика `tbl_events`).
+
+**Исключение — журнал безопасности** (`MainController.syncSourceAddress`,
+`PublicSettingsWebController.sourceAddress`): там берётся **только** `X-Real-IP`
+(фолбэк — TCP-peer), без XFF: запись в журнале безопасности не должна опираться на
+заголовок, который клиент контролирует хотя бы частично (аудит BR-011, #357).
+
+Подробности: [`docs/features/client-ip-resolution.md`](../../../docs/features/client-ip-resolution.md).
+
 ## Ubiquitous Language | Единый язык
 
 | Термин | Определение |
@@ -79,6 +105,7 @@ sampling, dedup, rate limiting. Все настройки — через
 | **`SamplingConfig`** | Конфигурация sampling rates для WebEvent. |
 | **`SamplingFilter`** | Servlet filter — отбрасывает события по rate. |
 | **`RateLimitInterceptor`** | HTTP interceptor — per-endpoint limits. |
+| **`ClientIpResolver`** | Единая точка определения адреса источника запроса (Решение 5). |
 | **`SiteAuthInterceptor`** | Защита `/api/public/account/*` (см. `config/`). |
 | **`PublicCartController`** | Публичная корзина (НЕ в `cart/` домене). |
 
@@ -255,6 +282,10 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 
 ## Changelog
 
+- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): добавлено
+  «Решение 5: Адрес источника запроса» — единое правило `X-Real-IP` → последний элемент
+  `X-Forwarded-For` → TCP-peer (`util/ClientIpResolver`); перечислены потребители правила
+  и исключение для журнала безопасности (BR-011, #357).
 - **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): добавлены сервисы
   `PlayerAccessService` (правило доступа к байтам/разметке — живая проверка права),
   `PlayerRightsProvider` (живой источник прав из БД) и `PlayerSongLoader` (загрузка песни);

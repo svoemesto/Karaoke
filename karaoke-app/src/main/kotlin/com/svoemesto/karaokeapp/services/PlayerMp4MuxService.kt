@@ -1,10 +1,16 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.ProcessExitException
+import com.svoemesto.karaokeapp.awaitProcessExit
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.processExitFailure
 import com.svoemesto.karaokeapp.runCommand
 import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.Collections
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Часть Этапа 1 (MVP) рендера видео mp4 из онлайн-плеера (см. DEVELOPMENT.md "Рендер видео MP4 из
@@ -81,6 +87,10 @@ object PlayerMp4MuxService {
         demoFragmentEnd: Double? = null,
         demoFadeInSeconds: Double? = null,
         onProgress: ((Int) -> Unit)? = null,
+        /** Тестовый шов: путь к подменяемому ffmpeg (по умолчанию — из PATH). */
+        ffmpegBinary: String = "ffmpeg",
+        /** Таймаут «нет вывода прогресса» — защита от зависшего ffmpeg. */
+        inactivityTimeoutSeconds: Long = DEFAULT_MUX_INACTIVITY_TIMEOUT_SECONDS,
     ) {
         require(audioTracks.isNotEmpty()) { "audioTracks не может быть пустым" }
         for (t in audioTracks) require(File(t.flacPath).exists()) { "Аудио-стем не найден: ${t.flacPath}" }
@@ -123,7 +133,7 @@ object PlayerMp4MuxService {
 
         val args =
             mutableListOf(
-                "ffmpeg",
+                ffmpegBinary,
                 "-y",
                 "-framerate",
                 fps.toString(),
@@ -173,12 +183,28 @@ object PlayerMp4MuxService {
         // Парсим stdout ffmpeg с флагом -progress pipe:1:
         // ffmpeg выводит блоки вида "out_time_ms=12345678\nprogress=continue".
         // out_time_ms — текущая позиция кодирования в микросекундах; делим на totalDuration*1e6 → процент.
+        // BR-161 (аудит #336): код возврата раньше не проверялся — «Готово» писалось даже при
+        // падении ffmpeg. stderr слит в stdout (ADR-0006), хвост храним для сообщения об ошибке.
         val totalDurationMs = totalDurationSeconds * 1_000_000
+        val lastActivityNanos = AtomicLong(System.nanoTime())
+        val tailLines = Collections.synchronizedList(mutableListOf<String>())
+
+        fun collectTail(line: String) {
+            synchronized(tailLines) {
+                tailLines.add(line)
+                if (tailLines.size > MUX_OUTPUT_TAIL_LINES) tailLines.removeAt(0)
+            }
+        }
+
+        fun tailText(): String = synchronized(tailLines) { tailLines.joinToString("\n") }
+
         val readerThread =
             Thread {
                 val reader = process.inputStream.bufferedReader()
                 var currentOutTimeMs = 0L
                 reader.forEachLine { line ->
+                    lastActivityNanos.set(System.nanoTime())
+                    collectTail(line)
                     if (line.startsWith("out_time_ms=")) {
                         currentOutTimeMs = line.substringAfter("=").trim().toLongOrNull() ?: 0L
                         if (totalDurationMs > 0) {
@@ -187,19 +213,51 @@ object PlayerMp4MuxService {
                         }
                     }
                 }
-                onProgress?.invoke(100)
             }
         readerThread.isDaemon = true
         readerThread.name = "ffmpeg-progress-reader"
         readerThread.start()
 
-        process.waitFor()
+        // Зависший ffmpeg не должен навсегда блокировать лейн рендера: если прогресс не
+        // приходит дольше inactivityTimeoutSeconds — убиваем процесс и падаем с диагностикой.
+        val inactivityNanos = TimeUnit.SECONDS.toNanos(inactivityTimeoutSeconds)
+        while (readerThread.isAlive) {
+            readerThread.join(MUX_WATCHDOG_POLL_MILLIS)
+            if (readerThread.isAlive && System.nanoTime() - lastActivityNanos.get() > inactivityNanos) {
+                process.destroyForcibly()
+                process.waitFor(DESTROY_GRACE_SECONDS, TimeUnit.SECONDS)
+                readerThread.join(3000)
+                File(outputPath).delete()
+                throw ProcessExitException(
+                    command = args,
+                    exitCode = null,
+                    outputTail = tailText(),
+                    reason = "ffmpeg не выдавал прогресс $inactivityTimeoutSeconds с (завис); убит destroyForcibly()",
+                )
+            }
+        }
         readerThread.join(3000)
 
+        val exitCode = awaitProcessExit(process, args, outputTail = { tailText() })
+        if (exitCode != 0) {
+            // Недописанный файл не должен попасть в done_files и уйти в публикацию.
+            File(outputPath).delete()
+            throw processExitFailure(args, exitCode, tailText())
+        }
+
+        // 100% — только после подтверждённого exit 0 (раньше выставлялось и при ошибке).
+        onProgress?.invoke(100)
         log("Готово: $outputPath")
     }
 
     private fun log(message: String) {
         println("[${Timestamp.from(Instant.now())}] PlayerMp4MuxService: $message")
     }
+
+    /** Таймаут «нет вывода прогресса» по умолчанию, секунды; переопределяется параметром/тестом. */
+    const val DEFAULT_MUX_INACTIVITY_TIMEOUT_SECONDS: Long = 120
+
+    private const val MUX_OUTPUT_TAIL_LINES = 40
+    private const val MUX_WATCHDOG_POLL_MILLIS = 500L
+    private const val DESTROY_GRACE_SECONDS = 5L
 }

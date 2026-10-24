@@ -264,6 +264,11 @@ class KaraokeProcessThread(
                             }
                             line = reader.readLine()
                         }
+                        // BR-029 (аудит #336): раньше EOF stdout безусловно означал DONE, а код
+                        // возврата subprocess (docker compose run / ffmpeg / melt) не проверялся —
+                        // сбой выглядел успехом. Теперь дожидаемся завершения и проверяем exit code.
+                        // stderr слит в stdout (ADR-0006), поэтому хвост log содержит и stderr.
+                        val exitCode = awaitProcessExit(startedProcess, args, outputTail = { outputTail(log) })
                         if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                             println(
                                 "[${Timestamp.from(
@@ -293,9 +298,17 @@ class KaraokeProcessThread(
                             }
                         }
 
-                        if (karaokeProcess.type == "SHEETSAGE" &&
-                            lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
-                        ) {
+                        // Известный восстановимый случай: SHEETSAGE печатает NotImplementedError,
+                        // после чего создаётся SHEETSAGE2. Его ненулевой код возврата — не «успех»,
+                        // но и не повод помечать задание ERROR: цепочка уже переиграна.
+                        val sheetsageFallback =
+                            karaokeProcess.type == "SHEETSAGE" &&
+                                lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
+                        if (exitCode != 0 && !sheetsageFallback && !forceStopped) {
+                            throw processExitFailure(args, exitCode, outputTail(log))
+                        }
+
+                        if (sheetsageFallback) {
                             // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
                             val song =
                                 Song.loadFromDbById(

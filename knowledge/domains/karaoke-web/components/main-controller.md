@@ -49,7 +49,9 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
 **`POST /registerevent`** (web-аналитика):
 
 1. Без `eventType` в теле — сразу `false`.
-2. IP клиента — `ClientIpResolver.resolve(request)`, плюс `User-Agent`
+2. IP клиента — `ClientIpResolver.resolve(request)` (единое правило: `X-Real-IP` →
+   последний элемент `X-Forwarded-For` → TCP-peer, см. [domain.md](../domain.md)
+   «Решение 5»), плюс `User-Agent`
    и `anonId` из тела.
 3. Событие формируется в `EventsBuffer.EventRecord` и уходит батчевым
    INSERT; kill-switch — `karaoke.web.events.batch-enabled` (дефолт
@@ -133,6 +135,11 @@ endpoints для internal). Разделение — по `produces` и типу
       в nginx (`deploy/prod-single-host/80to8897`).
 
 ## Changelog
+
+- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес источника
+  в `doRegisterEvent` определяется по общему правилу `util/ClientIpResolver`
+  (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer); правило журнала
+  безопасности `syncSourceAddress` не менялось (по-прежнему только `X-Real-IP`, BR-011).
 
 - **Спека 554** (2026-10-24, OpenProject #357, аудит BR-011): контракт `POST /changerecords`
   дополнен требованием заголовка `X-Internal-Secret` (fail-safe), отказом `403` без деталей,

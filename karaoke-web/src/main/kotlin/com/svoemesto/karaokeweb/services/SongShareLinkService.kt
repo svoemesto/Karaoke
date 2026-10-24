@@ -2,6 +2,7 @@ package com.svoemesto.karaokeweb.services
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+import com.svoemesto.karaokeweb.util.ClientIpResolver
 import com.svoemesto.karaokeweb.util.ShareErrorCode
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
@@ -69,6 +70,7 @@ internal fun toMskLocalDateTime(epochMs: Long): LocalDateTime =
  * и для сравнения с `Date.now()` (`isExpired`).
  *
  * @see archive/docs/features/guest-share-link.md
+ * @see docs/features/client-ip-resolution.md
  */
 @Service
 class SongShareLinkService(
@@ -1092,10 +1094,17 @@ class SongShareLinkService(
             }
     }
 
+    /**
+     * Rate-limit claim-запросов по IP.
+     *
+     * Адрес источника — по единому правилу проекта ([ClientIpResolver]): `X-Real-IP`,
+     * который наш nginx перезаписывает значением `$remote_addr` → последний элемент
+     * `X-Forwarded-For` → TCP-peer. Клиентский префикс `X-Forwarded-For` адрес не
+     * определяет, поэтому подделка заголовка не даёт «свежий» bucket и не обходит
+     * лимит (аудит BR-003 «xff-first-element»).
+     */
     private fun checkRateLimit(request: HttpServletRequest) {
-        val ip =
-            com.svoemesto.karaokeweb.util.ClientIpResolver
-                .resolve(request)
+        val ip = ClientIpResolver.resolve(request)
         val key = "claim:$ip:${System.currentTimeMillis() / 60_000}"
         val maxPerMin = props.claimRateLimitPerIpPerMin.toInt()
         val counter = claimRateBuckets.computeIfAbsent(key) { AtomicInteger(0) }
@@ -1103,10 +1112,15 @@ class SongShareLinkService(
         if (n > maxPerMin) throw RateLimited()
     }
 
-    private fun clientIpHash(request: HttpServletRequest): String {
-        val ip =
-            com.svoemesto.karaokeweb.util.ClientIpResolver
-                .resolve(request)
+    /**
+     * SHA-256 от адреса источника — пишется в `tbl_song_share_sessions.client_ip_hash`.
+     *
+     * `internal` (а не `private`) — чтобы тест мог напрямую проверить инвариант
+     * «подделанный `X-Forwarded-For` не меняет хэш» (аудит BR-003). Тот же приём,
+     * что и у `toMskLocalDateTime` выше: видимость ограничена модулем karaoke-web.
+     */
+    internal fun clientIpHash(request: HttpServletRequest): String {
+        val ip = ClientIpResolver.resolve(request)
         return sha256Hex("ip:$ip:share-salt")
     }
 

@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeweb.services
 
+import com.svoemesto.karaokeweb.util.ClientIpResolver
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
@@ -25,6 +26,10 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * **Алгоритм — fixed window** (минута):
  *  - Key = ip + ":" + endpoint (например, "1.2.3.4:song-picture").
+ *  - IP берётся через [ClientIpResolver] (аудит BR-003): `X-Real-IP`, который наш nginx
+ *    перезаписывает значением `$remote_addr` → последний элемент `X-Forwarded-For` →
+ *    TCP-peer. Клиентский префикс `X-Forwarded-For` не влияет на ключ, поэтому подделка
+ *    заголовка не даёт новый bucket и не обходит лимит.
  *  - Хранится (windowStartMs, count).
  *  - Если now - windowStartMs >= 60_000 — окно сбрасывается.
  *  - Иначе инкремент count. Если count > limit — 429 + Retry-After: 60.
@@ -36,6 +41,7 @@ import java.util.concurrent.atomic.AtomicLong
  * параллельные запросы с одного IP не потеряют инкремент.
  *
  * @see archive/docs/features/site-traffic-resilience.md
+ * @see docs/features/client-ip-resolution.md
  * @see KaraokeProperties
  */
 @Component
@@ -90,16 +96,14 @@ class RateLimitInterceptor(
     }
 
     /**
-     * Извлекает IP из заголовков (X-Forwarded-For, X-Real-IP) или [HttpServletRequest.getRemoteAddr].
-     * X-Forwarded-For может содержать список — берём первый (ближайший клиент к nginx).
+     * Адрес источника запроса — единое правило проекта (аудит BR-003 «xff-first-element»).
+     *
+     * Раньше здесь была своя копия правила «первый элемент `X-Forwarded-For`»: клиент
+     * подделывал префикс XFF, получал новый bucket на каждый запрос и обходил лимит.
+     * Теперь адрес берётся через [ClientIpResolver]: `X-Real-IP` (наш nginx перезаписывает
+     * его значением `$remote_addr`) → последний элемент `X-Forwarded-For` → TCP-peer.
      */
-    private fun clientIp(request: HttpServletRequest): String {
-        val xff = request.getHeader("X-Forwarded-For")?.takeIf { it.isNotBlank() }
-        if (xff != null) return xff.split(",").first().trim()
-        val xRealIp = request.getHeader("X-Real-IP")?.takeIf { it.isNotBlank() }
-        if (xRealIp != null) return xRealIp.trim()
-        return request.remoteAddr ?: "unknown"
-    }
+    private fun clientIp(request: HttpServletRequest): String = ClientIpResolver.resolve(request)
 
     private fun maybeCleanup(now: Long, windowMs: Long) {
         if (callsSinceCleanup.incrementAndGet() % cleanupEvery != 0L) return

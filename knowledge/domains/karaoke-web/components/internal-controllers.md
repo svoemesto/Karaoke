@@ -96,7 +96,9 @@ internal endpoints (admin→web), debug endpoints, share-линки.
 
 **Защита** (FR-006 из site-traffic-resilience):
 
-- `DebugDbAccessGuard` — IP allowlist.
+- `DebugDbAccessGuard` — IP allowlist; адрес источника — по общему правилу
+  `util/ClientIpResolver` (`X-Real-IP` → последний элемент `X-Forwarded-For` →
+  TCP-peer), поэтому подделка `X-Forwarded-For` не открывает endpoint (аудит BR-003).
 - `KARAOKE_WEB_DEBUG_DB_ENABLED` — master switch (default `false`).
 - `KARAOKE_WEB_DEBUG_DB_ALLOWED_IPS` — comma-separated CIDR/IPv4.
 
@@ -134,7 +136,9 @@ push-уведомления).
   событие `CALL_REST` / `RestName.ZAKROMA`.
 - `doRegisterEvent(@RequestParam data: Map<String, Any>, request,
   siteUserId: Long = 0): Boolean` — без `eventType` сразу `false`; IP берётся
-  из `ClientIpResolver.resolve(request)`, плюс `User-Agent` и `anonId`;
+  из `ClientIpResolver.resolve(request)` (правило адреса источника —
+  `X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer, см.
+  [domain.md](../domain.md) «Решение 5»), плюс `User-Agent` и `anonId`;
   вставка идёт через `EventsBuffer.EventRecord` (kill-switch
   `karaoke.web.events.batch-enabled`, дефолт `false` = синхронный INSERT) и
   [`SamplingFilter`](../../../system/frontend/composable-engagement-tracking.md).
@@ -223,6 +227,11 @@ endpoints возвращают JSON. Гибрид — для статическ�
 - [ ] **`SiteUserResolver`** — полная логика.
 
 ## Changelog
+
+- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес источника
+  для `DebugDbAccessGuard` и аналитики `doRegisterEvent` определяется по общему правилу
+  `util/ClientIpResolver` (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer) —
+  подделка `X-Forwarded-For` больше не открывает debug-endpoint и не пишет недостоверный IP.
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 364** (2026-09-09): Initial. Автор: agent (Karaoke).

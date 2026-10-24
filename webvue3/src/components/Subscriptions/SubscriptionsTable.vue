@@ -38,13 +38,16 @@
     </div>
 
     <div class="subt-table-body">
+      <!-- BR-458: пагинация серверная — бэкенд отдаёт ровно `pageSize` строк
+           (`drop/take`), поэтому таблица не должна резать их повторно на клиенте.
+           Раньше здесь стояли `:per-page`/`:current-page`: страница 2+ всегда
+           показывала пустую таблицу, потому что запроса за следующей страницей
+           не было. -->
       <b-table
         v-model:sort-by="sortBy"
         :items="digest"
         :busy="isBusy"
         :fields="fields"
-        :per-page="perPage"
-        :current-page="currentPage"
         small
         bordered
         hover
@@ -278,9 +281,12 @@ export default {
         this.currentPage = 1
       }
     },
-    currentPage(newPage) {
+    currentPage(newPage, oldPage) {
       // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
       this.$store.commit('setSubscriptionsTableCurrentPage', newPage)
+      // BR-458: страница теперь серверная — смена страницы обязана сходить за данными,
+      // иначе b-pagination листает уже отрисованные 25 строк (страницы 2+ пусты).
+      if (newPage !== oldPage) this.reload()
     },
   },
   async mounted() {
@@ -323,16 +329,30 @@ export default {
         this.perPage = this.$store.getters.getRowsPerPage('subscriptions')
         await this.$store.dispatch('loadSubscriptionsDigest', {
           page: this.currentPage,
-          perPage: this.perPage,
+          // BR-458: контроллер ждёт `pageSize`; `perPage` он молча игнорировал,
+          // поэтому настройка «строк на странице» никогда не применялась.
+          pageSize: this.perPage,
         })
       }
     },
     reload() {
-      this.$store.dispatch('loadSubscriptionsDigest', {})
+      // BR-458: страница и размер страницы уходят на сервер вместе с запросом.
+      this.$store.dispatch('loadSubscriptionsDigest', {
+        page: this.currentPage,
+        pageSize: this.perPage,
+      })
     },
     onTargetChange() {
-      this.currentPage = 1
-      this.reload()
+      // BR-458: данные другой БД под новой меткой показывать нельзя — очищаем список
+      // и общее число, затем грузим первую страницу выбранной БД.
+      this.$store.commit('setSubscriptionsDigest', [])
+      this.$store.commit('setSubscriptionsDigestTotalCount', 0)
+      if (this.currentPage !== 1) {
+        // сброс страницы сам вызовет reload() через watcher currentPage
+        this.currentPage = 1
+      } else {
+        this.reload()
+      }
     },
     closeFilter() {
       this.isFilterVisible = false

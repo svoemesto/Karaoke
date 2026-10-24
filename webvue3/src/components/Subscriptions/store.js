@@ -1,4 +1,4 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
 
 // Подписки пользователей ПУБЛИЧНОГО САЙТА (tbl_subscriptions). Read-only глобальный список
 // для админ-SPA. target ('local'|'remote') — как в SiteUsers: реальные подписки создаются

@@ -146,6 +146,12 @@ export default {
         params.filterCreatedFrom = new Date(this.createdFromFilter).toISOString()
       if (this.createdToFilter)
         params.filterCreatedTo = new Date(this.createdToFilter).toISOString()
+      // BR-458: пагинация серверная — вместе с фильтром обязательно уходят страница и
+      // её размер, иначе сервер отдаст первые 25 строк (по умолчанию), а фильтр
+      // применится к странице, которой в UI уже нет. При смене фильтра — снова 1-я.
+      params.page = 1
+      params.pageSize = this.$store.getters.getRowsPerPage('subscriptions')
+      this.$store.commit('setSubscriptionsTableCurrentPage', 1)
       this.$store.dispatch('loadSubscriptionsDigest', params)
       this.$emit('close')
     },

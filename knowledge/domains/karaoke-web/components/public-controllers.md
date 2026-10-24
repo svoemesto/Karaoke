@@ -115,11 +115,16 @@ Real-time checks `player.readiness` (см.
 
 ### Доступ к плееру (`PublicPlayerController`)
 
-- `authorized(id: Long, token: String?, session: String?): Boolean` — двойная
-  авторизация: сначала gesture-token
-  (`gestureUnlockService.validateToken(token, id)`), затем share-сессия
-  (`shareLinkService.validateShareSession(session, id)`); приоритет —
-  gesture-token.
+- **Живая проверка права в момент запроса** (спека 557, OpenProject #358,
+  аудит BR-018): `accessService.evaluate(song, token, session)` →
+  `AccessDecision {full, demoRange, shareGuest, reason}`. Основания:
+  публичность песни (`Song.isFreelyAvailableNow`), живой премиум, живая
+  подписка на песню, гостевая share-сессия, владение заданием редактора.
+  Токен — **не право**: он указывает, что проверять (id пользователя, id
+  задания). Отказ → `404`; «полный» токен без действующего права →
+  понижение до демо-фрагмента. Раньше здесь была «двойная авторизация»
+  (валидный токен ИЛИ share-сессия) — токен жеста был структурно
+  неотличим от легитимного, и это давало анонимный обход оплаты.
 - `access(@PathVariable id: Long, @RequestParam session: String?, request)`:
   `ready = song.isContentReady` (персистентные флаги Song, без обращения к
   MinIO), `premium = siteUserResolver.resolve(request)?.isEffectivePremium`,
@@ -129,10 +134,14 @@ Real-time checks `player.readiness` (см.
   subscribed || shareGuest)`, `canExport = canWatch && premium && !shareGuest`
   (гость стемы не скачивает), `isDemo = ready && !canWatch`.
 - Токен выдаётся только при `canWatch || isDemo`:
-  `gestureUnlockService.issueDirectAccessToken(id)` либо
-  `issueDemoAccessToken(id, demoFragmentStartSeconds, demoFragmentEndSeconds)`.
+  `gestureUnlockService.issueDirectAccessToken(id, userId)` либо
+  `issueDemoAccessToken(id, demoFragmentStartSeconds, demoFragmentEndSeconds, userId)`.
+  `userId` нужен для живой перепроверки права в момент отдачи байт
+  (аудио-эндпоинты не получают заголовок `Authorization`).
 - Факт доступа логируется `mainController.doRegisterEvent(...)`:
   `source=list` → `PlayerAction.OPENED`, иначе `PlayerAction.SHOWN`.
+- Отказы в выдаче полного аудио логируются в категорию `infra.player.access`
+  (`player:access:denied` — WARN, `player:access:demo` — INFO).
 - `readiness(@RequestParam ids: String, request)` — batch-проверка без MinIO:
   `ids.split(",")` + дедупликация; `contentReady = song.isContentReady`,
   `watchable = contentReady && (song.isFreelyAvailableNow || premium ||
@@ -225,5 +234,9 @@ rate limit 60/min per IP (через `RateLimitInterceptor`,
 
 ## Changelog
 
+- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): формула доступа
+  к плееру заменена — живая проверка права в момент отдачи байт вместо
+  авторизации «по факту владения токеном»; добавлена категория журнала
+  `infra.player.access`.
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 363** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -16,7 +16,7 @@ BR-014,P-35,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/control
 BR-015,P-35,PERF,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicNewsController.kt,45,57,unbounded-page-size:public,TODO,lead-verified,
 BR-016,P-35,ERR,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt,234,262,zero-cache-on-db-error:stats,TODO,lead-verified,
 BR-017,P-35,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/DebugDbController.kt,58,106,wrong-debug-metrics:debugdb,TODO,lead-verified,
-BR-018,P-36,SEC,S1,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt,99,106,gesture-token-paywall-bypass:player,в работе,lead-verified,358
+BR-018,P-36,SEC,S1,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt,99,106,gesture-token-paywall-bypass:player,исправлено,lead-verified,358
 BR-019,P-36,SEC,S1,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt,50,53,public-settings-write:properties,в работе,lead-verified,359
 BR-020,P-36,DATA,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPaymentController.kt,57,57,webhook-paid-before-fulfillment:payment,TODO,lead-verified,
 BR-021,P-36,RACE,S2,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSubscriptionController.kt,163,164,duplicate-payment-create:subscription,TODO,lead-verified,

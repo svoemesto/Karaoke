@@ -111,13 +111,18 @@ Class-level `@RequestMapping("/api/public")`; ниже — пути
    список без запроса в БД.
 
 **`POST /events`**: делегирует в `mainController.doRegisterEvent(data,
-request, userId)` и возвращает `{ok, meta}`. Скрытый жест разблокировки
-плеера «прицеплен» к обычному клик-трекингу: при
-`eventType == "clickToLink"` и `linkType == "songMeta"` вызывается
-`gestureUnlockService.registerClick(clientId, songId, field, shiftKey)`,
-где `clientId` — `data["clientId"]` или `request.remoteHost`; результат
-кладётся в `meta`. Само решение о жесте живёт целиком в
-`PlayerGestureUnlockService`.
+request, userId)` и возвращает `{ok, meta}`.
+
+**Значения доступа не возвращает** (спека 557, OpenProject #358, аудит BR-018):
+`meta` всегда `null`. Раньше здесь минтился «скрытый жест» —
+`gestureUnlockService.registerClick(clientId, songId, field, shiftKey)`
+при `eventType == "clickToLink"` и `linkType == "songMeta"`, и результат
+кладётся в `meta`, а клиент по нему открывал плеер платной песни без оплаты.
+Механика жеста удалена из `PlayerGestureUnlockService`, а право на полный
+доступ проверяется в момент отдачи байт
+(см. [public-controllers-4.md](public-controllers-4.md)). Обычный клик-трекинг
+по метаданным песни продолжает работать без изменений — состав события
+(`eventType`, `linkType`, `linkName`, `songId`, `shiftKey`, `clientId`) тот же.
 
 **Картинки**: `/song-picture/{id}` и `/song-vk-image/{id}` отдают байты
 (BufferedImage из MinIO / загрузка из хранилища); на них действует
@@ -169,11 +174,14 @@ rate limit 60/min per IP (через `RateLimitInterceptor`, см.
 
 ## Changelog
 
+- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): `POST /events` больше не
+  возвращает значение доступа (`meta` всегда `null`) — «скрытый жест» удалён, обычный
+  клик-трекинг по метаданным песни работает без изменений.
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секция
   «Endpoints (12)» перенесена под «Интерфейсы и Контракты»; добавлена
   «Логика и Алгоритмы» с проверенными по коду потоками (`stats`, кеши
-  `authors-tiles`/`albums`, NDJSON-стрим, пагинация `/songs`, gesture
-  unlock, redirect `/picture`); [WARN] про 13-й маппинг
+  `authors-tiles`/`albums`, NDJSON-стрим, пагинация `/songs`, redirect
+  `/picture`); [WARN] про 13-й маппинг
   `/authors/{authorId}/albums` и фактический размер файла (1297 строк).
   Автор: agent (Karaoke).
 - **Pass 475** (2026-09-09): Initial. Автор: agent (Karaoke).

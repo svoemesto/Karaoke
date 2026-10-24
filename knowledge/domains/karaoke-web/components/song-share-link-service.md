@@ -160,7 +160,8 @@ CRUD + lifecycle для `SongShareLink` (см.
 ## State (in-memory, привязан к БД)
 
 Сами ссылки/сессии — только в PostgreSQL: сервис переживает рестарт
-karaoke-web (в отличие от `PlayerGestureUnlockService`).
+karaoke-web (в отличие от `PlayerGestureUnlockService`, чьи токены плеера живут
+только в памяти процесса).
 Единственное in-memory состояние — bucket'ы rate-limit claim
 (`ConcurrentHashMap<String, AtomicInteger>`, ключ `claim:<ip>:<минута>`),
 то есть лимит сбрасывается при рестарте.

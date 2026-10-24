@@ -13,7 +13,9 @@ import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeweb.services.PlayerAccessService
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
+import com.svoemesto.karaokeweb.services.PlayerSongLoader
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.services.SongShareLinkService
 import com.svoemesto.karaokeweb.util.Mp3Trimmer
@@ -34,10 +36,19 @@ import java.util.zip.ZipOutputStream
 /**
  * Онлайн-плеер для публичного сайта (karaoke-public). Токен доступа к плееру выдаётся двумя
  * путями: (1) открыто, через [access] — страница песни сама решает по статусу "в эфире"/премиум,
- * можно ли встроить плеер вместо видео ВК / вместо сообщения об ожидании; (2) исторически —
- * секретным жестом на любой странице песни, см. [PlayerGestureUnlockService]. Оба пути выдают
- * структурно одинаковый токен из одного и того же хранилища. Без токена (или с чужим/просроченным)
- * файловые эндпоинты (fileminus.mp3 и т.п.) ведут себя как несуществующий ресурс (404).
+ * можно ли встроить плеер вместо видео ВК / вместо сообщения об ожидании; (2) редакторское
+ * задание — токен, привязанный к конкретному заданию (предпросмотр неодобренной разметки).
+ *
+ * ВАЖНО (спека 557, OpenProject #358, аудит BR-018): токен — НЕ право на платный контент.
+ * Раньше двойная авторизация ("валидный токен ИЛИ share-сессия") считалась достаточным
+ * основанием для отдачи полных mp3 — а токен одинаково выдавался легитимному пути и
+ * "скрытому жесту", который анонимный посетитель минтил публичным POST /api/public/events.
+ * Теперь право проверяется В МОМЕНТ ЗАПРОСА: [PlayerAccessService.evaluate] перечитывает
+ * публичность песни, премиум, подписку, гостевую share-сессию и владение заданием редактора.
+ * Без действующего права полный файл и полная разметка не выдаются — посетитель получает
+ * демо-фрагмент (обрезанный на сервере) либо 404, если не предъявил ни токена, ни сессии.
+ * Без токена (или с чужим/просроченным) файловые эндпоинты (fileminus.mp3 и т.п.) ведут себя
+ * как несуществующий ресурс (404).
  *
  * ДЕМО-РЕЖИМ: если контент готов ([stemsReady] — персистентные флаги idStatus>=6 + оба стема
  * + обе картинки, без единого живого обращения к MinIO, см. ниже), но пользователь не может
@@ -84,6 +95,8 @@ class PublicPlayerController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
     private val gestureUnlockService: PlayerGestureUnlockService,
+    private val accessService: PlayerAccessService,
+    private val songLoader: PlayerSongLoader,
     private val siteUserResolver: SiteUserResolver,
     private val mainController: MainController,
     private val shareLinkService: SongShareLinkService,
@@ -92,29 +105,16 @@ class PublicPlayerController(
     private val bucket = "karaoke"
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
-    // Двойная авторизация: (1) gesture token — обычный путь для премиум-сессии; (2) share session —
-    // временная анонимная сессия для гостя по share-ссылке. Приоритет — gesture token: если он есть и
-    // валиден, share-session игнорируется (премиум может смотреть и как премиум с экспортом). См.
-    // spec.md FR-002 + research.md Decision 1.
-    private fun authorized(
-        id: Long,
-        token: String?,
-        session: String? = null,
-    ): Boolean {
-        if (token != null && gestureUnlockService.validateToken(token, id)) return true
-        return shareLinkService.validateShareSession(session, id) != null
-    }
-
-    // Возвращает true, если текущий запрос — анонимный гость по share-session (НЕ gesture token).
-    // Используется для понижения canExport (гость не может скачать стемы — Clarifications Q1).
-    private fun isShareGuest(
-        id: Long,
+    // Живая проверка права доступа в момент отдачи байт/разметки (FR-002, FR-004). Токен сам по
+    // себе НЕ является правом на платный контент: он указывает, что проверять (id пользователя,
+    // id задания редактора), а решение принимается здесь и сейчас — публичность песни, живой
+    // премиум, живая подписка, гостевая share-сессия, владение заданием. Без действующего права
+    // полный файл не отдаётся: посетитель получает демо-фрагмент либо 404.
+    private fun accessDecision(
+        song: Song,
         token: String?,
         session: String?,
-    ): Boolean {
-        if (token != null && gestureUnlockService.validateToken(token, id)) return false
-        return shareLinkService.validateShareSession(session, id) != null
-    }
+    ): PlayerAccessService.AccessDecision = accessService.evaluate(song, token, session)
 
     // Живая проверка премиум-статуса — намеренно не кэшируется в токене плеера, чтобы бан/снятие
     // премиума посреди 30-минутного TTL токена плеера подействовали немедленно.
@@ -151,7 +151,12 @@ class PublicPlayerController(
     ): ResponseEntity<Map<String, Any?>> {
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
         val ready = stemsReady(song)
-        val premium = isPremiumUser(request)
+        // Пользователь резолвится один раз: его id кладётся в выдаваемый токен, чтобы право можно
+        // было перепроверить в момент отдачи байт (аудио-эндпоинты не получают заголовок
+        // Authorization — см. PlayerAccessService).
+        val me = siteUserResolver.resolve(request)
+        val userId = me?.id
+        val premium = me?.isEffectivePremium == true
         val subscribed = !premium && isSubscribedToSong(request, id)
         // Share-сессия: если есть валидный session и контент готов — гость смотрит плеер.
         // canExport всегда false для гостя (Clarifications Q1: гость НЕ скачивает стемы).
@@ -165,8 +170,14 @@ class PublicPlayerController(
         val demoFadeInSeconds = if (isDemo) song.demoFragmentFadeInSeconds else null
         val token =
             when {
-                canWatch -> gestureUnlockService.issueDirectAccessToken(id)
-                isDemo -> gestureUnlockService.issueDemoAccessToken(id, song.demoFragmentStartSeconds, song.demoFragmentEndSeconds)
+                canWatch -> gestureUnlockService.issueDirectAccessToken(id, userId)
+                isDemo ->
+                    gestureUnlockService.issueDemoAccessToken(
+                        id,
+                        song.demoFragmentStartSeconds,
+                        song.demoFragmentEndSeconds,
+                        userId,
+                    )
                 else -> null
             }
         if (canWatch || isDemo) {
@@ -187,7 +198,7 @@ class PublicPlayerController(
                     "anonId" to (request.getParameter("anonId") ?: ""),
                 ),
                 request,
-                siteUserResolver.resolve(request)?.id ?: 0,
+                userId ?: 0,
             )
         }
         return ResponseEntity.ok(
@@ -324,51 +335,48 @@ class PublicPlayerController(
         return ResponseEntity.ok().contentType(MediaType.valueOf("audio/mpeg")).body(payload)
     }
 
-    private fun loadSong(id: Long) =
-        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    private fun loadSong(id: Long) = songLoader.load(id)
 
     @GetMapping("/{id}/fileminus.mp3")
     fun fileAccompaniment(
         @PathVariable id: Long,
         @RequestParam token: String?,
         @RequestParam(required = false) session: String?,
-    ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
-        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(song, KaraokeFileType.MP3_ACCOMPANIMENT, gestureUnlockService.demoRangeForToken(token, id))
-    }
+    ): ResponseEntity<ByteArray> = stemEndpoint(id, token, session, KaraokeFileType.MP3_ACCOMPANIMENT)
 
     @GetMapping("/{id}/filevoice.mp3")
     fun fileVocals(
         @PathVariable id: Long,
         @RequestParam token: String?,
         @RequestParam(required = false) session: String?,
-    ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
-        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(song, KaraokeFileType.MP3_VOCAL, gestureUnlockService.demoRangeForToken(token, id))
-    }
+    ): ResponseEntity<ByteArray> = stemEndpoint(id, token, session, KaraokeFileType.MP3_VOCAL)
 
     @GetMapping("/{id}/filebass.mp3")
     fun fileBass(
         @PathVariable id: Long,
         @RequestParam token: String?,
         @RequestParam(required = false) session: String?,
-    ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
-        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(song, KaraokeFileType.MP3_BASS, gestureUnlockService.demoRangeForToken(token, id))
-    }
+    ): ResponseEntity<ByteArray> = stemEndpoint(id, token, session, KaraokeFileType.MP3_BASS)
 
     @GetMapping("/{id}/filedrums.mp3")
     fun fileDrums(
         @PathVariable id: Long,
         @RequestParam token: String?,
         @RequestParam(required = false) session: String?,
+    ): ResponseEntity<ByteArray> = stemEndpoint(id, token, session, KaraokeFileType.MP3_DRUMS)
+
+    // Общий путь отдачи стема: право проверяется В МОМЕНТ ЗАПРОСА (PlayerAccessService), и только
+    // потом решается, отдавать полный файл, демо-фрагмент или ничего (FR-002, FR-004, FR-005).
+    private fun stemEndpoint(
+        id: Long,
+        token: String?,
+        session: String?,
+        fileType: KaraokeFileType,
     ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(song, KaraokeFileType.MP3_DRUMS, gestureUnlockService.demoRangeForToken(token, id))
+        val decision = accessDecision(song, token, session)
+        if (!decision.allowed) return ResponseEntity.notFound().build()
+        return stemResponse(song, fileType, decision.demoRange)
     }
 
     @GetMapping("/{id}/playerdata")
@@ -378,18 +386,21 @@ class PublicPlayerController(
         @RequestParam(required = false) session: String?,
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
-        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
-        // Гость по share-сессии не может экспортировать стемы (Clarifications Q1). Gesture token
-        // (в т.ч. для залогиненного премиума) — экспорт разрешён как обычно.
-        val shareGuest = isShareGuest(id, token, session)
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
+        // Право проверяется в момент запроса (FR-002, FR-004): решение одно и то же, что и для
+        // отдачи байт стемов, поэтому playerdata и сами стемы не могут разойтись.
+        val decision = accessDecision(song, token, session)
+        if (!decision.allowed) return ResponseEntity.notFound().build()
+        // Гость по share-сессии не может экспортировать стемы (Clarifications Q1). Свой доступ
+        // (премиум/подписка/публичность песни) — экспорт разрешён как обычно.
+        val shareGuest = decision.shareGuest
 
         // Если токен был выдан онлайн-редактором для конкретного задания (issueDirectAccessTokenForAssignment),
         // подставляем НЕОДОБРЕННЫЙ черновик этого задания целиком вместо опубликованных маркеров —
         // превью "проиграть, что я уже сделал" в самом редакторе (см. PublicSongEditorController.task).
         // Задание покрывает всю песню — черновик несёт ВСЕ голоса разом, отдельный voice не нужен.
         var markersList = song.sourceMarkersList
-        gestureUnlockService.assignmentIdForToken(token, id)?.let { assignmentId ->
+        decision.assignmentId?.let { assignmentId ->
             val assignment =
                 SongAssignment
                     .getById(assignmentId, WORKING_DATABASE, storageService, storageApiClient)
@@ -401,11 +412,12 @@ class PublicPlayerController(
             }
         }
 
-        // Демо-токен — обрезаем маркеры до диапазона фрагмента и ПЕРЕБАЗИРУЕМ их время (вычитаем
+        // Демо-режим — обрезаем маркеры до диапазона фрагмента и ПЕРЕБАЗИРУЕМ их время (вычитаем
         // начало диапазона), чтобы совпасть с обрезанным аудио — stemResponse обрезает те же байты
         // стема тем же диапазоном через Mp3Trimmer.trimToRange, и для плеера итоговый файл снова
-        // "начинается с нуля".
-        val demoRange = gestureUnlockService.demoRangeForToken(token, id)
+        // "начинается с нуля". Диапазон берётся из РЕШЕНИЯ о доступе: это либо диапазон демо-токена,
+        // либо диапазон демо-фрагмента песни (когда право закончилось, а токен ещё жив).
+        val demoRange = decision.demoRange
         var demoFadeInSeconds: Double? = null
         if (demoRange != null) {
             markersList =
@@ -485,23 +497,31 @@ class PublicPlayerController(
         request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
-        if (!authorized(id, token, session)) {
-            response.status = 404
-            return
-        }
-        // Гость по share-сессии не может экспортировать .smkaraoke (Clarifications Q1) —
-        // даже если он формально премиум (например, открыл свой линк в инкогнито и залогинился).
-        if (isShareGuest(id, token, session) || !isPremiumUser(request)) {
-            response.status = 403
-            response.contentType = "application/json"
-            response.writer.write("{\"error\":\"premium_required\"}")
-            return
-        }
         val song =
             loadSong(id) ?: run {
                 response.status = 404
                 return
             }
+        // Право — как и для стемов, проверяется в момент запроса. Демо-режим пакет не отдаёт:
+        // пакета в демо-режиме не существует.
+        val decision = accessDecision(song, token, session)
+        if (!decision.full) {
+            response.status = 403
+            response.contentType = "application/json"
+            response.writer.write("{\"error\":\"premium_required\"}")
+            return
+        }
+        // Гость по share-сессии не может экспортировать .smkaraoke (Clarifications Q1) —
+        // даже если он формально премиум (например, открыл свой линк в инкогнито и залогинился).
+        // Премиум — живой: по заголовку Authorization ИЛИ по id пользователя из токена (запрос
+        // выгрузки приходит без заголовка — см. research.md D7).
+        val premiumLive = isPremiumUser(request) || accessService.isPremiumByToken(song, token)
+        if (decision.shareGuest || !premiumLive) {
+            response.status = 403
+            response.contentType = "application/json"
+            response.writer.write("{\"error\":\"premium_required\"}")
+            return
+        }
 
         val tracks = mutableMapOf<String, String>()
         val images = mutableMapOf<String, String>()

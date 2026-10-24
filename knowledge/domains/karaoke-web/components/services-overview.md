@@ -80,7 +80,7 @@
 | `ShareLinkSweeper` | `sweep()` — `@Scheduled(fixedDelayString = "${karaoke.share.sweep-interval-seconds:60}000")` |
 | `StatsCacheScheduler` | `warmUp()`, `refreshHourly()`, `refreshIfDirty()` |
 | `EventsRetentionScheduler` | `cleanup()` |
-| `SubscriptionRenewalScheduler` | `renewExpiringSiteSubscriptions()`, `renewEach(users, renew)` — изоляция сбоя по пользователю + ограничение частоты подробного лога (6 ч на `siteUserId`), аудит BR-515 |
+| `SubscriptionRenewalScheduler` | `renewExpiringSiteSubscriptions()`, `renewEach(users, renew)` — изоляция сбоя по пользователю + ограничение частоты подробного лога (6 ч на `siteUserId`), аудит BR-515; `tryRenew(user, database)` — идемпотентность по строке продления (`renew-<userId>-sub<id>`), BR-514/#365 |
 | `StemJobTempCleanupScheduler` | `cleanup()` |
 | `SongReleaseAnnouncementScheduler` | `checkOnAir()` — `@Scheduled(fixedDelay = 5 мин, initialDelay = 60 с)` |
 | `KaraokeWebService` | Конструктор-DI; публичных методов нет — инициализирует глобалы `WEBSOCKET`, `WEB_WORK_IN_CONTAINER`, `WEB_WORK_ON_SERVER`, `DB_*` |

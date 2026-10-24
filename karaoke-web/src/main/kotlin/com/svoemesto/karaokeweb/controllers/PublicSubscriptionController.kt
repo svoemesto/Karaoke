@@ -2,6 +2,7 @@ package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.PriceTariff
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteUser
@@ -9,8 +10,11 @@ import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
+import com.svoemesto.karaokeweb.services.PaymentOrderReuse
 import com.svoemesto.karaokeweb.services.PaymentService
 import com.svoemesto.karaokeweb.services.PriceService
+import com.svoemesto.karaokeweb.services.ReuseOutcome
+import com.svoemesto.karaokeweb.services.SubscriptionFulfillmentService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -26,6 +30,16 @@ import org.springframework.web.bind.annotation.*
  * Цена всегда пересчитывается на сервере (PriceService) — клиент не может её подменить, см. план,
  * Verification. Fulfillment (реальная разблокировка/продление) происходит в PublicPaymentController
  * по вебхуку ЮKassa, а не здесь — до оплаты запись остаётся в CREATED/PENDING.
+ *
+ * Идемпотентность оформления (аудит #336, BR-021): незавершённый (PENDING) заказ
+ * пользователя на тот же тариф (scope=SITE) или на ту же песню (scope=SONG) **переиспользуется**
+ * при любом неотменённом статусе платежа:
+ *
+ * - `pending` / `waiting_for_capture` — отдаём тот же `confirmationUrl`, новый платёж не создаём;
+ * - `succeeded` — платёт уже оплачен (вебхук мог не дойти): начисляем подписку и НЕ создаём
+ *   второй платёж (раньше здесь создавался новый платёж → двойное списание);
+ * - `canceled` — заказ мёртвый, помечаем FAILED и создаём новый;
+ * - ЮKassa недоступна (verify вернул null) — новый платёж НЕ создаём (503), повтор позже.
  */
 
 /**
@@ -40,6 +54,10 @@ class PublicSubscriptionController(
     private val storageApiClient: StorageApiClient,
     private val priceService: PriceService,
     private val paymentService: PaymentService,
+    /**
+     * Начисление оплаченной подписки (транзакция «статус + продление»). Шов для тестов.
+     */
+    private val fulfillmentService: SubscriptionFulfillmentService = SubscriptionFulfillmentService(),
     @Value("\${app.public-site-url}") private val publicSiteUrl: String,
 ) {
     private val db get() = WORKING_DATABASE
@@ -50,14 +68,15 @@ class PublicSubscriptionController(
         scope: String,
         songId: Long?,
         tariffId: Long?,
+        database: KaraokeConnection = WORKING_DATABASE,
     ): PriceTariff? {
         if (tariffId != null) {
             PriceTariff
-                .getById(tariffId, db, storageService, storageApiClient)
+                .getById(tariffId, database, storageService, storageApiClient)
                 ?.takeIf { it.scope == scope && it.isActive }
                 ?.let { return it }
         }
-        return PriceTariff.getDefault(scope, db, storageService, storageApiClient)
+        return PriceTariff.getDefault(scope, database, storageService, storageApiClient)
     }
 
     // ---- Список активных тарифов (для выбора на /premium) --------------------------------------
@@ -126,6 +145,28 @@ class PublicSubscriptionController(
         @RequestParam disclaimerAccepted: Boolean,
         @RequestParam(required = false) autoRenew: Boolean?,
         request: HttpServletRequest,
+    ): ResponseEntity<Any> =
+        handleCreate(
+            scope = scope,
+            songId = songId,
+            tariffId = tariffId,
+            disclaimerAccepted = disclaimerAccepted,
+            autoRenew = autoRenew,
+            request = request,
+            database = WORKING_DATABASE,
+        )
+
+    /**
+     * Оформление подписки. Шов для тестов: [database] подменяется поддельным соединением.
+     */
+    internal fun handleCreate(
+        scope: String,
+        songId: Long?,
+        tariffId: Long?,
+        disclaimerAccepted: Boolean,
+        autoRenew: Boolean?,
+        request: HttpServletRequest,
+        database: KaraokeConnection,
     ): ResponseEntity<Any> {
         if (!disclaimerAccepted) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "disclaimer_required"))
         val user = currentUser(request)
@@ -133,7 +174,7 @@ class PublicSubscriptionController(
         if (scope == Subscription.SCOPE_SONG) {
             if (songId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_id_required"))
             val song =
-                Song.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
+                Song.loadFromDbById(songId, database, storageService = storageService, storageApiClient = storageApiClient)
                     ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "song_not_found"))
             // id_tariff: 0 (дефолт новой песни) = подписка разрешена тарифом по умолчанию; -1 = автор
             // явно запретил подписку на эту песню. Любое другое значение зарезервировано на будущее.
@@ -142,7 +183,7 @@ class PublicSubscriptionController(
             ) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))
             }
-            if (Subscription.isSubscribedToSong(user.id, songId, db, storageService, storageApiClient)) {
+            if (Subscription.isSubscribedToSong(user.id, songId, database, storageService, storageApiClient)) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "already_subscribed"))
             }
         } else if (scope != Subscription.SCOPE_SITE) {
@@ -150,27 +191,30 @@ class PublicSubscriptionController(
         }
 
         val tariff =
-            tariffFor(scope, songId, tariffId)
+            tariffFor(scope, songId, tariffId, database)
                 ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
 
         // Повторный клик "Оформить" до того, как первый заказ обработан (см. инцидент 2026-07-09 —
         // двойной клик создал две отдельные PENDING-подписки и два отдельных платежа в ЮKassa):
-        // если у пользователя уже есть незавершённый заказ на этот же тариф сайта, не создаём новый —
-        // перепроверяем платёж у ЮKassa и, если он всё ещё pending, отдаём фронту тот же confirmationUrl.
-        if (scope == Subscription.SCOPE_SITE) {
-            val pending = Subscription.findPendingSite(user.id, tariff.id, db, storageService, storageApiClient)
-            if (pending != null && pending.yookassaPaymentId.isNotBlank()) {
-                val existingPayment = paymentService.verifyAndFetch(pending.yookassaPaymentId)
-                if (existingPayment?.status == "pending") {
-                    return ResponseEntity.ok(
-                        mapOf(
-                            "subscriptionId" to pending.id,
-                            "status" to pending.status,
-                            "confirmationUrl" to existingPayment.confirmation?.confirmation_url,
-                        ),
-                    )
-                }
+        // если у пользователя уже есть незавершённый заказ на этот же тариф сайта (scope=SITE) или
+        // на ту же песню (scope=SONG), новый платёж НЕ создаём — переиспользуем существующий.
+        val pending =
+            if (scope == Subscription.SCOPE_SITE) {
+                Subscription.findPendingSite(user.id, tariff.id, database, storageService, storageApiClient)
+            } else {
+                Subscription.findPendingSong(user.id, songId!!, database, storageService, storageApiClient)
             }
+        if (pending != null) {
+            // Платёж прошлого запроса мог не создаться (503) — строка осталась CREATED без
+            // yookassa_payment_id. Досоздаём платёж для НЕЁ ЖЕ (Idempotence-Key "sub-<id>-<createdAt>"
+            // тот же), а не заводим вторую строку: иначе пользователь получил бы два счёта.
+            val reused =
+                if (pending.yookassaPaymentId.isBlank()) {
+                    createPaymentForExisting(pending, scope, songId, tariff, user)
+                } else {
+                    reuseExistingOrder(pending)
+                }
+            if (reused != null) return reused
         }
 
         // Аудит BR-005 (OpenProject #378): цена и создание подписки считаются под блокировкой
@@ -182,7 +226,7 @@ class PublicSubscriptionController(
         var freeByPromo = false
         val sub =
             priceService.withOrdinalLock(user.id, scope) {
-                val price = priceService.computePrice(tariff, user, db, storageService, storageApiClient)
+                val price = priceService.computePrice(tariff, user, database, storageService, storageApiClient)
                 val created =
                     Subscription.createNew(
                         siteUserId = user.id,
@@ -197,27 +241,24 @@ class PublicSubscriptionController(
                         // По умолчанию включено для подписки на сайт (см. план: "автопродление по умолчанию"),
                         // для подписки на песню значение не имеет смысла (бессрочная, продлевать нечего).
                         autoRenew = if (scope == Subscription.SCOPE_SITE) (autoRenew ?: true) else false,
-                        database = db,
+                        database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
                 // Акция довела цену до нуля — фиксируем как оплаченную сразу, без похода в ЮKassa
-                // (там ненулевой минимум суммы платежа). Запись PAID — внутри блокировки: именно
-                // она «занимает» порядковый номер для следующего запроса.
+                // (там ненулевой минимум суммы платежа). Запись PAID — ВНУТРИ блокировки: именно
+                // она «занимает» порядковый номер для следующего запроса (BR-005). Статус и
+                // начисление фиксируются ОДНОЙ транзакцией [SubscriptionFulfillmentService]
+                // (#365, BR-020/BR-021): «оплачено, но не начислено» не остаётся.
                 if (created != null && price.final <= 0.0) {
-                    created.status = Subscription.STATUS_PAID
-                    created.paidAt = java.sql.Timestamp(System.currentTimeMillis())
-                    created.save()
+                    fulfillmentService.fulfillPaid(created, "", "")
                     freeByPromo = true
                 }
                 created
             } ?: return ResponseEntity.internalServerError().body(mapOf("error" to "create_failed"))
 
         if (freeByPromo) {
-            // Fulfillment (продление sitePremiumUntil) — вне блокировки: к порядковому номеру он
-            // отношения не имеет, а держать блокировку на время записи пользователя незачем.
-            applyFulfillment(sub)
-            return ResponseEntity.ok(mapOf("subscriptionId" to sub.id, "status" to sub.status, "confirmationUrl" to null))
+            return ResponseEntity.ok(mapOf("subscriptionId" to sub.id, "status" to Subscription.STATUS_PAID, "confirmationUrl" to null))
         }
 
         val description = if (scope == Subscription.SCOPE_SONG) "Подписка на песню (id $songId)" else "Подписка на сайт (${tariff.name})"
@@ -255,19 +296,94 @@ class PublicSubscriptionController(
         )
     }
 
-    // Fulfillment для бесплатных (акционных) подписок — та же логика, что в PublicPaymentController
-    // на успешный вебхук, только без реального платежа. Держим в одном месте не получилось бы без
-    // циклической зависимости контроллер<->контроллер, поэтому дублируем короткую SITE-ветку —
-    // см. идентичный блок в PublicPaymentController.webhook (SONG ничего дополнительно не требует:
-    // сам факт PAID-записи уже есть владение).
-    private fun applyFulfillment(sub: Subscription) {
-        if (sub.scope != Subscription.SCOPE_SITE) return
-        val user = SiteUser.getSiteUserById(sub.siteUserId, db, storageService, storageApiClient) ?: return
-        val now = System.currentTimeMillis()
-        val currentUntil = user.sitePremiumUntil?.time?.takeIf { it > now } ?: now
-        user.sitePremiumUntil = java.sql.Timestamp(currentUntil + sub.periodDays * 24L * 3600_000L)
-        user.save()
-        user.sendWelcomePremiumMessageIfNeeded()
+    /**
+     * Переиспользование незавершённого заказа вместо создания нового (аудит #336, BR-021).
+     *
+     * Решение о статусе принимает [PaymentOrderReuse] — общий с корзиной (BR-014): переиспользуем
+     * ЛЮБОЙ не-`canceled` статус, а не только `pending`. Иначе задержавшийся вебхук (`succeeded`)
+     * приводил к созданию второго платежа и второму списанию.
+     *
+     * @return ответ, который надо отдать клиенту, либо `null` — «заказ мёртвый, создавай новый».
+     */
+    private fun reuseExistingOrder(pending: Subscription): ResponseEntity<Any>? {
+        val verified = paymentService.verifyAndFetch(pending.yookassaPaymentId)
+        return when (PaymentOrderReuse.decide(verified?.status)) {
+            ReuseOutcome.REUSE_PAYMENT ->
+                ResponseEntity.ok(
+                    mapOf(
+                        "subscriptionId" to pending.id,
+                        "status" to pending.status,
+                        "confirmationUrl" to verified?.confirmation?.confirmation_url,
+                    ),
+                )
+            ReuseOutcome.ALREADY_PAID -> {
+                // Платёж уже оплачен (вебхук мог задержаться или не дойти) — начисляем подписку
+                // сами и НЕ создаём второй платёж.
+                fulfillmentService.fulfillPaid(pending, pending.yookassaPaymentId, verified?.payment_method?.id ?: "")
+                ResponseEntity.ok(
+                    mapOf(
+                        "subscriptionId" to pending.id,
+                        "status" to Subscription.STATUS_PAID,
+                        "confirmationUrl" to null,
+                    ),
+                )
+            }
+            ReuseOutcome.CREATE_NEW -> {
+                // Мёртвый заказ — помечаем FAILED (чтобы он больше не находился как незавершённый) и
+                // создаём новый.
+                pending.status = Subscription.STATUS_FAILED
+                pending.save()
+                null
+            }
+            ReuseOutcome.UNAVAILABLE ->
+                // ЮKassa недоступна или статус неизвестен — новый платёж НЕ создаём: иначе
+                // пользователь оплатит дважды.
+                ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    mapOf("error" to "payment_unavailable", "subscriptionId" to pending.id),
+                )
+        }
+    }
+
+    /**
+     * Досоздание платежа для уже существующей строки, оставшейся без `yookassa_payment_id`
+     * (сбой прошлого запроса) — вместо создания второй строки и второго платежа (BR-021).
+     *
+     * `Idempotence-Key` в `PaymentService.createPayment` привязан к `sub-<id>-<createdAt>`, то есть
+     * повтор для той же строки не создаёт дубликат платежа в ЮKassa.
+     *
+     * Платёж не создался — 503 (fail-closed): вторую строку и второй счёт не заводим.
+     */
+    private fun createPaymentForExisting(
+        pending: Subscription,
+        scope: String,
+        songId: Long?,
+        tariff: PriceTariff,
+        user: SiteUser,
+    ): ResponseEntity<Any> {
+        val description = if (scope == Subscription.SCOPE_SONG) "Подписка на песню (id $songId)" else "Подписка на сайт (${tariff.name})"
+        val payment =
+            paymentService.createPayment(
+                sub = pending,
+                description = description,
+                email = user.email,
+                returnUrl = "$publicSiteUrl/subscription/return?subId=${pending.id}",
+                saveMethod = scope == Subscription.SCOPE_SITE && pending.autoRenew,
+            )
+        if (payment == null || payment.id.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                mapOf("error" to "payment_unavailable", "subscriptionId" to pending.id),
+            )
+        }
+        pending.yookassaPaymentId = payment.id
+        pending.status = Subscription.STATUS_PENDING
+        pending.save()
+        return ResponseEntity.ok(
+            mapOf(
+                "subscriptionId" to pending.id,
+                "status" to pending.status,
+                "confirmationUrl" to payment.confirmation?.confirmation_url,
+            ),
+        )
     }
 
     // ---- Список (личный кабинет) -----------------------------------------------------------------

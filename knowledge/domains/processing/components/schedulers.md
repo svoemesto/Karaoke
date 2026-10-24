@@ -309,9 +309,12 @@ upload → processing. Sweeper — последняя линия защиты.
   `SongReleaseAnnouncementScheduler.checkOnAir()` оборачивают работу в
   `try/catch`; `StemJobPollScheduler.pollWaiting()` — `runCatching` на каждое
   задание; `VkAutoPublishScheduler` гасит сбой VK API (specs/437 #161), чтобы
-  не валить тик. А `SubscriptionRenewalScheduler.renewExpiringSiteSubscriptions()`
-  идёт `users.forEach { tryRenew(user) }` без `try/catch` — исключение на
-  одном пользователе прерывает весь тик.
+  не валить тик. `SubscriptionRenewalScheduler.renewExpiringSiteSubscriptions()`
+  с #378 идёт через `renewEach(users) { tryRenew(it) }`: сбой одного
+  пользователя логируется (`siteUserId`, подробно не чаще раза в 6 ч) и не
+  прерывает тик; внутри `tryRenew` — идемпотентность #365 (ключ
+  `renew-<userId>-sub<id>` от строки продления, `result.id` фиксируется до
+  начисления, PAID + продление одной транзакцией).
 
 ### `fixedDelay` vs `fixedRate` vs `cron`
 

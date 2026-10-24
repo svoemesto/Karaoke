@@ -120,6 +120,33 @@ UNPUBLISH показывает только `idStatus = 6` (полностью �
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
+### Сохранение и вставка Song: результат записи и DTO списка (аудит #336, PKG-S2-10)
+
+С пакета `PKG-S2-10` (OpenProject #373) у `Song` зафиксированы контракты,
+влияющие на целостность данных:
+
+- **`saveToDb(): Boolean`** (BR-102) — `true` только если `UPDATE` реально
+  выполнен (или писать было нечего). Ошибка биндинга/`executeUpdate`
+  отменяет запись целиком и возвращает `false`; проглатывания исключений
+  по параметрам больше нет. `saveToDbLocked()` коммитит только при
+  `saveToDb() == true`, иначе делает `rollback()` и возвращает `false`.
+- **`loadFromDbById` пробрасывает `SQLException`** (BR-101): `null` теперь
+  означает только «строки нет», а не «ошибка чтения». `loadListFromDb`
+  получил параметр `throwOnError` (по умолчанию `false` — списочные
+  endpoint'ы сохраняют fail-soft поведение). `saveToDb` при пропавшей
+  строке пишет WARN `song.save_skipped` и не выдаёт успех.
+- **`toDTO()` не ходит в БД** (BR-104): `albumName` заполняется пакетно
+  через `Song.toDTOsWithAlbumNames()` (один `SELECT` по `tbl_albums` на
+  список, `Album.getAlbumsByIds`). Раньше каждая песня списка давала
+  отдельный запрос — N+1 на таблице песен.
+- **`getSqlToInsert()`** (BR-108) содержит `album_id`, `root_id`, `free`,
+  `free_after_on_air`, `audio_parent_id`, `audio_similarity_percent`,
+  `audio_delta_ms`, `audio_compare_history`, `player_readiness_flags`.
+  Раньше список колонок отставал от схемы, значения молча уходили в
+  `DEFAULT`, и `recordhash` вставленной строки не сходился с исходной.
+  Колонка `exclusive` по-прежнему не переносится: в сущности `Song` нет её
+  поля (см. отчёт `specs/373-pkg-s2-10/report.md`, «за владельцем»).
+
 ### «Пустой голос» и его удаление при сохранении (specs/547)
 
 Голос песни — пара «текст + маркеры», адресуемая индексом с нуля

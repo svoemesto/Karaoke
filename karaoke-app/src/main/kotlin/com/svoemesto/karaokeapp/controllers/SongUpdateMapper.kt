@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.controllers
 import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProcess
+import com.svoemesto.karaokeapp.LibraryRootPolicy
 import com.svoemesto.karaokeapp.model.Album
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Song
@@ -296,7 +297,25 @@ object SongUpdateMapper {
                 key in directSetters -> {
                     when (key) {
                         "tags" -> song.tags = value
-                        "rootFolder" -> song.rootFolder = value
+                        // BR-050 (аудит #336, пакет PKG-S2-10): rootFolder — вычисляемый путь
+                        // библиотеки, а не редактируемое поле. Раньше значение из формы
+                        // записывалось как есть, после чего saveAlbumCover/file* писали и
+                        // читали файлы в произвольном каталоге ФС. Принимаем только
+                        // неизменённое текущее значение под разрешённым корнем.
+                        "rootFolder" -> {
+                            val validated =
+                                LibraryRootPolicy.validateRequestedRoot(
+                                    requested = value,
+                                    current = song.rootFolder,
+                                )
+                            if (validated == null && value != song.rootFolder) {
+                                throw org.springframework.web.server.ResponseStatusException(
+                                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                                    "rootFolder is read-only: '$value' не лежит под разрешённым корнем библиотеки",
+                                )
+                            }
+                            if (validated != null) song.rootFolder = validated
+                        }
                         "description" -> song.description = value
                         "shortDescription" -> song.shortDescription = value
                         "warning" -> song.warning = value

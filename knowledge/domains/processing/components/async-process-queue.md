@@ -185,6 +185,49 @@ CREATE
 NB: каждое обновление `percentage` пишется в БД. На горячих задачах
 (большие файлы) это создаёт много UPDATE'ов → нужен batch.
 
+### Цепочка шагов, атомарный claim и прогресс (аудит #336, PKG-S2-10)
+
+С пакета `PKG-S2-10` (OpenProject #373, BR-030..BR-033) у задания
+появились три контракта, которых раньше не было.
+
+**1. Один писатель на строку прогресса (BR-030).**
+Цикл `doStart` больше не вызывает полный `save()` для прогресса: он зовёт
+`KaraokeProcess.saveProgress()`, который делает узкий `UPDATE` только
+percentage-колонок с гардом `WHERE id = ? AND process_status = 'WORKING'`.
+Терминальные поля (`process_status`, `process_end`, `process_priority`)
+пишет только поток задания. Раньше два потока сохраняли один объект без
+синхронизации, и запоздавший `UPDATE` из `doStart` возвращал строку в
+`WORKING` после `DONE` (лейн зависал до рестарта).
+
+**2. Атомарный claim (BR-031).**
+Поток задания стартует с `KaraokeProcess.claimForWorking()`:
+`UPDATE tbl_processes SET process_status='WORKING', process_start=? WHERE id=? AND process_status='WAITING'`
+с проверкой «ровно 1 строка». Если строка уже не `WAITING` — поток не
+работает. `createProcess()` больше не удаляет `WAITING`/`CREATING`:
+активное задание — это single-flight (`return 0`), пересоздаются только
+терминальные (`DONE`/`ERROR`). Раньше удалялось всё, кроме `WORKING`:
+пока выбранный шаг ещё не записал `WORKING`, второй вызов удалял его
+строку, а у выполняющейся цепочки — её `WAITING`-шаги 2..N.
+
+**3. Цепочка как единица исполнения (BR-032).**
+`KaraokeProcess.separate()` проставляет шагам `process_order = 0..N-1` и
+общий `process_chain_id` (id головного шага). Воркер выбирает
+`WAITING` по `(priority, order, id)`, поэтому шаг N+1 не стартует, пока
+N не `DONE`. При `ERROR` шага `stopChainSiblingsOnError()` переводит
+оставшиеся `WAITING`/`CREATING`-шаги в `ERROR`, а агрегированный статус
+песни (`updateStatusProcessSong`) обновляется по цепочке только когда
+незавершённых шагов не осталось (нетерминальные `WORKING`/`CREATING`
+по-прежнему видны песне сразу). Раньше `DONE` первого шага сразу
+выставлял песне `DONE`, хотя 720p и симлинки ещё не были сделаны.
+
+**4. Валидация `process_args` (BR-033).**
+`ProcessArgsPolicy.validationError()` требует «непустой список непустых
+списков». `createProcess()` отклоняет невалидное задание до вставки, а
+цикл `doStart` переводит уже существующую невалидную строку в `ERROR` с
+причиной в описании. Раньше `args[0]` на пустом списке ронял главный цикл
+(5 retry → `isWork=false`, вся очередь вставала), а `args=[[]]` навсегда
+блокировал лейн.
+
 ### Синхронизация (LOCAL ↔ SERVER)
 
 `KaraokeProcess` участвует в **two-DB sync** через `SyncRegistry`:
@@ -301,6 +344,11 @@ Per-process force-stop в коде нет: остановка адресуетс
 
 ## Changelog
 
+- **2026-10-24, аудит #336 (OpenProject #373, PKG-S2-10, BR-030..BR-033)**:
+  зафиксированы контракты «один писатель прогресса», атомарный claim
+  (`claimForWorking`), цепочка шагов (`process_chain_id` + `process_order`,
+  остановка при `ERROR`, агрегация статуса песни по завершении цепочки) и
+  валидация `process_args`. См. `specs/373-pkg-s2-10/report.md`.
 - **2026-10-24, аудит #336 (OpenProject #364, BR-029)**: зафиксирован контракт
   проверки кода возврата subprocess (`awaitProcessExit`/`processExitFailure`,
   таймаут, stderr-хвост, исключение `SHEETSAGE`). Ранее документация уже

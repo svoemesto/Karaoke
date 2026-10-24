@@ -4675,10 +4675,13 @@ fun getTransposingChord(
     val nameChord = chordNameAndFret[0]
 //    val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
     val (chord, note) = MusicChord.getChordNote(nameChord)
-    var newIndexNote = MusicNote.entries.indexOf(note!!) - capo
+    // BR-071 (аудит #336, пакет PKG-S2-10): неразбираемая нота/аккорд (пустой key, N.C.,
+    // слэш-аккорд) раньше давали NPE. Возвращаем исходную запись — рендер не падает.
+    if (chord == null || note == null) return originalChord
+    var newIndexNote = MusicNote.entries.indexOf(note) - capo
     if (newIndexNote < 0) newIndexNote += MusicNote.entries.size
     val newNote = MusicNote.entries[newIndexNote]
-    return newNote.names.first() + chord!!.names.first()
+    return newNote.names.first() + chord.names.first()
 }
 
 /**

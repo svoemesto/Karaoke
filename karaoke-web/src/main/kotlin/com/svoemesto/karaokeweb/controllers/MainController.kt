@@ -19,6 +19,7 @@ import com.svoemesto.karaokeweb.services.SamplingFilter
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.util.ClientIpResolver
+import com.svoemesto.karaokeweb.util.SafeLink
 // import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
@@ -103,10 +104,24 @@ class MainController(
         // News.loadPublished напрямую (а не отдельный эндпоинт /latest) — единый код-путь,
         // исключает дрейф «опубликованности» между фичами. На сбое БД список остаётся пустым,
         // шаблон рендерится без блока (или с пустой таблицей) — HTTP 200 OK, без падения.
+        //
+        // Аудит BR-504 (OpenProject #378): ссылка новости (`tbl_news.link`) уходила в разметку
+        // «как есть» — `javascript:…` в `href` выполнялся по клику. Теперь ссылка проверяется
+        // ПЕРЕД рендером ([SafeLink.isSafe]): небезопасная схема → ссылка обнуляется, и в шаблоне
+        // заголовок выводится обычным текстом (без ссылки и без `window.open`).
         model.addAttribute(
             "latestNews",
             try {
-                News.loadPublished(database = WORKING_DATABASE, limit = 5, offset = 0)
+                News
+                    .loadPublished(database = WORKING_DATABASE, limit = 5, offset = 0)
+                    .map { news ->
+                        if (SafeLink.isSafe(news.link)) {
+                            news
+                        } else {
+                            log.warn("main:news: небезопасная схема ссылки отброшена (title={})", news.title)
+                            news.copy(link = "")
+                        }
+                    }
             } catch (e: Exception) {
                 println("MainController.main loadPublished error: ${e.message}")
                 emptyList()
@@ -333,7 +348,7 @@ class MainController(
      *
      * Формат тела и семантика применения SQL-действий НЕ менялись (FR-011): то же
      * кодовое слово, те же три набора действий, тот же порядок. Транзакционность
-     * применения — отдельная задача (BR-012), здесь она не меняется.
+     * применения закрыта аудитом BR-012 (OpenProject #378): весь батч — одна транзакция.
      */
     @PostMapping("/changerecords")
     @ResponseBody
@@ -391,54 +406,82 @@ class MainController(
             // применения всего батча.
             val songAvailabilityBefore = mutableListOf<Pair<Long, Boolean>>()
 
-            dataCreate.forEach { action ->
-                val sqlToInsert = action["sqlToInsert"] as String
-                val sqlToInsertDecrypted = Crypto.decrypt(sqlToInsert)
-                val ps = connection.prepareStatement(sqlToInsertDecrypted)
-                ps.executeUpdate()
-                ps.close()
-                // Редкий путь (обычный пайплайн доводит песню до готовности через несколько
-                // отдельных UPDATE, не одним INSERT) — но должен быть покрыт: id всегда идёт первым
-                // значением после VALUES( при явной вставке (см. KaraokeDbTable.getSqlToInsert,
-                // OVERRIDING SYSTEM VALUE).
-                if (sqlToInsertDecrypted != null && sqlToInsertDecrypted.trimStart().startsWith("INSERT INTO ${Song.TABLE_NAME} ")) {
-                    Regex("""VALUES\((\d+)""").find(sqlToInsertDecrypted)?.groupValues?.get(1)?.toLongOrNull()?.let { newSongId ->
-                        songAvailabilityBefore.add(newSongId to false)
+            // Аудит BR-012 (OpenProject #378): батч применялся statement за statement на
+            // autocommit-соединении — исключение в середине оставляло БД частично изменённой
+            // (рассогласование данных), а повторный sync не гарантировал идемпотентность уже
+            // применённых действий. Теперь ВЕСЬ батч — одна транзакция: `autoCommit=false`,
+            // `commit()` в конце, `rollback()` при любой ошибке. Соединение thread-local
+            // (KaraokeConnection) — его autocommit возвращается в исходное состояние в `finally`,
+            // иначе следующий запрос на этом же Tomcat-потоке унаследовал бы открытую транзакцию.
+            val previousAutoCommit = connection.autoCommit
+            connection.autoCommit = false
+            try {
+                dataCreate.forEach { action ->
+                    val sqlToInsert = action["sqlToInsert"] as String
+                    val sqlToInsertDecrypted = Crypto.decrypt(sqlToInsert)
+                    val ps = connection.prepareStatement(sqlToInsertDecrypted)
+                    ps.executeUpdate()
+                    ps.close()
+                    // Редкий путь (обычный пайплайн доводит песню до готовности через несколько
+                    // отдельных UPDATE, не одним INSERT) — но должен быть покрыт: id всегда идёт первым
+                    // значением после VALUES( при явной вставке (см. KaraokeDbTable.getSqlToInsert,
+                    // OVERRIDING SYSTEM VALUE).
+                    if (sqlToInsertDecrypted != null && sqlToInsertDecrypted.trimStart().startsWith("INSERT INTO ${Song.TABLE_NAME} ")) {
+                        Regex("""VALUES\((\d+)""").find(sqlToInsertDecrypted)?.groupValues?.get(1)?.toLongOrNull()?.let { newSongId ->
+                            songAvailabilityBefore.add(newSongId to false)
+                        }
                     }
                 }
-            }
 
-            dataUpdate.forEach { action ->
-                val tableName = action["tableName"] as String
-                val idRecord = action["idRecord"] as Int
-                val setText = action["setText"] as String
-                val setTextDecrypted = Crypto.decrypt(setText)
-                if (tableName == Song.TABLE_NAME) {
-                    songAvailabilityBefore.add(idRecord.toLong() to Song.readNewsAvailableFlag(idRecord.toLong(), WORKING_DATABASE))
+                dataUpdate.forEach { action ->
+                    val tableName = action["tableName"] as String
+                    val idRecord = action["idRecord"] as Int
+                    val setText = action["setText"] as String
+                    val setTextDecrypted = Crypto.decrypt(setText)
+                    if (tableName == Song.TABLE_NAME) {
+                        songAvailabilityBefore.add(idRecord.toLong() to Song.readNewsAvailableFlag(idRecord.toLong(), WORKING_DATABASE))
+                    }
+                    val sql = "UPDATE $tableName SET $setTextDecrypted WHERE id = $idRecord"
+                    val ps = connection.prepareStatement(sql)
+                    ps.executeUpdate()
+                    ps.close()
                 }
-                val sql = "UPDATE $tableName SET $setTextDecrypted WHERE id = $idRecord"
-                val ps = connection.prepareStatement(sql)
-                ps.executeUpdate()
-                ps.close()
-            }
 
-            dataDelete.forEach { action ->
-                val sqlToDelete = action["sqlToDelete"] as String
-                val sqlToDeleteDecrypted = Crypto.decrypt(sqlToDelete)
-                val ps = connection.prepareStatement(sqlToDeleteDecrypted)
-                ps.executeUpdate()
-                ps.close()
-            }
+                dataDelete.forEach { action ->
+                    val sqlToDelete = action["sqlToDelete"] as String
+                    val sqlToDeleteDecrypted = Crypto.decrypt(sqlToDelete)
+                    val ps = connection.prepareStatement(sqlToDeleteDecrypted)
+                    ps.executeUpdate()
+                    ps.close()
+                }
 
-            result =
-                "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
+                // Единственная точка фиксации: весь батч применён — коммитим.
+                connection.commit()
+
+                result =
+                    "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
+            } catch (e: Exception) {
+                // Откат всего батча: БД не остаётся в частично изменённом состоянии.
+                runCatching { connection.rollback() }
+                    .onFailure { rb -> log.warn("changerecords: откат транзакции не удался: {}", rb.message) }
+                // Текст ошибки БД наружу НЕ отдаём (спека 554, FR-006): в тексте исключения могут
+                // быть имена таблиц/колонок и детали схемы. Клиенту — нейтральный 5xx, подробности —
+                // в журнал приложения.
+                log.warn("changerecords: ошибка применения изменений: {}", e.message ?: e::class.simpleName)
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(INTERNAL_ERROR_BODY)
+            } finally {
+                // Возвращаем autocommit в исходное состояние: соединение thread-local, его же
+                // используют следующие запросы на этом Tomcat-потоке.
+                runCatching { connection.autoCommit = previousAutoCommit }
+            }
 
             // Новость «песня появилась в коллекции» (specs/101-song-news-flag) — единственная точка
             // кода, создающая этот вид новости: детекция перехода false→true для каждой затронутой в
             // этом батче песни (FR-004 spec.md). Новость «песня вышла в эфир» синхронизацией больше
             // НЕ создаётся (FR-007 spec.md) — только SongReleaseAnnouncementScheduler или вручную.
             // Обёрнуто отдельно: сбой детекции не должен ронять уже успешно применённую синхронизацию
-            // и не должен менять формат ответа выше.
+            // и не должен менять формат ответа выше. Выполняется ПОСЛЕ коммита батча: новость
+            // создаётся по уже применённому состоянию БД.
             try {
                 songAvailabilityBefore.forEach { (songId, wasAvailableBefore) ->
                     SongReleaseAnnouncementService.detectAndAnnounceAvailability(
@@ -453,10 +496,7 @@ class MainController(
                 println("[${Timestamp.from(Instant.now())}] SongReleaseAnnouncementService.detectAndAnnounceAvailability error: ${e.message}")
             }
         } catch (e: Exception) {
-            // Текст ошибки БД наружу НЕ отдаём (спека 554, FR-006): в тексте исключения могут
-            // быть имена таблиц/колонок и детали схемы. Клиенту — нейтральный 5xx, подробности —
-            // в журнал приложения.
-            log.warn("changerecords: ошибка применения изменений: {}", e.message ?: e::class.simpleName)
+            log.warn("changerecords: ошибка разбора запроса: {}", e.message ?: e::class.simpleName)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(INTERNAL_ERROR_BODY)
         }
         return ResponseEntity.ok(result)

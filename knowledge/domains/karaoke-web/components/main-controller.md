@@ -75,15 +75,30 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
    без тела запроса).
 2. `Crypto.decrypt(word)` должен совпасть с `Crypto.WORDS_TO_CHECK` —
    иначе возвращается «Не удалось расшифровать кодовое слово».
-3. Применяет три набора действий к `WORKING_DATABASE`; для строк
-   `tbl_songs` запоминает флаг «доступна для новости» **до** изменения
-   (`songAvailabilityBefore`, spec `101-song-news-flag`) и детектирует
-   переход после применения всего батча.
-4. `Crypto.encrypt`/`decrypt` берут ключ из env, см.
+3. Применяет три набора действий к `WORKING_DATABASE` **одной транзакцией**
+   (аудит BR-012, #378): `autoCommit=false`, `commit()` после успешного
+   применения всего батча, `rollback()` при любой ошибке, autocommit
+   возвращается в исходное состояние в `finally` (соединение thread-local из
+   `KaraokeConnection`, его же используют следующие запросы на этом потоке).
+   Раньше statement'ы шли по autocommit-соединению: исключение в середине
+   оставляло БД частично изменённой. Для строк `tbl_songs` по-прежнему
+   запоминается флаг «доступна для новости» **до** изменения
+   (`songAvailabilityBefore`, spec `101-song-news-flag`), переход
+   детектируется после коммита батча (новость создаётся по применённому
+   состоянию БД).
+4. **Ссылка новости на главной** (`GET /`, аудит BR-504, #378): `News.loadPublished`
+   проходит через `SafeLink.isSafe(link)` — в модель попадают только ссылки со
+   схемой `http(s)`; иначе `link` обнуляется, журнал пишет предупреждение, а
+   шаблон рендерит заголовок текстом (без `href` и без `window.open`).
+   Раньше `tbl_news.link` (пишется неаутентифицированным `/api/news/*` в
+   karaoke-app) подставлялся в `href` «как есть» — `javascript:` исполнялся по
+   клику. Валидация схемы на стороне записи (karaoke-app `NewsController`) —
+   вне пакета, за владельцем.
+5. `Crypto.encrypt`/`decrypt` берут ключ из env, см.
    [system/utilities.md](../../../system/utilities.md).
-5. **Текст ошибки БД наружу не возвращается**: при внутренней ошибке клиент
+6. **Текст ошибки БД наружу не возвращается**: при внутренней ошибке клиент
    получает `5xx` с коротким телом, подробности — в журнал (спека 554, FR-006).
-   Транзакционность применения — отдельная задача (аудит BR-012), здесь не менялась.
+   Транзакционность применения батча закрыта аудитом BR-012 (см. п. 3).
 
 **Реализация**: импорты — `KaraokeStorageService`, `StorageApiClient`,
 `SongReleaseAnnouncementService`, `SamplingFilter`, `SiteUserResolver`,
@@ -136,6 +151,10 @@ endpoints для internal). Разделение — по `produces` и типу
 
 ## Changelog
 
+- **BR-012/BR-504** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `POST /changerecords`
+  применяет батч одной транзакцией (`autoCommit=false`, `commit`/`rollback`, восстановление
+  autocommit); ссылка новости на главной проходит проверку схемы (`SafeLink`) до рендера.
+  Автор: agent (Karaoke).
 - **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес источника
   в `doRegisterEvent` определяется по общему правилу `util/ClientIpResolver`
   (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer); правило журнала

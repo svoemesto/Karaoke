@@ -85,10 +85,12 @@
           <td><input v-model.number="item.priority" class="prm-input prm-num" type="number" /></td>
           <td><input v-model="item.isActive" type="checkbox" /></td>
           <td class="prm-actions">
-            <button class="prm-btn" :disabled="!isChanged(item)" @click="save(item)">
+            <button class="prm-btn" :disabled="!canMutate || !isChanged(item)" @click="save(item)">
               Сохранить
             </button>
-            <button class="prm-btn prm-btn-danger" @click="remove(item)">Удалить</button>
+            <button class="prm-btn prm-btn-danger" :disabled="!canMutate" @click="remove(item)">
+              Удалить
+            </button>
           </td>
         </tr>
       </tbody>
@@ -127,7 +129,19 @@ export default {
       },
     },
     canCreate() {
-      return this.newItem.name.trim() !== '' && this.isValidJson(this.newItem.paramsJson)
+      return (
+        this.canMutate &&
+        this.newItem.name.trim() !== '' &&
+        this.isValidJson(this.newItem.paramsJson)
+      )
+    },
+    // BR-407: пока список не подтверждён ответом именно текущей БД, строки могут быть данными
+    // другой базы — писать по ним нельзя.
+    listTarget() {
+      return this.$store.getters.getPromoRulesListTarget
+    },
+    canMutate() {
+      return !this.isLoading && this.listTarget !== null && this.listTarget === this.target
     },
   },
   watch: {
@@ -163,6 +177,7 @@ export default {
       return Object.keys(item).some((k) => item[k] !== orig[k])
     },
     async save(item) {
+      if (!this.canMutate) return
       if (!this.isValidJson(item.paramsJson)) {
         alert('Некорректный JSON в параметрах')
         return
@@ -170,10 +185,12 @@ export default {
       await this.$store.dispatch('savePromoRule', item)
     },
     async remove(item) {
+      if (!this.canMutate) return
       if (!confirm(`Удалить акцию «${item.name}»?`)) return
       await this.$store.dispatch('deletePromoRule', item.id)
     },
     async create() {
+      if (!this.canMutate) return
       await this.$store.dispatch('createPromoRule', this.newItem)
       this.newItem = {
         name: '',

@@ -158,8 +158,12 @@ HealthReport-запросы — самые дорогие (MinIO round-trip). Л
   HR-очередь.
 - **Storage** ([storage domain](../../domains/storage/domain.md)) —
   pictures/albums/etc.
+- **Target-aware запросы** ([target-request-guard.md](target-request-guard.md)) —
+  поколение ответа и БД происхождения набора (BR-397/407/409).
 
 ## Changelog
 
+- **2026-10-24** (OpenProject #367, аудит #336): ссылка на общий guard
+  target-aware запросов — поколение ответа и БД строки.
 - **Pass 349** (2026-09-09): Initial overview. Прецедент: задачи
   #65, #69 + общий Knowledge-аудит. Автор: agent (Karaoke).

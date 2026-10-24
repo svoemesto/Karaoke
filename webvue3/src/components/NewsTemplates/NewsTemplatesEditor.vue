@@ -11,7 +11,12 @@
       <!-- target=local|remote -->
       <div class="mb-3 d-flex align-items-center gap-3">
         <label class="form-label small fw-bold mb-0">Целевая БД:</label>
-        <select v-model="target" class="form-select form-select-sm" style="max-width: 200px">
+        <select
+          v-model="target"
+          class="form-select form-select-sm"
+          style="max-width: 200px"
+          :disabled="saving"
+        >
           <option value="local">local (admin)</option>
           <option value="remote">remote (prod)</option>
         </select>
@@ -170,7 +175,7 @@
 
           <!-- SAVE -->
           <div class="mt-3 d-flex align-items-center gap-2">
-            <button class="btn btn-primary" :disabled="saving" @click="saveTemplate">
+            <button class="btn btn-primary" :disabled="saving || loading" @click="saveTemplate">
               {{ saving ? 'Сохранение…' : 'Сохранить оба поля' }}
             </button>
             <span v-if="savedMessage" class="text-success small">{{ savedMessage }}</span>
@@ -184,6 +189,15 @@
 
 <script>
 import { promisedXMLHttpRequest } from '../../lib/utils'
+import { createRequestGeneration } from '../../lib/target-request-guard'
+import { saveTemplateFromEditor } from './templateSaveChain'
+
+// BR-397 (аудит #336, пакет PKG-RACE-TARGET, OpenProject #367). Черновик шаблона живёт в одном
+// компоненте и не привязан к БД: `reload()` перезаписывает `titleValue`/`bodyValue` данными
+// выбранного target, а сохранение — две последовательные POST-цепочки. Поколение запроса нужно,
+// чтобы ответ на старый target не перезаписал поля после переключения; фиксация target и обоих
+// значений на всю цепочку — в `templateSaveChain.js`.
+const reloadGeneration = createRequestGeneration()
 
 /**
  * Редактор шаблонов автоматических новостей сайта (title + body).
@@ -253,12 +267,15 @@ export default {
   },
   methods: {
     reload() {
+      const requestTarget = this.target
+      const ticket = reloadGeneration.next()
+      const isStale = () => !reloadGeneration.isCurrent(ticket) || requestTarget !== this.target
       this.loading = true
       this.error = ''
       Promise.all([
         promisedXMLHttpRequest({
           method: 'GET',
-          url: `/api/news/templates?target=${this.target}`,
+          url: `/api/news/templates?target=${requestTarget}`,
         }),
         promisedXMLHttpRequest({
           method: 'GET',
@@ -266,6 +283,7 @@ export default {
         }),
       ])
         .then(([listResp, defResp]) => {
+          if (isStale()) return
           const listData = typeof listResp === 'string' ? JSON.parse(listResp) : listResp
           const defData = typeof defResp === 'string' ? JSON.parse(defResp) : defResp
           this.templates = listData.templates || []
@@ -275,6 +293,7 @@ export default {
           this.syncFieldsFromTemplates()
         })
         .catch((err) => {
+          if (isStale()) return
           this.loading = false
           this.error = err && err.message ? err.message : 'Ошибка загрузки шаблонов новостей.'
         })
@@ -296,10 +315,13 @@ export default {
       this.saving = true
       this.savedMessage = ''
       this.saveError = ''
-      // Сохраняем title и body последовательно. Если оба уже соответствуют БД — всё равно UPSERT
-      // (идемпотентен). Если error — показываем, не теряем уже сохранённое первое поле.
-      this.saveOne(this.titleKey, this.titleValue)
-        .then(() => this.saveOne(this.bodyKey, this.bodyValue))
+      // BR-397: target и оба значения фиксируются на входе в цепочку. Иначе переключение
+      // «Целевой БД» между двумя POST уводило title и body в разные БД, а reload() успевал
+      // подменить bodyValue значением из новой БД.
+      saveTemplateFromEditor({
+        editor: this,
+        saveOne: (key, value, target) => this.saveOne(key, value, target),
+      })
         .then(() => {
           this.saving = false
           this.savedMessage = 'Сохранено.'
@@ -314,12 +336,12 @@ export default {
           this.saveError = errMsg || 'Ошибка сохранения.'
         })
     },
-    saveOne(key, value) {
+    saveOne(key, value, target) {
       return new Promise((resolve, reject) => {
         promisedXMLHttpRequest({
           method: 'POST',
           url: '/api/news/templates',
-          params: { key, value, target: this.target },
+          params: { key, value, target },
         })
           .then((resp) => {
             const data = typeof resp === 'string' ? JSON.parse(resp) : resp

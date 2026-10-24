@@ -244,10 +244,14 @@ class Subscription(
                 .toSet()
         }
 
-        // Незавершённый (PENDING) заказ пользователя на конкретный тариф сайта — используется, чтобы
-        // повторный клик "Оформить" до перехода на страницу оплаты не плодил дублирующие подписки и
-        // платежи в ЮKassa (см. PublicSubscriptionController.create): вместо новой записи переиспользуем
+        // Незавершённый заказ пользователя на конкретный тариф сайта — используется, чтобы повторный
+        // клик "Оформить" до перехода на страницу оплаты не плодил дублирующие подписки и платежи в
+        // ЮKassa (см. PublicSubscriptionController.create): вместо новой записи переиспользуем
         // confirmationUrl уже созданного платежа.
+        //
+        // Учитывается и CREATED: строка создаётся ДО платежа, и если создание платежа в прошлый раз
+        // не удалось (503), остаётся CREATED без yookassa_payment_id. Раньше такой «хвост» не находился,
+        // и следующий клик создавал ВТОРУЮ строку и второй платёж (аудит #336, BR-021).
         fun findPendingSite(
             siteUserId: Long,
             tariffId: Long,
@@ -264,13 +268,83 @@ class Subscription(
                             "site_user_id=$siteUserId",
                             "scope='$SCOPE_SITE'",
                             "tariff_id=$tariffId",
-                            "status='$STATUS_PENDING'",
+                            "status IN ('$STATUS_CREATED','$STATUS_PENDING')",
                         ),
-                    limit = 1,
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                ).firstOrNull() as? Subscription
+                ).map { it as Subscription }
+                .let { pickUnfinished(it) }
+
+        // Незавершённый заказ КОРЗИНЫ пользователя — все подписки одного оформления (общий
+        // order_id) в статусе CREATED или PENDING (заказ создан, но платёж ещё не подтверждён).
+        // Нужен для идемпотентности checkout (аудит #336, BR-014): повторный клик «Оплатить всё»
+        // переиспользует тот же order_id → тот же Idempotence-Key ЮKassa → второй платёж не
+        // создаётся. Возвращает подписки НАИБОЛЕЕ НОВОГО незавершённого заказа (пусто — заказа нет).
+        fun loadUnfinishedCartOrder(
+            siteUserId: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<Subscription> {
+            val rows =
+                KaraokeDbTable
+                    .loadList(
+                        clazz = Subscription::class,
+                        tableName = TABLE_NAME,
+                        whereList =
+                            listOf(
+                                "site_user_id=$siteUserId",
+                                "scope='$SCOPE_SONG'",
+                                "order_id IS NOT NULL",
+                                "status IN ('$STATUS_CREATED','$STATUS_PENDING')",
+                            ),
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    ).map { it as Subscription }
+            if (rows.isEmpty()) return emptyList()
+            val newestOrderId = rows.maxByOrNull { it.createdAt.time }?.orderId ?: return emptyList()
+            return rows.filter { it.orderId == newestOrderId }
+        }
+
+        // Незавершённая подписка пользователя на конкретную песню — защита от двойного клика
+        // «Оформить» (аудит #336, BR-021): второй запрос переиспользует существующий платёж вместо
+        // создания нового. Учитываются и позиции заказа корзины (order_id задан): один платёж на
+        // песню — значит, второй платёж по той же песне был бы двойным списанием.
+        //
+        // CREATED включается по той же причине, что и в findPendingSite: строка без платежа после
+        // сбойного создания платежа должна переиспользоваться, а не дублироваться.
+        fun findPendingSong(
+            siteUserId: Long,
+            idSong: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Subscription? =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList =
+                        listOf(
+                            "site_user_id=$siteUserId",
+                            "scope='$SCOPE_SONG'",
+                            "id_song=$idSong",
+                            "status IN ('$STATUS_CREATED','$STATUS_PENDING')",
+                        ),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as Subscription }
+                .let { pickUnfinished(it) }
+
+        // Из нескольких незавершённых строк предпочитаем ту, у которой УЖЕ есть платёж
+        // (её и надо переиспользовать), иначе — самую новую. Без этого `limit = 1` мог вернуть
+        // старую CREATED-строку без платежа, и рядом с живым PENDING родился бы второй платёж.
+        private fun pickUnfinished(rows: List<Subscription>): Subscription? =
+            rows.filter { it.yookassaPaymentId.isNotBlank() }.maxByOrNull { it.createdAt.time }
+                ?: rows.maxByOrNull { it.createdAt.time }
 
         // Счётчик оплаченных подписок юзера в рамках scope — нужен для акции NTH_FREE.
         fun countPaid(

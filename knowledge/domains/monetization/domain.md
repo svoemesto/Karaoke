@@ -147,9 +147,14 @@ CRUD: `PublicCartController` в karaoke-web.
 - `yookassaPaymentId` — ID платежа в YooKassa.
 - `autoRenew` — флаг автопродления.
 
-`Subscription.fulfillment` (для scope=SITE) — в
-`PublicPaymentController.webhook` (karaoke-web): после успешного
-webhook'а YooKassa продлевает `SiteUser.sitePremiumUntil`.
+`Subscription.fulfillment` (для scope=SITE) выполняется **одной транзакцией**
+в `SubscriptionFulfillmentService` (`karaoke-web`): условный
+`UPDATE tbl_subscriptions ... WHERE id = ? AND status <> 'PAID'` (число
+обновлённых строк = «мы первые») и продление `SiteUser.sitePremiumUntil`
+(`SELECT ... FOR UPDATE` + `UPDATE tbl_site_users`) фиксируются вместе.
+Точки вызова: webhook YooKassa, оформление подписки (в т.ч. бесплатная
+акция), checkout корзины, автопродление. Идемпотентность — по признаку
+`status`, без отдельной колонки `fulfilled_at` (миграция не требуется).
 
 **Участвует в LOCAL↔SERVER SyncRegistry** (см.
 [two-db-sync](../processing/components/two-db-sync.md)).
@@ -176,7 +181,7 @@ webhook'а YooKassa продлевает `SiteUser.sitePremiumUntil`.
 | --- | --- |
 | `PublicSubscriptionController` (`/api/public/account/subscription`) | `GET /tariffs?scope=`, `GET /price?scope=&songId=&tariffId=`, `POST /create`, `GET /list`, `POST /cancel` |
 | `PublicCartController` (`/api/public/account/cart`) | `GET /list`, `POST /clear`, `POST /toggle?songId=`, `GET /price`, `POST /checkout?disclaimerAccepted=` |
-| `PublicPaymentController` (`/api/public/payment`) | `POST /api/public/payment/webhook` — webhook YooKassa: перепроверяет статус через `PaymentService.verifyAndFetch` и идемпотентно переводит `Subscription.status` → `PAID`; потребитель — YooKassa, не фронт |
+| `PublicPaymentController` (`/api/public/payment`) | `POST /api/public/payment/webhook` — webhook YooKassa: перепроверяет статус через `PaymentService.verifyAndFetch`, затем **одной транзакцией** переводит `Subscription.status` → `PAID` и начисляет подписку (`SubscriptionFulfillmentService`); повторная доставка и параллельные ретраи не продлевают срок дважды; потребитель — YooKassa, не фронт |
 
 Потребители: `karaoke-public/src/services/cartApi.js`,
 `karaoke-public/src/composables/useSiteSubscription.js`,
@@ -194,7 +199,13 @@ webhook'а YooKassa продлевает `SiteUser.sitePremiumUntil`.
 - Сервисы `karaoke-web`: `PriceService.computePrice` / `computeCartPrice` (промо +
   персональная скидка), `PaymentService` (`hasCredentials`, `createPayment`,
   `createCartPayment`, `chargeRecurring`, `verifyAndFetch`,
-  `newIdempotenceKey`), `SubscriptionRenewalScheduler` (автопродление).
+  `newIdempotenceKey`), `SubscriptionRenewalScheduler` (автопродление),
+  `SubscriptionFulfillmentService.fulfillPaid` (единая транзакция «статус PAID +
+  начисление»), `PaymentOrderReuse.decide` (решение о переиспользовании
+  незавершённого заказа; fail-closed на неизвестном статусе).
+- Запросы идемпотентности модели `Subscription`: `findPendingSite`,
+  `findPendingSong`, `loadUnfinishedCartOrder` (последние два/три учитывают и
+  `CREATED`, и `PENDING` — строка создаётся до платежа).
 
 HTTP-API у домена есть: admin-часть — только в `karaoke-app`, публичная — только
 через `karaoke-web`.
@@ -215,8 +226,20 @@ L3-компонентов у домена пока нет: контекст оп
 3. **`CartItem` MAY быть удалён без `Subscription`** — пользователь
    может передумать до оплаты.
 4. **`Subscription` (PAID) MUST быть идемпотентным**: повторный
-   webhook YooKassa не должен создать дубли.
-5. **`scope=SONG` подписки** не имеют `endDate` (бессрочные).
+   webhook YooKassa не должен создать дубли и не должен продлить
+   `sitePremiumUntil` второй раз. Обеспечение — условный
+   `UPDATE ... WHERE status <> 'PAID'` в одной транзакции с начислением
+   (`SubscriptionFulfillmentService`), а не проверка в коде до записи.
+5. **Платёж MUST создаваться до побочных эффектов заказа**: корзина
+   очищается и `Subscription.status` становится `PENDING` только после
+   успешного `PaymentService.createCartPayment`; при отказе строки заказа
+   откатываются, корзина остаётся нетронутой. Незавершённый заказ
+   переиспользуется по стабильному `orderId` (тот же `Idempotence-Key`).
+6. **`Idempotence-Key` MUST быть привязан к сущности, а не к моменту
+   запуска**: checkout — `order-<orderId>`, подписка —
+   `sub-<id>-<createdAt>`, автопродление — `renew-<userId>-sub<id>`
+   (не дата!). Иначе повтор после сбоя создаёт второе списание.
+7. **`scope=SONG` подписки** не имеют `endDate` (бессрочные).
    `scope=SITE` — имеют.
 
 ## Архитектурные решения

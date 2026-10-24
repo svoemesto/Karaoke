@@ -29,8 +29,15 @@ services:
       - WHISPER_ENGINE=faster-whisper
       - WHISPER_DEVICE=cuda
       - WHISPER_COMPUTE_TYPE=int8
-      - WHISPER_API_KEY=nafanya_whisper_2026
-      - HF_TOKEN=hf_key
+      # BR-040 (аудит #336 / P-70-02, OpenProject #371): ключ НЕ в git.
+      # Значение — в deploy/do.env (в .gitignore) или deploy/.env; копия
+      # шаблона — deploy/do.env.example. Fail-closed: без ключа compose
+      # не стартует стек (раньше ключ лежал в репозитории и был действующим
+      # пропуском к ASR-сервису на всех клонах).
+      - WHISPER_API_KEY=${WHISPER_API_KEY:?WHISPER_API_KEY is required (set in deploy/do.env or deploy/.env)}
+      # Токен HuggingFace нужен только для закрытых моделей; для публичных
+      # (large-v3-turbo) не требуется — по умолчанию пусто.
+      - HF_TOKEN=${HF_TOKEN:-}
     # Docker-мост не всегда получает рабочий DNS от хоста (VPN/локальный резолвер могут
     # возвращать адреса, недоступные из контейнера) - см. тот же приём в docker-compose-ollama.yml
     # для другого GPU-контейнера, которому тоже нужен внешний интернет.
@@ -86,8 +93,9 @@ services:
       - WHISPER_ENGINE=faster-whisper
       - WHISPER_DEVICE=cpu
       - WHISPER_COMPUTE_TYPE=int8
-      - WHISPER_API_KEY=nafanya_whisper_2026
-      - HF_TOKEN=hf_key
+      # BR-040: ключ только из окружения (deploy/do.env / deploy/.env), см. GPU-инстанс выше.
+      - WHISPER_API_KEY=${WHISPER_API_KEY:?WHISPER_API_KEY is required (set in deploy/do.env or deploy/.env)}
+      - HF_TOKEN=${HF_TOKEN:-}
     dns:
       - 1.1.1.1 # Cloudflare DNS
       - 8.8.4.4 # Google DNS (альтернативный)

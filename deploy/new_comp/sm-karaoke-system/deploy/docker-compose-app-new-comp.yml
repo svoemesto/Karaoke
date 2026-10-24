@@ -71,7 +71,10 @@ services:
       - ./searxng-settings:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://searxng:8080/
-      - SEARXNG_SECRET=i-love-my-wife-oxana
+      # BR-040 (аудит #336 / P-70-02, OpenProject #371): секрет НЕ в git.
+      # Значение — в deploy/do.env (в .gitignore) или deploy/.env;
+      # шаблон — deploy/do.env.example.
+      - SEARXNG_SECRET=${SEARXNG_SECRET:?SEARXNG_SECRET is required (set in deploy/do.env or deploy/.env)}
     restart: unless-stopped
     networks:
       - karaokenet

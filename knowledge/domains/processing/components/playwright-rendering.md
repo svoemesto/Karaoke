@@ -34,6 +34,18 @@ Playwright-интеграция — нетривиальный кусок proces
   ffmpeg.
 - **Вход**: `frames/`, `stems/`, `KaraokeProperties`.
 - **Выход**: MP4 в MinIO `done_files/<songId>/<version>.mp4`.
+- **Код возврата (BR-161, аудит #336, OpenProject #364)**: `mixAndMux`
+  проверяет exit code ffmpeg. `exit != 0` → удаляет недописанный
+  `output.mp4` и бросает `ProcessExitException` (команда, код, хвост
+  stdout/stderr); прогресс 100 % выдаётся только после `exit 0`. Раньше
+  код возврата игнорировался: «Готово», 100 % и копирование обрезанного
+  файла в `done_files` происходили и при падении ffmpeg.
+- **Зависание**: если прогресс не приходит дольше
+  `inactivityTimeoutSeconds` (по умолчанию 120 с), процесс убивается
+  `destroyForcibly()`, файл удаляется, бросается исключение — лейн
+  рендера не блокируется навсегда.
+- **Тестовый шов**: параметр `ffmpegBinary` (по умолчанию `ffmpeg`) —
+  подмена бинаря управляемым скриптом в регрессионных тестах.
 
 ### ffmpeg `-progress pipe:1`
 
@@ -124,6 +136,11 @@ stderr. Иначе прогресс не виден.
 
 **[WARN] `ProcessBuilder` всегда с `redirectErrorStream(true)`** (см.
 ADR-0006). Без этого ffmpeg заполнит stderr и процесс заблокируется.
+
+**[WARN] Не игнорировать exit code ffmpeg.** `waitFor()` без проверки
+`exitValue()` — это «успех» при любом сбое энкодера; недописанный MP4
+уйдёт в `done_files` и может быть опубликован. Контракт — в
+`ProcessExitGuard.kt` + `PlayerMp4MuxExitCodeTest`.
 
 **[WARN] Не закрывать Chromium** до конца рендера. Каждый кадр — новая
 страница, но **тот же** browser-context. Закрытие = перезапуск = потеря

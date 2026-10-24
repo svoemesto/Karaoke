@@ -95,6 +95,7 @@ NB: `Dockerfile*` несколько штук = эксперименты с ра
 | `deploy_web.sh` | Деплой karaoke-web на прод |
 | `do.sh build_start_public` | Сборка + запуск karaoke-public |
 | `karaoke-db-backup.sh` | Бэкап БД |
+| `tracker-db-backup.sh` | Бэкап БД трекера (OpenProject). Пароль — через stdin + одноразовый `.pgpass` в контейнере, не через argv (BR-552) |
 | `announce.sh` | Анонс в Telegram/VK после деплоя |
 | `prune-images.sh` | Очистка старых Docker images |
 | `analyze-prod-incident.sh` | Анализ prod incident |

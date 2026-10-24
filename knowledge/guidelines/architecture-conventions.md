@@ -2,7 +2,8 @@
 
 > **Домен**: `knowledge/guidelines/`
 > **Назначение**: **primary reference** для build/runtime/docker конвенций
-> Karaoke (R-04, R-05, R-06, R-08, R-11, R-44). Детальные описания —
+> Karaoke (R-04, R-05, R-06, R-08, R-11, R-44) и правил работы с секретами
+> («Секреты не передаются через argv»). Детальные описания —
 > в `knowledge/domains/<name>/` и `knowledge/adr/`.
 >
 > **Статус**: Этот документ стал **single source of truth** для всех build/docker
@@ -158,6 +159,32 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
 (`UtilsPictures.kt`, `SyncAudioDescendants.kt`, `Utils.kt`). Часть затрагивает
 рендеринг — Kdenlive и ffmpeg читают эти файлы, — поэтому замена требует
 отдельной проверки, а не правки по коду.
+
+### Секреты не передаются через argv (BR-551/BR-552/BR-605, OpenProject #382)
+
+**Rule**: секрет (пароль, API-токен) **не должен** попадать в аргументы команды.
+`argv` читает любой пользователь машины (`ps -eo args`, `/proc/<pid>/cmdline`),
+поэтому секрет в аргументах — это утечка в список процессов.
+
+**Protocol**: выбирать безопасный канал по типу секрета.
+
+| Секрет | Запрещено | Правильно |
+|---|---|---|
+| Пароль registry | `docker login --password $PASS` | `printf '%s' "$PASS" \| docker login … --password-stdin` |
+| Пароль БД | `docker exec -e PGPASSWORD=$PASS …` | `PGPASSWORD` в окружении процесса, `.pgpass` (`PGPASSFILE`), `--env-file`, stdin |
+| Токен API (Basic/Bearer) | `curl -H "Authorization: …"`, `curl -u user:pass` | `curl --config -` с `header = "Authorization: …"`, поданным на stdin |
+| Пароль в строке подключения | `psql "… password=$PASS …"` | `PGPASSWORD`/`.pgpass`, без пароля в аргументах |
+
+**Failure**: секрет в списке процессов машины. Прецедент: BR-551 (пароль
+registry в legacy-`do.sh`), BR-552 (пароль БД трекера), BR-605 (admin-токен
+OpenProject в `tools/tracker-lib.sh`).
+
+**Enforcement**: guard `tools/check-secret-in-argv.sh` (pre-commit-хука
+`secret-in-argv-guard`). Baseline `tools/check-secret-in-argv.baseline` —
+известные legacy-нарушения вне пакета OpenProject #382 (сопоставление по
+содержимому строки, конвенция Pass 455). Безопасные формы (`PGPASSWORD=` в
+окружении, `--password-stdin`, `curl --config -`, `.pgpass`) нарушением не
+считаются.
 
 ## Бизнес-конвенции
 

@@ -105,6 +105,24 @@ cd deploy
 **NB**: путь к `do.env` (секреты) — `web-server-deploy/deploy/do.env`
 (для прода) или `do.env` локально.
 
+## Секреты не в argv (OpenProject #382, BR-551)
+
+Логин в registry **везде** оформлен одной функцией `do_registry_login`:
+сервер указывается явно (`REGISTRY_HOST`), пользователь — `REGISTRY_USER`,
+пароль подаётся **на stdin** (`--password-stdin`). Пароль в `argv`
+(`docker login --password …`) виден любому пользователю машины — это
+запрещено правилом «Секреты не передаются через argv» в
+[architecture-conventions.md](../../guidelines/architecture-conventions.md).
+
+Устаревшая копия `deploy/web-server-deploy/deploy/do.sh` (DEPRECATED, см.
+[`deploy-overview.md`](deploy-overview.md)) приведена к тому же контракту:
+своя функция `do_registry_login` (тот же `--password-stdin`, тот же fallback на
+`DOCKER_HUB_USER`/`DOCKER_PASSWORD` для старого `do.env`) **и** проверки кодов
+возврата: неудачный логин или `pull` больше не «продолжает» сценарий — контейнер
+не поднимается на старом образе (BR-551).
+
+Проверка: guard `tools/check-secret-in-argv.sh` (хука `secret-in-argv-guard`).
+
 ## Известные TODO
 
 - [ ] **Полная сигнатура** каждой из 40 функций — Pass 343+.
@@ -122,6 +140,10 @@ cd deploy
 
 ## Changelog
 
+- **2026-10-24** (OpenProject #382, BR-551): legacy-копия
+  `deploy/web-server-deploy/deploy/do.sh` — логин переведён на `--password-stdin`
+  (`REGISTRY_HOST`/`REGISTRY_USER`) + проверки кодов возврата; добавлен guard
+  `tools/check-secret-in-argv.sh` (секреты не в argv).
 - **2026-10-22** (OpenProject #327): `npm ci` + cache/retries в Dockerfile'ах
   webvue3/public; `ARG NODE_IMAGE`/`ARG NGINX_IMAGE` и env-overrides; helper
   `do_build_frontend_image` с ретраями только при сетевых ошибках.

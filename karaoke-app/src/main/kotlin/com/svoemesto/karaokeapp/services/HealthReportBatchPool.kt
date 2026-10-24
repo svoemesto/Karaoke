@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
@@ -221,6 +222,20 @@ class HealthReportBatchPool(
     private val inFlight: ConcurrentHashMap<Long, AtomicBoolean> = ConcurrentHashMap()
 
     /**
+     * Сигналы «проснись» для уже запущенных worker'ов (BR-132, аудит #336).
+     *
+     * Раньше `wakeupWorkers()`/`wakeupWaitingWorkers()` на каждый `enqueue`
+     * делали `executor.submit { workerLoop() }`, а `workerLoop` — бесконечный
+     * цикл. Первые submit'ы навсегда занимали все потоки пула, а последующие
+     * «побудки» копились в неограниченной очереди executor'а (тысячи никогда не
+     * выполненных FutureTask за одну загрузку страницы). Теперь воркеры
+     * запускаются один раз в [start], а будятся семафором; число разрешений
+     * ограничено размером пула.
+     */
+    private val workerWakeup = Semaphore(0)
+    private val waitingWorkerWakeup = Semaphore(0)
+
+    /**
      * Executor для worker'ов. Инициализируется в [start] (production). В unit-тестах
      * может быть подменён напрямую (internal visibility).
      */
@@ -275,10 +290,8 @@ class HealthReportBatchPool(
      * под-блоке. Это требование #128 («при переходе между страницами „в работу“
      * в чанки будут браться песни с этой страницы в первую очередь»).
      *
-     * После разблокировки — `wakeupWorkers()`: 10 новых submit'ов в executor.
-     * Если worker'ы уже работают, дубликаты тасков безвредны: `takeNext()`
-     * атомарно разбирает очередь, остальные таски делают одну итерацию
-     * (взял null → sleep → выход).
+     * После разблокировки — `wakeupWorkers()`: семафор будит уже запущенных
+     * воркеров (BR-132), новые submit'ы не создаются.
      */
     fun enqueue(songIds: List<Long>) {
         if (songIds.isEmpty()) return
@@ -366,20 +379,29 @@ class HealthReportBatchPool(
     }
 
     private fun wakeupWorkers() {
-        // 10 новых submit'ов: если worker уже работает — он возьмёт следующую
-        // песню сам; если простаивает — выполнит одну итерацию и снова уснёт.
-        repeat(POOL_SIZE) { executor.submit { workerLoop() } }
+        // BR-132: не submit'им новые бесконечные циклы, а будим уже запущенные.
+        // Разрешений не больше, чем воркеров: очередь сигналов ограничена.
+        val permits = POOL_SIZE - workerWakeup.availablePermits()
+        if (permits > 0) workerWakeup.release(permits)
     }
 
     private fun wakeupWaitingWorkers() {
-        repeat(POOL_SIZE_WAITING) { waitingExecutor.submit { waitingWorkerLoop() } }
+        val permits = POOL_SIZE_WAITING - waitingWorkerWakeup.availablePermits()
+        if (permits > 0) waitingWorkerWakeup.release(permits)
     }
 
     private fun workerLoop() {
         while (!Thread.currentThread().isInterrupted) {
             val id = takeNext()
             if (id == null) {
-                Thread.sleep(WORKER_IDLE_SLEEP_MS)
+                // BR-132: ждём сигнал (или истечение короткого таймаута для
+                // обратной совместимости с прежним polling-поведением).
+                try {
+                    workerWakeup.tryAcquire(WORKER_IDLE_SLEEP_MS, TimeUnit.MILLISECONDS)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return
+                }
                 continue
             }
             // specs/129-hrpool-badge: размер пула уменьшился — рассылаем.
@@ -426,7 +448,12 @@ class HealthReportBatchPool(
         while (!Thread.currentThread().isInterrupted) {
             val task = takeWaitingNext()
             if (task == null) {
-                Thread.sleep(WORKER_IDLE_SLEEP_MS)
+                try {
+                    waitingWorkerWakeup.tryAcquire(WORKER_IDLE_SLEEP_MS, TimeUnit.MILLISECONDS)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return
+                }
                 continue
             }
             // Взяли задачу — пул уменьшился, обновляем бейдж.

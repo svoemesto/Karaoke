@@ -9,8 +9,15 @@ services:
       PGDATA: "/var/lib/postgresql/data/16"
       WORK_IN_CONTAINER: 1
     container_name: karaoke-db
+    # BR-556 (аудит #336 / P-72-04, OpenProject #371): порт БД — только на
+    # loopback, как в основной схеме (deploy/docker-compose-database.yml).
+    # Было 0.0.0.0:8832 — PostgreSQL 16 без TLS слушал все интерфейсы машины
+    # (у admin-машины публичные IP), т.е. любой хост в сети мог подбирать
+    # пароль POSTGRES_PASSWORD к прод-данным.
+    # Доступ с других машин — SSH-туннель:
+    #   ssh -L 8832:127.0.0.1:8832 <host>
     ports:
-      - "8832:5432" # порт хоста : порт внутри контейнера
+      - "127.0.0.1:8832:5432" # порт хоста : порт внутри контейнера
     networks:
       - karaokenet
     volumes: # локальная папка : папка внутри контейнера

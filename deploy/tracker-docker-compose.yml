@@ -15,16 +15,24 @@
 # Это ОТДЕЛЬНЫй compose-файл (НЕ часть deploy/do.sh) — трекер работает
 # изолированно от основного стека Karaoke (аналог FR-011 в старой спеке).
 #
-# Порты (network_mode: host — порты публикуются прямо на хост):
+# Порты (BR-542, аудит #336 / P-73-04, OpenProject #371):
 #   - openproject  — 8080 (дефолт OpenProject Community; изнутри контейнера
-#     nginx уже слушает :8080). Снаружи хоста — также :8080. Если занят —
-#     install-tracker.sh автоматически переключит на 7082/7083/7084 (см.
-#     tools/install-tracker.sh:ATTEMPT_PORTS).
+#     nginx уже слушает :8080). Если порт занят — install-tracker.sh
+#     автоматически переключит на 7082/7083/7084 и пропишет выбор в
+#     TRACKER_HTTP_PORT (см. tools/install-tracker.sh:ATTEMPT_PORTS).
 #   - openproject-db — 5435 (Postgres, нестандартный чтобы не конфликтовать
 #     с jira-db и основной Postgres).
 #
-# network_mode: host для обхода docker-proxy проблем на некоторых хостах
-# (аналогично deploy/jira-docker-compose.yml из архива).
+# БЫЛО: network_mode: host — при host-сети docker-proxy не ограничивает
+# публикацию, поэтому postgres слушал 0.0.0.0:5435, а openproject — 0.0.0.0:8080
+# на ВСЕ интерфейсы admin-машины (у неё публичные IP). БД трекера (work
+# packages, комментарии, артефакты аудита) была доступна из интернета для
+# перебора пароля. Второй след: host-сеть ломала задуманный фолбэк портов —
+# install-tracker.sh выбирал свободный порт, а контейнер всегда слушал 8080.
+#
+# СТАЛО: обычная bridge-сеть, порты публикуются явно и ТОЛЬКО на loopback
+# (127.0.0.1). Доступ к UI — с самой машины или через SSH-туннель
+# (ssh -L 8080:127.0.0.1:8080 root@<host>).
 # =====================================================================
 
 services:
@@ -35,7 +43,9 @@ services:
     image: postgres:13-alpine
     container_name: openproject-db
     restart: unless-stopped
-    network_mode: host
+    # BR-542: bridge-сеть вместо host-сети; порт БД — только на loopback.
+    ports:
+      - "127.0.0.1:${TRACKER_DB_PORT:-5435}:5435"
     environment:
       POSTGRES_DB: openproject
       POSTGRES_USER: openproject
@@ -61,13 +71,16 @@ services:
     image: openproject/community:13
     container_name: openproject
     restart: unless-stopped
-    network_mode: host
+    # BR-542: порт UI — только на loopback (доступ извне — через SSH-туннель).
+    ports:
+      - "127.0.0.1:${TRACKER_HTTP_PORT:-8080}:8080"
     depends_on:
       openproject-db:
         condition: service_healthy
     environment:
-      # Database connection — openproject-db на localhost:5435 (host network)
-      DATABASE_URL: postgresql://openproject:${TRACKER_DB_PASSWORD}@localhost:5435/openproject
+      # Database connection — openproject-db по ИМЕНИ СЕРВИСА в compose-сети
+      # (BR-542: localhost внутри контейнера — это сам контейнер, а не БД).
+      DATABASE_URL: postgresql://openproject:${TRACKER_DB_PASSWORD}@openproject-db:5435/openproject
       # Rails secret
       SECRET_KEY_BASE: ${TRACKER_SECRET_KEY_BASE:?TRACKER_SECRET_KEY_BASE is required}
       # Host config (внешний URL, по которому браузер пользователя

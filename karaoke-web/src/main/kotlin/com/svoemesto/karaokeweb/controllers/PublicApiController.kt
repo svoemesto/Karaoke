@@ -313,12 +313,23 @@ class PublicApiController(
     /** Тег SKIP — контент снят по требованию правообладателя (тот же разбор, что в SongPublicDto). */
     internal fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
 
+    /**
+     * Счётчики главной страницы (BR-016, аудит #336).
+     *
+     * `state` различает три случая, которые раньше выглядели одинаково (нули):
+     * - `warming_up` — успешного пересчёта ещё не было, числовые поля — fallback `0`;
+     * - `ready` — последний пересчёт успешен, `0` — настоящий ноль;
+     * - `error` — последний пересчёт упал, числовые поля — от предыдущего успеха.
+     *
+     * Поле добавлено к прежнему формату (5 чисел не изменились), поэтому старые потребители
+     * продолжают работать; SPA может показать прочерк вместо нуля при `state != ready`.
+     */
     @GetMapping("/stats")
     fun stats(
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
-    ): Map<String, Int> {
+    ): Map<String, Any> {
         mainController.doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,
@@ -330,12 +341,14 @@ class PublicApiController(
             request,
             siteUserResolver.resolve(request)?.id ?: 0,
         )
+        val counters = StatBySong.getCounters(database = WORKING_DATABASE)
         return mapOf(
-            "onSponsr" to StatBySong.getCountSongsInCollection(database = WORKING_DATABASE),
-            "freeNow" to StatBySong.getCountSongsFreeNow(database = WORKING_DATABASE),
-            "subscriptionOnly" to StatBySong.getCountSongsSubscriptionOnly(database = WORKING_DATABASE),
-            "inWork" to StatBySong.getCountSongsInWork(database = WORKING_DATABASE),
-            "total" to StatBySong.getCountSongsTotal(database = WORKING_DATABASE),
+            "onSponsr" to counters.collection,
+            "freeNow" to counters.freeNow,
+            "subscriptionOnly" to counters.subscriptionOnly,
+            "inWork" to counters.inWork,
+            "total" to counters.total,
+            "state" to counters.state.apiValue,
         )
     }
 

@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -41,110 +42,121 @@ data class TopSubscribedSongDto(
 )
 
 // Статистика монетизации (подписки — см. план монетизации) для дашборда «Статистика» в webvue3.
-// Тот же ручной-JDBC стиль, что и StatBySong (scalarInt/scalarDouble — маленькие независимые
-// хелперы, не переиспользуют private scalarInt оттуда, чтобы не тащить зависимость между файлами).
+// Ручной-JDBC стиль, но БЕЗ локального гашения ошибок: сбой БД здесь обязан дойти до
+// StatsController.respondCached, иначе дашборд покажет «нулевую выручку» вместо
+// 503 stats.unavailable (BR-185, аудит #336).
 
 /**
  * Singleton-объект Monetization Stats.
  *
+ * Контракт ошибок (BR-185, аудит #336): и «нет соединения» ([KaraokeConnection.getConnection]
+ * вернул null), и [SQLException] запроса пробрасываются наружу. Раньше оба случая превращались
+ * в `0`/`0.0`/пустой список — неотличимо от настоящего нуля, причём нули попадали в
+ * [com.svoemesto.karaokeapp.services.StatsCache] на 60 секунд. Владелец принимает решения
+ * (выручка, число подписок) по этим цифрам, поэтому «не знаю» должно быть видно как ошибка.
+ * Вызывающий слой ([com.svoemesto.karaokeapp.controllers.StatsController]) превращает
+ * исключение в `503 stats.unavailable` по контракту FR-003.
+ *
  * @see archive/docs/features/dual-db-sync.md
  */
 object MonetizationStats {
-    private fun scalarInt(
+    /**
+     * Все 11 скаляров одной строкой: один round-trip к БД и согласованный снимок
+     * (раньше 11 последовательных запросов могли попасть в разные моменты времени).
+     * Текст подзапросов повторяет прежние отдельные запросы один в один.
+     */
+    private val SUMMARY_SQL =
+        """
+        select
+            coalesce((select sum(final_price) from tbl_subscriptions where status = 'PAID'), 0) as revenue_total,
+            coalesce((select sum(final_price) from tbl_subscriptions where status = 'PAID' and scope = 'SONG'), 0) as revenue_song,
+            coalesce((select sum(final_price) from tbl_subscriptions where status = 'PAID' and scope = 'SITE'), 0) as revenue_site,
+            (select count(*) from tbl_subscriptions where status = 'PAID' and scope = 'SONG') as paid_song_subscriptions,
+            (select count(*) from tbl_subscriptions where status = 'PAID' and scope = 'SITE') as paid_site_subscriptions,
+            (select count(*) from tbl_subscriptions where status in ('CREATED', 'PENDING')) as pending_subscriptions,
+            (select count(*) from tbl_subscriptions where status = 'FAILED') as failed_subscriptions,
+            (select count(*) from tbl_site_users where is_premium = true or is_permanent_premium = true) as active_manual_premium,
+            (select count(*) from tbl_site_users where sponsr_premium_until is not null and sponsr_premium_until > now()) as active_sponsr_premium,
+            (select count(*) from tbl_site_users where site_premium_until is not null and site_premium_until > now()) as active_site_premium,
+            (select count(*) from tbl_site_users) as total_site_users
+        """.trimIndent()
+
+    /**
+     * Соединение или исключение: молчаливый `null` на этом уровне и есть корень BR-185 —
+     * вызывающий не может отличить «нет данных» от «нет БД».
+     */
+    private fun connectionOrFail(
         database: KaraokeConnection,
-        sql: String,
-    ): Int {
-        val connection = database.getConnection() ?: return 0
-        var statement: Statement? = null
-        var rs: ResultSet? = null
+        endpoint: String,
+    ): Connection =
+        database.getConnection()
+            ?: throw SQLException("stats.unavailable: нет соединения с БД (endpoint=$endpoint, database=${database.name})")
+
+    /** Закрывает ресурсы, не подменяя уже возникшую ошибку запроса ошибкой закрытия. */
+    private fun closeQuietly(
+        rs: ResultSet?,
+        statement: Statement?,
+    ) {
         try {
-            statement = connection.createStatement()
-            rs = statement.executeQuery(sql)
-            return if (rs.next()) rs.getInt(1) else 0
-        } catch (e: SQLException) {
-            e.printStackTrace()
-            return 0
-        } finally {
-            try {
-                rs?.close()
-                statement?.close()
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            }
+            rs?.close()
+        } catch (_: SQLException) {
+        }
+        try {
+            statement?.close()
+        } catch (_: SQLException) {
         }
     }
 
-    private fun scalarDouble(
-        database: KaraokeConnection,
-        sql: String,
-    ): Double {
-        val connection = database.getConnection() ?: return 0.0
-        var statement: Statement? = null
-        var rs: ResultSet? = null
-        try {
-            statement = connection.createStatement()
-            rs = statement.executeQuery(sql)
-            return if (rs.next()) rs.getDouble(1) else 0.0
-        } catch (e: SQLException) {
-            e.printStackTrace()
-            return 0.0
-        } finally {
-            try {
-                rs?.close()
-                statement?.close()
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            }
-        }
-    }
-
+    /**
+     * Сводка монетизации для `/api/stats/monetization`.
+     *
+     * @throws SQLException нет соединения с БД или запрос не выполнен — вызывающий отдаёт 503
+     *   `stats.unavailable` (FR-003), а не `200` с нулями (BR-185).
+     */
+    @Throws(SQLException::class)
     fun getSummary(database: KaraokeConnection = WORKING_DATABASE): MonetizationSummaryDto {
-        val paidWhere = "status = 'PAID'"
-        return MonetizationSummaryDto(
-            revenueTotal = scalarDouble(database, "select coalesce(sum(final_price), 0) from tbl_subscriptions where $paidWhere"),
-            revenueSong =
-                scalarDouble(
-                    database,
-                    "select coalesce(sum(final_price), 0) from tbl_subscriptions where $paidWhere and scope = 'SONG'",
-                ),
-            revenueSite =
-                scalarDouble(
-                    database,
-                    "select coalesce(sum(final_price), 0) from tbl_subscriptions where $paidWhere and scope = 'SITE'",
-                ),
-            paidSongSubscriptions =
-                scalarInt(
-                    database,
-                    "select count(*) from tbl_subscriptions where $paidWhere and scope = 'SONG'",
-                ),
-            paidSiteSubscriptions = scalarInt(database, "select count(*) from tbl_subscriptions where $paidWhere and scope = 'SITE'"),
-            pendingSubscriptions = scalarInt(database, "select count(*) from tbl_subscriptions where status in ('CREATED', 'PENDING')"),
-            failedSubscriptions = scalarInt(database, "select count(*) from tbl_subscriptions where status = 'FAILED'"),
-            activeManualPremium =
-                scalarInt(
-                    database,
-                    "select count(*) from tbl_site_users where is_premium = true or is_permanent_premium = true",
-                ),
-            activeSponsrPremium =
-                scalarInt(
-                    database,
-                    "select count(*) from tbl_site_users where sponsr_premium_until is not null and sponsr_premium_until > now()",
-                ),
-            activeSitePremium =
-                scalarInt(
-                    database,
-                    "select count(*) from tbl_site_users where site_premium_until is not null and site_premium_until > now()",
-                ),
-            totalSiteUsers = scalarInt(database, "select count(*) from tbl_site_users"),
-        )
+        val connection = connectionOrFail(database, "monetization")
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery(SUMMARY_SQL)
+            if (!rs.next()) {
+                // Агрегат без GROUP BY всегда возвращает строку; её отсутствие — аномалия,
+                // а не «все нули».
+                throw SQLException("stats.unavailable: агрегат монетизации не вернул строку")
+            }
+            return MonetizationSummaryDto(
+                revenueTotal = rs.getDouble("revenue_total"),
+                revenueSong = rs.getDouble("revenue_song"),
+                revenueSite = rs.getDouble("revenue_site"),
+                paidSongSubscriptions = rs.getInt("paid_song_subscriptions"),
+                paidSiteSubscriptions = rs.getInt("paid_site_subscriptions"),
+                pendingSubscriptions = rs.getInt("pending_subscriptions"),
+                failedSubscriptions = rs.getInt("failed_subscriptions"),
+                activeManualPremium = rs.getInt("active_manual_premium"),
+                activeSponsrPremium = rs.getInt("active_sponsr_premium"),
+                activeSitePremium = rs.getInt("active_site_premium"),
+                totalSiteUsers = rs.getInt("total_site_users"),
+            )
+        } finally {
+            closeQuietly(rs, statement)
+        }
     }
 
+    /**
+     * Топ песен по оплаченным подпискам для `/api/stats/monetization/top-songs`.
+     *
+     * @throws SQLException нет соединения с БД или запрос не выполнен — вызывающий отдаёт 503
+     *   `stats.unavailable` (FR-003), а не `200` с пустым списком (BR-185).
+     */
+    @Throws(SQLException::class)
     fun getTopSubscribedSongs(
         database: KaraokeConnection = WORKING_DATABASE,
         limit: Int = 20,
     ): List<TopSubscribedSongDto> {
+        val connection = connectionOrFail(database, "monetization/top-songs")
         val result = mutableListOf<TopSubscribedSongDto>()
-        val connection = database.getConnection() ?: return emptyList()
         val sql =
             """
             select s.id_song, st.song_name, st.song_author, count(*) as cnt, coalesce(sum(s.final_price), 0) as revenue
@@ -171,16 +183,9 @@ object MonetizationStats {
                     ),
                 )
             }
-        } catch (e: SQLException) {
-            e.printStackTrace()
+            return result
         } finally {
-            try {
-                rs?.close()
-                statement?.close()
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            }
+            closeQuietly(rs, statement)
         }
-        return result
     }
 }

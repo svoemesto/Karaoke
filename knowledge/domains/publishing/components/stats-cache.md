@@ -1,127 +1,155 @@
 # Component: stats-cache
 
 > **Домен**: [publishing](../domain.md)
-> **Компонент**: `StatBySong` AtomicInteger-кеш для счётчиков главной
-> страницы. Обновляется `StatsCacheScheduler` каждый час.
+> **Компонент**: `StatBySong` — атомарный снимок счётчиков главной страницы
+> + маркер состояния. Обновляется `StatsCacheScheduler` (час + dirty-тик).
 
 ## Ответственность | Responsibility
 
-Главная страница `karaoke-public` показывает счётчики: «Всего песен»,
-«В открытом доступе», «Доступно по подписке» и т.д. Эти счётчики
-**read-hot path** — каждый visitor генерирует запрос.
+Главная страница (`main.html` в karaoke-web, SPA `karaoke-public`) показывает
+счётчики: «Песен в коллекции», «В открытом доступе», «По подписке», «В работе».
+Эти счётчики — **read-hot path**: каждый visitor генерирует запрос.
 
-Прямой SQL-запрос `SELECT COUNT(*) FROM tbl_settings WHERE ...` при
-каждом visitor — слишком дорого (миллионы запросов в день на 18k+
-песен). Решение: **AtomicInteger-кеш**, обновляемый `StatsCacheScheduler`
-раз в час.
+Прямой SQL-запрос на каждого visitor слишком дорог (18k+ песен, агрегаты по
+`tbl_authors` и MATERIALIZED VIEW). Решение: снимок в памяти, обновляемый
+`StatsCacheScheduler` раз в час и по dirty-флагу после сохранения/синхронизации
+песни.
 
 **[WARN] Cache invalidation** в hot path — типичный источник багов.
 Не меняйте этот компонент без полного понимания расписания scheduler'а.
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
 
-### `StatBySong` — singleton с AtomicInteger-полями
+### `StatBySong` — singleton с атомарным снимком
 
 - **Где**: `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt`.
-- **Поля**:
-  - `totalSongs: AtomicInteger` — всего песен в каталоге.
-  - `openAccessSongs: AtomicInteger` — `AccessMode.OPEN`.
-  - `premiumOnlySongs: AtomicInteger` — `AccessMode.PREMIUM_ONLY`.
-  - `visitorLast24h: AtomicInteger` — посетителей за 24ч.
-  - `realUsersLast24h: AtomicInteger` — реальных пользователей за 24ч.
-- **Контракт**: значения обновляются атомарно через `set()` /
-  `incrementAndGet()`. Read-only из контроллеров через `get()`.
+- **Снимок** (`StatBySongCounters`): `total`, `collection`, `freeNow`,
+  `subscriptionOnly`, `inWork` — все поля опубликованы одной
+  `AtomicReference`, поэтому читатель никогда не видит «полусостояние»
+  (часть полей от нового пересчёта, часть — от прежнего).
+- **Состояние** (`StatsCacheState`, BR-016):
+  - `warming_up` — успешного пересчёта ещё не было, числовые поля — fallback `0`;
+  - `ready` — последний пересчёт успешен, `0` — настоящий ноль;
+  - `error` — последний пересчёт упал, числовые поля — от предыдущего успеха
+    (если он был), иначе fallback `0`.
+- **Чтение**: `getCounters(database)` — согласованный снимок + состояние;
+  `getCountSongs*(database)` — отдельные числа (оставлены для совместимости);
+  `getCacheState()` — только состояние.
+- **Инвалидация**: `markDirty()` / `consumeDirty()` (вызывает
+  `InternalStatsController.markDirty` из karaoke-app при сохранении песни с
+  изменённым `free`-статусом).
+- **Пересчёт**: `refreshCache(database)` — три SQL; снимок публикуется только
+  если ВСЕ три вернули значение.
 
 ### `StatsCacheScheduler` — Spring `@Scheduled`
 
-- **Расписание**: `@Scheduled(cron = "0 0 * * * *")` — каждый час.
-- **Поведение**:
-  1. Читает из БД актуальные счётчики (5 SQL-запросов).
-  2. Обновляет `StatBySong` через `set()`.
-  3. Логирует в audit_log.
-- **Failure mode**: если SQL упал, **предыдущие** значения остаются.
-  Лучше показать устаревшие данные, чем вернуть 500.
+- `@PostConstruct warmUp()` — один синхронный пересчёт на старте.
+- `@Scheduled(cron = "0 0 * * * *") refreshHourly()` — переход «наступил эфир»
+  и истечение окна бесплатного доступа не сопровождаются сохранением записи,
+  поэтому нужен часовой опрос.
+- `@Scheduled(fixedRate = 60_000) refreshIfDirty()` — почти всегда no-op;
+  пересчёт только если `consumeDirty()` вернул `true`.
 
-### `GET /api/stats` — публичный endpoint
+### `GET /api/public/stats` — публичный endpoint
 
-- **Возвращает**: snapshot `StatBySong.get()`.
-- **Cache-Control**: `max-age=300` (5 минут на стороне CDN/браузера).
+- **Возвращает**: 5 счётчиков (`onSponsr`, `freeNow`, `subscriptionOnly`,
+  `inWork`, `total`) + `state` (`ready` / `warming_up` / `error`).
+- **HTTP-статус**: всегда `200` — публичная страница не должна падать из-за
+  статистики. Достоверность цифр передаётся полем `state`, а не пустым ответом.
+- **`main.html`**: `data-stats-state` на таблице счётчиков; при `warming_up`
+  вместо `0` рендерится `—`, при `error` — последние значения и предупреждение
+  «БД временно недоступна».
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
-### Алгоритм обновления `StatBySong`
+### Формулы счётчиков
+
+- `total` — все песни, кроме SKIP;
+- `collection` — `id_status >= 6` и непустой `source_markers` (можно
+  проиграть в онлайн-плеере премиум-пользователю);
+- `freeNow` — подмножество `collection`, бесплатное прямо сейчас (`free=true`
+  или эфир наступил и не прошёл 1 календарный месяц, MATERIALIZED VIEW
+  `mv_songs_free_now`);
+- `subscriptionOnly = collection − freeNow`;
+- `inWork = total − collection`.
+
+### Пересчёт (`refreshCache`)
 
 ```
-Hour 0:00 (scheduler tick)
+[1] SELECT SUM(total_songs_count)  FROM tbl_authors WHERE skip = false
+[2] SELECT SUM(ready_songs_count)  FROM tbl_authors WHERE skip = false
+[3] SELECT count(*) FROM mv_songs_free_now WHERE <free/publish-окно>
   ↓
-[1] SELECT COUNT(*) FROM tbl_settings WHERE id_status = 6
-    → StatBySong.totalSongs.set(N)
-  ↓
-[2] SELECT COUNT(*) FROM tbl_settings
-    WHERE id_status = 6 AND is_exclusive = false AND publish_date <= now()
-    → StatBySong.openAccessSongs.set(M)
-  ↓
-[3] SELECT COUNT(*) FROM tbl_settings
-    WHERE id_status = 6 AND (is_exclusive = true OR publish_date > now())
-    → StatBySong.premiumOnlySongs.set(K)
-  ↓
-[4] SELECT COUNT(*) FROM tbl_events
-    WHERE created_at > now() - interval '24 hours'
-    → StatBySong.visitorLast24h.set(V)
-  ↓
-[5] SELECT COUNT(*) FROM tbl_events
-    WHERE created_at > now() - interval '24 hours' AND bot_score < 0.7
-    → StatBySong.realUsersLast24h.set(R)
-  ↓
-[6] log.info("StatBySong updated: total={}, open={}, premium={}, v24={}, r24={}",
-            N, M, K, V, R)
+все три вернули Int?  ──нет──▶  state = error, снимок не меняется (BR-016)
+  │да
+  ▼
+store(total, collection, freeNow) → state = ready, INFO cache:refreshed
 ```
 
-Все 5 запросов выполняются в одной транзакции (read-only), чтобы
-получить **консистентный** snapshot.
+- Каждый запрос — `runCountQuery(): Int?`: `null` при отсутствии соединения,
+  `SQLException` или отсутствии строки (агрегат без `GROUP BY` всегда даёт
+  строку — её отсутствие считается сбоем).
+- Cold-start (`@Synchronized ensureCacheInitialized`): если `hasData == false`
+  и single-flight CAS выигран, пересчёт уходит в `bgExecutor` (daemon,
+  single-thread). HTTP-тред получает fallback `0` за <100 мс.
+- После неудачной первой попытки `hasData` остаётся `false` — следующий запрос
+  снова запускает пересчёт (не залипает до часового cron).
 
-### Алгоритм чтения из `/api/stats`
+### Чтение
 
 ```kotlin
-@GetMapping("/api/stats")
-fun stats(): StatsDto = StatsDto(
-    totalSongs = StatBySong.totalSongs.get(),
-    openAccessSongs = StatBySong.openAccessSongs.get(),
-    premiumOnlySongs = StatBySong.premiumOnlySongs.get(),
-    visitorLast24h = StatBySong.visitorLast24h.get(),
-    realUsersLast24h = StatBySong.realUsersLast24h.get(),
-)
+val counters = StatBySong.getCounters(database = WORKING_DATABASE)
+model.addAttribute("onSponsr", counters.collection)
+model.addAttribute("statsState", counters.state.apiValue)
 ```
 
-**[WARN]** Никогда не делать SQL внутри обработчика `/api/stats` —
-только чтение из AtomicInteger. Иначе деградация на 1000%.
+**[WARN]** Никогда не делать SQL внутри обработчика `/` или
+`/api/public/stats` — только чтение снимка. Иначе деградация на 1000%.
 
 ## Зависимости | Dependencies
 
-- → [domain](../domain.md) — AR `SiteStats`, `SiteEvent`.
-- → [dictionaries](dictionaries.md) — `BotScore` thresholds для фильтрации.
-- → [catalog](../../catalog/domain.md) — `Song.isExclusive`, `Song.publishDate`.
-- → [caching context](../../caching/domain.md) (TODO) — другие кеши проекта.
+- → [karaoke-app `KaraokeConnection`](../../karaoke-web/domain.md) — соединение
+  с БД потока; `getConnection()` возвращает `null` при сбое (не бросает).
+- → `tbl_authors.total_songs_count` / `ready_songs_count` — предрассчитанные
+  счётчики (specs/286-author-song-counts-cache).
+- → `mv_songs_free_now` — MATERIALIZED VIEW, обновляется cron каждые 5 минут
+  (specs/297-fix-tbl-songs-perf).
+- → `StatsCacheScheduler` и `InternalStatsController.markDirty` — расписание и
+  инвалидация.
+- → [caching context](../../caching/domain.md) — другие кеши проекта.
 
 ## Ловушки и предупреждения
 
-**[WARN] Stale data до 1 часа** — если новая песня добавлена в 14:30,
-а scheduler сработал в 14:00, счётчик обновится только в 15:00.
-Это **нормально** для публичных счётчиков; для точных данных есть
-другие API.
+**[WARN] Stale data до 1 часа** — если новая песня добавлена в 14:30, а
+scheduler сработал в 14:00, счётчик обновится в 15:00 (или раньше, если
+сработал dirty-тик). Для публичных счётчиков это нормально.
 
-**[WARN] Cold start** — при перезапуске `karaoke-app` AtomicInteger
-инициализируется нулями. До первого тика scheduler'а `/api/stats`
-возвращает нули. Решение: в `init { }` блоке сделать eager-load из БД.
+**[WARN] Ошибка БД ≠ ноль (BR-016).** До правки `runCountQuery` возвращал `0`
+при любом сбое, и `refreshCache` публиковал нули: экран «0 песен» был
+неотличим от реального пустого каталога. Теперь снимок при сбое не меняется, а
+состояние становится `error`; `0` при `ready` — настоящий ноль. Не возвращайте
+`0` из `runCountQuery` и не публикуйте снимок при `null`.
 
-**[WARN] Concurrent updates** — `set()` атомарен, но **не** транзакционен.
-Между чтением N (totalSongs) и M (openAccess) новый scheduler tick
-может обновить только N. Решается **одной транзакцией** на шагах [1]-[5].
+**[WARN] Cold start** — до первого успешного пересчёта `state = warming_up`, а
+getter'ы отдают fallback `0`. Шаблон обязан показывать `—`, а не `0`.
 
-**[WARN] `bot_score > 0.7` — это фильтр для `real_users`, не для visitor'ов**.
-VisitorLast24h учитывает ВСЕ визиты (включая ботов); realUsersLast24h —
-только реальных. Не путать при показе метрик.
+**[WARN] SPA `karaoke-public` пока не читает `state`.** `stats.js` кладёт в
+store только 5 чисел; при ошибке запроса остаются начальные нули. Бэкенд уже
+отдаёт `state` — подключение на фронте за владельцем (отдельная задача, вне
+пакета #385).
+
+**[WARN] Три запроса — не одна транзакция.** Снимок публикуется только при
+успехе всех трёх, но BETWEEN-чтения могут разойтись, если песня изменилась
+между запросами. Для публичных счётчиков это допустимо; «атомарная замена
+набора» здесь означает «не публиковать частичный/нулевой набор», а не
+REPEATABLE READ.
+
+**[WARN] `total`/`collection` считаются по не-skip авторам**
+(`WHERE a.skip = false`), а не по SKIP-тегу песен — расхождение ~56 песен
+(specs/286). Не «исправляйте» это без отдельной спеки.
 
 ## Связанные ADR | Related ADRs
 
+- [local-0005 — структурированное логирование](../../../adr/local-0005-structured-logging-karaoke-app.md)
+  (`infra.cache.statbysong`: coldStart / refreshed / refreshFailed).
 - ADR по caching (TODO, [caching domain](../../caching/domain.md)).

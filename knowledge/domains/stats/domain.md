@@ -132,6 +132,14 @@ related:
    `StatsCacheKey(endpoint, emptyMap())` запрещён: 60 секунд отдавались
    цифры предыдущего запроса, в том числе другой БД под меткой «PROD».
 
+7. **Ошибка БД в статистике не маскируется нулём (BR-185, BR-016).**
+   Слой данных (`MonetizationStats`, `StatBySong`) не возвращает `0`/пустой
+   список при сбое: исключение доходит до контроллера (`503 stats.unavailable`
+   на admin-endpoint'ах по FR-003) либо наружу отдаётся состояние `error`
+   (публичные счётчики). «Нет данных» (`warming_up`) и «настоящий ноль»
+   (`ready`) — разные состояния, не взаимозаменяемые; детали —
+   [publishing stats-cache](../publishing/components/stats-cache.md).
+
 ## Публичные контракты (API)
 
 ### Public API (через `karaoke-public`)
@@ -144,6 +152,10 @@ related:
 
 - `GET /api/admin/stats/visitor-segments` — сегментация трафика.
 - `GET /api/admin/stats/funnel` — воронка visitor→registration→premium.
+- `GET /api/stats/monetization` — сводка монетизации (кеш 60 с; при сбое БД —
+  `503 stats.unavailable`, BR-185).
+- `GET /api/stats/monetization/top-songs` — топ песен по подпискам (при сбое
+  БД — `503 stats.unavailable`; раньше отдавал `200` с пустым списком).
 - 11 параллельных endpoint'ов (см. фичу `174-fix-stats-connection-leak`).
 
 ## Структура компонентов (C4 L3)

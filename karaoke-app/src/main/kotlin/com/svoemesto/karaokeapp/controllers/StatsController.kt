@@ -31,6 +31,9 @@ import java.sql.SQLException
  *   возвращается 503 stats.unavailable с заголовком Retry-After: 10 и телом
  *   errorCode, retryAfterSeconds, endpoint. Фронт показывает DbOverloadBanner
  *   вместо пустых графиков.
+ * - BR-185 (аудит #336): монетизация (`getSummary`, `getTopSubscribedSongs`) больше не
+ *   превращает сбой БД в `0`/пустой список — исключение доходит до этого слоя и даёт 503
+ *   на обоих endpoint-ах (`/api/stats/monetization`, `/api/stats/monetization/top-songs`).
  *
  * @see AGENTS.md
  */
@@ -91,6 +94,23 @@ class StatsController {
             }
         } catch (e: SQLException) {
             statsUnavailableResponse(requestUri, e)
+        }
+
+    /**
+     * Обёртка для НЕкешируемых endpoint-ов (BR-185, аудит #336): ошибка БД → тот же
+     * 503 stats.unavailable, что и у кешируемых. Раньше такие endpoint-ы отдавали либо
+     * 200 с пустым списком (модель гасила исключение), либо 500 от Spring — оба варианта
+     * неотличимы от «данных нет».
+     */
+    private fun respondUncached(
+        endpoint: String,
+        target: String?,
+        compute: (KaraokeConnection) -> Map<String, Any>,
+    ): ResponseEntity<Map<String, Any>> =
+        try {
+            ResponseEntity.ok(withDb(target) { db -> compute(db) })
+        } catch (e: SQLException) {
+            statsUnavailableResponse(endpoint, e)
         }
 
     @GetMapping("/api/stats/by-song")
@@ -177,12 +197,13 @@ class StatsController {
             },
         )
 
+    /** FR-004: кеш не нужен (параметризованный и редкий вызов). FR-003: 503 при сбое БД. */
     @GetMapping("/api/stats/monetization/top-songs")
     fun monetizationTopSongs(
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false, defaultValue = "20") limit: Int,
-    ): Map<String, Any> =
-        withDb(target) { db ->
+    ): ResponseEntity<Map<String, Any>> =
+        respondUncached("/api/stats/monetization/top-songs", target) { db ->
             mapOf("items" to MonetizationStats.getTopSubscribedSongs(database = db, limit = limit))
         }
 

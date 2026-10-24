@@ -121,7 +121,7 @@
 
 <div id="areaScreen">
     <div id="areaBody">
-        <table style="width: 400px; display: block">
+        <table style="width: 400px; display: block" th:attr="data-stats-state=${statsState}">
             <tr>
                 <td colspan="6" style="width: 400px">
                     <img src="KARAOKE_LOGO.png" style="width: 400px; display: block; margin: auto">
@@ -131,7 +131,7 @@
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">
                         <span style="color: white; font-size: x-large">Песен в коллекции: </span>
-                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${onSponsr}"></span>
+                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${statsState == 'warming_up' ? '—' : onSponsr}"></span>
                     </div>
                 </td>
             </tr>
@@ -139,7 +139,7 @@
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">
                         <span style="color: white; font-size: x-large">Песен в открытом доступе: </span>
-                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${onAir}"></span>
+                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${statsState == 'warming_up' ? '—' : onAir}"></span>
                     </div>
                 </td>
             </tr>
@@ -147,7 +147,7 @@
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">
                         <span style="color: white; font-size: x-large">По подписке: </span>
-                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${exclusive}"></span>
+                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${statsState == 'warming_up' ? '—' : exclusive}"></span>
                     </div>
                 </td>
             </tr>
@@ -155,7 +155,14 @@
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">
                         <span style="color: white; font-size: x-large">В работе: </span>
-                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${inWork}"></span>
+                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${statsState == 'warming_up' ? '—' : inWork}"></span>
+                    </div>
+                </td>
+            </tr>
+            <tr th:if="${statsState == 'error'}">
+                <td colspan="6" style="width: 400px">
+                    <div style="text-align: center; color: #EC8888; font-size: medium">
+                        БД временно недоступна — показаны последние успешные значения
                     </div>
                 </td>
             </tr>

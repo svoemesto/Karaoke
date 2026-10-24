@@ -50,11 +50,13 @@ Class-level `@RequestMapping("/api/public")`; ниже — пути
 
 **`GET /stats`**: сначала пишет аналитическое событие
 `EventType.CALL_REST` / `RestName.MAIN` через `mainController.doRegisterEvent`
-(с `anonId` и `referrer`), затем возвращает 5 счётчиков `StatBySong`:
-`onSponsr` (`getCountSongsInCollection`), `freeNow`
-(`getCountSongsFreeNow`), `subscriptionOnly`
-(`getCountSongsSubscriptionOnly`), `inWork` (`getCountSongsInWork`),
-`total` (`getCountSongsTotal`).
+(с `anonId` и `referrer`), затем возвращает согласованный снимок `StatBySong`
+(`getCounters`): `onSponsr` (`collection`), `freeNow`, `subscriptionOnly`,
+`inWork`, `total` и `state` (`ready` / `warming_up` / `error`, BR-016).
+Формат ответа — `Map<String, Any>` (было `Map<String, Int>`); пять прежних
+ключей не менялись, `state` добавлен, чтобы потребитель отличал «нет данных» и
+«ошибку БД» от настоящего нуля. HTTP-статус остаётся `200` — публичная страница
+не падает из-за статистики.
 
 **`GET /authors`**: параметр `scope` переводится в
 `isSpecialOrderFilter` (`special` → `true`, `main` → `false`); далее

@@ -37,9 +37,9 @@
 | 16 | `PollingCache` | 80 | См. [web-caches.md](../../caching/components/web-caches.md) |
 | 17 | `StatsCacheScheduler` | 74 | См. [schedulers.md](../../processing/components/schedulers.md) |
 | 18 | `EventsRetentionScheduler` | 69 | Cron retention для tbl_events (см. [schedulers.md](../../processing/components/schedulers.md)) |
-| 19 | `CaptchaConfigService` | 65 | Yandex SmartCaptcha config |
+| 19 | `CaptchaConfigService` | 129 | Yandex SmartCaptcha config: серверный ключ из env (без кеша), клиентский — из таблицы (60 с) |
 | 20 | `ZakromaStreamProgress` | 64 | Чистая логика `meta.expectedCount` для NDJSON-стрима `/api/public/zakroma/stream` (specs/444-fix-album-progress) |
-| 21 | `YandexCaptchaValidationService` | 57 | Yandex SmartCaptcha validation (HTTP POST) |
+| 21 | `YandexCaptchaValidationService` | 123 | Yandex SmartCaptcha validation (HTTP POST), fail-closed: 4 исхода |
 | 22 | `DebugDbAccessGuard` | 41 | IP allowlist для DebugDbController |
 | 23 | `SongReleaseAnnouncementScheduler` | 41 | Cron (~5 мин) проверки «песня вышла в эфир» (specs/101-song-news-flag) |
 | 24 | `StemJobTempCleanupScheduler` | 35 | Cron cleanup temp-файлов (см. [schedulers.md](../../processing/components/schedulers.md)) |
@@ -73,8 +73,8 @@
 | `SiteUserResolver` | `resolve(request): SiteUser?` |
 | `DebugDbAccessGuard` | `isAllowed(properties, request)` |
 | `DedupCache` | `isDuplicate(key)`, `size()`, `clear()` |
-| `CaptchaConfigService` | `getClientKey()`, `getServerKey()` |
-| `YandexCaptchaValidationService` | `validate(...)` |
+| `CaptchaConfigService` | `getClientKey()` (из `tbl_public_settings`, окно кеша 60 с), `getServerKey()` (из env `captcha.server-key`, кеша нет), `isServerKeyConfigured()` (диагностика FR-014) |
+| `YandexCaptchaValidationService` | `validate(token, ip): CaptchaValidationResult` — `PASSED` / `FAILED` / `NOT_CONFIGURED` / `UNAVAILABLE` (fail-closed, спека 564) |
 | `KaraokeProperties` | `samplingConfig`, `eventsDedupTtlMs()`, `eventsRetentionDays`, `debugDbEnabled`, `debugDbAllowedIps`, `rateLimitSongPicturePerMinute`, `rateLimitSongVkImagePerMinute` |
 | `SamplingConfig` | Data-holder rates (методов нет) |
 | `ShareLinkSweeper` | `sweep()` — `@Scheduled(fixedDelayString = "${karaoke.share.sweep-interval-seconds:60}000")` |
@@ -217,7 +217,7 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 - [ ] **`SongShareLinkService`** (1130 строк!) — отдельный документ.
 - [ ] **`EventsBuffer`** — детальный batch flow.
 - [ ] **JWT** — алгоритм подписи, expiration.
-- [ ] **YandexCaptcha** — детали.
+- [x] **YandexCaptcha** — детали (спека 564: fail-closed, четыре исхода, серверный ключ в env).
 
 ## Changelog
 

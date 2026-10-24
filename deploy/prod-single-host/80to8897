@@ -71,6 +71,39 @@ server {
     proxy_read_timeout 300;
     proxy_send_timeout 300;
   }
+  # Сетевой рубеж для записи в публичные настройки (спека 564, OpenProject #359, аудит BR-019):
+  # POST /api/properties/setproperty пишет в tbl_public_settings — таблицу, в которой лежали
+  # kill-switch авто-публикации и (до спеки 564) серверный ключ капчи. Запись принимается
+  # ТОЛЬКО с адреса админской машины — тот же список, что уже работает для внутренних портов
+  # 5433 (прод-БД) и 9000 (MinIO) в nginx.conf и для location /changerecords ниже.
+  # Адрес плавает у провайдера: 185.26.28.109 → 83.137.50.231 (2026-09-30) → 185.26.28.199
+  # (2026-10-02); все три оставлены по слову владельца (2026-10-07), чтобы при смене адреса
+  # доступ не терялся. Второй рубеж — заголовок X-Internal-Secret (проверка в karaoke-web).
+  # nginx выбирает location по НАИБОЛЬШЕМУ совпадению префикса, поэтому этот location
+  # перекрывает общий /api/ — фильтр действует только на путь записи, а чтение
+  # (/api/properties/getproperty, /api/properties/digest) остаётся доступным и ограничено
+  # белым списком публичных ключей на стороне приложения.
+  # ВНИМАНИЕ: до добавления нового адреса админской машины операция с него не пройдёт —
+  # это ожидаемое поведение, а не регрессия.
+  location /api/properties/setproperty {
+    allow 185.26.28.109;
+    allow 83.137.50.231;
+    allow 185.26.28.199;
+    deny all;
+    proxy_pass http://127.0.0.1:8897/api/properties/setproperty;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Host $host;
+    proxy_set_header X-Nginx-Proxy true;
+    client_max_body_size 200m;
+    proxy_connect_timeout 5s;
+    proxy_next_upstream off;
+    proxy_read_timeout 300;
+    proxy_send_timeout 300;
+  }
   location /changerecords {
     # Сетевой рубеж для эндпоинта двух-БД синхронизации (спека 554, OpenProject #357):
     # запросы принимаются ТОЛЬКО с адреса админской машины — тот же список, что уже работает

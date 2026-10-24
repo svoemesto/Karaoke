@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
 import com.svoemesto.karaokeweb.services.CaptchaConfigService
+import com.svoemesto.karaokeweb.services.CaptchaValidationResult
 import com.svoemesto.karaokeweb.services.SiteUserTokenService
 import com.svoemesto.karaokeweb.services.YandexCaptchaValidationService
 import jakarta.servlet.http.HttpServletRequest
@@ -35,6 +36,24 @@ class PublicAuthController(
     @GetMapping("/config")
     fun config(): Map<String, String> = mapOf("captchaClientKey" to captchaConfigService.getClientKey())
 
+    /**
+     * Регистрация нового пользователя сайта.
+     *
+     * Проверка капчи — **fail-closed** (спека 564, OpenProject #362, аудит BR-518): любой
+     * исход, кроме [CaptchaValidationResult.PASSED], отклоняет регистрацию. При незаконной
+     * конфигурации (серверный ключ не задан) отказ имеет отдельный код `captcha_not_configured`
+     * — посетитель видит сообщение о временной недоступности регистрации, администратор —
+     * запись в журнале `infra.captcha.config`. Формат ответа прежний: `400` + `{"error": …}`
+     * (FR-018).
+     *
+     * @param email email будущего пользователя.
+     * @param password пароль (не короче 6 символов).
+     * @param passwordConfirm подтверждение пароля.
+     * @param displayName отображаемое имя.
+     * @param captchaToken токен виджета капчи (может отсутствовать).
+     * @param request запрос — источник IP для внешнего валидатора.
+     * @return `201` + токен/пользователь либо `400` + код отказа.
+     */
     @PostMapping("/register")
     fun register(
         @RequestParam email: String,
@@ -44,8 +63,13 @@ class PublicAuthController(
         @RequestParam(required = false) captchaToken: String?,
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any>> {
-        if (!yandexCaptchaValidationService.validate(captchaToken ?: "", request.remoteAddr)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "captcha"))
+        // Fail-closed: любой исход, кроме PASSED, отклоняет регистрацию. Код отказа берётся
+        // из самого исхода (CaptchaValidationResult.errorCode): «captcha_not_configured» —
+        // проверка не настроена, «captcha» — не пройдена или сервис недоступен.
+        val captchaErrorCode =
+            yandexCaptchaValidationService.validate(captchaToken ?: "", request.remoteAddr).errorCode
+        if (captchaErrorCode != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to captchaErrorCode))
         }
         if (!email.contains("@") || email.length < 5) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "invalid_email"))

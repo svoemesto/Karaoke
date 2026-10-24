@@ -20,7 +20,7 @@
 | `PublicShareController` | `karaoke-web/.../controllers/PublicShareController.kt` | 274 | 7 |
 | `PublicCartController` | `karaoke-web/.../controllers/PublicCartController.kt` | 225 | 5 |
 | `PublicPlaylistController` | `karaoke-web/.../controllers/PublicPlaylistController.kt` | 573 | 15 |
-| `PublicSettingsWebController` | `karaoke-web/.../controllers/PublicSettingsWebController.kt` | 328 | 3 |
+| `PublicSettingsWebController` | `karaoke-web/.../controllers/PublicSettingsWebController.kt` | 565 | 3 |
 | `PublicStemJobController` | `karaoke-web/.../controllers/PublicStemJobController.kt` | 190 | 4 |
 | `SiteShareLinksController` | `karaoke-web/.../controllers/SiteShareLinksController.kt` | 136 | 3 |
 | `InternalStatsController` | `karaoke-web/.../controllers/InternalStatsController.kt` | 56 | 1 |
@@ -113,14 +113,22 @@
 - `GET /favorites/ids` — плоский bulk-список избранного (Pass 239).
 - `GET /song-subscriptions/ids` — плоский bulk-список подписок на песни (Pass 239).
 
-### 6. `PublicSettingsWebController` (3 endpoints, 328 строк)
+### 6. `PublicSettingsWebController` (3 endpoints)
 
 `@RequestMapping("/api/properties")` — публичные настройки (live в
 `tbl_public_settings`):
 
-- `POST /setproperty` — записать свойство.
-- `GET /getproperty?key=` — одно свойство (TTL-кеш).
-- `GET /digest` — все свойства (key/value/description, для аудита).
+- `POST /setproperty` — записать свойство. **Только по защищённому каналу**: заголовок
+  `X-Internal-Secret` (fail-safe: сравнение только при непустом настроенном секрете) +
+  сетевой фильтр nginx по адресу админской машины. Отказ → `403`, тело `false`, ни одной
+  выполненной SQL-команды; запись в журнал `infra.settings.security`
+  (`settings:security:denied`, `reason=`).
+- `GET /getproperty?key=` — одно свойство (TTL-кеш 60 секунд). Границы выдачи: ключи из
+  `SECRET_KEYS` (серверный ключ капчи) не выдаются **никогда**; ключи из `PUBLIC_KEYS`
+  (клиентский ключ капчи) — анонимно; остальные (kill-switch, шаблоны новостей) — только по
+  защищённому каналу, анонимно пустая строка.
+- `GET /digest` — все свойства (key/value/description, для аудита). Анонимно — только
+  публичные ключи; по защищённому каналу — все ключи, кроме секретных.
 
 ### 7. `PublicStemJobController` (4 endpoints)
 
@@ -231,13 +239,29 @@
 - `release(...)` принимает JSON и form-urlencoded, потому что
   `navigator.sendBeacon` не отправляет `application/json`.
 
-### 7. `PublicSettingsWebController` — кеш свойства
+### 7. `PublicSettingsWebController` — кеш свойства и периметр доступа
 
 `getproperty(@RequestParam key: String)` читает
 `SELECT value FROM tbl_public_settings WHERE key = ?` через TTL-кеш
 (`getCachedProperty`, FR-001/FR-006 спеки `241-db-storage-perf-audit`).
 `digest()` отдаёт `key/value/description` без `last_update`; при сбое БД
 возвращает пустой список, не 500.
+
+**Периметр (спека 564, OpenProject #359, аудит BR-019)** — до правки весь префикс
+`/api/properties/**` был доступен анонимно (`SecurityConfig` — `permitAll()` на `/api/**` и
+`anyRequest()`, `SiteAuthInterceptor` этот путь не покрывает): аноним мог писать в
+`tbl_public_settings` и читать все значения, включая серверный ключ капчи. Теперь:
+
+- запись — только по защищённому каналу (`X-Internal-Secret` + nginx `allow`/`deny` по
+  адресу админской машины, `deploy/prod-single-host/80to8897`,
+  `location /api/properties/setproperty`);
+- чтение — по белому списку ключей: `PUBLIC_KEYS` (анонимно), операционные (по защищённому
+  каналу), `SECRET_KEYS` (не выдаются никогда);
+- ключ из `SECRET_KEYS` нельзя записать в таблицу (`403`, `reason=secret_key_write`) —
+  источник истины для серверного ключа капчи теперь env (`captcha.server-key`);
+- кеш чтения — TTL 60 секунд + dirty-флаг, который взводится успешной записью по
+  защищённому каналу (сразу видно новое значение); правка через админку `karaoke-app`
+  (`/api/publicsettings/update`, другой JVM) инвалидирует кеш только по истечении TTL.
 
 ### 8. `SiteShareLinksController` — editor-only
 

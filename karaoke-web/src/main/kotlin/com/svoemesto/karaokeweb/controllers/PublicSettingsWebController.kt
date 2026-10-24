@@ -2,49 +2,92 @@ package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+import java.sql.Connection
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Контроллер для оперативного управления свойствами в `tbl_public_settings` (specs/125-news-flags-backfix).
+ * Контроллер для управления свойствами в `tbl_public_settings` (спека 564, OpenProject #359,
+ * аудит BR-019).
  *
  * Зачем существует в `karaoke-web`, а не в `karaoke-app`: однотипный endpoint
  * `PublicSettingsController` уже есть в `karaoke-app` (`/api/publicsettings/update`), но
  * `karaoke-app` **на проде не разворачивается** — поэтому Spring сканирует только
  * `com.svoemesto.karaokeweb.*` и тот endpoint возвращает 404. Этот контроллер
  * предоставляет `POST /api/properties/setproperty` как тонкий дубль: тот же UPDATE в
- * `tbl_public_settings`, более короткий путь под curl-сценарий быстрого включения
- * kill-switch'а (`specs/125-news-flags-backfix/quickstart.md` Шаг 0 и Шаг 4).
+ * `tbl_public_settings`, короткий путь для операционного сценария быстрого включения
+ * kill-switch'а (`specs/125-news-flags-backfix/quickstart.md`).
  *
- * Чтение/запись — прямой JDBC к `WORKING_DATABASE` (на проде это прод-БД, на admin-машине —
- * локальная). Никаких внешних зависимостей от Spring-бинов karaoke-app.
+ * **Периметр доступа (спека 564, решения владельца от 2026-10-24, п. 1–2):**
+ *
+ * - **Запись закрыта полностью.** `POST /setproperty` требует общий секрет в заголовке
+ *   `X-Internal-Secret` (сравнение — только при непустом настроенном секрете, fail-safe) и
+ *   дополнительно ограничен сетевым фильтром nginx по адресу админской машины
+ *   (`deploy/prod-single-host/80to8897`, `location /api/properties/setproperty`). При отказе —
+ *   `403`, значение в базе **не меняется**, попытка пишется в журнал категории
+ *   `infra.settings.security` (время, адрес источника, причина — без тела запроса и без
+ *   значения настройки).
+ * - **Чтение остаётся по белому списку публичных ключей.** Публичные ключи читаются
+ *   анонимно; операционные (kill-switch, шаблоны новостей) — только по защищённому каналу;
+ *   секретные (серверный ключ капчи) **не выдаются никогда** — ни анонимному клиенту, ни по
+ *   защищённому каналу (серверный ключ капчи живёт в env, см. [CaptchaConfigService]).
+ *
+ * Административный сценарий `webvue3` («Настройки сайта») сюда НЕ ходит: его маршрут
+ * `webvue3/nginx_webvue3.conf` ведёт в `karaoke-app` (`/api/publicsettings/update` и
+ * `/api/publicsettings/digest`), другой сервис
+ * и другой путь — правка его не ломает (FR-005).
  *
  * @see archive/docs/features/news-publish-backfill.md
+ * @see docs/features/public-settings-perimeter.md
  */
 @Controller
 @RequestMapping("/api/properties")
-class PublicSettingsWebController {
+class PublicSettingsWebController(
     /**
-     * Установить/снять произвольный флаг в `tbl_public_settings`.
+     * Общий server-to-server секрет для защищённого канала изменения настроек.
      *
-     * Если ключа ещё нет — INSERT (для fresh БД после миграции `37_news_auto_publish_kill_switch.sql`
-     * ключ уже есть). Если есть — UPDATE.
+     * Значение — env `SYNC_INTERNAL_SECRET` (свойство `publicsettings.internal-secret`); новый
+     * секрет не заводится — решение владельца от 2026-10-24, п. 2. Пустое значение = секрет
+     * не настроен → доступ закрыт **всегда** (fail-safe).
+     */
+    @Value($$"{publicsettings.internal-secret:}") private val internalSecret: String,
+) {
+    /**
+     * Установить/снять произвольный флаг в `tbl_public_settings` (защищённый канал).
+     *
+     * Если ключа ещё нет — INSERT (для fresh БД после миграции
+     * `37_news_auto_publish_kill_switch.sql` ключ уже есть). Если есть — UPDATE.
      *
      * При успешном UPDATE/INSERT вызывает [markDirty] — следующий вызов [getProperty]
      * подхватит изменение через [consumeDirty] и вернёт свежее значение без ожидания TTL
      * (FR-004, FR-009 спеки 249-public-settings-cache). При ошибке JDBC `markDirty` НЕ
      * вызывается — cache остаётся валидным (старое значение совпадает с реальным).
      *
+     * **Требуется общий секрет в заголовке** [SECRET_HEADER] (FR-001 спеки 564). При отказе —
+     * `403` и тело `false` (прежний формат ответа), ни одной выполненной SQL-команды.
+     * Запись ключа из [SECRET_KEYS] отклоняется всегда: серверный ключ капчи живёт в env,
+     * а не в таблице (FR-011).
+     *
      * @param key имя свойства (например, `newsAutoPublishKillSwitch`).
      * @param stringValue строковое значение (`"true"`/`"false"` для boolean-флагов).
-     * @return `true` при успехе, `false` при ошибке JDBC.
+     * @param request запрос — из него берётся заголовок с секретом и адрес источника.
+     * @return `200` + `true` при успехе, `200` + `false` при ошибке JDBC, `403` + `false`
+     *   при отказе по правам.
      *
+     * @see specs/564-impl-properties-captcha/spec.md FR-001, FR-003, FR-004
      * @see specs/249-public-settings-cache FR-009
      */
     @PostMapping("/setproperty")
@@ -52,9 +95,43 @@ class PublicSettingsWebController {
     fun setProperty(
         @RequestParam key: String,
         @RequestParam stringValue: String,
-    ): Boolean {
+        request: HttpServletRequest,
+    ): ResponseEntity<Boolean> = handleSetProperty(key, stringValue, request) { WORKING_DATABASE.getConnection() }
+
+    /**
+     * Тело обработчика [setProperty] с тест-швом [connectionProvider].
+     *
+     * [connectionProvider] — seam для unit-тестов: подставляется поддельное JDBC-соединение,
+     * чтобы проверить, что при отказе по правам НИ ОДНА SQL-команда не выполнена. В рантайме
+     * это обычное соединение с рабочей БД.
+     */
+    internal fun handleSetProperty(
+        key: String,
+        stringValue: String,
+        request: HttpServletRequest,
+        connectionProvider: () -> Connection?,
+    ): ResponseEntity<Boolean> {
+        // 1. Общий секрет — ПЕРВЫЙ рубеж (второй — сетевой фильтр nginx по адресу
+        //    админской машины). При отказе тело запроса не разбирается и ни одна команда
+        //    не выполняется; наружу уходит короткий 403 без деталей (FR-003).
+        val denial = denialReason(request)
+        if (denial != null) {
+            logDenial("settings:security:denied", denial, request)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(false)
+        }
+        // 2. Секретный ключ в таблицу не пишем: его источник истины — env (FR-011).
+        if (key in SECRET_KEYS) {
+            logDenial("settings:security:denied", "secret_key_write", request)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(false)
+        }
+
+        var connection: Connection? = null
         return try {
-            val connection = WORKING_DATABASE.getConnection() ?: return false
+            connection = connectionProvider()
+            if (connection == null) {
+                log.warn("settings:write:no-connection — значение настройки не изменено")
+                return ResponseEntity.ok(false)
+            }
             // Сначала пытаемся UPDATE — частый случай (ключ уже есть после миграции).
             val updateSql =
                 "UPDATE tbl_public_settings SET value = ?, last_update = now() WHERE key = ?"
@@ -65,9 +142,8 @@ class PublicSettingsWebController {
                     ps.executeUpdate()
                 }
             if (updated > 0) {
-                connection.close()
                 markDirty()
-                return true
+                return ResponseEntity.ok(true)
             }
             // Ключ не найден — INSERT (на случай, если миграция ещё не применена на этой БД —
             // идемпотентный upsert).
@@ -83,33 +159,43 @@ class PublicSettingsWebController {
                     ps.setString(2, stringValue)
                     ps.executeUpdate()
                 }
-            connection.close()
             if (inserted > 0) markDirty()
-            inserted > 0
+            ResponseEntity.ok(inserted > 0)
         } catch (e: Exception) {
-            println("PublicSettingsWebController.setProperty error: ${e.message}")
+            // Текст ошибки БД — ТОЛЬКО в журнал: наружу уходит прежний `false` (FR-019).
+            log.error("settings:write:error key={} error={}", key, e.message)
+            ResponseEntity.ok(false)
+        } finally {
+            // Соединение закрываем сами — и то, которое реально открыли (раньше в catch
+            // закрывалось НОВОЕ соединение из WORKING_DATABASE, которого никто не открывал).
             try {
-                WORKING_DATABASE.getConnection()?.close()
+                connection?.close()
             } catch (_: Exception) {
             }
-            false
         }
     }
 
     /**
      * Прочитать значение одного свойства из `tbl_public_settings`.
      *
-     * Возвращает `String` (raw value) — пустую строку, если ключ не найден или БД недоступна
-     * (fail-open: kill-switch не активен по дефолту, ровно как обсуждали в specs/125). Для
-     * boolean-флагов сравнение делается через `== "true"`. Чтобы посмотреть описание поля —
-     * используйте [digest].
+     * Границы выдачи (FR-002 спеки 564):
+     *
+     * - ключ из [SECRET_KEYS] — **никогда** не выдаётся (даже по защищённому каналу): серверный
+     *   ключ капчи живёт в env, значение в таблице больше не является источником истины;
+     * - ключ из [PUBLIC_KEYS] — читается анонимно;
+     * - остальные (операционные: kill-switch, шаблоны новостей) — читаются только по
+     *   защищённому каналу, анонимно возвращается пустая строка.
+     *
+     * Возвращает `String` (raw value) — пустую строку, если ключ не найден, не публичен или БД
+     * недоступна (fail-open: kill-switch не активен по дефолту, ровно как обсуждали в
+     * specs/125). Для boolean-флагов сравнение делается через `== "true"`. Чтобы посмотреть
+     * описание поля — используйте [digest].
      *
      * Результат кешируется в `companion object` через [getCachedProperty] (TTL=60 сек +
      * dirty-инвалидация через [setProperty]) — см. `specs/249-public-settings-cache` FR-001.
-     * На админ-машине под webvue3 это снижает RPS к `tbl_public_settings` (страница SongsTable
-     * делает серию `getPropertyValuePromise` вызовов).
      *
      * @param key имя свойства.
+     * @param request запрос — из него берётся заголовок с секретом и адрес источника.
      * @return строковое значение поля `value` (или пустая строка).
      *
      * @see specs/249-public-settings-cache
@@ -118,40 +204,77 @@ class PublicSettingsWebController {
     @ResponseBody
     fun getProperty(
         @RequestParam key: String,
-    ): String =
-        getCachedProperty(key) {
-            val connection = WORKING_DATABASE.getConnection() ?: return@getCachedProperty ""
-            connection
-                .prepareStatement("SELECT value FROM tbl_public_settings WHERE key = ?")
-                .use { ps ->
-                    ps.setString(1, key)
-                    ps.executeQuery().use { rs ->
-                        if (rs.next()) rs.getString("value") ?: "" else ""
-                    }
-                }
-        }
+        request: HttpServletRequest,
+    ): String = handleGetProperty(key, request) { WORKING_DATABASE.getConnection() }
 
     /**
-     * Дайджест всех свойств в `tbl_public_settings` — key/value/description, для аудита и
-     * отладки kill-switch сценариев. Удобно перед sync-окном проверить, какие настройки вообще
-     * сейчас установлены на проде. `last_update` намеренно не возвращается (внутренняя
-     * аудит-информация, для `specs/125` не нужна).
+     * Тело [getProperty] с тест-швом [connectionProvider].
+     *
+     * [connectionProvider] — seam для unit-тестов: подставляется поддельное JDBC-соединение,
+     * чтобы проверить границы выдачи (секретный ключ не выдаётся никогда, непубличный —
+     * только по защищённому каналу) без обращения к боевой БД.
+     */
+    internal fun handleGetProperty(
+        key: String,
+        request: HttpServletRequest,
+        connectionProvider: () -> Connection?,
+    ): String {
+        if (key in SECRET_KEYS) {
+            securityLog.warn(
+                "settings:security:secret-read-blocked reason=secret_key key={} source={} time={}",
+                key,
+                sourceAddress(request),
+                Timestamp.from(Instant.now()),
+            )
+            return ""
+        }
+        if (!isAuthorized(request) && key !in PUBLIC_KEYS) {
+            securityLog.warn(
+                "settings:security:read-denied reason=key_not_public key={} source={} time={}",
+                key,
+                sourceAddress(request),
+                Timestamp.from(Instant.now()),
+            )
+            return ""
+        }
+        return getCachedProperty(key) { loadValue(key, connectionProvider) }
+    }
+
+    /**
+     * Дайджест публичных настроек в `tbl_public_settings` — key/value/description, для аудита и
+     * отладки kill-switch сценариев.
+     *
+     * Границы выдачи (FR-002 спеки 564): анонимно — только ключи из [PUBLIC_KEYS]; по
+     * защищённому каналу — все ключи, **кроме** [SECRET_KEYS]. `last_update` намеренно не
+     * возвращается (внутренняя аудит-информация, для `specs/125` не нужна).
      */
     @GetMapping("/digest")
     @ResponseBody
-    fun digest(): Map<String, Any> {
+    fun digest(request: HttpServletRequest): Map<String, Any> = handleDigest(request) { WORKING_DATABASE.getConnection() }
+
+    /**
+     * Тело [digest] с тест-швом [connectionProvider] (см. [handleGetProperty]).
+     */
+    internal fun handleDigest(
+        request: HttpServletRequest,
+        connectionProvider: () -> Connection?,
+    ): Map<String, Any> {
         val list = mutableListOf<Map<String, String>>()
+        val authorized = isAuthorized(request)
         return try {
-            val connection = WORKING_DATABASE.getConnection() ?: return mapOf("properties" to list)
+            val connection = connectionProvider() ?: return mapOf("properties" to list)
             connection
                 .prepareStatement(
                     "SELECT key, value, description FROM tbl_public_settings ORDER BY key",
                 ).use { ps ->
                     ps.executeQuery().use { rs ->
                         while (rs.next()) {
+                            val key = rs.getString("key") ?: ""
+                            if (key in SECRET_KEYS) continue
+                            if (!authorized && key !in PUBLIC_KEYS) continue
                             list.add(
                                 mapOf(
-                                    "key" to (rs.getString("key") ?: ""),
+                                    "key" to key,
                                     "value" to (rs.getString("value") ?: ""),
                                     "description" to (rs.getString("description") ?: ""),
                                 ),
@@ -161,12 +284,126 @@ class PublicSettingsWebController {
                 }
             mapOf("properties" to list)
         } catch (e: Exception) {
-            println("PublicSettingsWebController.digest error: ${e.message}")
+            log.error("settings:digest:error error={}", e.message)
             mapOf("properties" to list)
         }
     }
 
+    /**
+     * Чтение значения ключа из `tbl_public_settings` одним SELECT'ом (без кеша).
+     *
+     * Используется как `loadFn` для [getCachedProperty].
+     */
+    private fun loadValue(
+        key: String,
+        connectionProvider: () -> Connection?,
+    ): String {
+        val connection = connectionProvider() ?: return ""
+        return connection
+            .prepareStatement("SELECT value FROM tbl_public_settings WHERE key = ?")
+            .use { ps ->
+                ps.setString(1, key)
+                ps.executeQuery().use { rs ->
+                    if (rs.next()) rs.getString("value") ?: "" else ""
+                }
+            }
+    }
+
+    /**
+     * Причина отказа по правам (fail-safe) — `null`, если доступ разрешён.
+     *
+     * **Важно (research D2):** сравнение выполняется ТОЛЬКО при непустом настроенном
+     * секрете. Образец `InternalStemJobController.authorized()` сравнивает заголовок «как есть» —
+     * при незаданном секрете (`""`) и запросе с ПРИСУТСТВУЮЩИМ, но пустым заголовком
+     * сравнение прошло бы и доступ открылся бы. Здесь — как в #357 (спека 554): пустой секрет
+     * означает «не настроено» → доступ закрыт.
+     *
+     * @return `null` — доступ разрешён; иначе причина (`missing_secret` / `invalid_secret` /
+     *   `secret_not_configured`).
+     */
+    private fun denialReason(request: HttpServletRequest): String? {
+        if (internalSecret.isBlank()) return "secret_not_configured"
+        val provided = request.getHeader(SECRET_HEADER) ?: return "missing_secret"
+        if (provided != internalSecret) return "invalid_secret"
+        return null
+    }
+
+    /** Разрешён ли запрос по защищённому каналу (см. [denialReason]). */
+    private fun isAuthorized(request: HttpServletRequest): Boolean = denialReason(request) == null
+
+    /**
+     * Запись об отказе в журнал безопасности — время, адрес источника, причина.
+     *
+     * Тело запроса и **значение настройки** в журнал НЕ пишутся (FR-004).
+     */
+    private fun logDenial(
+        event: String,
+        reason: String,
+        request: HttpServletRequest,
+    ) {
+        securityLog.warn(
+            "{} reason={} source={} time={}",
+            event,
+            reason,
+            sourceAddress(request),
+            Timestamp.from(Instant.now()),
+        )
+    }
+
+    /**
+     * Адрес источника запроса для журнала безопасности.
+     *
+     * Берём `X-Real-IP` — его выставляет НАШ nginx (`proxy_set_header X-Real-IP $remote_addr;`,
+     * `deploy/prod-single-host/80to8897`) — и НЕ `X-Forwarded-For`: этот заголовок клиент
+     * подделывает (аудит BR-003 «xff-first-element»), поэтому адрес из XFF в журнале
+     * безопасности не является доказательством.
+     *
+     * Фолбэк — `request.remoteHost`: адрес docker-шлюза, когда запрос пришёл без nginx.
+     */
+    private fun sourceAddress(request: HttpServletRequest): String {
+        val realIp = request.getHeader("X-Real-IP")?.trim()
+        if (!realIp.isNullOrEmpty()) return realIp
+        return request.remoteHost
+    }
+
     companion object {
+        /** Логгер бизнес-логики контроллера (ошибки чтения/записи — с текстом ошибки БД). */
+        private val log = LoggerFactory.getLogger(PublicSettingsWebController::class.java)
+
+        /**
+         * Категория журнала безопасности публичных настроек (спека 564, research D10).
+         *
+         * Отдельная от `infra.sync.security` — то другое событие (доступ к настройкам, а не к
+         * синхронизации песен).
+         */
+        private val securityLog = LoggerFactory.getLogger("infra.settings.security")
+
+        /**
+         * Заголовок с общим server-to-server секретом — тот же контракт, что у
+         * `POST /changerecords` (спека 554) и `internal/stemjobs`.
+         */
+        const val SECRET_HEADER = "X-Internal-Secret"
+
+        /**
+         * Ключи `tbl_public_settings`, значение которых **никогда** не выдаётся этим
+         * контроллером (FR-002, FR-011).
+         *
+         * Серверный ключ капчи после спеки 564 живёт в env (`captcha.server-key`), а строка в
+         * таблице — артефакт старой схемы, удаляемый миграцией
+         * `51_public_settings_drop_captcha_server_key.sql`. Пока строка есть, API не выдаёт её
+         * значение — ни анонимному клиенту, ни по защищённому каналу.
+         */
+        val SECRET_KEYS: Set<String> = setOf("yandexSmartCaptchaServerKey")
+
+        /**
+         * Ключи `tbl_public_settings`, читаемые анонимно (белый список публичных ключей).
+         *
+         * Сейчас это клиентский ключ капчи — он публичен по устройству сайта (виджет на форме
+         * регистрации). Операционные ключи (kill-switch авто-публикации, шаблоны новостей)
+         * анонимному клиенту не нужны и читаются только по защищённому каналу.
+         */
+        val PUBLIC_KEYS: Set<String> = setOf("yandexSmartCaptchaClientKey")
+
         /**
          * In-memory TTL-кеш для [getProperty] (FR-001, FR-006 parent спеки 241-db-storage-perf-audit).
          *
@@ -296,7 +533,7 @@ class PublicSettingsWebController {
                 } catch (e: Exception) {
                     // FR-008: fail-open — возвращаем пустую строку, cache НЕ обновляется,
                     // следующий вызов повторит попытку.
-                    println("PublicSettingsWebController.getProperty error: ${e.message}")
+                    log.error("settings:read:error key={} error={}", key, e.message)
                     return ""
                 }
 

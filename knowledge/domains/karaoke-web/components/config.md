@@ -110,6 +110,12 @@ class WebMvcConfig(
 karaoke-app сюда не попадает). Авторизацию делает
 `SiteAuthInterceptor` вручную.
 
+**[WARN] `permitAll()` на `/api/**` — НЕ точка авторизации.** Снять его нельзя: сломало бы
+публичный сайт. Защита отдельных префиксов делается в своём коде: `SiteAuthInterceptor`
+(пути сайтовых пользователей) и общий секрет в заголовке `X-Internal-Secret`
+(`PublicSettingsWebController` — спека 564; `MainController` — спека 554;
+`InternalStemJobController`).
+
 ### `WebShareProperties`
 
 `@Component @ConfigurationProperties(prefix = "karaoke.share")` —
@@ -202,6 +208,11 @@ karaoke-app сюда не попадает). Авторизацию делает
   `STEMJOBS_INTERNAL_SECRET`→пусто,
   `SYNC_INTERNAL_SECRET`→пусто (секрет синхронизации `POST /changerecords`;
   пусто = доступ закрыт, fail-safe — спека 554),
+  `PUBLICSETTINGS_INTERNAL_SECRET`→**не используется**: свойство
+  `publicsettings.internal-secret` берёт тот же env `SYNC_INTERNAL_SECRET` (решение
+  владельца 2026-10-24, п. 2 — новый секрет не заводится; спека 564),
+  `CAPTCHA_SERVER_KEY`→пусто (серверный ключ проверки капчи; пусто = «проверка не
+  настроена» → регистрация отклоняется, fail-closed — спека 564),
   `DB_REMOTE_HOST`→`188.127.240.124`, `DB_REMOTE_PORT`→`8832`,
   `STORAGE_PROXY_URL`→`http://minio-proxy`,
   `VK_APP_ID`→`54704234`, `VK_ID_CLIENT_ID`→`0`, а также
@@ -225,7 +236,8 @@ karaoke-app сюда не попадает). Авторизацию делает
 - Прямые `@Value`: `KaraokeWebService` (`work-in-container`,
   `work-on-server`, `db-*`), `WebClientConfig` (`captcha.proxy-url`,
   `yookassa.*`), контроллеры (`app.public-site-url` в
-  `PublicShareController`).
+  `PublicShareController`), `CaptchaConfigService` (`captcha.server-key`),
+  `PublicSettingsWebController` (`publicsettings.internal-secret`).
 
 ## Зависимости | Dependencies
 
@@ -245,6 +257,7 @@ karaoke-app сюда не попадает). Авторизацию делает
 
 ## Changelog
 
+- **Спека 564** (2026-10-24, OpenProject #359 + #362): добавлены параметры `publicsettings.internal-secret` (тот же env `SYNC_INTERNAL_SECRET` — новый секрет не заводится) и `captcha.server-key` (env `CAPTCHA_SERVER_KEY`, пусто = «проверка не настроена», регистрация отклоняется). Автор: agent (Karaoke).
 - **Спека 554** (2026-10-24, OpenProject #357): добавлен параметр `sync.internal-secret` (env `SYNC_INTERNAL_SECRET`) — внутренний секрет эндпоинта `POST /changerecords`; пусто = доступ закрыт (fail-safe). Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Автор: agent (Karaoke).

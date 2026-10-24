@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeweb.services
 
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeweb.WORKING_DATABASE
@@ -177,29 +178,34 @@ class EventsBuffer {
      * `prepareStatement + executeUpdate` (не `addBatch` на уровне PreparedStatement,
      * т.к. SQL у разных eventType разный — `rightFileName()` escape зависит от `field`).
      *
-     * Используется одно соединение на весь batch — close() в finally.
+     * **Соединение НЕ закрывается** (аудит #336, BR-006): [KaraokeConnection.getConnection]
+     * возвращает физическое соединение, закэшированное в `ThreadLocal` потока. И
+     * [executeBatch] (поток `@Scheduled`), и [executeSingle] (поток Tomcat) —
+     * ПЕРЕИСПОЛЬЗУЕМЫЕ потоки, для которых контракт `KaraokeConnection` прямо запрещает
+     * закрывать thread-local соединение: `close()` разрушил бы кеш потока, и следующий
+     * запрос открыл бы НОВОЕ физическое соединение (TCP + auth handshake + `isValid(3)`).
+     * На публичном пути `POST /registerevent` это давало churn до N новых соединений в
+     * секунду и риск исчерпания `max_connections` PostgreSQL.
+     * Statements закрываются через `use { }` — это единственный ресурс, который нужно
+     * освобождать здесь.
      *
      * @param batch список событий для INSERT.
+     * @param database соединение (по умолчанию — рабочая БД); шов для тестов.
      * @throws SQLException если ошибка БД (вызывающий код ловит и делает fail-open).
      */
-    private fun executeBatch(batch: List<EventRecord>) {
+    internal fun executeBatch(
+        batch: List<EventRecord>,
+        database: KaraokeConnection = WORKING_DATABASE,
+    ) {
         val connection =
-            requireNotNull(WORKING_DATABASE.getConnection()) {
-                "Нет соединения с БД (${WORKING_DATABASE.name})"
+            requireNotNull(database.getConnection()) {
+                "Нет соединения с БД (${database.name})"
             }
-        try {
-            for (record in batch) {
-                val fields = buildFieldsList(record)
-                val sql = buildInsertSql(fields)
-                connection.prepareStatement(sql).use { ps ->
-                    ps.executeUpdate()
-                }
-            }
-        } finally {
-            try {
-                connection.close()
-            } catch (_: Exception) {
-                // ignore — close() не критичен, вернётся в pool
+        for (record in batch) {
+            val fields = buildFieldsList(record)
+            val sql = buildInsertSql(fields)
+            connection.prepareStatement(sql).use { ps ->
+                ps.executeUpdate()
             }
         }
     }
@@ -207,11 +213,18 @@ class EventsBuffer {
     /**
      * Sync INSERT для случая, когда батчинг выключен (kill-switch false).
      *
+     * **Соединение НЕ закрывается** — см. KDoc [executeBatch] (аудит #336, BR-006):
+     * thread-local кеш переиспользуемого потока Tomcat закрывать нельзя.
+     *
      * @param record событие для INSERT.
+     * @param database соединение (по умолчанию — рабочая БД); шов для тестов.
      * @return `true` если INSERT успешен, `false` если ошибка БД.
      */
-    private fun executeSingle(record: EventRecord): Boolean {
-        val connection = WORKING_DATABASE.getConnection() ?: return false
+    internal fun executeSingle(
+        record: EventRecord,
+        database: KaraokeConnection = WORKING_DATABASE,
+    ): Boolean {
+        val connection = database.getConnection() ?: return false
         return try {
             val fields = buildFieldsList(record)
             val sql = buildInsertSql(fields)
@@ -228,12 +241,6 @@ class EventsBuffer {
                 e,
             )
             false
-        } finally {
-            try {
-                connection.close()
-            } catch (_: Exception) {
-                // ignore
-            }
         }
     }
 

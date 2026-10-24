@@ -14,6 +14,7 @@ import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.WVP
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
 import com.svoemesto.karaokeapp.sync.SyncRegistry
@@ -65,7 +66,6 @@ import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import javax.imageio.ImageIO
-import kotlin.concurrent.thread
 
 /**
  * DTO для family song: сериализуемое представление для API/UI.
@@ -4910,24 +4910,37 @@ class ApiController(
     fun autoAssignOriginalAll(
         @RequestParam(required = false) author: String? = null,
         @RequestParam(required = false) threshold: Int = 95,
+    ): Boolean = autoAssignOriginalAll(author, threshold, WORKING_DATABASE)
+
+    /**
+     * Тело [autoAssignOriginalAll] с явной БД — шов для тестов (BR-060, аудит #336).
+     *
+     * Фоновая задача одноразовая: её поток закрывает своё thread-local соединение в
+     * `finally` (см. `startOneShotThread`) — иначе после каждого клика по кнопке остаётся
+     * открытый физический канал к PostgreSQL.
+     */
+    internal fun autoAssignOriginalAll(
+        author: String?,
+        threshold: Int,
+        database: KaraokeConnection,
     ): Boolean {
         val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
-        thread {
+        startOneShotThread(database, "auto-assign-original-all") {
             val ids = mutableListOf<Long>()
             try {
-                val connection = WORKING_DATABASE.getConnection()
+                val connection = database.getConnection()
                 if (connection != null) {
                     // Колонка автора в tbl_songs — song_author (не author); сравнение регистронезависимо.
                     val sql =
                         "SELECT id FROM tbl_songs WHERE id_status = 1 AND root_id <> 0" +
                             (if (authorFilter != null) " AND LOWER(song_author) = LOWER(?)" else "") +
                             " ORDER BY id"
-                    val ps = connection.prepareStatement(sql)
-                    if (authorFilter != null) ps.setString(1, authorFilter)
-                    val rs = ps.executeQuery()
-                    while (rs.next()) ids.add(rs.getLong("id"))
-                    rs.close()
-                    ps.close()
+                    connection.prepareStatement(sql).use { ps ->
+                        if (authorFilter != null) ps.setString(1, authorFilter)
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) ids.add(rs.getLong("id"))
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 println("Автопривязка оригинала: ошибка выборки песен — ${e.message}")
@@ -4942,7 +4955,7 @@ class ApiController(
                     val song =
                         Song.loadFromDbById(
                             id = id,
-                            database = WORKING_DATABASE,
+                            database = database,
                             storageService = storageService,
                             storageApiClient = storageApiClient,
                         )
@@ -4951,7 +4964,7 @@ class ApiController(
                         println("  [${index + 1}/${ids.size}] id=$id — пропущено (не удалось загрузить)")
                         return@forEachIndexed
                     }
-                    val result = autoAssignOriginalByWaveform(song, WORKING_DATABASE, storageService, storageApiClient, threshold)
+                    val result = autoAssignOriginalByWaveform(song, database, storageService, storageApiClient, threshold)
                     if (result.matched) matched++ else skipped++
                     println("  [${index + 1}/${ids.size}] ${songLogLabel(song)} — ${result.reason}")
                 } catch (e: Exception) {
@@ -5690,7 +5703,9 @@ class ApiController(
         @RequestParam(required = false) author: String? = null,
     ): Boolean {
         val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
-        thread {
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (BR-060, аудит #336) — иначе каждый клик по кнопке оставлял открытый канал к БД.
+        startOneShotThread(WORKING_DATABASE, "recalc-player-readiness") {
             val scope = if (authorFilter != null) "автор «$authorFilter»" else "все авторы"
             println("Пересчёт готовности плеера ($scope): начало")
             // specs/100-fix-recalc-readiness-progress-resilience: без этого try/catch необработанное
@@ -5749,7 +5764,9 @@ class ApiController(
         @RequestParam(required = false) target: String? = null,
     ): Boolean {
         val database = if (target == "remote") Connection.remote() else Connection.local()
-        thread {
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (BR-060, аудит #336).
+        startOneShotThread(database, "backfill-news-available") {
             println("Backfill флага «доступна для новости» (${database.name}): начало")
             try {
                 val result =
@@ -5806,7 +5823,9 @@ class ApiController(
         @RequestParam(required = false, defaultValue = "false") dryRun: Boolean = false,
     ): Boolean {
         val database = if (target == "remote") Connection.remote() else Connection.local()
-        thread {
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (BR-060, аудит #336).
+        startOneShotThread(database, "backfill-publish-flags") {
             println("Backfill флагов публикации (${database.name}, dryRun=$dryRun): начало")
             try {
                 val report =
@@ -5852,7 +5871,9 @@ class ApiController(
     @PostMapping("/utils/deletesearchresultsforreadysongs")
     @ResponseBody
     fun doDeleteSearchResultsForReadySongs(): Boolean {
-        thread {
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (BR-060, аудит #336).
+        startOneShotThread(WORKING_DATABASE, "delete-search-results-ready-songs") {
             println("Удаление результатов поиска готовых песен: начало")
             val result =
                 HealthReport.deleteSearchResultsForReadySongs(
@@ -6567,7 +6588,9 @@ class ApiController(
     @PostMapping("/utils/backfillalbumsfromsongs")
     @ResponseBody
     fun doBackfillAlbumsFromSongs(): Boolean {
-        thread {
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (BR-060, аудит #336).
+        startOneShotThread(WORKING_DATABASE, "backfill-albums-from-songs") {
             println("Бэкфилл альбомов из песен: начало")
             val result = AlbumBackfill.run(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             println("Бэкфилл альбомов из песен: завершено — $result")
@@ -6591,7 +6614,9 @@ class ApiController(
     @PostMapping("/utils/normalizealbumsortorder")
     @ResponseBody
     fun doNormalizeAlbumSortOrder(): Boolean {
-        thread {
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (BR-060, аудит #336).
+        startOneShotThread(WORKING_DATABASE, "normalize-album-sort-order") {
             println("Нормализация sortOrder альбомов: начало")
             val updated = Album.normalizeSortOrderAcrossYears(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             println("Нормализация sortOrder альбомов: завершено — обновлено $updated")

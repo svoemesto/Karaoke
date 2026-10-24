@@ -9,11 +9,11 @@ import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.sql.Timestamp
 import java.time.Instant
-import kotlin.concurrent.thread
 
 /**
  * Механизм «Синхронизация аудио-потомков» (OpenProject #141, specs/413-sync-audio-descendants).
@@ -170,7 +170,12 @@ object SyncAudioDescendants {
             if (workerRunning) return
             workerRunning = true
         }
-        thread(name = "sync-audio-descendants") {
+        // Воркер ОДНОРАЗОВЫЙ: он создаётся заново при каждой новой задаче в очереди и
+        // умирает, когда очередь опустела (см. `finally` — флаг `workerRunning` и
+        // перезапуск при поступлении новых задач). Переиспользовать его thread-local
+        // соединение некому — поэтому закрываем его в `finally`
+        // (`startOneShotThread`, BR-060, аудит #336).
+        startOneShotThread(WORKING_DATABASE, "sync-audio-descendants") {
             try {
                 drainQueue()
             } catch (e: Exception) {

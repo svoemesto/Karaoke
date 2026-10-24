@@ -178,6 +178,24 @@ class PublicSettingsWebControllerTest {
         assertTrue(fake.executedSql.first().contains("UPDATE tbl_public_settings"))
     }
 
+    /**
+     * Регрессия BR-027 (аудит #336, OpenProject #368): запись настройки НЕ закрывает
+     * thread-local соединение потока.
+     *
+     * **До правки** `handleSetProperty` закрывал соединение в `finally`. В рантайме это
+     * `WORKING_DATABASE.getConnection()` — физическое соединение из `ThreadLocal` потока
+     * Tomcat (не пул!). Закрытие разрушало кеш переиспользуемого потока: следующий
+     * запрос на нём открывал НОВОЕ физическое соединение (TCP + auth handshake +
+     * `isValid(3)`-проба) — churn соединений к Postgres и рост latency.
+     */
+    @Test
+    fun `запись не закрывает thread-local соединение переиспользуемого потока`() {
+        val fake = FakeDb()
+        controller().handleSetProperty("newsAutoPublishKillSwitch", "true", request(secret)) { fake.connection }
+
+        Mockito.verify(fake.connection, Mockito.never()).close()
+    }
+
     @Test
     fun `после записи чтение возвращает новое значение без ожидания TTL`() {
         val fake = FakeDb(listOf(Triple("newsAutoPublishKillSwitch", "true", "kill-switch")))

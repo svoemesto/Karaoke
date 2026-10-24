@@ -23,6 +23,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.SyncRemoteClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
 import com.svoemesto.karaokeapp.sync.SyncRegistry
@@ -56,7 +57,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.concurrent.thread
 import kotlin.io.inputStream
 import kotlin.io.outputStream
 import kotlin.io.path.Path
@@ -94,16 +94,20 @@ fun customFunction(
     lyricsFinderService: LyricsFinderService,
     storageApiClient: StorageApiClient,
 ): String {
-    thread {
+    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+    // (`startOneShotThread`, BR-060, аудит #336).
+    startOneShotThread(WORKING_DATABASE, "custom-function") {
         val ids = mutableListOf<Long>()
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE root_id = 0 AND id_status < 6 ORDER BY id")
-                val rs = ps.executeQuery()
-                while (rs.next()) ids.add(rs.getLong("id"))
-                rs.close()
-                ps.close()
+                connection
+                    .prepareStatement("SELECT id FROM tbl_songs WHERE root_id = 0 AND id_status < 6 ORDER BY id")
+                    .use { ps ->
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) ids.add(rs.getLong("id"))
+                        }
+                    }
             }
         } catch (e: Exception) {
             println("Поиск родителей и аудио-родителей: ошибка выборки песен — ${e.message}")
@@ -262,20 +266,22 @@ fun findParentForAuthor(
     if (isFindParentInProgress) return "ALREADY_RUNNING"
     isFindParentInProgress = true
 
-    thread {
+    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+    // (`startOneShotThread`, BR-060, аудит #336).
+    startOneShotThread(WORKING_DATABASE, "find-parent-for-author") {
         val ids = mutableListOf<Long>()
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps =
-                    connection.prepareStatement(
+                connection
+                    .prepareStatement(
                         "SELECT id FROM tbl_songs WHERE root_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
-                    )
-                ps.setString(1, author)
-                val rs = ps.executeQuery()
-                while (rs.next()) ids.add(rs.getLong("id"))
-                rs.close()
-                ps.close()
+                    ).use { ps ->
+                        ps.setString(1, author)
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) ids.add(rs.getLong("id"))
+                        }
+                    }
             }
         } catch (e: Exception) {
             println("Поиск родителя (автор «$author»): ошибка выборки песен — ${e.message}")
@@ -412,7 +418,9 @@ fun findAudioParentForAuthor(
     if (isFindAudioParentInProgress) return "ALREADY_RUNNING"
     isFindAudioParentInProgress = true
 
-    thread {
+    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+    // (`startOneShotThread`, BR-060, аудит #336).
+    startOneShotThread(WORKING_DATABASE, "find-audio-parent-for-author") {
         val ids = mutableListOf<Long>()
         try {
             val connection = WORKING_DATABASE.getConnection()
@@ -420,15 +428,15 @@ fun findAudioParentForAuthor(
                 // Фильтр audio_parent_id = 0 обеспечивает идемпотентность: песни, для которых
                 // findAudioParentByWaveform уже отработал ранее (audio_parent_id <> 0), повторно
                 // не обрабатываются. Тяжёлая ffmpeg-сверка для них не нужна.
-                val ps =
-                    connection.prepareStatement(
+                connection
+                    .prepareStatement(
                         "SELECT id FROM tbl_songs WHERE root_id <> 0 AND audio_parent_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
-                    )
-                ps.setString(1, author)
-                val rs = ps.executeQuery()
-                while (rs.next()) ids.add(rs.getLong("id"))
-                rs.close()
-                ps.close()
+                    ).use { ps ->
+                        ps.setString(1, author)
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) ids.add(rs.getLong("id"))
+                        }
+                    }
             }
         } catch (e: Exception) {
             println("Поиск аудио-родителя (автор «$author»): ошибка выборки песен — ${e.message}")
@@ -531,7 +539,9 @@ fun rescanAllCensoredNames(
     if (isCensoredRescanInProgress) return "ALREADY_RUNNING"
     isCensoredRescanInProgress = true
 
-    thread {
+    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+    // (`startOneShotThread`, BR-060, аудит #336).
+    startOneShotThread(WORKING_DATABASE, "rescan-all-censored-names") {
         val startMs = System.currentTimeMillis()
         var processed = 0
         var updated = 0
@@ -540,12 +550,14 @@ fun rescanAllCensoredNames(
             // Шаг 1: собрать все id (одним запросом, чтобы не тянуть JOIN'ы и result_text).
             val ids = mutableListOf<Long>()
             try {
-                val connection = WORKING_DATABASE.getConnection() ?: return@thread
-                val ps = connection.prepareStatement("SELECT id FROM tbl_songs ORDER BY id")
-                val rs = ps.executeQuery()
-                while (rs.next()) ids.add(rs.getLong("id"))
-                rs.close()
-                ps.close()
+                val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
+                connection
+                    .prepareStatement("SELECT id FROM tbl_songs ORDER BY id")
+                    .use { ps ->
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) ids.add(rs.getLong("id"))
+                        }
+                    }
             } catch (e: Exception) {
                 println("rescanAllCensoredNames: ошибка выборки id — ${e.message}")
                 SNS.send(
@@ -557,13 +569,13 @@ fun rescanAllCensoredNames(
                         ),
                     ),
                 )
-                return@thread
+                return@startOneShotThread
             }
 
             println("rescanAllCensoredNames: найдено песен: ${ids.size}")
 
             // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
-            val connection = WORKING_DATABASE.getConnection() ?: return@thread
+            val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
             ids.forEachIndexed { index, id ->
                 try {
                     val psSel =

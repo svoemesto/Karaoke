@@ -27,22 +27,32 @@ import org.springframework.web.bind.annotation.ResponseBody
 class ChatController {
     private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
-    // resolveDb() открывает новое физическое соединение на каждый вызов — без явного close() пул
-    // Postgres постепенно исчерпывается (см. комментарий к withDb в SiteUsersController/TariffsController).
-    private fun <T> withDb(
+    /**
+     * Тело запроса с доступом к БД.
+     *
+     * **Соединение НЕ закрывается** (аудит #336, BR-116): [resolveDb] возвращает
+     * singleton `Connection.local()/remote()`, а `KaraokeConnection.getConnection()` отдаёт
+     * физическое соединение, закэшированное в `ThreadLocal` потока. Поток Tomcat
+     * ПЕРЕИСПОЛЬЗУЕМЫЙ — закрывать его thread-local соединение нельзя: `close()` разрушил бы
+     * кеш потока, и следующий запрос на этом потоке открыл бы НОВОЕ физическое соединение
+     * (TCP + auth handshake + `isValid(3)`-проба) — churn соединений к Postgres и рост
+     * latency. Контракт `KaraokeConnection.closeThreadConnection()` — только для одноразовых
+     * потоков (см. `KaraokeConnection`, `services/OneShotThread.kt`).
+     *
+     * Прежний комментарий («resolveDb() открывает новое физическое соединение на каждый
+     * вызов — без явного close() пул Postgres постепенно исчерпывается») описывал состояние
+     * до specs/234 (`Connection.local()` стал singleton с thread-local кешем) и вводил в
+     * заблуждение — исправлен здесь (BR-116).
+     *
+     * @param target "remote" — БД прод-сервера, иначе локальная.
+     * @param db соединение (по умолчанию — по [target]); шов для тестов.
+     * @param block тело запроса.
+     */
+    internal fun <T> withDb(
         target: String?,
+        db: KaraokeConnection = resolveDb(target),
         block: (KaraokeConnection) -> T,
-    ): T {
-        val db = resolveDb(target)
-        return try {
-            block(db)
-        } finally {
-            try {
-                db.getConnection()?.close()
-            } catch (_: Exception) {
-            }
-        }
-    }
+    ): T = block(db)
 
     @PostMapping("/threads")
     @ResponseBody

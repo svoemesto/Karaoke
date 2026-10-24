@@ -26,8 +26,8 @@ BR-024,P-36,DATA,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/control
 BR-025,P-36,ERR,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt,78,92,http-200-error-page:og,TODO,lead-verified,401
 BR-026,P-36,ERR,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicShareController.kt,219,236,cache-500-heartbeat:share,TODO,lead-verified,401
 BR-027,P-36,PERF,S3,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt,67,71,threadlocal-close:settings,исправлено,lead-verified,368
-BR-028,P-04,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt,885,904,sql-injection:process-loadlist,TODO,lead-verified,383
-BR-029,P-04,ERR,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt,221,339,exit-code-ignored:process-worker,TODO,lead-verified,364
+BR-028,P-04,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt,885,904,sql-injection:process-loadlist,исправлено,lead-verified,383
+BR-029,P-04,ERR,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt,221,339,exit-code-ignored:process-worker,исправлено,lead-verified,364
 BR-030,P-04,RACE,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt,1139,1145,lost-update:process-save,TODO,lead-verified,373
 BR-031,P-04,RACE,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt,1027,1037,create-process-race:process,TODO,lead-verified,373
 BR-032,P-04,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt,1941,1971,chain-not-atomic:process,TODO,lead-verified,373
@@ -60,7 +60,7 @@ BR-058,P-09,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controll
 BR-059,P-09,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,3875,3875,wrong-status-threshold:song,TODO,lead-verified,394
 BR-060,P-09,LEAK,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,5752,5786,threads-no-close:api,исправлено,lead-verified,368
 BR-061,P-09,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,5855,5873,background-thread-no-catch:api,TODO,lead-verified,394
-BR-062,P-09,RACE,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,6938,6980,publish-check-then-act:api,TODO,lead-verified,366
+BR-062,P-09,RACE,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,6938,6980,publish-check-then-act:api,исправлено,lead-verified,366
 BR-063,P-09,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,7042,7108,stale-save-overwrites-publish-id:api,TODO,lead-verified,373
 BR-064,P-09,PERF,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,4810,4899,search-sleep-per-iteration:api,TODO,lead-verified,373
 BR-065,P-09,PERF,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,4714,4768,unbounded-date-loop:api,TODO,lead-verified,394
@@ -98,7 +98,7 @@ BR-096,P-63,RACE,S3,webvue3/src/components/Songs/store.js,1770,1784,change-to-sy
 BR-097,P-63,RULE,S3,webvue3/src/components/Songs/store.js,982,1205,setwebvueprop-uncaught:songs-store,TODO,lead-verified,403
 BR-098,P-63,ERR,S3,webvue3/src/components/Songs/store.js,1866,1880,stale-health-reports:songs-store,TODO,lead-verified,403
 BR-099,P-63,RULE,S3,webvue3/src/components/Songs/store.js,1827,1830,direct-state-write:songs-store,TODO,lead-verified,403
-BR-100,P-18,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt,7817,8068,sql-injection:song-wherelist,TODO,lead-verified,383
+BR-100,P-18,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt,7817,8068,sql-injection:song-wherelist,исправлено,lead-verified,383
 BR-101,P-18,ERR,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt,5410,5411,save-noop-on-load-failure:song,TODO,lead-verified,373
 BR-102,P-18,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt,5652,5658,save-locked-swallows-error:song,TODO,lead-verified,373
 BR-103,P-18,DATA,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt,5396,5396,stale-normalize-voices:song,TODO,lead-verified,394
@@ -136,7 +136,7 @@ BR-134,P-21,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/
 BR-135,P-21,RACE,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitoringService.kt,40,53,scheduler-fixedrate-overlap:monitor,TODO,lead-verified,395
 BR-136,P-21,LEAK,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AdminTaskService.kt,41,42,admin-task-map-unbounded:services,TODO,lead-verified,395
 BR-137,P-21,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AlignmentServiceClient.kt,73,81,alignment-client-swallow:services,TODO,lead-verified,395
-BR-138,P-23,RACE,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt,74,80,publish-no-atomic-claim:telegram,TODO,lead-verified,366
+BR-138,P-23,RACE,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt,74,80,publish-no-atomic-claim:telegram,исправлено,lead-verified,366
 BR-139,P-23,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt,301,315,save-result-ignored-publish:telegram,TODO,lead-verified,374
 BR-140,P-23,ERR,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt,258,259,retry-not-catch:telegram,TODO,lead-verified,374
 BR-141,P-23,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageApiClient.kt,227,236,upload-swallows:storage,TODO,lead-verified,374
@@ -159,7 +159,7 @@ BR-157,P-24,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services
 BR-158,P-24,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramUpdatesConsumer.kt,64,67,delete-webhook-outside-try:telegram,TODO,lead-verified,395
 BR-159,P-24,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/WhisperAsrService.kt,113,121,whisper-null:asr,TODO,lead-verified,395
 BR-160,P-24,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkIdTokenRefreshScheduler.kt,44,44,token-refresh-window:vk,TODO,lead-verified,395
-BR-161,P-22,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt,196,199,ffmpeg-exit-ignored-demo:mp4,TODO,lead-verified,364
+BR-161,P-22,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt,196,199,ffmpeg-exit-ignored-demo:mp4,исправлено,lead-verified,364
 BR-162,P-22,ERR,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt,276,329,delete-all-buckets-init:storage,TODO,lead-verified,374
 BR-163,P-22,LEAK,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt,347,363,inputstream-leak-upload:storage,TODO,lead-verified,395
 BR-164,P-22,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt,499,529,s3-errors-as-missing:storage,TODO,lead-verified,395
@@ -173,14 +173,14 @@ BR-171,P-25,RACE,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/service
 BR-172,P-25,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt,24,25,reflection-dict-action:textfiles,TODO,lead-verified,395
 BR-173,P-25,BUILD,S3,karaoke-app/src/main/resources/application.yml,67,69,dead-max-file-size:config,TODO,lead-verified,395
 BR-174,P-25,PERF,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupPlanner.kt,132,133,full-walk-http:cleanup,TODO,lead-verified,396
-BR-175,P-16,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt,213,219,sql-injection-pictures:pictures,TODO,lead-verified,383
+BR-175,P-16,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt,213,219,sql-injection-pictures:pictures,исправлено,lead-verified,383
 BR-176,P-16,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt,140,155,null-as-string:db,TODO,lead-verified,374
 BR-177,P-16,COMPAT,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/News.kt,283,290,cursor-order:news,TODO,lead-verified,396
 BR-178,P-16,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/News.kt,249,252,news-sql-swallow:news,TODO,lead-verified,396
 BR-179,P-16,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt,311,311,iioexception-npe:picture,TODO,lead-verified,396
 BR-180,P-16,PERF,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt,453,467,exponential-splits:picture,TODO,lead-verified,396
 BR-181,P-16,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt,272,289,unique-race:pictures,TODO,lead-verified,396
-BR-182,P-15,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt,174,180,sql-injection-authors:authors,TODO,lead-verified,383
+BR-182,P-15,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt,174,180,sql-injection-authors:authors,исправлено,lead-verified,383
 BR-183,P-15,DATA,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MltNode.kt,35,50,mlt-xml-unescaped:mlt,TODO,lead-verified,396
 BR-184,P-15,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt,459,463,loadlist-error-empty:db,TODO,lead-verified,396
 BR-185,P-15,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MonetizationStats.kt,53,99,stats-zero-on-error:stats,TODO,lead-verified,385
@@ -235,7 +235,7 @@ BR-233,P-10,COMPAT,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/contr
 BR-234,P-10,ERR,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt,77,82,collectstore-noop:main,TODO,lead-verified,375
 BR-235,P-10,PERF,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt,441,453,voice-index-oom:main,TODO,lead-verified,375
 BR-236,P-10,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt,702,707,json-parse-swallow:main,TODO,lead-verified,397
-BR-237,P-14,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt,227,229,sql-injection-albums:albums,TODO,lead-verified,383
+BR-237,P-14,SEC,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt,227,229,sql-injection-albums:albums,исправлено,lead-verified,383
 BR-238,P-14,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSplashStart.kt,49,50,cds-reference-compare:mlt,TODO,lead-verified,397
 BR-239,P-14,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyTabs.kt,238,240,stringlad-parse:mlt,TODO,lead-verified,397
 BR-240,P-14,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt,589,592,partial-list-on-error:albums,TODO,lead-verified,397

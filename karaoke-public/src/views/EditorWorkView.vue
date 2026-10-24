@@ -1245,7 +1245,8 @@ export default {
         // предыдущая версия разметки (fail-closed: сначала успешное сохранение).
         if (this.saveState === 'error') {
           this.submitError =
-            'Черновик не сохранён — отправка отменена. ' + (this.saveError || 'Повторите сохранение.')
+            'Черновик не сохранён — отправка отменена. ' +
+            (this.saveError || 'Повторите сохранение.')
           return
         }
         const { status, body } = await submitTask(this.$route.params.id)

@@ -1,0 +1,134 @@
+[SubsEdit.getMarkersToSave] markers with non-numeric time skipped: [ { time: 'oops', label: 'b', markertype: 'syllables' } ]
+▶ BR-449: время маркера не уходит строкой в JSON
+  ✔ parseMarkerTime понимает запятую, точку и отбрасывает мусор (2.35656ms)
+  ✔ getMarkersToSave приводит time к числу и выбрасывает нечисловые маркеры (3.566149ms)
+  ✔ поле «Time:» объявлено числовым и нормализуется на change (0.509721ms)
+  ✔ normalizeMarkerTime откатывает нечисловой ввод к прежнему значению (1.010783ms)
+✔ BR-449: время маркера не уходит строкой в JSON (8.998913ms)
+▶ BR-450: ошибка сохранения видна пользователю
+  ✔ catch сохранения показывает модалку и возвращает false (1.140924ms)
+✔ BR-450: ошибка сохранения видна пользователю (1.368577ms)
+[SubsEdit.currentVoice] load failed Error: HTTP 500
+    at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:229:23)
+    at Test.runInAsyncScope (node:async_hooks:226:14)
+    at Test.run (node:internal/test_runner/test:1120:25)
+    at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+    at Test.postRun (node:internal/test_runner/test:1249:19)
+    at Test.run (node:internal/test_runner/test:1177:12)
+    at async Promise.all (index 0)
+    at async Suite.run (node:internal/test_runner/test:1535:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:789:7)
+▶ BR-451: ответ другого голоса не перетирает разметку
+  ✔ поздний ответ прежнего голоса игнорируется (12.209917ms)
+  ✔ отказ загрузки голоса блокирует сохранение (fail-closed) (2.995427ms)
+✔ BR-451: ответ другого голоса не перетирает разметку (15.733345ms)
+▶ BR-467: chord-метка без поля chord не роняет redraw
+  ✔ resolveChordLabel берёт label, chord или пустую строку (0.284636ms)
+  ✔ ветка chord использует resolveChordLabel и не падает без значения (1.331507ms)
+✔ BR-467: chord-метка без поля chord не роняет redraw (1.99589ms)
+▶ BR-459: поздний ответ статистики не подменяет данные
+  ✔ ответ прежней БД игнорируется после смены target (8.632748ms)
+✔ BR-459: поздний ответ статистики не подменяет данные (10.10995ms)
+▶ BR-460: топ песен по подпискам действительно загружается
+  ✔ экшен возвращает Promise<Boolean> и коммитит элементы (1.358835ms)
+  ✔ вкладка «Монетизация» перечисляет оба endpoint`а (0.636388ms)
+✔ BR-460: топ песен по подпискам действительно загружается (2.278054ms)
+▶ BR-487: смена target/days инвалидирует кеш затронутых вкладок
+  ✔ invalidateAllTabs сбрасывает данные всех вкладок (1.081431ms)
+  ✔ invalidateDayDependentTabs сбрасывает только вкладки 0/2/3 (0.698426ms)
+  ✔ onTargetChange инвалидирует все вкладки и грузит активную (0.645572ms)
+✔ BR-487: смена target/days инвалидирует кеш затронутых вкладок (2.846246ms)
+[StemJobs.loadStemJobs] failed Error: HTTP 500
+    at xhr.onload (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils.js:33:21)
+    at FakeXhr.respond (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/test-utils/fakeXhr.js:40:10)
+    at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/StemJobs/__tests__/stemJobs-s2-18.test.js:55:21)
+    at Test.runInAsyncScope (node:async_hooks:226:14)
+    at Test.run (node:internal/test_runner/test:1120:25)
+    at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+    at Test.postRun (node:internal/test_runner/test:1249:19)
+    at Test.run (node:internal/test_runner/test:1177:12)
+    at async Promise.all (index 0)
+    at async Suite.run (node:internal/test_runner/test:1535:7) {
+  status: 500,
+  responseBody: 'db down'
+}
+[StemJobs.deleteStemJob] failed Error: HTTP 500
+    at xhr.onload (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils.js:33:21)
+    at FakeXhr.respond (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/test-utils/fakeXhr.js:40:10)
+    at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/StemJobs/__tests__/stemJobs-s2-18.test.js:80:21)
+    at Test.runInAsyncScope (node:async_hooks:226:14)
+    at Test.run (node:internal/test_runner/test:1120:25)
+    at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+    at Test.postRun (node:internal/test_runner/test:1249:19)
+    at Test.run (node:internal/test_runner/test:1177:12)
+    at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+  status: 500,
+  responseBody: 'boom'
+}
+▶ BR-462: список заданий не переживает смену БД
+  ✔ смена target сразу очищает список и признак загруженной БД (3.51163ms)
+  ✔ неудачная загрузка очищает список и фиксирует ошибку (fail-closed) (6.6469ms)
+  ✔ поздний ответ прежней БД игнорируется (0.592108ms)
+  ✔ deleteStemJob при ошибке возвращает false и не удаляет строку молча (1.065049ms)
+  ✔ таблица показывает ошибку загрузки (0.319477ms)
+✔ BR-462: список заданий не переживает смену БД (13.990606ms)
+▶ BR-458: пагинация подписок серверная
+  ✔ page и pageSize уходят в запрос, target — из store (7.684004ms)
+  ✔ смена страницы перезапрашивает данные, а не режет локально (1.740297ms)
+  ✔ смена БД очищает список до загрузки новой (0.368103ms)
+  ✔ фильтр отправляет страницу и её размер вместе с параметрами (0.319798ms)
+✔ BR-458: пагинация подписок серверная (12.426435ms)
+[Tariffs.saveTariff] failed Error: HTTP 500
+    at xhr.onload (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils.js:33:21)
+    at FakeXhr.respond (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/test-utils/fakeXhr.js:40:10)
+    at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Tariffs/__tests__/tariffs-s2-18.test.js:64:21)
+    at Test.runInAsyncScope (node:async_hooks:226:14)
+    at Test.run (node:internal/test_runner/test:1120:25)
+    at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+    at Test.postRun (node:internal/test_runner/test:1249:19)
+    at Test.run (node:internal/test_runner/test:1177:12)
+    at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+  status: 500,
+  responseBody: 'boom'
+}
+[Tariffs.deleteTariff] failed Error: Network error
+    at xhr.onerror (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils.js:40:19)
+    at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Tariffs/__tests__/tariffs-s2-18.test.js:74:21)
+    at Test.runInAsyncScope (node:async_hooks:226:14)
+    at Test.run (node:internal/test_runner/test:1120:25)
+    at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+    at Test.postRun (node:internal/test_runner/test:1249:19)
+    at Test.run (node:internal/test_runner/test:1177:12)
+    at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+  status: 0,
+  responseBody: ''
+}
+▶ BR-461: отказ операции с тарифом виден и не выдаётся за успех
+  ✔ isValidTariffPrice отсекает пустую и отрицательную цену (2.243297ms)
+  ✔ createTariff с пустой ценой не шлёт запрос и возвращает false (0.840787ms)
+  ✔ saveTariff при 500 возвращает false и фиксирует ошибку (6.611642ms)
+  ✔ deleteTariff при сетевой ошибке возвращает false (1.070348ms)
+  ✔ таблица откатывает правку при отказе и сбрасывает форму только на успехе (0.375824ms)
+✔ BR-461: отказ операции с тарифом виден и не выдаётся за успех (12.713288ms)
+▶ BR-483: DEMO-стрелки позиционируются по времени кадра
+  ✔ один и тот же dt даёт один и тот же кадр (1.749658ms)
+  ✔ разное время кадра даёт разную фазу анимации (0.357891ms)
+  ✔ в методе нет обращения к стенным часам (0.599857ms)
+  ✔ вызов из кадра передаёт dt (0.292968ms)
+✔ BR-483: DEMO-стрелки позиционируются по времени кадра (3.911023ms)
+▶ BR-484: сохранение файла в inline-режиме знает id песни
+  ✔ конструктор в ветке inlineData берёт id из данных (0.898873ms)
+  ✔ без id URL не собирается, а ошибка показывается пользователю (0.437734ms)
+✔ BR-484: сохранение файла в inline-режиме знает id песни (1.891378ms)
+▶ BR-485: подписи версии на сплэше покрывают весь RenderVersion
+  ✔ карта содержит все версии с непустыми label/comment (0.354612ms)
+  ✔ сплэш использует общую карту, а не локальную копию (0.247238ms)
+✔ BR-485: подписи версии на сплэше покрывают весь RenderVersion (0.987068ms)
+ℹ tests 37
+ℹ suites 13
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 129.837889

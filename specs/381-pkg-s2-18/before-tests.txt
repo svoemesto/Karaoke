@@ -1,0 +1,783 @@
+▶ BR-449: время маркера не уходит строкой в JSON
+  ✔ parseMarkerTime понимает запятую, точку и отбрасывает мусор (1.68309ms)
+  ✖ getMarkersToSave приводит time к числу и выбрасывает нечисловые маркеры (2.063767ms)
+  ✖ поле «Time:» объявлено числовым и нормализуется на change (0.318487ms)
+  ✖ normalizeMarkerTime откатывает нечисловой ввод к прежнему значению (0.715409ms)
+✖ BR-449: время маркера не уходит строкой в JSON (5.720495ms)
+▶ BR-450: ошибка сохранения видна пользователю
+  ✖ catch сохранения показывает модалку и возвращает false (0.653988ms)
+✖ BR-450: ошибка сохранения видна пользователю (0.777925ms)
+▶ BR-451: ответ другого голоса не перетирает разметку
+  ✖ поздний ответ прежнего голоса игнорируется (8.816172ms)
+  ✖ отказ загрузки голоса блокирует сохранение (fail-closed) (0.675062ms)
+✖ BR-451: ответ другого голоса не перетирает разметку (9.740312ms)
+▶ BR-467: chord-метка без поля chord не роняет redraw
+  ✔ resolveChordLabel берёт label, chord или пустую строку (0.173934ms)
+  ✖ ветка chord использует resolveChordLabel и не падает без значения (1.434867ms)
+✖ BR-467: chord-метка без поля chord не роняет redraw (1.777463ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils' imported from /home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Stats/store.js
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:988:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:697:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:714:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:743:52)
+    at #resolve (node:internal/modules/esm/loader:679:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:599:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils'
+}
+
+Node.js v25.7.0
+✖ src/components/Stats/__tests__/stats-s2-18.test.js (53.009847ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils' imported from /home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/StemJobs/store.js
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:988:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:697:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:714:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:743:52)
+    at #resolve (node:internal/modules/esm/loader:679:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:599:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils'
+}
+
+Node.js v25.7.0
+✖ src/components/StemJobs/__tests__/stemJobs-s2-18.test.js (51.490135ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils' imported from /home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Subscriptions/store.js
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:988:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:697:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:714:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:743:52)
+    at #resolve (node:internal/modules/esm/loader:679:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:599:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils'
+}
+
+Node.js v25.7.0
+✖ src/components/Subscriptions/__tests__/subscriptions-pagination.test.js (69.320055ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils' imported from /home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Tariffs/store.js
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:988:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:697:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:714:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:743:52)
+    at #resolve (node:internal/modules/esm/loader:679:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:599:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/lib/utils'
+}
+
+Node.js v25.7.0
+✖ src/components/Tariffs/__tests__/tariffs-s2-18.test.js (55.790937ms)
+▶ BR-483: DEMO-стрелки позиционируются по времени кадра
+  ✔ один и тот же dt даёт один и тот же кадр (1.331071ms)
+  ✔ разное время кадра даёт разную фазу анимации (0.202145ms)
+  ✖ в методе нет обращения к стенным часам (0.749526ms)
+  ✖ вызов из кадра передаёт dt (1.179205ms)
+✖ BR-483: DEMO-стрелки позиционируются по времени кадра (4.139926ms)
+▶ BR-484: сохранение файла в inline-режиме знает id песни
+  ✖ конструктор в ветке inlineData берёт id из данных (0.78795ms)
+  ✖ без id URL не собирается, а ошибка показывается пользователю (0.320381ms)
+✖ BR-484: сохранение файла в inline-режиме знает id песни (1.296251ms)
+▶ BR-485: подписи версии на сплэше покрывают весь RenderVersion
+  ✖ карта содержит все версии с непустыми label/comment (0.261052ms)
+  ✖ сплэш использует общую карту, а не локальную копию (0.733175ms)
+✖ BR-485: подписи версии на сплэше покрывают весь RenderVersion (1.225673ms)
+ℹ tests 21
+ℹ suites 7
+ℹ pass 4
+ℹ fail 17
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 150.187601
+
+✖ failing tests:
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:102:3
+✖ getMarkersToSave приводит time к числу и выбрасывает нечисловые маркеры (2.063767ms)
+  AssertionError [ERR_ASSERTION]: время должно уходить числом, а маркер с нечисловым временем — не отправляться
+  + actual - expected
+  
+    [
+  +   '1,5',
+  +   'oops',
+  -   1.5,
+      2
+    ]
+  
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:114:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1535:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '1,5', 'oops', 2 ],
+    expected: [ 1.5, 2 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:121:3
+✖ поле «Time:» объявлено числовым и нормализуется на change (0.318487ms)
+  AssertionError [ERR_ASSERTION]: нужен type="number", иначе ввод остаётся строкой
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:124:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '\n                <input\n                  v-model="currentMarker.time"\n                  class="se-item-left-input-field"\n                  @focus="setEditMode(false)"\n                  @blur="setEditMode(true)"\n                ',
+    expected: /type="number"/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:128:3
+✖ normalizeMarkerTime откатывает нечисловой ввод к прежнему значению (0.715409ms)
+  AssertionError [ERR_ASSERTION]: normalizeMarkerTime должен существовать
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:130:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:145:3
+✖ catch сохранения показывает модалку и возвращает false (0.653988ms)
+  AssertionError [ERR_ASSERTION]: без isCustomConfirmVisible=true модалка не отрисуется (v-if) и ошибка невидима
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:150:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Test.start (node:internal/test_runner/test:1017:17)
+      at node:internal/test_runner/test:1533:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "catch (e) {\n        this.customConfirmParams = {\n          header: 'Ошибка сохранения',\n          body: 'Не удалось сохранить правки: ' + (e && e.message ? e.message : e),\n        }\n      } finally {\n        this.saving = false\n      }\n      if (this.saveQueued) {\n        this.saveQueued = false\n        await this.save()\n      }\n    ",
+    expected: /this\.isCustomConfirmVisible\s*=\s*true/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:197:3
+✖ поздний ответ прежнего голоса игнорируется (8.816172ms)
+  AssertionError [ERR_ASSERTION]: в состоянии должны остаться маркеры голоса, который выбран сейчас
+  + actual - expected
+  
+    [
+  +   'voice-0'
+  -   'voice-1'
+    ]
+  
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:213:12)
+      at async Test.run (node:internal/test_runner/test:1127:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1535:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'voice-0' ],
+    expected: [ 'voice-1' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:222:3
+✖ отказ загрузки голоса блокирует сохранение (fail-closed) (0.675062ms)
+  Error: HTTP 500
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:227:23)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1535:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:789:7)
+
+test at src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:253:3
+✖ ветка chord использует resolveChordLabel и не падает без значения (1.434867ms)
+  AssertionError [ERR_ASSERTION]: значение должно браться из label/chord
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/components/Songs/edit/__tests__/subsEdit-s2-18.test.js:259:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1535:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'case \'chord\': {\n          let label = marker.chord\n          let labels = label.split(\'|\')\n          text = \'🎼\' + labels[0] + (labels.length > 1 ? \'[\' + labels[1] + \']\' : \'\')\n          template = `<div><div\n                        style="\n                            background-color: beige;\n                            display: block;\n                            width: fit-content;\n                            margin-top: 216px;\n                        ">\n                        ${text}\n                      </div>\n                                              <div style="\n                            background-color: lightgoldenrodyellow;\n                            display: block;\n         ',
+    expected: /resolveChordLabel\(marker\)/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at src/components/Stats/__tests__/stats-s2-18.test.js:1:1
+✖ src/components/Stats/__tests__/stats-s2-18.test.js (53.009847ms)
+  'test failed'
+
+test at src/components/StemJobs/__tests__/stemJobs-s2-18.test.js:1:1
+✖ src/components/StemJobs/__tests__/stemJobs-s2-18.test.js (51.490135ms)
+  'test failed'
+
+test at src/components/Subscriptions/__tests__/subscriptions-pagination.test.js:1:1
+✖ src/components/Subscriptions/__tests__/subscriptions-pagination.test.js (69.320055ms)
+  'test failed'
+
+test at src/components/Tariffs/__tests__/tariffs-s2-18.test.js:1:1
+✖ src/components/Tariffs/__tests__/tariffs-s2-18.test.js (55.790937ms)
+  'test failed'
+
+test at src/player/__tests__/karaoke-player-s2-18.test.js:90:3
+✖ в методе нет обращения к стенным часам (0.749526ms)
+  AssertionError [ERR_ASSERTION]: Date.now() делает офлайн-кадр недетерминированным
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/player/__tests__/karaoke-player-s2-18.test.js:94:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "_renderDemoEndScreen(ctx, W, H, alpha) {\n    if (this._renderVersion !== 'DEMO' || alpha <= 0) return\n    ctx.save()\n    ctx.globalAlpha = alpha\n\n    // ─── Vertical layout (fractions of H) ───\n    //  topFree(1/10) + logo(1/2) + textArea(remaining) = H\n    //  textArea has padTop(>=1/10) + textBlock + padBottom(>=1/10)\n    const topFree = H * 0.1\n    const logoH = H * 0.5\n    const logoTop = topFree\n    const textAreaTop = logoTop + logoH // = H * 0.6\n    const textAreaH = H - textAreaTop // = H * 0.4\n    const padV = Math.max(H * 0.1, textAreaH * 0.25)\n    const padH = W * 0.1 // horizontal padding\n\n    // ─── Logo (centered horizontally, top-aligned in its zone) ───\n    if (this._logoImg) {\n      const boxW = Math.min(W * 0.5, logoH * 2)\n      this._drawImageFit(ctx, this._logoImg, (W - boxW) / 2, logoTop, boxW, logoH)\n    }\n\n    // ─── Compute max font size (binary search) ───\n    const line1 = 'Полная версия — на странице песни на официальном сайте проекта.'\n    const line2 = 'Ссылка — в описании'\n    const maxTextH = textAreaH - 2 * padV\n    const fontFamily = 'FiraSansExtraCondensed, sans-serif'\n\n    let lo = 8,\n      hi = Math.floor(maxTextH / 2.75),\n      bestSz = 8\n    while (lo <= hi) {\n      const mid = (lo + hi) >> 1\n      ctx.font = `400 ${mid}px ${fontFamily}`\n      const w1 = ctx.measureText(line1).width\n      const w2 = ctx.measureText(line2).width\n      if (w1 <= W * 0.8 && w2 <= W * 0.8 && mid * 2.75 <= maxTextH) {\n        bestSz = mid\n        lo = mid + 1\n      } else {\n        hi = mid - 1\n      }\n    }\n\n    const fontSz = bestSz\n    const gap = fontSz * 0.75\n    const textBlockH = fontSz * 2 + gap\n\n    // Center text block vertically in text area\n    const textBlockTop = textAreaTop + (textAreaH - textBlockH) / 2\n    const line1Y = textBlockTop\n    const line2Y = textBlockTop + fontSz + gap\n\n    // ─── Draw text ───\n    ctx.font = `400 ${fontSz}px ${fontFamily}`\n    ctx.fillStyle = '#ccc'\n    ctx.textAlign = 'center'\n    ctx.textBaseline = 'top'\n    ctx.fillText(line1, W / 2, line1Y)\n    ctx.fillText(line2, W / 2, line2Y)\n\n    // ─── Animated ▼ arrows flanking line2 ───\n    const line2W = ctx.measureText(line2).width\n    const textLeftX = W / 2 - line2W / 2\n    const textRightX = W / 2 + line2W / 2\n    const arrowCenterX = padH // distance from text edge\n    const line2CenterY = line2Y + fontSz / 2\n    const bounce = Math.sin(Date.now() / 300) * 8 * (H / 1080)\n\n    ctx.font = `700 ${fontSz}px sans-serif`\n    ctx.fillStyle = '#f80'\n    ctx.textBaseline = 'middle'\n\n    ctx.fillText('▼', textLeftX - arrowCenterX, line2CenterY + bounce)\n    ctx.fillText('▼', textRightX + arrowCenterX, line2CenterY + bounce)\n\n    ctx.restore()\n  }\n\n  // Индикатор загрузки под логотипом, рисуется только в фазе !_ready. Как только известен хоть\n  // какой-то прогресс скачивания (_loadProgress != null) — показываем прогресс-полосу и держим её\n  // до готовности: при p<1 подпись «N%», при p>=1 (скачивание закончилось, идёт decodeAudioData,\n  // прогресса по нему нет) полоса стоит заполненной с подписью «Обработка...». Спиннер — только для\n  // самой начальной фазы (p===null: playerdata/шрифты/картинки, байт ещё нет). Это убирает резкий\n  // визуальный скачок «полоса → спиннер», когда скачивание с локального хранилища почти мгновенно.\n  ",
+    expected: /Date\.now\(\)\s*\/\s*300/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at src/player/__tests__/karaoke-player-s2-18.test.js:98:3
+✖ вызов из кадра передаёт dt (1.179205ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /this\._renderDemoEndScreen\(ctx, W, H, fadeIn \* fadeOut, dt\)/. Input:
+  
+  "// Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —\n" +
+    '// distinguished from other init errors so the UI can show a friendly message instead of raw details.\n' +
+    'class PlayerUnavailableError extends Error {}\n' +
+    '\n' +
+    "import { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'\n" +
+    '\n' +
+    'export default class KaraokePlayer {\n' +
+    '  // Usage modes:\n' +
+    '  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api\n' +
+    '  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the\n' +
+    "  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review\n" +
+    "  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)\n" +
+    '  //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file\n' +
+    '  //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL\n' +
+    '  //   new KaraokePlayer(container, { inlineData: <playerdata-json> })    — данные прямо в памяти\n' +
+    '  //     (используется редактором караоке-разметки в webvue3, чтобы превью сразу показывало текущий\n' +
+    '  //     черновик без промежуточного HTTP-запроса). audioVocalsUrl/audioAccompanimentUrl в inlineData\n' +
+    '  //     могут быть относительными путями (например, /api/song/123/filevoice.mp3) — используются как есть.\n' +
+    '  constructor(container, songIdOrOptions, apiBase) {\n' +
+    '    this.container = container\n' +
+    '    if (\n' +
+    '      songIdOrOptions !== null &&\n' +
+    "      typeof songIdOrOptions === 'object' &&\n" +
+    "      ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)\n" +
+    '    ) {\n' +
+    "      this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'\n" +
+    '      this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl\n' +
+    '    } else if (\n' +
+    '      songIdOrOptions !== null &&\n' +
+    "      typeof songIdOrOptions === 'object' &&\n" +
+    "      'inlineData' in songIdOrOptions\n" +
+    '    ) {\n' +
+    '      // Новый режим: данные приходят inline (формат как у /api/song/{id}/playerdata). Никаких fetch,\n' +
+    '      // никаких blob — список голосов и маркеров готов к отрисовке сразу. Вызывающий код (karaoke-\n' +
+    '      // редактор) пересоздаёт плеер / подменяет данные при каждом изменении черновика.\n' +
+    "      this._mode = 'inlineData'\n" +
+    '      this._inlineData = songIdOrOptions.inlineData\n' +
+    "      // Необязательная высота корневого div плеера (по умолчанию '100vh'). В режиме обычной full-page\n" +
+    '      // страницы (PlayerView.vue) контейнер занимает весь viewport, поэтому 100vh корректно. В режиме\n' +
+    '      // модального окна редактора (SongKaraokeEditorView) контейнер ограничен высотой модалки (~440px),\n' +
+    '      // и если не передать высоту явно — canvas рисуется на 100vh экрана, а видна только верхняя\n' +
+    '      // четверть (звёзды из заставки), текст стихи оказывается за нижней границей видимой области.\n' +
+    '      this._containerHeight =\n' +
+    "        typeof songIdOrOptions.containerHeight === 'string' && songIdOrOptions.containerHeight\n" +
+    '          ? songIdOrOptions.containerHeight\n' +
+    '          : null\n' +
+    '      this.apiBase = apiBase || null\n' +
+    "    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {\n" +
+    "      this._mode = 'api'\n" +
+    '      this.songId = songIdOrOptions.songId\n' +
+    '      this.assignmentId = songIdOrOptions.assignmentId ?? null\n' +
+    '      this.target = songIdOrOptions.target ?? null\n' +
+    '      this.apiBase = apiBase\n' +
+    '    } else {\n' +
+    "      this._mode = 'api'\n" +
+    '      this.songId = songIdOrOptions\n' +
+    '      this.assignmentId = null\n' +
+    '      this.target = null\n' +
+    '      this.apiBase = apiBase\n' +
+    '    }\n' +
+    '    this._smkaraokeObjectUrls = []\n' +
+    '\n' +
+    '    this.audioCtx = null\n' +
+    '    this.accBuffer = null\n' +
+    '    this.vocBuffer = null\n' +
+    '    this.accSource = null\n' +
+    '    this.vocSource = null\n' +
+    '    this.accGain = null\n' +
+    '    this.vocGain = null\n' +
+    '    this.startedAt = 0\n' +
+    '    this.pausedAt = 0\n' +
+    '    this.isPlaying = false\n' +
+    '    this.duration = 0\n' +
+    '    this._volumeAnchored = false // "якорь": при true все треки идут к одной громкости\n' +
+    '    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте\n' +
+    '    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.\n' +
+    '    this._accVol = 100\n' +
+    '    this._vocVol = 0\n' +
+    '\n' +
+    '    // Скорость воспроизведения (множитель). Персистентна на весь инстанс — как и громкость выше,\n' +
+    '    // наследуется следующим треком плейлиста. _rateAnchorPos — позиция в буфере (сек) на момент\n' +
+    '    // последней перепривязки startedAt (старт/сик/смена скорости); вместе с startedAt и\n' +
+    '    // audioCtx.currentTime даёт текущую позицию без рестарта звуковых источников при смене\n' +
+    '    // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).\n' +
+    '    this._playbackRate = 1\n' +
+    '    this._rateAnchorPos = 0\n' +
+    '\n' +
+    '    // Транспонирование тональности (сдвиг в полутонах −12..+12 относительно базовой тональности\n' +
+    '    // data.key). 0 = базовая. В отличие от _playbackRate (глобальная настройка плеера), _transpose\n' +
+    '    // хранится per-song (localStorage по data.id) — см. _saveTranspose/_restoreTranspose.\n' +
+    '    // Реализация — ОФЛАЙН-предобработка буферов через SoundTouch.js (time-stretch pitch-shift):\n' +
+    '    // при выборе тональности стемы полностью транспонируются от ОРИГИНАЛЬНЫХ буферов\n' +
+    '    // (accBufferOriginal/vocBufferOriginal), затем воспроизведение продолжается с той же позиции\n' +
+    '    // в новой тональности. Не «на лету» — есть пауза на обработку с индикатором. _transposeSupported\n' +
+    '    // = false блокирует подменю с подсказкой (FR-018). _transposing=true во время обработки.\n' +
+    '    // @see archive/docs/features/player-transpose.md\n' +
+    '    this._transpose = 0\n' +
+    '    this._accBufferOriginal = null\n' +
+    '    this._vocBufferOriginal = null\n' +
+    '    this._transposeSupported = true\n' +
+    '    this._transposing = false\n' +
+    '\n' +
+    '    // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину\n' +
+    '    // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не\n' +
+    '    // только следующий трек плейлиста) подхватывает последние использованные значения.\n' +
+    '    const saved = KaraokePlayer._loadPersistedSettings()\n' +
+    '    if (saved) {\n' +
+    '      if (saved.accVol !== null) this._accVol = saved.accVol\n' +
+    '      if (saved.vocVol !== null) this._vocVol = saved.vocVol\n' +
+    '      if (saved.anchored !== null) this._volumeAnchored = saved.anchored\n' +
+    '      if (saved.playbackRate !== null) this._playbackRate = saved.playbackRate\n' +
+    '    }\n' +
+    '\n' +
+    '    // Значок ▶/⏸ по центру экрана при клике по видео-области (fade+pop, см. _renderScreenIconAnim)\n' +
+    '    this._screenIconAnim = null\n' +
+    '\n' +
+    '    // Pre-roll: splash (5s) + silent offset before first syllable\n' +
+    '    this._splashDur = 5.0\n' +
+    '    this._silentOffset = 0\n' +
+    '    this._preroll = 5.0 // splashDur + silentOffset, recalculated after parse\n' +
+    '    this._isPrerolling = false // true while wall-clock preroll is active\n' +
+    '    this._dtPaused = 0 // display time when paused during preroll\n' +
+    '    this._prerollRef = 0 // Date.now() when preroll clock was last started\n' +
+    '    this._prerollTimeout = null // setTimeout handle for preroll→audio transition\n' +
+    '\n' +
+    '    this.data = null\n' +
+    '    this.lines = []\n' +
+    '    this.voiceLines = []\n' +
+    '    this._bgCanvas = null\n' +
+    '    this._ready = false\n' +
+    '    this._loadProgress = null // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)\n' +
+    '\n' +
+    '    // Offline-режим (headless-рендер mp4, см. renderFrameAt() ниже): вызывающий код (Kotlin-\n' +
+    '    // оркестратор через Playwright page.evaluate) выставляет _offline=true ДО init() — это отключает\n' +
+    '    // RAF-цикл, построение waveform-виджетов и wall-clock idle-переходы logo→splash/splash→logo,\n' +
+    '    // которые иначе делают кадр недетерминированным. _forcedTime, когда не null, полностью подменяет\n' +
+    '    // единственный источник времени контента (_getDisplayTime()) и панораму фона (_renderBackground()).\n' +
+    '    this._offline = false\n' +
+    '    this._forcedTime = null\n' +
+    '\n' +
+    '    this._logoImg = null\n' +
+    '    this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)\n' +
+    '    this._endFadeStartedAt = null // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash\n' +
+    '\n' +
+    '    // Render version params (from URL query: ?version=LYRICS|KARAOKE|DEMO&demoStart=X&demoEnd=Y)\n' +
+    "    this._renderVersion = null // 'LYRICS' | 'KARAOKE' | 'DEMO' | null (online mode)\n" +
+    '    this._demoStart = null // demo fragment start (seconds, original song time)\n' +
+    '    this._demoEnd = null // demo fragment end (seconds, original song time)\n' +
+    '    this._demoFadeInSeconds = 0 // demo audio fade-in duration (seconds, computed from markers)\n' +
+    '\n' +
+    '    this.canvas = null\n' +
+    '    this.ctx = null\n' +
+    '    this.animId = null\n' +
+    '\n' +
+    '    this.wsAcc = null\n' +
+    '    this.wsVoc = null\n' +
+    '    this._lastWsSync = 0\n' +
+    '    this._endedHandled = false\n' +
+    '\n' +
+    '    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека\n' +
+    '    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.\n' +
+    '    this.onTrackEnded = null\n' +
+    '\n' +
+    "    // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs\n" +
+    "    // 'page' (this player's own container fills the whole viewport it lives in — that's already\n" +
+    '    // true by default for a top-level /player/:id route AND for a same-origin iframe once its own\n' +
+    '    // box is resized to 100vw/100vh by the host page). Detected once at construction, not\n' +
+    `    // reconfigurable: a genuinely top-level page (webvue3 route, or the public site's "secret\n` +
+    `    // gesture" new-tab flow) has no host page to ask for a resize, so there IS no 'embed' mode for\n` +
+    '    // it — the wide-mode button stays permanently disabled in that case.\n' +
+    '    this._isEmbedded = window.self !== window.top\n' +
+    "    this._displayMode = this._isEmbedded ? 'embed' : 'page'\n" +
+    '    this._isFullscreen = false\n' +
+    '    this._preFullscreenDisplayMode = null // restored on exiting fullscreen\n' +
+    '\n' +
+    '    this._resizeHandler = () => this._resizeCanvas()\n' +
+    '    this._fsHandler = () => this._onFullscreenChange()\n' +
+    '    this._menuOutsideClickHandler = () => this._closeMenu()\n' +
+    '  }\n' +
+    '\n' +
+    '  async init() {\n' +
+    '    // Phase 1: show animated background immediately, before any network requests\n' +
+    '    this._buildUI()\n' +
+    '    this._bgCanvas = this._generateStarfield()\n' +
+    '    // Offline: кадры дёргаются снаружи ч'... 154783 more characters
+  
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/player/__tests__/karaoke-player-s2-18.test.js:99:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `// Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —\n// distinguished from other init errors so the UI can show a friendly message instead of raw details.\nclass PlayerUnavailableError extends Error {}\n\nimport { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'\n\nexport default class KaraokePlayer {\n  // Usage modes:\n  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api\n  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the\n  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review\n  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)\n  //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file\n  //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL\n  //   new KaraokePlayer(container, { inlineData: <playerdata-json> })    — данные прямо в памяти\n  //     (используется редактором караоке-разметки в webvue3, чтобы превью сразу показывало текущий\n  //     черновик без промежуточного HTTP-запроса). audioVocalsUrl/audioAccompanimentUrl в inlineData\n  //     могут быть относительными путями (например, /api/song/123/filevoice.mp3) — используются как есть.\n  constructor(container, songIdOrOptions, apiBase) {\n    this.container = container\n    if (\n      songIdOrOptions !== null &&\n      typeof songIdOrOptions === 'object' &&\n      ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)\n    ) {\n      this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'\n      this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl\n    } else if (\n      songIdOrOptions !== null &&\n      typeof songIdOrOptions === 'object' &&\n      'inlineData' in songIdOrOptions\n    ) {\n      // Новый режим: данные приходят inline (формат как у /api/song/{id}/playerdata). Никаких fetch,\n      // никаких blob — список голосов и маркеров готов к отрисовке сразу. Вызывающий код (karaoke-\n      // редактор) пересоздаёт плеер / подменяет данные при каждом изменении черновика.\n      this._mode = 'inlineData'\n      this._inlineData = songIdOrOptions.inlineData\n      // Необязательная высота корневого div плеера (по умолчанию '100vh'). В режиме обычной full-page\n      // страницы (PlayerView.vue) контейнер занимает весь viewport, поэтому 100vh корректно. В режиме\n      // модального окна редактора (SongKaraokeEditorView) контейнер ограничен высотой модалки (~440px),\n      // и если не передать высоту явно — canvas рисуется на 100vh экрана, а видна только верхняя\n      // четверть (звёзды из заставки), текст стихи оказывается за нижней границей видимой области.\n      this._containerHeight =\n        typeof songIdOrOptions.containerHeight === 'string' && songIdOrOptions.containerHeight\n          ? songIdOrOptions.containerHeight\n          : null\n      this.apiBase = apiBase || null\n    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {\n      this._mode = 'api'\n      this.songId = songIdOrOptions.songId\n      this.assignmentId = songIdOrOptions.assignmentId ?? null\n      this.target = songIdOrOptions.target ?? null\n      this.apiBase = apiBase\n    } else {\n      this._mode = 'api'\n      this.songId = songIdOrOptions\n      this.assignmentId = null\n      this.target = null\n      this.apiBase = apiBase\n    }\n    this._smkaraokeObjectUrls = []\n\n    this.audioCtx = null\n    this.accBuffer = null\n    this.vocBuffer = null\n    this.accSource = null\n    this.vocSource = null\n    this.accGain = null\n    this.vocGain = null\n    this.startedAt = 0\n    this.pausedAt = 0\n    this.isPlaying = false\n    this.duration = 0\n    this._volumeAnchored = false // "якорь": при true все треки идут к одной громкости\n    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте\n    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.\n    this._accVol = 100\n    this._vocVol = 0\n\n    // Скорость воспроизведения (множитель). Персистентна на весь инстанс — как и громкость выше,\n    // наследуется следующим треком плейлиста. _rateAnchorPos — позиция в буфере (сек) на момент\n    // последней перепривязки startedAt (старт/сик/смена скорости); вместе с startedAt и\n    // audioCtx.currentTime даёт текущую позицию без рестарта звуковых источников при смене\n    // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).\n    this._playbackRate = 1\n    this._rateAnchorPos = 0\n\n    // Транспонирование тональности (сдвиг в полутонах −12..+12 относительно базовой тональности\n    // data.key). 0 = базовая. В отличие от _playbackRate (глобальная настройка плеера), _transpose\n    // хранится per-song (localStorage по data.id) — см. _saveTranspose/_restoreTranspose.\n    // Реализация — ОФЛАЙН-предобработка буферов через SoundTouch.js (time-stretch pitch-shift):\n    // при выборе тональности стемы полностью транспонируются от ОРИГИНАЛЬНЫХ буферов\n    // (accBufferOriginal/vocBufferOriginal), затем воспроизведение продолжается с той же позиции\n    // в новой тональности. Не «на лету» — есть пауза на обработку с индикатором. _transposeSupported\n    // = false блокирует подменю с подсказкой (FR-018). _transposing=true во время обработки.\n    // @see archive/docs/features/player-transpose.md\n    this._transpose = 0\n    this._accBufferOriginal = null\n    this._vocBufferOriginal = null\n    this._transposeSupported = true\n    this._transposing = false\n\n    // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину\n    // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не\n    // только следующий трек плейлиста) подхватывает последние использованные значения.\n    const saved = KaraokePlayer._loadPersistedSettings()\n    if (saved) {\n      if (saved.accVol !== null) this._accVol = saved.accVol\n      if (saved.vocVol !== null) this._vocVol = saved.vocVol\n      if (saved.anchored !== null) this._volumeAnchored = saved.anchored\n      if (saved.playbackRate !== null) this._playbackRate = saved.playbackRate\n    }\n\n    // Значок ▶/⏸ по центру экрана при клике по видео-области (fade+pop, см. _renderScreenIconAnim)\n    this._screenIconAnim = null\n\n    // Pre-roll: splash (5s) + silent offset before first syllable\n    this._splashDur = 5.0\n    this._silentOffset = 0\n    this._preroll = 5.0 // splashDur + silentOffset, recalculated after parse\n    this._isPrerolling = false // true while wall-clock preroll is active\n    this._dtPaused = 0 // display time when paused during preroll\n    this._prerollRef = 0 // Date.now() when preroll clock was last started\n    this._prerollTimeout = null // setTimeout handle for preroll→audio transition\n\n    this.data = null\n    this.lines = []\n    this.voiceLines = []\n    this._bgCanvas = null\n    this._ready = false\n    this._loadProgress = null // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)\n\n    // Offline-режим (headless-рендер mp4, см. renderFrameAt() ниже): вызывающий код (Kotlin-\n    // оркестратор через Playwright page.evaluate) выставляет _offline=true ДО init() — это отключает\n    // RAF-цикл, построение waveform-виджетов и wall-clock idle-переходы logo→splash/splash→logo,\n    // которые иначе делают кадр недетерминированным. _forcedTime, когда не null, полностью подменяет\n    // единственный источник времени контента (_getDisplayTime()) и панораму фона (_renderBackground()).\n    this._offline = false\n    this._forcedTime = null\n\n    this._logoImg = null\n    this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)\n    this._endFadeStartedAt = null // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash\n\n    // Render version params (from URL query: ?version=LYRICS|KARAOKE|DEMO&demoStart=X&demoEnd=Y)\n    this._renderVersion = null // 'LYRICS' | 'KARAOKE' | 'DEMO' | null (online mode)\n    this._demoStart = null // demo fragment start (seconds, original song time)\n    this._demoEnd = null // demo fragment end (seconds, original song time)\n    this._demoFadeInSeconds = 0 // demo audio fade-in duration (seconds, computed from markers)\n\n    this.canvas = null\n    this.ctx = null\n    this.animId = null\n\n    this.wsAcc = null\n    this.wsVoc = null\n    this._lastWsSync = 0\n    this._endedHandled = false\n\n    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека\n    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.\n    this.onTrackEnded = null\n\n    // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs\n    // 'page' (this player's own container fills the whole viewport it lives in — that's already\n    // true by default for a top-level /player/:id route AND for a same-origin iframe once its own\n    // box is resized to 100vw/100vh by the host page). Detected once at construction, not\n    // reconfigurable: a genuinely top-level page (webvue3 route, or the public site's "secret\n    // gesture" new-tab flow) has no host page to ask for a resize, so there IS no 'embed' mode for\n    // it — the wide-mode button stays permanently disabled in that case.\n    this._isEmbedded = window.self !== window.top\n    this._displayMode = this._isEmbedded ? 'embed' : 'page'\n    this._isFullscreen = false\n    this._preFullscreenDisplayMode = null // restored on exiting fullscreen\n\n    this._resizeHandler = () => this._resizeCanvas()\n    this._fsHandler = () => this._onFullscreenChange()\n    this._menuOutsideClickHandler = () => this._closeMenu()\n  }\n\n  async init() {\n    // Phase 1: show animated background immediately, before any network requests\n    this._buildUI()\n    this._bgCanvas = this._generateStarfield()\n    // Offline: кадры дёргаются снаружи ч`... 154783 more characters,
+    expected: /this\._renderDemoEndScreen\(ctx, W, H, fadeIn \* fadeOut, dt\)/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at src/player/__tests__/karaoke-player-s2-18.test.js:104:3
+✖ конструктор в ветке inlineData берёт id из данных (0.78795ms)
+  AssertionError [ERR_ASSERTION]: без songId меню «Сохранить файл» не работает
+  
+  undefined !== 42
+  
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/player/__tests__/karaoke-player-s2-18.test.js:106:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Test.start (node:internal/test_runner/test:1017:17)
+      at node:internal/test_runner/test:1533:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 42,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/player/__tests__/karaoke-player-s2-18.test.js:110:3
+✖ без id URL не собирается, а ошибка показывается пользователю (0.320381ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - null
+  
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/player/__tests__/karaoke-player-s2-18.test.js:112:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1535:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/player/__tests__/karaoke-player-s2-18.test.js:123:3
+✖ карта содержит все версии с непустыми label/comment (0.261052ms)
+  AssertionError [ERR_ASSERTION]: статическая карта должна существовать
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/player/__tests__/karaoke-player-s2-18.test.js:125:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Test.start (node:internal/test_runner/test:1017:17)
+      at node:internal/test_runner/test:1533:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/player/__tests__/karaoke-player-s2-18.test.js:136:3
+✖ сплэш использует общую карту, а не локальную копию (0.733175ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /KaraokePlayer\.RENDER_VERSION_SPLASH\[this\._renderVersion\]/. Input:
+  
+  "// Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —\n" +
+    '// distinguished from other init errors so the UI can show a friendly message instead of raw details.\n' +
+    'class PlayerUnavailableError extends Error {}\n' +
+    '\n' +
+    "import { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'\n" +
+    '\n' +
+    'export default class KaraokePlayer {\n' +
+    '  // Usage modes:\n' +
+    '  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api\n' +
+    '  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the\n' +
+    "  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review\n" +
+    "  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)\n" +
+    '  //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file\n' +
+    '  //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL\n' +
+    '  //   new KaraokePlayer(container, { inlineData: <playerdata-json> })    — данные прямо в памяти\n' +
+    '  //     (используется редактором караоке-разметки в webvue3, чтобы превью сразу показывало текущий\n' +
+    '  //     черновик без промежуточного HTTP-запроса). audioVocalsUrl/audioAccompanimentUrl в inlineData\n' +
+    '  //     могут быть относительными путями (например, /api/song/123/filevoice.mp3) — используются как есть.\n' +
+    '  constructor(container, songIdOrOptions, apiBase) {\n' +
+    '    this.container = container\n' +
+    '    if (\n' +
+    '      songIdOrOptions !== null &&\n' +
+    "      typeof songIdOrOptions === 'object' &&\n" +
+    "      ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)\n" +
+    '    ) {\n' +
+    "      this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'\n" +
+    '      this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl\n' +
+    '    } else if (\n' +
+    '      songIdOrOptions !== null &&\n' +
+    "      typeof songIdOrOptions === 'object' &&\n" +
+    "      'inlineData' in songIdOrOptions\n" +
+    '    ) {\n' +
+    '      // Новый режим: данные приходят inline (формат как у /api/song/{id}/playerdata). Никаких fetch,\n' +
+    '      // никаких blob — список голосов и маркеров готов к отрисовке сразу. Вызывающий код (karaoke-\n' +
+    '      // редактор) пересоздаёт плеер / подменяет данные при каждом изменении черновика.\n' +
+    "      this._mode = 'inlineData'\n" +
+    '      this._inlineData = songIdOrOptions.inlineData\n' +
+    "      // Необязательная высота корневого div плеера (по умолчанию '100vh'). В режиме обычной full-page\n" +
+    '      // страницы (PlayerView.vue) контейнер занимает весь viewport, поэтому 100vh корректно. В режиме\n' +
+    '      // модального окна редактора (SongKaraokeEditorView) контейнер ограничен высотой модалки (~440px),\n' +
+    '      // и если не передать высоту явно — canvas рисуется на 100vh экрана, а видна только верхняя\n' +
+    '      // четверть (звёзды из заставки), текст стихи оказывается за нижней границей видимой области.\n' +
+    '      this._containerHeight =\n' +
+    "        typeof songIdOrOptions.containerHeight === 'string' && songIdOrOptions.containerHeight\n" +
+    '          ? songIdOrOptions.containerHeight\n' +
+    '          : null\n' +
+    '      this.apiBase = apiBase || null\n' +
+    "    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {\n" +
+    "      this._mode = 'api'\n" +
+    '      this.songId = songIdOrOptions.songId\n' +
+    '      this.assignmentId = songIdOrOptions.assignmentId ?? null\n' +
+    '      this.target = songIdOrOptions.target ?? null\n' +
+    '      this.apiBase = apiBase\n' +
+    '    } else {\n' +
+    "      this._mode = 'api'\n" +
+    '      this.songId = songIdOrOptions\n' +
+    '      this.assignmentId = null\n' +
+    '      this.target = null\n' +
+    '      this.apiBase = apiBase\n' +
+    '    }\n' +
+    '    this._smkaraokeObjectUrls = []\n' +
+    '\n' +
+    '    this.audioCtx = null\n' +
+    '    this.accBuffer = null\n' +
+    '    this.vocBuffer = null\n' +
+    '    this.accSource = null\n' +
+    '    this.vocSource = null\n' +
+    '    this.accGain = null\n' +
+    '    this.vocGain = null\n' +
+    '    this.startedAt = 0\n' +
+    '    this.pausedAt = 0\n' +
+    '    this.isPlaying = false\n' +
+    '    this.duration = 0\n' +
+    '    this._volumeAnchored = false // "якорь": при true все треки идут к одной громкости\n' +
+    '    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте\n' +
+    '    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.\n' +
+    '    this._accVol = 100\n' +
+    '    this._vocVol = 0\n' +
+    '\n' +
+    '    // Скорость воспроизведения (множитель). Персистентна на весь инстанс — как и громкость выше,\n' +
+    '    // наследуется следующим треком плейлиста. _rateAnchorPos — позиция в буфере (сек) на момент\n' +
+    '    // последней перепривязки startedAt (старт/сик/смена скорости); вместе с startedAt и\n' +
+    '    // audioCtx.currentTime даёт текущую позицию без рестарта звуковых источников при смене\n' +
+    '    // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).\n' +
+    '    this._playbackRate = 1\n' +
+    '    this._rateAnchorPos = 0\n' +
+    '\n' +
+    '    // Транспонирование тональности (сдвиг в полутонах −12..+12 относительно базовой тональности\n' +
+    '    // data.key). 0 = базовая. В отличие от _playbackRate (глобальная настройка плеера), _transpose\n' +
+    '    // хранится per-song (localStorage по data.id) — см. _saveTranspose/_restoreTranspose.\n' +
+    '    // Реализация — ОФЛАЙН-предобработка буферов через SoundTouch.js (time-stretch pitch-shift):\n' +
+    '    // при выборе тональности стемы полностью транспонируются от ОРИГИНАЛЬНЫХ буферов\n' +
+    '    // (accBufferOriginal/vocBufferOriginal), затем воспроизведение продолжается с той же позиции\n' +
+    '    // в новой тональности. Не «на лету» — есть пауза на обработку с индикатором. _transposeSupported\n' +
+    '    // = false блокирует подменю с подсказкой (FR-018). _transposing=true во время обработки.\n' +
+    '    // @see archive/docs/features/player-transpose.md\n' +
+    '    this._transpose = 0\n' +
+    '    this._accBufferOriginal = null\n' +
+    '    this._vocBufferOriginal = null\n' +
+    '    this._transposeSupported = true\n' +
+    '    this._transposing = false\n' +
+    '\n' +
+    '    // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину\n' +
+    '    // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не\n' +
+    '    // только следующий трек плейлиста) подхватывает последние использованные значения.\n' +
+    '    const saved = KaraokePlayer._loadPersistedSettings()\n' +
+    '    if (saved) {\n' +
+    '      if (saved.accVol !== null) this._accVol = saved.accVol\n' +
+    '      if (saved.vocVol !== null) this._vocVol = saved.vocVol\n' +
+    '      if (saved.anchored !== null) this._volumeAnchored = saved.anchored\n' +
+    '      if (saved.playbackRate !== null) this._playbackRate = saved.playbackRate\n' +
+    '    }\n' +
+    '\n' +
+    '    // Значок ▶/⏸ по центру экрана при клике по видео-области (fade+pop, см. _renderScreenIconAnim)\n' +
+    '    this._screenIconAnim = null\n' +
+    '\n' +
+    '    // Pre-roll: splash (5s) + silent offset before first syllable\n' +
+    '    this._splashDur = 5.0\n' +
+    '    this._silentOffset = 0\n' +
+    '    this._preroll = 5.0 // splashDur + silentOffset, recalculated after parse\n' +
+    '    this._isPrerolling = false // true while wall-clock preroll is active\n' +
+    '    this._dtPaused = 0 // display time when paused during preroll\n' +
+    '    this._prerollRef = 0 // Date.now() when preroll clock was last started\n' +
+    '    this._prerollTimeout = null // setTimeout handle for preroll→audio transition\n' +
+    '\n' +
+    '    this.data = null\n' +
+    '    this.lines = []\n' +
+    '    this.voiceLines = []\n' +
+    '    this._bgCanvas = null\n' +
+    '    this._ready = false\n' +
+    '    this._loadProgress = null // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)\n' +
+    '\n' +
+    '    // Offline-режим (headless-рендер mp4, см. renderFrameAt() ниже): вызывающий код (Kotlin-\n' +
+    '    // оркестратор через Playwright page.evaluate) выставляет _offline=true ДО init() — это отключает\n' +
+    '    // RAF-цикл, построение waveform-виджетов и wall-clock idle-переходы logo→splash/splash→logo,\n' +
+    '    // которые иначе делают кадр недетерминированным. _forcedTime, когда не null, полностью подменяет\n' +
+    '    // единственный источник времени контента (_getDisplayTime()) и панораму фона (_renderBackground()).\n' +
+    '    this._offline = false\n' +
+    '    this._forcedTime = null\n' +
+    '\n' +
+    '    this._logoImg = null\n' +
+    '    this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)\n' +
+    '    this._endFadeStartedAt = null // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash\n' +
+    '\n' +
+    '    // Render version params (from URL query: ?version=LYRICS|KARAOKE|DEMO&demoStart=X&demoEnd=Y)\n' +
+    "    this._renderVersion = null // 'LYRICS' | 'KARAOKE' | 'DEMO' | null (online mode)\n" +
+    '    this._demoStart = null // demo fragment start (seconds, original song time)\n' +
+    '    this._demoEnd = null // demo fragment end (seconds, original song time)\n' +
+    '    this._demoFadeInSeconds = 0 // demo audio fade-in duration (seconds, computed from markers)\n' +
+    '\n' +
+    '    this.canvas = null\n' +
+    '    this.ctx = null\n' +
+    '    this.animId = null\n' +
+    '\n' +
+    '    this.wsAcc = null\n' +
+    '    this.wsVoc = null\n' +
+    '    this._lastWsSync = 0\n' +
+    '    this._endedHandled = false\n' +
+    '\n' +
+    '    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека\n' +
+    '    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.\n' +
+    '    this.onTrackEnded = null\n' +
+    '\n' +
+    "    // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs\n" +
+    "    // 'page' (this player's own container fills the whole viewport it lives in — that's already\n" +
+    '    // true by default for a top-level /player/:id route AND for a same-origin iframe once its own\n' +
+    '    // box is resized to 100vw/100vh by the host page). Detected once at construction, not\n' +
+    `    // reconfigurable: a genuinely top-level page (webvue3 route, or the public site's "secret\n` +
+    `    // gesture" new-tab flow) has no host page to ask for a resize, so there IS no 'embed' mode for\n` +
+    '    // it — the wide-mode button stays permanently disabled in that case.\n' +
+    '    this._isEmbedded = window.self !== window.top\n' +
+    "    this._displayMode = this._isEmbedded ? 'embed' : 'page'\n" +
+    '    this._isFullscreen = false\n' +
+    '    this._preFullscreenDisplayMode = null // restored on exiting fullscreen\n' +
+    '\n' +
+    '    this._resizeHandler = () => this._resizeCanvas()\n' +
+    '    this._fsHandler = () => this._onFullscreenChange()\n' +
+    '    this._menuOutsideClickHandler = () => this._closeMenu()\n' +
+    '  }\n' +
+    '\n' +
+    '  async init() {\n' +
+    '    // Phase 1: show animated background immediately, before any network requests\n' +
+    '    this._buildUI()\n' +
+    '    this._bgCanvas = this._generateStarfield()\n' +
+    '    // Offline: кадры дёргаются снаружи ч'... 154783 more characters
+  
+      at TestContext.<anonymous> (file:///home/nsa/Karaoke/.worktrees/waveD-s2-18/webvue3/src/player/__tests__/karaoke-player-s2-18.test.js:137:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1120:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:789:18)
+      at Test.postRun (node:internal/test_runner/test:1249:19)
+      at Test.run (node:internal/test_runner/test:1177:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1535:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:789:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `// Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —\n// distinguished from other init errors so the UI can show a friendly message instead of raw details.\nclass PlayerUnavailableError extends Error {}\n\nimport { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'\n\nexport default class KaraokePlayer {\n  // Usage modes:\n  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api\n  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the\n  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review\n  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)\n  //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file\n  //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL\n  //   new KaraokePlayer(container, { inlineData: <playerdata-json> })    — данные прямо в памяти\n  //     (используется редактором караоке-разметки в webvue3, чтобы превью сразу показывало текущий\n  //     черновик без промежуточного HTTP-запроса). audioVocalsUrl/audioAccompanimentUrl в inlineData\n  //     могут быть относительными путями (например, /api/song/123/filevoice.mp3) — используются как есть.\n  constructor(container, songIdOrOptions, apiBase) {\n    this.container = container\n    if (\n      songIdOrOptions !== null &&\n      typeof songIdOrOptions === 'object' &&\n      ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)\n    ) {\n      this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'\n      this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl\n    } else if (\n      songIdOrOptions !== null &&\n      typeof songIdOrOptions === 'object' &&\n      'inlineData' in songIdOrOptions\n    ) {\n      // Новый режим: данные приходят inline (формат как у /api/song/{id}/playerdata). Никаких fetch,\n      // никаких blob — список голосов и маркеров готов к отрисовке сразу. Вызывающий код (karaoke-\n      // редактор) пересоздаёт плеер / подменяет данные при каждом изменении черновика.\n      this._mode = 'inlineData'\n      this._inlineData = songIdOrOptions.inlineData\n      // Необязательная высота корневого div плеера (по умолчанию '100vh'). В режиме обычной full-page\n      // страницы (PlayerView.vue) контейнер занимает весь viewport, поэтому 100vh корректно. В режиме\n      // модального окна редактора (SongKaraokeEditorView) контейнер ограничен высотой модалки (~440px),\n      // и если не передать высоту явно — canvas рисуется на 100vh экрана, а видна только верхняя\n      // четверть (звёзды из заставки), текст стихи оказывается за нижней границей видимой области.\n      this._containerHeight =\n        typeof songIdOrOptions.containerHeight === 'string' && songIdOrOptions.containerHeight\n          ? songIdOrOptions.containerHeight\n          : null\n      this.apiBase = apiBase || null\n    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {\n      this._mode = 'api'\n      this.songId = songIdOrOptions.songId\n      this.assignmentId = songIdOrOptions.assignmentId ?? null\n      this.target = songIdOrOptions.target ?? null\n      this.apiBase = apiBase\n    } else {\n      this._mode = 'api'\n      this.songId = songIdOrOptions\n      this.assignmentId = null\n      this.target = null\n      this.apiBase = apiBase\n    }\n    this._smkaraokeObjectUrls = []\n\n    this.audioCtx = null\n    this.accBuffer = null\n    this.vocBuffer = null\n    this.accSource = null\n    this.vocSource = null\n    this.accGain = null\n    this.vocGain = null\n    this.startedAt = 0\n    this.pausedAt = 0\n    this.isPlaying = false\n    this.duration = 0\n    this._volumeAnchored = false // "якорь": при true все треки идут к одной громкости\n    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте\n    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.\n    this._accVol = 100\n    this._vocVol = 0\n\n    // Скорость воспроизведения (множитель). Персистентна на весь инстанс — как и громкость выше,\n    // наследуется следующим треком плейлиста. _rateAnchorPos — позиция в буфере (сек) на момент\n    // последней перепривязки startedAt (старт/сик/смена скорости); вместе с startedAt и\n    // audioCtx.currentTime даёт текущую позицию без рестарта звуковых источников при смене\n    // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).\n    this._playbackRate = 1\n    this._rateAnchorPos = 0\n\n    // Транспонирование тональности (сдвиг в полутонах −12..+12 относительно базовой тональности\n    // data.key). 0 = базовая. В отличие от _playbackRate (глобальная настройка плеера), _transpose\n    // хранится per-song (localStorage по data.id) — см. _saveTranspose/_restoreTranspose.\n    // Реализация — ОФЛАЙН-предобработка буферов через SoundTouch.js (time-stretch pitch-shift):\n    // при выборе тональности стемы полностью транспонируются от ОРИГИНАЛЬНЫХ буферов\n    // (accBufferOriginal/vocBufferOriginal), затем воспроизведение продолжается с той же позиции\n    // в новой тональности. Не «на лету» — есть пауза на обработку с индикатором. _transposeSupported\n    // = false блокирует подменю с подсказкой (FR-018). _transposing=true во время обработки.\n    // @see archive/docs/features/player-transpose.md\n    this._transpose = 0\n    this._accBufferOriginal = null\n    this._vocBufferOriginal = null\n    this._transposeSupported = true\n    this._transposing = false\n\n    // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину\n    // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не\n    // только следующий трек плейлиста) подхватывает последние использованные значения.\n    const saved = KaraokePlayer._loadPersistedSettings()\n    if (saved) {\n      if (saved.accVol !== null) this._accVol = saved.accVol\n      if (saved.vocVol !== null) this._vocVol = saved.vocVol\n      if (saved.anchored !== null) this._volumeAnchored = saved.anchored\n      if (saved.playbackRate !== null) this._playbackRate = saved.playbackRate\n    }\n\n    // Значок ▶/⏸ по центру экрана при клике по видео-области (fade+pop, см. _renderScreenIconAnim)\n    this._screenIconAnim = null\n\n    // Pre-roll: splash (5s) + silent offset before first syllable\n    this._splashDur = 5.0\n    this._silentOffset = 0\n    this._preroll = 5.0 // splashDur + silentOffset, recalculated after parse\n    this._isPrerolling = false // true while wall-clock preroll is active\n    this._dtPaused = 0 // display time when paused during preroll\n    this._prerollRef = 0 // Date.now() when preroll clock was last started\n    this._prerollTimeout = null // setTimeout handle for preroll→audio transition\n\n    this.data = null\n    this.lines = []\n    this.voiceLines = []\n    this._bgCanvas = null\n    this._ready = false\n    this._loadProgress = null // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)\n\n    // Offline-режим (headless-рендер mp4, см. renderFrameAt() ниже): вызывающий код (Kotlin-\n    // оркестратор через Playwright page.evaluate) выставляет _offline=true ДО init() — это отключает\n    // RAF-цикл, построение waveform-виджетов и wall-clock idle-переходы logo→splash/splash→logo,\n    // которые иначе делают кадр недетерминированным. _forcedTime, когда не null, полностью подменяет\n    // единственный источник времени контента (_getDisplayTime()) и панораму фона (_renderBackground()).\n    this._offline = false\n    this._forcedTime = null\n\n    this._logoImg = null\n    this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)\n    this._endFadeStartedAt = null // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash\n\n    // Render version params (from URL query: ?version=LYRICS|KARAOKE|DEMO&demoStart=X&demoEnd=Y)\n    this._renderVersion = null // 'LYRICS' | 'KARAOKE' | 'DEMO' | null (online mode)\n    this._demoStart = null // demo fragment start (seconds, original song time)\n    this._demoEnd = null // demo fragment end (seconds, original song time)\n    this._demoFadeInSeconds = 0 // demo audio fade-in duration (seconds, computed from markers)\n\n    this.canvas = null\n    this.ctx = null\n    this.animId = null\n\n    this.wsAcc = null\n    this.wsVoc = null\n    this._lastWsSync = 0\n    this._endedHandled = false\n\n    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека\n    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.\n    this.onTrackEnded = null\n\n    // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs\n    // 'page' (this player's own container fills the whole viewport it lives in — that's already\n    // true by default for a top-level /player/:id route AND for a same-origin iframe once its own\n    // box is resized to 100vw/100vh by the host page). Detected once at construction, not\n    // reconfigurable: a genuinely top-level page (webvue3 route, or the public site's "secret\n    // gesture" new-tab flow) has no host page to ask for a resize, so there IS no 'embed' mode for\n    // it — the wide-mode button stays permanently disabled in that case.\n    this._isEmbedded = window.self !== window.top\n    this._displayMode = this._isEmbedded ? 'embed' : 'page'\n    this._isFullscreen = false\n    this._preFullscreenDisplayMode = null // restored on exiting fullscreen\n\n    this._resizeHandler = () => this._resizeCanvas()\n    this._fsHandler = () => this._onFullscreenChange()\n    this._menuOutsideClickHandler = () => this._closeMenu()\n  }\n\n  async init() {\n    // Phase 1: show animated background immediately, before any network requests\n    this._buildUI()\n    this._bgCanvas = this._generateStarfield()\n    // Offline: кадры дёргаются снаружи ч`... 154783 more characters,
+    expected: /KaraokePlayer\.RENDER_VERSION_SPLASH\[this\._renderVersion\]/,
+    operator: 'match',
+    diff: 'simple'
+  }

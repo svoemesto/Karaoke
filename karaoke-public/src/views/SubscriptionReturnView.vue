@@ -3,6 +3,25 @@
     <div class="sr-card">
       <div v-if="loading" class="sr-status">Проверяем статус оплаты...</div>
 
+      <!-- BR-350: сбой проверки — отдельное состояние, а НЕ «подписка не найдена».
+           Оплата могла уже пройти (статус PAID ставит вебхук ЮKassa), поэтому
+           предупреждаем не оплачивать повторно. -->
+      <div v-else-if="view === 'unauthorized'" class="sr-status sr-status-fail">
+        <div class="sr-icon">⚠️</div>
+        <div class="sr-title">Не удалось проверить статус</div>
+        <p class="sr-hint">Сессия истекла — войдите заново, чтобы увидеть статус оплаты.</p>
+        <RouterLink to="/login" class="sr-btn">Войти</RouterLink>
+      </div>
+      <div v-else-if="view === 'check-error'" class="sr-status sr-status-fail">
+        <div class="sr-icon">⚠️</div>
+        <div class="sr-title">Не удалось проверить статус</div>
+        <p class="sr-hint">
+          Сервер не ответил. Если оплата прошла, доступ уже открыт — не оплачивайте повторно.
+        </p>
+        <button class="sr-btn" @click="retryPoll">Повторить проверку</button>
+        <RouterLink to="/account/subscriptions" class="sr-btn">Мои подписки</RouterLink>
+      </div>
+
       <!-- Заказ «Корзины» — несколько песен одним платежом -->
       <template v-else-if="isCartOrder">
         <div v-if="orderSubs.length === 0" class="sr-status sr-status-fail">
@@ -84,6 +103,17 @@
 <script>
 import { authGet } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
+import {
+  POLL_OUTCOME,
+  POLL_VIEW,
+  classifyPollResponse,
+  subscriptionPollView,
+  nextPollDelay,
+} from '../utils/subscriptionPoll.js'
+
+// Попытки опроса: вебхук ЮKassa обычно приходит за секунды, 6 × 2 с — как было до правки.
+const MAX_POLL_ATTEMPTS = 6
+const POLL_INTERVAL_MS = 2000
 
 // Возврат после оплаты подписки (ЮKassa redirect confirmation). Вебхук ЮKassa может прийти чуть
 // позже, чем пользователь вернётся на сайт — поэтому поллим список подписок несколько раз, пока
@@ -101,7 +131,18 @@ export default {
     return { token }
   },
   data() {
-    return { loading: true, sub: null, orderSubs: [], attempts: 0 }
+    return {
+      loading: true,
+      sub: null,
+      orderSubs: [],
+      attempts: 0,
+      // BR-350 (аудит #336, PKG-S2-14): сколько ответов реально были 200 с массивом.
+      // «Подписка не найдена» нельзя показывать, пока не было ни одного успешного 200.
+      successfulPolls: 0,
+      // Явное состояние экрана: checking | processing | terminal | not-found |
+      // check-error | unauthorized (см. utils/subscriptionPoll.js).
+      view: POLL_VIEW.CHECKING,
+    }
   },
   computed: {
     isCartOrder() {
@@ -125,13 +166,23 @@ export default {
       const orderId = this.$route.query.orderId
       const subId = Number(this.$route.query.subId)
       if (!orderId && !subId) {
+        // Ни subId, ни orderId — проверять нечего, но это не «ошибка проверки».
+        this.view = POLL_VIEW.NOT_FOUND
         this.loading = false
         return
       }
       this.attempts++
+      let outcome = ''
+      // BR-350 (аудит #336, PKG-S2-14): раньше любой ответ, кроме 200 с массивом (401 от
+      // SiteAuthInterceptor, 500 от БД), и любой reject молча не меняли sub/orderSubs, а после
+      // 6 попыток шаблон показывал «Подписка не найдена» — при том что оплата уже могла пройти
+      // (статус PAID ставит вебхук ЮKassa, а не этот GET). Пользователь видел ложное
+      // «не найдена» и мог оплатить повторно.
       try {
         const { status, body } = await authGet('/api/public/account/subscription/list', this.token)
-        if (status === 200 && Array.isArray(body)) {
+        outcome = classifyPollResponse(null, status, body)
+        if (outcome === POLL_OUTCOME.OK) {
+          this.successfulPolls++
           if (orderId) {
             this.orderSubs = body.filter((s) => s.orderId === orderId)
           } else {
@@ -139,7 +190,7 @@ export default {
           }
         }
       } catch (e) {
-        /* попробуем ещё раз ниже */
+        outcome = classifyPollResponse(e, 0, null)
       }
       const terminal = orderId
         ? this.allTerminal
@@ -147,23 +198,44 @@ export default {
           (this.sub.status === 'PAID' ||
             this.sub.status === 'FAILED' ||
             this.sub.status === 'CANCELED')
-      if (!terminal && this.attempts < 6) {
-        setTimeout(() => this.poll(), 2000)
-      } else {
-        this.loading = false
-        // Подписка на конкретную песню (одиночная покупка) — сразу ведём на неё, не заставляя лишний
-        // раз кликать «Играть». Для заказа корзины (несколько песен) автопереход невозможен — просто
-        // показываем список.
-        if (
-          !orderId &&
-          this.sub &&
-          this.sub.status === 'PAID' &&
-          this.sub.scope === 'SONG' &&
-          this.sub.idSong
-        ) {
-          this.$router.replace(`/song?id=${this.sub.idSong}`)
-        }
+      this.view = subscriptionPollView({
+        outcome,
+        successfulPolls: this.successfulPolls,
+        hasResult: orderId ? this.orderSubs.length > 0 : !!this.sub,
+        terminal: !!terminal,
+      })
+      // 401 повтором не лечится — сразу показываем «войдите заново».
+      const retryable = this.view !== POLL_VIEW.UNAUTHORIZED
+      const delay = retryable
+        ? nextPollDelay(this.attempts, MAX_POLL_ATTEMPTS, POLL_INTERVAL_MS)
+        : null
+      if (!terminal && delay !== null) {
+        setTimeout(() => this.poll(), delay)
+        // Ошибку предыдущего ответа не прячем за спиннером: пользователь должен видеть,
+        // что проверка идёт, но последний ответ был неудачным (и что есть кнопка повтора).
+        this.loading = this.view !== POLL_VIEW.CHECK_ERROR
+        return
       }
+      this.loading = false
+      // Подписка на конкретную песню (одиночная покупка) — сразу ведём на неё, не заставляя лишний
+      // раз кликать «Играть». Для заказа корзины (несколько песен) автопереход невозможен — просто
+      // показываем список.
+      if (
+        !orderId &&
+        this.sub &&
+        this.sub.status === 'PAID' &&
+        this.sub.scope === 'SONG' &&
+        this.sub.idSong
+      ) {
+        this.$router.replace(`/song?id=${this.sub.idSong}`)
+      }
+    },
+    retryPoll() {
+      // Ручной повтор после «не удалось проверить статус» — начинаем отсчёт заново.
+      this.attempts = 0
+      this.view = POLL_VIEW.CHECKING
+      this.loading = true
+      this.poll()
     },
   },
 }
@@ -203,13 +275,16 @@ export default {
 }
 .sr-btn {
   display: inline-block;
-  margin-top: 1rem;
+  margin: 1rem 0.25rem 0;
   background: var(--km-accent, #0077ff);
   color: #fff;
+  border: none;
   border-radius: 8px;
   padding: 0.6rem 1.4rem;
+  font: inherit;
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
 }
 .sr-btn:hover {
   opacity: 0.9;

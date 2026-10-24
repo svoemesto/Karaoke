@@ -16,6 +16,11 @@
 
       <div v-if="loading" class="km-loading">Загрузка...</div>
 
+      <div v-else-if="loadError" class="km-load-error">
+        <p>{{ loadError }}</p>
+        <button class="km-new-btn" :disabled="loading" @click="reload">Повторить</button>
+      </div>
+
       <div v-else class="km-list">
         <div
           v-for="pl in playlists"
@@ -58,6 +63,7 @@ import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
 import { usePremiumModal } from '../composables/usePremiumModal'
 import { fetchPlaylists, createPlaylist, deletePlaylist } from '../services/playlistApi'
+import { classifyAuthOutcome, describeAuthOutcome } from '../utils/xhrOutcome.js'
 import AppHeader from '../components/AppHeader.vue'
 
 /**
@@ -75,7 +81,16 @@ export default {
     return { user, isLoggedIn, openPremiumRequired, openLimit }
   },
   data() {
-    return { playlists: [], loading: true, creating: false, busyId: null }
+    return {
+      playlists: [],
+      loading: true,
+      creating: false,
+      busyId: null,
+      // BR-339 (аудит #336, PKG-S2-14): ошибка загрузки списка. Раньше reject из authGet
+      // (обрыв сети/DNS/offline/таймаут) уходил из reload() в mounted, `loading` оставался
+      // true навсегда — шаблон крутил «Загрузка...» без сообщения и без повтора.
+      loadError: '',
+    }
   },
   computed: {
     isPremium() {
@@ -96,9 +111,21 @@ export default {
     },
     async reload() {
       this.loading = true
-      const { status, body } = await fetchPlaylists()
-      if (status === 200 && Array.isArray(body)) this.playlists = body
-      this.loading = false
+      this.loadError = ''
+      // finally снимает loading и на reject — состояние «Загрузка...» больше не залипает.
+      try {
+        const { status, body } = await fetchPlaylists()
+        const outcome = classifyAuthOutcome(null, status)
+        if (outcome === 'ok' && Array.isArray(body)) {
+          this.playlists = body
+          return
+        }
+        this.loadError = describeAuthOutcome(outcome === 'ok' ? 'http' : outcome)
+      } catch (e) {
+        this.loadError = describeAuthOutcome(classifyAuthOutcome(e, 0))
+      } finally {
+        this.loading = false
+      }
     },
     open(id) {
       this.$router.push({ path: `/account/playlists/${id}` })
@@ -188,6 +215,15 @@ const PREMIUM_BENEFITS = [
   padding: 2rem;
   text-align: center;
   color: var(--km-text2);
+}
+.km-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  color: #d64545;
+  text-align: center;
 }
 .km-empty {
   color: var(--km-text2);

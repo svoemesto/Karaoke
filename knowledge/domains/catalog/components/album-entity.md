@@ -89,7 +89,7 @@ COMPILATION, BOOTLEG, ARCHIVE, TRIBUTE]` — порядок группировк
 ### Методы (`companion object`)
 
 - `TABLE_NAME = "tbl_albums"`.
-- `loadList(whereArgs, limit, offset, database, storageService, storageApiClient, ignoreUseInList = true): List<Album>` — фильтры `getWhereList`: `id`, `author_id`, `year`, `name` (точный), `name_search` (частичный `LOWER(name) LIKE`), `album_type`.
+- `loadList(whereArgs, limit, offset, database, storageService, storageApiClient, ignoreUseInList = true): List<Album>` — фильтры `getWhereList`: `id`, `author_id`, `year`, `name` (точный), `name_search` (частичный `LOWER(name) LIKE`), `album_type` (только из `AlbumType.entries`). Значения параметризованы (`SqlWhere`, BR-237).
 - `getAlbumById(...)`, `getAlbumsByIds(...)`, `getAlbumByAuthorYearName(...)`, `getAlbumsByAuthorId(...)`.
 - `loadAlbumTilesWithCounts(...)` — плитки альбомов с счётчиками песен.
 - `countSongsByAlbumIds(...)` — `SELECT album_id, COUNT(*) ... GROUP BY album_id`.

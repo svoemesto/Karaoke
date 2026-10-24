@@ -52,7 +52,7 @@ Comparable<Author>, KaraokeDbTable` — `getTableName() = "tbl_authors"`,
 ### Статические методы (`companion object`)
 
 - `TABLE_NAME = "tbl_authors"`.
-- `loadList(whereArgs, limit, offset, database, storageService, storageApiClient, ignoreUseInList): List<Author>` — фильтры `getWhereList`: `id`, `author`, `ym_id`, `vk_id`, `last_album_ym`, `last_album_vk`, `last_album_processed`, `watched`, `haveNewAlbum` (`+`/`true` и `-`/`false`), `skip`, `is_special_order`.
+- `loadList(whereArgs, limit, offset, database, storageService, storageApiClient, ignoreUseInList): List<Author>` — фильтры `getWhereList`: `id`, `author`, `ym_id`, `vk_id`, `last_album_ym`, `last_album_vk`, `last_album_processed`, `watched`, `haveNewAlbum` (`+`/`true` и `-`/`false`), `skip`, `is_special_order`. Значения фильтров параметризованы (`SqlWhere`, BR-182 — см. [persistence](../../persistence/domain.md#параметризованный-where-sqlwhere)).
 - `getAuthorById(id, ...): Author?` — `KaraokeDbTable.loadById`.
 - `getAuthorsByIds(ids, ...): Map<Long, Author>` — пакетный `loadByIds`.
 - `getAuthorByName(author, ...)`, `loadIdsByNames(...)` (chunked `WHERE author IN (...)`), `loadAuthorTilesWithCounts(...)`.

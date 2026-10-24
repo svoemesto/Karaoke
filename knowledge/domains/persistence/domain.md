@@ -253,6 +253,15 @@ L3-компонентов у домена пока нет: контекст оп
 2. **`loadList` MUST использовать `WHERE id IN (..)`** для batch-операций,
    не по одной записи в цикле (Constitution II).
 3. **`recordhash`-триггер MUST быть на каждой sync-таблице**.
+4. **`recordhash`-функция MUST покрывать ВСЕ значимые колонки таблицы в
+   фиксированном порядке.** `getListHashes` сравнивает строки только по
+   `recordhash`, поэтому пропущенная колонка = «изменение не видно, на
+   SERVER не уезжает», а смена порядка = разные md5 у одной строки на
+   LOCAL и SERVER (полный re-sync на каждом проходе). Для `tbl_authors`
+   канонический набор (17 колонок) и порядок зафиксированы в
+   `deploy/karaoke-db/46_author_sort_order.sql` и `18_author_aliases.sql`,
+   обоснование — [sql-migrations.md](../../system/infra/sql-migrations.md)
+   Решение 6 (BR-534).
 4. **Соединение одноразового потока MUST закрываться детерминированно**
    (`startOneShotThread` → `closeThreadConnection()` в `finally`), а соединение
    переиспользуемого потока MUST оставаться в thread-local кеше (не закрывать).

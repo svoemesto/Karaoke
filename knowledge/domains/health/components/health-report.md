@@ -30,6 +30,8 @@ data class HealthReport(
     val problemText: String = "",
     val solutionText: String = "",
     val solutionActions: List<() -> Unit> = emptyList(),
+    val waitingFileTask: HealthReportBatchPool.WaitingFileTask? = null,
+    val storageStateUnknown: Boolean = false,
 )
 ```
 
@@ -43,6 +45,7 @@ data class HealthReport(
 | `problemText` | Человеческое описание проблемы | Если status ≠ OK |
 | `solutionText` | Человеческое описание решения | Если status ≠ OK и есть actions |
 | `solutionActions` | Лямбды для исправления | Если canResolve && status ∈ {ERROR, WARNING, IN_PROGRESS} |
+| `storageStateUnknown` | Проверка файла не выполнялась (circuit breaker open, `WAITING`); состояние хранилища неизвестно | Только в отчётах «хранилище недоступно» (BR-279, #376) |
 
 ### `HealthReportType`
 
@@ -122,6 +125,24 @@ enum class HealthReportStatus(val color: String) {
 
 Ветки восстановления, когда объектов в хранилищах нет, не менялись: ремонт из дисковой копии
 по-прежнему возможен, это не проверка актуальности.
+
+### Повторная проверка файла на диске перед сравнением (BR-278, #376)
+
+`existsInLocalFileSystem` вычисляется в `getHealthReportList` в самом начале, **до** походов
+в кеш метаданных, БД и MinIO. Сравнение размера (`File(pathToFile).length() == size`) идёт
+позже — через десятки–сотни миллисекунд. Если за это время файл переименован
+(каскад `SongArtifactRenamer.renameLocal`, specs/124) или удалён вручную, `File.length()`
+возвращает `0`, и старая формула выносила вердикт «неактуально»: repair удалял валидный
+объект из LOCAL/REMOTE-хранилища и ставил загрузку из уже несуществующего пути.
+
+Правило (BR-278):
+
+- существование файла проверяется **ещё раз непосредственно перед сравнением** —
+  `diskFileMatchesStoredSize(pathToFile, storedSize)`;
+- `null` (файл исчез, путь пуст) — это отдельная ветка «диск исчез», **не** «неактуально»:
+  `WARNING`, `canResolve = false`, объект хранилища не удаляется и не перезагружается;
+- `false` — файл есть, но размер другой; только здесь допустимы delete + upload;
+- то же правило действует и в зеркальной REMOTE-ветке `actionsRemoteStorage`.
 
 ### Hot spots и производительность
 
@@ -207,17 +228,27 @@ startRepairAll (async, HTTP thread) →
 - `song.pictureAlbumReady` ← `PICTURE_ALBUM` OK в `LOCAL_STORAGE`.
 - `song.pictureAuthorReady` ← `PICTURE_AUTHOR` OK в `LOCAL_STORAGE`.
 
-Внутренний helper `isOkInLocalStorage(karaokeFileType)`:
+Внутренний helper `localStorageReadinessVerdict(reports, karaokeFileType)`
+(до BR-279 — `isOkInLocalStorage`, возвращал только `Boolean`):
 
 ```kotlin
-fun isOkInLocalStorage(karaokeFileType: KaraokeFileType): Boolean =
-    reports.any {
-        it.description == "${karaokeFileType.name}/${LOCAL_STORAGE.name}" &&
-            it.healthReportStatus == OK
-    }
+// null — проверка не выполнялась: состояние хранилища неизвестно
+fun localStorageReadinessVerdict(reports, karaokeFileType): Boolean? {
+    val own = reports.filter { it.description == "${type}/${LOCAL_STORAGE.name}" }
+    if (own.any { it.storageStateUnknown || it.healthReportStatus == WAITING }) return null
+    return own.any { it.healthReportStatus == OK }
+}
 ```
 
-Если хотя бы один флаг изменился — `song.saveToDb()` (см. [persistence domain](../../persistence/domain.md)).
+**BR-279 (#376).** При открытом circuit breaker'е `actionsLocalStorage` файл не проверяет
+вовсе: возвращает `FATAL_ERROR` «Локальное хранилище недоступно» (`storageStateUnknown = true`).
+До правки это трактовалось как «файла нет», и кратковременный сбой локального MinIO
+(cooldown 30 с) обнулял `stemAccompanimentReady` / `stemVocalReady` / `pictureAlbumReady` /
+`pictureAuthorReady` у уже готовых песен — вплоть до записи в БД через `song.saveToDbLocked()`.
+Теперь `null` означает «неизвестно», и флаг сохраняет прежнее значение. Отсутствие отчёта
+по типу и настоящий `ERROR` (проверка выполнена, файла нет) по-прежнему дают `false`.
+
+Если хотя бы один флаг изменился — `song.saveToDbLocked()` (см. [persistence domain](../../persistence/domain.md)).
 
 **NB**: колонки `*Ready` создаются с `DEFAULT false` (см.
 `deploy/karaoke-db/26_player_readiness_flags.sql`), поэтому для ранее

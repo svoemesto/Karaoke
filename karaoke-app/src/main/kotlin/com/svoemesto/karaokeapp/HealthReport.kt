@@ -57,6 +57,13 @@ data class HealthReport(
      * блокирующую проверку и заполнить `StorageMetadataCache`.
      */
     val waitingFileTask: HealthReportBatchPool.WaitingFileTask? = null,
+    /**
+     * BR-279 (#376): проверка файла **не выполнена** — состояние хранилища
+     * неизвестно (circuit breaker открыт, запись `WAITING`). Такой отчёт
+     * нельзя трактовать как «файла нет»: `reconcilePlayerReadinessFlags`
+     * сохраняет прежнее значение флага готовности.
+     */
+    val storageStateUnknown: Boolean = false,
 ) {
     fun toDTO(): HealthReportDTO =
         HealthReportDTO(
@@ -698,6 +705,9 @@ data class HealthReport(
                         canResolve = false,
                         problemText = "Локальное хранилище недоступно (circuit breaker open)",
                         solutionText = "Проверьте доступность локального MinIO",
+                        // BR-279 (#376): файл не проверялся — состояние неизвестно.
+                        // reconcilePlayerReadinessFlags не должен сбрасывать флаги по такому отчёту.
+                        storageStateUnknown = true,
                     ),
                 )
                 return result
@@ -772,8 +782,20 @@ data class HealthReport(
                             cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
                                 storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
                             }
-                        val fileIsActual = localInfo == null || File(pathToFile).length() == localInfo.size
-                        if (!fileIsActual) { // Файл не актуальный
+                        // BR-278 (#376): существование файла проверяется ещё раз — прямо перед
+                        // сравнением. `existsInLocalFileSystem` вычислен в getHealthReportList
+                        // до походов в кеш/БД/MiniIO; за это время файл могли переименовать
+                        // (specs/124, SongArtifactRenamer) или удалить. `File.length()` у
+                        // исчезнувшего файла = 0, поэтому старая формула давала «неактуально»
+                        // и удаляла валидный объект хранилища. `null` = диск исчез → отдельная
+                        // ветка WARNING без удаления объекта.
+                        val fileIsActual =
+                            if (localInfo == null) {
+                                true
+                            } else {
+                                diskFileMatchesStoredSize(pathToFile, localInfo.size)
+                            }
+                        if (fileIsActual == false) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
                             healthReportStatus = ERROR
@@ -820,6 +842,14 @@ data class HealthReport(
                                 }
                                 actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
                             }
+                        } else if (fileIsActual == null) {
+                            // BR-278 (#376): файл исчез с диска между первичной проверкой и
+                            // сравнением. Это не «неактуально»: объект в хранилище не удаляем
+                            // и ничего не загружаем — иначе repair уничтожил бы валидную копию.
+                            healthReportStatus = WARNING
+                            canBeResolved = false
+                            problemText = DISK_FILE_VANISHED_PROBLEM_TEXT
+                            solutionText = DISK_FILE_VANISHED_SOLUTION_TEXT
                         }
                     } else if (existsInLocalFileSystem) {
                         // wayfinder #330: для storage-only типов дисковая копия — побочный продукт
@@ -1056,6 +1086,8 @@ data class HealthReport(
                         canResolve = false,
                         problemText = "Удалённое хранилище недоступно (circuit breaker open)",
                         solutionText = "Проверьте доступность remote MinIO",
+                        // BR-279 (#376): файл не проверялся — состояние неизвестно.
+                        storageStateUnknown = true,
                     ),
                 )
                 return result
@@ -1157,8 +1189,16 @@ data class HealthReport(
                                 storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
                                     ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                             }
-                        val fileIsActual = remoteInfo == null || File(pathToFile).length() == remoteInfo.size
-                        if (!fileIsActual) { // Файл не актуальный
+                        // BR-278 (#376): зеркало LOCAL-ветки — повторная проверка существования
+                        // файла перед сравнением, чтобы исчезнувший файл (переименование/удаление)
+                        // не приводил к удалению валидного объекта удалённого хранилища.
+                        val fileIsActual =
+                            if (remoteInfo == null) {
+                                true
+                            } else {
+                                diskFileMatchesStoredSize(pathToFile, remoteInfo.size)
+                            }
+                        if (fileIsActual == false) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
                             healthReportStatus = ERROR
@@ -1209,6 +1249,13 @@ data class HealthReport(
                                 }
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
+                        } else if (fileIsActual == null) {
+                            // BR-278 (#376): файл исчез с диска между проверкой и сравнением.
+                            // Объект удалённого хранилища не удаляем и не перезагружаем.
+                            healthReportStatus = WARNING
+                            canBeResolved = false
+                            problemText = DISK_FILE_VANISHED_PROBLEM_TEXT
+                            solutionText = DISK_FILE_VANISHED_SOLUTION_TEXT
                         }
                     } else if (existsInLocalFileSystem) {
                         // wayfinder #330: для storage-only типов дисковая копия не эталон —
@@ -2556,31 +2603,29 @@ data class HealthReport(
             song: Song,
             reports: List<HealthReport>,
         ) {
-            fun isOkInLocalStorage(karaokeFileType: KaraokeFileType): Boolean =
-                reports.any {
-                    it.description == "${karaokeFileType.name}/${LOCAL_STORAGE.name}" && it.healthReportStatus == OK
-                }
-
             var changed = false
-            isOkInLocalStorage(KaraokeFileType.MP3_ACCOMPANIMENT).let {
+            // BR-279 (#376): verdict == null означает «хранилище не проверено»
+            // (circuit breaker open / WAITING). Такой отчёт НЕ должен сбрасывать
+            // персистентный флаг: сохраняем прежнее значение и не пишем в БД.
+            localStorageReadinessVerdict(reports, KaraokeFileType.MP3_ACCOMPANIMENT)?.let {
                 if (song.stemAccompanimentReady != it) {
                     song.stemAccompanimentReady = it
                     changed = true
                 }
             }
-            isOkInLocalStorage(KaraokeFileType.MP3_VOCAL).let {
+            localStorageReadinessVerdict(reports, KaraokeFileType.MP3_VOCAL)?.let {
                 if (song.stemVocalReady != it) {
                     song.stemVocalReady = it
                     changed = true
                 }
             }
-            isOkInLocalStorage(KaraokeFileType.PICTURE_ALBUM).let {
+            localStorageReadinessVerdict(reports, KaraokeFileType.PICTURE_ALBUM)?.let {
                 if (song.pictureAlbumReady != it) {
                     song.pictureAlbumReady = it
                     changed = true
                 }
             }
-            isOkInLocalStorage(KaraokeFileType.PICTURE_AUTHOR).let {
+            localStorageReadinessVerdict(reports, KaraokeFileType.PICTURE_AUTHOR)?.let {
                 if (song.pictureAuthorReady != it) {
                     song.pictureAuthorReady = it
                     changed = true
@@ -2835,3 +2880,58 @@ internal const val STORAGE_MISMATCH_PROBLEM_TEXT = "Размеры файлов 
 
 /** Текст решения при реальном расхождении хранилищ: автоматически выбрать сторону нельзя. */
 internal const val STORAGE_MISMATCH_SOLUTION_TEXT = "Приведите хранилища к согласию вручную"
+
+/**
+ * BR-278 (#376): вердикт актуальности объекта хранилища по файлу на диске.
+ *
+ * `existsInLocalFileSystem` вычисляется в `getHealthReportList` **до** походов в
+ * кеш метаданных, БД и MinIO, а сравнение размеров идёт уже после них. За это
+ * время файл может исчезнуть (каскад переименования specs/124, ручное удаление).
+ * `File.length()` для исчезнувшего файла возвращает `0`, поэтому старая формула
+ * `File(path).length() == size` давала ложное «неактуально», и решение об
+ * удалении объекта хранилища принималось по неверному признаку.
+ *
+ * Существование проверяется ещё раз непосредственно перед сравнением.
+ *
+ * @return `true` — файл есть и его размер совпадает; `false` — файл есть, но
+ *   размер другой (действительно неактуально); `null` — файл исчез с диска или
+ *   путь пуст, вердикт «неактуально» выносить нельзя (в хранилище может лежать
+ *   валидный объект).
+ */
+internal fun diskFileMatchesStoredSize(
+    pathToFile: String,
+    storedSize: Long,
+): Boolean? {
+    if (pathToFile.isEmpty()) return null
+    val file = File(pathToFile)
+    if (!file.exists()) return null
+    return file.length() == storedSize
+}
+
+/**
+ * BR-279 (#376): готовность типа по отчётам `LOCAL_STORAGE`.
+ *
+ * `null` — состояние **неизвестно**: проверка не выполнена (circuit breaker
+ * открыт, запись `WAITING`), поэтому персистентный флаг готовности плеера
+ * перезаписывать нельзя. `false` — проверка выполнена и файла нет (прежнее
+ * поведение); `true` — файл проверен и `OK`.
+ *
+ * @see specs/376-pkg-s2-13/report.md
+ */
+internal fun localStorageReadinessVerdict(
+    reports: List<HealthReport>,
+    karaokeFileType: KaraokeFileType,
+): Boolean? {
+    val ownReports = reports.filter { it.description == "${karaokeFileType.name}/${LOCAL_STORAGE.name}" }
+    if (ownReports.any { it.storageStateUnknown || it.healthReportStatus == WAITING }) return null
+    return ownReports.any { it.healthReportStatus == OK }
+}
+
+/** Текст проблемы BR-278: файл исчез с диска, актуальность объекта не проверена. */
+internal const val DISK_FILE_VANISHED_PROBLEM_TEXT =
+    "Файл исчез с диска между проверкой существования и сравнением размеров: " +
+        "актуальность объекта в хранилище не проверена, объект не изменялся"
+
+/** Текст решения BR-278: пересчитать отчёт (файл мог быть переименован параллельно). */
+internal const val DISK_FILE_VANISHED_SOLUTION_TEXT =
+    "Пересчитайте отчёт: файл мог быть переименован или удалён параллельно"

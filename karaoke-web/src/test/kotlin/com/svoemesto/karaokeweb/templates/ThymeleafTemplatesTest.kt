@@ -2,6 +2,7 @@ package com.svoemesto.karaokeweb.templates
 
 import com.svoemesto.karaokeapp.model.NewsDto
 import com.svoemesto.karaokeapp.model.StatBySongDto
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -147,5 +148,52 @@ class ThymeleafTemplatesTest {
 
         assertTrue(html.contains("https://sm-karaoke.ru/news/2"), "безопасная ссылка должна попасть в разметку")
         assertTrue(html.contains("<a "), "заголовок новости — ссылка")
+    }
+
+    // ---- BR-016: ошибка БД не выглядит как настоящий ноль ----
+
+    private fun mainContext(
+        state: String,
+        onSponsr: Int = 0,
+    ): Context =
+        Context(
+            Locale("ru", "RU"),
+            mapOf(
+                "onSponsr" to onSponsr,
+                "onAir" to 0,
+                "exclusive" to 0,
+                "inWork" to 0,
+                "total" to 0,
+                "statsState" to state,
+                "latestNews" to emptyList<NewsDto>(),
+            ),
+        )
+
+    @Test
+    fun `BR-016 при warming_up главная показывает прочерк вместо нуля`() {
+        val html = engine().process("main", mainContext(state = "warming_up"))
+
+        assertTrue(html.contains("data-stats-state=\"warming_up\""), "состояние кеша должно попасть в разметку")
+        assertEquals(4, Regex(">—<").findAll(html).count(), "все четыре счётчика — «нет данных», а не 0")
+        assertFalse(html.contains("БД временно недоступна"), "ошибки ещё не было")
+    }
+
+    @Test
+    fun `BR-016 при ready настоящий ноль показывается нулём`() {
+        val html = engine().process("main", mainContext(state = "ready"))
+
+        assertTrue(html.contains("data-stats-state=\"ready\""))
+        assertEquals(0, Regex(">—<").findAll(html).count(), "ноль — это настоящий ноль, прочерка быть не должно")
+        assertTrue(html.contains(">0<"), "счётчик должен отрендерить 0")
+    }
+
+    @Test
+    fun `BR-016 при error главная показывает последние цифры и предупреждение`() {
+        val html = engine().process("main", mainContext(state = "error", onSponsr = 42))
+
+        assertTrue(html.contains("data-stats-state=\"error\""))
+        assertTrue(html.contains(">42<"), "последние успешные значения не подменяются нулями")
+        assertTrue(html.contains("БД временно недоступна"), "владелец должен видеть, что цифры устарели")
+        assertEquals(0, Regex(">—<").findAll(html).count())
     }
 }

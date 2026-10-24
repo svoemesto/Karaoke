@@ -94,11 +94,18 @@ class MainController(
         // содержимое теперь считается по новому правилу окна бесплатного доступа
         // (specs/143-song-free-access-window) — переименовывать сами имена атрибутов не стали,
         // это внутренние идентификаторы шаблона, не публичный контракт.
-        model.addAttribute("onSponsr", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
-        model.addAttribute("onAir", StatBySong.getCountSongsFreeNow(database = WORKING_DATABASE))
-        model.addAttribute("exclusive", StatBySong.getCountSongsSubscriptionOnly(database = WORKING_DATABASE))
-        model.addAttribute("inWork", StatBySong.getCountSongsInWork(database = WORKING_DATABASE))
-        model.addAttribute("total", StatBySong.getCountSongsTotal(database = WORKING_DATABASE))
+        //
+        // BR-016 (аудит #336): снимок и состояние читаются ОДНИМ вызовом — иначе между
+        // отдельными getter'ами фоновый пересчёт мог подменить набор, а «0 при warming_up»
+        // выглядел бы как настоящий ноль. `statsState` позволяет шаблону отличить
+        // «нет данных»/«ошибку» от нуля.
+        val counters = StatBySong.getCounters(database = WORKING_DATABASE)
+        model.addAttribute("onSponsr", counters.collection)
+        model.addAttribute("onAir", counters.freeNow)
+        model.addAttribute("exclusive", counters.subscriptionOnly)
+        model.addAttribute("inWork", counters.inWork)
+        model.addAttribute("total", counters.total)
+        model.addAttribute("statsState", counters.state.apiValue)
         // Блок «Последние 5 новостей» на главной (specs/144-homepage-latest-news). Тот же источник,
         // что и SPA + публичная лента /news (см. PublicNewsController.list). Намеренно используем
         // News.loadPublished напрямую (а не отдельный эндпоинт /latest) — единый код-путь,

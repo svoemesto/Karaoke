@@ -177,6 +177,23 @@ repos:
         files: '^karaoke-public/src/.*\.(vue|js|ts)$'
         stages: [pre-commit]
 
+      # === Guard: секреты не передаются через argv (BR-551/BR-552/BR-605, OP #382) ===
+      # Секрет в argv виден ЛЮБОМУ пользователю машины (`ps -eo args`,
+      # /proc/<pid>/cmdline). Ловит: `docker exec -e PGPASSWORD=…`,
+      # `docker login --password …`, `curl -H "Authorization: …"`,
+      # `curl -u user:pass`, пароль в строке подключения и пароль в URL.
+      # Безопасные формы (PGPASSWORD в окружении, --password-stdin,
+      # `curl --config -`, .pgpass) нарушением не считаются.
+      # Baseline: tools/check-secret-in-argv.baseline (6 legacy-нарушений вне
+      # пакета #382, сопоставление по содержимому строки — конвенция Pass 455).
+      - id: secret-in-argv-guard
+        name: secret in argv guard (BR-551/BR-552/BR-605)
+        entry: bash tools/check-secret-in-argv.sh --quiet
+        language: system
+        pass_filenames: false
+        files: '^(deploy|tools|specs)/.*\.(sh|bash)$|^tools/check-secret-in-argv\.(sh|baseline)$'
+        stages: [pre-commit]
+
       # === Guard: тест экранирования метки комментария (BR-523) ===
       # Проверяет, что регрессионный тест «взведён» (падает на уязвимом снимке
       # кода и проходит на исправленном) и что его skip-состояние соответствует

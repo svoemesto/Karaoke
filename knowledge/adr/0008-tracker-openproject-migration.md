@@ -118,6 +118,9 @@
 - ✅ Constitution § I (Self-Contained) — нет внешних сервисов, всё self-hosted.
 - ✅ Constitution § VIII (Secrets) — `TRACKER_API_TOKEN`, `TRACKER_DB_PASSWORD`,
   `TRACKER_SECRET_KEY_BASE` — в `.env.local-tracker` (в `.gitignore`).
+- ✅ Секреты **не в argv** (OpenProject #382, BR-552/BR-605) — API-токен уходит в
+  curl через stdin (`curl --config -`), пароль БД — через stdin в одноразовый
+  `.pgpass` внутри контейнера. Guard: `tools/check-secret-in-argv.sh`.
 - ✅ AGENTS.md «Разрешено» — локальные контейнеры через отдельный
   compose-файл (не часть `deploy/do.sh` основного стека Karaoke).
 - ✅ FR-001..FR-018 спеки 295 — все реализованы (см. AC в

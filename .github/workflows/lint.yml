@@ -297,6 +297,29 @@ jobs:
       - name: Check marker escaping test (до/после)
         run: bash tools/check-marker-escape-guard.sh
 
+  # === Guard: секреты не передаются через argv (BR-551/BR-552/BR-605, OP #382) ===
+  # Секрет в argv виден любому пользователю машины (`ps -eo args`,
+  # /proc/<pid>/cmdline). Джоб ловит `docker exec -e PGPASSWORD=…`,
+  # `docker login --password …`, `curl -H "Authorization: …"`, `curl -u user:pass`,
+  # пароль в строке подключения и пароль в URL — в deploy/, tools/, specs/.
+  # Baseline: tools/check-secret-in-argv.baseline (известные legacy-нарушения
+  # вне пакета #382). Безопасные формы (PGPASSWORD в окружении,
+  # --password-stdin, `curl --config -`, .pgpass) нарушением не считаются.
+  secret-in-argv-guard:
+    name: secret in argv guard (BR-551/BR-552/BR-605)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secret in argv
+        run: bash tools/check-secret-in-argv.sh
+
+      - name: Self-test правил guard'а
+        # Каждое правило обязано ловить «плохой» пример и не ловить «хороший».
+        run: bash tools/check-secret-in-argv.sh --self-test
+
   # === E2E публичного сайта (BR-525) ===
   # Раньше e2e не выполнялись в CI вообще — расхождение «код в master» vs
   # «образ на сервере» обнаруживалось только вручную (прецедент #200–#203).

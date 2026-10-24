@@ -8,11 +8,16 @@
 # Секреты НЕ хранятся в этом скрипте — берутся из ../.env.local-tracker
 # (переменная TRACKER_DB_PASSWORD). См. Constitution § VIII.
 #
+# Пароль БД НЕ попадает в argv (BR-552, OpenProject #382): он передаётся в
+# контейнер по stdin и используется через одноразовый .pgpass (0600),
+# который удаляется сразу после дампа. В `ps` виден только путь к .pgpass.
+#
 # Алгоритм:
 #   1. Проверить, что .env.local-tracker существует.
 #   2. Загрузить TRACKER_DB_PASSWORD.
 #   3. Проверить, что контейнер openproject-db запущен.
 #   4. pg_dump в custom format (-Fc) → /backups/tracker-YYYY-MM-DD.dump
+#      (пароль — через stdin + .pgpass внутри контейнера, не через argv).
 #   5. Удалить дампы старше 7 дней.
 # =====================================================================
 
@@ -67,21 +72,46 @@ mkdir -p "$BACKUP_DIR" 2>/dev/null || true
 # --- Бэкап ---
 log "Начало бэкапа БД ${DB_NAME} → ${DUMP_FILE}"
 
+# BR-552 (OpenProject #382): пароль БД НЕ передаётся через argv.
+# Раньше: `docker exec -e PGPASSWORD="$TRACKER_DB_PASSWORD"` — секрет виден в
+# `ps -eo args` ЛЮБОМУ пользователю машины. Теперь пароль уходит в контейнер
+# по stdin и кладётся в одноразовый .pgpass (права 0600), который удаляется
+# сразу после дампа. В argv остаются только имя контейнера, порт, пользователь
+# и имя БД — секретом не являются.
+#
 # pg_dump через docker exec (используем TCP-соединение через хост)
 # -Fc — custom format (сжатый, совместим с pg_restore --clean --if-exists)
 # -h localhost -p 5435 — подключение к Postgres через host network
-if ! docker exec \
-    -e PGPASSWORD="$TRACKER_DB_PASSWORD" \
+PGPASS_PATH="/tmp/.pgpass.$$"
+
+# Экранирование спецсимволов .pgpass: разделитель полей — ':', escape — '\'.
+pgpass_escape() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//:/\\:}"
+    printf '%s' "$s"
+}
+
+PGPASS_LINE="localhost:${DB_PORT}:${DB_NAME}:${DB_USER}:$(pgpass_escape "${TRACKER_DB_PASSWORD}")"
+
+if ! docker exec -i \
     "$CONTAINER_NAME" \
-    pg_dump \
-        -h localhost \
-        -p "$DB_PORT" \
-        -U "$DB_USER" \
-        --dbname="$DB_NAME" \
-        -Fc \
-        --no-owner \
-        --no-privileges \
-        --no-password > "$DUMP_FILE.tmp" 2>"$DUMP_FILE.err"; then
+    sh -c 'pgpass="$1"
+umask 077
+cat > "$pgpass" || exit 1
+PGPASSFILE="$pgpass" pg_dump \
+    -h localhost \
+    -p "$2" \
+    -U "$3" \
+    --dbname="$4" \
+    -Fc \
+    --no-owner \
+    --no-privileges \
+    --no-password
+rc=$?
+rm -f "$pgpass"
+exit $rc' sh "$PGPASS_PATH" "$DB_PORT" "$DB_USER" "$DB_NAME" \
+    <<<"$PGPASS_LINE" > "$DUMP_FILE.tmp" 2>"$DUMP_FILE.err"; then
     log "ERROR: pg_dump завершился с ошибкой:"
     sed 's/^/  /' "$DUMP_FILE.err" >&2
     rm -f "$DUMP_FILE.tmp" "$DUMP_FILE.err"

@@ -23,6 +23,35 @@ fi
 
 source ${DEPLOY_DIR}/do.env
 
+# BR-551 (OpenProject #382): логин в registry — пароль только через stdin.
+# Было: `${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}` —
+# секрет виден в `ps -eo args` ЛЮБОМУ пользователю машины, а логином был
+# namespace образов (DOCKER_REGISTRY), а не пользователь.
+# Стало: сервер и пользователь задаются явно (REGISTRY_HOST/REGISTRY_USER),
+# пароль уходит на stdin (--password-stdin).
+function do_registry_login() {
+  local server="${REGISTRY_HOST:-}"
+  local user="${REGISTRY_USER:-${DOCKER_HUB_USER:-}}"
+  local pass="${REGISTRY_PASSWORD:-${DOCKER_PASSWORD:-}}"
+
+  if [[ -z "${user}" ]]; then
+    echo "ERROR: не задано имя пользователя registry (REGISTRY_USER/DOCKER_HUB_USER) в do.env" >&2
+    echo "       Впишите реального пользователя (не namespace образа) и повторите." >&2
+    return 1
+  fi
+  if [[ -z "${pass}" ]]; then
+    echo "ERROR: не задан пароль registry (REGISTRY_PASSWORD/DOCKER_PASSWORD) в do.env" >&2
+    return 1
+  fi
+
+  if [[ -n "${server}" ]]; then
+    printf '%s' "${pass}" | ${DOCKER} login "${server}" -u "${user}" --password-stdin
+  else
+    # Старый do.env без REGISTRY_HOST — логин в Docker Hub (как было раньше).
+    printf '%s' "${pass}" | ${DOCKER} login -u "${user}" --password-stdin
+  fi
+}
+
 function build_web() {
   echo "Building WEB module"
   ${DOCKER} image build $DEPLOY_DIR/karaoke-web-jar/ \
@@ -34,8 +63,11 @@ function build_web() {
 
 function pull_web() {
   echo "Pull WEB image from registry"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
-  ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:1"
+  do_registry_login || { echo "ERROR: логин в registry не удался — образы НЕ трогаем." >&2; return 1; }
+  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:1"; then
+    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-web:1 не скачан — контейнер НЕ трогаем." >&2
+    return 1
+  fi
   do_start_web
 }
 
@@ -52,8 +84,11 @@ function do_stop_public() {
 
 function pull_public() {
   echo "Pull PUBLIC image from registry"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
-  ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:1"
+  do_registry_login || { echo "ERROR: логин в registry не удался — образы НЕ трогаем." >&2; return 1; }
+  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:1"; then
+    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-public:1 не скачан — контейнер НЕ трогаем." >&2
+    return 1
+  fi
   do_start_public
 }
 

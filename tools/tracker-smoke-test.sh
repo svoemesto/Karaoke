@@ -86,8 +86,12 @@ fi
 # --- Получаем type ID для "Task" ---
 echo "  ... получаем type ID для 'Task'..."
 # ВАЖНО: OpenProject Basic Auth требует username='apikey' (см. UserBasicAuth warden-strategy)
-TYPES_RESPONSE=$(curl -fsS -u "apikey:${TRACKER_API_TOKEN}" \
-    "${TRACKER_URL}/api/v3/types?pageSize=100" 2>/dev/null || echo "{}")
+# BR-605 (OpenProject #382): токен НЕ передаётся через argv. Раньше было
+# `curl -u "apikey:${TRACKER_API_TOKEN}"` — токен виден в `ps -eo args` любому
+# пользователю машины. Теперь заголовок уходит в curl через stdin (--config -).
+AUTH_HEADER_B64=$(printf '%s:%s' 'apikey' "${TRACKER_API_TOKEN}" | base64 -w 0)
+TYPES_RESPONSE=$(curl -fsS --config - \
+    "${TRACKER_URL}/api/v3/types?pageSize=100" 2>/dev/null <<<"header = \"Authorization: Basic ${AUTH_HEADER_B64}\"" || echo "{}")
 TASK_TYPE_ID=$(echo "$TYPES_RESPONSE" | jq -r '._embedded.elements[]? | select(.name == "Task" or .title == "Task") | .id' | head -1)
 
 if [ -z "$TASK_TYPE_ID" ]; then

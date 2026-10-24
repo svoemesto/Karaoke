@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: tracker-local-integration
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-10-24
 > **Spec**: [specs/295-jira-local-integration/spec.md](../../specs/295-jira-local-integration/spec.md)
 > **Created**: 2026-09-02
 > **История**: Pass 295, v295.2.0 — миграция с Jira DC на OpenProject.
@@ -69,7 +69,7 @@ CLI (`tools/tracker.sh`) забирает их, выполняет и публи
 | Файл | Назначение |
 |------|-----------|
 | `deploy/tracker-docker-compose.yml` | Compose для OpenProject + Postgres (изолирован от Karaoke) |
-| `deploy/tracker-db-backup.sh` | Bash-скрипт для ежедневного бэкапа через `pg_dump -Fc` |
+| `deploy/tracker-db-backup.sh` | Bash-скрипт для ежедневного бэкапа через `pg_dump -Fc`. Пароль БД **не в argv**: уходит в контейнер по stdin и используется через одноразовый `.pgpass` (0600), который удаляется сразу после дампа (BR-552) |
 | `deploy/tracker-db-backup.service` | systemd-user unit для backup |
 | `deploy/tracker-db-backup.timer` | systemd-user timer (03:00 daily) |
 
@@ -78,10 +78,10 @@ CLI (`tools/tracker.sh`) забирает их, выполняет и публи
 | Файл | Подкоманды |
 |------|-----------|
 | `tools/tracker.sh` | Главный CLI (8 подкоманд): `list-projects`, `list-issues`, `get-issue`, `claim-issue`, `add-comment`, `close-issue`, `reopen-issue`, `create-issue`, `healthcheck`. `list-issues --raw` — TSV без выравнивания `column -t` (для машинного разбора) |
-| `tools/tracker-lib.sh` | Общие функции: HTTP wrapper с retry на 429, JSON-логирование, Basic Auth. Библиотека подключается через `source` и **не меняет настройки вызывающего шелла** (режим `set` задаёт сам вызывающий скрипт) |
+| `tools/tracker-lib.sh` | Общие функции: HTTP wrapper с retry на 429, JSON-логирование, Basic Auth. Библиотека подключается через `source` и **не меняет настройки вызывающего шелла** (режим `set` задаёт сам вызывающий скрипт). Заголовок `Authorization` уходит в curl **через stdin** (`curl --config -`), токен не попадает в argv (BR-605) |
 | `tools/tracker-poll.sh` | Polling-сводка задач (`--human` / `--json` / `--quiet`). Режим `--json` разбирает вывод `list-issues --raw` (колонки разделены табом) → `id` / `subject` / `status` заполнены корректно |
 | `tools/install-tracker.sh` | First-run setup: проверка Docker, создание `.env.local-tracker`, `docker compose up`, ожидание healthcheck |
-| `tools/tracker-smoke-test.sh` | End-to-end проверка (8 шагов) |
+| `tools/tracker-smoke-test.sh` | End-to-end проверка (8 шагов). Запрос типов — с тем же `curl --config -`: токен не в argv (BR-605) |
 
 #### Конфигурация (вне git)
 
@@ -156,6 +156,7 @@ CLI (`tools/tracker.sh`) забирает их, выполняет и публи
 ## Инварианты
 
 - **MUST**: секреты трекера живут только в `.env.local-tracker` вне git; в репозиторий коммитится лишь шаблон `.env.local-tracker.example` (Constitution § VIII, `.gitignore` строка `.env.local-tracker`).
+- **MUST**: секреты трекера **не передаются через argv** (BR-605, BR-552) — API-токен уходит в curl через stdin (`curl --config -`, `header = "Authorization: …"`), пароль БД — через stdin в одноразовый `.pgpass` внутри контейнера. В `ps -eo args` секрета нет. Проверяется guard'ом `tools/check-secret-in-argv.sh`.
 - **MUST**: каждый изменяющий PATCH отправляется с актуальным `lockVersion`; при конфликте CLI делает повторный GET и повторяет PATCH (не более 3 попыток) — FR-018 спеки 295.
 - **MUST**: ответ HTTP 429 ретраится с экспоненциальным backoff 2s → 4s → 8s (не более 3 retry), затем ошибка — спека 295, `TRACKER_HTTP_BACKOFFS=(2 4 8)` в `tools/tracker-lib.sh`.
 - **MUST**: каждый вызов CLI оставляет ровно одну JSON-запись в аудит-логе (SC-011).

@@ -607,14 +607,10 @@ class KaraokeStorageServiceImpl(
         createBucketIfNotExists(bucketName)
         if (bucketExists(bucketName)) {
             try {
-                // Политика по умолчанию — приватная (без политики)
-                storageClient.setBucketPolicy(
-                    SetBucketPolicyArgs
-                        .builder()
-                        .bucket(bucketName)
-                        .config("") // пустая политика = приватный доступ
-                        .build(),
-                )
+                // Политику снимаем, а не задаём пустую: MinIO отвергает пустой документ
+                // (InvalidArgument) — «приват» на существующем публичном бакете молча
+                // не срабатывал (найдено при развёртывании 2026-10-24).
+                deleteBucketPolicyQuietly(storageClient, bucketName)
             } catch (e: MinioException) {
                 throw RuntimeException("Failed to set bucket as private: ${e.message}", e)
             }

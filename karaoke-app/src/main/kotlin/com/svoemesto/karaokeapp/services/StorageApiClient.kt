@@ -472,13 +472,11 @@ class StorageApiClientImpl(
     override fun setBucketPrivate(bucketName: String): Mono<String> =
         Mono.fromCallable {
             createBucketIfNotExists(bucketName)
-            storageClient.setBucketPolicy(
-                SetBucketPolicyArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .config("")
-                    .build(),
-            )
+            // Политику снимаем, а не задаём пустую: MinIO отвергает пустой документ
+            // (InvalidArgument), и «приват» на существующем публичном бакете молча
+            // не срабатывал — бакет оставался анонимно читаемым. removeBucketPolicy
+            // снимает политику; если её нет — бакет уже приватный (NoSuchBucketPolicy).
+            deleteBucketPolicyQuietly(storageClient, bucketName)
             "OK"
         }
 

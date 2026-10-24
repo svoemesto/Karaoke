@@ -532,6 +532,7 @@ export default {
 
     changeValue(item) {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Изменение Автора',
         body: `Автор ID = <strong>${item.id}</strong>`,
         callback: this.doChangeValue,

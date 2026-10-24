@@ -2,8 +2,10 @@
   <transition name="modal-fade">
     <div class="сс-modal-backdrop">
       <div class="сс-area">
-        <div :style="styleHeader" v-html="params.header" />
-        <div :style="styleBody" v-html="params.body" />
+        <div v-if="params.allowHtml" :style="styleHeader" v-html="params.header" />
+        <div v-else :style="styleHeader" v-text="params.header" />
+        <div v-if="params.allowHtml" :style="styleBody" v-html="params.body" />
+        <div v-else :style="styleBody" v-text="params.body" />
         <div v-if="params.fields" class="сс-params">
           <div v-for="fld in params.fields" :key="fld" class="сс-param-line-fields">
             <div :style="fld.fldLabelStyle" v-text="fld.fldLabel" />
@@ -91,8 +93,24 @@
  * - `confirmText` / `cancelText` — кнопки (по умолчанию «ОК»/«Отмена»).
  * - `onConfirm` / `onCancel` — колбэки (или `Promise`).
  *
- * Использует `v-html` для message (поэтому message должен быть
- * подготовленным, не пользовательским вводом).
+ * РЕЖИМ ВЫВОДА (спека #558, OpenProject #360, BR-123). По умолчанию `header` и
+ * `body` выводятся как ТЕКСТ (`v-text` → `textContent`): разметка в значении не
+ * создаёт элементов и не выполняет сценариев. Сырая разметка принимается только
+ * при ЯВНОМ `params.allowHtml === true` — это осознанное решение вызывающего кода.
+ *
+ * ПОЧЕМУ ТАК. Раньше `message` всегда выводился через `v-html`, и комментарий
+ * компонента утверждал, что «message должен быть подготовленным, не пользовательским
+ * вводом». Это было фактически неверно: в 43 местах подтверждений админки в текст
+ * подставлялись пользовательские данные (имя песни, e-mail, имя картинки, имя
+ * автора, слово и словарь, выделенный текст песни, отчёт синхронизации, параметры
+ * Smart Copy) — и разметка из них выполнялась в сессии администратора. Правило
+ * линтера `vue/no-v-html` выключено, поэтому защита строится здесь: по умолчанию
+ * текст, HTML — только по явному решению.
+ *
+ * ПРАВИЛО СБОРКИ. В блоке с `allowHtml: true` пользовательские значения обязаны быть
+ * экранированы при сборке текста — «на входе», а не «на выходе»:
+ * `${escapeHtml(this.song.songName)}`. Экранирование применяется ровно один раз.
+ * См. `knowledge/domains/integration/components/song-public-dto.md` (прецедент #215).
  *
  * Элементы `params.fields[]` рендерятся как `<input>` по умолчанию, `fldIsBoolean`/`fldIsSelect` —
  * как переключатель/`<select>`, `fldIsTextarea: true` — как многострочный `<textarea>`
@@ -100,6 +118,7 @@
  *
  * @emits close - закрытие модалки (с `confirmed: true/false`)
  * @see AGENTS.md
+ * @see specs/558-escape-song-name-confirm/spec.md
  * @see specs/012-entity-description-fields/spec.md
  */
 export default {

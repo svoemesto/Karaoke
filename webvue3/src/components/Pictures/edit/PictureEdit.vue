@@ -91,6 +91,7 @@
 
 <script>
 import CustomConfirm from '../../Common/CustomConfirm.vue'
+import { escapeHtml } from '../../../utils/escapeHtml.js'
 import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
 import { useToast } from 'bootstrap-vue-next'
 import { h } from 'vue'
@@ -289,8 +290,9 @@ export default {
     },
     deletePicture() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите удаление картинки',
-        body: `Удалить картинку <strong>«${this.pictureCurrent.name}»</strong>?`,
+        body: `Удалить картинку <strong>«${escapeHtml(this.pictureCurrent.name)}»</strong>?`,
         timeout: 10,
         callback: this.doDeletePicture,
       }

@@ -289,6 +289,7 @@ export default {
     },
     changeValue(item) {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Изменение значения настройки',
         body: `Значение настройки <strong>${item.key}.</strong>`,
         callback: this.doChangeValue,

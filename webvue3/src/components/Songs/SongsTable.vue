@@ -1515,6 +1515,7 @@ export default {
       const defaultEngine = await this.$store.getters.getPropValue('lyricsSearchEngine')
       const defaultTimeout = await this.$store.dispatch('getLyricsSearchTimeout')
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите поиск текста',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Найти в Интернете тексты для всех песен, для которых ещё нет текстов? Ранее сохранённые результаты поиска (если есть) будут удалены.`,
         fields: [
@@ -1557,6 +1558,7 @@ export default {
     },
     addSyncForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите добавление записей в SYNC-таблицу',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Добавить эти песни в SYNC-таблицу?`,
         timeout: 10,
@@ -1569,6 +1571,7 @@ export default {
     },
     createKaraokeForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание караоке',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать караоке для всех песен?`,
         callback: this.doCreateKaraokeForAll,
@@ -1649,6 +1652,7 @@ export default {
     },
     createDemucs2ForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание DEMUCS2',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать DEMUCS2 для всех песен?`,
         callback: this.doCreateDemucs2ForAll,
@@ -1700,6 +1704,7 @@ export default {
         console.error('Не удалось прочитать настройку alignmentUseFinetunedModel:', error)
       }
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание процесса «Точные маркеры»',
         body:
           `Выбрано песен: <strong>${this.countRows}.</strong><br>Расставить маркеры через ` +
@@ -1758,6 +1763,7 @@ export default {
     },
     createDemucs5ForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание DEMUCS5',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать DEMUCS5 для всех песен?`,
         callback: this.doCreateDemucs5ForAll,
@@ -1797,6 +1803,7 @@ export default {
     },
     createSheetsageForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание SHEETSAGE',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать SHEETSAGE для всех песен?`,
         callback: this.doCreateSheetsageForAll,
@@ -1835,6 +1842,7 @@ export default {
     },
     createMP3KaraokeForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание MP3 KARAOKE',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать MP3 KARAOKE для всех песен?`,
         callback: this.doCreateMP3KaraokeForAll,
@@ -1876,6 +1884,7 @@ export default {
     },
     createMP3LyricsForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание MP3 LYRICS',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать MP3 LYRICS для всех песен?`,
         callback: this.doCreateMP3LyricsForAll,
@@ -1928,6 +1937,7 @@ export default {
     // Спека #446: сброс persistent-кеша хранилища для песней текущей страницы.
     resetStorageCacheForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите сброс кеша хранилища',
         body: `Сбросить кеш хранилища для песен на странице (${this.currentPageSongIds.length})?<br>После сброса health-report перечитает реальное состояние MinIO.`,
         callback: this.doResetStorageCacheForAll,
@@ -1944,6 +1954,7 @@ export default {
           const rowsDeleted =
             response && response.rowsDeleted !== undefined ? response.rowsDeleted : '?'
           this.customConfirmParams = {
+            allowHtml: true,
             isAlert: true,
             alertType: 'info',
             header: 'Кеш хранилища сброшен',
@@ -1967,6 +1978,7 @@ export default {
     },
     createSymlinksForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание SYMLINKs',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать SYMLINKs для всех песен?`,
         callback: this.doCreateSymlinksForAll,
@@ -2007,6 +2019,7 @@ export default {
 
     updateStoreForAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите обновление хранилища',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Скопировать недостающие файлы в хранилище<br>и создать задачи на кодирование недостающих 720p?`,
         callback: this.doUpdateStoreForAll,
@@ -2051,6 +2064,7 @@ export default {
         .then((data) => {
           let result = JSON.parse(data)
           this.customConfirmParams = {
+            allowHtml: true,
             isAlert: true,
             alertType: 'info',
             header: 'Обновление хранилища',

@@ -489,6 +489,7 @@ export default {
     },
     changeValue(item) {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Изменение альбома',
         body: `Альбом ID = <strong>${item.id}</strong>`,
         callback: this.doChangeValue,

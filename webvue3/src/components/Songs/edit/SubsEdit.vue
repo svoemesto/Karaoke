@@ -1207,7 +1207,8 @@ import Hover from 'wavesurfer.js/dist/plugins/hover.esm.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
-import { escapeHtml, highlightWords } from '../../../utils/highlightWords.js'
+import { highlightWords } from '../../../utils/highlightWords.js'
+import { escapeHtml } from '../../../utils/escapeHtml.js'
 import { findMarkerIndexByTime } from '../../../utils/markerIndex.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
@@ -4945,6 +4946,7 @@ export default {
     },
     doAutoMarkers() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Распознать текст (Whisper)',
         body:
           `Распознать вокал голоса «<strong>${this.currentVoice + 1}</strong>» через Whisper и ` +
@@ -5028,6 +5030,7 @@ export default {
       }
 
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Точные маркеры (forced-alignment)',
         body:
           `Согласовать текст голоса «<strong>${this.currentVoice + 1}</strong>» с Whisper (найти реально спетые, ` +
@@ -5140,8 +5143,9 @@ export default {
       let selectedText = this.getSelectedText()
       if (selectedText) {
         this.customConfirmParams = {
+          allowHtml: true,
           header: 'Добавление слова в словарь',
-          body: `Добавить слово «<strong>${selectedText.toLowerCase()}</strong>»?`,
+          body: `Добавить слово «<strong>${escapeHtml(selectedText.toLowerCase())}</strong>»?`,
           timeout: 10,
           // Выбор словаря — полем в самой модалке, тем же способом, каким
           // выбирается движок поиска при повторном поиске текста (SearchText.vue,
@@ -5177,8 +5181,9 @@ export default {
       let selectedText = this.getSelectedText()
       if (selectedText) {
         this.customConfirmParams = {
+          allowHtml: true,
           header: 'Удаление слова из словаря',
-          body: `Удалить слово «<strong>${selectedText.toLowerCase()}</strong>»?`,
+          body: `Удалить слово «<strong>${escapeHtml(selectedText.toLowerCase())}</strong>»?`,
           timeout: 10,
           fields: [
             {

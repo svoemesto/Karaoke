@@ -118,6 +118,38 @@ fallback'ы. Текущее поведение `save()` этому против�
 Аргументы — Map<String, String> для фильтрации (`song_id=123`,
 `is_active=true`). Генерирует `WHERE` clause динамически.
 
+### Соединение на поток (ThreadLocal) и его жизненный цикл
+
+`KaraokeConnection` кэширует **физическое** `java.sql.Connection` в `ThreadLocal`
+потока (см. `specs/087-fix-shared-db-connection`); фабрики `Connection.local()`/
+`remote()` — singleton'ы (`specs/234-db-sync-connection-leak`). Итог: **один
+устойчивый канал к БД на поток выполнения**, переиспользуемый между запросами.
+
+Отсюда — два разных (и взаимоисключающих) требования к закрытию:
+
+| Тип потока | Примеры | `closeThreadConnection()` | Почему |
+|---|---|---|---|
+| **Одноразовый** | фоновые задачи API-контроллеров, поток очереди `KaraokeProcessWorker`, воркер `SyncAudioDescendants`, `KaraokeProcessThread` | **ОБЯЗАТЕЛЬНО** в `finally` | поток умирает и больше не позовёт `getConnection()` — соединение нечем переиспользовать, канал остаётся открытым до финализации сборщиком мусора |
+| **Переиспользуемый** | пул потоков Tomcat (HTTP-запросы), `@Scheduled`, Spring-пулы | **ЗАПРЕЩЕНО** | `close()` разрушит thread-local кеш: следующий запрос откроет НОВОЕ физическое соединение (TCP + auth handshake + `isValid(3)`) — churn и риск исчерпания `max_connections` |
+
+**Канонический способ для одноразовых потоков** — хелпер
+`startOneShotThread(database, name) { … }`
+(`karaoke-app/.../services/OneShotThread.kt`): он сам оборачивает тело в
+`try/finally` и закрывает соединение потока при любом исходе (успех/исключение).
+Сырой `kotlin.concurrent.thread` в прикладном коде запрещён.
+
+**Что освобождается на месте**: `PreparedStatement`/`ResultSet` — через `use { }`.
+Физическое соединение — по правилам таблицы выше.
+
+Инвариант проверяется тестами:
+`karaoke-app/src/test/.../services/OneShotThreadTest.kt` (гарантия закрытия),
+`.../services/OneShotThreadWiringTest.kt` (в аудируемых файлах нет сырых
+одноразовых потоков), `karaoke-app/src/test/.../controllers/ChatControllerThreadLocalTest.kt`
+и `karaoke-web/src/test/.../services/EventsBufferThreadLocalTest.kt`
+(переиспользуемый поток НЕ закрывает соединение).
+
+Полный разбор решения — [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md).
+
 ### `recordhash`-колонка
 
 Каждая таблица в `SyncRegistry.all` MUST иметь:
@@ -190,7 +222,14 @@ UI обновляется без polling → экономия трафика и 
   recordDiffRealField)` — единица изменения; `RecordHash(id, recordhash)` —
   единица sync-diff.
 - `KaraokeConnection.getConnection(): java.sql.Connection?` — соединение на поток
-  (ThreadLocal) с self-healing; `closeThreadConnection()`.
+  (ThreadLocal) с self-healing; `closeThreadConnection()` — закрывает соединение
+  ТОЛЬКО текущего потока. Контракт вызова: одноразовый поток — обязателен,
+  переиспользуемый — запрещён (см. «Соединение на поток» выше и
+  [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md)).
+  Оба метода — `open` (шов для юнит-тестов).
+- `startOneShotThread(database, name) { … }`
+  (`karaoke-app/.../services/OneShotThread.kt`) — запуск одноразового фонового
+  потока с гарантированным закрытием его JDBC-соединения в `finally`.
 - `Connection.local()` / `Connection.remote()` / `Connection.virtual()` —
   singleton-фабрики (`name = LOCAL | SERVER | VIRTUAL`); URL/credentials зависят
   от `APP_WORK_*`.
@@ -214,6 +253,9 @@ L3-компонентов у домена пока нет: контекст оп
 2. **`loadList` MUST использовать `WHERE id IN (..)`** для batch-операций,
    не по одной записи в цикле (Constitution II).
 3. **`recordhash`-триггер MUST быть на каждой sync-таблице**.
+4. **Соединение одноразового потока MUST закрываться детерминированно**
+   (`startOneShotThread` → `closeThreadConnection()` в `finally`), а соединение
+   переиспользуемого потока MUST оставаться в thread-local кеше (не закрывать).
 5. **Nullable-колонки БД → nullable Kotlin-поля**. Иначе `loadList` бросает NPE на SQL NULL (см. ловушки в KDoc).
 
 ## Hot paths
@@ -231,7 +273,16 @@ L3-компонентов у домена пока нет: контекст оп
    в Kotlin → NPE при чтении. **Решение**: nullable-поля.
 2. **`save()` проглатывает UNIQUE-конфликты**: проверяйте конфликт
    ДО save в контроллере (см. CONSTITUTION_PATTERN).
-4. **`getDiff` field order** — **FIXED in Pass 451** [OK]:
+3. **`close()` в переиспользуемом потоке разрушает thread-local кеш**: код вида
+   `finally { db.getConnection()?.close() }` в HTTP-контроллере не «возвращает
+   соединение в пул» (пула нет) — он заставляет следующий запрос на том же потоке
+   открыть новое физическое соединение. Прецедент — BR-006/BR-027/BR-116
+   (аудит #336).
+4. **Отсутствие `closeThreadConnection()` в одноразовом потоке** — утечка
+   физического канала к PostgreSQL до финализации сборщиком мусора; при
+   `max_connections` это отказ БД для всего приложения. Прецедент — BR-038/BR-060
+   (аудит #336).
+5. **`getDiff` field order** — **FIXED in Pass 451** [OK]:
    `KaraokeDbTable.getDiff` теперь сортирует по
    `KaraokeDbTableField.name` для детерминированного UPDATE column
    order. Без сортировки порядок зависел от reflection
@@ -258,8 +309,15 @@ L3-компонентов у домена пока нет: контекст оп
 - [ ] **`KaraokeDbTableField`** — где определён, все ли поля аннотированы.
 - [ ] **Schema cache invalidation** — как тесты работают с этим.
 - [ ] **Логирование при ошибках save**: куда, в каком формате.
-- [ ] **Connection leak** — `KaraokeConnection.getConnection()` без
-      close (см. KDoc `KaraokeProcessThread`).
+- [ ] **Connection leak** — частично закрыт аудитом #336 (BR-006/027/038/060/116,
+      контракт зафиксирован в [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md)).
+      Осталось family-семейство `withDb` в 16 контроллерах `karaoke-app`
+      (`TariffsController`, `SiteUsersController`, `SponsrSyncController`,
+      `StatsController`, `StemJobsAdminController`, `SubscriptionsController`,
+      `SitePlaylistsController`, `SongEditorController`, `NewsController`,
+      `NewsTemplateController`, `PublicSettingsController`, `DictionariesController`,
+      `PromoController`, `ListeningHistoryController`, `ShareLinksAdminController`)
+      и `StorageMetadataCache.refreshAll` — отдельная задача.
 
 ## Код (физическая реализация)
 
@@ -268,10 +326,17 @@ L3-компонентов у домена пока нет: контекст оп
 - `karaoke-app/.../model/KaraokeDbTableField.kt`
 - `karaoke-app/.../model/KaraokeDbTableDto.kt`
 - `karaoke-app/.../Connection.kt` (local/remote/virtual factory)
-- `karaoke-app/.../KaraokeConnection.kt` (обёртка над JDBC)
+- `karaoke-app/.../KaraokeConnection.kt` (обёртка над JDBC, thread-local кеш)
+- `karaoke-app/.../services/OneShotThread.kt` (`startOneShotThread` — одноразовый
+  поток с гарантированным закрытием соединения)
 - `karaoke-app/.../KaraokeProperties.kt` (через getString/getLong/...)
 
 ## Changelog
 
 - **Pass 341 P2** (2026-09-09): Initial. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).
+- **OpenProject #368** (2026-10-24, аудит #336, BR-006/027/038/060/116): добавлен
+  раздел «Соединение на поток (ThreadLocal) и его жизненный цикл», инвариант
+  жизненного цикла соединения, ловушки (закрытие в переиспользуемом потоке /
+  отсутствие закрытия в одноразовом) и контракт `startOneShotThread`. Решение
+  зафиксировано в [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md).

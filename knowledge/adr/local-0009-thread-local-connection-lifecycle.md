@@ -1,0 +1,105 @@
+# Local ADR-0009: Жизненный цикл JDBC-соединения потока (ThreadLocal)
+
+* **Status**: Accepted
+* **Date**: 2026-10-24
+* **Deciders**: команда Karaoke
+
+> **Note**: this is **local** ADR — описывает конвенцию закрытия JDBC-соединений
+> в контейнере `karaoke-app`/`karaoke-web` (в рамках глобального
+> [ADR-0001](0001-raw-jdbc.md) «сырой JDBC без ORM»).
+
+## Context
+
+`KaraokeConnection` кэширует **физическое** `java.sql.Connection` в `ThreadLocal`
+потока (спека `087-fix-shared-db-connection`): один устойчивый канал на поток
+выполнения вместо общего на инстанс. Позже фабрики `Connection.local()/remote()`
+стали singleton'ами (спека `234-db-sync-connection-leak`), и один инстанс
+обслуживает много потоков — у каждого своя запись в `ThreadLocal`.
+
+Из этого вытекают два РАЗНЫХ требования, которые в коде регулярно путались:
+
+1. **Одноразовый поток** (фоновая задача, созданная заново и умирающая) больше
+   никогда не позовёт `getConnection()` — он не сможет ни переиспользовать своё
+   соединение, ни обнаружить его как невалидное. Без явного закрытия физический
+   канал к PostgreSQL живёт до недетерминированной финализации сборщиком мусора.
+   При `max_connections` это отказ БД для всего приложения (прецедент из KDoc
+   `Connection.kt`: «100+ физических каналов → `FATAL: sorry, too many clients
+   already`»).
+2. **Переиспользуемый поток** (пул Tomcat, `@Scheduled`, Spring-пулы) ДОЛЖЕН
+   держать соединение открытым: `close()` разрушил бы thread-local кеш, и каждое
+   обращение к БД открывало бы новое физическое соединение (TCP + auth handshake
+   + `isValid(3)`-проба) — churn соединений и рост latency.
+
+Аудит #336 (OpenProject #368) зафиксировал 5 записей одного корня — пять мест,
+где эти два требования были применены не к тому типу потока:
+
+| BR | Место | Было | Стало |
+|---|---|---|---|
+| BR-006 | `karaoke-web/.../EventsBuffer.kt` | `connection.close()` в `finally` (поток Tomcat / `@Scheduled`) | закрытия нет — кеш потока сохранён |
+| BR-027 | `karaoke-web/.../PublicSettingsWebController.kt` | `connection.close()` в `finally` (поток Tomcat) | закрытия нет — кеш потока сохранён |
+| BR-038 | `karaoke-app/.../KaraokeProcessWorker.kt` | поток очереди `doStart` не закрывал соединение | `startOneShotThread` → закрытие в `finally` |
+| BR-060 | `karaoke-app/.../ApiController.kt` (+ `SyncAudioDescendants`, `Utils`) | 12 сырых `thread { … }` без закрытия | `startOneShotThread` → закрытие в `finally` |
+| BR-116 | `karaoke-app/.../ChatController.kt` | `db.getConnection()?.close()` в `finally` (поток Tomcat) | закрытия нет — кеш потока сохранён |
+
+Прежний KDoc `KaraokeConnection.closeThreadConnection()` прямо запрещал вызов из
+«главного цикла `KaraokeProcessWorker.doStart()`» — но этот поток **одноразовый**
+(создаётся заново на каждый `start()` и умирает при остановке очереди). Запрет
+был ошибочен и закреплял утечку.
+
+## Decision
+
+**Единый контракт жизненного цикла соединения потока:**
+
+1. **Одноразовый поток** → `closeThreadConnection()` ОБЯЗАТЕЛЕН, в `finally`.
+   Канонический способ — хелпер `startOneShotThread(database, name) { … }`
+   (`karaoke-app/.../services/OneShotThread.kt`): он сам оборачивает тело в
+   `try/finally` и закрывает соединение потока при любом исходе (успех/исключение).
+   Сырой `kotlin.concurrent.thread` в прикладном коде запрещён.
+2. **Переиспользуемый поток** (пул Tomcat, `@Scheduled`, Spring-пулы) →
+   `closeThreadConnection()` и `Connection.close()` ВЫЗЫВАТЬ НЕЛЬЗЯ: соединение
+   кэшируется в `ThreadLocal` потока и переиспользуется следующим запросом.
+   Statements (`PreparedStatement`, `ResultSet`) закрываются через `use { }` —
+   это единственный ресурс, который нужно освобождать на месте.
+3. `KaraokeConnection.getConnection()` и `closeThreadConnection()` — `open`:
+   это шов для юнит-тестов (поддельное соединение без живой БД).
+
+## Rationale
+
+* **Альтернатива 1 — «всегда закрывать в `finally`»**: отклонена. Для
+  переиспользуемого потока это разрушает thread-local кеш: каждый запрос
+  открывает новое физическое соединение (churn, риск исчерпания
+  `max_connections`, рост latency). Именно это и было дефектом BR-006/BR-027/
+  BR-116.
+* **Альтернатива 2 — «никогда не закрывать»**: отклонена. Одноразовые потоки
+  оставляют открытые каналы до финализации сборщиком мусора — при
+  `max_connections` PostgreSQL это отказ БД для всего приложения (BR-038/BR-060).
+* **Альтернатива 3 — перейти на пул соединений (HikariCP)**: отклонена как
+  вне рамок задачи. ADR-0001 запрещает ORM, но не пул; однако переход на пул
+  затрагивает всю работу с БД в обоих модулях и требует отдельной спеки с
+  замерами. До тех пор контракт ThreadLocal остаётся каноническим.
+* **Альтернатива 4 — общий ограниченный executor вместо `thread {}`**: отклонена
+  как более крупное изменение поведения (очередь, приоритеты, отмена задач).
+  Хелпер `startOneShotThread` решает задачу (гарантированное закрытие) без
+  изменения модели выполнения.
+
+## Consequences
+
+1. **Запрет**: закрывать thread-local соединение в переиспользуемом потоке
+   (пул Tomcat, `@Scheduled`); создавать одноразовые фоновые потоки сырым
+   `kotlin.concurrent.thread`; забывать `closeThreadConnection()` в `finally`
+   одноразового потока.
+2. **Инвариант**: у каждого одноразового фонового потока в прикладном коде
+   соединение потока закрывается детерминированно; у каждого переиспользуемого
+   — остаётся в кеше.
+3. **Required Update**: `knowledge/domains/persistence/domain.md` (контракт
+   соединения), `knowledge/domains/processing/components/async-process-queue.md`
+   (поток очереди), KDoc `KaraokeConnection` / `Connection`.
+
+## References
+
+- [ADR-0001: Сырой JDBC без JPA/Hibernate](0001-raw-jdbc.md) — базовое решение
+  о доступе к БД.
+- `knowledge/domains/persistence/domain.md` — контракт соединения на поток.
+- `specs/087-fix-shared-db-connection`, `specs/091-fix-connection-leak`,
+  `specs/234-db-sync-connection-leak` — исходные спеки ThreadLocal-кеша.
+- Аудит #336, OpenProject #368 — пять записей одного корня (BR-006/027/038/060/116).

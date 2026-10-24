@@ -125,9 +125,15 @@ class PublicSettingsWebController(
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(false)
         }
 
-        var connection: Connection? = null
+        // Соединение НЕ закрываем (аудит #336, BR-027): [connectionProvider] в рантайме
+        // отдаёт `WORKING_DATABASE.getConnection()` — физическое соединение, закэшированное
+        // в `ThreadLocal` потока Tomcat. `close()` разрушил бы кеш переиспользуемого
+        // потока: следующий запрос на этом потоке открыл бы НОВОЕ физическое соединение
+        // (TCP + auth handshake + `isValid(3)`-проба) — churn соединений к Postgres.
+        // Statements закрываются через `use { }` — это единственный ресурс, который нужно
+        // освобождать здесь.
         return try {
-            connection = connectionProvider()
+            val connection = connectionProvider()
             if (connection == null) {
                 log.warn("settings:write:no-connection — значение настройки не изменено")
                 return ResponseEntity.ok(false)
@@ -165,13 +171,6 @@ class PublicSettingsWebController(
             // Текст ошибки БД — ТОЛЬКО в журнал: наружу уходит прежний `false` (FR-019).
             log.error("settings:write:error key={} error={}", key, e.message)
             ResponseEntity.ok(false)
-        } finally {
-            // Соединение закрываем сами — и то, которое реально открыли (раньше в catch
-            // закрывалось НОВОЕ соединение из WORKING_DATABASE, которого никто не открывал).
-            try {
-                connection?.close()
-            } catch (_: Exception) {
-            }
         }
     }
 

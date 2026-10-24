@@ -58,6 +58,10 @@ local-0007-zakroma-album-id-in-stream-dto.md
   в membership-endpoint (414 Request-URI Too Large).
 - `0010-lm-studio-instead-of-ollama.md` — LM Studio вместо Ollama как
   LLM-движок; LangChain4j удалён. Замещает ADR-0005 в части LLM.
+- `local-0009-thread-local-connection-lifecycle.md` — жизненный цикл
+  JDBC-соединения потока (ThreadLocal): одноразовый поток закрывает соединение
+  в `finally` (`startOneShotThread`), переиспользуемый — не закрывает
+  (аудит #336, OpenProject #368).
 - `local-0008-effective-hidden-album-types.md` — transient auto-reset
   `effectiveHiddenAlbumTypes` для `?albumId=`.
 

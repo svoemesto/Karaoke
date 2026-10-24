@@ -10,6 +10,7 @@ import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.TelegramAutoPublishService
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
@@ -18,7 +19,6 @@ import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.sql.Timestamp
-import kotlin.concurrent.thread
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.Base64
@@ -448,7 +448,10 @@ class KaraokeProcessThread(
                     isApproveTriggered
                 ) {
                     println("[render-demo/post-hook] CONDITION MATCHED — firing thread for songId=${renderKp.songId}")
-                    thread {
+                    // Одноразовый поток post-hook'а: закрывает своё thread-local соединение
+                    // в `finally` (`startOneShotThread`, BR-038/BR-060, аудит #336) — иначе
+                    // каждое отрендеренное демо оставляло открытый канал к БД.
+                    startOneShotThread(karaokeProcess.database, "render-demo-post-hook") {
                         println("[render-demo/post-hook] thread START for songId=${renderKp.songId}")
                         try {
                             // Спека 131 (фича 134): заменили прямой publishToTelegram(AIR, persist=true)
@@ -688,7 +691,13 @@ class KaraokeProcessWorker {
             sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
             // specs/118 #397: начальное SSE-событие для cache-очереди (отдельный канал).
             sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
-            Thread {
+            // Поток главного цикла очереди ОДНОРАЗОВЫЙ: создаётся заново на каждый `start()`
+            // и умирает при остановке очереди — переиспользовать его thread-local соединение
+            // некому. Поэтому соединение потока закрывается в `finally` (BR-038, аудит #336):
+            // `startOneShotThread` делает это гарантированно (и при успехе, и при исключении).
+            // Без этого каждый цикл stop/start оставлял открытым физический канал к БД
+            // до недетерминированной финализации сборщиком мусора.
+            startOneShotThread(database, "karaoke-process-worker") {
                 try {
                     var attempt = 0
                     while (true) {
@@ -741,10 +750,7 @@ class KaraokeProcessWorker {
                     }
                     sendStateMessage()
                 }
-            }.apply {
-                isDaemon = true
-                name = "karaoke-process-worker"
-            }.start()
+            }
         }
 
         /**

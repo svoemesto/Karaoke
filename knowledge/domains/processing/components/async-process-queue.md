@@ -102,7 +102,7 @@ KaraokeProcess.createProcess(
 
 | Метод / свойство | Контракт |
 | --- | --- |
-| `start(database, storageService, storageApiClient)` | Под `startStopLock` защищает от двойного запуска: `deleteDone` + `setWorkingToWaiting`, затем поток с главным циклом `doStart`. |
+| `start(database, storageService, storageApiClient)` | Под `startStopLock` защищает от двойного запуска: `deleteDone` + `setWorkingToWaiting`, затем **одноразовый** поток с главным циклом `doStart` (создаётся заново на каждый `start()`). |
 | `stop()` | Мягкая остановка: ждёт завершения текущей цепочки (`stopAfterThreadIsDone`). |
 | `forceStop()` | Жёсткая остановка всей очереди: взводит `forceStopped`, убивает docker-контейнеры, возвращает незавершённые задания в `WAITING`. Аргументов нет — это остановка очереди, а не отдельного задания. |
 | `isWork`, `stopAfterThreadIsDone` | `@Volatile`-флаги состояния воркера (читаются HTTP-контроллерами). |
@@ -247,6 +247,21 @@ Per-process force-stop в коде нет: остановка адресуетс
 - `karaoke-app/.../AutoOneClickSyncScheduler.kt`
 - `karaoke-app/.../VkIdTokenRefreshScheduler.kt`
 
+## Жизненный цикл JDBC-соединения потока
+
+Потоки воркера **одноразовые**: и главный цикл `doStart`, и поток задания
+(`KaraokeProcessThread`), и post-hook рендера создаются заново и умирают.
+Поэтому их thread-local JDBC-соединение (`KaraokeConnection`, см. домен
+[persistence](../../persistence/domain.md)) обязано закрываться детерминированно
+— в `finally`. Канонический способ: `startOneShotThread(database, name) { … }`
+(`karaoke-app/.../services/OneShotThread.kt`), который закрывает соединение при
+любом исходе (успех/исключение).
+
+До аудита #336 (OpenProject #368, BR-038) главный цикл `doStart` соединение не
+закрывал: каждый цикл stop/start оставлял открытый физический канал к БД до
+недетерминированной финализации сборщиком мусора. Поток задания
+(`KaraokeProcessThread.run`) закрывал — этот паттерн и стал образцом.
+
 ## Связанные ADR
 
 - [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md) —
@@ -254,6 +269,9 @@ Per-process force-stop в коде нет: остановка адресуетс
   (без него stderr переполняется и subprocess блокируется).
 - `archive/docs/features/async-process-queue.md` — оригинальный
   документ (НЕ Knowledge). Требует миграции.
+- [local-0009-thread-local-connection-lifecycle](../../../adr/local-0009-thread-local-connection-lifecycle.md) —
+  контракт закрытия thread-local JDBC-соединения: одноразовый поток очереди
+  закрывает соединение в `finally`, переиспользуемый — не закрывает.
 - `archive/docs/features/dual-db-sync.md` — sync для `tbl_processes`.
 - `archive/docs/features/approve-pipeline.md` — фича 131: пост-хук
   публикации в Telegram сразу после DONE для RENDER_MP4_DEMO.

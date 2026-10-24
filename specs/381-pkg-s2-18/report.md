@@ -8,7 +8,8 @@
   BR-461, BR-462, BR-483, BR-484, BR-485, BR-487
 - **Источник правды**: `specs/336-code-audit/findings/P-62a.md`, `P-62b.md`, `P-64.md`,
   `P-66.md`, `P-67.md`; `registry.csv` (порции P-62, P-64, P-66, P-67)
-- **Коммиты**: `65a8ecb9`, `e4897643`, `504c6ab3`, `490ae74e`, `e6493cbd`, `docs`-коммит
+- **Коммиты**: `65a8ecb9` (SubsEdit), `e4897643` (подписки/тарифы), `504c6ab3` (статистика),
+  `490ae74e` (StemJobs), `e6493cbd` (плеер), `ab7f9ba1` (knowledge, per-feature документ, отчёт)
 
 ## Итог
 

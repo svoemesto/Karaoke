@@ -55,7 +55,7 @@ class MainController(
     // (спека 554, OpenProject #357). Задаётся env SYNC_INTERNAL_SECRET (application.yml:
     // sync.internal-secret); на стороне отправителя (karaoke-app) — свойством
     // Karaoke.syncInternalSecret. Пустое значение = секрет не настроен → доступ закрыт (fail-safe).
-    @Value($$"{sync.internal-secret:}") private val syncInternalSecret: String,
+    @Value("\${sync.internal-secret:}") private val syncInternalSecret: String,
 ) {
     private val log = LoggerFactory.getLogger(MainController::class.java)
 

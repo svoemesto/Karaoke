@@ -400,6 +400,21 @@ jobs:
         # Constitution Principle II «Сырой JDBC + дифф по хэшам (NON-NEGOTIABLE)».
         run: bash tools/check-no-jpa-imports.sh --quiet
 
+  # === @Value placeholder guard (2026-10-24, волна A) ===
+  # Ловит `@Value($$"{свойство}")` без '$' внутри кавычек: в Kotlin такая запись
+  # компилируется в литерал `{свойство}`, Spring внедряет текст, и сравнение
+  # секретов всегда ложно (на проде отклонялась синхронизация и капча).
+  value-placeholders-guard:
+    name: "Value placeholders guard (@Value in Kotlin sources)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Value placeholders guard (@Value in Kotlin sources)"
+        run: bash tools/check-value-placeholders.sh
+
   # === no-mp4-mentions guard (Pass 379, R-11, wayfinder #107) ===
   # Локальный guard-скрипт enforce'ит R-11 (MP4/скачивание запрет по оферте).
   no-mp4-mentions-guard:

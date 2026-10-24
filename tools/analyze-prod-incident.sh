@@ -27,8 +27,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Извлечение пароля БД из deploy/.env (НЕ коммитится в git)
-DB_PASS=$(grep '^DB_SERVER_POSTGRES_PASSWORD=' /home/nsa/Karaoke/deploy/.env 2>/dev/null | cut -d'=' -f2)
+# Извлечение пароля БД из deploy/.env (НЕ коммитится в git).
+# Путь — от корня репозитория (BR-581): на машине dev-pc проект лежит по другому пути.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DB_PASS=$(grep '^DB_SERVER_POSTGRES_PASSWORD=' "${REPO_ROOT}/deploy/.env" 2>/dev/null | cut -d'=' -f2)
 if [ -z "$DB_PASS" ]; then
     echo -e "${RED}ERROR: DB_SERVER_POSTGRES_PASSWORD не найден в /home/nsa/Karaoke/deploy/.env${NC}"
     exit 1
@@ -39,7 +41,22 @@ PROD_PORT="5433"
 PROD_USER="SvoeMestoKaraokeUser905"
 PROD_DB="karaoke"
 
-PSQL_REMOTE="docker exec karaoke-db psql \"host=${PROD_HOST} port=${PROD_PORT} user=${PROD_USER} password=${DB_PASS} dbname=${PROD_DB} sslmode=disable\" -t -A"
+# Пароль НЕ попадает в argv и не печатается (аудит #336, P-75-01 — тот же корень
+# `secret-in-argv`, что у BR-551/BR-552, закрытых в PR #671):
+# раньше строка подключения с паролем уходила в `eval`, т.е. секрет был виден
+# в `ps -eo args` любому пользователю машины И печатался в stdout ниже — то есть
+# попадал в вывод терминала и в текст отчёта об инциденте.
+#
+# Теперь: пароль уходит в процесс по stdin, psql читает его из PGPASSWORD
+# (переменная окружения), в argv остаются только хост, порт, пользователь и БД.
+PSQL_CONN="host=${PROD_HOST} port=${PROD_PORT} user=${PROD_USER} dbname=${PROD_DB} sslmode=disable"
+
+# Запуск SQL-запроса на проде. Аргумент $1 — текст запроса.
+psql_prod() {
+    printf '%s' "${DB_PASS}" |
+        docker exec -i karaoke-db sh -c \
+            'PGPASSWORD="$(cat)" psql "'"${PSQL_CONN}"'" -t -A -c "$1"' sh "$1"
+}
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "  PROD INCIDENT ANALYSIS — последние ${HOURS}ч (с ${SINCE})"
@@ -139,7 +156,7 @@ echo ""
 
 echo "┌─ 8. Текущее состояние БД (pg_stat_activity)"
 echo "│"
-PG_STATE=$(eval "$PSQL_REMOTE -c \"SELECT count(*) FILTER (WHERE state='active') AS active, count(*) FILTER (WHERE state='idle') AS idle, count(*) FILTER (WHERE state='idle in transaction') AS idle_in_tx, (SELECT setting FROM pg_settings WHERE name='max_connections') AS max_conn FROM pg_stat_activity;\"" 2>/dev/null)
+PG_STATE=$(psql_prod "SELECT count(*) FILTER (WHERE state='active') AS active, count(*) FILTER (WHERE state='idle') AS idle, count(*) FILTER (WHERE state='idle in transaction') AS idle_in_tx, (SELECT setting FROM pg_settings WHERE name='max_connections') AS max_conn FROM pg_stat_activity;" 2>/dev/null)
 echo "$PG_STATE" | sed 's/^/│    /'
 echo "└─"
 echo ""
@@ -152,7 +169,8 @@ echo "  # Топ медленных SQL с текстом:"
 echo "  ssh root@${PROD_HOST} \"docker logs karaoke-db --since '$SINCE' 2>&1 | grep 'duration:' | head -50\""
 echo ""
 echo "  # Активные сессии БД прямо сейчас:"
-echo "  eval \"$PSQL_REMOTE -c 'SELECT pid, state, query_start, LEFT(query, 80) FROM pg_stat_activity WHERE state != \\\"idle\\\" ORDER BY query_start;'\""
+echo "  # пароль передаётся по stdin, в argv его нет:"
+echo "  printf '%s' \"\$DB_PASS\" | docker exec -i karaoke-db sh -c 'PGPASSWORD=\"\$(cat)\" psql \"$PSQL_CONN\" -t -A -c \"SELECT pid, state, query_start, LEFT(query, 80) FROM pg_stat_activity WHERE state != 'idle' ORDER BY query_start;\"'"
 echo ""
 echo "  # Поиск конкретного URL в nginx за период:"
 echo "  ssh root@${PROD_HOST} \"grep '\\$(date -d \"${HOURS} hours ago\" \"+%d/%b/%Y:%H\" 2>/dev/null)' /var/log/nginx/access.log | grep '/api/public/events' | head -50\""

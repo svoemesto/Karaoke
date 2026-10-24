@@ -87,11 +87,18 @@ class KaraokeProcessThread(
             // явно освобождает своё ThreadLocal-соединение по завершении (specs/091-fix-connection-leak),
             // иначе оно остаётся открытым в PostgreSQL навсегда, так как поток больше не обратится к БД.
             try {
-                karaokeProcess.status = KaraokeProcessStatuses.WORKING.name
-                karaokeProcess.start = Timestamp.from(Instant.now())
-                karaokeProcess.save()
+                // BR-031 (аудит #336, пакет PKG-S2-10): атомарный claim строки.
+                // Раньше WORKKING писался безусловным save() — если строку успели удалить
+                // или взять другим воркером, UPDATE шёл по чужой/несуществующей строке.
+                if (!karaokeProcess.claimForWorking()) {
+                    println(
+                        "[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: " +
+                            "claim не получен (задание ${karaokeProcess.id} уже не WAITING) — поток не запускает работу",
+                    )
+                    return
+                }
 
-                if (karaokeProcess.args[0][0] == "runFunctionWithArgs") {
+                if (karaokeProcess.args.firstOrNull()?.firstOrNull() == "runFunctionWithArgs") {
                     val params = parseRunFunctionWithArgsParams(karaokeProcess.args[0])
                     percentage = "0"
                     println(
@@ -1121,19 +1128,32 @@ class KaraokeProcessWorker {
                             // на каждой итерации цикла, создавая спам и лишнюю нагрузку
                             // на БД (SELECT count(*) на tbl_processes каждые ~10 мс).
                             if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
-                                val args = karaokeProcess.args[0]
-                                if (args.isNotEmpty()) {
+                                // BR-033 (аудит #336, пакет PKG-S2-10): невалидные args
+                                // (пустой список / пустой шаг) раньше роняли главный цикл
+                                // (args[0]) или навсегда блокировали лейн. Переводим задание
+                                // в ERROR с причиной и продолжаем цикл — лейн не блокируется.
+                                val argsError = ProcessArgsPolicy.validationError(karaokeProcess.args)
+                                if (argsError != null) {
+                                    println(
+                                        "[${Timestamp.from(Instant.now())}] ProcessWorker: ERROR задания ${karaokeProcess.id} " +
+                                            "(${karaokeProcess.type}): $argsError",
+                                    )
+                                    karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
+                                    karaokeProcess.description = "${karaokeProcess.description} [$argsError]"
+                                    karaokeProcess.save()
+                                } else {
                                     if (id > 0) {
                                         val kp = KaraokeProcess.load(id, database)
                                         val diffs = KaraokeProcess.getDiff(kp)
                                         if (diffs.isNotEmpty()) {
-                                            karaokeProcess.save()
+                                            karaokeProcess.saveProgress()
                                         }
                                     }
                                     threadsMap[threadId] = KaraokeProcessThread(karaokeProcess)
 
                                     id = karaokeProcess.id
-                                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {
+                                    val firstArg = karaokeProcess.args.firstOrNull()?.firstOrNull()
+                                    if (karaokeProcess.command != "tail" || firstArg !in argsIgnoredToLog) {
                                         println(
                                             "[${Timestamp.from(
                                                 Instant.now(),
@@ -1147,19 +1167,19 @@ class KaraokeProcessWorker {
                                     val kp = KaraokeProcess.load(id, database)
                                     val diffs = KaraokeProcess.getDiff(kp)
                                     if (diffs.isNotEmpty()) {
-                                        threadsMap[threadId]?.karaokeProcess?.save()
+                                        threadsMap[threadId]?.karaokeProcess?.saveProgress()
                                     }
                                 }
                             }
                         } else {
-                            // Признак "без контроля" берётся у КОНКРЕТНОГО задания этого лейна, а не у
+                            // Признак "без контроля" берётся КОНКРЕТНОГО задания этого лейна, а не у
                             // общего флага воркера - иначе batch-задание в ДРУГОМ лейне могло бы отключить
                             // обычное сохранение диффа для этого лейна (и наоборот). См. FR-002/US3.
                             if (threadsMap[threadId]?.karaokeProcess?.withoutControl != true) {
                                 val kp = threadsMap[threadId]?.karaokeProcess
                                 val diffs = KaraokeProcess.getDiff(kp)
                                 if (diffs.isNotEmpty()) {
-                                    threadsMap[threadId]?.karaokeProcess?.save()
+                                    threadsMap[threadId]?.karaokeProcess?.saveProgress()
                                 }
                             }
                         }
@@ -1181,7 +1201,7 @@ class KaraokeProcessWorker {
                             // Признак "без контроля" - у задания ЭТОГО потока, не общий флаг воркера
                             // (см. пояснение выше про изоляцию лейнов, FR-002/US3).
                             if (threadId !in startThreadIds && thread?.karaokeProcess?.withoutControl != true) {
-                                thread?.karaokeProcess?.save()
+                                thread?.karaokeProcess?.saveProgress()
                             }
                         }
                     }

@@ -372,8 +372,21 @@ class KaraokeProcess(
         ps.close()
 
         if (!withoutControl) {
-            updateStatusProcessSong(database = database, storageService = storageService, storageApiClient = storageApiClient)
-            if (command != "tail" || args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+            // BR-032: сбой шага останавливает цепочку — оставшиеся WAITING/CREATING-шаги
+            // помечаются ERROR, иначе воркер возьмёт шаг N+1 после ERROR шага N.
+            if (status == KaraokeProcessStatuses.ERROR.name && processChainId != null) {
+                stopChainSiblingsOnError()
+            }
+            // BR-030/BR-032 (аудит #336, пакет PKG-S2-10): терминальный статус шага цепочки
+            // больше не агрегируется в песню, пока цепочка не завершена. Раньше DONE первого
+            // шага сразу выставлял песне DONE, хотя 720p/симлинки ещё не сделаны.
+            val isTerminal = status == KaraokeProcessStatuses.DONE.name || status == KaraokeProcessStatuses.ERROR.name
+            val chainComplete = processChainId == null || !hasPendingChainSiblings()
+            if (!isTerminal || chainComplete) {
+                updateStatusProcessSong(database = database, storageService = storageService, storageApiClient = storageApiClient)
+            }
+            val firstArg = args.firstOrNull()?.firstOrNull()
+            if (command != "tail" || firstArg !in KaraokeProcessWorker.argsIgnoredToLog) {
                 val messageRecordChange =
                     SseNotification.recordChange(
                         RecordChangeMessage(
@@ -395,6 +408,177 @@ class KaraokeProcess(
 
 //        val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
 //        controller.processesUpdate(id.toLong())
+    }
+
+    /**
+     * BR-030 (аудит #336, пакет PKG-S2-10): узкая запись прогресса.
+     *
+     * Пишет ТОЛЬКО percentage-колонки и только пока строка в `WORKING`. Терминальные поля
+     * (`process_status`, `process_end`, `process_priority`) принадлежат потоку задания;
+     * раньше цикл `doStart` каждые ~10 мс писал их полным `save()` и возвращал строку в
+     * `WORKING` после `DONE`.
+     *
+     * @return число обновлённых строк (0 = строка уже не WORKING — писать нечего).
+     */
+    fun saveProgress(): Int {
+        val connection =
+            database.getConnection() ?: run {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                return 0
+            }
+        val sql =
+            "UPDATE tbl_processes SET " +
+                "process_percentage = ?, " +
+                "process_percentage_str = ?, " +
+                "process_time_passed_ms = ?, " +
+                "process_time_passed_str = ?, " +
+                "process_time_left_ms = ?, " +
+                "process_time_left_str = ? " +
+                "WHERE id = ? AND process_status = ?"
+        return try {
+            val updated =
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setDouble(1, percentage)
+                    ps.setString(2, percentageStr)
+                    ps.setLong(3, timePassedMs)
+                    ps.setString(4, timePassedStr)
+                    ps.setLong(5, timeLeftMs)
+                    ps.setString(6, timeLeftStr)
+                    ps.setLong(7, id)
+                    ps.setString(8, KaraokeProcessStatuses.WORKING.name)
+                    ps.executeUpdate()
+                }
+            if (updated > 0) {
+                // Прогресс должен доходить до UI так же, как раньше через save().
+                try {
+                    SNS.send(
+                        SseNotification.recordChange(
+                            RecordChangeMessage(
+                                tableName = "tbl_processes",
+                                recordId = id,
+                                diffs = emptyList(),
+                                databaseName = database.name,
+                                record = this.toDTO(),
+                            ),
+                        ),
+                    )
+                } catch (e: Exception) {
+                    println("[${Timestamp.from(Instant.now())}] WARN process.progress_sse_failed: processId=$id: ${e.message}")
+                }
+            }
+            updated
+        } catch (e: Exception) {
+            println("[${Timestamp.from(Instant.now())}] WARN process.progress_save_failed: processId=$id: ${e.message}")
+            0
+        }
+    }
+
+    /**
+     * BR-031 (аудит #336, пакет PKG-S2-10): атомарный claim задания воркером.
+     *
+     * `UPDATE ... SET process_status='WORKING' WHERE id=? AND process_status='WAITING'`
+     * с проверкой числа строк. Два воркера/повторный запуск не могут взять одну строку;
+     * если строка уже не WAITING (удалена, взята другим, отменена) — `false`, поток не стартует.
+     *
+     * @return true, если строка перешла в WORKING именно этим вызовом.
+     */
+    fun claimForWorking(): Boolean {
+        val connection = database.getConnection() ?: return false
+        val sql =
+            "UPDATE tbl_processes SET process_status = ?, process_start = ? " +
+                "WHERE id = ? AND process_status = ?"
+        return try {
+            connection.prepareStatement(sql).use { ps ->
+                ps.setString(1, KaraokeProcessStatuses.WORKING.name)
+                ps.setTimestamp(2, Timestamp.from(Instant.now()))
+                ps.setLong(3, id)
+                ps.setString(4, KaraokeProcessStatuses.WAITING.name)
+                val updated = ps.executeUpdate()
+                if (updated == 1) {
+                    status = KaraokeProcessStatuses.WORKING.name
+                    start = Timestamp.from(Instant.now())
+                }
+                updated == 1
+            }
+        } catch (e: Exception) {
+            println("[${Timestamp.from(Instant.now())}] WARN process.claim_failed: processId=$id: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * BR-032: есть ли в цепочке незавершённые шаги (кроме текущего).
+     */
+    fun hasPendingChainSiblings(): Boolean {
+        val chainId = processChainId ?: return false
+        val connection = database.getConnection() ?: return false
+        val sql =
+            "SELECT 1 FROM tbl_processes WHERE process_chain_id = ? AND id <> ? " +
+                "AND process_status IN (?, ?, ?) LIMIT 1"
+        return try {
+            connection.prepareStatement(sql).use { ps ->
+                ps.setLong(1, chainId)
+                ps.setLong(2, id)
+                ps.setString(3, KaraokeProcessStatuses.WAITING.name)
+                ps.setString(4, KaraokeProcessStatuses.WORKING.name)
+                ps.setString(5, KaraokeProcessStatuses.CREATING.name)
+                ps.executeQuery().use { rs -> rs.next() }
+            }
+        } catch (e: Exception) {
+            // Fail-closed: не смогли проверить — считаем, что цепочка не завершена,
+            // и НЕ выставляем песне терминальный статус.
+            println("[${Timestamp.from(Instant.now())}] WARN process.chain_check_failed: processId=$id: ${e.message}")
+            true
+        }
+    }
+
+    /**
+     * BR-032: при ERROR шага перевести оставшиеся шаги цепочки в ERROR, чтобы воркер
+     * не запускал шаг N+1. Терминальные поля работающих шагов не трогаем.
+     *
+     * @return число остановленных шагов.
+     */
+    fun stopChainSiblingsOnError(): Int {
+        val chainId = processChainId ?: return 0
+        val connection = database.getConnection() ?: return 0
+        val sql =
+            "UPDATE tbl_processes SET process_status = ?, " +
+                "process_description = COALESCE(process_description, '') || ? " +
+                "WHERE process_chain_id = ? AND id <> ? AND process_status IN (?, ?)"
+        return try {
+            connection.prepareStatement(sql).use { ps ->
+                ps.setString(1, KaraokeProcessStatuses.ERROR.name)
+                ps.setString(2, " [цепочка остановлена: ошибка шага $id]")
+                ps.setLong(3, chainId)
+                ps.setLong(4, id)
+                ps.setString(5, KaraokeProcessStatuses.WAITING.name)
+                ps.setString(6, KaraokeProcessStatuses.CREATING.name)
+                ps.executeUpdate()
+            }
+        } catch (e: Exception) {
+            println("[${Timestamp.from(Instant.now())}] WARN process.chain_stop_failed: processId=$id: ${e.message}")
+            0
+        }
+    }
+
+    /**
+     * BR-032: сохранить `process_chain_id` узким UPDATE (колонка не входит в `save()`,
+     * чтобы не перезаписывать её из устаревшего объекта — FR-019).
+     */
+    fun saveChainId(): Int {
+        val chainId = processChainId ?: return 0
+        val connection = database.getConnection() ?: return 0
+        val sql = "UPDATE tbl_processes SET process_chain_id = ? WHERE id = ?"
+        return try {
+            connection.prepareStatement(sql).use { ps ->
+                ps.setLong(1, chainId)
+                ps.setLong(2, id)
+                ps.executeUpdate()
+            }
+        } catch (e: Exception) {
+            println("[${Timestamp.from(Instant.now())}] WARN process.chain_id_save_failed: processId=$id: ${e.message}")
+            0
+        }
     }
 
     fun updateStatusProcessSong(
@@ -710,7 +894,11 @@ class KaraokeProcess(
                     "process_time_left_ms, " +
                     "process_time_left_str, " +
                     "without_control, " +
-                    "thread_id " +
+                    "thread_id, " +
+                    // BR-032 (аудит #336, пакет PKG-S2-10): без этой колонки шаги цепочки
+                    // жили как независимые WAITING-строки — админский retry/фильтр по
+                    // process_chain_id их не видел.
+                    "process_chain_id " +
                     ") VALUES(" +
                     "'${process.name.replace("'","''")}', " +
                     "'${process.status}', " +
@@ -734,7 +922,8 @@ class KaraokeProcess(
                     "${process.timeLeftMs}, " +
                     "'${process.timeLeftStr}', " +
                     "${process.withoutControl}, " +
-                    "${process.threadId} " +
+                    "${process.threadId}, " +
+                    "${process.processChainId ?: "NULL"} " +
                     ")"
 
             val connection = process.database.getConnection()
@@ -1059,15 +1248,22 @@ class KaraokeProcess(
             }
             val existedProcesses = loadList(existedProcessesLookupArgs, song.database)
 
-            var wasWorking = false
+            // BR-031 (аудит #336, пакет PKG-S2-10): не удаляем WAITING/WORKING/CREATING.
+            // Раньше удалялось всё, кроме WORKING: (1) пока только что выбранный воркером
+            // шаг ещё не записал WORKING, второй вызов удалял его строку — поток работал
+            // «в никуда»; (2) у выполняющейся цепочки удалялись WAITING-шаги 2..N.
+            // Активное задание = single-flight (return 0), пересоздаём только терминальные.
+            var hasActive = false
             existedProcesses.forEach { existedProcess ->
-                if (existedProcess.status != KaraokeProcessStatuses.WORKING.name) {
-                    delete(existedProcess.id, song.database)
-                } else {
-                    wasWorking = true
+                when (existedProcess.status) {
+                    KaraokeProcessStatuses.WORKING.name,
+                    KaraokeProcessStatuses.WAITING.name,
+                    KaraokeProcessStatuses.CREATING.name,
+                    -> hasActive = true
+                    else -> delete(existedProcess.id, song.database)
                 }
             }
-            if (wasWorking) return 0
+            if (hasActive) return 0
 
             // specs/126-key-from-file (#126, OpenProject): если для KEY_BPM_FROM_FILE файл
             // `<songFile> [key].json` уже есть, НЕ создаём процесс — применяем key/bpm
@@ -1966,9 +2162,35 @@ class KaraokeProcess(
                 storageApiClient = song.storageApiClient,
             )
 
-            val separatedProcesses = separate(karaokeProcess)
+            // BR-033 (аудит #336, пакет PKG-S2-10): валидируем args ДО вставки. Пустой
+            // внешний список ронял главный цикл воркера (args[0]), пустой шаг навсегда
+            // блокировал лейн. Невалидное задание не создаём вовсе.
+            ProcessArgsPolicy.validationError(karaokeProcess.args)?.let { reason ->
+                println("[${Timestamp.from(Instant.now())}] WARN process.create_rejected: action=${action.name} songId=${song.id}: $reason")
+                return 0
+            }
 
-            return createDbInstance(separatedProcesses)[0]?.id ?: 0
+            val separatedProcesses = separate(karaokeProcess)
+            if (separatedProcesses.size <= 1) {
+                return createDbInstance(separatedProcesses)[0]?.id ?: 0
+            }
+
+            // BR-032 (аудит #336, пакет PKG-S2-10): цепочка — единица исполнения. Головной
+            // шаг вставляем первым и берём его id как process_chain_id, остальные шаги
+            // получают тот же chain id и номер шага в process_order. Воркер выбирает
+            // WAITING по (priority, order, id), поэтому шаг N+1 не стартует, пока N не DONE.
+            val head = createDbInstance(listOf(separatedProcesses.first())).firstOrNull() ?: return 0
+            val chainId = head.id
+            head.processChainId = chainId
+            head.order = 0
+            head.saveChainId()
+            val rest = separatedProcesses.drop(1)
+            rest.forEachIndexed { index, child ->
+                child.processChainId = chainId
+                child.order = index + 1
+            }
+            createDbInstance(rest)
+            return head.id
         }
 
         fun separate(parentProcess: KaraokeProcess): List<KaraokeProcess> {
@@ -1983,10 +2205,11 @@ class KaraokeProcess(
                         parentProcess.description
                     }
                 val command = if (index == 0) "" else "tail"
-                val childProcess = KaraokeProcess(parentProcess.database)
+                val childProcess = KaraokeProcess(parentProcess.database, parentProcess.storageService, parentProcess.storageApiClient)
                 childProcess.name = parentProcess.name
                 childProcess.status = parentProcess.status
-                childProcess.order = parentProcess.order
+                // BR-032: номер шага — в process_order (0..N-1), чтобы воркер шёл по порядку.
+                childProcess.order = index
                 childProcess.priority = parentProcess.priority
                 childProcess.command = command
                 childProcess.type = parentProcess.type
@@ -1997,6 +2220,7 @@ class KaraokeProcess(
                 childProcess.threadId = parentProcess.threadId
                 childProcess.envs = parentProcess.envs
                 childProcess.args = listOf(childArgs)
+                childProcess.processChainId = parentProcess.processChainId
                 result.add(childProcess)
             }
 

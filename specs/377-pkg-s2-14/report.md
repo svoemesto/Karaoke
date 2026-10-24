@@ -9,7 +9,8 @@
   - `e97a640c` — BR-295/312/313/328 (share-отзыв, XSS метки, листенеры, END);
   - `0de4cabd` — BR-302/303/327/329/330 (плеер, автосейв, WaveSurfer, флаги);
   - `705955c5` — BR-339/319/340/350 (таймаут XHR, чат, капча, статус оплаты);
-  - отдельный коммит — этот отчёт + `knowledge/` + per-feature doc.
+  - `585f7ed9` — этот отчёт + `knowledge/` + per-feature doc;
+  - `cd6c4a40` — prettier-форматирование fail-closed проверки в `submit` (BR-330).
 - **Пометка `SKIP_UNTIL_BR312`**: в `specs/336-code-audit/backlog.md` её нет;
   реальный маркер — константа `SKIP_UNTIL_BR312` в двух тестах BR-523
   (`karaoke-public/src/composables/__tests__/formatText-escape.test.js`,

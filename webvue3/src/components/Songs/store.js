@@ -2646,7 +2646,13 @@ export default {
     },
     async saveSourceTextAndMarkers(ctx, payload) {
       let params = {
-        id: ctx.state.currentSongId,
+        // BR-125: адресат сохранения — песня, для которой открыт редактор (payload.songId),
+        // и только при его отсутствии — текущая в сторе. Раньше всегда бралась текущая:
+        // переключение карточки во время открытой модалки записывало разметку A в песню B.
+        id:
+          payload.songId !== undefined && payload.songId !== null
+            ? payload.songId
+            : ctx.state.currentSongId,
         voice: payload.voice,
         sourceText: payload.sourceText,
         sourceMarkers: payload.sourceMarkers,

@@ -9106,6 +9106,17 @@ class Song(
             // альбома. Раньше каждая песня списка давала отдельный SELECT по tbl_albums
             // (N+1 на 18k строк). Имя заполняется пакетно — см. Song.toDTOsWithAlbumNames().
             albumName = "",
+            // BR-087: состояние премиум-автопубликации для карточки песни (FR-006…FR-008).
+            // Раньше эти поля не отдавались клиенту вовсе, и статус публикации в SongEdit
+            // всегда вычислялся как null — блоки статуса и кнопки «Повторить» не показывались.
+            newsPremiumPublishPending = newsPremiumPublishPending,
+            newsPremiumTelegramSent = newsPremiumTelegramSent,
+            newsPremiumVkSent = newsPremiumVkSent,
+            premiumAttemptCountTelegram = premiumAttemptCountTelegram,
+            premiumAttemptCountVk = premiumAttemptCountVk,
+            premiumAutoPublishLastError = premiumAutoPublishLastError,
+            telegramAutoPublishState = telegramAutoPublishState,
+            vkAutoPublishState = vkAutoPublishState,
         )
 
     fun copyFieldsFromAnother(

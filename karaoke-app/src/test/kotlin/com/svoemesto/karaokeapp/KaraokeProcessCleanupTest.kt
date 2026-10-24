@@ -1,7 +1,9 @@
 package com.svoemesto.karaokeapp
 
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -82,8 +84,12 @@ class KaraokeProcessCleanupTest {
     fun cleanupFailsOpenOnLockedFile() {
         // FR-4 (fail-open): когда parent dir read-only (chmod 555),
         // Files.delete бросает AccessDeniedException на каждом файле.
-        // cleanupOldLogsIn должен НЕ пробросить исключение наружу (FR-4),
-        // и файлы должны остаться (parent read-only — unlink невозможен).
+        // cleanupOldLogsIn должен НЕ пробросить исключение наружу (FR-4).
+        //
+        // Проверка «файлы остались» вынесена в отдельный тест
+        // (`cleanupKeepsFilesInReadOnlyDirectory`): она зависит от того,
+        // соблюдает ли ядро POSIX-права (под root — нет, CAP_DAC_OVERRIDE),
+        // и потому не может быть частью fail-open-проверки.
         val f1 = tempDir.resolve("file1.log")
         val f2 = tempDir.resolve("file2.log")
         touch(f1, 60)
@@ -93,6 +99,36 @@ class KaraokeProcessCleanupTest {
             Files.setPosixFilePermissions(tempDir, readonlyDirPerms())
 
             // cleanup не должен бросить наружу
+            assertDoesNotThrow(
+                { KaraokeProcessWorker.cleanupOldLogsIn(tempDir, retentionDays = 30) },
+                "cleanupOldLogsIn обязан работать fail-open: ошибка удаления файла не должна выходить наружу",
+            )
+        } finally {
+            // Восстанавливаем права для @TempDir cleanup
+            Files.setPosixFilePermissions(tempDir, writableDirPerms())
+        }
+    }
+
+    @Test
+    fun cleanupKeepsFilesInReadOnlyDirectory() {
+        // Файлы остаются только если ядро соблюдает POSIX-права каталога.
+        // Под root (docker-контейнеры, часть CI-образов) права игнорируются
+        // (CAP_DAC_OVERRIDE) — файл удаляется, и эта проверка стала бы ложным
+        // падением без дефекта в прод-коде. Такое окружение определяется
+        // фактической пробой, а не именем пользователя.
+        Assumptions.assumeTrue(
+            posixPermissionsAreEnforced(tempDir),
+            "POSIX-права каталога не соблюдаются (root / CAP_DAC_OVERRIDE) — проверка неприменима",
+        )
+
+        val f1 = tempDir.resolve("file1.log")
+        val f2 = tempDir.resolve("file2.log")
+        touch(f1, 60)
+        touch(f2, 60)
+
+        try {
+            Files.setPosixFilePermissions(tempDir, readonlyDirPerms())
+
             KaraokeProcessWorker.cleanupOldLogsIn(tempDir, retentionDays = 30)
 
             // файлы не удалены — parent read-only
@@ -101,6 +137,28 @@ class KaraokeProcessCleanupTest {
         } finally {
             // Восстанавливаем права для @TempDir cleanup
             Files.setPosixFilePermissions(tempDir, writableDirPerms())
+        }
+    }
+
+    /**
+     * Соблюдаются ли POSIX-права каталога в текущем окружении.
+     *
+     * Определяется пробой: файл из каталога с правами `555` удаляется ли
+     * на самом деле. Под root удаление проходит (CAP_DAC_OVERRIDE) — значит
+     * проверки «файл остался» быть не может.
+     */
+    private fun posixPermissionsAreEnforced(dir: Path): Boolean {
+        val probe = dir.resolve("perm-probe-${System.nanoTime()}")
+        Files.writeString(probe, "x")
+        Files.setPosixFilePermissions(dir, readonlyDirPerms())
+        return try {
+            Files.deleteIfExists(probe)
+            false
+        } catch (_: java.nio.file.AccessDeniedException) {
+            true
+        } finally {
+            Files.setPosixFilePermissions(dir, writableDirPerms())
+            Files.deleteIfExists(probe)
         }
     }
 

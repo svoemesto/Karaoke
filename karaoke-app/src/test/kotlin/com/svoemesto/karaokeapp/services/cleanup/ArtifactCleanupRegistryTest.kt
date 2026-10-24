@@ -17,9 +17,35 @@ import org.junit.jupiter.api.Test
  */
 class ArtifactCleanupRegistryTest {
     @Test
-    fun `реестр содержит все 17 классов из data-model`() {
-        // 16 исходных + MLT_PROJECTS (KEEP), выделенный решением владельца 2026-10-16
-        assertEquals(17, ArtifactCleanupClass.entries.size)
+    fun `каждый класс реестра объявлен полностью`() {
+        // Инвариант, а не снимок инвентаризации: числа «17 классов»/«2 198 файлов»
+        // описывали состояние ФС на конкретную дату и роняли тест при любом
+        // обновлении инвентаризации, даже когда поведение кода не менялось.
+        // Проверяем вместо этого полноту объявления каждого класса реестра.
+        ArtifactCleanupClass.entries.forEach { cls ->
+            assertTrue(cls.verdicts.isNotEmpty(), "${cls.name}: у класса должен быть хотя бы один вердикт")
+            assertTrue(cls.title.isNotBlank(), "${cls.name}: у класса должно быть название")
+            assertTrue(cls.note.isNotBlank(), "${cls.name}: у класса должно быть пояснение")
+            if (cls != ArtifactCleanupClass.MANUAL_FILES) {
+                // MANUAL_FILES — единственный класс без писателя в коде (см. data-model.md),
+                // поэтому у него матчеров нет; остальные обязаны уметь что-то находить.
+                assertTrue(cls.matchers.isNotEmpty(), "${cls.name}: у класса должен быть хотя бы один матчер")
+            }
+        }
+    }
+
+    @Test
+    fun `каждый класс реестра находится по своему идентификатору`() {
+        // Реестр используется из HTTP-контракта по id — класс, который нельзя найти
+        // по своему же имени, недоступен для управления чисткой.
+        ArtifactCleanupClass.entries.forEach { cls ->
+            assertEquals(cls, ArtifactCleanupClass.byId(cls.name), "${cls.name} должен находиться по своему id")
+            assertEquals(
+                cls,
+                ArtifactCleanupClass.byId(cls.name.lowercase()),
+                "${cls.name} должен находиться по id в нижнем регистре",
+            )
+        }
     }
 
     @Test
@@ -32,7 +58,8 @@ class ArtifactCleanupRegistryTest {
         assertFalse(mlt.isDeletable)
         assertFalse(mlt.isDeletedAfterStage)
         assertEquals(0, mlt.cleanupOrder, "класс не участвует в разовой чистке")
-        assertEquals(2_198L, mlt.expectedFileCount)
+        assertTrue(mlt.expectedFileCount > 0L, "у MLT-класса с известной раскладкой объявлен ожидаемый объём")
+        assertTrue(mlt.expectedBytes > 0L, "у MLT-класса с известной раскладкой объявлен ожидаемый размер")
         assertTrue(mlt.matchers.any { ".mlt" in it.extensions })
     }
 

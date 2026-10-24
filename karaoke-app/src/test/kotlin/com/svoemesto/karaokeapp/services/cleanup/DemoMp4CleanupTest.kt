@@ -58,20 +58,50 @@ class DemoMp4CleanupTest {
     }
 
     @Test
-    fun `демо удаляется и когда публикация провалилась`() {
-        // FR-001: удаление не зависит от исхода публикации — оба канала закрыты,
-        // значит файл больше не нужен (повторная публикация отрендерит заново, FR-002)
-        val file = demoFile()
+    fun `демо удаляется, а картинки остаются, когда публикация провалилась`() {
+        // FR-001: демо-ролик удаляется независимо от исхода публикации — оба канала
+        // закрыты, значит файл больше не нужен (повторная публикация отрендерит заново, FR-002).
+        // FR-005: картинки при провале нужны повторной попытке — остаются.
+        //
+        // Сценарий моделируется целиком: набор классов выбирает pipeline
+        // (stageClassesAfterPublish), и удаляются только те артефакты, чей класс
+        // в этот набор попал. Прежний вариант теста был дословным дублем теста
+        // «демо удаляется при успехе обеих площадок» — признак исхода публикации
+        // в нём не моделировался вовсе, поэтому FR-001/FR-005 не проверялись.
+        val demo = demoFile()
+        val png = tempDir.resolve("done_files/song [sponsr].png")
+        Files.createDirectories(png.parent)
+        Files.writeString(png, "x".repeat(5))
 
-        val outcome =
-            ArtifactCleanupAutomation.deleteAfterStage(
-                classId = ArtifactCleanupClass.DEMO_MP4,
-                path = file.toString(),
-                policy = policy(),
+        // Оба канала провалились.
+        val classes = ArtifactCleanupAutomation.stageClassesAfterPublish(tgSuccess = false, vkSuccess = false)
+        assertTrue(
+            classes.contains(ArtifactCleanupClass.DEMO_MP4),
+            "демо-ролик чистится независимо от исхода публикации (FR-001)",
+        )
+        assertFalse(
+            classes.contains(ArtifactCleanupClass.PUBLICATION_PNG),
+            "картинки при провале публикации не чистятся — они нужны повторной попытке (FR-005)",
+        )
+
+        // Удаляем ровно те артефакты, чей класс попал в набор pipeline.
+        val artifactsByClass =
+            mapOf(
+                ArtifactCleanupClass.DEMO_MP4 to demo,
+                ArtifactCleanupClass.PUBLICATION_PNG to png,
             )
+        classes.forEach { cls ->
+            artifactsByClass[cls]?.let { path ->
+                ArtifactCleanupAutomation.deleteAfterStage(
+                    classId = cls,
+                    path = path.toString(),
+                    policy = policy(),
+                )
+            }
+        }
 
-        assertEquals(1, outcome.deleted)
-        assertFalse(Files.exists(file))
+        assertFalse(Files.exists(demo), "демо-ролик должен быть удалён даже при провале публикации")
+        assertTrue(Files.exists(png), "картинки при провале публикации должны остаться для повторной попытки")
     }
 
     @Test
@@ -215,5 +245,20 @@ class DemoMp4CleanupTest {
         assertEquals(1, outcome.deleted, "удаляется только существующий файл")
         assertEquals(0, outcome.failed)
         assertFalse(Files.exists(png))
+
+        // FR-012: удаление обязано быть зафиксировано в журнале — «журнал не должен
+        // оказаться беднее факта». Без этой проверки регрессия «файл удаляется, но
+        // запись не пишется» (journal.appendDeleted вызывается без проверки
+        // результата) осталась бы незамеченной.
+        val journalFile = Files.list(tempDir.resolve("logs")).use { it.toList() }.single()
+        val rows = Files.readAllLines(journalFile)
+        assertEquals(CleanupJournal.HEADER, rows[0])
+        assertEquals(2, rows.size, "в журнале должна быть ровно одна запись об удалении: $rows")
+        val columns = rows[1].split("\t")
+        assertEquals(png.toString(), columns[0], "в журнале должен быть путь удалённого файла")
+        assertEquals("5", columns[1], "в журнале должен быть размер удалённого файла")
+        assertEquals("PUBLICATION_PNG", columns[2], "в журнале должен быть класс артефакта")
+        assertEquals("deleted", columns[3], "в журнале должен быть результат удаления")
+        assertEquals(ArtifactCleanupAutomation.AUTO_APPROVER, columns[5], "в журнале должен быть утвердивший")
     }
 }

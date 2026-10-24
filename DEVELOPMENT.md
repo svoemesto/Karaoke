@@ -62,12 +62,22 @@ Backend (Kotlin/Spring Boot, multi-module Gradle, JDK 17):
 ./gradlew karaoke-app:test --tests "com.svoemesto.karaokeapp.SomeTest"  # run a single test
 ```
 
-Note: the existing tests under `karaoke-app/src/test` (`SearchLastAlbumVkTest`, `PlaywrightTests`)
-are manual integration checks that hit live network services / require a real browser and
-credentials — not a CI safe-guard suite. **All of them are `@Disabled`** (Pass 465): before that
-`SearchLastAlbumVkTest` was not, so plain `./gradlew karaoke-app:test` failed on any machine
-without the Playwright driver — which trains people to ignore test failures. To run one by hand,
-remove the annotation locally with the environment prepared (browsers + network).
+Note: the manual integration checks that hit live network services / require a real browser and
+credentials (`SearchLastAlbumVkTest`, `PlaywrightTests`) live in a **separate source set**
+`karaoke-app/src/manualTest` and are run only by an explicit task:
+
+```
+./gradlew karaoke-app:manualTest                                   # all manual scenarios
+./gradlew karaoke-app:manualTest --tests "com.svoemesto.karaokeapp.SearchLastAlbumVkTest"
+```
+
+They are **not** part of `test`/`check`/`build`. Historically they sat in `karaoke-app/src/test`
+under `@Disabled` (Pass 465); the annotation was a weak guard — once removed (or the class moved
+to another module) plain `./gradlew karaoke-app:test` blocked on `readLine()` until the runner
+timed out on any machine without the Playwright driver, which trains people to ignore test
+failures. The manual scenarios now wait for a condition with a timeout instead of reading from
+the console, and the browser path is configurable (`karaoke.playwright.browserPath` system
+property or `PLAYWRIGHT_BROWSER_PATH` env var) instead of the hardcoded `/usr/bin/yandex-browser`.
 
 Frontend (`webvue3`, Vue 3 + Vite, Node):
 ```

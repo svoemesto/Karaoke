@@ -122,17 +122,18 @@ class SanitizePathTest {
         val logger = LoggerFactory.getLogger(SanitizePath::class.java) as Logger
         val appender = ListAppender<ILoggingEvent>().apply { start() }
         logger.addAppender(appender)
-        logger.level = Level.INFO
         try {
-            sp.run {
-                val firstResult = "Hello!".sanitizePathSegment()
-                val afterFirst = appender.list.size
-                assertTrue(afterFirst >= 1, "После первого прогона ожидалась хотя бы 1 лог-запись, было $afterFirst")
-                // Идемпотентность side-effect: повторный прогон sanitize(firstResult)
-                // не должен плодить новых лог-записей (changed == false).
-                firstResult.sanitizePathSegment()
-                val afterSecond = appender.list.size
-                assertEquals(afterFirst, afterSecond, "Side-effect не идемпотентен: после второго прогона стало $afterSecond (было $afterFirst)")
+            withLoggerLevel(logger, Level.INFO) {
+                sp.run {
+                    val firstResult = "Hello!".sanitizePathSegment()
+                    val afterFirst = appender.list.size
+                    assertTrue(afterFirst >= 1, "После первого прогона ожидалась хотя бы 1 лог-запись, было $afterFirst")
+                    // Идемпотентность side-effect: повторный прогон sanitize(firstResult)
+                    // не должен плодить новых лог-записей (changed == false).
+                    firstResult.sanitizePathSegment()
+                    val afterSecond = appender.list.size
+                    assertEquals(afterFirst, afterSecond, "Side-effect не идемпотентен: после второго прогона стало $afterSecond (было $afterFirst)")
+                }
             }
         } finally {
             logger.detachAppender(appender)
@@ -145,16 +146,50 @@ class SanitizePathTest {
         val logger = LoggerFactory.getLogger(SanitizePath::class.java) as Logger
         val appender = ListAppender<ILoggingEvent>().apply { start() }
         logger.addAppender(appender)
-        logger.level = Level.INFO
         try {
-            sp.run {
-                appender.list.clear()
-                "SafeName_2024".sanitizePathSegment()
-                assertEquals(0, appender.list.size, "Для safe-строки не должно быть лог-записей, было ${appender.list.size}")
+            withLoggerLevel(logger, Level.INFO) {
+                sp.run {
+                    appender.list.clear()
+                    "SafeName_2024".sanitizePathSegment()
+                    assertEquals(0, appender.list.size, "Для safe-строки не должно быть лог-записей, было ${appender.list.size}")
+                }
             }
         } finally {
             logger.detachAppender(appender)
             appender.stop()
+        }
+    }
+
+    /**
+     * Уровень логгера — глобальное состояние JVM: без восстановления он терялся
+     * для всех последующих тестов того же процесса (а тесты, ожидающие DEBUG от
+     * `SanitizePath`, после этого переставали получать записи).
+     *
+     * Контракт проверяется отдельным тестом: [withLoggerLevel] обязан вернуть
+     * исходный уровень.
+     */
+    @Test
+    fun `уровень логгера восстанавливается после проверок FR-014`() {
+        val logger = LoggerFactory.getLogger(SanitizePath::class.java) as Logger
+        val original = logger.level
+        withLoggerLevel(logger, Level.INFO) {
+            assertEquals(Level.INFO, logger.level, "уровень должен быть подменён на время блока")
+        }
+        assertEquals(original, logger.level, "уровень логгера обязан быть восстановлен")
+    }
+
+    /** Временно подменяет уровень логгера и возвращает исходный после блока. */
+    private fun <T> withLoggerLevel(
+        logger: Logger,
+        level: Level,
+        block: () -> T,
+    ): T {
+        val original = logger.level
+        logger.level = level
+        try {
+            return block()
+        } finally {
+            logger.level = original
         }
     }
 

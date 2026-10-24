@@ -113,8 +113,12 @@ SEO-HTML для ботов:
 
 **`PublicNewsController` (`/api/public/news`)**:
 
-1. `GET ""` (лента) — `page` (default 0) и `size` (default 20),
-   `offset = page * size`; `News.loadPublished(db, limit = size, offset = offset)`
+1. `GET ""` (лента) — `page` (default 0) и `size` (default 20).
+   Аудит BR-015 (#378): параметры нормализуются (`normalizePaging`): `size`
+   ограничен `[1, MAX_PAGE_SIZE = 100]`, `page` — неотрицателен, `offset`
+   считается в `Long`. Раньше `?size=100000` уходил в `LIMIT ?` и вытягивал всю
+   `tbl_news` (3.5+ MB JSON), а отрицательный `page` давал отрицательный offset
+   (ошибка SQL). Далее `News.loadPublished(db, limit = safeSize, offset = offset)`
    и `News.countPublished(db)`; ответ `{items, total, hasMore: offset + items.size < total}`.
    Отдаются только опубликованные новости (`publish_at` наступил), свежие
    сверху; постраничность введена спекой `090-news-pagination` из-за
@@ -175,6 +179,9 @@ SEO-HTML для ботов:
 
 ## Changelog
 
+- **BR-015** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `page`/`size` публичной ленты
+  новостей нормализуются (`size` ≤ 100, `page` ≥ 0, offset в `Long`). Серверный
+  `client_max_body_size` на location метрик — за владельцем (ops-конфиг nginx). Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции
   по контроллерам перенесены под «Интерфейсы и Контракты»; добавлена
   «Логика и Алгоритмы» с проверенными по коду потоками OG-рендера,

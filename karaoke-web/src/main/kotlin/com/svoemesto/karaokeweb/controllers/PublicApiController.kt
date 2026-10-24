@@ -53,6 +53,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.ImageIO
+import org.slf4j.LoggerFactory
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 /**
@@ -68,6 +69,8 @@ class PublicApiController(
     private val siteUserResolver: SiteUserResolver,
     @org.springframework.beans.factory.annotation.Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
+    private val log = LoggerFactory.getLogger(PublicApiController::class.java)
+
     /**
      * In-memory cache для /api/public/authors-tiles (FR-001, FR-105 parent спеки 241).
      *
@@ -89,6 +92,14 @@ class PublicApiController(
      * @see StatBySong.consumeDirty
      */
     companion object {
+        /**
+         * Максимальный размер батча метрик NDJSON-стрима в одном запросе (аудит BR-015).
+         *
+         * Фронт шлёт за раз события одного стрима (обычно единицы штук), поэтому 500 — с большим
+         * запасом. Батч больше — отклоняется с 413, в БД не пишется.
+         */
+        const val MAX_STREAM_METRICS_BATCH = 500
+
         /** TTL кеша — 30 минут (FR-005 spec.md / plan.md). */
         private const val CACHE_TTL_MS = 30 * 60 * 1000L
 
@@ -280,6 +291,27 @@ class PublicApiController(
     // проверяем именно "!= true", а не "== false": невалидный/отсутствующий токен, как и явный
     // isEditor=false, должны попадать в ветку "фильтр действует", а не в исключение.
     private fun onlyPublishedFor(request: HttpServletRequest): Boolean = siteUserResolver.resolve(request)?.isEditor != true
+
+    /**
+     * Порог публикации песни (`id_status >= 6`) — тот же критерий, что и в выборках
+     * `/api/public/songs`, `/api/public/zakroma`, `/api/public/authors-tiles`
+     * (см. `knowledge/domains/karaoke-web/components/public-controllers-3.md`).
+     */
+    private val publishedIdStatus = 6L
+
+    /**
+     * Публично ли видна песня (аудит BR-013, OpenProject #378).
+     *
+     * Раньше точечная загрузка (`GET /api/public/song/{id}`) и картинки песен отдавали ЛЮБУЮ
+     * песню по id — без `id_status >= 6` и без проверки тега `SKIP`, — то есть анонимный
+     * посетитель получал полный текст неопубликованной (черновиковой) песни.
+     *
+     * @see specs/293-skip-author-toggle — SKIP-контент не показывается публично.
+     */
+    internal fun isPubliclyVisible(song: Song): Boolean = song.idStatus >= publishedIdStatus && !hasSkipTag(song.tags)
+
+    /** Тег SKIP — контент снят по требованию правообладателя (тот же разбор, что в SongPublicDto). */
+    internal fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
 
     @GetMapping("/stats")
     fun stats(
@@ -758,6 +790,11 @@ class PublicApiController(
      * **Совместимо с `sendBeacon`**: `Content-Type`=`application/json`,
      * `Keep-Alive` через `keepalive: true` fallback.
      *
+     * **Ограничение размера батча (аудит BR-015, OpenProject #378)**: тело запроса принималось
+     * без верхней границы — при `client_max_body_size 200m` один запрос мог раздуть heap
+     * (десериализация всего массива) и `tbl_events` (INSERT на каждый элемент). Теперь батч
+     * длиннее [MAX_STREAM_METRICS_BATCH] отклоняется с 413 и НЕ пишется в БД.
+     *
      * @see archive/docs/features/zakroma-stream-progress.md
      */
     @PostMapping("/zakroma/stream/metrics")
@@ -768,6 +805,14 @@ class PublicApiController(
         request: HttpServletRequest,
     ): ResponseEntity<Unit> {
         if (metrics.isEmpty()) return ResponseEntity.ok().build()
+        if (metrics.size > MAX_STREAM_METRICS_BATCH) {
+            log.warn(
+                "zakroma:stream:metrics: батч слишком большой size={} limit={} — отклонён",
+                metrics.size,
+                MAX_STREAM_METRICS_BATCH,
+            )
+            return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).build()
+        }
         try {
             for (m in metrics) {
                 // eventType берём из самого DTO (специализированный, НЕ CALL_REST),
@@ -960,13 +1005,23 @@ class PublicApiController(
         return "/minio/karaoke/$encoded"
     }
 
+    /**
+     * Точечная загрузка песни для публичного SPA.
+     *
+     * Аудит BR-013 (OpenProject #378): эндпоинт отдавал ЛЮБУЮ песню по id — без
+     * `id_status >= 6` и без проверки тега `SKIP`, — то есть анонимный посетитель получал
+     * полный текст неопубликованной (черновиковой) песни, хотя все остальные публичные
+     * выборки фильтруют по `id_status >= 6`. Теперь действует то же правило, что и в
+     * `/api/public/songs`: не-редактору неопубликованная/SKIP-песня — 404 (как для
+     * несуществующей), редактору (site-user с `isEditor`) — видна.
+     */
     @GetMapping("/song/{id}")
     fun song(
         @PathVariable id: Long,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
-    ): SongPublicDto? {
+    ): ResponseEntity<SongPublicDto?> {
         val song =
             Song.loadFromDbById(
                 id,
@@ -1009,16 +1064,28 @@ class PublicApiController(
             } else {
                 null
             }
-        return song?.let { s ->
-            // specs/259-playlist-clickable-links: фронту нужен authorId для back-link из SongView
-            // на /zakroma/<authorId>. Song.author — свободный текст (не FK), резолвим по имени
-            // одним batch-запросом (Author.loadIdsByNames) — никаких лишних SQL при пустой БД,
-            // при наличии записи в tbl_authors возвращается её id (null если автор удалён).
-            val authorIds = Author.loadIdsByNames(listOf(s.author), WORKING_DATABASE)
-            SongPublicDto
-                .fromSong(s)
-                .copy(assignment = assignmentDto, authorId = authorIds[s.author])
+        // Неопубликованная/SKIP-песня анониму не показывается — 404, как для несуществующей
+        // (не раскрываем сам факт существования черновика).
+        if (song != null && onlyPublishedFor(request) && !isPubliclyVisible(song)) {
+            log.warn(
+                "public:api: song скрыта от не-редактора id={} idStatus={}",
+                id,
+                song.idStatus,
+            )
+            return ResponseEntity.notFound().build()
         }
+        return ResponseEntity.ok(
+            song?.let { s ->
+                // specs/259-playlist-clickable-links: фронту нужен authorId для back-link из SongView
+                // на /zakroma/<authorId>. Song.author — свободный текст (не FK), резолвим по имени
+                // одним batch-запросом (Author.loadIdsByNames) — никаких лишних SQL при пустой БД,
+                // при наличии записи в tbl_authors возвращается её id (null если автор удалён).
+                val authorIds = Author.loadIdsByNames(listOf(s.author), WORKING_DATABASE)
+                SongPublicDto
+                    .fromSong(s)
+                    .copy(assignment = assignmentDto, authorId = authorIds[s.author])
+            },
+        )
     }
 
     @PostMapping("/events")
@@ -1043,11 +1110,15 @@ class PublicApiController(
      * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
      * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
      *
+     * Аудит BR-013: картинка неопубликованной/SKIP-песни анониму не отдаётся — 404 (та же
+     * проверка видимости, что и для `GET /api/public/song/{id}`).
+     *
      * @see archive/docs/features/site-traffic-resilience.md (FR-010)
      */
     @GetMapping("/song-picture/{id}")
     fun songPicture(
         @PathVariable id: Long,
+        request: HttpServletRequest,
     ): ResponseEntity<ByteArray> {
         val bucket = "karaoke"
 //        val cacheKey = "song_banner_$id.png"
@@ -1065,6 +1136,11 @@ class PublicApiController(
                 storageApiClient = storageApiClient,
             )
                 ?: return ResponseEntity.notFound().build()
+
+        if (onlyPublishedFor(request) && !isPubliclyVisible(song)) {
+            log.warn("public:api: картинка песни скрыта от не-редактора id={} idStatus={}", id, song.idStatus)
+            return ResponseEntity.notFound().build()
+        }
 
         val albumPicName = "${song.author} - ${song.year} - ${song.album}"
         val albumPic =
@@ -1113,11 +1189,15 @@ class PublicApiController(
      * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
      * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
      *
+     * Аудит BR-013: та же проверка видимости, что и для `GET /api/public/song/{id}` —
+     * неопубликованная/SKIP-песня анониму не отдаётся (404).
+     *
      * @see archive/docs/features/site-traffic-resilience.md (FR-010)
      */
     @GetMapping("/song-vk-image/{id}")
     fun songVkImage(
         @PathVariable id: Long,
+        request: HttpServletRequest,
     ): ResponseEntity<ByteArray> {
         val song =
             Song.loadFromDbById(
@@ -1127,6 +1207,11 @@ class PublicApiController(
                 storageApiClient = storageApiClient,
             )
                 ?: return ResponseEntity.notFound().build()
+
+        if (onlyPublishedFor(request) && !isPubliclyVisible(song)) {
+            log.warn("public:api: vk-картинка песни скрыта от не-редактора id={} idStatus={}", id, song.idStatus)
+            return ResponseEntity.notFound().build()
+        }
 
         val cacheFile = File("/tmp/vk_$id.png")
         val bucket = "karaoke"

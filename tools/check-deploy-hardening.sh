@@ -368,7 +368,7 @@ check_br539() {
         bad "$br" "$file: DB_SERVER_POSTGRES_PASSWORD не используется"
     fi
     if file_has '\-e[[:space:]]+PGPASSWORD' "$file"; then
-        bad "$br" "$file: пароль передаётся через argv docker exec (-e PGPASSWORD=…)"
+        bad "$br" "$file: пароль передаётся в окружение docker exec (виден в argv)"
     else
         ok "$br" "$file: пароль не попадает в argv"
     fi

@@ -255,7 +255,14 @@ regardless of the JVM default TZ ==> expected: <2026-08-11T09:57:36> but was: <2
 
 - Ветка: `568-pkg-s3-03-web-tests` (worktree `/home/nsa/Karaoke/.worktrees/waveB-web-tests`,
   от master `6cbaad02`). Коммит в master не делался, push/PR — не выполнялись.
+- Коммиты ветки (2):
+  - `2f97062e` — `fix(568): тесты karaoke-web не могут пройти молча — таймауты внешних процессов,
+    отказ от skip, реальная проверка TZ (#388, BR-511, BR-512, BR-513) [tracker-claim-388]`;
+  - `fc33106a` — `docs(568): отчёт для трекера #388 … [tracker-claim-388]`.
 - Изменены только файлы тестов:
   - `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt`
   - `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkDateTimeTest.kt`
 - Код приложения не менялся (проверено `git diff` — изменения только в `src/test`).
+- Трекер: `claim-issue 388` → `add-comment 388` (комментарий id 1310, 21828 символов) →
+  `mark-review 388` → статус **In review**, исполнитель `ai agent`.
+

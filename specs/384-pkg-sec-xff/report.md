@@ -111,7 +111,8 @@ BUILD SUCCESSFUL
 | `python3 tools/lint-knowledge.py` | **PASS** — «All documentation passes architectural style and structural checks» |
 | `python3 tools/check-doc-references.py` | **PASS** — битых ссылок/путей/эндпоинтов нет (4118 ссылок, 2240 путей, 313 эндпоинтов) |
 | `bash tools/check-feature-doc.sh docs/features/client-ip-resolution.md` | **PASS** |
-| `bash tools/check-subagent-isolation.sh` | **PASS** (до коммита — предупреждение «ветка не содержит новых commits») |
+| `bash tools/check-subagent-isolation.sh` | **PASS** (после коммита — «все commits в ветке уникальны, race condition нет») |
+| `bash tools/check-audit-coverage.sh` | **FAIL — предсуществующий дефект, не связан с правкой**: `EventsBuffer.kt` не упомянут в `specs/336-code-audit/research.md`. Тот же FAIL воспроизводится на `master` 4b5f16a7 (проверено в `/home/nsa/Karaoke`) |
 | `pre-commit run --files <изменённые файлы>` | **PASS** — все хуки (ktlint, lychee, feature-doc, doc-references, guards) |
 
 ## Что осталось за владельцем
@@ -127,8 +128,9 @@ BUILD SUCCESSFUL
 - **Отдельная задача BR-516 (#378)** — рост карты `claimRateBuckets` (без TTL-очистки).
   Наша правка убирает подделку как источник новых ключей, но саму очистку по TTL
   делает BR-516 — в этот пакет не входит.
-- **Закрытие тикета** — по workflow трекера закрытие делает владелец после ревью
-  (статус сейчас «In review»).
+- **Закрытие тикета** — по workflow трекера закрытие делает владелец после ревью.
+  Статус #384 сейчас «In review», комментарий с этим отчётом добавлен (id 1324);
+  push и PR не выполнялись (запрет в задании) — это за лидом.
 - Второй nginx в цепочке (`karaoke-public`, порт 7907, только loopback) выставляет
   `X-Forwarded-For-Client` и **не** выставляет `X-Real-IP`; запросы, пришедшие этим
   путём (в проде — только с самого хоста), обрабатываются вторым уровнем правила.
@@ -139,3 +141,7 @@ BUILD SUCCESSFUL
 - `119cf1c316fb1356144b994c955ae78c76583b27` — `fix(karaoke-web): BR-003 — адрес
   источника по X-Real-IP / последнему XFF` (код, тесты, knowledge, per-feature документ);
   ветка `574-pkg-sec-xff` (от `master` 4b5f16a7), без push и PR — по условиям задания.
+- `4ea9f1fc` — `docs(384): отчёт по BR-003` (этот файл).
+- `—` — `specs(336): статус BR-003 → «исправлено»` (registry.csv + карточки P-37 / P-38);
+  хэш — в `git log` ветки `574-pkg-sec-xff` (сделано третьим коммитом, чтобы отчёт мог
+  сослаться на хэш фикса).

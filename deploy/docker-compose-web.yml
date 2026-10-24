@@ -33,6 +33,11 @@ services:
       # Секрет заголовка X-Internal-Secret для эндпоинта двуx-БД синхронизации
       # POST /changerecords (karaoke-web → sync.internal-secret). Пусто = доступ закрыт (fail-safe).
       - SYNC_INTERNAL_SECRET=${SYNC_INTERNAL_SECRET}
+      # Серверный (секретный) ключ проверки капчи Yandex SmartCaptcha (спека 564, OpenProject #362).
+      # Раньше лежал в публично изменяемой таблице tbl_public_settings — анонимный клиент мог его
+      # обнулить, и проверка капчи становилась fail-open. Теперь ключ только здесь (env), а при
+      # незаконной конфигурации регистрация отклоняется (fail-closed).
+      - CAPTCHA_SERVER_KEY=${CAPTCHA_SERVER_KEY}
 #    volumes:
 #      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     networks:

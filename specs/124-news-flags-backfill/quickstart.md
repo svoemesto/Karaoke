@@ -112,11 +112,21 @@ docker exec karaoke-db psql -U postgres -d karaoke -c \
 
 ### 2.1. Включить kill-switch
 
-Выполняется на PROD (через админский UI karaoke-web, либо прямой curl на PROD):
+> **Обновлено спеой 564 (OpenProject #359, аудит BR-019):** публичная запись в
+> `tbl_public_settings` закрыта — теперь нужен общий секрет в заголовке `X-Internal-Secret`
+> (тот же, что у `POST /changerecords`) и сетевой фильтр nginx по адресу админской машины.
+> Отдельный незащищённый путь не сохраняется. Полный регламент — в
+> [`specs/564-impl-properties-captcha/quickstart.md`](../564-impl-properties-captcha/quickstart.md),
+> раздел B2.
+
+Выполняется на PROD (либо через админский UI `karaoke-app` → «Настройки сайта» с
+`target=remote`, либо curl на PROD по защищённому каналу):
 
 ```bash
 # На PROD (заменить localhost на PROD-адрес при удалённом вызове):
+export SYNC_INTERNAL_SECRET='<значение из do.env на боевом хосте>'
 curl -s -X POST "http://localhost:8897/api/properties/setproperty" \
+  -H "X-Internal-Secret: $SYNC_INTERNAL_SECRET" \
   -d "key=newsAutoPublishKillSwitch&stringValue=true"
 ```
 
@@ -124,10 +134,14 @@ curl -s -X POST "http://localhost:8897/api/properties/setproperty" \
 
 ```bash
 curl -s -X POST "http://localhost:8897/api/properties/getproperty" \
+  -H "X-Internal-Secret: $SYNC_INTERNAL_SECRET" \
   -d "key=newsAutoPublishKillSwitch"
 ```
 
 **Ожидаемый результат**: `true`.
+
+> Без заголовка `X-Internal-Secret` чтение непубличного ключа возвращает пустую строку,
+> а запись — `403` (в журнале: `settings:security:denied`).
 
 ## Шаг 3: Sync LOCAL→PROD
 

@@ -133,7 +133,31 @@ FAILED (errors=18)
 
 ### 3.1 Gradle / ktlint / doc-references
 
-(результат дописан после прогона; Kotlin в этой правке не менялся)
+```
+cd .worktrees/waveD-s2-07
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+  -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+  :karaoke-app:test :karaoke-web:test ktlintCheck
+
+> Task :karaoke-app:test FROM-CACHE
+> Task :karaoke-web:test FROM-CACHE
+> Task :karaoke-app:ktlintMainSourceSetCheck
+> Task :karaoke-app:ktlintCheck
+
+BUILD SUCCESSFUL in 37s
+29 actionable tasks: 6 executed, 23 from cache
+```
+
+`:karaoke-app:test` и `:karaoke-web:test` взяты из кэша Gradle (`FROM-CACHE`): входные данные
+(исходники Kotlin/Java, ресурсы, конфигурация) не менялись — правка только в Python и документации,
+поэтому кэш соответствует текущему дереву.
+
+`python3 tools/check-doc-references.py` после `git add` новых файлов:
+
+```
+Проверено: ссылок 4187, путей 2342, эндпоинтов 316; whitelist: 51 записей.
+OK: битых ссылок, несуществующих путей и эндпоинтов нет.
+```
 
 ### 3.2 `check-subagent-isolation.sh` — ложное срабатывание из-за устаревшего локального `master`
 
@@ -178,8 +202,14 @@ Guard сравнивает `master..HEAD` локального репозито�
 
 ## 6. Хэши
 
-`sha256` изменённых файлов (после финальных правок):
+Коммит с правками и отчётом: `a5967780` (`fix(370): alignment-ml — BR-489/490/491 (P-69-01..03)`),
+ветка `591-pkg-s2-07`. `sha256` изменённых файлов (после финальных правок):
 
 ```
-(заполняется после коммита)
+83bdea6cbfe9294e96613d44560f2a565ef05a0fa5fda9b50b8a5182af658798  alignment-ml/serve.py
+60b2bcd33300be833d49ca4a1f45038b9e3d3f76a178f98bb7e8f5d94605e49a  alignment-ml/train.py
+9a510991ac45c852c39b4bfb65210a2f17f4cf9a443176fcd04caf008d9d3b6c  alignment-ml/tests/test_serve_limits.py
+2f24b88665720632fa0fcd8270db57f788e4e62130fec22c50a76822c3bdbf95  alignment-ml/tests/test_vocab_binding.py
+2bad8463004cc63341e129df01e4339d5bc5a779205266f07dd92ba251e1f5c5  knowledge/domains/integration/components/alignment-ml.md
+963fd3118aa5389e3e4509f708c32031a7cee8c212418253b971b4cd5101932d  docs/features/alignment-ml.md
 ```

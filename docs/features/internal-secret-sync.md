@@ -138,7 +138,9 @@ deny all;
 - [`knowledge/domains/processing/components/two-db-sync.md`](../../knowledge/domains/processing/components/two-db-sync.md)
 - [`knowledge/domains/monitoring/components/log-categories.md`](../../knowledge/domains/monitoring/components/log-categories.md)
 - [`docs/features/sync-resilience.md`](sync-resilience.md)
-- [`specs/336-code-audit/findings/P-35.md`](../../specs/336-code-audit/findings/P-35.md) (находка P-35-01 / BR-011)
+- Аудит кода #336, находка P-35-01 / **BR-011** (S1) — карточка и реестр лежат в артефактах аудита
+  (`specs/336-code-audit/`, ветка `553-336-code-audit`, PR #646); здесь они не дублируются,
+  чтобы фича-док не ссылался на файлы, отсутствующие в master.
 
 ## Связанные ADR
 

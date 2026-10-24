@@ -133,6 +133,17 @@ jobs:
           java-version: '17'
           cache: gradle
 
+      - name: Install ffmpeg (обязателен для Mp3TrimmerTest)
+        # BR-512 (пакет #388): тест обрезки mp3 больше не помечается skipped, если
+        # бинарника нет, — он ПАДАЕТ с внятным сообщением. На runner'е ffmpeg не
+        # предустановлен, поэтому устанавливаем явно (ffprobe приходит в составе
+        # ffmpeg). Без этого шага джоба backend-test падала бы на первом же прогоне.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
       - name: Run backend unit tests
         # Локально: GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew \
         #   :karaoke-app:test :karaoke-web:test

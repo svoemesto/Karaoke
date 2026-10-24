@@ -14,82 +14,21 @@
 
 import { expect, test } from '@playwright/test'
 
+import { openEditor, withComponent } from './fixtures/song.js'
+
 test.setTimeout(180000)
 
 // Вызывает метод инстанса компонента с указанным именем.
 const callComponent = (page, compName, method, arg) =>
-  page.evaluate(
-    ([name, m, a]) => {
-      const app = document.querySelector('#app[data-v-app]').__vue_app__
-      const seen = new Set()
-      let inst = null
-      const walk = (v) => {
-        if (!v || typeof v !== 'object' || seen.has(v)) return
-        seen.add(v)
-        const t = v.component?.type
-        if (v.component && t && (t.name || t.__name) === name) inst = v.component
-        if (Array.isArray(v.children)) v.children.forEach(walk)
-        if (v.component?.subTree) walk(v.component.subTree)
-      }
-      walk(app._container._vnode)
-      if (!inst) throw new Error(`${name} не найден в дереве компонентов`)
-      return inst.proxy[m](a)
-    },
-    [compName, method, arg ?? null],
+  withComponent(
+    page,
+    compName,
+    (inst, payload) => inst[payload.method](payload.arg),
+    { method, arg: arg === undefined ? null : arg },
   )
-
-const openEditor = async (page) => {
-  // Список песен не нужен и тяжёлый — гасим его, как в measure-input-latency.spec.js.
-  await page.route(
-    (u) => u.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-  await page.evaluate(async () => {
-    const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    s.commit(
-      'updateSongsDigests',
-      JSON.parse(await s.dispatch('loadSongsDigestsPromise', { filterId: '11718' })),
-    )
-  })
-  await page.locator('.fld-song-name').first().click()
-  // Кнопка открывает SongEditModal, внутри которого живёт SongEdit (и вложенный SubsEdit).
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.waitForFunction(
-    () => {
-      const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-      const song = s.getters.getCurrentSong
-      return Boolean(song && song.id)
-    },
-    null,
-    { timeout: 30000 },
-  )
-  await page.waitForTimeout(2500)
-}
 
 // Находит инстанс SongEdit в дереве компонентов.
-const withSongEdit = (page, fn, arg) =>
-  page.evaluate(
-    ([body, a]) => {
-      const app = document.querySelector('#app[data-v-app]').__vue_app__
-      const seen = new Set()
-      let inst = null
-      const walk = (v) => {
-        if (!v || typeof v !== 'object' || seen.has(v)) return
-        seen.add(v)
-        const t = v.component?.type
-        if (v.component && t && (t.name || t.__name) === 'SongEdit') inst = v.component
-        if (Array.isArray(v.children)) v.children.forEach(walk)
-        if (v.component?.subTree) walk(v.component.subTree)
-      }
-      walk(app._container._vnode)
-      if (!inst) return { error: 'SongEdit не найден в дереве компонентов' }
-      // inst уже прокси компонента — тело функции получает его напрямую.
-      // eslint-disable-next-line no-new-func
-      return new Function('inst', 'arg', `return (${body})(inst, arg)`)(inst.proxy, a)
-    },
-    [fn.toString(), arg ?? null],
-  )
+const withSongEdit = (page, fn, arg) => withComponent(page, 'SongEdit', fn, arg)
 
 test('#216: правка уходит в свою песню, даже если currentSongId уже другой', async ({ page }) => {
   await openEditor(page)

@@ -11,6 +11,8 @@
 
 import { expect, test } from '@playwright/test'
 
+import { openEditor } from './fixtures/song.js'
+
 test.setTimeout(180000)
 
 // Порт 9 (discard) — соединение всегда отклоняется, поэтому onerror
@@ -20,22 +22,7 @@ test.setTimeout(180000)
 const PAYLOAD = '<img src="http://127.0.0.1:9/x" onerror="window.__XSS_FIRED=1">'
 
 test('#193: HTML из текста песни не исполняется, а показывается как текст', async ({ page }) => {
-  await page.route(
-    (u) => u.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-  await page.evaluate(async () => {
-    const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    s.commit(
-      'updateSongsDigests',
-      JSON.parse(await s.dispatch('loadSongsDigestsPromise', { filterId: '11718' })),
-    )
-  })
-  await page.locator('.fld-song-name').first().click()
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.locator('#waveform').waitFor({ state: 'attached' })
-  await page.waitForTimeout(9000)
+  await openEditor(page)
 
   await page.evaluate((payload) => {
     window.__XSS_FIRED = 0

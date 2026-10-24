@@ -11,45 +11,15 @@
 
 import { expect, test } from '@playwright/test'
 
+import { openEditor, withSubsEdit } from './fixtures/song.js'
+
 test.setTimeout(180000)
 
-const openEditor = async (page) => {
-  await page.route(
-    (u) => u.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-  await page.evaluate(async () => {
-    const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    s.commit(
-      'updateSongsDigests',
-      JSON.parse(await s.dispatch('loadSongsDigestsPromise', { filterId: '11718' })),
-    )
-  })
-  await page.locator('.fld-song-name').first().click()
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.locator('#waveform').waitFor({ state: 'attached' })
-  await page.waitForTimeout(9000)
-}
-
 const callComponent = (page, method, arg) =>
-  page.evaluate(
-    ([m, a]) => {
-      const app = document.querySelector('#app[data-v-app]').__vue_app__
-      const seen = new Set()
-      let inst = null
-      const walk = (v) => {
-        if (!v || typeof v !== 'object' || seen.has(v)) return
-        seen.add(v)
-        const t = v.component?.type
-        if (v.component && t && (t.name || t.__name) === 'SubsEdit') inst = v.component
-        if (Array.isArray(v.children)) v.children.forEach(walk)
-        if (v.component?.subTree) walk(v.component.subTree)
-      }
-      walk(app._container._vnode)
-      return inst.proxy[m](a)
-    },
-    [method, arg ?? null],
+  withSubsEdit(
+    page,
+    (p, payload) => p[payload.method](payload.arg),
+    { method, arg: arg === undefined ? null : arg },
   )
 
 test('#189: мутирующий эндпоинт вызывается ОДИН раз, а не четыре', async ({ page }) => {
@@ -80,25 +50,38 @@ test('#189: два быстрых save() не дают пересекающих�
     await r.fulfill({ status: 200, contentType: 'application/json', body: 'ok' })
   })
   await openEditor(page)
-  await callComponent(page, 'save')
-  await page.evaluate(() => {
-    const app = document.querySelector('#app[data-v-app]').__vue_app__
-    const seen = new Set()
-    let inst = null
-    const walk = (v) => {
-      if (!v || typeof v !== 'object' || seen.has(v)) return
-      seen.add(v)
-      const t = v.component?.type
-      if (v.component && t && (t.name || t.__name) === 'SubsEdit') inst = v.component
-      if (Array.isArray(v.children)) v.children.forEach(walk)
-      if (v.component?.subTree) walk(v.component.subTree)
-    }
-    walk(app._container._vnode)
-    // Второе сохранение, пока первое ещё в полёте.
-    inst.proxy.save()
+
+  // ОБА сохранения — внутри ОДНОГО page.evaluate и БЕЗ промежуточного await.
+  //
+  // Почему так (аудит #336, BR-618): save() объявлен async, и page.evaluate
+  // возвращает промис вызова метода. Прежняя версия теста ждала первый save()
+  // отдельным evaluate — то есть первый POST /api/song/savesourcetextmarkers
+  // успевал полностью завершиться (включая задержку 400 мс в заглушке) ДО
+  // того, как вызывался второй save(). Сохранения физически не могли
+  // пересечься, и утверждение maxInFlight === 1 было истинно при ЛЮБОЙ
+  // реализации — в том числе если очередь saving/saveQueued убрать из
+  // компонента. Регрессионная защита #189 была обнулена.
+  //
+  // Теперь оба вызова идут подряд, без await между ними: второй save()
+  // стартует, пока первый ещё в полёте. На корректном коде второй встаёт в
+  // очередь (saveQueued) и уходит после первого; на коде без очереди — два
+  // POST'а идут одновременно, и утверждение падает.
+  const res = await withSubsEdit(page, async (p) => {
+    const first = p.save() // уходит в полёт, НЕ ждём
+    const second = p.save() // стартует, пока первый в полёте
+    await Promise.allSettled([first, second])
+    return { saving: p.saving, queued: p.saveQueued }
   })
-  await page.waitForTimeout(3000)
-  console.log('SAVE: всего=' + total + ' максимум_одновременных=' + maxInFlight)
-  expect(maxInFlight, 'сохранения не должны пересекаться').toBe(1)
+
+  console.log(
+    'SAVE: всего=' + total + ' максимум_одновременных=' + maxInFlight + ' ' + JSON.stringify(res),
+  )
   expect(total, 'второе сохранение должно выполниться, а не потеряться').toBe(2)
+  expect(
+    maxInFlight,
+    'сохранения не должны пересекаться: очередь saving/saveQueued обязана '
+      + 'выстраивать их в цепочку',
+  ).toBe(1)
+  expect(res.saving, 'после завершения очередь должна быть пуста').toBe(false)
+  expect(res.queued, 'повторное сохранение должно быть выполнено, а не остаться в очереди').toBe(false)
 })

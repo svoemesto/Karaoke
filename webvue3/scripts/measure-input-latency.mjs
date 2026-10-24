@@ -1,34 +1,38 @@
-// #205: измерение задержки ввода в редакторе. Задача НИЧЕГО не решает —
-// только измеряет, чтобы решение по #191/#197 опиралось на числа.
+// Измеритель задержки ввода в редакторе (#205).
+//
+// ЗАЧЕМ ЭТО НЕ ТЕСТ (аудит #336, BR-615). Файл прежде лежал в каталоге e2e и
+// назывался `measure-input-latency.spec.js`, но НЕ содержал ни одного
+// утверждения: только замер и console.log. Он попадал в общий прогон
+// `npm run test:e2e` и показывал «зелёный» результат там, где задержка ввода
+// не проверялась ничем: упавший редактор, сплошные ошибки в консоли и
+// зависший wavesurfer давали тот же «зелёный» статус.
+//
+// Теперь это измерялка (npm-скрипт `measure:input-latency`), а не спецификация
+// набора. Она ничего не «проверяет» и потому ничего не обещает: выводит
+// числа, на которые опирается решение по #191/#197.
 //
 // Метод: Event Timing API (PerformanceObserver по entryTypes: ['event']).
 // Для каждого события он даёт:
 //   processingEnd - startTime  — время обработчика приложения;
 //   duration                  — от события до следующей отрисовки.
-// Первая версия теста ждала requestAnimationFrame и получила ровно 16.7 мс —
+// Первая версия измерялки ждала requestAnimationFrame и получила ровно 16.7 мс —
 // это длительность кадра при 60 Гц, замер упирался в потолок и ничего не видел.
+//
+// Запуск:
+//   E2E_BASE_URL=http://localhost:7906 npm run measure:input-latency
 
-import { test } from '@playwright/test'
+import { chromium } from '@playwright/test'
 
-test.setTimeout(300000)
+import { openEditor, SONG_ID } from '../e2e/fixtures/song.js'
 
-test('#205: задержка ввода — измерение', async ({ page }) => {
-  await page.route(
-    (u) => u.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-  await page.evaluate(async () => {
-    const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    s.commit(
-      'updateSongsDigests',
-      JSON.parse(await s.dispatch('loadSongsDigestsPromise', { filterId: '11718' })),
-    )
-  })
-  await page.locator('.fld-song-name').first().click()
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.locator('#waveform').waitFor({ state: 'attached' })
-  await page.waitForTimeout(12000)
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:7906'
+
+const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] })
+const context = await browser.newContext({ baseURL: BASE_URL })
+const page = await context.newPage()
+
+try {
+  await openEditor(page)
 
   const profile = await page.evaluate(() => {
     const app = document.querySelector('#app[data-v-app]').__vue_app__
@@ -43,6 +47,7 @@ test('#205: задержка ввода — измерение', async ({ page }
       if (v.component?.subTree) walk(v.component.subTree)
     }
     walk(app._container._vnode)
+    if (!inst) throw new Error('экземпляр SubsEdit не найден')
     const p = inst.proxy
     return {
       markers: p.sourceMarkers.length,
@@ -52,7 +57,7 @@ test('#205: задержка ввода — измерение', async ({ page }
       textLen: p.sourceText.length,
     }
   })
-  console.log('PROFILE: ' + JSON.stringify(profile))
+  console.log('ПЕСНЯ: id=' + SONG_ID + ' ' + JSON.stringify(profile))
 
   // Наблюдатели поднимаем ДО печати.
   await page.evaluate(() => {
@@ -111,5 +116,18 @@ test('#205: задержка ввода — измерение', async ({ page }
       longtasks: { n: lt.length, max: lt.length ? Math.max(...lt) : 0, all: lt.slice(0, 15) },
     }
   })
-  console.log('RESULT: ' + JSON.stringify(res))
-})
+  console.log('РЕЗУЛЬТАТ: ' + JSON.stringify(res))
+  console.log(
+    'Бюджет задержки ввода — 16 мс (один кадр), см. ' +
+      'knowledge/system/frontend/subs-edit-admin-editor.md',
+  )
+  if (!res.handler) {
+    console.error('ЗАМЕР НЕ ПОЛУЧЕН: браузер не отдал Event Timing API')
+    process.exitCode = 1
+  }
+} catch (e) {
+  console.error('ИЗМЕРЕНИЕ НЕ УДАЛОСЬ: ' + (e && e.message ? e.message : e))
+  process.exitCode = 1
+} finally {
+  await browser.close()
+}

@@ -19,39 +19,26 @@
 // (2be96451, 093a6972, 2ac3e45f, затем 1f2b20b5, bc576b6f) — каждый фикс добавлял
 // ещё один проход «создать регионы», то есть ещё одну порцию призраков.
 //
-// Проверяем на живой песне 11718 «Говорит Деметра» (2170 маркеров, 604 с).
-// Прогон детерминирован: при каждом запуске проверяется и падение, и позиции.
+// ЧТО ПРОВЕРЯЕТСЯ ИМЕННО (аудит #336, BR-622). Прежняя версия теста
+// утверждала, что «в данных нет маркеров с time === 0» (markersAtZero === 0)
+// и что маркеров больше 100. Это утверждения о ДАННЫХ конкретной песни, а не о
+// коде: владелец вправе поставить легальному маркеру время 0 — и тест
+// становился красным при полностью исправном коде. Теперь проверяются
+// СТРУКТУРНЫЕ инварианты, которые верны для любой разметки:
 //
-// Запуск: E2E_BASE_URL=http://localhost:7906 npm run test:e2e -- ghost-markers.spec.js
+//   * регион ровно один на маркер (без двойного создания);
+//   * регион в нуле есть ровно у тех маркеров, которые сами в нуле;
+//   * ни один регион не начинается за пределами аудио и не отрицателен;
+//   * у каждого видимого маркера есть region.
+//
+// Запуск: E2E_BASE_URL=http://localhost:7906 E2E_SONG_ID=11718 npm run test:e2e -- ghost-markers.spec.js
 
 import { expect, test } from '@playwright/test'
 
-const SONG_ID = 11718
+import { openEditor, withSubsEdit } from './fixtures/song.js'
 
 async function openSubsEdit(page) {
-  // Список песен тянет POST /api/songs (~81 МБ) — обрываем, он не нужен.
-  // ВАЖНО: сравнение по pathname, а не glob: `**/api/songs**` матчит ещё и
-  // `/api/songsdigests` (song + s + digests), из-за чего обрывался нужный запрос.
-  await page.route(
-    (url) => url.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-
-  // Песни приходят только с фильтром. Именно loadSongsDigestsPromise — обычный
-  // loadSongsDigests промис не возвращает, и await после него не ждёт ничего.
-  await page.evaluate(async (id) => {
-    const store =
-      document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    const raw = await store.dispatch('loadSongsDigestsPromise', { filterId: String(id) })
-    store.commit('updateSongsDigests', JSON.parse(raw))
-  }, SONG_ID)
-
-  await page.locator('.fld-song-name').first().click()
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.locator('#waveform').waitFor({ state: 'attached' })
-  // Даём отработать отложенным проходам: decode + redrawMarkers.
-  await page.waitForTimeout(8000)
+  await openEditor(page)
 }
 
 // Проверяем по ДАННЫМ плагина wavesurfer, а не по DOM.
@@ -64,26 +51,13 @@ async function openSubsEdit(page) {
 // (getRegions() → Region.start) — источник истины для позиции, он одинаков
 // в любой версии.
 function readRegions(page) {
-  return page.evaluate(() => {
-    const app = document.querySelector('#app[data-v-app]').__vue_app__
-    const seen = new Set()
-    let inst = null
-    const walk = (v) => {
-      if (!v || typeof v !== 'object' || seen.has(v)) return
-      seen.add(v)
-      const n = v.component?.type
-      if (v.component && n && (n.name || n.__name) === 'SubsEdit') inst = v.component
-      if (Array.isArray(v.children)) v.children.forEach(walk)
-      if (v.component?.subTree) walk(v.component.subTree)
-    }
-    walk(app._container._vnode)
-    if (!inst) return { err: 'экземпляр SubsEdit не найден' }
-    const p = inst.proxy
+  return withSubsEdit(page, (p) => {
     const markers = p.sourceMarkers
     const regions = p.wsRegions ? p.wsRegions.getRegions() : []
     const zeroStart = regions.filter((r) => r.start === 0)
+    const duration = Number(p.duration) || 0
     return {
-      duration: p.duration,
+      duration,
       markers: markers.length,
       // Сколько маркеров реально имеют time === 0. Это контроль: если в данных
       // таких нет, то и в регионах их быть не должно.
@@ -91,6 +65,10 @@ function readRegions(page) {
       regions: regions.length,
       regionsAtZero: zeroStart.length,
       maxStart: regions.reduce((m, r) => Math.max(m, r.start), 0),
+      // Регион за пределами аудио или с отрицательным стартом — это ровно тот
+      // дефект, который ловит clampPosition в неготовом состоянии.
+      regionsOutOfRange: regions.filter((r) => r.start < 0 || (duration > 0 && r.start > duration))
+        .length,
       markersWithNullRegion: markers.filter((m) => m.region === null).length,
     }
   })
@@ -120,22 +98,35 @@ test.describe('призрачные маркеры и падение редак�
     const r = await readRegions(page)
     console.log(`REGIONS: ${JSON.stringify(r)}`)
 
-    expect(r.err).toBeUndefined()
+    expect(r.error, r.error || '').toBeUndefined()
     expect(r.duration, 'аудио должно быть декодировано').toBeGreaterThan(0)
-    expect(r.markers, 'маркеры должны быть загружены').toBeGreaterThan(100)
+    expect(r.markers, 'маркеры должны быть загружены').toBeGreaterThan(0)
 
     // ГЛАВНОЕ. До фикса: 4761 регион на 2170 маркеров (4340 = 2 × 2170) —
     // два прохода создания до 'ready' плюс компенсирующий redrawMarkers.
     // Теперь создание ровно одно, поэтому регион на маркер один.
     expect(r.regions, 'регион на каждый маркер, без двойного создания').toBe(r.markers)
 
-    // И ни одного региона в нуле: если в данных таких маркеров нет,
-    // то нулевые регионы — это ровно те «призраки» из жалобы владельца.
-    expect(r.markersAtZero, 'в данных нет маркеров с time === 0').toBe(0)
-    expect(r.regionsAtZero, 'призрачных маркеров быть не должно').toBe(0)
+    // СТРУКТУРНЫЙ ИНВАРИАНТ (вместо «в данных нет маркеров с time === 0»):
+    // регион в нуле бывает ровно у тех маркеров, которые сами стоят в нуле.
+    // Если владелец поставит легальному маркеру время 0, у него будет и
+    // регион в нуле — и тест останется зелёным, потому что проверяет КОД,
+    // а не содержимое разметки.
+    expect(
+      r.regionsAtZero,
+      'регион в нуле должен быть ровно у маркеров, которые сами в нуле',
+    ).toBe(r.markersAtZero)
 
-    // Позиции реально разнесены по шкале времени.
-    expect(r.maxStart, 'позиции маркеров должны быть распределены').toBeGreaterThan(100)
+    // Регион не может начинаться за пределами аудио: именно clampPosition с
+    // duration === 0 делал «призраки» (start = 0 у всех).
+    expect(r.regionsOutOfRange, 'регионы должны лежать в пределах аудио').toBe(0)
+
+    // Позиции реально разнесены по шкале времени: хотя бы один регион
+    // начинается не в нуле (иначе вся разметка схлопнулась бы в ноль).
+    expect(r.maxStart, 'позиции маркеров должны быть распределены по шкале').toBeGreaterThan(0)
+    expect(r.maxStart, 'последний регион не может быть за пределами аудио').toBeLessThanOrEqual(
+      r.duration + 0.001,
+    )
 
     // Инвариант из #192: ключ `region` есть у каждого маркера, значение может
     // быть null только у скрытых типов. Здесь все типы видимы — значит null не быть.

@@ -11,6 +11,8 @@
       <button class="trf-btn" @click="reload">Обновить</button>
     </div>
 
+    <div v-if="error" class="trf-error" role="alert">{{ error }}</div>
+
     <div class="trf-add">
       <div class="trf-add-title">Новый тариф:</div>
       <select v-model="newItem.scope">
@@ -90,6 +92,8 @@
 </template>
 
 <script>
+import { isValidTariffPrice } from './store.js'
+
 /**
  * Таблица со списком tariffs с пагинацией, фильтрами и сортировкой.
  *
@@ -108,6 +112,9 @@ export default {
     isLoading() {
       return this.$store.getters.getTariffsIsLoading
     },
+    error() {
+      return this.$store.getters.getTariffsError
+    },
     list() {
       return this.$store.getters.getTariffsList
     },
@@ -120,7 +127,9 @@ export default {
       },
     },
     canCreate() {
-      return this.newItem.name.trim() !== '' && this.newItem.priceRub >= 0
+      // BR-461: пустая цена (`'' >= 0` → true) пропускалась и падала на бэкенде
+      // с 400 — валидируем числом, а не сравнением строки.
+      return this.newItem.name.trim() !== '' && isValidTariffPrice(this.newItem.priceRub)
     },
   },
   watch: {
@@ -148,15 +157,26 @@ export default {
       return Object.keys(item).some((k) => item[k] !== orig[k])
     },
     async save(item) {
-      await this.$store.dispatch('saveTariff', item)
+      // BR-461: при отказе откатываем оптимистично отредактированные значения к
+      // последнему подтверждённому сервером снимку — иначе UI показывал бы новую
+      // цену как сохранённую в прод-БД (деньги).
+      const ok = await this.$store.dispatch('saveTariff', item)
+      if (!ok) {
+        const original = this.original[item.id]
+        if (original) Object.assign(item, original)
+      }
     },
     async remove(item) {
       if (!confirm(`Удалить тариф «${item.name}»?`)) return
       await this.$store.dispatch('deleteTariff', item.id)
     },
     async create() {
-      await this.$store.dispatch('createTariff', this.newItem)
-      this.newItem = { scope: 'SONG', name: '', priceRub: 0, periodDays: 30 }
+      // BR-461: форму сбрасываем только после подтверждённого успеха; при отказе
+      // введённые значения остаются, а ошибка видна в баннере.
+      const ok = await this.$store.dispatch('createTariff', this.newItem)
+      if (ok) {
+        this.newItem = { scope: 'SONG', name: '', priceRub: 0, periodDays: 30 }
+      }
     },
   },
 }
@@ -215,6 +235,15 @@ export default {
   font-size: small;
   color: gray;
   padding: 10px 0;
+}
+.trf-error {
+  font-size: small;
+  color: #7a1f1f;
+  background-color: #f7d7d7;
+  border: thin solid #d9a0a0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
 }
 .trf-table {
   width: 100%;

@@ -371,7 +371,7 @@ const STATS_FRONT_TTL_MS = 60_000
 // webvue3/src/components/Stats/store.js).
 const tabEndpoints = {
   0: ['summary'], // KPI
-  1: ['monetization'], // Монетизация
+  1: ['monetization', 'monetization-top-songs'], // Монетизация
   2: ['timeseries'], // Динамика
   3: ['by-type', 'channels', 'by-detail'], // Разбивки
   4: ['countries', 'referrers'], // География
@@ -391,6 +391,7 @@ const dayDependentEndpoints = new Set(['summary', 'timeseries', 'by-type', 'by-d
 const simpleEndpointActions = {
   summary: 'loadStatsSummary',
   monetization: 'loadMonetizationSummary',
+  'monetization-top-songs': 'loadMonetizationTopSongs',
   timeseries: 'loadStatsTimeSeries',
   'by-type': 'loadStatsBreakdown',
   channels: 'loadStatsBreakdown',
@@ -810,6 +811,8 @@ export default {
           break
         case 1: // Монетизация
           this.$store.commit('setMonetizationSummary', null)
+          // BR-460: блок «Топ песен по подпискам» тоже грузится этой вкладкой.
+          this.$store.commit('setMonetizationTopSongs', [])
           break
         case 2: // Динамика
           this.$store.commit('setStatsTimeSeries', [])
@@ -841,15 +844,36 @@ export default {
     isHttp(url) {
       return typeof url === 'string' && /^https?:\/\//i.test(url)
     },
+    // BR-487: `target` — глобальный фильтр дашборда, он участвует в запросе ЛЮБОЙ
+    // вкладки. Поэтому при его смене инвалидируем данные и `lastLoadedAt` всех
+    // вкладок, а не только активной: иначе вкладка, открытая 20 с назад, ещё
+    // 40 с показывала цифры прежней БД под новой меткой (TTL не давал загрузить).
+    invalidateAllTabs() {
+      Object.keys(tabEndpoints).forEach((tab) => {
+        this.clearActiveTabData(Number(tab))
+      })
+    },
+    // BR-487: `days` участвует только в day-dependent запросах (вкладки 0/2/3).
+    // Сбрасываем кеш именно их — включая неактивные, иначе возврат на вкладку в
+    // пределах TTL показывал числа прежнего периода.
+    invalidateDayDependentTabs() {
+      Object.keys(tabEndpoints).forEach((tab) => {
+        const index = Number(tab)
+        const isDayDependent = (tabEndpoints[index] || []).some((endpoint) =>
+          dayDependentEndpoints.has(endpoint),
+        )
+        if (isDayDependent) this.clearActiveTabData(index)
+      })
+    },
     onTargetChange() {
       // Issue #79 fix: вместо reloadAll() (11 параллельных HTTP) —
-      // сбрасываем страницы, чистим данные активной вкладки и загружаем
-      // только её (FR-007).
+      // сбрасываем страницы, чистим данные вкладок и загружаем только активную
+      // (FR-007). BR-487: чистим ВСЕ вкладки — target влияет на каждую.
       this.statsBySongPage = 1
       this.webEventsPage = 1
       this.topUsersPage = 1
       this.topListenedPage = 1
-      this.clearActiveTabData(this.activeTab)
+      this.invalidateAllTabs()
       this.loadDataForActiveTab(this.activeTab)
     },
     onDaysChange() {
@@ -857,6 +881,10 @@ export default {
       // проверяем, активна ли сейчас вкладка с dayDependentEndpoints
       // ({0, 2, 3} = KPI, Динамика, Разбивки). Если нет — ничего не шлём.
       if (dayDependentEndpoints.size === 0) return
+      // BR-487: сбросить кеш day-dependent вкладок нужно ВСЕГДА, а не только у
+      // активной: иначе возврат на неактивную вкладку в пределах TTL показывал
+      // данные прежнего периода.
+      this.invalidateDayDependentTabs()
       // OP #184 / spec 478: сравниваем по приведённому индексу — значение
       // вкладки может прийти и числом, и id панели.
       const activeTabIndex = resolveTabIndex(this.activeTab)

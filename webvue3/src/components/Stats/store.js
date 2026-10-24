@@ -1,4 +1,5 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
+import { statsRequestGuard } from './request-guard.js'
 
 // Потолок ожидания ответа статистики. Без него «зависший» endpoint (например,
 // `/api/stats/countries`, который резолвит до 150 IP через внешний GeoIP)
@@ -374,20 +375,27 @@ export default {
     // Нужно вкладкам (StatsView.loadDataForActiveTab), чтобы взводить TTL-кеш
     // только на действительно загруженной вкладке (OP #184, spec 478, FR-004).
     loadStatsSummary(ctx) {
+      // BR-459: фиксируем поколение запроса — ответ применяем, только если он последний.
+      const seq = statsRequestGuard.begin('summary')
       ctx.commit('setStatsSummaryIsLoading', true)
       return getJson(`/api/stats/summary?target=${ctx.state.statsTarget}`)
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('summary', seq)) return false
           ctx.commit('setStatsSummary', r.summary)
           ctx.commit('setStatsSummaryIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('summary', seq)) return false
           console.log(e)
           ctx.commit('setStatsSummaryIsLoading', false)
           return false
         })
     },
     loadStatsTimeSeries(ctx, { mode } = {}) {
+      // BR-459: при быстрой смене периода/режима ответ старого запроса не должен
+      // перетирать данные нового (поколение на ключ 'timeseries').
+      const seq = statsRequestGuard.begin('timeseries')
       const m = mode !== undefined ? mode : ctx.state.timeSeriesMode
       ctx.commit('setStatsTimeSeriesMode', m)
       ctx.commit('setStatsTimeSeriesIsLoading', true)
@@ -395,17 +403,22 @@ export default {
         `/api/stats/timeseries?target=${ctx.state.statsTarget}&days=${ctx.state.statsDays}&mode=${m}`,
       )
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('timeseries', seq)) return false
           ctx.commit('setStatsTimeSeries', r.items)
           ctx.commit('setStatsTimeSeriesIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('timeseries', seq)) return false
           console.log(e)
           ctx.commit('setStatsTimeSeriesIsLoading', false)
           return false
         })
     },
     loadStatsBreakdown(ctx) {
+      // BR-459: поколение на всю вкладку «Разбивки» — ответы трёх endpoint'ов
+      // применяются, только если с момента запуска не было новой загрузки.
+      const seq = statsRequestGuard.begin('breakdown')
       ctx.commit('setStatsBreakdownIsLoading', true)
       // Endpoint'ы вкладки грузятся НЕЗАВИСИМО: таймаут/ошибка одного не должен
       // стирать данные остальных и не должен оставлять вкладку в вечной загрузке
@@ -413,6 +426,7 @@ export default {
       const load = (url, commitName) =>
         getJson(url)
           .then((r) => {
+            if (!statsRequestGuard.isCurrent('breakdown', seq)) return false
             ctx.commit(commitName, r.items || [])
             return true
           })
@@ -436,6 +450,9 @@ export default {
       })
     },
     loadStatsGeo(ctx) {
+      // BR-459: именно этот action давал подмену данных при переключении БД —
+      // медленный ответ «Географии» старой БД приходил после смены target.
+      const seq = statsRequestGuard.begin('geo')
       ctx.commit('setStatsGeoIsLoading', true)
       // independent-загрузка (см. комментарий выше) + таймаут: «География» не
       // должна висеть вечно, если страны не отвечают, а внешние источники при
@@ -443,6 +460,7 @@ export default {
       const load = (url, commitName) =>
         getJson(url)
           .then((r) => {
+            if (!statsRequestGuard.isCurrent('geo', seq)) return false
             ctx.commit(commitName, r.items || [])
             return true
           })
@@ -459,17 +477,20 @@ export default {
       })
     },
     loadStatsTopUsers(ctx, { page = 1, pageSize = 50 } = {}) {
+      const seq = statsRequestGuard.begin('top-users')
       ctx.commit('setStatsTopUsersIsLoading', true)
       return getJson(
         `/api/stats/top-users?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`,
       )
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('top-users', seq)) return false
           ctx.commit('setStatsTopUsers', r.items)
           ctx.commit('setStatsTopUsersTotalCount', r.totalCount)
           ctx.commit('setStatsTopUsersIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('top-users', seq)) return false
           console.log(e)
           ctx.commit('setStatsTopUsersIsLoading', false)
           return false
@@ -477,33 +498,39 @@ export default {
     },
     // Drill-down по пользователю: залогиненный (siteUserId>0) ЛИБО аноним (anonId).
     loadStatsUserEvents(ctx, { siteUserId = 0, anonId = '', page = 1, pageSize = 50 }) {
+      const seq = statsRequestGuard.begin('user-events')
       ctx.commit('setStatsUserEventsIsLoading', true)
       let url = `/api/stats/user-events?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`
       if (siteUserId) url += `&siteUserId=${siteUserId}`
       if (anonId) url += `&anonId=${encodeURIComponent(anonId)}`
       getJson(url)
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('user-events', seq)) return
           ctx.commit('setStatsUserEvents', r.items)
           ctx.commit('setStatsUserEventsTotalCount', r.totalCount)
           ctx.commit('setStatsUserEventsIsLoading', false)
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('user-events', seq)) return
           console.log(e)
           ctx.commit('setStatsUserEventsIsLoading', false)
         })
     },
     loadStatsBySong(ctx, { page = 1, pageSize = 50 } = {}) {
+      const seq = statsRequestGuard.begin('by-song')
       ctx.commit('setStatsBySongIsLoading', true)
       return getJson(
         `/api/stats/by-song?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`,
       )
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('by-song', seq)) return false
           ctx.commit('setStatsBySong', r.items)
           ctx.commit('setStatsBySongTotalCount', r.totalCount)
           ctx.commit('setStatsBySongIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('by-song', seq)) return false
           console.log(e)
           ctx.commit('setStatsBySongIsLoading', false)
           return false
@@ -511,77 +538,100 @@ export default {
     },
     // Drill-down по песне: все события конкретной песни (клик по строке «Топ песен»).
     loadStatsSongEvents(ctx, { songId, page = 1, pageSize = 2000 } = {}) {
+      const seq = statsRequestGuard.begin('song-events')
       ctx.commit('setStatsSongEventsIsLoading', true)
       const url = `/api/stats/song-events?target=${ctx.state.statsTarget}&songId=${songId}&page=${page}&pageSize=${pageSize}`
       getJson(url)
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('song-events', seq)) return
           ctx.commit('setStatsSongEvents', r.items)
           ctx.commit('setStatsSongEventsTotalCount', r.totalCount)
           ctx.commit('setStatsSongEventsIsLoading', false)
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('song-events', seq)) return
           console.log(e)
           ctx.commit('setStatsSongEventsIsLoading', false)
         })
     },
     loadWebEvents(ctx, { page = 1, pageSize = 50, eventType = '', days = 0 } = {}) {
+      const seq = statsRequestGuard.begin('webevents')
       ctx.commit('setWebEventsIsLoading', true)
       let url = `/api/webevents?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`
       if (eventType) url += `&eventType=${eventType}`
       if (days) url += `&days=${days}`
       return getJson(url)
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('webevents', seq)) return false
           ctx.commit('setWebEvents', r.items)
           ctx.commit('setWebEventsTotalCount', r.totalCount)
           ctx.commit('setWebEventsIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('webevents', seq)) return false
           console.log(e)
           ctx.commit('setWebEventsIsLoading', false)
           return false
         })
     },
     loadMonetizationSummary(ctx) {
+      const seq = statsRequestGuard.begin('monetization')
       ctx.commit('setMonetizationSummaryIsLoading', true)
       return getJson(`/api/stats/monetization?target=${ctx.state.statsTarget}`)
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('monetization', seq)) return false
           ctx.commit('setMonetizationSummary', r.summary)
           ctx.commit('setMonetizationSummaryIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('monetization', seq)) return false
           console.log(e)
           ctx.commit('setMonetizationSummaryIsLoading', false)
           return false
         })
     },
     loadMonetizationTopSongs(ctx, { limit = 20 } = {}) {
+      // BR-460: action был объявлен, но нигде не вызывался — `state.monetizationTopSongs`
+      // всегда оставался пустым, и блок «Топ песен по подпискам» вечно показывал
+      // «Пока нет оплаченных подписок». Возвращаем Promise<Boolean>, чтобы TTL
+      // вкладки взводился по факту загрузки (контракт loadDataForActiveTab).
+      const seq = statsRequestGuard.begin('monetization-top-songs')
       ctx.commit('setMonetizationTopSongsIsLoading', true)
-      getJson(`/api/stats/monetization/top-songs?target=${ctx.state.statsTarget}&limit=${limit}`)
+      return getJson(
+        `/api/stats/monetization/top-songs?target=${ctx.state.statsTarget}&limit=${limit}`,
+      )
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('monetization-top-songs', seq)) return false
           ctx.commit('setMonetizationTopSongs', r.items)
           ctx.commit('setMonetizationTopSongsIsLoading', false)
+          return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('monetization-top-songs', seq)) return false
           console.log(e)
           ctx.commit('setMonetizationTopSongsIsLoading', false)
+          return false
         })
     },
     // Топ песен, которые реально слушают в онлайн-плеере (≥75% или до конца).
     // Метрика «дослушали» = (progress='75' OR ended), сортировка по числу таких событий DESC.
     loadTopListened(ctx, { page = 1, pageSize = 50 } = {}) {
+      const seq = statsRequestGuard.begin('top-listened')
       ctx.commit('setTopListenedIsLoading', true)
       return getJson(
         `/api/stats/top-listened?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`,
       )
         .then((r) => {
+          if (!statsRequestGuard.isCurrent('top-listened', seq)) return false
           ctx.commit('setTopListened', r.items)
           ctx.commit('setTopListenedTotalCount', r.totalCount)
           ctx.commit('setTopListenedIsLoading', false)
           return true
         })
         .catch((e) => {
+          if (!statsRequestGuard.isCurrent('top-listened', seq)) return false
           console.log(e)
           ctx.commit('setTopListenedIsLoading', false)
           return false

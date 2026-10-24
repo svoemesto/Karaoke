@@ -12,6 +12,14 @@
       <span class="sjt-toolbar-item sjt-count">Всего: {{ stemJobs.length }}</span>
     </div>
 
+    <!-- BR-462: список от другой БД (или после ошибки загрузки) не показываем как
+         данные текущей; действия по строкам в этом состоянии недоступны — иначе
+         «Удалить» уходит с id чужого задания и target текущего селектора. -->
+    <div v-if="error" class="sjt-error" role="alert">
+      Не удалось загрузить задания выбранной БД: {{ error }}. Действия заблокированы, повторите
+      загрузку.
+    </div>
+
     <div class="sjt-table-body">
       <b-table
         v-model:sort-by="sortBy"
@@ -108,6 +116,9 @@ export default {
     },
     stemJobs() {
       return this.$store.getters.getStemJobs
+    },
+    error() {
+      return this.$store.getters.getStemJobsError
     },
     target: {
       get() {
@@ -263,6 +274,15 @@ export default {
 .sjt-count {
   margin-left: auto;
   color: gray;
+}
+.sjt-error {
+  font-size: small;
+  color: #7a1f1f;
+  background-color: #f7d7d7;
+  border: thin solid #d9a0a0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 8px 0;
 }
 .sjt-btn {
   border: solid 1px black;

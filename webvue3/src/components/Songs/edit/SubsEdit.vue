@@ -314,10 +314,17 @@
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">Time:</div>
+                <!-- BR-449: числовое поле не должно пропускать произвольный текст:
+                     строка "1,5" уходила в JSON как есть, и бэкенд отклонял сохранение
+                     всего голоса (bad_markers). type=number + нормализация на change
+                     с откатом к прежнему значению при нечисловом вводе. -->
                 <input
                   v-model="currentMarker.time"
+                  type="number"
+                  step="any"
                   class="se-item-left-input-field"
-                  @focus="setEditMode(false)"
+                  @focus="onMarkerTimeFocus"
+                  @change="normalizeMarkerTime"
                   @blur="setEditMode(true)"
                 />
               </div>
@@ -1210,6 +1217,7 @@ import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import { highlightWords } from '../../../utils/highlightWords.js'
 import { escapeHtml } from '../../../utils/escapeHtml.js'
 import { findMarkerIndexByTime } from '../../../utils/markerIndex.js'
+import { parseMarkerTime, resolveChordLabel } from '../../../lib/marker-fields.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
 import WhisperDebugModal from './WhisperDebugModal.vue'
@@ -1466,6 +1474,15 @@ export default {
       currentSyllablesIndex: 0,
       currentMarkersIndex: 0,
       indexTabsVariant: 0,
+      // BR-449: последнее корректное числовое значение поля «Time:» — к нему
+      // откатываемся, если в поле ввели не число (иначе в JSON уходит строка и
+      // бэкенд отклоняет сохранение голоса целиком).
+      markerTimeBeforeEdit: null,
+      // BR-451: поколение загрузки голоса и признак её отказа. Поздний ответ
+      // ранее запрошенного голоса не должен перетирать состояние текущего, а
+      // отказ загрузки запрещает сохранение (fail-closed).
+      voiceLoadToken: 0,
+      voiceLoadFailed: false,
       currentMarker: {
         markertype: '',
         time: '',
@@ -2268,17 +2285,49 @@ export default {
             syllables: [],
           })
         }
+        // BR-451: фиксируем, ЧЕЙ голос грузим. Ответ применяем, только если это всё
+        // ещё тот же голос: два параллельных обработчика (быстрое переключение)
+        // писали в один `sourceMarkers`/`sourceText`, и поздний ответ старого голоса
+        // перетирал данные нового. Следующее сохранение после этого затирало
+        // разметку целевого голоса разметкой соседнего (setSourceTextAndMarkers
+        // заменяет набор маркеров голоса целиком).
+        const requestedVoice = this.currentVoice
+        const token = ++this.voiceLoadToken
+        const isStale = () =>
+          this.isUnmounted || token !== this.voiceLoadToken || requestedVoice !== this.currentVoice
+        this.voiceLoadFailed = false
         // Порядок КРИТИЧЕН: loadedMarkers грузится ДО sourceText, иначе watcher `sourceText`
         // срабатывает между двумя `await` (на микротаске Vue 2) со СТАРЫМИ sourceMarkers и
         // syncMarkersFromSpecTags() корраптит их spec tag-маркерами из НОВОГО текста. См.
         // specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.4.
-        this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
-        // #189: после await компонент мог быть уже размонтирован (пользователь
-        // закрыл модалку или быстро переключил голос). Писать дальше нельзя.
-        if (this.isUnmounted) return
-        this.sourceMarkers = []
-        this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
-        if (this.isUnmounted) return
+        try {
+          this.loadedMarkers = await this.$store.getters.getSourceMarkers(requestedVoice)
+          // #189: после await компонент мог быть уже размонтирован (пользователь
+          // закрыл модалку или быстро переключил голос). Писать дальше нельзя.
+          if (isStale()) return
+          this.sourceMarkers = []
+          this.sourceText = await this.$store.getters.getSourceText(requestedVoice)
+          if (isStale()) return
+        } catch (e) {
+          if (isStale()) return
+          // BR-451: отказ загрузки оставлял в памяти маркеры предыдущего голоса при
+          // уже переключённом currentVoice — первое же сохранение записало бы их в
+          // чужой голос. Fail-closed: чистим состояние и запрещаем сохранение.
+          this.voiceLoadFailed = true
+          this.sourceMarkers = []
+          this.sourceText = ''
+          // eslint-disable-next-line no-console
+          console.error('[SubsEdit.currentVoice] load failed', e)
+          this.customConfirmParams = {
+            header: 'Ошибка загрузки голоса',
+            body:
+              'Не удалось загрузить разметку голоса, сохранение заблокировано: ' +
+              (e && e.message ? e.message : e),
+            isAlert: true,
+          }
+          this.isCustomConfirmVisible = true
+          return
+        }
         if (this.loadedMarkers.length > 0) {
           for (let index = 0; index < this.loadedMarkers.length; index++) {
             let marker = Object.assign({}, this.loadedMarkers[index])
@@ -3162,6 +3211,17 @@ export default {
     // помечает флаг и выполняется сразу после. Ошибка показывается, а не
     // проглатывается.
     async save() {
+      // BR-451: если разметка текущего голоса не загрузилась, в памяти лежит пустое
+      // (или чужое) состояние — сохранять его нельзя, иначе затрём голос на сервере.
+      if (this.voiceLoadFailed) {
+        this.customConfirmParams = {
+          header: 'Сохранение заблокировано',
+          body: 'Разметка голоса не загрузилась. Перезагрузите страницу и повторите правку.',
+          isAlert: true,
+        }
+        this.isCustomConfirmVisible = true
+        return false
+      }
       this.addEndMarker()
       if (this.saving) {
         // Уже сохраняем — не запускаем второй POST параллельно, а запоминаем,
@@ -3170,6 +3230,7 @@ export default {
         return
       }
       this.saving = true
+      let saved = true
       try {
         const result = await this.$store.dispatch('saveSourceTextAndMarkers', {
           // BR-125: явный адрес сохранения — песня модалки, а не текущая в сторе.
@@ -3184,17 +3245,28 @@ export default {
         // тот голос (или создаст лишний).
         await this.applySavedVoiceState(result)
       } catch (e) {
+        // BR-450: #189 складывал текст ошибки в customConfirmParams, но НЕ выставлял
+        // isCustomConfirmVisible — модалка рендерится по v-if и оставалась скрытой,
+        // то есть ошибка сохранения не показывалась никогда. Показываем её явно и
+        // возвращаем признак неуспеха, чтобы вызывающий код мог предупредить о
+        // несохранённых правках.
+        saved = false
+        // eslint-disable-next-line no-console
+        console.error('[SubsEdit.save] failed', e)
         this.customConfirmParams = {
           header: 'Ошибка сохранения',
           body: 'Не удалось сохранить правки: ' + (e && e.message ? e.message : e),
+          isAlert: true,
         }
+        this.isCustomConfirmVisible = true
       } finally {
         this.saving = false
       }
       if (this.saveQueued) {
         this.saveQueued = false
-        await this.save()
+        return this.save()
       }
+      return saved
     },
     // specs/547-drop-empty-song-voices: согласовать список голосов редактора с данными песни
     // после сохранения. voice == -1 — сохранённый голос удалён как пустой, переходим на последний
@@ -3224,10 +3296,33 @@ export default {
         this.currentVoice = target
       }
     },
+    // BR-449: запомнить текущее (заведомо числовое) время маркера перед правкой,
+    // чтобы было к чему откатиться, если в поле «Time:» введут не число.
+    onMarkerTimeFocus() {
+      this.setEditMode(false)
+      this.markerTimeBeforeEdit =
+        parseMarkerTime(this.currentMarker && this.currentMarker.time) ?? this.currentTime
+    },
+    // BR-449: нормализовать ввод поля «Time:». Нечисловое значение откатываем к
+    // прежнему — иначе в JSON уходит строка, бэкенд отвечает bad_markers и
+    // отклоняет сохранение всего голоса.
+    normalizeMarkerTime() {
+      if (!this.currentMarker) return
+      const parsed = parseMarkerTime(this.currentMarker.time)
+      if (parsed === null) {
+        this.currentMarker.time = this.markerTimeBeforeEdit
+        return
+      }
+      this.currentMarker.time = parsed
+      this.markerTimeBeforeEdit = parsed
+    },
     getMarkersToSave() {
-      return this.sourceMarkers.map(function (marker) {
+      const invalid = []
+      const markers = this.sourceMarkers.map(function (marker) {
+        const time = parseMarkerTime(marker.time)
+        if (time === null) invalid.push(marker)
         return {
-          time: marker.time,
+          time,
           label: marker.label,
           note: marker.note,
           chord: marker.chord,
@@ -3238,6 +3333,14 @@ export default {
           markertype: marker.markertype,
         }
       })
+      // BR-449: маркер с нечисловым временем отбрасываем до отправки и говорим об
+      // этом в консоль: иначе бэкенд отклонит весь запрос (bad_markers) и правки
+      // всех остальных маркеров тоже не сохранятся.
+      if (invalid.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn('[SubsEdit.getMarkersToSave] markers with non-numeric time skipped:', invalid)
+      }
+      return markers.filter((marker) => marker.time !== null)
     },
     addEndMarker() {
       if (this.sourceMarkers.length === 0) return
@@ -4148,8 +4251,14 @@ export default {
           break
         }
         case 'chord': {
-          let label = marker.chord
-          let labels = label.split('|')
+          // BR-467: аккорд у меток старой формы лежит в `label`, а поля `chord` нет
+          // (эмпирика: песня 12 — 116 таких меток). Раньше здесь безусловно читался
+          // `marker.chord` и сразу вызывался split по нему → TypeError на undefined
+          // прямо внутри createRegionMarker, из-за чего цикл redrawMarkersFull
+          // обрывался и все последующие маркеры оставались без регионов.
+          const label = resolveChordLabel(marker)
+          if (!label) return ''
+          const labels = label.split('|')
           text = '🎼' + labels[0] + (labels.length > 1 ? '[' + labels[1] + ']' : '')
           template = `<div><div
                         style="

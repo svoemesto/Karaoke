@@ -190,16 +190,40 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
             return false
         }
 
-        val bucket = "karaoke"
+        val bucket = StemJob.STORAGE_BUCKET
+        val uploadedKeys = mutableListOf<String>()
         try {
-            SAC_APP.uploadFile(bucket, "stemjobs/${job.id}/original.${job.originalExt}", uploadFile.absolutePath)
-            stemFiles.forEach { (stem, file) -> SAC_APP.uploadFile(bucket, "stemjobs/${job.id}/$stem.mp3", file.absolutePath) }
+            val originalKey = StemJob.objectKey(job.id, StemJob.ORIGINAL_STEM, job.originalExt)
+            SAC_APP.uploadFile(bucket, originalKey, uploadFile.absolutePath)
+            uploadedKeys.add(originalKey)
+            stemFiles.forEach { (stem, file) ->
+                val key = StemJob.objectKey(job.id, stem, "mp3")
+                SAC_APP.uploadFile(bucket, key, file.absolutePath)
+                uploadedKeys.add(key)
+            }
         } catch (e: Exception) {
             job.status = StemJobStatus.ERROR
             job.errorMessage = "Ошибка загрузки в хранилище: ${e.message}"
             job.finishedAt = Timestamp(System.currentTimeMillis())
             job.save()
             tempFolder.deleteRecursively()
+            return false
+        }
+
+        // Передача приватных объектов в karaoke-web по внутреннему каналу X-Internal-Secret
+        // (спека 561, OpenProject #361, аудит BR-258): karaoke-web не умеет читать MinIO с
+        // учётными данными, поэтому объект из ПРИВАТНОГО бакета отдаёт владельцу приложение,
+        // имеющее доступ. Пока передача не подтверждена, задание не помечается DONE — иначе
+        // пользователь получил бы «обещанное, но недоступное» задание.
+        val publishError = publishResultsToWeb(job)
+        if (publishError != null) {
+            uploadedKeys.forEach { key -> runCatching { SAC_APP.deleteFile(bucket, key).block() } }
+            job.status = StemJobStatus.ERROR
+            job.errorMessage = "Ошибка передачи результатов на сайт: $publishError"
+            job.finishedAt = Timestamp(System.currentTimeMillis())
+            job.save()
+            tempFolder.deleteRecursively()
+            ackStemJobRawFileConsumed(job.id)
             return false
         }
 
@@ -217,6 +241,23 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
         } catch (_: Exception) {
         }
     }
+}
+
+/**
+ * Передаёт приватные объекты задания (исходник + стемы) в `karaoke-web` по внутреннему каналу
+ * `X-Internal-Secret` — см. [StemJobResultPublisher] и контракт
+ * `specs/561-impl-stem-bucket/contracts/stemjob-private-files-contract.md`.
+ *
+ * @return `null` — все объекты переданы; иначе — описание первой неудачи.
+ */
+private fun publishResultsToWeb(job: StemJob): String? {
+    val items = mutableListOf(StemJob.ORIGINAL_STEM to job.originalExt)
+    StemJobMode.stemNames(job.mode).forEach { items.add(it to "mp3") }
+    for ((stem, ext) in items) {
+        val error = StemJobResultPublisher.publish(job.id, stem, ext)
+        if (error != null) return error
+    }
+    return null
 }
 
 // Сообщает karaoke-web, что сырой временный файл задания забран и обработан — можно удалить со

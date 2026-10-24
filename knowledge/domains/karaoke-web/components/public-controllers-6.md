@@ -137,7 +137,15 @@
 
 - `GET /list` — мои задания.
 - `POST /create` — загрузить файл (`file` multipart + `mode`) и запустить.
-- `GET /{id}/download?stem=` — скачать результат.
+- `GET /{id}/download?stem=` — скачать результат. **Спека 561 (OpenProject #361,
+  аудит BR-258):** файл отдаётся из **приватного каталога результатов**
+  (`StemJobResultFiles`, `<result-dir>/<jobId>/<stem>.<ext>`), куда его
+  передал `karaoke-app` по внутреннему каналу `X-Internal-Secret`. Прежний путь
+  (анонимный GET `/minio/karaoke/<key>`) удалён: приватные объекты лежат в
+  бакете `stemjobs` без публичной политики, и анонимное чтение закрыто. Проверки
+  прежние: владелец задания, статус `DONE`, TTL (24 ч), допустимый стем;
+  чужим/истёкшим — 404, отказ пишется в `infra.stemjobs.security`
+  (`stemjobs:security:download-denied`) без содержимого объекта.
 - `POST /{id}/delete` — удалить/отменить (`deleteRequested`).
 
 `POST /{id}/cancel` из старых описаний не существует (проверено Pass 481:
@@ -294,5 +302,6 @@
 
 ## Changelog
 
+- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): `GET /{id}/download` отдаёт файл из приватного каталога результатов вместо анонимного чтения `/minio/karaoke/…`. Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 481-485** (2026-09-09): Initial. Автор: agent (Karaoke).

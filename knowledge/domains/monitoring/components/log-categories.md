@@ -34,6 +34,9 @@
 | `infra.song.voices` | `karaoke-app/.../model/Song.kt` (voiceNormalizeLog, спека `547`) | Нормализация голосов при сохранении: `song.voices.normalized` (удалены пустые голоса, `removed=`, `count=`) и `song.voices.normalize_skipped` (нечитаемые данные — fail-safe) | WARN |
 | `infra.queue.render` | **не реализована** | Render queue stalled/lane stalled | (Pass 343+) |
 | `infra.telegram.polling` | **не реализована** | Telegram polling state | (Pass 343+) |
+| `infra.stemjobs.security` | `karaoke-web/.../controllers/InternalStemJobController.kt` + `PublicStemJobController.kt` (спека 561, OpenProject #361, аудит BR-258) | Отказы доступа к приватным объектам задания «Создать минусовку»: `stemjobs:security:denied` (во внутреннем канале: `reason=` `missing_secret`/`invalid_secret`/`secret_not_configured`, `source=`, `jobId=`, `file=`), `stemjobs:security:rejected` (400, недопустимое имя файла), `stemjobs:security:download-denied` (отказ в отдаче владельцу: `reason=`, `source=`, `jobId=`, `stem=`), `stemjobs:security:stored`/`purged` (INFO). **Содержимое объекта в запись НЕ пишется** | WARN (отказы), INFO (stored/purged) |
+| `infra.stemjobs.storage` | `karaoke-app/.../StemJobStoragePolicyInitializer.kt` (спека 561, OpenProject #361) | Применение политики публичности бакетов при старте `karaoke-app`: `stemjobs:storage:policy` (`bucket=`, `policy=private|public`), `... failed` (недоступность MinIO — старт приложения не блокируется, fail-safe) | INFO (policy), ERROR (failed) |
+| `infra.stemjobs.transfer` | `karaoke-app/.../StemJobResultPublisher.kt` (спека 561, OpenProject #361) | Передача приватных объектов из `karaoke-app` в `karaoke-web`: `stemjobs:transfer:ok` (`jobId=`, `file=`, `bytes=`), `stemjobs:transfer:retry` (сетевая ошибка, следующая попытка), `stemjobs:transfer:denied` (403 — отказ по правам, повтор не выполняется) | INFO (ok), WARN (retry/denied) |
 
 ### Конвенция имён
 

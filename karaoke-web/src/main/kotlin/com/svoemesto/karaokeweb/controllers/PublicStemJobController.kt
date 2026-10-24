@@ -9,18 +9,17 @@ import com.svoemesto.karaokeapp.model.StemJobStatus
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
+import com.svoemesto.karaokeweb.services.StemJobLoader
+import com.svoemesto.karaokeweb.services.StemJobResultFiles
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.sql.Timestamp
 
 /**
@@ -34,6 +33,13 @@ import java.sql.Timestamp
  * StemJobPollScheduler в karaoke-app — тянет файл через InternalStemJobController). Скачивание
  * готовых стемов — не редирект на публичный MinIO URL (как /api/public/picture), а стрим ЧЕРЕЗ
  * приложение: содержимое приватное (чужой аудиофайл пользователя), должно оставаться за авторизацией.
+ *
+ * Спека 561 (OpenProject #361, аудит BR-258): результаты задания лежат в ПРИВАТНОМ бакете
+ * `stemjobs` (без публичной bucket policy), поэтому прежняя выдача через анонимный
+ * nginx-прокси `/minio/karaoke/...` больше невозможна и опасна. Объекты передаёт сюда
+ * karaoke-app по внутреннему каналу `X-Internal-Secret` (InternalStemJobController), а здесь
+ * лежат в приватном каталоге результатов (StemJobResultFiles) и отдаются только владельцу
+ * задания — после проверки владельца, статуса и TTL.
  */
 
 /**
@@ -46,10 +52,13 @@ import java.sql.Timestamp
 class PublicStemJobController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
+    private val resultFiles: StemJobResultFiles,
+    private val jobLoader: StemJobLoader,
     @Value("\${stemjobs.temp-dir:/tmp/stemjobs}") private val tempDir: String,
-    @Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
     private val db get() = WORKING_DATABASE
+
+    private val securityLog = LoggerFactory.getLogger("infra.stemjobs.security")
 
     private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
@@ -58,7 +67,7 @@ class PublicStemJobController(
     private fun loadOwnedJob(
         id: Long,
         ownerId: Long,
-    ): StemJob? = StemJob.getById(id, db, storageService, storageApiClient)?.takeIf { it.siteUserId == ownerId }
+    ): StemJob? = jobLoader.load(id)?.takeIf { it.siteUserId == ownerId }
 
     @GetMapping("/list")
     fun list(request: HttpServletRequest): List<com.svoemesto.karaokeapp.model.StemJobDto> {
@@ -150,41 +159,59 @@ class PublicStemJobController(
         val job = loadOwnedJob(id, user.id)
         val now = Timestamp(System.currentTimeMillis())
         if (job == null || job.status != StemJobStatus.DONE || job.expiresAt == null || job.expiresAt!!.before(now)) {
+            logDownloadDenied(request, id, stem, "not_owner_or_expired")
             response.status = HttpServletResponse.SC_NOT_FOUND
             return
         }
         val validStems = StemJobMode.stemNames(job.mode).toSet() + "original"
         if (stem !in validStems) {
+            logDownloadDenied(request, id, stem, "invalid_stem")
             response.status = HttpServletResponse.SC_BAD_REQUEST
             return
         }
         val ext = if (stem == "original") job.originalExt else "mp3"
-        val key = "stemjobs/${job.id}/$stem.$ext"
-        val encodedPath = key.split("/").joinToString("/") { URLEncoder.encode(it, StandardCharsets.UTF_8).replace("+", "%20") }
-
+        // Файл лежит в ПРИВАТНОМ каталоге результатов karaoke-web — сюда его передал
+        // karaoke-app по внутреннему каналу X-Internal-Secret (спека 561). Прежний путь
+        // (анонимный GET /minio/karaoke/<key>) удалён: приватные объекты не лежат в
+        // публичном бакете и не должны быть доступны анонимно.
+        val file = resultFiles.fileFor(job.id, stem, job.originalExt)
+        if (!file.exists() || file.length() == 0L) {
+            logDownloadDenied(request, id, stem, "file_missing")
+            response.status = HttpServletResponse.SC_NOT_FOUND
+            return
+        }
+        val baseName =
+            job.originalFileName
+                .substringBeforeLast('.')
+                .ifBlank { "stem" }
+                .replace("\"", "")
+        response.contentType = if (ext == "mp3") "audio/mpeg" else "application/octet-stream"
+        response.setHeader("Content-Disposition", "attachment; filename=\"$baseName - $stem.$ext\"")
+        response.setContentLengthLong(file.length())
         try {
-            val connection = URL("$minioProxyUrl/minio/karaoke/$encodedPath").openConnection() as HttpURLConnection
-            connection.connectTimeout = 10_000
-            connection.readTimeout = 30_000
-            if (connection.responseCode != 200) {
-                response.status = HttpServletResponse.SC_NOT_FOUND
-                connection.disconnect()
-                return
-            }
-            val baseName =
-                job.originalFileName
-                    .substringBeforeLast('.')
-                    .ifBlank { "stem" }
-                    .replace("\"", "")
-            response.contentType = if (ext == "mp3") "audio/mpeg" else "application/octet-stream"
-            response.setHeader("Content-Disposition", "attachment; filename=\"$baseName - $stem.$ext\"")
-            if (connection.contentLengthLong >= 0) {
-                response.setContentLengthLong(connection.contentLengthLong)
-            }
-            connection.inputStream.use { input -> response.outputStream.use { output -> input.copyTo(output) } }
-            connection.disconnect()
+            file.inputStream().use { input -> response.outputStream.use { output -> input.copyTo(output) } }
         } catch (e: Exception) {
+            logDownloadDenied(request, id, stem, "stream_failed")
             response.status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR
         }
+    }
+
+    /**
+     * Отказ в отдаче приватного объекта попадает в журнал категории `infra.stemjobs.security`:
+     * источник, задание и имя объекта — **без содержимого объекта** (FR-007).
+     */
+    private fun logDownloadDenied(
+        request: HttpServletRequest,
+        id: Long,
+        stem: String,
+        reason: String,
+    ) {
+        securityLog.warn(
+            "stemjobs:security:download-denied reason={} source={} jobId={} stem={}",
+            reason,
+            request.getHeader("X-Real-IP") ?: request.remoteAddr ?: "unknown",
+            id,
+            stem,
+        )
     }
 }

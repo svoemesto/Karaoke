@@ -168,48 +168,61 @@ class Author(
             whereText: String = "",
         ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
-        private fun getWhereList(whereArgs: Map<String, String>): List<String> {
-            val where: MutableList<String> = mutableListOf()
+        /**
+         * `WHERE`-условие с параметрами (BR-182): все значения из HTTP-фильтров
+         * биндятся через `?`, `id` приводится к `Long`. Булевы фильтры
+         * (`watched`, `skip`, `is_special_order`, `haveNewAlbum`) уже были
+         * белым списком `+/-/true/false` — для них в SQL уходят только константы.
+         */
+        private fun getWhereList(whereArgs: Map<String, String>): SqlWhere {
+            val where = SqlWhereBuilder()
 
-            if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
-            if (whereArgs.containsKey("author")) where += "author = '${whereArgs["author"]}'"
-            if (whereArgs.containsKey("ym_id")) where += "ym_id = '${whereArgs["ym_id"]}'"
-            if (whereArgs.containsKey("vk_id")) where += "vk_id = '${whereArgs["vk_id"]}'"
-            if (whereArgs.containsKey("last_album_ym")) where += "last_album_ym = '${whereArgs["last_album_ym"]}'"
-            if (whereArgs.containsKey("last_album_vk")) where += "last_album_vk = '${whereArgs["last_album_vk"]}'"
-            if (whereArgs.containsKey("last_album_processed")) where += "last_album_processed = '${whereArgs["last_album_processed"]}'"
+            if (whereArgs.containsKey("id")) {
+                val id = whereArgs["id"]?.trim()?.toLongOrNull()
+                if (id == null) where.none() else where.add("id = ?", id)
+            }
+            if (whereArgs.containsKey("author")) where.add("author = ?", whereArgs["author"])
+            if (whereArgs.containsKey("ym_id")) where.add("ym_id = ?", whereArgs["ym_id"])
+            if (whereArgs.containsKey("vk_id")) where.add("vk_id = ?", whereArgs["vk_id"])
+            if (whereArgs.containsKey("last_album_ym")) where.add("last_album_ym = ?", whereArgs["last_album_ym"])
+            if (whereArgs.containsKey("last_album_vk")) where.add("last_album_vk = ?", whereArgs["last_album_vk"])
+            if (whereArgs.containsKey("last_album_processed")) {
+                where.add("last_album_processed = ?", whereArgs["last_album_processed"])
+            }
             if (whereArgs.containsKey("watched")) {
                 if (whereArgs["watched"] == "+" || whereArgs["watched"] == "true") {
-                    where += "watched = true"
+                    where.raw("watched = true")
                 } else if (whereArgs["watched"] == "-" || whereArgs["watched"] == "false") {
-                    where += "watched = false"
+                    where.raw("watched = false")
                 }
             }
             if (whereArgs.containsKey("haveNewAlbum")) {
                 if (whereArgs["haveNewAlbum"] == "+" || whereArgs["haveNewAlbum"] == "true") {
-                    where +=
-                        "(watched = true AND (ym_id <> '' OR vk_id <> '') AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed))"
+                    where.raw(
+                        "(watched = true AND (ym_id <> '' OR vk_id <> '') AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed))",
+                    )
                 } else if (whereArgs["haveNewAlbum"] == "-" || whereArgs["haveNewAlbum"] == "false") {
-                    where +=
-                        "(watched = false OR (ym_id = '' AND vk_id = '') OR (last_album_ym = last_album_processed OR last_album_vk = last_album_processed))"
+                    where.raw(
+                        "(watched = false OR (ym_id = '' AND vk_id = '') OR (last_album_ym = last_album_processed OR last_album_vk = last_album_processed))",
+                    )
                 }
             }
             if (whereArgs.containsKey("skip")) {
                 if (whereArgs["skip"] == "+" || whereArgs["skip"] == "true") {
-                    where += "skip = true"
+                    where.raw("skip = true")
                 } else if (whereArgs["skip"] == "-" || whereArgs["skip"] == "false") {
-                    where += "skip = false"
+                    where.raw("skip = false")
                 }
             }
             if (whereArgs.containsKey("is_special_order")) {
                 if (whereArgs["is_special_order"] == "+" || whereArgs["is_special_order"] == "true") {
-                    where += "is_special_order = true"
+                    where.raw("is_special_order = true")
                 } else if (whereArgs["is_special_order"] == "-" || whereArgs["is_special_order"] == "false") {
-                    where += "is_special_order = false"
+                    where.raw("is_special_order = false")
                 }
             }
 
-            return where
+            return where.build()
         }
 
         fun loadList(
@@ -225,7 +238,7 @@ class Author(
                 .loadList(
                     clazz = Author::class,
                     tableName = TABLE_NAME,
-                    whereList = getWhereList(whereArgs),
+                    where = getWhereList(whereArgs),
                     limit = limit,
                     offset = offset,
                     database = database,

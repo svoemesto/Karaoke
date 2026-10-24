@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.KaraokeProperties
 import org.postgresql.util.PSQLException
 import org.slf4j.LoggerFactory
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -444,6 +445,42 @@ interface KaraokeDbTable {
             }
         }
 
+        /**
+         * Загрузить список записей с параметризованным `WHERE` (BR-028/100/175/182/237).
+         *
+         * Значения из [where] биндятся в `PreparedStatement` (`?`), а не склеиваются
+         * в SQL, поэтому пользовательский ввод не может изменить структуру запроса.
+         * Исторический путь со списком готовых строк ([whereList]) оставлен для
+         * вызывающих, которые ещё не переведены на [SqlWhere].
+         *
+         * @see SqlWhere
+         * @see SqlWhereBuilder
+         */
+        fun loadList(
+            clazz: KClass<*>,
+            tableName: String,
+            where: SqlWhere,
+            limit: Int = 0,
+            offset: Int = 0,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            sync: Boolean = false,
+            ignoreUseInList: Boolean = false,
+        ): List<KaraokeDbTable> =
+            loadListInternal(
+                clazz = clazz,
+                tableName = tableName,
+                where = where,
+                limit = limit,
+                offset = offset,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                sync = sync,
+                ignoreUseInList = ignoreUseInList,
+            )
+
         fun loadList(
             clazz: KClass<*>,
             tableName: String,
@@ -455,6 +492,32 @@ interface KaraokeDbTable {
             storageApiClient: StorageApiClient,
             sync: Boolean = false,
             ignoreUseInList: Boolean = false,
+        ): List<KaraokeDbTable> =
+            loadListInternal(
+                clazz = clazz,
+                tableName = tableName,
+                where = SqlWhere(whereList, emptyList()),
+                limit = limit,
+                offset = offset,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                sync = sync,
+                ignoreUseInList = ignoreUseInList,
+            )
+
+        @Suppress("LongMethod", "CyclomaticComplexMethod")
+        private fun loadListInternal(
+            clazz: KClass<*>,
+            tableName: String,
+            where: SqlWhere,
+            limit: Int,
+            offset: Int,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            sync: Boolean,
+            ignoreUseInList: Boolean,
         ): List<KaraokeDbTable> {
             val connection = database.getConnection()
             if (connection == null) {
@@ -462,12 +525,11 @@ interface KaraokeDbTable {
                 return emptyList()
             }
             var statement: Statement? = null
+            var preparedStatement: PreparedStatement? = null
             var rs: ResultSet? = null
             var sql: String
 
             try {
-                statement = connection.createStatement()
-
                 val notInSelectList: MutableList<String> = mutableListOf()
                 if (!ignoreUseInList) {
                     (clazz.primaryConstructor?.call(database as Connection, storageService, storageApiClient) as? KaraokeDbTable)?.let { tmpEntry ->
@@ -495,11 +557,19 @@ interface KaraokeDbTable {
                 val sqlFrom = "FROM $tableName${if (sync) "_sync" else ""}"
                 sql = "$sqlSelect $sqlFrom"
 
-                if (whereList.isNotEmpty()) sql += " WHERE ${whereList.joinToString(" AND ")}"
+                if (!where.isEmpty) sql += " WHERE ${where.joinToString(" AND ")}"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 
-                rs = statement.executeQuery(sql)
+                rs =
+                    if (where.params.isEmpty()) {
+                        statement = connection.createStatement()
+                        statement.executeQuery(sql)
+                    } else {
+                        preparedStatement = connection.prepareStatement(sql)
+                        where.bind(preparedStatement)
+                        preparedStatement.executeQuery()
+                    }
                 val result: MutableList<KaraokeDbTable> = mutableListOf()
                 while (rs.next()) {
                     val constructor = clazz.primaryConstructor
@@ -575,6 +645,7 @@ interface KaraokeDbTable {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
+                    preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
                     e.printStackTrace()
                 }

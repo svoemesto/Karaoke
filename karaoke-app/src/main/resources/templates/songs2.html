@@ -612,9 +612,18 @@
                 "&flag_dzen_chords=" + filter_flag_yc +
                 "&flag_vk_lyrics=" + filter_flag_vkl +
                 "&flag_vk_karaoke=" + filter_flag_vkk +
-                "&flag_vk_chords=" + filter_flag_vkc;
+                "&flag_vk_chords=" + filter_flag_vkc +
+                "&filter_page=" + document.getElementById("filter_page").value;
             window.location.href = url;
 
+        }
+
+        // BR-214: переход по страницам с сохранением фильтров (doFilterForm читает их из DOM).
+        function doFilterPage(delta) {
+            var field = document.getElementById("filter_page");
+            var page = parseInt(field.value || "1", 10) + delta;
+            field.value = page < 1 ? 1 : page;
+            doFilterForm();
         }
 
         function copySongName() {

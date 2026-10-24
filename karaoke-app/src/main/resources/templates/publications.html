@@ -5,8 +5,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
-    <script src="sockjs.js"></script>
-    <script src="stomp.js"></script>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
     <link rel="stylesheet" href="song_context.css">
@@ -650,6 +648,21 @@
             </div>
         </div>
     </div>
+    <div id="areaPager" style="margin: 4px; padding-left: 70px;">
+        <!-- BR-200: расписание отдаётся по 31 дню на страницу, а не всем каталогом (было 127 МиБ). -->
+        <a th:if="${page > 1}" class="btn btn-sm btn-outline-primary"
+           th:href="@{/publications(filter_page=${page - 1},
+                                     filter_date_from=${param.filter_date_from},
+                                     filter_date_to=${param.filter_date_to},
+                                     filter_cond=${param.filter_cond})}">← Назад</a>
+        <span style="margin: 0 8px;">Страница <span th:text="${page}">1</span></span>
+        <a th:if="${hasNext}" class="btn btn-sm btn-outline-primary"
+           th:href="@{/publications(filter_page=${page + 1},
+                                     filter_date_from=${param.filter_date_from},
+                                     filter_date_to=${param.filter_date_to},
+                                     filter_cond=${param.filter_cond})}">Вперёд →</a>
+    </div>
+
     <div id="areaFooter">
 
         <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
@@ -682,19 +695,6 @@
 
 <script type="text/javascript">
 
-    var stompClient = null;
-
-    function connect() {
-        var socket = new SockJS('/api/message');
-        stompClient = Stomp.over(socket);
-        stompClient.connect({}, function(frame) {
-            console.log('Connected: ' + frame);
-            stompClient.subscribe('/api/messages/recordchange', function(recordchange){
-                console.log("Получено сообщение...");
-                updateSettingsFromMessage(JSON.parse(recordchange.body));
-            });
-        });
-    }
 
     function doRecordChange(recordchange) {
         console.log(recordchange);
@@ -928,7 +928,6 @@
 
     $(function() {
         // setInterval(updateCurrentTime, 5000);
-        connect();
     });
 
 </script>

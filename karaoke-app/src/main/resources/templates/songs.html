@@ -727,9 +727,18 @@
                 "&flag_dzen_chords=" + filter_flag_yc +
                 "&flag_vk_lyrics=" + filter_flag_vkl +
                 "&flag_vk_karaoke=" + filter_flag_vkk +
-                "&flag_vk_chords=" + filter_flag_vkc;
+                "&flag_vk_chords=" + filter_flag_vkc +
+                "&filter_page=" + document.getElementById("filter_page").value;
             window.location.href = url;
 
+        }
+
+        // BR-206: переход по страницам с сохранением всех фильтров (doFilterForm читает их из DOM).
+        function doFilterPage(delta) {
+            var field = document.getElementById("filter_page");
+            var page = parseInt(field.value || "1", 10) + delta;
+            field.value = page < 1 ? 1 : page;
+            doFilterForm();
         }
 
         function copySongName() {
@@ -2326,6 +2335,13 @@
                     </tbody>
 
                 </table>
+            </div>
+            <div id="areaPager" style="margin: 4px;">
+                <!-- BR-206/214/200: страница отдаёт не весь каталог, а LEGACY_PAGE_SIZE строк. -->
+                <input type="hidden" id="filter_page" name="filter_page" th:value="${page}"/>
+                <button type="button" class="btn btn-sm btn-outline-primary" th:disabled="${page <= 1}" onclick="doFilterPage(-1)">← Назад</button>
+                <span style="margin: 0 8px;">Страница <span th:text="${page}">1</span></span>
+                <button type="button" class="btn btn-sm btn-outline-primary" th:disabled="${!hasNext}" onclick="doFilterPage(1)">Вперёд →</button>
             </div>
             <table>
                 <tr>

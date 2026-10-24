@@ -204,6 +204,8 @@ A karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionFulf
 A karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PaymentOrderReuse.kt
 M knowledge/domains/monetization/domain.md
     (инварианты 4–6, fulfillment, контракт вебхука, новые сервисы)
+M knowledge/domains/publishing/components/dictionaries.md
+    (словарь `Subscription.status`: какие статусы дают доступ; связь с monetization)
 A docs/features/subscription-payment-idempotency.md            (FR-009, per-feature)
 A karaoke-web/src/test/kotlin/.../services/SubscriptionFulfillmentServiceTest.kt
 A karaoke-web/src/test/kotlin/.../services/PaymentOrderReuseTest.kt
@@ -223,4 +225,5 @@ A specs/365-pkg-money-idempotency/report.md                     (этот отч
 |---|---|
 | База (master) | `79b74b0a` |
 | Код + тесты + knowledge + per-feature | `2c72c520` (`2c72c520114dbc8b3e68322499945cc92d10c799`) |
+| Словарь статусов подписки (`dictionaries.md`) + правка отчёта | см. `git log --oneline -3` |
 | Отчёт (этот файл) | см. `git log --oneline -2` ветки `583-pkg-money-idempotency` |

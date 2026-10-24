@@ -147,6 +147,30 @@ class StemJob(
     companion object {
         const val TABLE_NAME = "tbl_stem_jobs"
 
+        // Приватный бакет хранилища для объектов премиум-задания (стемы + загруженный исходник).
+        // Публичной bucket policy у него НЕТ (см. StemJobStoragePolicyInitializer — политика
+        // выставляется программно при старте karaoke-app), поэтому анонимный GET через
+        // /minio/<bucket>/<object> закрыт самим MinIO. До правки (спека 561, OpenProject #361,
+        // аудит BR-258) эти объекты лежали в ПУБЛИЧНОМ бакете karaoke и читались анонимно.
+        const val STORAGE_BUCKET = "stemjobs"
+
+        // Публичный бакет: картинки/обложки/превью/mp3 песен. Раздаётся анонимно (FR-002),
+        // его политика НЕ меняется.
+        const val PUBLIC_STORAGE_BUCKET = "karaoke"
+
+        // Префикс объектов премиум-задания внутри публичного бакета — legacy-раскладка до правки
+        // (спека 561, OpenProject #361): там приватные объекты лежали до 24 часов после
+        // развёртывания и были анонимно читаемы. Уборка обязана их удалять.
+        const val LEGACY_OBJECT_PREFIX = "stemjobs/"
+
+        // Псевдоним стема «исходный файл пользователя» (в остальных стемах — имя из режима).
+        const val ORIGINAL_STEM = "original"
+
+        // Все возможные имена стемов (объединение режимов DEMUCS2/DEMUCS5) + «original» —
+        // allow-list для server-to-server канала передачи приватных объектов.
+        val ALL_STEM_NAMES =
+            setOf("accompaniment", "vocals", "drums", "bass", "other", ORIGINAL_STEM)
+
         // Лимит очереди пользователя (ЛК karaoke-public) — не более стольки одновременно активных
         // (WAITING/WORKING) заданий.
         const val MAX_ACTIVE_JOBS_PER_USER = 5
@@ -162,6 +186,47 @@ class StemJob(
         // умеет декодировать ffmpeg на входе (StemJobProcessing.argsStemJobDemucs транскодирует любой
         // из них в flac перед демуксом).
         val ALLOWED_EXTENSIONS = setOf("mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus", "aiff")
+
+        // Расширение файла результата: у стемов всегда mp3 (перекод в argsStemJobDemucs),
+        // у «original» — исходное расширение загрузки пользователя.
+        fun resultFileName(
+            stem: String,
+            originalExt: String,
+        ): String = if (stem == ORIGINAL_STEM) "$ORIGINAL_STEM.${originalExt.lowercase()}" else "$stem.mp3"
+
+        // Ключ объекта в ПРИВАТНОМ бакете stemjobs: <jobId>/<stem>.<ext>.
+        fun objectKey(
+            jobId: Long,
+            stem: String,
+            ext: String,
+        ): String = "$jobId/$stem.${ext.lowercase()}"
+
+        // Ключ объекта в legacy-раскладке (публичный бакет karaoke, префикс stemjobs/) — там
+        // приватные объекты лежали до правки (спека 561). Уборка обязана их удалять, иначе они
+        // останутся анонимно читаемыми в публичном бакете.
+        fun legacyObjectKey(
+            jobId: Long,
+            stem: String,
+            ext: String,
+        ): String = "$LEGACY_OBJECT_PREFIX$jobId/$stem.${ext.lowercase()}"
+
+        // Список стемов задания + «original» — что вообще может лежать в приватном бакете.
+        fun validStemNames(mode: String): List<String> = StemJobMode.stemNames(mode) + ORIGINAL_STEM
+
+        // Разрешённые имена файлов приватных объектов для server-to-server канала
+        // (PUT /api/internal/stemjobs/{id}/files/{fileName}): «<stem>.<ext>», без разделителей
+        // пути. Проверка выполняется на ПРИЁМЕ (karaoke-web) — allow-list не даёт записать файл
+        // за пределы каталога задания и исключает подмену расширения.
+        fun isValidResultFileName(fileName: String): Boolean {
+            if (fileName.isBlank() || fileName.length > 64) return false
+            if (fileName.contains('/') || fileName.contains('\\') || fileName.contains("..")) return false
+            val dot = fileName.lastIndexOf('.')
+            if (dot <= 0 || dot == fileName.length - 1) return false
+            val stem = fileName.substring(0, dot)
+            val ext = fileName.substring(dot + 1).lowercase()
+            if (stem !in ALL_STEM_NAMES) return false
+            return if (stem == ORIGINAL_STEM) ext in ALLOWED_EXTENSIONS else ext == "mp3"
+        }
 
         fun createNew(
             siteUserId: Long,

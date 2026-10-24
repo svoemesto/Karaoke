@@ -116,6 +116,12 @@ etag в сравнение. (TODO Pass 343+.)
 
 Где какой bucket — см. мини-словарь в [storage/domain.md](../domain.md#мини-словарь-buckets).
 
+**Кто применяет (спека 561, OpenProject #361):** `StemJobStoragePolicyInitializer`
+(`karaoke-app/.../StemJobStoragePolicyInitializer.kt`) при старте `karaoke-app`
+выставляет REMOTE-хранилище в безопасное состояние: бакет `stemjobs` →
+private, бакет `karaoke` → public. Ошибка связи с MinIO логируется
+(`infra.stemjobs.storage`) и **не** роняет старт приложения (fail-safe).
+
 ### `decodeFileNameIfEncoded`
 
 Приватный helper: если имя файла содержит `%`, пробует
@@ -196,3 +202,4 @@ etag в сравнение. (TODO Pass 343+.)
 ## Changelog
 
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
+- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): описано, кто применяет политику бакетов (`StemJobStoragePolicyInitializer`, старт `karaoke-app`). Автор: agent (Karaoke).

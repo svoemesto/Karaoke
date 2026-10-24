@@ -66,9 +66,9 @@ Storage — слой абстракции над **двумя физически
 
 | Bucket | Что хранит | Кто пишет | Кто читает |
 |---|---|---|---|
-| `karaoke` | Основной: **mp3-стемы и картинки** (в т.ч. обложки). Видео, исходники, субтитры и сериализованное состояние песни сюда НЕ загружаются (specs/544, FR-016) | `karaoke-app` | `karaoke-app`, `karaoke-web` (через nginx-proxy) |
+| `karaoke` | Основной: **mp3-стемы и картинки** (в т.ч. обложки). Видео, исходники, субтитры и сериализованное состояние песни сюда НЕ загружаются (specs/544, FR-016). **Публичная bucket policy** (`s3:GetObject` на весь бакет) — раздаётся анонимно через `/minio/karaoke/...` | `karaoke-app` | `karaoke-app`, `karaoke-web` (через nginx-proxy) |
 | `karaoke-cache` | Кеш изображений (см. `local-0003-shared-minio-image-cache.md`) | `karaoke-app` | `karaoke-app`, `karaoke-web` |
-| `stemjobs` | Премиум-фича «Создать минусовку»: загруженные + результаты | `karaoke-app` | `karaoke-web` (стрим через `PublicStemJobController`) |
+| `stemjobs` | Премиум-фича «Создать минусовку»: загруженные + результаты. **Приватный** бакет: bucket policy пустая, анонимное чтение закрыто (спека 561, OpenProject #361, аудит BR-258). Ключи: `<jobId>/<stem>.mp3`, `<jobId>/original.<ext>` | `karaoke-app` | `karaoke-app` (с учётными данными); `karaoke-web` получает объекты по внутреннему каналу `X-Internal-Secret` и отдаёт владельцу |
 
 ## Ключевые компоненты
 
@@ -129,6 +129,32 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 перед запросом к MinIO делается `URLDecoder.decode`. Это нужно
 потому что веб-прокси иногда кодирует имена файлов (русские
 буквы, спецсимволы).
+
+### Решение 5: **Приватные объекты премиум-задания — в отдельном бакете `stemjobs` (спека 561, OpenProject #361)**
+
+Аудит BR-258 (S1): результаты задания «Создать минусовку» и загруженный
+исходный файл клались в бакет `karaoke`, у которого публичная bucket policy
+(`s3:GetObject` на весь бакет) + анонимный path-proxy nginx давали доступ по
+угадываемому URL.
+
+Правила (решение владельца от 2026-10-24):
+
+1. Приватные объекты лежат в **бакете `stemjobs`** без публичной политики;
+   публичный бакет `karaoke` не меняется (FR-002).
+2. **Инвариант закрытости обеспечивается программно при старте `karaoke-app`**:
+   `StemJobStoragePolicyInitializer` выставляет `stemjobs` → private и
+   `karaoke` → public (fail-safe: ошибка MinIO не роняет старт).
+3. Отдаёт приватные объекты приложение, имеющее учётные данные (`karaoke-app`):
+   `karaoke-web` читать MinIO с учётными данными не умеет
+   (`WebKaraokeStorageServiceImpl` — заглушка), а presigned-URL через
+   path-proxy нереализуем (SigV4 ломается переписыванием пути). Канал —
+   server-to-server admin → prod с уже настроенным `X-Internal-Secret`
+   (`stemjobs.internal-secret` ↔ `Karaoke.stemJobsInternalSecret`); прод
+   `karaoke-web` не достигает admin-машины (firewall), поэтому направление
+   канала — только admin → prod.
+
+Подробности — [`docs/features/stemjob-private-bucket.md`](../../../docs/features/stemjob-private-bucket.md),
+[`specs/561-impl-stem-bucket/research.md`](../../../specs/561-impl-stem-bucket/research.md).
 
 ## Публичные контракты (API)
 
@@ -289,12 +315,14 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
       методы пропускает, есть ли auth.
 - [ ] **`uploadFile` overloads** (через pathToFile vs ByteArray vs
       InputStream) — какой когда используется, decision tree.
-- [ ] **Bucket policies** (`setBucketPublic`/`setBucketPrivate`) —
-      какой bucket какой политикой, кто управляет.
 - [ ] **MinIO quotas / lifecycle rules** — есть ли policy на
       auto-cleanup (например, для `stemjobs` после expire).
 - [ ] **Логирование MinIO-операций** — отдельная тема для
       `monitoring/domain.md` P2.
+- [x] **Bucket policies** (`setBucketPublic`/`setBucketPrivate`) —
+      `stemjobs` → private, `karaoke` → public; выставляются программно при
+      старте `karaoke-app` (`StemJobStoragePolicyInitializer`), вручную в
+      консоли MinIO править не нужно (спека 561).
 
 ## Ручной сброс кеша (UI, спека #446)
 
@@ -346,3 +374,4 @@ LOCAL+REMOTE (включая `exists=false`). Нужен после сброса
 ## Changelog
 
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).
+- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): бакет `stemjobs` — приватный (ключи `<jobId>/…`), добавлено «Решение 5» (перенос приватных объектов в отдельный бакет + стартовый инвариант политики). Автор: agent (Karaoke).

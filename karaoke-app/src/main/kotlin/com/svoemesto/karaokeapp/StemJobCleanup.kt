@@ -6,6 +6,8 @@ import com.svoemesto.karaokeapp.model.StemJobStatus
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.sql.Timestamp
 
 /**
@@ -19,21 +21,68 @@ object StemJobCleanup {
      * tbl_stem_jobs. НЕ трогает текущий выполняющийся процесс — если задание ещё WORKING, сначала
      * вызвать stopRunningWork()/adminStop(), иначе поллер может продолжить писать в уже удалённую
      * строку (см. adminDeleteNow).
+     *
+     * Удаляются: объекты из ПРИВАТНОГО бакета `stemjobs` (спека 561), legacy-объекты из
+     * публичного бакета `karaoke` (префикс `stemjobs/` — до правки приватные объекты лежали там
+     * и были анонимно читаемы; без их удаления они «пережили» бы свою уборку) и локальные копии
+     * на karaoke-web (`purge`).
      */
     fun cleanupJob(
         job: StemJob,
         database: KaraokeConnection,
     ) {
         if (job.status == StemJobStatus.DONE) {
-            val bucket = "karaoke"
-            runCatching { SAC_APP.deleteFile(bucket, "stemjobs/${job.id}/original.${job.originalExt}").block() }
-            StemJobMode.stemNames(job.mode).forEach { stem ->
-                runCatching { SAC_APP.deleteFile(bucket, "stemjobs/${job.id}/$stem.mp3").block() }
+            val bucket = StemJob.STORAGE_BUCKET
+            runCatching {
+                SAC_APP.deleteFile(bucket, StemJob.objectKey(job.id, StemJob.ORIGINAL_STEM, job.originalExt)).block()
             }
+            StemJobMode.stemNames(job.mode).forEach { stem ->
+                runCatching { SAC_APP.deleteFile(bucket, StemJob.objectKey(job.id, stem, "mp3")).block() }
+            }
+            // Legacy-объекты из публичного бакета — иначе они остались бы анонимно читаемыми.
+            runCatching {
+                SAC_APP
+                    .deleteFile(
+                        StemJob.PUBLIC_STORAGE_BUCKET,
+                        StemJob.legacyObjectKey(job.id, StemJob.ORIGINAL_STEM, job.originalExt),
+                    ).block()
+            }
+            StemJobMode.stemNames(job.mode).forEach { stem ->
+                runCatching {
+                    SAC_APP
+                        .deleteFile(
+                            StemJob.PUBLIC_STORAGE_BUCKET,
+                            StemJob.legacyObjectKey(job.id, stem, "mp3"),
+                        ).block()
+                }
+            }
+            purgeWebCopies(job.id)
         }
         // На всякий случай подчищаем локальный temp (обычно уже удалён финализацией/провалом poll'а).
         File("$PATH_TO_TEMP_STEMJOB_FOLDER/${job.id}").deleteRecursively()
         StemJob.delete(job.id, database)
+    }
+
+    /**
+     * Просит `karaoke-web` удалить свои локальные копии задания (приватный каталог результатов
+     * и сырой файл загрузки) — `POST /api/internal/stemjobs/{id}/purge`. Best-effort: если запрос
+     * не прошёл, копии удалит safety-net-очистка на стороне karaoke-web (StemJobTempCleanupScheduler).
+     */
+    private fun purgeWebCopies(jobId: Long) {
+        val baseUrl = Karaoke.stemJobsWebInternalUrl.trim().trimEnd('/')
+        if (baseUrl.isBlank()) return
+        try {
+            val connection = URL("$baseUrl/api/internal/stemjobs/$jobId/purge").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("X-Internal-Secret", Karaoke.stemJobsInternalSecret)
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 15_000
+            connection.doOutput = false
+            connection.responseCode
+            connection.disconnect()
+        } catch (e: Exception) {
+            println("[StemJobCleanup] purgeWebCopies jobId=$jobId: ${e.message}")
+        }
     }
 
     /**

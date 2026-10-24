@@ -136,8 +136,17 @@ nginx-прокси иногда кодирует имена файлов.
 - `PriceService.kt:48` — DI-параметр для расчёта скидок.
 - `SiteUserTokenService`, `ShareLinkSweeper`, `SubscriptionRenewalScheduler`.
 
-**Прямой вызов** — `PublicStemJobController` (стрим stemjobs через
-WebClient).
+**Прямой вызов** — раньше `PublicStemJobController` (стрим stemjobs через
+WebClient). **С 2026-10-24 (спека 561, OpenProject #361) — не используется:**
+результаты задания лежат в приватном бакете `stemjobs`, читать который
+`karaoke-web` не умеет (нет учётных данных; presigned-URL через path-proxy
+ломает SigV4) — их передаёт `karaoke-app` по внутреннему каналу
+`X-Internal-Secret`, а `PublicStemJobController.download` отдаёт файл из
+приватного каталога результатов на стороне `karaoke-web`.
+
+**Политика бакетов** (спека 561): `stemjobs` → private, `karaoke` → public —
+выставляется `StemJobStoragePolicyInitializer` при старте `karaoke-app`
+(REMOTE-хранилище), вручную в консоли MinIO править не нужно.
 
 Конфигурация `WebClient` — `WebClientConfig.kt` (базовый URL, retry,
 connection-pool).

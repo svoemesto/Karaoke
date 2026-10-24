@@ -161,14 +161,33 @@ karaoke-public (Player)
         │   через InternalStemJobController — отдельная схема,
         │   см. gaps)
         ├─► стем-сепарация (premium, см. premium-stems.md)
-        └─► upload результатов в MinIO:
-             ├─► KaraokeStorageServiceImpl.uploadFile (local MinIO)
+        └─► upload результатов в ПРИВАТНЫЙ бакет `stemjobs`
+             (ключи <jobId>/<stem>.mp3, <jobId>/original.<ext>)
              └─► StorageApiClientImpl.uploadFile (remote MinIO)
 
-3. karaoke-public → GET /api/public/account/stemjobs/{id}/download
+3. karaoke-app → karaoke-web: передача приватных объектов
+   └─► StemJobResultPublisher.publish(...) — приложение с учётными
+        данными ЧИТАЕТ объект из бакета `stemjobs` и отдаёт его по
+        внутреннему каналу:
+        PUT /api/internal/stemjobs/{id}/files/{fileName}
+        (тело — сырые байты, заголовок X-Internal-Secret)
+        └─► InternalStemJobController кладёт файл в приватный
+             каталог результатов karaoke-web (<result-dir>/<jobId>/<file>)
+
+4. karaoke-public → GET /api/public/account/stemjobs/{id}/download
    └─► PublicStemJobController.download
-        └─► StorageApiClientWeb.getPresignedUrl → nginx-proxy → stream
+        └─► отдаёт файл из приватного каталога результатов
+             (проверки: владелец задания, статус DONE, TTL 24 ч)
 ```
+
+**Почему не presigned-URL и не прямой доступ из `karaoke-web`** (спека 561,
+OpenProject #361, аудит BR-258): `karaoke-web` не имеет учётных данных MinIO
+(`WebKaraokeStorageServiceImpl` — заглушка), а nginx path-proxy переписывает
+путь (`/minio/<bucket>/<key>` → `/<bucket>/<key>`), из-за чего подпись SigV4
+не совпадает с фактически полученным MinIO путём. Поэтому приватные объекты
+отдаёт приложение, имеющее доступ, — по защищённому server-to-server каналу.
+Направление канала — **admin → prod**: прод-`karaoke-web` не достигает
+admin-машины (firewall), см. `PublicVkAuthController`.
 
 **Это сложный поток, подробнее — Pass 342.**
 
@@ -180,7 +199,7 @@ karaoke-public (Player)
 | webvue3 просмотр файла | [OK] читает (через direct URL?) | [OK] читает (через nginx-proxy) | [NO] |
 | Public песня играется | [NO] | [OK] читает (через nginx-proxy) | [NO] |
 | HealthReport repair | [OK] пишет+читает | [OK] пишет+читает | [OK] пишет+читает+symlinks |
-| StemJob processing | [OK] пишет | [OK] пишет | [OK] пишет (temp) |
+| StemJob processing | [OK] пишет | [OK] пишет (**приватный** бакет `stemjobs`) | [OK] пишет (temp) |
 | Стем-сепарация (premium) | [NO] | [NO] | [OK] читает (исходный файл) |
 
 ## Инвариант согласованности
@@ -231,7 +250,13 @@ AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
 - [ ] **Backup/restore** — есть ли cron-бэкап MinIO на отдельный
       сервер, откуда восстанавливается при потере.
 - [ ] **CORS / public-read** — какие bucket'ы публичные, какие
-      private, кто управляет.
+      private, кто управляет. Частично закрыто (спека 561): `stemjobs` →
+      private, `karaoke` → public, выставляется `StemJobStoragePolicyInitializer`
+      при старте `karaoke-app`.
+- [x] **Presigned-URL через path-proxy** — **нереализуемо**: nginx
+      переписывает путь, подпись SigV4 не совпадает с полученным MinIO
+      путём. Для приватных объектов используется server-to-server канал
+      admin → prod с `X-Internal-Secret` (спека 561).
 
 ## Зависимости | Dependencies
 
@@ -242,3 +267,4 @@ AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
 ## Changelog
 
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
+- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): «Поток 4: StemJob» переписан — результаты грузятся в приватный бакет `stemjobs` и передаются в `karaoke-web` по внутреннему каналу `X-Internal-Secret`; presigned-вариант помечен нереализуемым. Автор: agent (Karaoke).

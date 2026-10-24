@@ -74,6 +74,14 @@ stemjobs:
   # умолчанию (эндпоинты internal/** по умолчанию закрыты, не открыты, см. authorized()).
   temp-dir: ${STEMJOBS_TEMP_DIR:/tmp/stemjobs}
   internal-secret: ${STEMJOBS_INTERNAL_SECRET:}
+  # Приватный каталог результатов задания (стемы + загруженный исходник). Сюда karaoke-app
+  # передаёт приватные объекты по внутреннему каналу X-Internal-Secret (InternalStemJobController),
+  # а PublicStemJobController.download отдаёт их владельцу задания. Каталог НЕ публикуется
+  # nginx'ом — единственный путь к файлу — авторизованный эндпоинт (спека 561, BR-258).
+  # Пустое значение → ${stemjobs.temp-dir}/results (внутри контейнера: не переживает перезапуск).
+  # Для продакшена рекомендуется указать путь на постоянном томе (см.
+  # specs/561-impl-stem-bucket/quickstart.md, шаг 2).
+  result-dir: ${STEMJOBS_RESULT_DIR:}
 
 sync:
   # Внутренний секрет двуx-БД синхронизации (POST /changerecords) — общий секрет заголовка

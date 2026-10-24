@@ -266,3 +266,26 @@ object NewsTemplateService {
 - **Pass 437** (2026-09-23, issue #161): resilience `VkAutoPublishService` /
   `VkAutoPublishScheduler` — сетевые ошибки VK → `SEND_FAILED`, не исключение.
 - **Pass 379** (2026-09-09): Initial. Автор: agent (Karaoke).
+## BR-139/140/142/148: публикация не теряет результат и не течёт (аудит #336)
+
+- **BR-139.** Результат `Song.saveToDbLocked()` проверяется во всех местах
+  `TelegramAutoPublishService` через `saveWithRetry` (3 попытки, короткий
+  backoff). Если успешно полученный `message_id` сохранить не удалось, метод
+  возвращает `SEND_FAILED` с явной ошибкой, а не «успех»; иначе следующий тик
+  видел пустой `idTelegramDemo` и публиковал видео повторно.
+- **BR-140.** `TelegramApiClient.sendVideo` оборачивает **каждую** попытку в
+  `try/catch`: сеть, таймаут и не-JSON ответ считаются retryable и спят по
+  `backoffScheduleMs`; на исчерпании — `SEND_FAILED`. `send()` пробрасывает
+  исходную сетевую ошибку как `cause`.
+- **BR-142.** `proxyClient()` кэширует `HttpClient` по `telegramProxyUrl` и
+  пересоздаёт его только при смене URL. Раньше новый клиент создавался на каждый
+  запрос (getUpdates каждые ~25-60 с + каждый `sendVideo`) и оставлял живой
+  selector-поток/сокеты.
+- **BR-148.** VK-клиенты читают изменяемые настройки на каждом вызове (см.
+  [karaoke-properties](../../processing/components/karaoke-properties.md)).
+
+**Ловушка.** `lock_timeout` в `saveToDbLocked()` — штатный сценарий (FR-060),
+поэтому игнорировать `Boolean` нельзя: это не «редкий сбой», а предусмотренная
+самим кодом ветка. Регрессии: `TelegramSaveRetryTest`,
+`TelegramApiClientRetryTest`, `TelegramProxyClientCacheTest`,
+`VkPropertiesRefreshTest`.

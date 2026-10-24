@@ -162,3 +162,20 @@ ADR-0006). Без этого ffmpeg заполнит stderr и процесс з
 ## Связанные ADR | Related ADRs
 
 - [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md)
+
+## BR-113: auth-flow с таймаутом (аудит #336)
+
+Интерактивный вход (`createNewAuthContext`, `createNewSponsrAuthContext`,
+`createNewAuthContext2`) идёт через `AuthFlowGate` (`UtilsPlaywright.kt`):
+- latch создаётся **локально** для запуска и возвращается из `tryStart()`,
+  поэтому `completeAuth()` всегда отсчитывает текущий latch (раньше глобальный
+  `var authLatch` переприсваивался после CAS — `completeAuth()` мог отсчитать
+  «не тот» объект);
+- `await` ограничен `AUTH_FLOW_TIMEOUT_MS` (10 минут), по таймауту контекст
+  закрывается в `finally`, HTTP-поток Tomcat возвращается, следующий flow снова
+  доступен.
+
+**Ловушка.** `CountDownLatch.await()` без таймаута в HTTP-потоке — это навсегда
+занятый поток + живой видимый Chromium, если оператор закрыл вкладку и не вызвал
+`completeAuth()`. Восстановление — только рестарт контейнера. Регрессия:
+`AuthFlowGateTest`.

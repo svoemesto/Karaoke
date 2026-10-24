@@ -13,6 +13,7 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
+import java.sql.Types
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -138,16 +139,7 @@ interface KaraokeDbTable {
             var index = 1
             diff.filter { it.recordDiffRealField }.forEach {
                 try {
-                    when (it.recordDiffValueNew) {
-                        is String -> ps.setString(index, it.recordDiffValueNew)
-                        is Long -> ps.setLong(index, it.recordDiffValueNew)
-                        is Int -> ps.setInt(index, it.recordDiffValueNew)
-                        is Double -> ps.setDouble(index, it.recordDiffValueNew)
-                        is Float -> ps.setFloat(index, it.recordDiffValueNew)
-                        is Timestamp -> ps.setTimestamp(index, it.recordDiffValueNew)
-                        is Boolean -> ps.setBoolean(index, it.recordDiffValueNew)
-                        else -> ps.setString(index, it.recordDiffValueNew.toString())
-                    }
+                    bindRecordDiffValue(ps, index, it)
                 } catch (e: Exception) {
                     val errorMessage =
                         "Не удалось сохранить запись в БД. Поле «${it.recordDiffName}» имеет значение " +
@@ -161,12 +153,20 @@ interface KaraokeDbTable {
             try {
                 ps.executeUpdate()
             } catch (e: Exception) {
-                // Поведение прежнее (не пробрасываем — см. конфликт с ADR local-0002
-                // в knowledge/domains/persistence/domain.md), но через SLF4J, как
-                // требует ADR local-0005, а не println.
-                log.warn("Не удалось сохранить запись в таблице {}: {}", getTableName(), e.message, e)
+                // BR-176 (аудит #336): раньше ошибка только логировалась, и вызывающий
+                // получал «успех» (ложный 200 в админке). ADR local-0002 требует
+                // пробрасывать ошибки БД, а не подменять их пустым результатом.
+                log.error("Не удалось сохранить запись в таблице {}: {}", getTableName(), e.message, e)
+                throw IllegalStateException(
+                    "Не удалось сохранить запись в таблице '${getTableName()}' (id=$id): ${e.message}",
+                    e,
+                )
+            } finally {
+                try {
+                    ps.close()
+                } catch (_: Exception) {
+                }
             }
-            ps.close()
 
             try {
                 SNS.send(messageRecordChange)
@@ -920,3 +920,48 @@ interface KaraokeDbTable {
         }
     }
 }
+
+/**
+ * Биндит значение [RecordDiff] в `PreparedStatement` (BR-176, аудит #336).
+ *
+ * Раньше `null` уходил в ветку `else -> ps.setString(index, null.toString())`,
+ * то есть в SQL писалась строка `'null'`. Для `timestamp`/`boolean`-колонки
+ * PostgreSQL отвечал `invalid input syntax for type timestamp: "null"`,
+ * `executeUpdate()` падал, исключение гасилось — и терялся весь пакет правок
+ * одного `save()` (UPDATE собирается одним `SET`). Тип NULL берётся по
+ * прежнему значению колонки (`RecordDiff.recordDiffValueOld`).
+ */
+internal fun bindRecordDiffValue(
+    ps: PreparedStatement,
+    index: Int,
+    diff: RecordDiff,
+) {
+    val value = diff.recordDiffValueNew
+    if (value == null) {
+        ps.setNull(index, sqlTypeForNull(diff.recordDiffValueOld))
+        return
+    }
+    when (value) {
+        is String -> ps.setString(index, value)
+        is Long -> ps.setLong(index, value)
+        is Int -> ps.setInt(index, value)
+        is Double -> ps.setDouble(index, value)
+        is Float -> ps.setFloat(index, value)
+        is Timestamp -> ps.setTimestamp(index, value)
+        is Boolean -> ps.setBoolean(index, value)
+        else -> ps.setString(index, value.toString())
+    }
+}
+
+/** SQL-тип для null-значения по типу прежнего значения колонки (BR-176). */
+internal fun sqlTypeForNull(oldValue: Any?): Int =
+    when (oldValue) {
+        is Timestamp -> Types.TIMESTAMP
+        is Boolean -> Types.BOOLEAN
+        is Long -> Types.BIGINT
+        is Int -> Types.INTEGER
+        is Double -> Types.DOUBLE
+        is Float -> Types.REAL
+        is String -> Types.VARCHAR
+        else -> Types.NULL
+    }

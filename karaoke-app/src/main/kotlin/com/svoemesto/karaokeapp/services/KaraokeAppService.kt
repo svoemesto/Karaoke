@@ -72,6 +72,23 @@ class KaraokeAppService(
         WVP = WebvueProperties()
         System.setOut(DualStream(System.out))
         System.setErr(DualStream(System.err))
-        KSS_APP.deleteAllEmptyBuckets()
+        cleanupEmptyBucketsOnStartup(KSS_APP)
     }
+}
+
+/**
+ * Уборка пустых бакетов при старте — необязательная операция (BR-162, аудит #336).
+ *
+ * Раньше `deleteAllEmptyBuckets()` вызывался из `init` без `try/catch`: сетевой
+ * сбой MinIO (`ConnectException`/`SocketTimeoutException` — это `IOException`, не
+ * `MinioException`, который внутри ловится) валил создание бина и весь Spring-контекст,
+ * то есть `karaoke-app` не стартовал вовсе. Теперь сбой уборки логируется WARN и не
+ * мешает старту; сама уборка ограничена бакетами Karaoke (см. `deleteAllEmptyBuckets`).
+ */
+internal fun cleanupEmptyBucketsOnStartup(
+    storage: KaraokeStorageService,
+    warn: (String, Throwable) -> Unit = { message, error -> println("WARN $message: ${error.message}") },
+) {
+    runCatching { storage.deleteAllEmptyBuckets() }
+        .onFailure { warn("startup: не удалось убрать пустые бакеты (продолжаем запуск)", it) }
 }

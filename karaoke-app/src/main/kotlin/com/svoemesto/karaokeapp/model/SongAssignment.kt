@@ -152,14 +152,25 @@ class SongAssignment(
                 storageApiClient = storageApiClient,
             ) as? SongAssignment?
 
-        // Назначения для набора песен (батч, чтобы таблица/карточка песни узнавали статус задания без
-        // N+1) — по образцу SongAssignmentDraft.loadByAssignments. Возврат: songId -> SongAssignment.
+        /**
+         * Назначения для набора песен: `songId -> все его назначения` (BR-128, аудит #336).
+         *
+         * Раньше возвращался `Map<Long, SongAssignment>` через `associateBy { songId }`,
+         * то есть при нескольких строках на песню (штатная ситуация: UNIQUE только по
+         * `(song_id, assignee_id)`, строка после approve не удаляется) молча оставалась
+         * произвольная строка. `loadList` не задаёт `ORDER BY`, поэтому выбор зависел от
+         * физического порядка строк.
+         *
+         * Каждый список отсортирован [preferredAssignmentOrder]: сначала активное
+         * назначение (`admin_status = 'open'`), затем по убыванию `id`. Потребители,
+         * которым нужна одна строка, берут `first()` — это детерминированно.
+         */
         fun loadBySongIds(
             songIds: List<Long>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Map<Long, SongAssignment> {
+        ): Map<Long, List<SongAssignment>> {
             if (songIds.isEmpty()) return emptyMap()
             return KaraokeDbTable
                 .loadList(
@@ -170,8 +181,21 @@ class SongAssignment(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 ).map { it as SongAssignment }
-                .associateBy { it.songId }
+                .groupBy { it.songId }
+                .mapValues { (_, list) -> list.sortedWith(preferredAssignmentOrder) }
         }
+
+        /**
+         * Порядок предпочтения назначений одной песни (BR-128): активное (`open`) — первым,
+         * иначе самое новое (по `id`). Детерминированный выбор вместо случайного.
+         */
+        internal val preferredAssignmentOrder: Comparator<SongAssignment> =
+            compareByDescending<SongAssignment> { it.adminStatus == SongAssignmentStatus.ADMIN_OPEN }
+                .thenByDescending { it.id }
+
+        /** Одно предпочтительное назначение из списка (BR-128). */
+        internal fun preferredAssignment(list: List<SongAssignment>): SongAssignment? =
+            list.minWithOrNull(preferredAssignmentOrder)
 
         // Композитный статус для набора песен (батчем: assignment + его draft), переиспользуется и
         // статус-эндпоинтом для таблицы/карточки песни, и фильтром /api/songsdigests — единая точка
@@ -182,12 +206,15 @@ class SongAssignment(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): Map<Long, Pair<SongAssignment, SongAssignmentStatus>> {
-            val assignments = loadBySongIds(songIds, database, storageService, storageApiClient)
-            if (assignments.isEmpty()) return emptyMap()
-            val drafts = SongAssignmentDraft.loadByAssignments(assignments.values.map { it.id }, database, storageService, storageApiClient)
-            return assignments.mapValues { (_, a) ->
+            val assignmentsBySong = loadBySongIds(songIds, database, storageService, storageApiClient)
+            if (assignmentsBySong.isEmpty()) return emptyMap()
+            // BR-128: по одной детерминированно выбранной строке на песню, черновики — батчем.
+            val chosen = assignmentsBySong.values.mapNotNull { preferredAssignment(it) }
+            if (chosen.isEmpty()) return emptyMap()
+            val drafts = SongAssignmentDraft.loadByAssignments(chosen.map { it.id }, database, storageService, storageApiClient)
+            return chosen.associate { a ->
                 val draft = drafts[a.id]
-                a to SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
+                a.songId to (a to SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt))
             }
         }
 

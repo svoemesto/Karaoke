@@ -404,3 +404,19 @@ L3-компонентов у домена пока нет: контекст оп
   жизненного цикла соединения, ловушки (закрытие в переиспользуемом потоке /
   отсутствие закрытия в одноразовом) и контракт `startOneShotThread`. Решение
   зафиксировано в [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md).
+## BR-176: NULL в `save()` и ошибка UPDATE (аудит #336)
+
+- `bindRecordDiffValue` биндит `null` как типизированный SQL NULL
+  (`ps.setNull(index, sqlTypeForNull(oldValue))`): `Timestamp → TIMESTAMP`,
+  `Boolean → BOOLEAN`, `String → VARCHAR` и т.д. Раньше `null` попадал в
+  `ps.setString(index, "null")`, PostgreSQL падал на `timestamp`/`boolean`, и
+  терялся **весь** пакет правок одного `save()` (UPDATE — один `SET`).
+- Ошибка `executeUpdate()` логируется и **пробрасывается**
+  (`IllegalStateException`): контроллер отдаёт 5xx вместо ложного успеха, SSE
+  `recordChange` не рассылается. Это соответствует ADR local-0002 (ошибки БД не
+  подменяются пустым результатом).
+
+**Ловушка.** `clearPublishAt=true` (`POST /api/news/update`) — штатный путь
+обнуления `News.publish_at`; без `setNull` он «успешно» не сохранял ни
+`publish_at`, ни остальные поля запроса. Регрессия:
+`KaraokeDbTableNullBindingTest`.

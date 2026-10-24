@@ -1053,7 +1053,13 @@ class PublicApiController(
                         storageService,
                         storageApiClient,
                     )[song.id]
-                    ?.let { a ->
+                    ?.let { assignments ->
+                        // BR-128: на песню может быть несколько назначений. Показываем
+                        // назначение текущего редактора (если есть), иначе — детерминированно
+                        // предпочтительное (активное/последнее), а не произвольную строку.
+                        val myId = me?.id
+                        assignments.firstOrNull { myId != null && it.assigneeId == myId } ?: assignments.firstOrNull()
+                    }?.let { a ->
                         com.svoemesto.karaokeapp.model.SongAssignmentBriefDto(
                             id = a.id,
                             assigneeId = a.assigneeId,

@@ -236,3 +236,17 @@ concurrent, single-flight, SSE-dedup, attach, `stop` обоих executor'ов).
   LIFO, single-flight) + SSE `HEALTH_REPORT_WAITING_POOL_SIZE`; удалён
   SUM-подход #130. OpenProject #132, specs/132-hrwaiting-pool. Автор: agent (Karaoke).
 - **Pass 128** (2026-09-15): Initial. Автор: agent (Karaoke).
+## BR-132: воркеры будятся семафором, а не submit'ом (аудит #336)
+
+`HealthReportBatchPool.start()` запускает `POOL_SIZE` и `POOL_SIZE_WAITING`
+worker-циклов **один раз**. `wakeupWorkers()`/`wakeupWaitingWorkers()` больше не
+делают `executor.submit { workerLoop() }`: они освобождают разрешения
+`Semaphore` (не больше числа воркеров). Простаивающий воркер ждёт
+`tryAcquire(WORKER_IDLE_SLEEP_MS)` вместо `Thread.sleep`.
+
+**Ловушка.** `workerLoop()` — бесконечный цикл. Любой `submit { workerLoop() }`
+на каждое событие навсегда занимает поток пула, а последующие задачи копятся в
+неограниченной очереди executor'а. Признак регрессии — растущий
+`executor.queue.size()` после загрузок страницы «Песни». Регрессия:
+`HealthReportBatchPoolWakeupTest` (на старом коде 200 submit'ов после 20
+`enqueue`, после правки — 0).

@@ -48,10 +48,14 @@ data class PhotoUploadResult(
  */
 class VkPhotoUploadClient(
     private val apiClient: VkApiClient = VkApiClient(),
-    private val userToken: String = KaraokeProperties.getString("vkUserAccessToken"),
-    private val communityToken: String = KaraokeProperties.getString("vkAccessToken"),
-    private val photoEnabled: Boolean = KaraokeProperties.getBoolean("vkPhotoAttachEnabled"),
-    private val docEnabled: Boolean = KaraokeProperties.getBoolean("vkDocAttachEnabled"),
+    // BR-148 (аудит #336): токены и флаги читаются на каждом вызове. Раньше они
+    // фиксировались в конструкторе object-синглтона VkAutoPublishService, поэтому
+    // после повторной авторизации (saveVkUserToken) загрузка фото продолжала идти
+    // со старым токеном, а выключение vkPhotoAttachEnabled не действовало до рестарта.
+    private val userTokenProvider: () -> String = { KaraokeProperties.getString("vkUserAccessToken") },
+    private val communityTokenProvider: () -> String = { KaraokeProperties.getString("vkAccessToken") },
+    private val photoEnabledProvider: () -> Boolean = { KaraokeProperties.getBoolean("vkPhotoAttachEnabled") },
+    private val docEnabledProvider: () -> Boolean = { KaraokeProperties.getBoolean("vkDocAttachEnabled") },
 ) {
     /** Число попыток transient-ошибок внутри одной PHOTOS/DOCS-цепочки. */
     private val transientAttempts: Int = 2
@@ -71,6 +75,8 @@ class VkPhotoUploadClient(
         groupId: String,
     ): PhotoUploadResult {
         // Если оба метода отключены — деградация без попыток.
+        val photoEnabled = photoEnabledProvider()
+        val docEnabled = docEnabledProvider()
         if (!photoEnabled && !docEnabled) {
             return PhotoUploadResult(
                 method = PhotoUploadMethod.NONE,
@@ -142,6 +148,7 @@ class VkPhotoUploadClient(
         pngBytes: ByteArray,
         groupId: String,
     ): PhotoUploadResult {
+        val userToken = userTokenProvider()
         if (userToken.isBlank()) {
             throw VkPhotoAuthException(0, "vkUserAccessToken is empty — нужен user-token с правом photos (см. /api/utils/vkOAuthUrl)")
         }
@@ -180,6 +187,7 @@ class VkPhotoUploadClient(
         pngBytes: ByteArray,
         groupId: String,
     ): PhotoUploadResult {
+        val communityToken = communityTokenProvider()
         if (communityToken.isBlank()) {
             throw VkPhotoAuthException(0, "vkAccessToken (community) is empty — нужен для docs.* fallback")
         }

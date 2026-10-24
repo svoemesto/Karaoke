@@ -75,6 +75,21 @@ function uppercaseFirstLetter(s) {
   return s && s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
 
+// Экранирование пользовательского текста перед интерполяцией в HTML-буфер.
+// BR-312 (аудит #336, PKG-S2-14): админский редактор рендерит результат через
+// `v-html="formattedTextHtml"` (SongKaraokeEditorView.vue), поэтому метка
+// комментария/слог из текста песни не должны становиться разметкой.
+// Копия канонического webvue3/src/utils/escapeHtml.js — локальная, чтобы файл
+// оставался самодостаточным для guard-скрипта.
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // Спецтеги в тексте песни (~имя~ / ~имя:значение~, только отдельной строкой) - ЭТО ПЯТАЯ независимая
 // реализация того же контракта (см. specs/010-lyrics-spec-tags/contracts/tag-registry.md для полного
 // списка мест и практического чек-листа "где искать все места" при следующей правке контракта):
@@ -487,7 +502,7 @@ export function formatText(markers, curMarkerIndex) {
           result += '<br>'
         } else if (marker.label && marker.label.startsWith('COMMENT|')) {
           const txt = uppercaseFirstLetter((marker.label.split('|')[1] || '').replaceAll('_', ' '))
-          result += `<span class="ske-fx-comment">${txt}</span><br>`
+          result += `<span class="ske-fx-comment">${escapeHtml(txt)}</span><br>`
           wasBr = true
         }
         break
@@ -504,7 +519,7 @@ export function formatText(markers, curMarkerIndex) {
           txt = uppercaseFirstLetter(txt)
           wasBr = false
         }
-        result += txt
+        result += escapeHtml(txt)
         result += '</span>'
         break
       }

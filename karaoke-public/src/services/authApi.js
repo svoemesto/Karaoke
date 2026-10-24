@@ -2,6 +2,14 @@
 // отбрасывает тело ответа при ошибке (reject получает только xhr.statusText), а нам нужно тело даже
 // на 401/403/400 (например {"error":"banned","reason":"..."}), поэтому здесь всегда резолвим промис
 // с { status, body } и решение о том, что считать ошибкой, остаётся за вызывающим кодом.
+// BR-339 (аудит #336, пакет PKG-S2-14): таймаут XHR. Без него зависший запрос не отличим от
+// долгой загрузки — `loading` крутится бесконечно, а `xhr.onerror` не срабатывает (браузер
+// держит соединение). 15 с — заметно больше p99 обычного ответа API и меньше терпения
+// пользователя. Отдельная ошибка 'timeout' позволяет UI написать «сервер не ответил вовремя».
+const DEFAULT_TIMEOUT_MS = 15000
+// Загрузка аудиофайла (authUpload) законно длится дольше — отдельный, более щедрый лимит.
+const UPLOAD_TIMEOUT_MS = 120000
+
 function request(method, path, params, token) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -20,6 +28,8 @@ function request(method, path, params, token) {
       resolve({ status: xhr.status, body })
     }
     xhr.onerror = () => reject(new Error('network_error'))
+    xhr.timeout = DEFAULT_TIMEOUT_MS
+    xhr.ontimeout = () => reject(new Error('timeout'))
 
     const pairs = []
     for (const key in params) {
@@ -68,6 +78,10 @@ export function authPostJson(path, jsonBody, token) {
       resolve({ status: xhr.status, body })
     }
     xhr.onerror = () => reject(new Error('network_error'))
+    xhr.timeout = DEFAULT_TIMEOUT_MS
+    xhr.ontimeout = () => {
+      reject(new Error('timeout'))
+    }
     xhr.send(JSON.stringify(jsonBody))
   })
 }
@@ -95,6 +109,10 @@ export function authUpload(path, file, fields, token, onProgress) {
       resolve({ status: xhr.status, body })
     }
     xhr.onerror = () => reject(new Error('network_error'))
+    // Загрузка большого стема идёт дольше обычного запроса — таймаут здесь 120 с: он ловит
+    // «соединение зависло», а не медленную загрузку (BR-339).
+    xhr.timeout = UPLOAD_TIMEOUT_MS
+    xhr.ontimeout = () => reject(new Error('timeout'))
 
     const formData = new FormData()
     formData.append('file', file)

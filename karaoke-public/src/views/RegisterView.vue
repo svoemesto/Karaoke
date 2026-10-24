@@ -32,6 +32,12 @@
 
         <div v-if="captchaClientKey" id="km-captcha-container" class="km-captcha" />
 
+        <!-- BR-340: капча не загрузилась — честно предупреждаем. Отправку не блокируем
+             (клиентский гейт без виджета невыполним), решение за серверной проверкой. -->
+        <p v-if="captchaUnavailable" class="km-error">
+          Проверка «не робот» недоступна. Обновите страницу, если кнопка регистрации не сработает.
+        </p>
+
         <p v-if="errorMessage" class="km-error">{{ errorMessage }}</p>
 
         <button class="km-submit-btn" :disabled="loading" @click="onSubmit">
@@ -48,8 +54,16 @@
 import { authGet, authPost } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
 import AppHeader from '../components/AppHeader.vue'
+import {
+  CAPTCHA_STATE,
+  captchaScriptState,
+  captchaClientGateEnabled,
+} from '../utils/captchaReady.js'
 
 const CAPTCHA_SCRIPT_SRC = 'https://smartcaptcha.yandexcloud.net/captcha.js'
+// Сколько ждём появления window.smartCaptcha после того, как <script> уже в DOM.
+// По истечении считаем капчу недоступной (не блокируем отправку, решает сервер).
+const CAPTCHA_READY_TIMEOUT_MS = 10000
 
 /**
  * View-страница «Register» — основной layout и data-fetching.
@@ -75,7 +89,14 @@ export default {
       captchaClientKey: '',
       captchaToken: '',
       captchaWidgetId: null,
+      // BR-340 (аудит #336, PKG-S2-14): состояние скрипта капчи — load | wait | ready | unavailable.
+      captchaState: CAPTCHA_STATE.LOAD,
     }
+  },
+  computed: {
+    captchaUnavailable() {
+      return this.captchaState === CAPTCHA_STATE.UNAVAILABLE
+    },
   },
   async mounted() {
     try {
@@ -94,30 +115,66 @@ export default {
   methods: {
     loadCaptchaWidget() {
       return new Promise((resolve) => {
-        const existing = document.querySelector(`script[src="${CAPTCHA_SCRIPT_SRC}"]`)
-        const onReady = () => {
-          this.$nextTick(() => {
-            if (window.smartCaptcha && document.getElementById('km-captcha-container')) {
-              this.captchaWidgetId = window.smartCaptcha.render('km-captcha-container', {
-                sitekey: this.captchaClientKey,
-                callback: (token) => {
-                  this.captchaToken = token
-                },
-              })
-            }
-            resolve()
+        // BR-340 (аудит #336, PKG-S2-14): наличие <script> в DOM — НЕ признак готовности.
+        // Раньше ветка `if (existing) { onReady(); return }` звала onReady() немедленно:
+        // если скрипт ещё грузился или упал раньше (элемент оставался в head навсегда),
+        // window.smartCaptcha не был определён, виджет не рендерился, captchaToken
+        // оставался пустым, а гейт отправки требовал невыполнимое «Подтвердите, что вы
+        // не робот» — регистрация блокировалась до полной перезагрузки страницы.
+        const decide = (failed, timedOut) => {
+          const state = captchaScriptState({
+            scriptPresent: !!document.querySelector(`script[src="${CAPTCHA_SCRIPT_SRC}"]`),
+            globalReady: !!window.smartCaptcha,
+            failed,
+            timedOut,
           })
+          this.captchaState = state
+          if (state === CAPTCHA_STATE.READY) {
+            this.$nextTick(() => {
+              if (window.smartCaptcha && document.getElementById('km-captcha-container')) {
+                this.captchaWidgetId = window.smartCaptcha.render('km-captcha-container', {
+                  sitekey: this.captchaClientKey,
+                  callback: (token) => {
+                    this.captchaToken = token
+                  },
+                })
+              }
+              resolve()
+            })
+            return
+          }
+          if (state === CAPTCHA_STATE.UNAVAILABLE) {
+            // Упавший/зависший тег убираем, чтобы следующий заход создал его заново.
+            const broken = document.querySelector(`script[src="${CAPTCHA_SCRIPT_SRC}"]`)
+            if (broken) broken.remove()
+            resolve()
+            return
+          }
+          if (state === CAPTCHA_STATE.WAIT) {
+            // Тег есть, глобал ещё не определён — ждём load с таймаутом.
+            const waiting = document.querySelector(`script[src="${CAPTCHA_SCRIPT_SRC}"]`)
+            let settled = false
+            const finish = (failed, timedOut) => {
+              if (settled) return
+              settled = true
+              waiting.removeEventListener('load', onLoad)
+              clearTimeout(timer)
+              decide(failed, timedOut)
+            }
+            const onLoad = () => finish(false, false)
+            const timer = setTimeout(() => finish(false, true), CAPTCHA_READY_TIMEOUT_MS)
+            waiting.addEventListener('load', onLoad)
+            return
+          }
+          // LOAD — тега нет: создаём и грузим.
+          const script = document.createElement('script')
+          script.src = CAPTCHA_SCRIPT_SRC
+          script.defer = true
+          script.onload = () => decide(false, false)
+          script.onerror = () => decide(true, false)
+          document.head.appendChild(script)
         }
-        if (existing) {
-          onReady()
-          return
-        }
-        const script = document.createElement('script')
-        script.src = CAPTCHA_SCRIPT_SRC
-        script.defer = true
-        script.onload = onReady
-        script.onerror = () => resolve()
-        document.head.appendChild(script)
+        decide(false, false)
       })
     },
     async onSubmit() {
@@ -138,7 +195,16 @@ export default {
         this.errorMessage = 'Пароль должен быть не короче 6 символов'
         return
       }
-      if (this.captchaClientKey && !this.captchaToken) {
+      // BR-340: клиентский гейт включается ТОЛЬКО когда виджет реально отрисован.
+      // Если капча недоступна — не требуем невыполнимое, решение остаётся за серверной
+      // проверкой (она fail-closed: captcha_not_configured / captcha).
+      if (
+        captchaClientGateEnabled({
+          clientKey: this.captchaClientKey,
+          token: this.captchaToken,
+          state: this.captchaState,
+        })
+      ) {
         this.errorMessage = 'Подтвердите, что вы не робот'
         return
       }

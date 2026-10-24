@@ -4072,7 +4072,10 @@ export default {
                 break
               }
               case 'COMMENT': {
-                text = labels[1]
+                // BR-312 (аудит #336, PKG-S2-14): текст комментария вводит пользователь
+                // (`~comment:...~`) и он же уходит в HTML-превью через v-html — без
+                // экранирования это живая разметка (stored XSS в админке).
+                text = escapeHtml(labels[1] || '')
                 template = `<div><div
                         style="
                             background-color: beige;

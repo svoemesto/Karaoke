@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { getAnonId } from '../services/clientId'
 import { consumeEntryReferrer } from '../services/entryReferrer'
+import { createListenerBag } from '../utils/listenerBag.js'
 
 const STREAM_METRICS_KEY = 'km_zakroma_stream_metrics'
 
@@ -62,11 +63,22 @@ export function useZakromaStreamProgress() {
   // запрещает setInterval для синтетического прогресса — это про логику
   // подсчёта %, а debounce про UX-видимость).
   let showTimeout = null
+  // BR-313 (аудит #336, PKG-S2-14): подписки на window/document учитываются в мешке,
+  // а cleanup() их снимает. Раньше здесь висел только AbortController: каждый вызов
+  // start() добавлял pagehide + два visibilitychange, removeEventListener не было
+  // вовсе, а cleanup() не вызывался ни разу — листенеры и их замыкания (полный список
+  // песен автора в albums, metricsBatch) жили до конца вкладки.
+  const listeners = createListenerBag()
 
   function cleanup() {
     if (controller) {
       controller.abort()
       controller = null
+    }
+    listeners.clear()
+    if (showTimeout) {
+      clearTimeout(showTimeout)
+      showTimeout = null
     }
   }
 
@@ -390,7 +402,7 @@ export function useZakromaStreamProgress() {
     // Lazy-import 'vue' nextTick — он нужен только при возврате, грузить в setup не нужно.
     // Используем динамический импорт, чтобы не нарушать tree-shaking и не плодить
     // циклических зависимостей (useZakromaStreamProgress не импортирует vue).
-    document.addEventListener('visibilitychange', async () => {
+    listeners.add(document, 'visibilitychange', async () => {
       if (document.visibilityState === 'visible' && pendingVisibilityPush) {
         pendingVisibilityPush = false
         try {
@@ -413,8 +425,8 @@ export function useZakromaStreamProgress() {
    * Вызывается один раз на load каждой композиции (через setup() Vue).
    */
   function initMetricsCollection() {
-    window.addEventListener('pagehide', flushMetrics)
-    document.addEventListener('visibilitychange', () => {
+    listeners.add(window, 'pagehide', flushMetrics)
+    listeners.add(document, 'visibilitychange', () => {
       if (document.visibilityState === 'hidden') flushMetrics()
     })
   }
@@ -480,7 +492,8 @@ export function useZakromaStreamProgress() {
     }
   }
 
-  // Single-shot init: подписки на pagehide / visibilitychange.
+  // Single-shot init: подписки на pagehide / visibilitychange. Создаём композицию один раз
+  // на экземпляр: повторный вызов init*() дублировал бы подписки (BR-313).
   initMetricsCollection()
   initVisibilityPush()
 

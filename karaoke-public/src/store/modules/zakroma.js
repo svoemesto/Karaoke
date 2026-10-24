@@ -57,6 +57,12 @@ function buildAlbumTypeCounts(albums) {
  * @see specs/181-zakroma-author-load-progress/spec.md — real-time NDJSON chunked-stream progress
  */
 
+// BR-313 (аудит #336, PKG-S2-14): composable создаётся на КАЖДЫЙ старт стрима, поэтому
+// предыдущий экземпляр обязан снять свои подписки (pagehide + два visibilitychange) —
+// иначе они копятся по одной тройке на каждую загрузку автора и удерживают полный
+// список песен автора в своём замыкании.
+let activeStream = null
+
 export default {
   namespaced: true,
   state: {
@@ -221,8 +227,11 @@ export default {
       commit('setStreamProgress', { receivedCount: 0, expectedCount: expectedCount || 0 })
       commit('setStreamError', null)
 
-      // Создаём composable (FR-FE-001) и запускаем стрим.
+      // Создаём composable (FR-FE-001) и запускаем стрим. Предыдущий экземпляр (если был)
+      // сначала освобождает подписки — см. activeStream выше.
+      if (activeStream) activeStream.cleanup()
       const composable = useZakromaStreamProgress()
+      activeStream = composable
       // Передаём прогресс в state.streamProgress через watcher на composable refs.
       // Vuex-совместимо: используем watch из 'vue'.
       const { watch: vueWatch } = await import('vue')
@@ -273,6 +282,10 @@ export default {
         commit('setLastLoadedTimestamp', { author, ts: 0 })
       } finally {
         stopProgress()
+        // Стрим завершён (успех/ошибка/abort) — снимаем подписки и отложенный таймер
+        // индикатора; refs после завершения больше не меняются.
+        composable.cleanup()
+        if (activeStream === composable) activeStream = null
         commit('setStreaming', false)
       }
     },

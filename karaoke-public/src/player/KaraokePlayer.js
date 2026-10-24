@@ -7,6 +7,7 @@ import {
   trackPlayerEnded,
 } from '../services/tracking'
 import { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'
+import { isStaleLoad, resolveShareReleaseReason } from './loadGuard.js'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
@@ -164,7 +165,12 @@ export default class KaraokePlayer {
     // In-flight tracker для fetch-запросов этого init() (T016, FR-007). Создаём ПОСЛЕ _buildUI()
     // и ПОСЛЕ возможного _abortActive() в playSong() (T022) — гарантирует, что у каждой init()
     // свой свежий controller, и старые fetch-ответы не перезапишут state нового трека.
-    this._activeAbortController = new AbortController()
+    // BR-302 (аудит #336, PKG-S2-14): контроллер СВОЕЙ загрузки — локальная переменная.
+    // Поле `_activeAbortController` теперь только «кто последний»: по нему ниже проверяется,
+    // не перехватил ли трек следующая init(). Раньше все проверки после await читали поле
+    // заново и видели ЧУЖОЙ (не отменённый) контроллер.
+    const controller = new AbortController()
+    this._activeAbortController = controller
     this._bgCanvas = this._generateStarfield()
     if (!this._offline) this._startRenderLoop()
     this._loadImage('/KARAOKE_LOGO.png')
@@ -179,16 +185,21 @@ export default class KaraokePlayer {
       this._shareReleased = false
       this._shareRevoked = false
       this._startShareHeartbeat()
-      this._shareBeforeUnloadHandler = () => this._sendShareRelease('closed')
-      this._sharePageHideHandler = () => this._sendShareRelease('closed')
-      this._shareVisibilityHandler = () => {
-        // visibilitychange hidden — вкладка свёрнута/закрывается; sendBeacon не всегда успевает
-        // на beforeunload, поэтому страхуемся на visibilitychange (best-effort).
-        if (document.visibilityState === 'hidden') this._sendShareRelease('closed')
+      // BR-303 (аудит #336, PKG-S2-14): терминальный release — только когда страница реально
+      // уходит (pagehide/beforeunload). На visibilitychange→hidden (переключение вкладки,
+      // сворачивание окна, блокировка экрана телефона) release НЕ шлём: бэкенд обнуляет
+      // active_session_token_hash, и гость получает «Время сеанса истекло», хотя ссылка ещё
+      // валидна. Освобождение слота при сворачивании делает lease по TTL.
+      this._shareBeforeUnloadHandler = () => {
+        const reason = resolveShareReleaseReason('beforeunload')
+        if (reason) this._sendShareRelease(reason)
+      }
+      this._sharePageHideHandler = () => {
+        const reason = resolveShareReleaseReason('pagehide')
+        if (reason) this._sendShareRelease(reason)
       }
       window.addEventListener('beforeunload', this._shareBeforeUnloadHandler)
       window.addEventListener('pagehide', this._sharePageHideHandler)
-      document.addEventListener('visibilitychange', this._shareVisibilityHandler)
     }
 
     try {
@@ -201,7 +212,7 @@ export default class KaraokePlayer {
           : ''
         const resp = await fetch(
           `${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}${sessionParam}`,
-          { headers, signal: this._activeAbortController.signal },
+          { headers, signal: controller.signal },
         )
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
@@ -210,7 +221,7 @@ export default class KaraokePlayer {
       }
       // Если уже aborted к этому моменту (playSong() был вызван во время загрузки) — выходим,
       // чтобы не записывать state и не делать лишнюю работу. Иначе — продолжаем.
-      if (this._activeAbortController.signal.aborted) return
+      if (isStaleLoad(this._activeAbortController, controller)) return
       // Для share-сессии прокидываем sessionTokenHash и в аудио-URL'ы (stem-эндпоинты karaoke-web
       // тоже принимают ?session=, см. PublicPlayerController.fileAccompaniment).
       if (this.shareSessionTokenHash && this.data) {
@@ -252,14 +263,17 @@ export default class KaraokePlayer {
       // Картинки альбома/артиста: Image API не поддерживает AbortController, поэтому полагаемся на
       // guard по signal.aborted ниже. Если уже aborted — пропускаем и НЕ пишем в this._albumImg/
       // _artistImg, чтобы init() следующего трека не перетирал стейт уже отменённой загрузкой.
-      if (this._activeAbortController.signal.aborted) return
+      if (isStaleLoad(this._activeAbortController, controller)) return
       this._albumImg = this.data.albumImageUrl
         ? await this._loadImage(this.data.albumImageUrl).catch(() => null)
         : null
       this._artistImg = this.data.artistImageUrl
         ? await this._loadImage(this.data.artistImageUrl).catch(() => null)
         : null
-      await this._loadAudio()
+      await this._loadAudio(controller.signal)
+      // BR-302: пока декодировали аудио, мог стартовать следующий playSong() — не пишем
+      // маркеры/длительность в state чужого трека.
+      if (isStaleLoad(this._activeAbortController, controller)) return
       // Parse after audio load so this.duration is known
       // INSTRUMENTAL/POETRY: маркеры не обрабатываются вовсе (плеер показывает только надпись) —
       // см. _isCaptionOnly()/_renderTypeCaption().
@@ -1320,7 +1334,7 @@ export default class KaraokePlayer {
 
   // ─── Audio ────────────────────────────────────────────────────────────────
 
-  async _loadAudio() {
+  async _loadAudio(signal) {
     this.audioCtx = new AudioContext()
     this.accGain = this.audioCtx.createGain()
     this.vocGain = this.audioCtx.createGain()
@@ -1341,10 +1355,11 @@ export default class KaraokePlayer {
       this._loadProgress = total > 0 ? Math.min(1, received / total) : null
     }
 
-    // T019: пробрасываем signal текущего AbortController в _fetchAudio (T020). Если пользователь
+    // T019: пробрасываем signal СВОЕЙ загрузки в _fetchAudio (T020). Если пользователь
     // переключит трек посередине загрузки — оба fetch'а прервутся; _loadProgress не «фантомно»
-    // допишется от уже отменённого запроса (FR-011).
-    const signal = this._activeAbortController.signal
+    // допишется от уже отменённого запроса (FR-011). BR-302: signal приходит параметром от
+    // init(), а НЕ читается из поля (поле могло смениться на контроллер следующего трека).
+    const loadSignal = signal || (this._activeAbortController && this._activeAbortController.signal)
     const [accBuf, vocBuf] = await Promise.all([
       this._fetchAudio(
         this.data.audioAccompanimentUrl,
@@ -1352,7 +1367,7 @@ export default class KaraokePlayer {
           prog.acc = { received: r, total: t }
           updateProgress()
         },
-        signal,
+        loadSignal,
       ),
       this._fetchAudio(
         this.data.audioVocalsUrl,
@@ -1360,7 +1375,7 @@ export default class KaraokePlayer {
           prog.voc = { received: r, total: t }
           updateProgress()
         },
-        signal,
+        loadSignal,
       ),
     ])
     this.accBuffer = accBuf
@@ -3754,7 +3769,6 @@ export default class KaraokePlayer {
       this._stopShareHeartbeat()
       window.removeEventListener('beforeunload', this._shareBeforeUnloadHandler)
       window.removeEventListener('pagehide', this._sharePageHideHandler)
-      document.removeEventListener('visibilitychange', this._shareVisibilityHandler)
     }
     for (const url of this._smkaraokeObjectUrls) URL.revokeObjectURL(url)
     this._smkaraokeObjectUrls = []

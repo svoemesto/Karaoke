@@ -5,6 +5,12 @@
 
     <LoginRequired v-if="!isLoggedIn" />
     <div v-else-if="loading" class="km-loading">Загрузка...</div>
+    <!-- BR-339 (аудит #336, PKG-S2-14): сбой сети/таймаут больше не оставляет «Загрузка...»
+         навсегда — показываем причину и даём повторить, не теряя маршрут. -->
+    <div v-else-if="loadError" class="km-loading km-load-error">
+      <p>{{ loadError }}</p>
+      <button class="km-new-btn" @click="load">Повторить</button>
+    </div>
     <div v-else-if="notFound" class="km-loading">Плейлист не найден.</div>
 
     <div v-else class="km-content">
@@ -255,6 +261,7 @@ export default {
     const id = Number(route.params.id)
     const loading = ref(true)
     const notFound = ref(false)
+    const loadError = ref('')
     const playlist = reactive({ id, name: '', favorites: false })
     const items = ref([])
     const nameEdit = ref('')
@@ -363,26 +370,39 @@ export default {
 
     async function load() {
       loading.value = true
-      const { status, body } = await fetchPlaylist(id)
-      if (status !== 200 || !body || !body.playlist) {
-        notFound.value = true
+      // BR-339: `authGet` реджектит промис на обрыве сети/DNS/offline/таймауте — без
+      // try/finally `loading` оставался true навсегда и `readiness.load()` не вызывался,
+      // поэтому страница не оживала даже после восстановления сети.
+      loadError.value = ''
+      notFound.value = false
+      try {
+        const { status, body } = await fetchPlaylist(id)
+        if (status === 401) {
+          loadError.value = 'Сессия истекла — войдите заново'
+          return
+        }
+        if (status !== 200 || !body || !body.playlist) {
+          notFound.value = true
+          return
+        }
+        Object.assign(playlist, body.playlist)
+        nameEdit.value = body.playlist.name
+        settings.continuous = body.playlist.continuous
+        settings.repeatMode = body.playlist.repeatMode || 'none'
+        settings.shuffle = body.playlist.shuffle
+        // Инициализация transient-флагов @error-fallback (T013): сбрасываем при каждой загрузке,
+        // чтобы повторная загрузка плейлиста корректно показывала превью снова.
+        items.value = (body.items || []).map((it) => ({
+          ...it,
+          _albumPictureFailed: false,
+          _authorPictureFailed: false,
+        }))
+        readiness.load(items.value.map((it) => it.songId))
+      } catch (e) {
+        loadError.value = 'Не удалось загрузить плейлист — проверьте связь и попробуйте ещё раз'
+      } finally {
         loading.value = false
-        return
       }
-      Object.assign(playlist, body.playlist)
-      nameEdit.value = body.playlist.name
-      settings.continuous = body.playlist.continuous
-      settings.repeatMode = body.playlist.repeatMode || 'none'
-      settings.shuffle = body.playlist.shuffle
-      // Инициализация transient-флагов @error-fallback (T013): сбрасываем при каждой загрузке,
-      // чтобы повторная загрузка плейлиста корректно показывала превью снова.
-      items.value = (body.items || []).map((it) => ({
-        ...it,
-        _albumPictureFailed: false,
-        _authorPictureFailed: false,
-      }))
-      loading.value = false
-      readiness.load(items.value.map((it) => it.songId))
     }
 
     // Упорядоченный список воспроизводимых song_id (не muted и доступных), с учётом shuffle.
@@ -593,6 +613,7 @@ export default {
       isLoggedIn,
       loading,
       notFound,
+      loadError,
       playlist,
       items,
       nameEdit,
@@ -640,6 +661,13 @@ export default {
   padding: 2rem;
   text-align: center;
   color: var(--km-text2);
+}
+.km-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: #d64545;
 }
 
 .km-content {

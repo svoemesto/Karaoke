@@ -12,8 +12,12 @@
         text="Чат с автором проекта доступен только зарегистрированным пользователям. Войдите или зарегистрируйтесь — это бесплатно."
       />
 
+      <!-- BR-319: пока /auth/me не ответил, кэш localStorage не решает — показываем проверку,
+           иначе после оплаты пользователь навсегда видел «Загрузка...». -->
+      <div v-else-if="isChatChecking" class="km-loading">Проверяем подписку...</div>
+
       <!-- Чат целиком — премиум-функция (не только отправка, но и сама история переписки). -->
-      <div v-else-if="!isPremium" class="km-chat-locked-card">
+      <div v-else-if="isChatLocked" class="km-chat-locked-card">
         <div class="km-locked-icon">💬</div>
         <h2 class="km-locked-title">Чат с автором проекта</h2>
         <p class="km-locked-text">
@@ -28,6 +32,26 @@
         </div>
 
         <div v-if="loading" class="km-loading">Загрузка...</div>
+
+        <!-- BR-319: сбой загрузки отличается от «сообщений нет»; 403 premium_required —
+             «подписка неактивна», 401 — «войдите заново», остальное — ошибка с повтором. -->
+        <div v-else-if="loadFailure" class="km-chat-locked-card">
+          <div class="km-locked-icon">⚠️</div>
+          <p v-if="loadFailure === 'premium_required'" class="km-locked-text">
+            Подписка неактивна — обновите её, чтобы вернуться в чат.
+          </p>
+          <p v-else-if="loadFailure === 'unauthorized'" class="km-locked-text">
+            Сессия истекла — войдите заново.
+          </p>
+          <p v-else class="km-locked-text">Не удалось загрузить сообщения.</p>
+          <RouterLink v-if="loadFailure === 'premium_required'" to="/premium" class="km-submit-btn"
+            >Оформить подписку →</RouterLink
+          >
+          <RouterLink v-else-if="loadFailure === 'unauthorized'" to="/login" class="km-submit-btn"
+            >Войти →</RouterLink
+          >
+          <button v-else class="km-submit-btn" @click="retryLoad">Повторить</button>
+        </div>
 
         <template v-else>
           <div ref="listEl" class="km-chat-messages">
@@ -92,6 +116,7 @@ import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
 import { fetchMessages, sendMessage } from '../services/chatApi'
 import AppHeader from '../components/AppHeader.vue'
+import { CHAT_ACCESS, chatAccessState, chatLoadFailure } from '../utils/chatAccess.js'
 
 const POLL_INTERVAL_MS = 7000
 const PAGE_SIZE = 10
@@ -107,8 +132,8 @@ export default {
   name: 'ChatView',
   components: { LoginRequired, AppHeader },
   setup() {
-    const { user, isLoggedIn } = useAuth()
-    return { user, isLoggedIn }
+    const { user, isLoggedIn, fetchMe } = useAuth()
+    return { user, isLoggedIn, fetchMe }
   },
   data() {
     return {
@@ -116,6 +141,11 @@ export default {
       total: 0, // общее число сообщений в треде — от бэкенда, для "Подгрузить все N" и hasMoreHistory
       loading: true,
       loadingHistory: false,
+      // BR-319 (аудит #336, PKG-S2-14): cachedPremium — ответ /auth/me уже получен. До этого
+      // момента решение о доступе по localStorage-кэшу не принимается.
+      premiumChecked: false,
+      // Причина, по которой тред не загружен: '' | premium_required | unauthorized | error.
+      loadFailure: '',
       draft: '',
       sending: false,
       error: '',
@@ -127,6 +157,22 @@ export default {
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },
+    chatAccess() {
+      return chatAccessState({
+        isLoggedIn: this.isLoggedIn,
+        isPremium: this.isPremium,
+        premiumChecked: this.premiumChecked,
+      })
+    },
+    isReady() {
+      return this.chatAccess === CHAT_ACCESS.READY
+    },
+    isChatChecking() {
+      return this.chatAccess === CHAT_ACCESS.CHECKING
+    },
+    isChatLocked() {
+      return this.chatAccess === CHAT_ACCESS.LOCKED
+    },
     hasMoreHistory() {
       return this.messages.length < this.total
     },
@@ -134,13 +180,30 @@ export default {
       return this.total - this.messages.length > PAGE_SIZE
     },
   },
+  watch: {
+    // BR-319: `isPremium` — computed от асинхронно обновляемого user.effectivePremium
+    // (fetchMe() при первом вызове и далее раз в 5 минут). Решение о доступе, принятое
+    // один раз в mounted(), устаревало: после оплаты (вебхук ЮKassa задержался) шаблон
+    // переключался на чат, но initialLoad() уже не вызывался и `loading` висел вечно;
+    // при истёкшей подписке наоборот — 403 превращался в пустой тред.
+    isPremium(now, before) {
+      if (!this.isLoggedIn) return
+      if (now && !before) this.startChat()
+      if (!now && before) this.stopChat()
+    },
+  },
   async mounted() {
-    if (!this.isLoggedIn || !this.isPremium) return
-    await this.initialLoad()
-    this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS)
+    if (!this.isLoggedIn) return
+    // Ждём ответа сервера о премиум-статусе: кэш km_auth_user мог быть старым.
+    try {
+      await this.fetchMe()
+    } finally {
+      this.premiumChecked = true
+    }
+    if (this.isReady) this.startChat()
   },
   beforeUnmount() {
-    if (this.pollTimer) clearInterval(this.pollTimer)
+    this.stopChat()
   },
   methods: {
     formatTime(tsString) {
@@ -157,15 +220,41 @@ export default {
         return tsString
       }
     },
+    startChat() {
+      if (!this.isReady) return
+      if (this.pollTimer) return
+      this.initialLoad()
+      this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS)
+    },
+    stopChat() {
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer)
+        this.pollTimer = null
+      }
+    },
     async initialLoad() {
       this.loading = true
-      const { status, body } = await fetchMessages({ limit: PAGE_SIZE })
-      if (status === 200 && body) {
-        this.messages = body.messages || []
-        this.total = body.total || 0
-        this.$nextTick(this.scrollToBottom)
+      this.loadFailure = ''
+      try {
+        const { status, body } = await fetchMessages({ limit: PAGE_SIZE })
+        const failure = chatLoadFailure(status, body)
+        if (!failure) {
+          this.messages = body.messages || []
+          this.total = body.total || 0
+          this.$nextTick(this.scrollToBottom)
+        } else {
+          // 403 premium_required — это «подписка неактивна», а НЕ пустой тред;
+          // 401 — истёкшая сессия; остальное — ошибка загрузки с повтором.
+          this.loadFailure = failure
+        }
+      } catch (e) {
+        this.loadFailure = 'error'
+      } finally {
+        this.loading = false
       }
-      this.loading = false
+    },
+    retryLoad() {
+      this.initialLoad()
     },
     // Поллинг подтягивает только НОВЫЕ сообщения (id > последнего загруженного) — не всю историю
     // треда заново. Автоскролл вниз — только если пользователь и так был у низа ленты (не выдёргиваем

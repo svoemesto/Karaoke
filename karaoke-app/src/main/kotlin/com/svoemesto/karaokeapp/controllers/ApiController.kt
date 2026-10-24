@@ -6978,8 +6978,12 @@ class ApiController(
                 "error" to "Песня не найдена: id=$id" as Any,
             )
 
-        // FR-016: если уже опубликовано — отказ (кнопка должна быть скрыта во фронте,
-        // сервер всё равно проверяет idTelegramDemo для защиты от гонок).
+        // FR-016: если уже опубликовано — отказ (кнопка должна быть скрыта во фронте).
+        // Это оптимистичная проверка по загруженному объекту: она даёт понятное сообщение, но
+        // НЕ защищает от гонки (BR-062, аудит #336). Защита — атомарный захват публикации в
+        // TelegramAutoPublishService.acquirePublishClaim (SELECT … FOR NO KEY UPDATE): если
+        // параллельный поток уже публикует или опубликовал, сервис вернёт PUBLISHING/PUBLISHED
+        // без второго sendVideo.
         if (song.idTelegramDemo.isNotEmpty()) {
             return mapOf(
                 "success" to false as Any,

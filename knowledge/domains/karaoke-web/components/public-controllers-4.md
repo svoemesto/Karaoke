@@ -62,9 +62,12 @@ Class-level `@RequestMapping("/api/public/player")`; пути в таблице 
 7. `isDemo = ready && !canWatch` — вместо отказа не-премиум получает
    демо-токен на фрагмент («куплет минус отступ под фейд-ин»),
    `demoFadeInSeconds = song.demoFragmentFadeInSeconds`.
-8. Токен: `canWatch` → `gestureUnlockService.issueDirectAccessToken(id)`;
-   `isDemo` → `issueDemoAccessToken(id, song.demoFragmentStartSeconds, song.demoFragmentEndSeconds)`;
-   иначе `null`.
+8. Токен: `canWatch` → `gestureUnlockService.issueDirectAccessToken(id, userId)`;
+   `isDemo` → `issueDemoAccessToken(id, song.demoFragmentStartSeconds, song.demoFragmentEndSeconds, userId)`;
+   иначе `null`. **id пользователя кладётся в токен**: аудио-эндпоинты плеера
+   не получают заголовок `Authorization` (плеер грузит стемы через
+   `fetch(url)` без заголовков), поэтому сервер берёт пользователя из токена и
+   перечитывает его права из БД в момент отдачи байт (см. ниже).
 9. Аналитика: при `canWatch || isDemo` пишется `EventType.PLAYER` через
    `mainController.doRegisterEvent`; `source=list` (клик по иконке в
    «Закромах»/«Поиске») даёт `PlayerAction.OPENED`, обычный заход — `SHOWN`.
@@ -86,11 +89,14 @@ Class-level `@RequestMapping("/api/public/player")`; пути в таблице 
 **Стримы стемов** (`fileminus.mp3`, `filevoice.mp3`, `filebass.mp3`,
 `filedrums.mp3`):
 
-1. `authorized(id, token, session)` — двойная авторизация: сначала gesture
-   token (`gestureUnlockService.validateToken(token, id)`), затем share
-   session (`shareLinkService.validateShareSession(session, id)`). Приоритет
-   у gesture token: если он валиден, share-session игнорируется. Отказ —
-   `404`.
+1. **Живая проверка права** (спека 557, OpenProject #358, аудит BR-018):
+   `accessService.evaluate(song, token, session)` — право считается **в момент
+   запроса**, а не по факту владения токеном. Основания: публичность песни
+   (`Song.isFreelyAvailableNow`), живой премиум, живая подписка на песню,
+   гостевая share-сессия, владение заданием редактора. Отказ → `404`.
+   Раньше здесь была «двойная авторизация» (валидный токен ИЛИ share-сессия) —
+   токен жеста был структурно неотличим от легитимного, поэтому это давало
+   анонимный обход оплаты.
 2. `stemResponse` строит ключ
    `stemStorageKey(song, fileType) = "${song.storageFileName}${fileType.suffix}.${fileType.extention}"`
    (`suffix` уже содержит ведущую точку), забирает байты через nginx-прокси
@@ -100,15 +106,23 @@ Class-level `@RequestMapping("/api/public/player")`; пути в таблице 
    `302`-редиректом на статический `/minio/`-путь: постоянный публичный URL
    обходил бы токен и его TTL (закладка, шаринг ссылки, кэш
    download-менеджера), теперь токен проверяется на каждом запросе.
-4. Демо-токен: `gestureUnlockService.demoRangeForToken(token, id)` даёт
-   диапазон, и `Mp3Trimmer.trimToRange(bytes, startSeconds, endSeconds)`
+4. Демо-режим: `Demo(range)` → `Mp3Trimmer.trimToRange(bytes, start, end)`
    обрезает байты на границе mp3-фрейма — полный файл физически не покидает
-   сервер. Обычный токен получает байты как есть.
+   сервер. Диапазон — либо зафиксированный при выдаче демо-токена, либо
+   диапазон демо-фрагмента песни (когда «полный» токен остался, а права уже
+   нет: посетитель переводится в демо-режим, а не получает ошибку).
+   Обрезка **fail-closed**: если поток не разбирается на MPEG-фреймы,
+   `Mp3Trimmer` возвращает пустой массив, а не исходные байты (FR-005).
 
 **`GET /{id}/playerdata` и `GET /{id}/playerfile`**: собирают JSON
 playerdata (`playerData`) и полный `playerfile` (playerdata + zip);
 zip-сборка добавляет стемы через `addStemIfPresent` (стр. 511) и
-`addStored` (стр. 572).
+`addStored` (стр. 572). `playerData` применяет то же решение о доступе: при
+`Demo` маркеры обрезаются до диапазона и перебазируются, в ответе
+`isDemo=true` + `demoFadeInSeconds`. `playerFile` (выгрузка `.smkaraoke`)
+отдаётся только при полном доступе и **живом премиуме** (по заголовку
+`Authorization` ИЛИ по id пользователя из токена — запрос выгрузки приходит
+без заголовка); гость по share-ссылке — `403 premium_required`.
 
 ## Hot paths
 
@@ -136,10 +150,19 @@ UI «золотой/серебряной монетки» (см.
 готовность. Используется `usePlayerReadiness` (Pass 372) для
 chunked-проверки (chunk=20, MAX_CONCURRENT=3).
 
+### Решение 4: право проверяется в момент отдачи байт (спека 557)
+
+`PlayerAccessService.evaluate` — единственное место, где решается, можно ли
+отдать полные байты/разметку. Токен плеера — не право, а указатель на то, что
+проверять (id пользователя, id задания редактора); решение принимается заново
+на каждый запрос. Отказ фиксируется в журнале категории `infra.player.access`.
+
 ## Зависимости | Dependencies
 
 - [public-controllers.md](public-controllers.md) — обзор.
 - [storage-flow.md](../../storage/components/storage-flow.md) — stream via nginx.
+- [services-overview.md](services-overview.md) — `PlayerAccessService`,
+  `PlayerRightsProvider`, `PlayerGestureUnlockService`, `PlayerSongLoader`.
 
 ## Известные TODO
 
@@ -147,6 +170,11 @@ chunked-проверки (chunk=20, MAX_CONCURRENT=3).
 
 ## Changelog
 
+- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): контракт плеера
+  переписан — вместо «двойной авторизации» по токену живая проверка права в
+  момент отдачи байт (`PlayerAccessService.evaluate`); демо-обрезка
+  fail-closed; токен несёт id пользователя; `playerfile` требует живого
+  премиума.
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секция
   «Endpoints (8)» перенесена под «Интерфейсы и Контракты»; добавлена
   «Логика и Алгоритмы» с проверенными по коду потоками `/access`

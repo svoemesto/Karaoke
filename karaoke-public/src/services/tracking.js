@@ -45,21 +45,23 @@ export function trackPlay(songId, songVersion) {
 }
 
 // Tracks a click on a song metadata field (key/album/author/year/...). Looks like an ordinary
-// UX-research beacon; unlike the other tracking calls here it returns the server's response,
-// since occasionally that response carries a meaning callers may care about.
-export async function trackMetaClick(field, songId, event) {
-  try {
-    return await apiPost('/api/public/events', {
-      eventType: 'clickToLink',
-      linkType: 'songMeta',
-      linkName: field,
-      songId,
-      shiftKey: !!(event && event.shiftKey),
-      clientId: getAnonId(),
-    })
-  } catch {
-    return null
-  }
+// UX-research beacon: fire-and-forget, exactly like every other tracking call here (a network
+// error is swallowed silently and never surfaces in the UI).
+//
+// The server used to answer this beacon with a player-access value, which the page turned into
+// a hidden "gesture" that opened the player for paid songs. That is gone (spec 557 / OpenProject
+// #358, audit BR-018): the public events endpoint no longer returns any access value, so there is
+// nothing to wait for here. The tracking payload itself is unchanged — ordinary click tracking
+// keeps working exactly as before.
+export function trackMetaClick(field, songId, event) {
+  apiPost('/api/public/events', {
+    eventType: 'clickToLink',
+    linkType: 'songMeta',
+    linkName: field,
+    songId,
+    shiftKey: !!(event && event.shiftKey),
+    clientId: getAnonId(),
+  }).catch(() => {})
 }
 
 // Онлайн-плеер: открытие/play/pause/seek/export/progress/ended — тихая фоновая телеметрия, тем же

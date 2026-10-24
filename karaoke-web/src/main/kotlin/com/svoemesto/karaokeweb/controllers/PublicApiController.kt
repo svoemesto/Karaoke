@@ -27,7 +27,6 @@ import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaStreamMessageDto
 import com.svoemesto.karaokeweb.dto.ZakromaStreamMetricDto
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.services.ZakromaStreamProgress
 import jakarta.servlet.http.HttpServletRequest
@@ -66,7 +65,6 @@ class PublicApiController(
     private val mainController: MainController,
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
-    private val gestureUnlockService: PlayerGestureUnlockService,
     private val siteUserResolver: SiteUserResolver,
     @org.springframework.beans.factory.annotation.Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
@@ -1030,21 +1028,14 @@ class PublicApiController(
     ): Map<String, Any?> {
         val ok = mainController.doRegisterEvent(data, request, siteUserResolver.resolve(request)?.id ?: 0)
 
-        // Piggy-backs the hidden player-unlock gesture on this same ordinary-looking click-tracking
-        // call. Nothing about which field/click-count/timing matters is decided here or in any
-        // frontend code — that logic lives entirely in PlayerGestureUnlockService on the server.
-        var meta: String? = null
-        if (data["eventType"] == "clickToLink" && data["linkType"] == "songMeta") {
-            val songId = (data["songId"] as? String)?.toLongOrNull()
-            val field = data["linkName"] as? String
-            val shiftKey = (data["shiftKey"] as? String)?.toBoolean() ?: false
-            val clientId = (data["clientId"] as? String)?.takeIf { it.isNotBlank() } ?: request.remoteHost
-            if (songId != null && field != null) {
-                meta = gestureUnlockService.registerClick(clientId, songId, field, shiftKey)
-            }
-        }
-
-        return mapOf("ok" to ok, "meta" to meta)
+        // Скрытый «жест разблокировки» больше НЕ является основанием доступа (спека 557,
+        // OpenProject #358, аудит BR-018): публичный эндпоинт событий принимает и учитывает
+        // обычные клики по метаданным песни, но НИКОГДА не возвращает значение, пригодное как
+        // ключ доступа к платному контенту (FR-001, FR-007). Право на полный доступ проверяется
+        // в момент отдачи байт — см. PlayerAccessService.
+        // Поле `meta` в ответе сохранено (формат публичных ответов не меняется, FR-014), но его
+        // значение всегда null — ответ ничего не сообщает вызывающему о доступе.
+        return mapOf("ok" to ok, "meta" to null)
     }
 
     /**

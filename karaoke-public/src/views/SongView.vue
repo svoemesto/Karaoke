@@ -620,16 +620,13 @@ export default {
     onPlay(version) {
       trackPlay(this.currentSong.id, version)
     },
-    async onMetaClick(field, event) {
-      const resp = await trackMetaClick(field, this.currentSong.id, event)
-      if (resp && resp.meta) {
-        sessionStorage.setItem(`kp_token_${this.currentSong.id}`, resp.meta)
-        // New tab, not router.push: the player needs the full viewport (position:fixed inside it
-        // isn't enough — it still inherits App.vue's .modernScreen wrapper otherwise) and a fresh
-        // tab keeps the song page as-is behind it. sessionStorage is cloned into same-origin tabs
-        // opened this way, so the token set just above is already there when it loads.
-        window.open(`/player/${this.currentSong.id}`, '_blank')
-      }
+    // Клик по полю метаданных песни — обычный клик-трекинг. Раньше ответ на этот beacon мог
+    // содержать токен доступа к плееру («скрытый жест»), и страница в ответ открывала плеер.
+    // Публичный эндпоинт событий больше не возвращает значения доступа (спека 557, OpenProject
+    // #358, аудит BR-018), поэтому здесь остаётся только трекинг — тихо, без ошибок у посетителя.
+    // Доступ к плееру выдаёт легитимный путь: /api/public/player/{id}/access (см. usePlayerAccess).
+    onMetaClick(field, event) {
+      trackMetaClick(field, this.currentSong.id, event)
     },
     // Акция довела цену подписки на песню до нуля — доступ уже проставлен на бэкенде синхронно,
     // просто перезапрашиваем access(), чтобы плеер встроился без перезагрузки страницы.

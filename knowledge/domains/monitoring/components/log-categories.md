@@ -28,6 +28,7 @@
 | `infra.cache.hrpool` | `karaoke-app/.../services/HealthReportBatchPool.kt` (Pass 128, спека specs/128-async-health-report-list, OpenProject #128) | Старт/стоп пула, размер очереди (debug), ошибки worker'ов | INFO старт/стоп, DEBUG enqueue, WARN worker failure |
 | `infra.sync.remote` | `karaoke-app/.../services/SyncRemoteClient.kt` (Pass 431, #155) + `ApiController.postSyncOneClick` | HTTP-синхронизация с прод-сайтом: `sync:remote:ok` / `sync:remote:retry` (транзиентная ошибка, повтор) / `sync:remote:failure` | INFO ok, WARN retry/failure |
 | `infra.sync.security` | `karaoke-web/.../controllers/MainController.kt` (`POST /changerecords`, спека 554, OpenProject #357) | Отказы доступа к эндпоинту двух-БД синхронизации: `sync:security:denied` — поля `reason=` (`missing_secret` / `invalid_secret` / `secret_not_configured`), `source=` (адрес источника), `time=`. Тело запроса и текст ошибки БД в запись НЕ пишутся | WARN |
+| `infra.player.access` | `karaoke-web/.../services/PlayerAccessService.kt` (спека 557, OpenProject #358, аудит BR-018) | Отказы в выдаче полного аудио/разметки онлайн-плеера: `player:access:denied` — поля `songId=`, `reason=` (`no_credentials` / `no_rights` / `assignment_revoked`); `player:access:demo` — `reason=demo_token` (штатный демо-режим). **Сам токен и содержимое аудио в запись НЕ пишутся** | WARN (denied) / INFO (demo) |
 | `infra.song.voices` | `karaoke-app/.../model/Song.kt` (voiceNormalizeLog, спека `547`) | Нормализация голосов при сохранении: `song.voices.normalized` (удалены пустые голоса, `removed=`, `count=`) и `song.voices.normalize_skipped` (нечитаемые данные — fail-safe) | WARN |
 | `infra.queue.render` | **не реализована** | Render queue stalled/lane stalled | (Pass 343+) |
 | `infra.telegram.polling` | **не реализована** | Telegram polling state | (Pass 343+) |
@@ -36,7 +37,7 @@
 
 - `infra.<subsystem>.<feature>` — где:
   - `infra` — префикс для всех мониторинговых логов.
-  - `<subsystem>` — подсистема (`prod`, `cache`, `queue`, `telegram`).
+  - `<subsystem>` — подсистема (`prod`, `cache`, `queue`, `telegram`, `sync`, `player`).
   - `<feature>` — конкретная проверка/событие (`ping`, `db`,
     `statbysong`, `render`, `polling`).
 

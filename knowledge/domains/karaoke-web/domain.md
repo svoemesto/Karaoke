@@ -164,6 +164,9 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 │   ├── SiteUserTokenService.kt    # JWT-токены
 │   ├── YandexCaptchaValidationService.kt
 │   ├── PlayerGestureUnlockService.kt
+│   ├── PlayerAccessService.kt         # Правило доступа к байтам (живая проверка, спека 557)
+│   ├── PlayerRightsProvider.kt        # Живой источник прав: премиум/подписка/задание
+│   ├── PlayerSongLoader.kt            # Загрузка песни для плеера
 │   ├── WebKaraokeStorageServiceImpl.kt # ЗАГЛУШКА (см. storage)
 │   ├── StorageApiClientWeb.kt      # WebClient reactive
 │   ├── DedupCache.kt               # См. caching/web-caches.md
@@ -252,6 +255,10 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 
 ## Changelog
 
+- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): добавлены сервисы
+  `PlayerAccessService` (правило доступа к байтам/разметке — живая проверка права),
+  `PlayerRightsProvider` (живой источник прав из БД) и `PlayerSongLoader` (загрузка песни);
+  `PlayerGestureUnlockService` больше не распознаёт «скрытый жест» (историческое имя сохранено).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): добавлена
   секция «Публичные контракты (API)» (группы `/api/public/*`, Thymeleaf,
   internal, STOMP-WebSocket — сверено по контроллерам). Автор: agent (Karaoke).

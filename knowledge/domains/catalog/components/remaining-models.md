@@ -103,7 +103,7 @@ publish10 … publish23: SongDTO?, publish10text … publish23text: String)`.
 - `EventType`: `CALL_REST("callRest")`, `CLICK_TO_LINK("clickToLink")`, `PLAY("play")` (legacy — видео на странице песни, НЕ онлайн-плеер), `PLAYER("player")`, `ENGAGEMENT("engagement")`, `UI("ui")`.
 - `UiAction` (подтипы `EventType.UI`): `NAVIGATE("navigate")`, `THEME("theme")`, `SCROLL("scroll")`.
 - `RestName`: `MAIN("main")`, `ZAKROMA("zakroma")`, `FILTER("filter")`, `SONG("song")`.
-- `LinkType`: `LINK_TO_SOCIAL_NETWORK("linkToSocialNetwork")`, `LINK_TO_SONG("linkToSong")`, `SONG_META("songMeta")` (жест разблокировки плеера — в `tbl_events` не пишется).
+- `LinkType`: `LINK_TO_SOCIAL_NETWORK("linkToSocialNetwork")`, `LINK_TO_SONG("linkToSong")`, `SONG_META("songMeta")` (клик по метаданным песни; «скрытый жест» разблокировки плеера удалён 2026-10-24 — спека 557, и в `tbl_events` не пишется).
 - `PlayerAction` (`link_type` при `EventType.PLAYER`): `SHOWN("shown")`, `PLAY("play")`, `PAUSE("pause")`, `SEEK("seek")`, `EXPORT("export")`, `PROGRESS("progress")`, `ENDED("ended")`, `OPENED("opened")`.
 
 У каждого enum — `companion fun fromDb(value: String?): X?` (поиск по `dbValue`).

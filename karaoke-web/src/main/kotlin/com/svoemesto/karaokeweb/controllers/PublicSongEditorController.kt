@@ -157,8 +157,9 @@ class PublicSongEditorController(
 
         // Токен доступа к стемам (тот же механизм, что публичный плеер) — привязан к заданию, поэтому
         // playerdata сможет подставить ИМЕННО черновик этого задания (см. PublicPlayerController).
-        // Владение уже проверено выше.
-        val token = gestureUnlockService.issueDirectAccessTokenForAssignment(a.songId, a.id)
+        // Владение уже проверено выше; id редактора кладётся в токен, чтобы право на предпросмотр
+        // можно было перепроверить в момент отдачи байт (PlayerAccessService).
+        val token = gestureUnlockService.issueDirectAccessTokenForAssignment(a.songId, a.id, user.id)
         val tokenSuffix = "?token=$token"
 
         return ResponseEntity.ok(

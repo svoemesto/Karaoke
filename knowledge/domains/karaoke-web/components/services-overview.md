@@ -24,7 +24,7 @@
 | 3 | `EventsBuffer` | 297 | **Batch INSERT в tbl_events** (FR-109) — снижает RPS INSERT на ≥80% |
 | 4 | `PaymentService` | 294 | YooKassa wrapper (см. [monetization domain](../../monetization/domain.md)) |
 | 5 | `PriceService` | 207 | Расчёт цены с промо (см. [monetization domain](../../monetization/domain.md)) |
-| 6 | `PlayerGestureUnlockService` | 175 | Gesture unlock для плеера (мобильный) |
+| 6 | `PlayerGestureUnlockService` | 175 | Токены доступа к плееру (in-memory, TTL 30 мин). **Жеста больше нет** — с 2026-10-24 (спека 557) |
 | 7 | `ShareLinkSweeper` | 170 | Cron-sweep expired share-линков (см. [schedulers.md](../../processing/components/schedulers.md)) |
 | 8 | `SamplingFilter` | 146 | DDoS protection (sampling 1/N) |
 | 9 | `WebKaraokeStorageServiceImpl` | 124 | **ЗАГЛУШКА** MinIO-клиента (см. [storage-flow.md](../../storage/components/storage-flow.md)) |
@@ -63,7 +63,10 @@
 | `EventsBuffer` | `add(EventRecord)`, `flush()`, `bufferSize()`, `isFlushing()`, `clear()`; SQL — `buildInsertSql` (internal) |
 | `PaymentService` | `hasCredentials()`, `createPayment`, `createCartPayment`, `chargeRecurring`, `verifyAndFetch`, `newIdempotenceKey()` |
 | `PriceService` | `computePrice`, `computeCartPrice` |
-| `PlayerGestureUnlockService` | `registerClick`, `validateToken`, `issueDirectAccessToken`, `issueDirectAccessTokenForAssignment`, `issueDemoAccessToken`, `assignmentIdForToken`, `demoRangeForToken` |
+| `PlayerGestureUnlockService` | `describeToken(token, songId): TokenFacts?`, `issueDirectAccessToken(songId, userId)`, `issueDirectAccessTokenForAssignment(songId, assignmentId, userId)`, `issueDemoAccessToken(songId, start, end, userId)`. Метод `registerClick` (распознавание «скрытого жеста») **удалён** 2026-10-24 (спека 557, OpenProject #358) |
+| `PlayerAccessService` | `evaluate(song, token, session): AccessDecision` — правило доступа к байтам/разметке, вычисляется в момент запроса; `isPremiumByToken(song, token)`. Журнал отказов — категория `infra.player.access` |
+| `PlayerRightsProvider` | `isPremium(siteUserId)`, `isSubscribedToSong(siteUserId, songId)`, `isAssignmentOwner(assignmentId, siteUserId, songId)` — живой источник прав из БД |
+| `PlayerSongLoader` | `load(id): Song?` — загрузка песни для плеера (вынесена из контроллера, чтобы путь доступ→байты тестировался без БД) |
 | `SamplingFilter` | `shouldSkip(restName, parameters, siteUserId, anonId)`, `dedupCacheSize()` |
 | `RateLimitInterceptor` | `preHandle` (`HandlerInterceptor`); настраиваемые поля `endpointName`, `limitPerMinute`; `bucketSize()`, `clear()` |
 | `SiteUserTokenService` | `issueToken`, `resolveToken`, `revokeToken` |
@@ -217,6 +220,11 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 - [ ] **YandexCaptcha** — детали.
 
 ## Changelog
+
+- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): `PlayerGestureUnlockService`
+  — удалено распознавание «скрытого жеста» (`registerClick`), токен несёт id пользователя и
+  разбирается одним методом `describeToken`; добавлены `PlayerAccessService` (правило
+  доступа), `PlayerRightsProvider` (живой источник прав), `PlayerSongLoader` (загрузка песни).
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Автор: agent (Karaoke).

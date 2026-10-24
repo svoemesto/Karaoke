@@ -1,0 +1,1033 @@
+portion_id,portion_name,module,file_path,kind,loc,notes
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/build.gradle.kts,prod,112,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/gradle/wrapper/gradle-wrapper.properties,prod,5,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt,prod,553,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize.kt,prod,48,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize2.kt,prod,54,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/CacheEtagSizeBackfill.kt,prod,212,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt,prod,167,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt,prod,312,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Converter.kt,prod,296,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/CountingInputStream.kt,prod,38,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Crypto.kt,prod,103,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/DualStream.kt,prod,31,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/ExportAlignmentDataset.kt,prod,245,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt,prod,301,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt,prod,512,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReportDTO.kt,prod,20,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReportStatus.kt,prod,17,
+P-01,karaoke-app: root — build + base utils,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReportType.kt,prod,11,
+P-02,karaoke-app: HealthReport.kt [крупный файл],karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,prod,2837,крупный файл (>2000 строк); отдельная порция
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt,prod,1140,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeAppApplication.kt,prod,42,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeClasses.kt,prod,44,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt,prod,118,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileSymlink.kt,prod,129,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileType.kt,prod,346,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileTypeFor.kt,prod,12,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileTypeKind.kt,prod,12,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeFileTypeLocations.kt,prod,12,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokePlatform.kt,prod,208,
+P-03,karaoke-app: root — Karaoke* core,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokePlatformPublication.kt,prod,105,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt,prod,1973,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessDTO.kt,prod,59,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessStatuses.kt,prod,14,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt,prod,52,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt,prod,1457,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/MediaInfo.kt,prod,126,
+P-04,karaoke-app: root — process/queue,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Poi.kt,prod,243,
+P-05,karaoke-app: KaraokeProperties.kt [крупный файл],karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt,prod,2383,крупный файл (>2000 строк); отдельная порция
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SVG.kt,prod,930,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SanitizePath.kt,prod,80,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobCleanup.kt,prod,103,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt,prod,209,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt,prod,240,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StorageCacheReset.kt,prod,78,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StorageCacheWarm.kt,prod,225,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SyncAudioDescendants.kt,prod,472,
+P-06,karaoke-app: root — storage/sync/stem,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt,prod,919,
+P-07,karaoke-app: Utils.kt [крупный файл],karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt,prod,5510,крупный файл (>2000 строк); отдельная порция
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt,prod,1019,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt,prod,237,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Uuids.kt,prod,19,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/WaveformCompare.kt,prod,232,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/YandexLyricsSearchOutcome.kt,prod,159,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/SecurityConfig.kt,prod,58,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/TabIdFilter.kt,prod,41,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/WebClientConfig.kt,prod,22,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/AdminTaskController.kt,prod,32,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/AutoOneClickSyncStatusController.kt,prod,39,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/CacheAdminController.kt,prod,112,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/CacheStatsController.kt,prod,66,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ChatController.kt,prod,140,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/CircuitBreakerController.kt,prod,88,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/CleanupController.kt,prod,177,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/DictionariesController.kt,prod,173,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/KaraokeProcessAdminController.kt,prod,344,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ListeningHistoryController.kt,prod,197,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MonitoringController.kt,prod,49,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/NewsController.kt,prod,135,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/NewsTemplateController.kt,prod,219,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/PromoController.kt,prod,103,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/PublicSettingsController.kt,prod,93,
+P-08,karaoke-app: controllers — admin API,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ShareLinksAdminController.kt,prod,188,
+P-09,karaoke-app: controllers/ApiController.kt [крупный файл],karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt,prod,8381,крупный файл (>2000 строк); отдельная порция
+P-10,karaoke-app: controllers/MainController.kt [крупный файл],karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt,prod,2026,крупный файл (>2000 строк); отдельная порция
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SitePlaylistsController.kt,prod,121,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SiteUsersController.kt,prod,249,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt,prod,1139,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongUpdateMapper.kt,prod,336,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SponsrSyncController.kt,prod,87,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsController.kt,prod,310,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsResponseUtils.kt,prod,40,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StemJobsAdminController.kt,prod,77,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt,prod,355,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SubscriptionsController.kt,prod,216,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/TariffsController.kt,prod,98,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/dto/AutoOneClickSyncDtos.kt,prod,110,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/sponsr_teaser_tag.sql,prod,6,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Авторы на спонсоре.sql,prod,3,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Авторы с новыми альбомами.sql,prod,2,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/В открытом доступе.sql,prod,6,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Всего.sql,prod,1,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Дубли id sponsr.sql,prod,6,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Изменение приоритета процесса автора.sql,prod,5,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/На бусти по авторам.sql,prod,3,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/На бусти.sql,prod,2,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/По авторам.sql,prod,2,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Статискика.sql,prod,94,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Удалить завершенные процессы.sql,prod,0,SQL
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/SongAssignmentBriefDto.kt,prod,27,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/admin/BulkDeleteRequest.kt,prod,18,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/admin/BulkError.kt,prod,19,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/admin/BulkOperationReport.kt,prod,27,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/admin/BulkUpdateRequest.kt,prod,24,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/admin/IdsByFilterResponse.kt,prod,20,
+P-11,karaoke-app: controllers + dto + docs,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/dto/admin/KaraokeProcessAdminDTO.kt,prod,61,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/LyricsFinderService.kt,prod,251,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/ScraperAgent.kt,prod,31,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/TextCorrectorAgent.kt,prod,102,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt,prod,376,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/BlackTrack.kt,prod,29,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Consumer.kt,prod,31,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Mlt.kt,prod,427,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltClasses.kt,prod,220,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltGenerator.kt,prod,325,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltProp.kt,prod,724,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltPropBuilder.kt,prod,13,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Profile.kt,prod,27,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoAudio.kt,prod,116,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackChords.kt,prod,132,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackground.kt,prod,148,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBoosty.kt,prod,123,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordBoard.kt,prod,199,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureElement.kt,prod,161,
+P-12,karaoke-app: llm + mlt,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureFader.kt,prod,468,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureImage.kt,prod,181,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLine.kt,prod,151,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLineTrack.kt,prod,102,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLines.kt,prod,145,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChords.kt,prod,211,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoCounter.kt,prod,118,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoCounters.kt,prod,158,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoElement.kt,prod,172,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFaderText.kt,prod,190,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFill.kt,prod,167,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFillcolorSongtext.kt,prod,76,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFillcolorSongtexts.kt,prod,131,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFingerboard.kt,prod,170,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFlash.kt,prod,229,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHeader.kt,prod,471,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHorizon.kt,prod,276,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLine.kt,prod,141,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLineTrack.kt,prod,109,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLines.kt,prod,144,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt,prod,310,
+P-13,karaoke-app: mlt/mko,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyNote.kt,prod,245,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyTabs.kt,prod,313,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoProgress.kt,prod,227,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt,prod,221,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt,prod,82,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollers.kt,prod,125,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSepar.kt,prod,206,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSongText.kt,prod,147,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSplashStart.kt,prod,359,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoString.kt,prod,192,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoice.kt,prod,130,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoices.kt,prod,175,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoWatermark.kt,prod,135,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MltKaraokeObject.kt,prod,27,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko2/Mlt2KaraokeObject.kt,prod,24,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt,prod,850,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AlbumBackfill.kt,prod,163,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AlbumDTO.kt,prod,61,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AlbumType.kt,prod,47,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ApplicationContextProvider.kt,prod,26,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AudioAnalysisResult.kt,prod,13,
+P-14,karaoke-app: mlt/mko + model,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AudioCompareHistoryEntry.kt,prod,15,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt,prod,571,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/AuthorDTO.kt,prod,76,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/CartItem.kt,prod,134,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/CartItemDto.kt,prod,37,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/CrossSong.kt,prod,276,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Dictionary.kt,prod,216,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/DictionaryDto.kt,prod,30,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/EventTypes.kt,prod,118,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/GuitarString.kt,prod,73,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt,prod,851,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTableDto.kt,prod,16,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTableField.kt,prod,13,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ListeningHistory.kt,prod,177,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ListeningHistoryDto.kt,prod,29,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Marker.kt,prod,15,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Markertype.kt,prod,32,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Messages.kt,prod,154,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MltNode.kt,prod,522,
+P-15,karaoke-app: model (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MonetizationStats.kt,prod,186,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicChord.kt,prod,858,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicInterval.kt,prod,73,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicNote.kt,prod,126,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/News.kt,prod,447,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/NewsDto.kt,prod,38,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt,prod,573,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt,prod,382,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PicturesDTO.kt,prod,38,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PriceTariff.kt,prod,172,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PriceTariffDto.kt,prod,48,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Producer.kt,prod,15,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ProducerType.kt,prod,619,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PromoRule.kt,prod,183,
+P-16,karaoke-app: model (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PromoRuleDto.kt,prod,50,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt,prod,1826,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PublicationFilters.kt,prod,58,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PublicationType.kt,prod,34,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/RecordDiff.kt,prod,13,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/RecordHash.kt,prod,11,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SearchAsync.kt,prod,253,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SearchAsyncDTO.kt,prod,44,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SearchResponseFormat.kt,prod,11,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SearchResult.kt,prod,376,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SearchResultDTO.kt,prod,36,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteChatMessage.kt,prod,330,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteChatMessageDto.kt,prod,32,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SitePlaylist.kt,prod,170,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SitePlaylistDto.kt,prod,39,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SitePlaylistItem.kt,prod,153,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SitePlaylistItemDto.kt,prod,44,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteUser.kt,prod,405,
+P-17,karaoke-app: model (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteUserDto.kt,prod,82,
+P-18,karaoke-app: model/Song.kt [крупный файл],karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt,prod,9004,крупный файл (>2000 строк); отдельная порция
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongArtifactRenamer.kt,prod,124,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignment.kt,prod,235,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignmentDraft.kt,prod,174,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignmentDraftDto.kt,prod,34,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignmentDto.kt,prod,51,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignmentStatus.kt,prod,59,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongCoAuthor.kt,prod,121,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongCoAuthorDTO.kt,prod,37,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongDTO.kt,prod,381,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongDTOdigest.kt,prod,134,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongField.kt,prod,149,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt,prod,31,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongRenderContext.kt,prod,942,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongShareLink.kt,prod,122,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongShortInfoDto.kt,prod,20,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongState.kt,prod,18,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongStateResolver.kt,prod,75,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongType.kt,prod,24,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVersion.kt,prod,485,
+P-19,karaoke-app: model (4),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVoice.kt,prod,512,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVoiceLine.kt,prod,346,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVoiceLineElement.kt,prod,218,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVoiceLineElementSyllable.kt,prod,218,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVoiceLineElementTypes.kt,prod,15,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SourceMarker.kt,prod,41,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SpecTags.kt,prod,91,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SseNotification.kt,prod,73,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SseNotificationType.kt,prod,48,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatBySong.kt,prod,1229,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatsCacheKey.kt,prod,33,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatsDebugDto.kt,prod,35,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StemJob.kt,prod,385,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StemJobDto.kt,prod,45,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Subscription.kt,prod,325,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SubscriptionDto.kt,prod,51,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/TransformProperty.kt,prod,61,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Uuids.kt,prod,158,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/VoiceNormalization.kt,prod,152,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/WebEvent.kt,prod,112,
+P-20,karaoke-app: model (5),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/WebEventDTO.kt,prod,48,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/WhisperMarkerAligner.kt,prod,599,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt,prod,436,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorAlert.kt,prod,54,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorAlertDto.kt,prod,21,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorCheck.kt,prod,26,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorRegistry.kt,prod,26,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorSeverity.kt,prod,16,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitoringService.kt,prod,144,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/LaneStalledCheck.kt,prod,109,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/ProdContainerCheck.kt,prod,278,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/RenderQueueStalledCheck.kt,prod,39,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/StemJobsStuckCheck.kt,prod,49,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/SubmittedAssignmentsCheck.kt,prod,47,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/TelegramPollingDisabledCheck.kt,prod,33,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/UnreadChatMessagesCheck.kt,prod,47,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/propertiesfiledictionary/PropertiesFileDictionary.kt,prod,61,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/propertiesfiledictionary/WebvueProperties.kt,prod,14,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AdminTaskService.kt,prod,132,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AlignmentServiceClient.kt,prod,83,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AutoOneClickSyncRun.kt,prod,50,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AutoOneClickSyncScheduler.kt,prod,326,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/GeoIpService.kt,prod,191,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/HealthReportBatchPool.kt,prod,487,
+P-21,karaoke-app: monitor + health/schedulers,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt,prod,61,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeProcessAdminService.kt,prod,1100,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorage.kt,prod,143,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt,prod,646,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LmStudioService.kt,prod,111,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/NewsTemplateService.kt,prod,264,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt,prod,205,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt,prod,200,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PollingCache.kt,prod,107,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PremiumAutoPublishScheduler.kt,prod,471,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SongReleaseAnnouncementService.kt,prod,507,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SponsrSyncScheduler.kt,prod,41,
+P-22,karaoke-app: services (1),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SponsrSyncService.kt,prod,165,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SseNotificationService.kt,prod,250,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StatsCache.kt,prod,89,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StatsDebugController.kt,prod,103,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageApiClient.kt,prod,617,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreaker.kt,prod,422,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreakerConfig.kt,prod,64,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreakerWiring.kt,prod,34,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageMetadataCache.kt,prod,816,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageMetadataCacheWiring.kt,prod,36,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClient.kt,prod,128,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt,prod,359,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishResult.kt,prod,21,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishScheduler.kt,prod,248,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishSchedulerStarter.kt,prod,42,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt,prod,338,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt,prod,44,
+P-23,karaoke-app: services (2),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramProxyManager.kt,prod,292,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramTemplateService.kt,prod,132,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramUpdatesConsumer.kt,prod,162,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkApiClient.kt,prod,1168,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishResult.kt,prod,21,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishScheduler.kt,prod,263,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishSchedulerStarter.kt,prod,33,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt,prod,572,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState.kt,prod,49,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkIdTokenRefreshScheduler.kt,prod,138,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkPhotoUploadClient.kt,prod,221,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkPreviewWarmupClient.kt,prod,273,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt,prod,211,
+P-24,karaoke-app: services (3),karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/WhisperAsrService.kt,prod,123,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupAutomation.kt,prod,214,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupClass.kt,prod,411,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupPlanner.kt,prod,226,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupService.kt,prod,235,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/CleanupJournal.kt,prod,177,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/sync/SyncTarget.kt,prod,542,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/AttentionWordsDictionary.kt,prod,19,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/CensoredWordsDictionary.kt,prod,18,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/SyncIdsDictionary.kt,prod,10,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TestDictionary.kt,prod,14,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt,prod,107,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/YoWordsDictionary.kt,prod,10,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/SongsHistory.kt,prod,51,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt,prod,66,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/application.yml,prod,141,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/static/song_context.css,prod,101,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/static/song_context.js,prod,242,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/static/songs2.css,prod,70,
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/templates/area_body.html,prod,1,Thymeleaf-шаблон
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/templates/area_center_column.html,prod,627,Thymeleaf-шаблон
+P-25,karaoke-app: cleanup + textfiles + static,karaoke-app,karaoke-app/src/main/resources/templates/area_left_column.html,prod,426,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/editsubs.html,prod,1146,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/main.html,prod,420,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/navigation_bar.html,prod,42,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/processes.html,prod,562,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/publications.html,prod,935,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/song_contextmenu.html,prod,22,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/song_contextmenu_task_actions.html,prod,6,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/test.html,prod,67,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/text.html,prod,15,Thymeleaf-шаблон
+P-26,karaoke-app: templates,karaoke-app,karaoke-app/src/main/resources/templates/unpublications.html,prod,361,Thymeleaf-шаблон
+P-27,karaoke-app: templates/songs.html [крупный файл],karaoke-app,karaoke-app/src/main/resources/templates/songs.html,prod,3120,крупный файл (>2000 строк); отдельная порция
+P-28,karaoke-app: templates/songs2.html [крупный файл],karaoke-app,karaoke-app/src/main/resources/templates/songs2.html,prod,2454,крупный файл (>2000 строк); отдельная порция
+P-29,karaoke-app: resources/test.xml (prod),karaoke-app,karaoke-app/src/main/resources/test.xml,prod,463,"XML-ресурс (образец запроса ЕГРН, не MLT-шаблон) — уточнено при аудите P-29"
+P-30,karaoke-app (test): fixtures + PlaywrightTests,karaoke-app,karaoke-app/src/test/kotlin/1,test,1916,тестовый XML-фикстур
+P-30,karaoke-app (test): fixtures + PlaywrightTests,karaoke-app,karaoke-app/src/test/kotlin/2.xml,test,1359,тестовый XML-фикстур
+P-30,karaoke-app (test): fixtures + PlaywrightTests,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/PlaywrightTests.kt,test,174,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinderParsingTest.kt,test,62,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinderScrapersTest.kt,test,114,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/CacheEtagSizeBackfillTest.kt,test,39,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/EscapeHtmlTest.kt,test,63,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportMp3ActualityTest.kt,test,74,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportMp3LocationsTest.kt,test,88,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportRepairRaceTest.kt,test,98,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/HealthReportWaitingPoolTest.kt,test,239,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/KaraokeProcessCleanupTest.kt,test,124,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/KaraokePropertiesPersistenceTest.kt,test,142,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/KeyBpmFromFileCacheTest.kt,test,88,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/PollingCacheTest.kt,test,115,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt,test,276,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SearchLastAlbumVkTest.kt,test,40,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SetSongFilePermissionsTest.kt,test,65,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/StorageCacheResetTest.kt,test,69,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/StorageCacheWarmTest.kt,test,33,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SyncAudioDescendantsTest.kt,test,159,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/UtilsGetListFilesTest.kt,test,85,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/VpnHomeCountryTest.kt,test,114,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/YandexLyricsSearchOutcomeTest.kt,test,59,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/controllers/PublicationsDateFilterTest.kt,test,70,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/llm/LyricsPageTextTest.kt,test,132,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/llm/TextCorrectorAgentTest.kt,test,62,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/llm/ToolsTest.kt,test,218,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/HasChordsFromDbTest.kt,test,99,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationFiltersTest.kt,test,175,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/RenameAllArtifactsTest.kt,test,167,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/RenameWithoutSidecarTest.kt,test,76,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/SongStateTest.kt,test,331,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/SourceMarkerLockLadTest.kt,test,81,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/SpecTagsTest.kt,test,92,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/VoiceNormalizationTest.kt,test,198,тест
+P-31,karaoke-app (test): root + model,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/WhisperMarkerAlignerSpecTagsTest.kt,test,108,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/HealthReportBatchPoolTest.kt,test,293,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreakerConfigTest.kt,test,57,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreakerIsolationTest.kt,test,133,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/StorageCircuitBreakerTest.kt,test,376,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/StorageMetadataCacheFileInfoTest.kt,test,41,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/StorageTimeoutInterruptTest.kt,test,130,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/SyncRemoteClientTest.kt,test,118,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/VkApiClientSendModeTest.kt,test,81,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/VkPreviewWarmupClientTest.kt,test,217,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupGuardTest.kt,test,256,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupRegistryTest.kt,test,166,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/cleanup/ArtifactCleanupStartupWiringTest.kt,test,75,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/cleanup/CleanupJournalTest.kt,test,120,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/cleanup/DemoMp4CleanupTest.kt,test,219,тест
+P-32,karaoke-app (test): services + cleanup,karaoke-app,karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/cleanup/StemsMp3LocalDeleteTest.kt,test,110,тест
+P-33,karaoke-app (test): Неправильный.xml [крупный файл],karaoke-app,karaoke-app/src/test/kotlin/Неправильный.xml,test,7674,крупный файл (>2000 строк); отдельная порция
+P-34,karaoke-app (test): Правильный.xml,karaoke-app,karaoke-app/src/test/kotlin/Правильный.xml,test,1887,тестовый XML-фикстур
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/build.gradle.kts,prod,59,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/gradle/wrapper/gradle-wrapper.properties,prod,5,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/Connection.kt,prod,85,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/KaraokeWebApplication.kt,prod,24,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt,prod,263,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/TypographUtils.kt,prod,201,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/WorkingDatabase.kt,prod,3,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/SecurityConfig.kt,prod,44,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/SiteAuthInterceptor.kt,prod,40,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/WebClientConfig.kt,prod,63,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/WebMvcConfig.kt,prod,64,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/config/WebShareProperties.kt,prod,47,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/DebugDbController.kt,prod,108,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/InternalStatsController.kt,prod,56,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/InternalStemJobController.kt,prod,92,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt,prod,824,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicAccountController.kt,prod,63,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt,prod,1297,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicAuthController.kt,prod,120,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicCartController.kt,prod,225,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicChatController.kt,prod,119,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicHistoryController.kt,prod,35,
+P-35,karaoke-web: root + config + public API,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicNewsController.kt,prod,93,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt,prod,539,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPaymentController.kt,prod,98,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt,prod,589,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlaylistController.kt,prod,573,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt,prod,328,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicShareController.kt,prod,274,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSongEditorController.kt,prod,349,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSongeditorController.kt,prod,169,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicStemJobController.kt,prod,190,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSubscriptionController.kt,prod,304,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt,prod,52,
+P-36,karaoke-web: public controllers — payment/player/share,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicVkAuthController.kt,prod,150,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicVkIdAuthController.kt,prod,395,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/SiteShareLinksController.kt,prod,136,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/WebSocketConfig.kt,prod,25,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/AlbumTilePublicDto.kt,prod,93,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/AuthorTilePublicDto.kt,prod,76,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/HistoryEntryDto.kt,prod,30,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/MembershipRequest.kt,prod,19,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/PagedSongsDto.kt,prod,32,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/SongPublicDto.kt,prod,148,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaAlbumMetaPublicDto.kt,prod,60,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaPublicDto.kt,prod,184,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaStreamMessageDto.kt,prod,87,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaStreamMetricDto.kt,prod,42,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/CaptchaConfigService.kt,prod,65,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/DebugDbAccessGuard.kt,prod,41,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/DedupCache.kt,prod,86,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsBuffer.kt,prod,297,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsRetentionScheduler.kt,prod,69,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/KaraokeProperties.kt,prod,105,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/KaraokeWebService.kt,prod,88,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PaymentService.kt,prod,294,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PlayerGestureUnlockService.kt,prod,175,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PriceService.kt,prod,207,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/RateLimitInterceptor.kt,prod,118,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SamplingConfig.kt,prod,27,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SamplingFilter.kt,prod,146,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/ShareLinkSweeper.kt,prod,170,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SiteUserResolver.kt,prod,29,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SiteUserTokenService.kt,prod,92,
+P-37,karaoke-web: public auth + payment services,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongReleaseAnnouncementScheduler.kt,prod,41,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt,prod,1130,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StatsCacheScheduler.kt,prod,74,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StemJobTempCleanupScheduler.kt,prod,35,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StorageApiClientWeb.kt,prod,404,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SubscriptionRenewalScheduler.kt,prod,112,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/WebKaraokeStorageServiceImpl.kt,prod,124,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/YandexCaptchaValidationService.kt,prod,57,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/ZakromaStreamProgress.kt,prod,64,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/util/ClientIpResolver.kt,prod,28,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/util/Mp3Trimmer.kt,prod,198,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/util/ShareErrorCode.kt,prod,66,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/util/VkIdPkceUtils.kt,prod,73,
+P-38,karaoke-web: share links + storage,karaoke-web,karaoke-web/src/main/resources/application.yml,prod,111,
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/filter.html,prod,526,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/main.html,prod,355,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/song-removed.html,prod,107,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/song.html,prod,8,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/statbysong.html,prod,250,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/testpage.html,prod,583,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/webevents.html,prod,188,Thymeleaf-шаблон
+P-39,karaoke-web: templates,karaoke-web,karaoke-web/src/main/resources/templates/zakroma.html,prod,560,Thymeleaf-шаблон
+P-40,karaoke-web (test): services + util,karaoke-web,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkDateTimeTest.kt,test,57,тест
+P-40,karaoke-web (test): services + util,karaoke-web,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/ZakromaStreamProgressTest.kt,test,105,тест
+P-40,karaoke-web (test): services + util,karaoke-web,karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/util/Mp3TrimmerTest.kt,test,137,тест
+P-41,karaoke-db: build + Main.java,karaoke-db,karaoke-db/build.gradle.kts,prod,21,
+P-41,karaoke-db: build + Main.java,karaoke-db,karaoke-db/gradle/wrapper/gradle-wrapper.properties,prod,5,
+P-41,karaoke-db: build + Main.java,karaoke-db,karaoke-db/src/main/java/org/svoemesto/Main.java,prod,6,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/.eslint-baseline.json,prod,1,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/.eslintrc.cjs,prod,44,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/.prettierrc.json,prod,10,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/index.html,prod,14,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/nginx_karaoke-public.conf,prod,97,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/package.json,prod,45,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/App.vue,prod,66,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/AlbumTiles.vue,prod,269,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/AppHeader.vue,prod,265,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/AuthStatusWidget.vue,prod,135,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/AuthorTiles.vue,prod,150,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/CartIcon.vue,prod,93,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/ChatUnreadBadge.vue,prod,139,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/FavoriteIcon.vue,prod,149,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/LatestNewsSection.vue,prod,230,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/LoginRequired.vue,prod,95,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/PlatformLink.vue,prod,52,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/PlayerIcon.vue,prod,121,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/PlaylistIcon.vue,prod,375,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/PremiumIcon.vue,prod,88,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/PremiumUpsellModal.vue,prod,144,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/ShareButton.vue,prod,165,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/ShareLinkButton.vue,prod,75,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/ShareLinkModal.vue,prod,511,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/SocialLinks.vue,prod,66,
+P-42,karaoke-public: root + components,karaoke-public,karaoke-public/src/components/SongSubscriptionModal.vue,prod,335,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/components/SvgIcon.vue,prod,279,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/components/ZakromaSettings.vue,prod,141,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/editorStatus.js,prod,9,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useAuth.js,prod,68,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useAuthBootstrap.js,prod,57,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useCart.js,prod,58,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useDesign.js,prod,25,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useEngagementTracking.js,prod,79,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useKaraokeEditor.js,prod,600,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useNewsUnreadCount.js,prod,295,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/usePlayerAccess.js,prod,73,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/usePlayerReadiness.js,prod,88,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/usePlaylistMembership.js,prod,210,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/usePlaylistPlayer.js,prod,112,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/usePremiumModal.js,prod,37,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useShareLink.js,prod,43,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useSiteSubscription.js,prod,81,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useSongSubscription.js,prod,60,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useSongSubscriptions.js,prod,53,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useZakromaSettings.js,prod,99,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/composables/useZakromaStreamProgress.js,prod,498,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/lib/utils.js,prod,34,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/main.js,prod,25,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/router/index.js,prod,184,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/api.js,prod,38,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/authApi.js,prod,107,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/cartApi.js,prod,25,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/chatApi.js,prod,24,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/clientId.js,prod,15,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/entryReferrer.js,prod,28,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/historyApi.js,prod,13,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/newsApi.js,prod,15,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/playerLauncher.js,prod,53,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/playlistApi.js,prod,77,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/songEditorApi.js,prod,88,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/songShareLink.js,prod,107,
+P-43,karaoke-public: components + composables,karaoke-public,karaoke-public/src/services/tracking.js,prod,131,
+P-44,karaoke-public: player/KaraokePlayer.js [крупный файл],karaoke-public,karaoke-public/src/player/KaraokePlayer.js,prod,3876,крупный файл (>2000 строк); отдельная порция
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/store/index.js,prod,12,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/store/modules/songs.js,prod,173,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/store/modules/stats.js,prod,58,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/store/modules/zakroma.js,prod,293,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/style.css,prod,87,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/utils/dateFormat.js,prod,15,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/utils/pluralRu.js,prod,8,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/AboutView.vue,prod,502,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/AccountView.vue,prod,520,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/AuthorPlaylistView.vue,prod,598,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/CartView.vue,prod,313,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/ChatView.vue,prod,496,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/EditorTasksView.vue,prod,386,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/HistoryView.vue,prod,155,
+P-45,karaoke-public: views + store,karaoke-public,karaoke-public/src/views/HomeView.vue,prod,356,
+P-46,karaoke-public: views/EditorWorkView.vue [крупный файл],karaoke-public,karaoke-public/src/views/EditorWorkView.vue,prod,2001,крупный файл (>2000 строк); отдельная порция
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/LoginView.vue,prod,191,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/NewsView.vue,prod,257,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/OfertaView.vue,prod,157,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/PlayerView.vue,prod,258,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/PlaylistEditView.vue,prod,996,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/PlaylistsView.vue,prod,261,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/PremiumView.vue,prod,592,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/RegisterView.vue,prod,276,
+P-47,karaoke-public: views (1),karaoke-public,karaoke-public/src/views/SearchView.vue,prod,890,
+P-48,karaoke-public: views (2),karaoke-public,karaoke-public/src/views/ShareView.vue,prod,327,
+P-48,karaoke-public: views (2),karaoke-public,karaoke-public/src/views/SongView.vue,prod,1134,
+P-48,karaoke-public: views (2),karaoke-public,karaoke-public/src/views/StemJobsView.vue,prod,883,
+P-49,karaoke-public: views + router,karaoke-public,karaoke-public/src/views/SubscriptionReturnView.vue,prod,242,
+P-49,karaoke-public: views + router,karaoke-public,karaoke-public/src/views/SubscriptionsView.vue,prod,197,
+P-49,karaoke-public: views + router,karaoke-public,karaoke-public/src/views/ZakromaAlbumsView.vue,prod,237,
+P-49,karaoke-public: views + router,karaoke-public,karaoke-public/src/views/ZakromaView.vue,prod,1509,
+P-49,karaoke-public: views + router,karaoke-public,karaoke-public/tsconfig.json,prod,17,
+P-49,karaoke-public: views + router,karaoke-public,karaoke-public/vite.config.js,prod,16,
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/e2e/public-editor.spec.js,test,55,e2e Playwright
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/playwright.config.js,test,55,test-конфиг
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/src/composables/__tests__/formatText.test.js,test,69,unit-тест
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/src/composables/__tests__/marker-fields-roundtrip.test.js,test,73,unit-тест
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/src/composables/__tests__/markersToSave.test.js,test,62,unit-тест
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/src/composables/__tests__/syncSpecTags.test.js,test,69,unit-тест
+P-50,karaoke-public (test): unit + e2e,karaoke-public,karaoke-public/src/utils/__tests__/dateFormat.test.js,test,72,unit-тест
+P-51,webvue3: root + Albums,webvue3,webvue3/.eslint-baseline.json,prod,1,
+P-51,webvue3: root + Albums,webvue3,webvue3/.eslintrc.cjs,prod,72,
+P-51,webvue3: root + Albums,webvue3,webvue3/.prettierrc.json,prod,10,
+P-51,webvue3: root + Albums,webvue3,webvue3/index.html,prod,13,
+P-51,webvue3: root + Albums,webvue3,webvue3/nginx_webvue3.conf,prod,84,
+P-51,webvue3: root + Albums,webvue3,webvue3/package.json,prod,51,
+P-51,webvue3: root + Albums,webvue3,webvue3/public/index.html,prod,17,
+P-51,webvue3: root + Albums,webvue3,webvue3/scripts/check-stats-tabs.mjs,prod,112,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/App.vue,prod,1019,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/components/Albums/AlbumsTable.vue,prod,876,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/components/Albums/filter/AlbumsFilterModal.vue,prod,405,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/components/Albums/filter/store.js,prod,129,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/components/Albums/store.js,prod,155,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/components/Authors/AuthorAlbumsModal.vue,prod,299,
+P-51,webvue3: root + Albums,webvue3,webvue3/src/components/Authors/AuthorAliasesModal.vue,prod,252,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Authors/AuthorsTable.vue,prod,1045,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Authors/filter/AuthorsFilterModal.vue,prod,500,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Authors/filter/store.js,prod,197,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Authors/store.js,prod,102,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Chat/ChatNotifyButton.vue,prod,94,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Chat/ChatPanel.vue,prod,610,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Chat/store.js,prod,218,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Common/BackendConsole.vue,prod,35,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Common/CustomConfirm.vue,prod,346,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Common/FileExplorer/FileExplorerModal.vue,prod,381,
+P-52,webvue3: Chat + Authors,webvue3,webvue3/src/components/Common/FileExplorer/store.js,prod,72,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/HealthReport/HealthReportTable.vue,prod,78,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/HealthReport/components/HealthReportTableBody.vue,prod,71,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/HealthReport/components/HealthReportTableFooter.vue,prod,35,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/HealthReport/components/HealthReportTableHeader.vue,prod,94,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/HealthReport/components/HealthReportTableRow.vue,prod,138,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/HealthReport/store.js,prod,81,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/Monitor/MonitorLight.vue,prod,108,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/Monitor/MonitorModal.vue,prod,264,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/Monitor/store.js,prod,64,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/ProcessWorker.vue,prod,337,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/ResourceLimitToggle.vue,prod,82,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/SmartCopy/SmartCopyModal.vue,prod,470,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/SmartCopy/store.js,prod,65,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Common/store.js,prod,77,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Dictionaries/DictionariesTable.vue,prod,605,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Dictionaries/filter/DictionariesFilterModal.vue,prod,252,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Dictionaries/filter/store.js,prod,62,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/Dictionaries/store.js,prod,119,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/ListeningHistory/ListeningHistoryFilterModal.vue,prod,244,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/ListeningHistory/ListeningHistoryTable.vue,prod,404,
+P-53,webvue3: Common — HealthReport/Monitor,webvue3,webvue3/src/components/ListeningHistory/store.js,prod,91,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/News/NewsTable.vue,prod,577,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/News/store.js,prod,112,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue,prod,488,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Pictures/PicturesTable.vue,prod,435,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Pictures/edit/PictureEdit.vue,prod,474,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Pictures/edit/PictureEditModal.vue,prod,111,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Pictures/filter/PicturesFilterModal.vue,prod,240,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Pictures/filter/store.js,prod,62,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Pictures/store.js,prod,177,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Processes/ProcessBulkReportModal.vue,prod,199,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Processes/ProcessesBulkUpdateModal.vue,prod,262,
+P-54,webvue3: Processes + News,webvue3,webvue3/src/components/Processes/ProcessesTable.vue,prod,811,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/audit/ProcessAuditModal.vue,prod,239,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/delete/ProcessDeleteModal.vue,prod,195,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/edit/ProcessEdit.vue,prod,466,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/edit/ProcessEditModal.vue,prod,110,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/filter/ProcessesFilterModal.vue,prod,421,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/filter/store.js,prod,130,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Processes/store.js,prod,712,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Promotions/PromotionsTable.vue,prod,285,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Promotions/store.js,prod,85,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Properties/PropertiesTable.vue,prod,490,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Properties/filter/PropertiesFilterModal.vue,prod,330,
+P-55,webvue3: Processes — edit/filter,webvue3,webvue3/src/components/Properties/filter/store.js,prod,112,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Properties/store.js,prod,81,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/PublicSettings/PublicSettingsTable.vue,prod,168,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/PublicSettings/store.js,prod,71,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/PublishTable.vue,prod,36,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/components/PublishTableBody.vue,prod,74,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/components/PublishTableBodyTd.vue,prod,117,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/components/PublishTableFooter.vue,prod,252,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/components/PublishTableHead.vue,prod,43,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/filter/store.js,prod,51,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/Publish/store.js,prod,201,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/ShareLinks/ShareLinksFilterModal.vue,prod,241,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/ShareLinks/ShareLinksTable.vue,prod,595,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/ShareLinks/store.js,prod,104,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SitePlaylists/SitePlaylistDetailModal.vue,prod,145,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SitePlaylists/SitePlaylistsTable.vue,prod,363,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SitePlaylists/store.js,prod,91,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SiteUsers/SiteUsersTable.vue,prod,694,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SiteUsers/UserPlaylistsModal.vue,prod,147,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SiteUsers/UserShareLinksModal.vue,prod,281,
+P-56,webvue3: Properties + Publish + SiteUsers,webvue3,webvue3/src/components/SiteUsers/UserSubscriptionsModal.vue,prod,202,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SiteUsers/edit/SiteUserEdit.vue,prod,538,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SiteUsers/edit/SiteUserEditModal.vue,prod,102,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SiteUsers/filter/SiteUsersFilterModal.vue,prod,407,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SiteUsers/filter/store.js,prod,207,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SiteUsers/shareLinkStore.js,prod,89,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SiteUsers/store.js,prod,230,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SongEditor/AssignModal.vue,prod,590,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SongEditor/ReviewModal.vue,prod,919,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SongEditor/SongEditorTable.vue,prod,462,
+P-57,webvue3: SongEditor + SiteUsers/edit,webvue3,webvue3/src/components/SongEditor/SongKaraokeEditorModal.vue,prod,452,
+P-58,webvue3: SongEditor + Songs/edit,webvue3,webvue3/src/components/SongEditor/SongKaraokeEditorView.vue,prod,1950,
+P-58,webvue3: SongEditor + Songs/edit,webvue3,webvue3/src/components/SongEditor/store.js,prod,300,
+P-58,webvue3: SongEditor + Songs/edit,webvue3,webvue3/src/components/SongEditor/useReviewModalFormat.js,prod,117,
+P-58,webvue3: SongEditor + Songs/edit,webvue3,webvue3/src/components/Songs/edit/AiTextEditorModal.vue,prod,413,
+P-58,webvue3: SongEditor + Songs/edit,webvue3,webvue3/src/components/Songs/edit/AlbumCoverModal.vue,prod,611,
+P-58,webvue3: SongEditor + Songs/edit,webvue3,webvue3/src/components/Songs/edit/FamilySongsModal.vue,prod,517,
+P-59,webvue3: components/Songs/SongsTable.vue [крупный файл],webvue3,webvue3/src/components/Songs/SongsTable.vue,prod,2552,крупный файл (>2000 строк); отдельная порция
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Songs/edit/SearchText.vue,prod,542,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Songs/edit/SearchTextResultsTable.vue,prod,80,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Songs/edit/SongEditModal.vue,prod,132,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Songs/edit/WhisperDebugModal.vue,prod,259,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Songs/filter/SongsFilterModal.vue,prod,1171,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Songs/filter/store.js,prod,426,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/SponsrSync/SponsrSyncPanel.vue,prod,202,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/SponsrSync/store.js,prod,92,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Stats/DetailBreakdown.vue,prod,129,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Stats/GeoReferrers.vue,prod,140,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Stats/KpiCards.vue,prod,127,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Stats/MonetizationPanel.vue,prod,189,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Stats/SongEventsModal.vue,prod,326,
+P-60,webvue3: Songs/edit + Stats,webvue3,webvue3/src/components/Stats/TimeSeriesChart.vue,prod,124,
+P-61,webvue3: components/Songs/edit/SongEdit.vue [крупный файл],webvue3,webvue3/src/components/Songs/edit/SongEdit.vue,prod,6492,крупный файл (>2000 строк); отдельная порция
+P-62,webvue3: components/Songs/edit/SubsEdit.vue [крупный файл],webvue3,webvue3/src/components/Songs/edit/SubsEdit.vue,prod,6561,крупный файл (>2000 строк); отдельная порция
+P-63,webvue3: components/Songs/store.js [крупный файл],webvue3,webvue3/src/components/Songs/store.js,prod,3023,крупный файл (>2000 строк); отдельная порция
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Stats/TopListenedSongsTable.vue,prod,178,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Stats/TopUsersTable.vue,prod,138,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Stats/TypeChannelBreakdown.vue,prod,145,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Stats/UserEventsModal.vue,prod,317,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Stats/eventLabels.js,prod,27,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Stats/store.js,prod,591,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/StemJobs/StemJobsTable.vue,prod,321,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/StemJobs/store.js,prod,86,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Subscriptions/SubscriptionsFilterModal.vue,prod,282,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Subscriptions/SubscriptionsTable.vue,prod,512,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Subscriptions/store.js,prod,84,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Sync/SyncTable.vue,prod,431,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Sync/store.js,prod,96,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Tariffs/TariffsTable.vue,prod,248,
+P-64,webvue3: Stats + Subscriptions,webvue3,webvue3/src/components/Tariffs/store.js,prod,86,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/composables/editorStatus.js,prod,12,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/composables/useKaraokeEditor.js,prod,645,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/lib/utils.js,prod,106,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/main.js,prod,18,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/router/index.js,prod,167,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/store/index.js,prod,99,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/store/modules/tableSettings.js,prod,172,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/style.css,prod,79,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/utils/dateFormat.js,prod,15,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/utils/highlightWords.js,prod,107,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/utils/markerIndex.js,prod,46,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/AlbumsView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/AuthorsView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/ChatView.vue,prod,29,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/DictionariesView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/HomeView.vue,prod,1208,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/ListeningHistoryView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/NewsView.vue,prod,18,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PicturesView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PlayerView.vue,prod,65,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/ProcessesView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PromotionsView.vue,prod,19,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PropertiesView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PublicSettingsView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PublishTemplatesView.vue,prod,459,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/PublishView.vue,prod,29,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/ShareLinksView.vue,prod,33,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/SitePlaylistsView.vue,prod,29,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/SiteUsersView.vue,prod,31,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/SongEditorView.vue,prod,29,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/SongsView.vue,prod,41,
+P-65,webvue3: views + utils + composables,webvue3,webvue3/src/views/SponsrSyncView.vue,prod,19,
+P-66,webvue3: player/KaraokePlayer.js [крупный файл],webvue3,webvue3/src/player/KaraokePlayer.js,prod,4021,крупный файл (>2000 строк); отдельная порция
+P-67,webvue3: views + router,webvue3,webvue3/src/views/StatsView.vue,prod,1021,
+P-67,webvue3: views + router,webvue3,webvue3/src/views/StemJobsView.vue,prod,31,
+P-67,webvue3: views + router,webvue3,webvue3/src/views/SubscriptionsView.vue,prod,31,
+P-67,webvue3: views + router,webvue3,webvue3/src/views/SyncView.vue,prod,31,
+P-67,webvue3: views + router,webvue3,webvue3/src/views/TariffsView.vue,prod,19,
+P-67,webvue3: views + router,webvue3,webvue3/tsconfig.json,prod,17,
+P-67,webvue3: views + router,webvue3,webvue3/vite.config.js,prod,8,
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/editor-lifecycle.spec.js,test,174,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/enter-caret.spec.js,test,90,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/formatter-refetch.spec.js,test,91,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/ghost-markers.spec.js,test,144,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/marker-nav.spec.js,test,183,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/measure-formatter-vhtml.spec.js,test,38,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/measure-input-latency.spec.js,test,115,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/paste-blank-lines.spec.js,test,112,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/save-race.spec.js,test,104,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/save-target-and-lifecycle.spec.js,test,167,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/smoke.spec.js,test,62,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/tabs-variant.spec.js,test,76,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/xss.spec.js,test,125,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/e2e/yo-highlight.spec.js,test,200,e2e Playwright
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/playwright.config.js,test,55,test-конфиг
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/src/composables/__tests__/marker-fields-roundtrip.test.js,test,73,unit-тест
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/src/composables/__tests__/markersToSave.test.js,test,62,unit-тест
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/src/utils/__tests__/dateFormat.test.js,test,72,unit-тест
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/src/utils/__tests__/highlightWords.test.js,test,147,unit-тест
+P-68,webvue3 (test): e2e + unit,webvue3,webvue3/src/utils/__tests__/markerIndex.test.js,test,132,unit-тест
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/align.py,prod,281,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/chunking.py,prod,162,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/evaluate.py,prod,117,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/manifest.py,prod,72,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/requirements.txt,prod,10,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/resume_trainig.sh,prod,4,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/serve.py,prod,73,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/start_trainig.sh,prod,4,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/syllables.py,prod,112,
+P-69,alignment-ml: pipeline (train/align/serve),alignment-ml,alignment-ml/train.py,prod,475,
+P-70,deploy: root + SQL + docker,deploy,deploy/announce.sh,prod,27,
+P-70,deploy: root + SQL + docker,deploy,deploy/backup_db.sh,prod,103,
+P-70,deploy: root + SQL + docker,deploy,deploy/build-lock.sh,prod,122,
+P-70,deploy: root + SQL + docker,deploy,deploy/create_clear_db.sh,prod,8,
+P-70,deploy: root + SQL + docker,deploy,deploy/create_tbl_users.sql,prod,46,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/deploy_public.sh,prod,40,
+P-70,deploy: root + SQL + docker,deploy,deploy/deploy_web.sh,prod,40,
+P-70,deploy: root + SQL + docker,deploy,deploy/do.sh,prod,626,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-app.gpu.yml,prod,17,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-app.yml,prod,108,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-database.yml,prod,29,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-ollama.yml,prod,23,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-public.yml,prod,17,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-storage.yml,prod,22,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-telegram-proxy.yml,prod,18,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-web.yml,prod,64,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-webvue3.yml,prod,23,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose-whisper.yml,prod,119,
+P-70,deploy: root + SQL + docker,deploy,deploy/docker-compose.yml,prod,143,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/Dockerfile,prod,127,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/DockerfileBackup,prod,9,backup/legacy Dockerfile
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/DockerfileBackup2,prod,107,backup/legacy Dockerfile
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/DockerfileDemucs,prod,52,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/DockerfileFull,prod,235,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/DockerfileOld,prod,24,backup/legacy Dockerfile
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/files/demucs2,prod,154,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/files/demucs5,prod,164,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-app/files/demucs7,prod,171,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db-backup.service,prod,11,systemd unit
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db-backup.sh,prod,83,
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db-backup.timer,prod,9,systemd unit
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/01_initdb.sql,prod,184,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/02_result_text_and_index.sql,prod,1,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/03_events.sql,prod,40,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/04_id_boosty_files_and_index.sql,prod,1,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/04_melody.sql,prod,19,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/05_index_tabs_variant.sql,prod,3,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/06_site_users.sql,prod,106,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/07_public_settings.sql,prod,18,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/08_ip_country.sql,prod,14,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/09_playlists.sql,prod,123,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/10_song_assignments.sql,prod,136,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/11_pictures_unique_name.sql,prod,21,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/12_site_user_limits.sql,prod,46,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/13_site_user_editor_role.sql,prod,45,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/14_site_user_premium_sources.sql,prod,55,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/15_monetization.sql,prod,169,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/16_cart_and_orders.sql,prod,77,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/17_dictionaries.sql,prod,48,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/17_site_user_personal_discount.sql,prod,55,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/18_author_aliases.sql,prod,4,SQL-миграция/скрипт
+P-70,deploy: root + SQL + docker,deploy,deploy/karaoke-db/19_site_chat_messages.sql,prod,56,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/20_news.sql,prod,59,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/21_site_user_welcome_message.sql,prod,65,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/22_stem_jobs.sql,prod,80,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/23_demo_publish_links.sql,prod,29,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/24_song_type.sql,prod,422,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/25_audio_parent.sql,prod,446,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/26_player_readiness_flags.sql,prod,508,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/27_author_special_order.sql,prod,61,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/27_listening_history.sql,prod,71,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/28_rename_settings_to_songs.sql,prod,94,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/29_albums.sql,prod,183,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/30_song_coauthors.sql,prod,54,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/31_entity_description_fields.sql,prod,319,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/32_song_status_lifecycle.sql,prod,16,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/33_song_news_announced.sql,prod,29,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/34_cleanup_song_news_announced.sql,prod,24,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/35_rename_processes_settings_id_to_song_id.sql,prod,21,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/36_fix_processes_recordhash_trigger_song_id.sql,prod,41,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/37_news_auto_publish_kill_switch.sql,prod,24,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/38_song_share_links.sql,prod,194,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/39_song_share_recordhash.sql,prod,131,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/40_site_user_can_self_assign_tasks.sql,prod,64,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/41_db_indexes_verification.sql,prod,52,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/42_song_name_censored.sql,prod,248,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/43_song_name_censored_sync.sql,prod,230,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/44_author_song_counts.sql,prod,190,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/44_optimize_tbl_songs.sql,prod,103,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/45_site_user_can_work_with_skipped.sql,prod,72,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/46_author_sort_order.sql,prod,51,SQL-миграция/скрипт
+P-71,deploy: SQL migrations,deploy,deploy/karaoke-db/47_admin_process_audit.sql,prod,105,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-db/48_admin_process_bulk_actions.sql,prod,36,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-db/48_chain_id_backfill.sql,prod,79,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-db/48_storage_metadata_cache.sql,prod,44,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-db/49_albums_song_counts.sql,prod,198,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-db/50_tbl_songs_free_after_on_air.sql,prod,501,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-db/author_aliases_seed.sql,prod,84,SQL-миграция/скрипт
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-public/Dockerfile,prod,30,
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-web/Dockerfile,prod,10,
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-web/minio-proxy-local.conf,prod,18,
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/karaoke-webvue3/Dockerfile,prod,30,
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/Karaoke.properties,prod,0,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/do.sh,prod,254,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml,prod,95,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/docker-compose-db-new-comp.yml,prod,23,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/docker-compose-storage-new-comp.yml,prod,22,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/docker-compose-web-new-comp.yml,prod,27,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/docker-compose-webvue-new-comp.yml,prod,23,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/docker-compose-webvue3-new-comp.yml,prod,23,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/nginx.conf,prod,43,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/nginx.conf.template,prod,43,шаблон конфигурации
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/nginx_webvue3.conf,prod,74,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/deploy/nginx_webvue3.conf.template,prod,89,шаблон конфигурации
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/karaoke_watcher.sh,prod,55,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/new_comp/sm-karaoke-system/mlt-docker/docker-compose.yaml,prod,16,legacy-контур new_comp
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/prod-single-host/.env.example,prod,48,шаблон конфигурации
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/prod-single-host/5443to5000,prod,49,
+P-72,deploy: legacy new_comp + SQL tail,deploy,deploy/prod-single-host/80to8897,prod,167,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/do.env.example,prod,37,шаблон конфигурации
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/do.sh,prod,185,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/docker-compose-database.yml,prod,25,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/docker-compose-public.yml,prod,20,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/docker-compose-registry.yml,prod,42,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/docker-compose-storage.yml,prod,32,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/docker-compose-web.yml,prod,65,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/karaoke-db-backup.service,prod,11,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/karaoke-db-backup.sh,prod,83,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/karaoke-db-backup.timer,prod,9,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/karaoke-docker-prune.service,prod,8,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/karaoke-docker-prune.timer,prod,10,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/nginx.conf,prod,126,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/nginx_karaoke-public.conf,prod,52,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/prune-images.sh,prod,14,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/prod-single-host/registry/config.json,prod,166,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/recordhash_authors.sql,prod,44,SQL-миграция/скрипт
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/recordhash_events.sql,prod,57,SQL-миграция/скрипт
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/recordhash_pictures.sql,prod,32,SQL-миграция/скрипт
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/recordhash_pictures_sync.sql,prod,32,SQL-миграция/скрипт
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/recordhash_processes.sql,prod,54,SQL-миграция/скрипт
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/searxng-settings/settings.yml,prod,42,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/tracker-db-backup.service,prod,14,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/tracker-db-backup.sh,prod,112,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/tracker-db-backup.timer,prod,12,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/tracker-docker-compose.yml,prod,102,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/tts/silero_say.py,prod,119,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/80to8897,prod,164,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/do.sh,prod,152,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/docker-compose-database.yml,prod,25,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/docker-compose-public.yml,prod,19,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/docker-compose-storage.yml,prod,23,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/docker-compose-web.yml,prod,64,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/karaoke-docker-prune.service,prod,8,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/karaoke-docker-prune.timer,prod,10,systemd unit
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/karaoke-web/Dockerfile,prod,15,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/nginx.conf,prod,112,
+P-73,deploy: prod-single-host + web-server-deploy,deploy,deploy/web-server-deploy/deploy/prune-images.sh,prod,14,
+P-74,config: detekt/ktlint + root build,config,build.gradle.kts,prod,148,
+P-74,config: detekt/ktlint + root build,config,config/detekt/baseline.xml,prod,21,
+P-74,config: detekt/ktlint + root build,config,config/detekt/detekt.yml,prod,122,
+P-74,config: detekt/ktlint + root build,config,config/ktlint/baseline-karaoke-app.xml,prod,6,
+P-74,config: detekt/ktlint + root build,config,config/ktlint/baseline-karaoke-db.xml,prod,3,
+P-74,config: detekt/ktlint + root build,config,config/ktlint/baseline-karaoke-web.xml,prod,3,
+P-74,config: detekt/ktlint + root build,config,gradle.properties,prod,20,
+P-74,config: detekt/ktlint + root build,config,gradle/wrapper/gradle-wrapper.properties,prod,7,
+P-74,config: detekt/ktlint + root build,config,pom.xml,prod,97,
+P-74,config: detekt/ktlint + root build,config,settings.gradle.kts,prod,3,
+P-75,tools: checks (1),tools,tools/analyze-prod-incident.sh,prod,160,
+P-75,tools: checks (1),tools,tools/auto-jsdoc.py,prod,308,
+P-75,tools: checks (1),tools,tools/auto-kdoc-quality.py,prod,145,
+P-75,tools: checks (1),tools,tools/auto-kdoc.py,prod,265,
+P-75,tools: checks (1),tools,tools/baseline-stats.sh,prod,108,
+P-75,tools: checks (1),tools,tools/check-audit-coverage.sh,prod,93,
+P-75,tools: checks (1),tools,tools/check-cert-expiry.sh,prod,94,
+P-75,tools: checks (1),tools,tools/check-container-restart.sh,prod,151,
+P-75,tools: checks (1),tools,tools/check-do-sh-guards.sh,prod,79,
+P-75,tools: checks (1),tools,tools/check-doc-references.py,prod,296,
+P-75,tools: checks (1),tools,tools/check-docker-config.sh,prod,85,
+P-75,tools: checks (1),tools,tools/check-docker-image-tags.sh,prod,253,
+P-75,tools: checks (1),tools,tools/check-endpoint-field-coverage.sh,prod,181,
+P-75,tools: checks (1),tools,tools/check-endpoint-field-coverage.whitelist.yml,prod,16,
+P-75,tools: checks (1),tools,tools/check-enforcement.sh,prod,93,
+P-75,tools: checks (1),tools,tools/check-eslint-baseline.sh,prod,118,
+P-75,tools: checks (1),tools,tools/check-feature-doc.sh,prod,126,
+P-75,tools: checks (1),tools,tools/check-frontend-build.sh,prod,150,
+P-75,tools: checks (1),tools,tools/check-gradle-user-home.sh,prod,92,
+P-75,tools: checks (1),tools,tools/check-jsdoc-coverage.sh,prod,129,
+P-75,tools: checks (1),tools,tools/check-kdoc-coverage.sh,prod,105,
+P-75,tools: checks (1),tools,tools/check-knowledge-cross-links.sh,prod,88,
+P-75,tools: checks (1),tools,tools/check-knowledge-structure.sh,prod,130,
+P-75,tools: checks (1),tools,tools/check-no-jpa-imports.sh,prod,169,
+P-75,tools: checks (1),tools,tools/check-no-legacy-tbl-settings.sh,prod,165,
+P-75,tools: checks (1),tools,tools/check-no-mp4-mentions.sh,prod,256,
+P-75,tools: checks (1),tools,tools/check-songedit-field-coverage.sh,prod,130,
+P-76,tools: checks + git hooks,tools,tools/check-songedit-field-coverage.whitelist.yml,prod,19,
+P-76,tools: checks + git hooks,tools,tools/check-spec-issue-link.py,prod,141,
+P-76,tools: checks + git hooks,tools,tools/check-ssot-impact.py,prod,227,
+P-76,tools: checks + git hooks,tools,tools/check-subagent-isolation.sh,prod,162,
+P-76,tools: checks + git hooks,tools,tools/cleanup-test-songs.sql,prod,23,SQL
+P-76,tools: checks + git hooks,tools,tools/endpoint-pairs.yml,prod,26,
+P-76,tools: checks + git hooks,tools,tools/generate-docs.sh,prod,51,
+P-76,tools: checks + git hooks,tools,tools/generate-eslint-baseline.sh,prod,69,
+P-76,tools: checks + git hooks,tools,tools/git-hooks/pre-commit-block-master.sh,prod,53,
+P-76,tools: checks + git hooks,tools,tools/install-dsh-integration.sh,prod,99,
+P-76,tools: checks + git hooks,tools,tools/install-tracker.sh,prod,254,
+P-76,tools: checks + git hooks,tools,tools/lint-knowledge.py,prod,376,
+P-76,tools: checks + git hooks,tools,tools/migration-smoke.sh,prod,114,
+P-76,tools: checks + git hooks,tools,tools/registry-smoke.sh,prod,177,
+P-76,tools: checks + git hooks,tools,tools/registry-vendor.sh,prod,223,
+P-76,tools: checks + git hooks,tools,tools/reserve-branch-number.sh,prod,72,
+P-76,tools: checks + git hooks,tools,tools/spec-knowledge-preflight.sh,prod,93,
+P-77,tools: tracker (2),tools,tools/specify-bootstrap.sh,prod,192,
+P-77,tools: tracker (2),tools,tools/tracker-bootstrap-board.sh,prod,191,
+P-77,tools: tracker (2),tools,tools/tracker-bootstrap.sh,prod,106,
+P-77,tools: tracker (2),tools,tools/tracker-implement-done.sh,prod,143,
+P-77,tools: tracker (2),tools,tools/tracker-lib.sh,prod,662,
+P-77,tools: tracker (2),tools,tools/tracker-poll.sh,prod,170,
+P-77,tools: tracker (2),tools,tools/tracker-smoke-test.sh,prod,199,
+P-77,tools: tracker (2),tools,tools/tracker-spec-for-issue.sh,prod,229,
+P-77,tools: tracker (2),tools,tools/tracker.sh,prod,235,
+P-77,tools: tracker (2),tools,tools/verify-doc-links.sh,prod,64,
+P-77,tools: tracker (2),tools,tools/verify-kotlin-refs.sh,prod,75,
+P-78,ci: lint workflow,ci,.github/workflows/lint.yml,prod,368,

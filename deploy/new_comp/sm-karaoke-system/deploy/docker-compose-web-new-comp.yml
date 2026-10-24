@@ -6,12 +6,18 @@ services:
     image: svoemestodev/karaoke-web:1
     ports:
       - "8897:7799"
+    # BR-554 (аудит #336 / P-72-02, OpenProject #371): environment — СПИСОК.
+    # Было: `WORK_IN_CONTAINER: 1` (отображение) + четыре элемента списка.
+    # YAML не считает это ошибкой, а склеивает всё в ОДНО значение:
+    # environment = {"WORK_IN_CONTAINER": "1 - DB_LOCAL_POSTGRES_USER=... - ..."},
+    # то есть контейнер не получал ни одной переменной подключения к БД.
+    # Так же — как в основной схеме (deploy/docker-compose-web.yml).
     environment:
-      WORK_IN_CONTAINER: 1
-        - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
-        - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
-        - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
-        - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
+      - WORK_IN_CONTAINER=1
+      - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
+      - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
+      - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
+      - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
     networks:
       - karaokenet
     entrypoint:

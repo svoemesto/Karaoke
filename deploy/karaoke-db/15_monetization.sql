@@ -104,7 +104,14 @@ CREATE TRIGGER update_last_updated_promo_rules_trigger BEFORE UPDATE ON public.t
 -- PAID scope=SITE -> продлевает tbl_site_users.site_premium_until.
 CREATE TABLE IF NOT EXISTS public.tbl_subscriptions (
     id integer NOT NULL,
-    site_user_id integer NOT NULL REFERENCES public.tbl_site_users(id) ON DELETE CASCADE,
+    -- BR-041 (аудит #336 / P-70-03, OpenProject #371): было ON DELETE CASCADE —
+    -- удаление пользователя сайта физически удаляло и его подписки, включая
+    -- PAID-записи с yookassa_payment_id / final_price / paid_at (платёжная
+    -- история, нужная для чеков 54-ФЗ, сверки с ЮKassa и возвратов).
+    -- Для денежной таблицы — RESTRICT: пользователя с платежами удалить
+    -- нельзя, пока платёжная история не сохранена (судьба истории —
+    -- решение владельца, см. отчёт пакета #371).
+    site_user_id integer NOT NULL REFERENCES public.tbl_site_users(id) ON DELETE RESTRICT,
     scope character varying(16) NOT NULL, -- SONG | SITE
     id_song bigint, -- NULL для scope=SITE
     tariff_id integer REFERENCES public.tbl_price_tariffs(id),

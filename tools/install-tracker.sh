@@ -119,14 +119,31 @@ TRACKER_URL="http://localhost:${SELECTED_PORT}"
 sed -i "s|^TRACKER_URL=.*|TRACKER_URL=${TRACKER_URL}|" "$ENV_FILE"
 sed -i "s|^TRACKER_HOST=.*|TRACKER_HOST=localhost:${SELECTED_PORT}|" "$ENV_FILE"
 
+# BR-542 (аудит #336 / P-73-04, OpenProject #371): выбранный порт ОБЯЗАН быть
+# в env-файле — compose публикует UI на "${TRACKER_HTTP_PORT}:8080".
+# Раньше трекер работал в host-сети (контейнер всегда слушал 8080), поэтому
+# порт из ATTEMPT_PORTS никуда не подставлялся: при занятом 8080 установщик
+# писал TRACKER_HOST=localhost:7082, а health-check ходил на несуществующий
+# порт и падал по таймауту 600 с.
+if grep -qE '^TRACKER_HTTP_PORT=' "$ENV_FILE"; then
+    sed -i "s|^TRACKER_HTTP_PORT=.*|TRACKER_HTTP_PORT=${SELECTED_PORT}|" "$ENV_FILE"
+else
+    printf 'TRACKER_HTTP_PORT=%s\n' "$SELECTED_PORT" >> "$ENV_FILE"
+fi
+# Порт БД трекера (внутри контейнера postgres слушает 5435) — публикуется
+# на loopback тем же compose-файлом.
+if ! grep -qE '^TRACKER_DB_PORT=' "$ENV_FILE"; then
+    printf 'TRACKER_DB_PORT=5435\n' >> "$ENV_FILE"
+fi
+
 info "  ✓ OpenProject будет доступен на http://localhost:${SELECTED_PORT}"
 
 # --- Шаг 4: docker compose up ---
 info "Шаг 4/6: запуск OpenProject + Postgres..."
 
 cd "${REPO_ROOT}/deploy"
-# CRITICAL: при network_mode: host переменные окружения из shell НЕ
-# пробрасываются в compose — нужно явно передать --env-file.
+# Переменные окружения из shell в compose не пробрасываются — поэтому
+# явно передаём --env-file (там лежат и креды, и выбранный порт).
 docker compose \
     --env-file "${ENV_FILE}" \
     -f tracker-docker-compose.yml \

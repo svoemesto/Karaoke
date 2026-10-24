@@ -136,6 +136,29 @@ CREATE TABLE tbl_stem_jobs (
 
 (См. [stem-job](../../domains/catalog/components/remaining-models.md#stemjob).)
 
+## NNN 51: `subscriptions_on_delete_restrict` (BR-041, пакет #371)
+
+```sql
+ALTER TABLE public.tbl_subscriptions
+    ADD CONSTRAINT tbl_subscriptions_site_user_id_fkey
+    FOREIGN KEY (site_user_id) REFERENCES public.tbl_site_users(id)
+    ON DELETE RESTRICT;
+```
+
+- Было `ON DELETE CASCADE`: удаление пользователя сайта физически уносило
+  все его подписки, включая `PAID`-записи с `yookassa_payment_id`,
+  `final_price`, `paid_at` — платёжную историю (чеки 54-ФЗ, сверка с
+  ЮKassa, возвраты, сохранённый мандат автопродления).
+- Стало `RESTRICT`: пользователя с платежами удалить нельзя, пока история
+  не сохранена. `DELETE` из админки для такого пользователя завершается
+  ошибкой БД (fail-safe) — **сообщение в UI и судьба истории (мягкое
+  удаление/анонимизация) — решение владельца** (отчёт `specs/371-pkg-s2-08`).
+- `15_monetization.sql` создаёт таблицу уже с `RESTRICT` (для новых БД), но
+  на существующей БД это no-op (`CREATE TABLE IF NOT EXISTS`), поэтому
+  ограничение пересоздаётся отдельным файлом `51`. Применять вручную на
+  каждой БД (LOCAL и PROD отдельно, см. [sql-migrations.md](sql-migrations.md)
+  Решение 4). Идемпотентно: повторный прогон снова дропает и создаёт FK.
+
 ## Связь
 
 - [monetization domain](../../domains/monetization/domain.md) — bounded context.
@@ -144,4 +167,6 @@ CREATE TABLE tbl_stem_jobs (
 
 ## Changelog
 
+- **Pass 382** (2026-10-24, PKG-S2-08 / OpenProject #371): NNN 51 —
+  `tbl_subscriptions.site_user_id` → `ON DELETE RESTRICT` (BR-041).
 - **Pass 458-460** (2026-09-09): Initial. Автор: agent (Karaoke).

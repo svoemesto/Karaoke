@@ -9,6 +9,24 @@ services:
       PGDATA: "/var/lib/postgresql/data/16"
       WORK_IN_CONTAINER: 1
     container_name: karaoke-db
+    # BR-545 (аудит #336 / P-73-07, OpenProject #371): управляемое включение
+    # TLS на сервере Postgres.
+    #   * По умолчанию ssl=off — это РОВНО то же значение, что и default в
+    #     PostgreSQL, т.е. поведение прод-хоста не меняется (DB_SSL_ON не
+    #     задан → подставляется off).
+    #   * Включение: DB_SSL_ON=on в deploy/prod-single-host/.env + сертификаты
+    #     в deploy/prod-single-host/certs/postgres/{server.crt,server.key}.
+    #   * На клиенте (admin-машина) — DB_REMOTE_SSL_MODE=require|verify-full
+    #     в .env; см. karaoke-app/.../Connection.kt.
+    # Сертификаты и решение «TLS vs SSH-туннель» — за владельцем.
+    command:
+      - postgres
+      - -c
+      - ssl=${DB_SSL_ON:-off}
+      - -c
+      - ssl_cert_file=${DB_SSL_CERT_FILE:-/certs/postgres/server.crt}
+      - -c
+      - ssl_key_file=${DB_SSL_KEY_FILE:-/certs/postgres/server.key}
     ports:
       - "127.0.0.1:${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера
     networks:
@@ -17,7 +35,19 @@ services:
       - ${DB_FOLDER}:/var/lib/postgresql/data/16 # DB_FOLDER=/sm-karaoke/system/Караоке-db (см. .env)
       - ./karaoke-db:/docker-entrypoint-initdb.d # мапим папку karaoke-db из текущего каталога (deploy) в контейнер по пути docker-entrypoint-initdb.d - из нее будут запускаться скрипты для инициализации бд
       - ./karaoke-db/dumps:/dumps
+      # BR-545: сертификаты сервера Postgres (нужны только при DB_SSL_ON=on).
+      - ./certs/postgres:/certs/postgres:ro
     restart: always
+    # BR-546 (аудит #336 / P-73-08, OpenProject #371): ротация логов.
+    # Без max-size/max-file json-file драйвер растёт, пока не забьёт диск
+    # прод-хоста (985 ГБ): Postgres перестаёт писать ("No space left on device"),
+    # сайт не отвечает — инцидент 2026-07-09. Раньше ротация была только
+    # у registry (deploy/prod-single-host/docker-compose-registry.yml).
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
 networks:
   karaokenet:

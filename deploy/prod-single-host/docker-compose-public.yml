@@ -13,6 +13,16 @@ services:
       - karaokenet
     command: /bin/bash -c "exec nginx -g 'daemon off;'"
     restart: always
+    # BR-546 (аудит #336 / P-73-08, OpenProject #371): ротация логов.
+    # Без max-size/max-file json-file драйвер растёт, пока не забьёт диск
+    # прод-хоста (985 ГБ): Postgres перестаёт писать ("No space left on device"),
+    # сайт не отвечает — инцидент 2026-07-09. Раньше ротация была только
+    # у registry (deploy/prod-single-host/docker-compose-registry.yml).
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
 networks:
   karaokenet:

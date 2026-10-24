@@ -45,6 +45,11 @@ services:
       # использовал дефолт application.yml (устаревший IP), а DB_REMOTE_HOST
       # из deploy/.env игнорировался (баг обнаружен при переезде).
       - DB_REMOTE_HOST=${DB_REMOTE_HOST}
+      # BR-545/BR-557: режим TLS удалённой БД (prefer|require|verify-full).
+      # По умолчанию prefer — как было (драйвер сам деградирует в открытый текст,
+      # если сервер без TLS). Целевое состояние — require/verify-full после
+      # включения TLS на сервере (DB_SSL_ON на прод-хосте).
+      - DB_REMOTE_SSL_MODE=${DB_REMOTE_SSL_MODE:-prefer}
     volumes:
       - ${APP_FOLDER_HOST}:${APP_FOLDER_IN_CONTAINER}
       - ${APP_FOLDER_K1}:${APP_FOLDER_K1}
@@ -82,7 +87,10 @@ services:
       - ./searxng-settings:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://searxng:8080/
-      - SEARXNG_SECRET=i-love-my-wife-oxana
+      # BR-040 (аудит #336 / P-70-02, OpenProject #371): секрет НЕ в git.
+      # Значение — в deploy/do.env (в .gitignore) или deploy/.env;
+      # шаблон — deploy/do.env.example.
+      - SEARXNG_SECRET=${SEARXNG_SECRET:?SEARXNG_SECRET is required (set in deploy/do.env or deploy/.env)}
     restart: unless-stopped
     networks:
       - karaokenet

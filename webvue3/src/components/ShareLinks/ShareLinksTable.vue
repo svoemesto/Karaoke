@@ -101,6 +101,7 @@
               v-if="data.item.active"
               class="slt-btn-revoke"
               title="Отозвать ссылку"
+              :disabled="!isDigestInSync"
               @click.left="confirmRevoke(data.item)"
             >
               Отозвать
@@ -133,7 +134,7 @@
             Песня: <strong>{{ revokeTarget?.songName || '—' }}</strong>
           </p>
           <p>
-            target: <strong>{{ target }}</strong>
+            target: <strong>{{ revokeTargetTarget }}</strong>
           </p>
           <p style="color: darkred; font-weight: bold">
             ⚠ Активные playback-сессии будут завершены. Действие необратимо.
@@ -186,6 +187,9 @@ export default {
       isFilterVisible: false,
       isRevokeModalVisible: false,
       revokeTarget: null,
+      // BR-409: БД строки фиксируется в момент открытия подтверждения, а не берётся из
+      // селекта при отправке запроса.
+      revokeTargetTarget: null,
     }
   },
   computed: {
@@ -209,6 +213,16 @@ export default {
       set(value) {
         this.$store.dispatch('setShareLinksTarget', value)
       },
+    },
+    // BR-409: БД, из которой получен показанный дайджест. Пока она не совпадает с выбранной,
+    // строки могут быть данными другой базы — отзывать по ним нельзя.
+    digestTarget() {
+      return this.$store.getters.getShareLinksDigestTarget
+    },
+    isDigestInSync() {
+      return (
+        !this.digestIsLoading && this.digestTarget !== null && this.digestTarget === this.target
+      )
     },
     fields() {
       return [
@@ -343,18 +357,26 @@ export default {
       this.isFilterVisible = false
     },
     confirmRevoke(item) {
+      // BR-409: фиксируем БД строки сейчас, чтобы смена селекта до нажатия «Отозвать» не
+      // перенаправила запрос в другую базу.
+      this.revokeTargetTarget = this.digestTarget
       this.revokeTarget = item
       this.isRevokeModalVisible = true
     },
     closeRevoke() {
       this.isRevokeModalVisible = false
       this.revokeTarget = null
+      this.revokeTargetTarget = null
     },
     doRevoke() {
       const target = this.revokeTarget
       if (!target) return
       this.$store
-        .dispatch('revokeShareLink', { shareLinkId: target.id, reason: 'admin' })
+        .dispatch('revokeShareLink', {
+          shareLinkId: target.id,
+          reason: 'admin',
+          target: this.revokeTargetTarget,
+        })
         .then(() => {
           // In-place обновление строки (FR-022): заменяем объект в массиве, без F5.
           const updated = Object.assign({}, target, {

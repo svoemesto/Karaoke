@@ -1,0 +1,127 @@
+==============================================================
+BR-407 / BR-409: тесты против КОДА ДО ПРАВКИ (store.js из HEAD)
+==============================================================
+$ git show HEAD:webvue3/src/components/Promotions/store.js > src/components/Promotions/store.js
+$ git show HEAD:webvue3/src/components/ShareLinks/store.js > src/components/ShareLinks/store.js
+$ cd webvue3 && node --test src/components/Promotions/__tests__/target-race.test.js src/components/ShareLinks/__tests__/target-race.test.js
+▶ BR-407: гонка цели (target) в списке акций
+  ✖ ответ прежней БД, пришедший последним, не подменяет список текущей (6.281476ms)
+  ✖ смена target очищает список до прихода ответа новой БД (0.604739ms)
+  ✖ сохранение адресуется БД показанного списка, а не текущему селекту (0.590032ms)
+  ✖ удаление адресуется БД показанного списка, а не текущему селекту (0.546411ms)
+✖ BR-407: гонка цели (target) в списке акций (9.018735ms)
+▶ BR-409: гонка цели (target) в дайджесте share-ссылок
+  ✖ ответ прежней БД, пришедший последним, не перезаписывает дайджест текущей (6.142267ms)
+  ✖ смена target очищает дайджест до прихода ответа новой БД (0.630182ms)
+  ✖ отзыв адресуется БД строки, даже если селект уже переключён (0.515921ms)
+  ✖ без явного target отзыв использует БД показанного дайджеста (0.502665ms)
+  ✖ пока дайджест не загружен, отзыв отклоняется, а не уходит в случайную БД (0.539815ms)
+✖ BR-409: гонка цели (target) в дайджесте share-ссылок (9.331834ms)
+ℹ tests 9
+ℹ suites 2
+ℹ pass 0
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 101.866785
+
+✖ failing tests:
+
+test at src/components/Promotions/__tests__/target-race.test.js:46:3
+✖ ответ прежней БД, пришедший последним, не подменяет список текущей (6.281476ms)
+  AssertionError [ERR_ASSERTION]: в таблице должны остаться акции выбранной БД, а не последнего пришедшего ответа
+  + actual - expected
+  
+    [
+  +   'local-rule'
+  -   'remote-rule'
+    ]
+  
+    diff: 'simple'
+  }
+
+test at src/components/Promotions/__tests__/target-race.test.js:70:3
+✖ смена target очищает список до прихода ответа новой БД (0.604739ms)
+  AssertionError [ERR_ASSERTION]: строки прежней БД не должны изображать данные новой
+  + actual - expected
+  
+  + [
+  +   {
+  +     id: 1,
+  +     name: 'local-rule'
+  +   }
+  + ]
+  - []
+  
+    diff: 'simple'
+  }
+
+test at src/components/Promotions/__tests__/target-race.test.js:88:3
+✖ сохранение адресуется БД показанного списка, а не текущему селекту (0.590032ms)
+  AssertionError [ERR_ASSERTION]: правка строки должна уйти в ту БД, откуда строка пришла
+  
+  'remote' !== 'local'
+  
+    diff: 'simple'
+  }
+
+test at src/components/Promotions/__tests__/target-race.test.js:113:3
+✖ удаление адресуется БД показанного списка, а не текущему селекту (0.546411ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'remote' !== 'local'
+  
+    diff: 'simple'
+  }
+
+==============================================================
+BR-397: тест против ПРЕЖНЕЙ цепочки сохранения (target читается в каждом запросе)
+==============================================================
+$ node --test src/components/NewsTemplates/__tests__/template-save-chain.test.js
+▶ BR-397: сохранение шаблона новости не расщепляется между БД
+  ✔ шов воспроизводит гонку: legacy-цепочка уводит body в другую БД (1.186063ms)
+  ✖ исправленная цепочка фиксирует target и оба значения на всю операцию (1.049208ms)
+  ✔ запросы идут последовательно: body не отправляется до ответа на title (0.257646ms)
+✖ BR-397: сохранение шаблона новости не расщепляется между БД (6.88752ms)
+ℹ tests 3
+ℹ suites 1
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 82.504101
+
+✖ failing tests:
+
+test at src/components/NewsTemplates/__tests__/template-save-chain.test.js:64:3
+✖ исправленная цепочка фиксирует target и оба значения на всю операцию (1.049208ms)
+  AssertionError [ERR_ASSERTION]: оба поля должны уйти в БД, выбранную в момент нажатия «Сохранить»
+  + actual - expected
+  
+    [
+      'local',
+  +   'remote'
+  -   'local'
+    ]
+  
+    diff: 'simple'
+  }
+
+==============================================================
+ПОСЛЕ ПРАВКИ: все тесты пакета (node --test, весь SPA)
+==============================================================
+$ cd webvue3 && npm run test:unit
+  ✔ индекс всегда в допустимом диапазоне (0.419781ms)
+  ✔ индекс не убывает вместе со временем (0.565399ms)
+  ✔ на маркере возвращается именно этот маркер (0.206728ms)
+✔ свойства ответа (1.360762ms)
+ℹ tests 127
+ℹ suites 17
+ℹ pass 127
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 154.957487

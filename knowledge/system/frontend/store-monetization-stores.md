@@ -53,7 +53,12 @@ AGENTS.md «Синхронизация LOCAL↔SERVER — критичные п�
   PriceTariff, PromoRule, Subscription, StemJob.
 - **Two-DB sync** ([two-db-sync.md](../../domains/processing/components/two-db-sync.md)) —
   sync'ятся.
+- **Target-aware запросы** ([target-request-guard.md](target-request-guard.md)) —
+  почему `promoRulesListTarget` (БД показанного списка) главнее текущего селекта:
+  BR-407, OpenProject #367.
 
 ## Changelog
 
+- **2026-10-24** (OpenProject #367, аудит #336): `Promotions` — поколение запроса,
+  `promoRulesListTarget`, очистка списка при смене target (BR-407).
 - **Pass 396** (2026-09-09): Initial. Автор: agent (Karaoke).

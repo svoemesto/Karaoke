@@ -370,9 +370,7 @@ export default {
         // BR-410: приводим к диапазону бэкенда (1..100) и грузим серверную страницу
         // через общий buildDigestParams — раньше здесь уходил ключ `perPage`,
         // которого бэкенд не знает, поэтому размер страницы терялся.
-        this.perPage = clampShareLinksPerPage(
-          this.$store.getters.getRowsPerPage('share_links'),
-        )
+        this.perPage = clampShareLinksPerPage(this.$store.getters.getRowsPerPage('share_links'))
         await this.loadPage()
       }
     },

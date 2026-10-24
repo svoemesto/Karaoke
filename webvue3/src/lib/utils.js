@@ -138,9 +138,7 @@ export function isValidDDMMYY(value) {
   const month = Number(match[2])
   const year = 2000 + Number(match[3])
   const date = new Date(year, month - 1, day)
-  return (
-    date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
-  )
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
 }
 
 /**

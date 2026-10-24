@@ -390,23 +390,33 @@ export default {
       return this.$store.getters.getBulkOperationInProgress
     },
     /**
-     * Ids для отправки в bulk-endpoint. Snapshot из server, fallback — items на текущей странице.
+     * Готовность серверного snapshot для массовых операций (BR-388).
+     */
+    bulkSelectionReady() {
+      return this.$store.getters.getIsBulkSelectionReady
+    },
+    /**
+     * Ids для отправки в bulk-endpoint. Только серверный snapshot ТЕКУЩЕГО фильтра.
+     *
+     * BR-388: fallback `this.items.map(...)` убран. Он превращал «массовую операцию по
+     * фильтру» в «операцию по видимой странице», и админ, глядя на одно число в
+     * подтверждении, удалял другой набор (id прошлого фильтра, пока новый snapshot не
+     * пришёл). Нет snapshot — нет операции (fail-closed).
      */
     effectiveBulkIds() {
-      return this.bulkSelectionIds.length > 0 ? this.bulkSelectionIds : this.items.map((i) => i.id)
+      return this.bulkSelectionReady ? this.bulkSelectionIds : []
     },
     hasBulkReport() {
       return !!this.$store.getters.getBulkOperationReport
     },
     /**
-     * Кнопка bulk-action активна, когда есть процессы в фильтре.
-     * Источник: snapshot ids (если загружен), иначе — fallback на текущий `total` фильтра.
-     * Fallback гарантирует активность кнопок даже если endpoint /bulk/snapshot
-     * не отработал (например, на самой первой загрузке до ответа бэка).
+     * Кнопка bulk-action активна только когда готов snapshot ТЕКУЩЕГО фильтра и в нём
+     * есть id (BR-388). Прежний fallback «`total > 0`» разрешал операцию до получения
+     * snapshot — то есть по id прошлой выборки.
      */
     canBulk() {
-      if (this.bulkSelectionCount > 0) return true
-      return this.total > 0
+      if (this.bulkOperationInProgress) return false
+      return this.bulkSelectionReady && this.bulkSelectionCount > 0
     },
   },
   watch: {
@@ -414,6 +424,14 @@ export default {
       handler() {
         this.loadPage()
       },
+    },
+    /**
+     * BR-388: после завершения массовой операции (sync или async-поллинг) snapshot
+     * пересчитывается. Раньше он оставался от прежнего набора, поэтому повторная
+     * операция снова отправляла уже удалённые/изменённые id.
+     */
+    bulkOperationInProgress(isInProgress) {
+      if (!isInProgress) this.loadPage()
     },
   },
   async mounted() {

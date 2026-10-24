@@ -66,7 +66,12 @@ export default {
   },
   methods: {
     repair(item) {
-      this.$store.dispatch('repairOneRecord', item)
+      // BR-380: store отказывает в ремонте, если строка относится к другой песне
+      // (fail-closed). Ловим отказ здесь, чтобы он не стал unhandled rejection.
+      this.$store.dispatch('repairOneRecord', item).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Ремонт отменён:', error)
+      })
     },
   },
 }

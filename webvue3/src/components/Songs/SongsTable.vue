@@ -45,6 +45,11 @@
         pills
       />
     </div>
+    <!-- BR-093: сбой загрузки дайджеста раньше был виден только в консоли, а таблица
+         оставалась в состоянии «загрузка». Теперь причина видна админу. -->
+    <div v-if="songsDigestsError" class="songs-load-error" role="alert">
+      {{ songsDigestsError }}
+    </div>
     <div class="songs-bv-table-body">
       <b-table
         v-model:sort-by="sortBy"
@@ -727,6 +732,9 @@ export default {
     },
     songsDigestIsLoading() {
       return this.$store.getters.getSongsDigestIsLoading
+    },
+    songsDigestsError() {
+      return this.$store.getters.getSongsDigestsError
     },
     songsDigests() {
       return this.$store.getters.getSongsDigest
@@ -2130,6 +2138,19 @@ export default {
   flex-direction: column;
   align-items: center;
   font-family: Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* BR-093: сообщение о сбое загрузки дайджеста (было видно только в консоли). */
+.songs-load-error {
+  width: fit-content;
+  max-width: 900px;
+  margin: 4px 0;
+  padding: 6px 12px;
+  border: 1px solid indianred;
+  border-radius: 6px;
+  color: indianred;
+  background: #fff5f5;
+  font-size: small;
 }
 
 .songs-bv-table-header {

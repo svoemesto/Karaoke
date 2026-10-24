@@ -5,7 +5,7 @@
 # Подкоманды:
 #   list-projects                                  — список проектов
 #   list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review]
-#                  [--limit N]                     — список задач (work packages)
+#                  [--limit N] [--raw]               — список задач (work packages)
 #   get-issue ID                                   — детали задачи (JSON)
 #   claim-issue ID                                 — назначить на агента + In progress
 #   mark-review ID                                 — перевести в In review (работа готова)
@@ -53,9 +53,11 @@ SUBCOMMANDS:
     list-projects
         Список всех проектов в OpenProject.
 
-    list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review] [--limit N]
+    list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review] [--limit N] [--raw]
         Список задач (work packages) с фильтрацией.
         Пример: ./tools/tracker.sh list-issues --assignee ai-agent --status open
+        --raw — TSV без выравнивания `column -t` (для машинного разбора;
+          по умолчанию — выровненный человекочитаемый вывод).
 
     get-issue ID
         Детали задачи в формате JSON.
@@ -144,17 +146,19 @@ case "$SUBCOMMAND" in
         ;;
 
     list-issues)
-        PROJECT_ID="" ASSIGNEE="" STATUS="" LIMIT="50"
+        PROJECT_ID="" ASSIGNEE="" STATUS="" LIMIT="50" RAW="0"
         while [ $# -gt 0 ]; do
             case "$1" in
                 --project-id) PROJECT_ID="$2"; shift 2 ;;
                 --assignee) ASSIGNEE="$2"; shift 2 ;;
                 --status) STATUS="$2"; shift 2 ;;
                 --limit) LIMIT="$2"; shift 2 ;;
+                # BR-602: TSV без выравнивания `column -t` (машинный вывод).
+                --raw) RAW="1"; shift ;;
                 *) echo "${C_RED}ERROR${C_RESET}: unknown flag: $1" >&2; exit 1 ;;
             esac
         done
-        tracker_list_issues "$PROJECT_ID" "$ASSIGNEE" "$STATUS" "$LIMIT"
+        tracker_list_issues "$PROJECT_ID" "$ASSIGNEE" "$STATUS" "$LIMIT" "$RAW"
         ;;
 
     get-issue)

@@ -22,7 +22,15 @@
 #   - tracker_reopen_issue() — PATCH /api/v3/work_packages/{id} (status → open)
 # =====================================================================
 
-set -euo pipefail
+# BR-611: библиотека ПОДКЛЮЧАЕТСЯ через `source` — она не имеет права
+# менять настройки вызывающего шелла. Раньше здесь стояло `set -euo pipefail`,
+# и `source tracker-lib.sh` включал errexit обратно в скриптах, которые
+# явно его отключают (tools/tracker-bootstrap.sh, tools/tracker-implement-done.sh:
+# `set -uo pipefail`) и строят на этом свой контракт кодов возврата (0/1/2).
+# Теперь каждый вызывающий скрипт задаёт режим шелла сам:
+#   - tracker.sh, tracker-poll.sh, tracker-spec-for-issue.sh → `set -euo pipefail`
+#   - tracker-bootstrap.sh, tracker-implement-done.sh      → `set -uo pipefail`
+# Библиотека использует только локальные проверки кодов возврата.
 
 # --- Константы ---
 TRACKER_LIB_VERSION="295.2.0"
@@ -361,6 +369,7 @@ tracker_list_issues() {
     local assignee="${2:-}"
     local status="${3:-}"  # "open" | "closed" | пустое (все)
     local limit="${4:-50}"
+    local raw="${5:-0}"    # BR-602: 1 — TSV без выравнивания `column -t`
 
     # Строим массив фильтров
     local filters_array="[]"
@@ -422,16 +431,33 @@ tracker_list_issues() {
     response=$(tracker_http_request GET "/api/v3/work_packages?filters=${filters_encoded}&pageSize=${limit}" "" "list-issues")
 
     # Парсим и выводим
-    echo "$response" | jq -r '
-        ["ID", "SUBJECT", "STATUS", "ASSIGNEE", "TYPE"] as $headers |
-        ($headers, (._embedded.elements[]? | [
-            (.id | tostring),
-            (.subject // "-"),
-            (._links.status.title // .status.title // .status.name // "-"),
-            (._links.assignee.title // .assignee.name // "unassigned"),
-            (._links.type.title // .type.title // .type.name // "-")
-        ])) | @tsv
-    ' | column -t -s $'\t'
+    # BR-602: по умолчанию — выровненный `column -t` вывод (человекочитаемый).
+    # С `--raw` отдаём настоящий TSV (колонки разделены табом) — этот режим
+    # нужен машинным потребителям: `column -t` заменяет табы пробелами, и
+    # разбор по табу не работает.
+    if [[ "$raw" == "1" ]]; then
+        echo "$response" | jq -r '
+            ["ID", "SUBJECT", "STATUS", "ASSIGNEE", "TYPE"] as $headers |
+            ($headers, (._embedded.elements[]? | [
+                (.id | tostring),
+                (.subject // "-"),
+                (._links.status.title // .status.title // .status.name // "-"),
+                (._links.assignee.title // .assignee.name // "unassigned"),
+                (._links.type.title // .type.title // .type.name // "-")
+            ])) | @tsv
+        '
+    else
+        echo "$response" | jq -r '
+            ["ID", "SUBJECT", "STATUS", "ASSIGNEE", "TYPE"] as $headers |
+            ($headers, (._embedded.elements[]? | [
+                (.id | tostring),
+                (.subject // "-"),
+                (._links.status.title // .status.title // .status.name // "-"),
+                (._links.assignee.title // .assignee.name // "unassigned"),
+                (._links.type.title // .type.title // .type.name // "-")
+            ])) | @tsv
+        ' | column -t -s $'\t'
+    fi
 }
 
 # =====================================================================

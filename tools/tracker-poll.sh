@@ -83,14 +83,17 @@ fi
 echoerr() { echo "$@" >&2; }
 
 # 1. Открытые задачи (New/In progress/In review)
-OPEN_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status open --limit "$LIMIT" 2>&1 || true)
+# BR-602: `--raw` — TSV без выравнивания `column -t`: колонки разделены
+# табом, поэтому разбор по табу корректен (в human-режиме `column -t`
+# заменяет табы пробелами, и `split("\t")` давал одну колонку).
+OPEN_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status open --limit "$LIMIT" --raw 2>&1 || true)
 OPEN_CODE=$?
 
 # 2. Задачи в работе (In progress, narrow status filter)
-IN_PROG_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status in-review --limit "$LIMIT" 2>&1 || true)
+IN_PROG_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status in-review --limit "$LIMIT" --raw 2>&1 || true)
 
 # 3. Задачи за последние 7 дней (для сводки)
-RECENT_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status closed --limit 5 2>&1 || true)
+RECENT_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status closed --limit 5 --raw 2>&1 || true)
 
 # Парсим вывод: 1-я строка — заголовок, дальше — данные
 parse_lines() {
@@ -102,8 +105,12 @@ IN_PROG_COUNT=$(parse_lines "$IN_PROG_LIST" | wc -l)
 RECENT_COUNT=$(parse_lines "$RECENT_LIST" | wc -l)
 
 if [ "$MODE" = "json" ]; then
-    # JSON-вывод для парсинга
-    OPEN_JSON=$(parse_lines "$OPEN_LIST" | jq -R 'split("\t") | {id: .[0], subject: .[1], status: .[2]}' 2>/dev/null | jq -s '.' 2>/dev/null || echo '[]')
+    # JSON-вывод для парсинга. BR-602: источник — TSV (`--raw`), поэтому
+    # разбор по табу; строки без таба (например, текст ошибки в stderr)
+    # отбрасываются, чтобы в JSON не попадали мусорные записи.
+    OPEN_JSON=$(parse_lines "$OPEN_LIST" \
+        | jq -R 'select(contains("\t")) | split("\t") | {id: .[0], subject: .[1], status: .[2]}' 2>/dev/null \
+        | jq -s '.' 2>/dev/null || echo '[]')
     cat <<EOF
 {
   "polled_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",

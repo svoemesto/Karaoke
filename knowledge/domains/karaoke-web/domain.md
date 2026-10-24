@@ -232,6 +232,7 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 - [public-controllers-5](components/public-controllers-5.md) — обзор 5 мелких Public-контроллеров.
 - [public-controllers-6](components/public-controllers-6.md) — обзор 7 critical Public-контроллеров (средние).
 - [public-controllers](components/public-controllers.md) — детальный обзор 19 Public* контроллеров.
+- [public-spa-clients](components/public-spa-clients.md) — публичный SPA `karaoke-public`: границы доверия (XSS в редакторе), гонка загрузки плеера, жизненный цикл share-сессии, отказоустойчивость экранов (сеть/таймаут/статус оплаты).
 - [services-overview](components/services-overview.md) — детальный каталог 25 services.
 - [song-share-link-service](components/song-share-link-service.md) — `SongShareLinkService` — самый большой сервис karaoke-web (1130 строк).
 - [thymeleaf-templates](components/thymeleaf-templates.md) — 8 Thymeleaf-шаблонов `templates/`.
@@ -282,6 +283,12 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 
 ## Changelog
 
+- **2026-10-25** (OpenProject #377, пакет PKG-S2-14 аудита #336): добавлена компонента
+  [public-spa-clients](components/public-spa-clients.md) — клиентские инварианты публичного
+  SPA `karaoke-public` (экранирование меток, поколение загрузки трека, release share-сессии
+  только на уходе со страницы, таймаут XHR, состояния оплаты/капчи/чата). 13 записей:
+  BR-295, BR-302, BR-303, BR-312, BR-313, BR-319, BR-327, BR-328, BR-329, BR-330, BR-339,
+  BR-340, BR-350.
 - **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): добавлено
   «Решение 5: Адрес источника запроса» — единое правило `X-Real-IP` → последний элемент
   `X-Forwarded-For` → TCP-peer (`util/ClientIpResolver`); перечислены потребители правила

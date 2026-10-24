@@ -90,7 +90,12 @@ class VkPreviewWarmupClient(
     private val baseUrl: String = KaraokeProperties.getString("vkPreviewWarmupUrl").trim().trimEnd('/'),
     private val timeoutMs: Long = KaraokeProperties.getLong("vkPreviewWarmupTimeoutMs").coerceAtLeast(1_000L),
     private val maxAttempts: Int = KaraokeProperties.getLong("vkPreviewWarmupMaxAttempts").toInt().coerceAtLeast(1),
-    private val enabled: Boolean = KaraokeProperties.getBoolean("vkPreviewWarmupEnabled"),
+    // BR-148 (аудит #336): null = читать KaraokeProperties на каждом вызове.
+    // Раньше значение фиксировалось в конструкторе синглтона, поэтому аварийный
+    // откат `vkPreviewWarmupEnabled=false` из админки не действовал до рестарта:
+    // warmup продолжал блокировать публикацию (SEND_FAILED). Тесты передают
+    // явный Boolean и сохраняют прежний шов.
+    enabled: Boolean? = null,
     private val httpClient: HttpClient =
         HttpClient
             .newBuilder()
@@ -98,6 +103,11 @@ class VkPreviewWarmupClient(
             .followRedirects(HttpClient.Redirect.NEVER)
             .build(),
 ) {
+    private val enabledOverride: Boolean? = enabled
+
+    /** Актуальное значение флага: явный override (тесты) либо живая настройка. */
+    private fun isEnabled(): Boolean = enabledOverride ?: KaraokeProperties.getBoolean("vkPreviewWarmupEnabled")
+
     /**
      * Выполняет прогрев превью для [songId]. Возвращает [VkPreviewWarmupResult]
      * со статусом и диагностикой. При `enabled=false` возвращает
@@ -107,7 +117,7 @@ class VkPreviewWarmupClient(
      * @return [VkPreviewWarmupResult] — никогда не null.
      */
     fun warmup(songId: Long): VkPreviewWarmupResult {
-        if (!enabled) {
+        if (!isEnabled()) {
             return VkPreviewWarmupResult(
                 status = VkPreviewWarmupStatus.BYPASS,
                 songId = songId,

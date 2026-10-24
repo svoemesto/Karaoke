@@ -273,13 +273,25 @@ class KaraokeStorageServiceImpl(
             emptyValue = null,
         )
 
+    /**
+     * Удаляет пустые бакеты **только самого Karaoke** (BR-162, аудит #336).
+     *
+     * Раньше перебирались все бакеты инстанса MinIO (`listBuckets()`), и любой
+     * пустой удалялся вместе с policy; повторный `createBucketIfNotExists` policy
+     * не восстанавливает. Теперь — явный allow-list бакетов Karaoke.
+     */
     override fun deleteAllEmptyBuckets() {
         try {
-            // Получаем список всех бакетов
+            val allowedBuckets = KARAOKE_STORAGE_BUCKETS
+            // Получаем список бакетов и фильтруем чужие.
             val buckets = storageClient.listBuckets()
 
             for (bucket in buckets) {
                 val bucketName = bucket.name()
+                if (bucketName !in allowedBuckets) {
+                    println("Skipping non-Karaoke bucket: $bucketName")
+                    continue
+                }
                 println("Checking bucket: $bucketName")
 
                 // Проверяем, пустой ли бакет
@@ -326,6 +338,19 @@ class KaraokeStorageServiceImpl(
         } catch (e: MinioException) {
             throw RuntimeException("Failed to list buckets: ${e.message}", e)
         }
+    }
+
+    companion object {
+        /**
+         * Бакеты, которыми владеет Karaoke (BR-162): `karaoke` — публичные
+         * артефакты, `stemjobs` — результаты платной «Создать минусовку».
+         * Уборка не должна трогать чужие бакеты инстанса.
+         */
+        internal val KARAOKE_STORAGE_BUCKETS: Set<String> =
+            setOf(
+                com.svoemesto.karaokeapp.model.StemJob.PUBLIC_STORAGE_BUCKET,
+                com.svoemesto.karaokeapp.model.StemJob.STORAGE_BUCKET,
+            )
     }
 
     override fun createBucketIfNotExists(bucketName: String) {

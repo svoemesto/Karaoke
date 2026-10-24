@@ -23,6 +23,8 @@ import com.svoemesto.karaokeweb.util.ClientIpResolver
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
@@ -49,8 +51,31 @@ class MainController(
     // specs/293-skip-author-toggle: резолвер текущего пользователя для прокидывания canWorkWithSkipped
     // в фильтры SKIP (см. /zakroma).
     private val siteUserResolver: SiteUserResolver,
+    // Секрет заголовка X-Internal-Secret для эндпоинта двух-БД синхронизации POST /changerecords
+    // (спека 554, OpenProject #357). Задаётся env SYNC_INTERNAL_SECRET (application.yml:
+    // sync.internal-secret); на стороне отправителя (karaoke-app) — свойством
+    // Karaoke.syncInternalSecret. Пустое значение = секрет не настроен → доступ закрыт (fail-safe).
+    @Value($$"{sync.internal-secret:}") private val syncInternalSecret: String,
 ) {
     private val log = LoggerFactory.getLogger(MainController::class.java)
+
+    // Категория журнала безопасности синхронизации (спека 554, research D4) — отдельная от
+    // infra.sync.remote (она описывает клиентскую сторону).
+    private val syncSecurityLog = LoggerFactory.getLogger("infra.sync.security")
+
+    companion object {
+        /**
+         * Заголовок с общим секретом синхронизации — тот же контракт, что у internal-эндпоинтов
+         * `InternalStemJobController` (`stemjobs.internal-secret`).
+         */
+        const val SYNC_SECRET_HEADER = "X-Internal-Secret"
+
+        /** Тело ответа при отказе по внутреннему секрету: коротко и без деталей (FR-006). */
+        const val FORBIDDEN_BODY = "Forbidden"
+
+        /** Тело ответа при внутренней ошибке обработки: без текста ошибки БД (FR-006). */
+        const val INTERNAL_ERROR_BODY = "Internal error"
+    }
 
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
@@ -299,25 +324,65 @@ class MainController(
         return true
     }
 
-    @Suppress("UNCHECKED_CAST")
+    /**
+     * Приём изменений для двух-БД синхронизации (`POST /changerecords`).
+     *
+     * Эндпоинт по контракту **внутренний** (server-to-server): его единственный легитимный
+     * вызывающий — служба синхронизации на админской машине (`karaoke-app`). Поэтому запрос
+     * обязан нести общий секрет в заголовке [SYNC_SECRET_HEADER] (спека 554, FR-001…FR-004).
+     *
+     * Формат тела и семантика применения SQL-действий НЕ менялись (FR-011): то же
+     * кодовое слово, те же три набора действий, тот же порядок. Транзакционность
+     * применения — отдельная задача (BR-012), здесь она не меняется.
+     */
     @PostMapping("/changerecords")
     @ResponseBody
     fun doChangeRecords(
         @RequestBody(required = true) data: Map<String, Any>,
-    ): String {
+        request: HttpServletRequest,
+    ): ResponseEntity<String> = handleChangeRecords(data, request) { WORKING_DATABASE.getConnection() }
+
+    /**
+     * Тело обработчика [doChangeRecords] с тест-швом [connectionProvider].
+     *
+     * [connectionProvider] — seam для unit-тестов: подставляется поддельное JDBC-соединение,
+     * чтобы проверить, что при отказе по внутреннему секрету НИ ОДНА SQL-команда не выполнена.
+     * В рантайме это обычное соединение с рабочей БД.
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal fun handleChangeRecords(
+        data: Map<String, Any>,
+        request: HttpServletRequest,
+        connectionProvider: () -> java.sql.Connection?,
+    ): ResponseEntity<String> {
+        // 1. Внутренний секрет — ПЕРВЫЙ рубеж (второй — сетевой фильтр nginx по адресу
+        //    админской машины). При отказе тело запроса не разбирается и ни одна команда
+        //    не выполняется; наружу уходит короткий 403 без деталей (FR-006).
+        val denialReason = syncDenialReason(request)
+        if (denialReason != null) {
+            // Тело запроса и текст ошибки БД в журнал НЕ пишутся (FR-007) — только время,
+            // адрес источника и причина отказа.
+            syncSecurityLog.warn(
+                "sync:security:denied reason={} source={} time={}",
+                denialReason,
+                syncSourceAddress(request),
+                Timestamp.from(Instant.now()),
+            )
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(FORBIDDEN_BODY)
+        }
         var result = "OK"
         try {
             val word = data["word"] as String
-            if (Crypto.decrypt(word) != Crypto.WORDS_TO_CHECK) return "Не удалось расшифровать кодовое слово"
+            if (Crypto.decrypt(word) != Crypto.WORDS_TO_CHECK) return ResponseEntity.ok("Не удалось расшифровать кодовое слово")
 
             val dataCreate = data["dataCreate"] as List<Map<String, Any>>
             val dataUpdate = data["dataUpdate"] as List<Map<String, Any>>
             val dataDelete = data["dataDelete"] as List<Map<String, Any>>
 
-            val connection = WORKING_DATABASE.getConnection()
+            val connection = connectionProvider()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
-                return "ERROR: Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}"
+                log.warn("changerecords: нет соединения с базой данных {} — действия не применены", WORKING_DATABASE.name)
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(INTERNAL_ERROR_BODY)
             }
             // Флаг «доступна для новости» (specs/101-song-news-flag, FR-004 spec.md) — для каждой
             // затронутой строки tbl_songs запоминаем значение ДО применения изменения (для dataUpdate
@@ -388,9 +453,49 @@ class MainController(
                 println("[${Timestamp.from(Instant.now())}] SongReleaseAnnouncementService.detectAndAnnounceAvailability error: ${e.message}")
             }
         } catch (e: Exception) {
-            return e.message!!
+            // Текст ошибки БД наружу НЕ отдаём (спека 554, FR-006): в тексте исключения могут
+            // быть имена таблиц/колонок и детали схемы. Клиенту — нейтральный 5xx, подробности —
+            // в журнал приложения.
+            log.warn("changerecords: ошибка применения изменений: {}", e.message ?: e::class.simpleName)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(INTERNAL_ERROR_BODY)
         }
-        return result
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * Проверка внутреннего секрета для [doChangeRecords] (fail-safe).
+     *
+     * **Важно (спека 554, research D2)**: сравнение выполняется ТОЛЬКО при непустом настроенном
+     * секрете. Образец `InternalStemJobController.authorized()` сравнивает заголовок «как есть» —
+     * при незаданном секрете (`""`) и запросе с ПРИСУТСТВУЮЩИМ, но пустым заголовком сравнение
+     * прошло бы и доступ открылся бы (ровно та ловушка, которую эта правка закрывает).
+     *
+     * @return причина отказа (`missing_secret` / `invalid_secret` / `secret_not_configured`)
+     *         либо `null`, если запрос разрешён.
+     */
+    private fun syncDenialReason(request: HttpServletRequest): String? {
+        if (syncInternalSecret.isBlank()) return "secret_not_configured"
+        val provided = request.getHeader(SYNC_SECRET_HEADER)
+        if (provided == null) return "missing_secret"
+        if (provided != syncInternalSecret) return "invalid_secret"
+        return null
+    }
+
+    /**
+     * Адрес источника запроса для журнала безопасности синхронизации.
+     *
+     * Берём `X-Real-IP` — его выставляет НАШ nginx (`proxy_set_header X-Real-IP $remote_addr;`,
+     * `deploy/prod-single-host/80to8897:79`) — и НЕ `X-Forwarded-For`: этот заголовок клиент
+     * подделывает (дефект аудита BR-003 «xff-first-element»), поэтому адрес из XFF в журнале
+     * безопасности не является доказательством. Общий [ClientIpResolver] здесь намеренно не
+     * используется (его правка — отдельная задача BR-003).
+     *
+     * Фолбэк — `request.remoteHost`: адрес docker-шлюза, когда запрос пришёл без nginx.
+     */
+    private fun syncSourceAddress(request: HttpServletRequest): String {
+        val realIp = request.getHeader("X-Real-IP")?.trim()
+        if (!realIp.isNullOrEmpty()) return realIp
+        return request.remoteHost
     }
 
     @GetMapping("/filter")

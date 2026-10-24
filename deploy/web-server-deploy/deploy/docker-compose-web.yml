@@ -32,6 +32,9 @@ services:
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
       - STEMJOBS_INTERNAL_SECRET=${STEMJOBS_INTERNAL_SECRET}
+      # Секрет заголовка X-Internal-Secret для эндпоинта двуx-БД синхронизации
+      # POST /changerecords (karaoke-web → sync.internal-secret). Пусто = доступ закрыт (fail-safe).
+      - SYNC_INTERNAL_SECRET=${SYNC_INTERNAL_SECRET}
       - VK_CLIENT_SECRET=${VK_CLIENT_SECRET}
       - VK_APP_ID=${VK_APP_ID}
       - VK_REDIRECT_URI=${VK_REDIRECT_URI}

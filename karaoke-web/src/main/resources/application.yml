@@ -66,6 +66,14 @@ stemjobs:
   temp-dir: ${STEMJOBS_TEMP_DIR:/tmp/stemjobs}
   internal-secret: ${STEMJOBS_INTERNAL_SECRET:}
 
+sync:
+  # Внутренний секрет двуx-БД синхронизации (POST /changerecords) — общий секрет заголовка
+  # X-Internal-Secret с karaoke-app (Karaoke.syncInternalSecret). Пусто по умолчанию →
+  # эндпоинт закрыт (fail-safe): сравнение выполняется ТОЛЬКО при непустом настроенном
+  # секрете, поэтому «пустой секрет + пустой заголовок» НЕ открывает доступ
+  # (см. research D5/D2 в specs/554-close-public-sql-endpoint).
+  internal-secret: ${SYNC_INTERNAL_SECRET:}
+
 storage:
   # Базовый URL хранилища для исходящих вызовов из karaoke-web (загрузка, url,
   # presigned-url, download, delete). Раньше был зашит в WebClientConfig строкой

@@ -74,7 +74,7 @@ SERVER, и наоборот, согласно per-target флагам. Такж�
 
 - `runEntitySync(key, direction, id?): SyncResult` — одна entity по ключу (`Utils.kt:1039`).
 - `updateDatabases(fromDatabase, toDatabase, keys, idFilter): SyncResult` — низкоуровневая логика (`Utils.kt:1059`).
-- `SyncRemoteClient.postChangeRecords(body): Boolean` — POST на `/changerecords`; `false` при исчерпании попыток (`services/SyncRemoteClient.kt`).
+- `SyncRemoteClient.postChangeRecords(body): Boolean` — POST на `/changerecords`; `false` при исчерпании попыток (`services/SyncRemoteClient.kt`). Спека 554 (#357): в каждый запрос добавляется заголовок `X-Internal-Secret` со значением `Karaoke.syncInternalSecret`; ответ `403` (нет/неверный секрет) — отказ по правам, повтор НЕ выполняется (сетевые ошибки — по-прежнему 1 retry).
 
 ### HTTP-контракты
 
@@ -85,7 +85,7 @@ SERVER, и наоборот, согласно per-target флагам. Такж�
 | `POST /sync/run` | Параметры `key`, `direction`, `id?`; `403 sync_not_allowed`, если направление запрещено; возвращает `SyncRunResultDto`. |
 | `POST /sync/oneclick` | Прогон всех targets по их `oneClickDirection`; `403 vpn_active` при активном VPN; `409 sync_in_progress`, если занят `AutoOneClickSyncScheduler.running`; возвращает `List<SyncOneClickResultDto>`. |
 | `POST /utils/tosync` | Параметр `id` — добавляет одну песню в sync-таблицу. |
-| `POST /changerecords` (karaoke-web) | Тело: `word` (зашифрованное кодовое слово) + `dataCreate`/`dataUpdate`/`dataDelete`; возвращает `String` (`"OK"` или текст ошибки). См. [main-controller.md](../../karaoke-web/components/main-controller.md). |
+| `POST /changerecords` (karaoke-web) | **Внутренний (server-to-server) эндпоинт**: требует заголовок `X-Internal-Secret` (секрет синхронизации; без него — `403`, ни одной SQL-команды не выполняется). Тело: `word` (зашифрованное кодовое слово) + `dataCreate`/`dataUpdate`/`dataDelete`; ответ `200` — строка прежнего формата (`"OK"`-подобная), `403` — отказ по ключу, `5xx` — внутренняя ошибка без текста ошибки БД. Второй рубеж — сетевой фильтр nginx по адресу админской машины (`deploy/prod-single-host/80to8897`). См. [main-controller.md](../../karaoke-web/components/main-controller.md). |
 
 DTO контрактов (`SyncEntityInfoDto`, `SyncRunResultDto`,
 `SyncOneClickResultDto`) объявлены в `controllers/ApiController.kt:146/168/180`.
@@ -135,6 +135,8 @@ LOCAL. Это значит, что **repair-процессы не видны п�
 3. Для каждой операции: HTTP POST на /changerecords (server-side endpoint).
    Pass 431 (#155): через `SyncRemoteClient` — таймауты 10s/60s, 1 retry (2s) на
    транзиентные сетевые сбои, ошибка не пропагируется (см. run-entity-sync.md).
+   Спека 554 (#357): запрос несёт заголовок `X-Internal-Secret` (внутренний секрет
+   синхронизации); `403` = отказ по правам (повтора нет), сетевые ошибки — как раньше.
 4. Chunks по DELETE_CHUNK_SIZE = 200 для DELETE.
 5. Логировать результат: created/updated/deleted/moved counts.
 ```
@@ -215,15 +217,17 @@ NB: `recordhash` — md5 от канонизированной строки та
   `KaraokeProcess` НЕ в sync — repair-процессы только LOCAL.
 - **Two-DB sync + Monitoring**: `AutoOneClickSyncStatusController`
   отдаёт последние 10 тиков для UI.
-- **Web side**: `/changerecords` endpoint принимает sync-операции.
+- **Web side**: `/changerecords` endpoint принимает sync-операции (защищён внутренним
+  секретом `X-Internal-Secret` + сетевым фильтром nginx, спека 554).
 
 ## Известные TODO
 
 - [ ] **recordhash-триггеры** — где определены, как пересоздаются
       при миграциях.
 - [x] **`runEntitySync`** в `Utils.kt` — описан в [run-entity-sync.md](run-entity-sync.md).
-- [ ] **`/changerecords`** на web-стороне — endpoint для
-      приёма операций.
+- [x] **`/changerecords`** на web-стороне — endpoint для
+      приёма операций (контракт и защита — [main-controller.md](../../karaoke-web/components/main-controller.md),
+      спека 554).
 - [ ] **Why NOT cluster lock**: karaoke-app — desktop, однопроцессный.
       Что если два админа одновременно запустят sync?
 - [ ] **`AutoOneClickSyncStatusController`** — где, какие поля
@@ -256,5 +260,6 @@ NB: `recordhash` — md5 от канонизированной строки та
 
 ## Changelog
 
+- **Спека 554** (2026-10-24, OpenProject #357, аудит BR-011): контракт `POST /changerecords` дополнен внутренним секретом `X-Internal-Secret` (клиент шлёт, сервер требует; `403` без повтора) и сетевым рубежом nginx. Автор: agent (Karaoke).
 - **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).

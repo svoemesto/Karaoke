@@ -18,7 +18,8 @@ repos:
       # === Guard: GRADLE_USER_HOME (Pass 372, OP #83) ===
       # Ловит ситуацию, когда pre-commit вызывают без export GRADLE_USER_HOME=...
       # и хук ktlint упадёт с read-only FileNotFoundException.
-      # См. AGENTS.md § «Gradle: запуск с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle».
+      # См. AGENTS.md § «Gradle: запуск с GRADLE_USER_HOME» (BR-581: путь —
+      # от корня репозитория, без хардкода пути машины).
       - id: gradle-user-home-guard
         name: gradle-user-home guard (Pass 372)
         entry: bash tools/check-gradle-user-home.sh --quiet
@@ -30,7 +31,8 @@ repos:
       # === Guard: DOCKER_CONFIG (Pass 373, OP #83 follow-up) ===
       # Ловит ситуацию, когда docker build выполняется без правильного
       # DOCKER_CONFIG, и buildx падает с read-only в ~/.docker/buildx/activity.
-      # См. AGENTS.md § «Docker build: DOCKER_CONFIG=/home/nsa/Karaoke/.docker».
+      # См. AGENTS.md § «Docker build: DOCKER_CONFIG» (BR-581: путь —
+      # от корня репозитория, без хардкода пути машины).
       - id: docker-config-guard
         name: docker-config guard (Pass 373)
         entry: bash tools/check-docker-config.sh --quiet
@@ -176,7 +178,9 @@ repos:
         name: ktlint (Kotlin formatter)
         # Pass 372: правило GRADLE_USER_HOME применяется ТРАНЗИТИВНО —
         # этот hook сам вызывает ./gradlew, поэтому ОБЯЗАН передать env var.
-        entry: bash -c 'GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle JAVA_HOME=/usr/lib/jvm/jdk-18 ./gradlew ktlintCheck'
+        # BR-581: путь — от корня репозитория (общий кэш главного checkout'а),
+        # без хардкода пути машины.
+        entry: bash -c 'COMMON="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"; GRADLE_USER_HOME="${GRADLE_USER_HOME:-$(dirname "${COMMON:-.}")/.gradle}" JAVA_HOME=/usr/lib/jvm/jdk-18 ./gradlew ktlintCheck'
         language: system
         pass_filenames: false
         types_or: [kotlin, java]

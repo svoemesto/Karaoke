@@ -49,7 +49,17 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -f "$LOCK" ]] || { echo "ERROR: lock-файл не найден: $LOCK" >&2; exit 2; }
-[[ -n "${DOCKER_CONFIG:-}" ]] || export DOCKER_CONFIG=/home/nsa/Karaoke/.docker
+# BR-581: DOCKER_CONFIG — из корня репозитория (общий кэш главного checkout'а),
+# а не зашитый путь одной машины. Переопределение — KARAOKE_DOCKER_CONFIG.
+if [[ -z "${DOCKER_CONFIG:-}" ]]; then
+  _main_root="$REPO_ROOT"
+  _common_dir="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [[ -n "$_common_dir" && -d "$_common_dir" ]]; then
+    _main_root="$(dirname "$_common_dir")"
+  fi
+  export DOCKER_CONFIG="${KARAOKE_DOCKER_CONFIG:-$_main_root/.docker}"
+  unset _main_root _common_dir
+fi
 
 find_doenv() {
   for f in "$PWD/do.env" "$PWD/deploy/prod-single-host/do.env" \

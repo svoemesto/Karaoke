@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.4.1 | **Last updated**: 2026-09-30 (Pass 381: исправлен неверный путь эндпоинтов очереди в Pass 380 — `GET /api/process/stop` отдаёт 404).
+> **Версия**: 3.5.0 | **Last updated**: 2026-10-24 (BR-581: `GRADLE_USER_HOME` / `DOCKER_CONFIG` — от корня репозитория, без хардкода пути машины).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -116,10 +116,15 @@
 **Rule**: gradle с `GRADLE_USER_HOME`. Docker с `DOCKER_CONFIG`. Контейнеры — через
 `deploy/do.sh`. Frontend — через `cd <dir> && npm run`.
 
+Пути `GRADLE_USER_HOME` / `DOCKER_CONFIG` — **относительно корня репозитория**
+(общий кэш главного checkout'а; в worktree — `dirname $(git rev-parse
+--path-format=absolute --git-common-dir)`). Не хардкодить путь конкретной
+машины: на `dev-pc` (вторая машина матрицы) проект лежит по другому пути.
+
 | Под-правило | Rule | Failure | Enforcement |
 |---|---|---|---|
-| **Gradle (R-372)** | `./gradlew ...` с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` | read-only FS в DSH-sandbox | `check-gradle-user-home.sh` |
-| **Docker (R-373)** | `docker build` / `do.sh build_*` с `DOCKER_CONFIG=/home/nsa/Karaoke/.docker` | read-only `~/.docker/buildx/activity/` | `check-docker-config.sh` |
+| **Gradle (R-372)** | `./gradlew ...` с `GRADLE_USER_HOME="${GRADLE_USER_HOME:-<repo-root>/.gradle}"` | read-only FS в DSH-sandbox | `check-gradle-user-home.sh` |
+| **Docker (R-373)** | `docker build` / `do.sh build_*` с `DOCKER_CONFIG="${DOCKER_CONFIG:-<repo-root>/.docker}"` | read-only `~/.docker/buildx/activity/` | `check-docker-config.sh` |
 | **Containers (R-374)** | Только через `deploy/do.sh start_<c>` / `restart_<c>`. **Запрещено** `docker restart <c>`. | потеря зависимостей + обход согласия | `check-container-restart.sh` |
 | **Frontend (R-375)** | `cd <frontend-dir> && npm run` (`webvue3/` или `karaoke-public/`). В корне `package.json` **нет**. | `npm run` из корня → node_modules не найден | `check-frontend-build.sh` |
 
@@ -262,14 +267,17 @@ Pass 358 (R-09), Pass 353 (R-09).
 **Rule**: Vite-build ≠ Docker-образ. **Все gradle с `GRADLE_USER_HOME`**.
 
 ```bash
+# 0. Один раз задать переносимые пути (корень репозитория — без пути машины):
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.gradle}"
+
 # 1. Backend compile
-GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel
+./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel
 # 2. Линтеры
-GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:ktlintCheck
+./gradlew :karaoke-web:ktlintCheck
 cd webvue3 && npm run lint && cd ..
 cd karaoke-public && npm run lint && cd ..
 # 3. Backend bootJar (на nsa-i9 — также :karaoke-app:bootJar)
-GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:bootJar --parallel
+./gradlew :karaoke-web:bootJar --parallel
 # 4. Frontend Vite
 cd webvue3 && npm run build && npm run format:check && cd ..
 cd karaoke-public && npm run build && npm run format:check && cd ..
@@ -282,6 +290,16 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.5.0** (2026-10-24, BR-581, OpenProject #390): `GRADLE_USER_HOME` и
+  `DOCKER_CONFIG` — **от корня репозитория**, без хардкода пути машины.
+  Раньше в правиле стоял путь `/home/nsa/Karaoke/...`; на `dev-pc`
+  (вторая машина матрицы) такого каталога нет, и pre-commit-хуки
+  `gradle-user-home-guard` / `docker-config-guard` падали на каждом коммите.
+  Теперь guard'ы выводят ожидаемый путь из корня репозитория
+  (`git rev-parse --path-format=absolute --git-common-dir`), переопределение —
+  `KARAOKE_GRADLE_USER_HOME` / `KARAOKE_DOCKER_CONFIG`. Смысл правил
+  (writable-каталог внутри проекта вместо read-only `~/.gradle` / `~/.docker`)
+  не изменился.
 - **3.4.1** (2026-09-30, Pass 381): в Pass 380 указан неверный путь эндпоинтов
   очереди — `GET /api/process/stop` отдаёт 404. Эндпоинты `start`/`stop`/
   `isworking` живут в `MainController` без префикса `/api` и nginx их не

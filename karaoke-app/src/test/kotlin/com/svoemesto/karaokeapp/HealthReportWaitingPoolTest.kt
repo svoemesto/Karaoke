@@ -9,7 +9,10 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
 import org.mockito.Mockito
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -25,13 +28,27 @@ import java.util.concurrent.TimeUnit
  * Worker-loop зависит от `HealthReport.recomputeAndBroadcast` (обращения в БД/MinIO),
  * поэтому в тестах `waitingWorkersEnabled = false` — пул проверяется напрямую.
  */
+@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class HealthReportWaitingPoolTest {
     private lateinit var pool: HealthReportBatchPool
+
+    /**
+     * Значение статической ссылки [HealthReport.healthReportBatchPool] до теста.
+     *
+     * Ссылка статическая: без восстановления она продолжала бы указывать на
+     * уже остановленный пул с mock-зависимостями, и следующий тест того же
+     * JVM получил бы `RejectedExecutionException` вместо корректной работы.
+     */
+    private var globalPoolBeforeTest: HealthReportBatchPool? = null
+
+    /** Значение статической ссылки до теста подмены (см. `@Order(90)`). */
+    private var globalBeforeAttach: HealthReportBatchPool? = null
 
     @BeforeEach
     fun setUp() {
         HealthReportBatchPool.resetLastSentQueueSizeForTest()
         HealthReportBatchPool.resetLastSentWaitingPoolSizeForTest()
+        globalPoolBeforeTest = HealthReport.healthReportBatchPool
         pool =
             HealthReportBatchPool(
                 storageService = Mockito.mock(KaraokeStorageService::class.java),
@@ -47,6 +64,9 @@ class HealthReportWaitingPoolTest {
             pool.executor.shutdownNow()
             pool.waitingExecutor.shutdownNow()
         }
+        // Статическая ссылка восстанавливается — иначе она «протекает» в
+        // последующие тесты того же JVM.
+        HealthReport.healthReportBatchPool = globalPoolBeforeTest
         HealthReportBatchPool.resetLastSentQueueSizeForTest()
         HealthReportBatchPool.resetLastSentWaitingPoolSizeForTest()
     }
@@ -124,18 +144,23 @@ class HealthReportWaitingPoolTest {
         val threads = 8
         val perThread = 25
         val executors = Executors.newFixedThreadPool(threads)
-        val futures =
-            (0 until threads).map { t ->
-                executors.submit {
-                    repeat(perThread) { i ->
-                        val id = (t * perThread + i + 1).toLong()
-                        pool.enqueueWaiting(listOf(task(id, "file-$id.mp3")))
+        try {
+            val futures =
+                (0 until threads).map { t ->
+                    executors.submit {
+                        repeat(perThread) { i ->
+                            val id = (t * perThread + i + 1).toLong()
+                            pool.enqueueWaiting(listOf(task(id, "file-$id.mp3")))
+                        }
                     }
                 }
-            }
-        futures.forEach { it.get(5, TimeUnit.SECONDS) }
-        executors.shutdown()
-        assertEquals(threads * perThread, pool.waitingQueueSize())
+            futures.forEach { it.get(5, TimeUnit.SECONDS) }
+            assertEquals(threads * perThread, pool.waitingQueueSize())
+        } finally {
+            // Пул останавливается в finally: при падении ассерта или исключении
+            // из future.get() non-daemon-потоки остались бы живыми до конца JVM.
+            executors.shutdownNow()
+        }
     }
 
     // --- single-flight ---
@@ -190,10 +215,38 @@ class HealthReportWaitingPoolTest {
 
     // --- attach ---
 
+    /**
+     * Подмена статической ссылки [HealthReport.healthReportBatchPool].
+     *
+     * Порядок важен: метод выполняется ДО проверки изоляции (@Order(100)),
+     * чтобы та видела именно его побочный эффект. Методы без `@Order` получают
+     * `Int.MAX_VALUE / 2` и выполняются после явно упорядоченных.
+     */
+    @Order(90)
     @Test
     fun `attachHealthReportBatchPool wires companion reference`() {
+        globalBeforeAttach = HealthReport.healthReportBatchPool
         HealthReport.attachHealthReportBatchPool(pool)
         assertEquals(pool, HealthReport.healthReportBatchPool)
+    }
+
+    /**
+     * Изоляция статического состояния: после теста подмены глобальная ссылка
+     * обязама вернуться к прежнему значению.
+     *
+     * Без восстановления ссылка продолжала бы указывать на уже остановленный
+     * пул с mock-зависимостями — и следующий тест того же JVM получил бы
+     * `RejectedExecutionException` вместо корректной работы.
+     */
+    @Order(100)
+    @Test
+    fun `attachHealthReportBatchPool не оставляет статическое состояние`() {
+        assertEquals(
+            globalBeforeAttach,
+            HealthReport.healthReportBatchPool,
+            "статическая ссылка HealthReport.healthReportBatchPool не восстановлена — " +
+                "она протекает в последующие тесты того же JVM",
+        )
     }
 
     // --- lifecycle ---

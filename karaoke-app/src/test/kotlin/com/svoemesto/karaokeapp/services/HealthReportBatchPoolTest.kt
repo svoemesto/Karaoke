@@ -29,13 +29,18 @@ import java.util.concurrent.atomic.AtomicInteger
  * (см. документацию в `HealthReportBatchPool`).
  */
 class HealthReportBatchPoolTest {
-    /** Executor, исполняющий задачи в фоне на одном daemon-треде (для теста параллелизма). */
-    private val realExecutor: ExecutorService = Executors.newFixedThreadPool(2)
-
     /** Executor, исполняющий задачи синхронно в вызывающем потоке (для тестов очереди). */
     private val directExecutor: ExecutorService = DirectExecutorService()
 
-    private lateinit var pool: HealthReportBatchPool
+    /** Пул, созданный тестом: его executor'ы обязаны быть остановлены в [tearDown]. */
+    private var pool: HealthReportBatchPool? = null
+
+    /**
+     * Executor'ы, созданные конструктором [HealthReportBatchPool] (10 и 20 worker'ов)
+     * ДО подмены на [directExecutor]. Подмена поля переводит ссылку, но не гасит
+     * созданные пулы — без явной остановки они живут до конца test-JVM.
+     */
+    private val createdExecutors = mutableListOf<ExecutorService>()
 
     @org.junit.jupiter.api.BeforeEach
     fun setUp() {
@@ -46,10 +51,13 @@ class HealthReportBatchPoolTest {
 
     @AfterEach
     fun tearDown() {
-        if (::pool.isInitialized) {
-            pool.executor.shutdownNow()
+        pool?.let { p ->
+            p.executor.shutdownNow()
+            p.waitingExecutor.shutdownNow()
         }
-        realExecutor.shutdownNow()
+        pool = null
+        createdExecutors.forEach { it.shutdownNow() }
+        createdExecutors.clear()
         directExecutor.shutdownNow()
         // На всякий случай — сбросить и после теста.
         HealthReportBatchPool.resetLastSentQueueSizeForTest()
@@ -64,8 +72,11 @@ class HealthReportBatchPoolTest {
                 storageService = org.mockito.Mockito.mock(KaraokeStorageService::class.java),
                 storageApiClient = org.mockito.Mockito.mock(StorageApiClient::class.java),
             )
+        createdExecutors += p.executor
+        createdExecutors += p.waitingExecutor
         p.executor = directExecutor
         p.workersEnabled = false
+        pool = p
         return p
     }
 
@@ -153,20 +164,25 @@ class HealthReportBatchPoolTest {
         val threads = 8
         val perThread = 50
         val executors = Executors.newFixedThreadPool(threads)
-        val futures =
-            (0 until threads).map { t ->
-                executors.submit {
-                    repeat(perThread) { i ->
-                        // id начинаются с 1 — id=0 отбрасывается фильтром.
-                        val id = (t * perThread + i + 1).toLong()
-                        p.enqueue(listList(id))
+        try {
+            val futures =
+                (0 until threads).map { t ->
+                    executors.submit {
+                        repeat(perThread) { i ->
+                            // id начинаются с 1 — id=0 отбрасывается фильтром.
+                            val id = (t * perThread + i + 1).toLong()
+                            p.enqueue(listList(id))
+                        }
                     }
                 }
-            }
-        futures.forEach { it.get(5, TimeUnit.SECONDS) }
-        executors.shutdown()
-        // Без дубликатов: каждый enqueue использует уникальный id > 0.
-        assertEquals(threads * perThread, p.queueSize())
+            futures.forEach { it.get(5, TimeUnit.SECONDS) }
+            // Без дубликатов: каждый enqueue использует уникальный id > 0.
+            assertEquals(threads * perThread, p.queueSize())
+        } finally {
+            // Пул останавливается в finally: при падении ассерта или исключении
+            // из future.get() non-daemon-потоки остались бы живыми до конца JVM.
+            executors.shutdownNow()
+        }
     }
 
     // specs/129-hrpool-badge: lastSentQueueSize подавляет дубли в SSE-рассылке.
@@ -202,25 +218,30 @@ class HealthReportBatchPoolTest {
     }
 
     @Test
-    fun `lastSentQueueSize zero after drain`() {
+    fun `lastSentQueueSize обнуляется после drain`() {
         val p = newPoolWithDirectExecutor()
         p.enqueue(listList(1L, 2L, 3L))
         assertEquals(3L, readLastSentQueueSize())
 
-        // Симулируем worker-loop: после каждого takeNext должен обновляться lastSentQueueSize.
-        // Но в тестах workerLoop не запускается (workersEnabled=false). Дёрнем вручную через
-        // публичный API — пула нет, но мы можем проверить инвариант, что enqueue в пустую
-        // очередь переводит lastSentQueueSize в 0.
-        repeat(3) { takeNext(p) ?: error("queue should not be empty") }
-        p.enqueue(emptyList()) // не меняет размер — но в коде нет ветки с 0
-        // Принудительно — через новый enqueue с одним id, потом takeNext.
-        p.enqueue(listList(5L))
-        assertEquals(1L, readLastSentQueueSize())
-        takeNext(p) ?: error("queue should not be empty")
-        // Без workerLoop lastSentQueueSize не обновится до 0 — это by design:
-        // в production worker-loop дёргает sendPoolCountMessage после каждого takeNext.
-        // Поэтому в тесте мы НЕ проверяем 0 здесь (это поведение worker-loop, см. integration).
-        assertEquals(1L, readLastSentQueueSize())
+        // Шаг worker-loop: takeNext() + рассылка актуального размера пула.
+        // Сам worker-loop в unit-тесте не запускается — он зовёт
+        // HealthReport.recomputeAndBroadcast (обращение в БД/MinIO), поэтому
+        // выполняется ровно тот шаг, который обновляет счётчик SSE-бейджа.
+        //
+        // Прежняя версия теста обещала «zero after drain», но проверяла обратное
+        // (assertEquals(1L, …)) — инвариант «0 после опустошения» не проверялся
+        // нигде, а тест был зелёным при любом поведении.
+        repeat(3) {
+            takeNext(p) ?: error("queue should not be empty")
+            HealthReportBatchPool.sendPoolCountMessage(p.queueSize().toLong())
+        }
+
+        assertEquals(0, p.queueSize(), "очередь должна быть опустошена")
+        assertEquals(
+            0L,
+            readLastSentQueueSize(),
+            "после опустошения очереди счётчик SSE-бейджа должен обнулиться",
+        )
     }
 
     /** Рефлексия: прочитать значение companion-поля `lastSentQueueSize`. */

@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
@@ -19,6 +20,16 @@ import org.junit.jupiter.api.TestInstance
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class WhisperMarkerAlignerSpecTagsTest {
+    /**
+     * Снимок глобальных настроек приложения, сделанный до подмены.
+     *
+     * Глобалы — общее состояние всего JVM: без восстановления значения
+     * `false/false/"test"/"test"/"test"/"test"` оставались на всё время жизни
+     * test-JVM, и любой тест, выполняемый после этого класса, получал другую
+     * конфигурацию БД, чем ожидал.
+     */
+    private val globalsBefore = AppGlobalsSnapshot()
+
     // getSyllables()/haveVowel() (Utils.kt/Extentions.kt) транзитивно трогают ConstantsKt.<clinit>
     // (WORKING_DATABASE = Connection.local()), которому нужны эти globals, иначе
     // IllegalStateException при первом обращении к любой функции из Utils.kt в тесте без полного
@@ -26,12 +37,39 @@ class WhisperMarkerAlignerSpecTagsTest {
     // открывает реальное соединение при конструировании - тестовые значения безопасны.
     @BeforeAll
     fun setUpGlobals() {
-        APP_WORK_IN_CONTAINER = false
-        APP_WORK_ON_SERVER = false
-        DB_LOCAL_POSTGRES_USER = "test"
-        DB_LOCAL_POSTGRES_PASSWORD = "test"
-        DB_SERVER_POSTGRES_USER = "test"
-        DB_SERVER_POSTGRES_PASSWORD = "test"
+        globalsBefore.capture()
+        globalsBefore.applyTestValues()
+    }
+
+    @AfterAll
+    fun tearDownGlobals() {
+        globalsBefore.restore()
+    }
+
+    /**
+     * Контракт подмены: значения глобальных настроек — временные, они обязаны
+     * возвращаться к прежним.
+     *
+     * Без этой проверки «восстановление» было бы декларацией в комментарии:
+     * снять его из [AppGlobalsSnapshot.restore] — и тест остался бы зелёным.
+     */
+    @Test
+    fun `глобальные настройки приложения восстанавливаются после подмены`() {
+        val snapshot = AppGlobalsSnapshot()
+        snapshot.capture()
+        val before = readIfInitialized { DB_LOCAL_POSTGRES_USER }
+        snapshot.applyTestValues()
+        assertEquals("test", DB_LOCAL_POSTGRES_USER, "тестовое значение должно применяться")
+        // Подменяем значение на «чужое» — восстановление обязано вернуть снимок.
+        // (Без этой строки проверка была бы тавтологией: applyTestValues кладёт
+        // ровно то же значение, что restore() и так вернул бы.)
+        DB_LOCAL_POSTGRES_USER = "probe-value"
+        snapshot.restore()
+        assertEquals(
+            before,
+            readIfInitialized { DB_LOCAL_POSTGRES_USER },
+            "после подмены значение глобальной настройки обязано быть восстановлено",
+        )
     }
 
     // (0.0-0.5) - слог "да_"; большой зазор тишины (0.5..2.0, 1.5с >= NEWLINE_LEAD_IN_SECONDS=1.0)
@@ -106,3 +144,58 @@ class WhisperMarkerAlignerSpecTagsTest {
         )
     }
 }
+
+/**
+ * Снимок и восстановление глобальных настроек приложения
+ * (`services/KaraokeAppService.kt`).
+ *
+ * Часть настроек объявлена как `lateinit`, часть — через `Delegates.notNull`:
+ * прочитать их до первой инициализации нельзя (исключение), поэтому «снимок»
+ * может быть пустым ([readIfInitialized] вернёт `null`). В таком случае
+ * восстановить прежнее состояние невозможно (у `lateinit` нет операции
+ * «расинициализировать») — и это не хуже прежнего поведения, когда значения
+ * оставались подменёнными навсегда.
+ */
+private class AppGlobalsSnapshot {
+    private var workInContainer: Boolean? = null
+    private var workOnServer: Boolean? = null
+    private var localUser: String? = null
+    private var localPassword: String? = null
+    private var serverUser: String? = null
+    private var serverPassword: String? = null
+
+    fun capture() {
+        workInContainer = readIfInitialized { APP_WORK_IN_CONTAINER }
+        workOnServer = readIfInitialized { APP_WORK_ON_SERVER }
+        localUser = readIfInitialized { DB_LOCAL_POSTGRES_USER }
+        localPassword = readIfInitialized { DB_LOCAL_POSTGRES_PASSWORD }
+        serverUser = readIfInitialized { DB_SERVER_POSTGRES_USER }
+        serverPassword = readIfInitialized { DB_SERVER_POSTGRES_PASSWORD }
+    }
+
+    fun applyTestValues() {
+        APP_WORK_IN_CONTAINER = false
+        APP_WORK_ON_SERVER = false
+        DB_LOCAL_POSTGRES_USER = "test"
+        DB_LOCAL_POSTGRES_PASSWORD = "test"
+        DB_SERVER_POSTGRES_USER = "test"
+        DB_SERVER_POSTGRES_PASSWORD = "test"
+    }
+
+    fun restore() {
+        workInContainer?.let { APP_WORK_IN_CONTAINER = it }
+        workOnServer?.let { APP_WORK_ON_SERVER = it }
+        localUser?.let { DB_LOCAL_POSTGRES_USER = it }
+        localPassword?.let { DB_LOCAL_POSTGRES_PASSWORD = it }
+        serverUser?.let { DB_SERVER_POSTGRES_USER = it }
+        serverPassword?.let { DB_SERVER_POSTGRES_PASSWORD = it }
+    }
+}
+
+/** Значение глобальной настройки либо `null`, если она ещё не инициализирована. */
+private fun <T> readIfInitialized(read: () -> T): T? =
+    try {
+        read()
+    } catch (_: RuntimeException) {
+        null
+    }

@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -11,6 +12,7 @@ import reactor.core.publisher.Mono
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -109,39 +111,49 @@ class StorageCircuitBreakerTest {
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     fun `concurrent acquire allows only one probe`() {
         val c = cb(threshold = 1, cooldown = 0L)
-        c.recordFailure(RuntimeException("boom"))
-        c.acquire() // -> OPEN
-        Thread.sleep(10) // small delay to ensure OPEN is stable
-        c.acquire() // -> HALF_OPEN
-        // Запускаем 20 потоков, все вызывают acquire() — только 1 должен вернуть Probe.
+        c.recordFailure(RuntimeException("boom")) // CLOSED -> OPEN
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+        // Cooldown=0 — ждём 1 мс, чтобы условие «cooldown истёк» выполнялось.
+        Thread.sleep(10)
+        assertEquals(StorageCircuitBreaker.State.OPEN, c.state(), "состояние должно остаться OPEN до acquire")
+
+        // Ключевой момент инварианта: 20 потоков стартуют одновременно ИЗ OPEN.
+        // Probe заранее НЕ выдаётся — выиграть CAS OPEN -> HALF_OPEN должен
+        // ровно один поток, остальные обязаны получить FastFail.
+        // (Прежняя версия теста выдавала probe заранее, поэтому все 20 потоков
+        // видели уже HALF_OPEN и всегда получали FastFail — конкурентный
+        // single-probe не проверялся вовсе.)
         val threadCount = 20
         val pool = Executors.newFixedThreadPool(threadCount)
         val startLatch = CountDownLatch(1)
         val doneLatch = CountDownLatch(threadCount)
         val probeCount = AtomicInteger(0)
         val fastFailCount = AtomicInteger(0)
-        repeat(threadCount) {
-            pool.submit {
-                startLatch.await()
-                try {
-                    when (c.acquire()) {
-                        is StorageCircuitBreaker.Decision.Probe -> probeCount.incrementAndGet()
-                        is StorageCircuitBreaker.Decision.FastFail -> fastFailCount.incrementAndGet()
-                        else -> {}
+        try {
+            repeat(threadCount) {
+                pool.submit {
+                    startLatch.await()
+                    try {
+                        when (c.acquire()) {
+                            is StorageCircuitBreaker.Decision.Probe -> probeCount.incrementAndGet()
+                            is StorageCircuitBreaker.Decision.FastFail -> fastFailCount.incrementAndGet()
+                            else -> {}
+                        }
+                    } finally {
+                        doneLatch.countDown()
                     }
-                } finally {
-                    doneLatch.countDown()
                 }
             }
+            startLatch.countDown()
+            assertTrue(doneLatch.await(3, TimeUnit.SECONDS), "all threads should finish")
+            assertEquals(1, probeCount.get(), "probe должен достаться ровно одному потоку")
+            assertEquals(threadCount - 1, fastFailCount.get(), "остальные потоки должны fast-fail")
+            assertEquals(StorageCircuitBreaker.State.HALF_OPEN, c.state())
+        } finally {
+            // Пул останавливается в finally: при падении ассерта non-daemon-потоки
+            // остались бы живыми до конца test-JVM.
+            pool.shutdownNow()
         }
-        startLatch.countDown()
-        assertTrue(doneLatch.await(3, TimeUnit.SECONDS), "all threads should finish")
-        pool.shutdownNow()
-        // После первого acquire() выше уже Probe выполнен. Второй acquire()
-        // (в этом тесте) — fast-fail (HALF_OPEN не даёт probe во второй раз).
-        // Поэтому 20 потоков: probe=0, fastFail=20.
-        assertEquals(0, probeCount.get(), "no additional probes should be allowed")
-        assertEquals(threadCount, fastFailCount.get(), "all should fast-fail")
     }
 
     @Test
@@ -153,22 +165,27 @@ class StorageCircuitBreakerTest {
         val pool = Executors.newFixedThreadPool(threadCount)
         val startLatch = CountDownLatch(1)
         val doneLatch = CountDownLatch(threadCount)
-        repeat(threadCount) {
-            pool.submit {
-                startLatch.await()
-                try {
-                    c.recordFailure(RuntimeException("concurrent-fail-$it"))
-                } finally {
-                    doneLatch.countDown()
+        try {
+            repeat(threadCount) {
+                pool.submit {
+                    startLatch.await()
+                    try {
+                        c.recordFailure(RuntimeException("concurrent-fail-$it"))
+                    } finally {
+                        doneLatch.countDown()
+                    }
                 }
             }
+            startLatch.countDown()
+            assertTrue(doneLatch.await(3, TimeUnit.SECONDS), "all threads should finish")
+            // Должно быть OPEN ровно один раз (атомарный CAS).
+            assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
+            assertTrue(c.metrics().failureCount >= 5, "failureCount should reach threshold (5)")
+        } finally {
+            // Пул останавливается в finally: при падении ассерта non-daemon-потоки
+            // остались бы живыми до конца test-JVM.
+            pool.shutdownNow()
         }
-        startLatch.countDown()
-        assertTrue(doneLatch.await(3, TimeUnit.SECONDS), "all threads should finish")
-        pool.shutdownNow()
-        // Должно быть OPEN ровно один раз (атомарный CAS).
-        assertEquals(StorageCircuitBreaker.State.OPEN, c.state())
-        assertTrue(c.metrics().failureCount >= 5, "failureCount should reach threshold (5)")
     }
 
     @Test
@@ -199,14 +216,34 @@ class StorageCircuitBreakerTest {
     }
 
     @Test
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
     fun `decorate timeout returns empty`() {
         val c = cb(timeout = 1L)
-        val mono = c.decorate("test", { Mono.never<String>() }, "fallback") as Mono<String>
-        // Ждём timeout + немного. timeout=1s, добавим 500ms buffer.
-        val start = System.nanoTime()
-        assertEquals("fallback", mono.block())
-        val elapsedMs = (System.nanoTime() - start) / 1_000_000L
-        assertTrue(elapsedMs in 800L..2500L, "expected ~1000ms, got ${elapsedMs}ms")
+        // Порядок событий вместо окна по стенным часам: прежняя проверка
+        // (elapsedMs in 800..2500) не ловила срабатывание таймаута раньше срока
+        // (нижняя граница меньше самого таймаута) и флакала на загруженной машине
+        // (верхняя граница зависела от планировщика и GC).
+        val loaderCompleted = AtomicBoolean(false)
+        val mono =
+            c.decorate(
+                "test",
+                {
+                    Mono.fromCallable {
+                        Thread.sleep(30_000) // имитация блокирующего вызова
+                        loaderCompleted.set(true)
+                        "late"
+                    }
+                },
+                "fallback",
+            ) as Mono<String>
+
+        val result = mono.block()
+
+        assertEquals("fallback", result)
+        assertFalse(
+            loaderCompleted.get(),
+            "fallback должен вернуться ДО того, как loader закончил работу — иначе это не таймаут",
+        )
         // timeout считается как failure.
         assertEquals(StorageCircuitBreaker.State.CLOSED, c.state()) // only 1 failure
         assertEquals(1L, c.metrics().failureCount)
@@ -308,7 +345,7 @@ class StorageCircuitBreakerTest {
      * если probe завис дольше timeoutSeconds + watchdogBufferSeconds.
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
     fun `watchdog reopens stuck HALF_OPEN`() {
         // timeoutSeconds=1, watchdogBuffer=1 → deadline = 2s.
         // checkInterval=1 — проверка каждую секунду.
@@ -332,9 +369,14 @@ class StorageCircuitBreakerTest {
             val originalOpenedAtMs = c.metrics().lastFailureAt
             assertNotNull(originalOpenedAtMs)
 
-            // Ждём timeoutSeconds(1) + watchdogBuffer(1) + 2*checkInterval(1) + buffer(500ms) = 4.5s.
-            // Watchdog тикает каждую секунду, на 3-м тике (~t=3s) elapsed=3s > deadline=2s → OPEN.
-            Thread.sleep(4_500)
+            // Ждём наступления состояния OPEN, а не фиксированного сна: прежний
+            // Thread.sleep(4_500) рассчитывался на идеальный график тиков watchdog'а
+            // и на загруженной машине падал без дефекта в коде.
+            Awaitility
+                .await()
+                .atMost(20, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .until { c.state() == StorageCircuitBreaker.State.OPEN }
 
             assertEquals(StorageCircuitBreaker.State.OPEN, c.state(), "watchdog should reopen circuit")
             assertTrue(

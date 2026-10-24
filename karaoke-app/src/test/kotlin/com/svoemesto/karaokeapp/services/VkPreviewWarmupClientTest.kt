@@ -213,5 +213,14 @@ class VkPreviewWarmupClientTest {
         val result = client.warmup(songId)
         assertEquals(VkPreviewWarmupStatus.FAILED, result.status)
         assertEquals(1, result.attempts)
+        // Имя теста обещает проверку КЛАССИФИКАЦИИ ошибки, а не только факта FAILED:
+        // ветка ConnectException должна давать "connect: …". Без этой проверки
+        // тот же результат дали бы IOException ("io: …") и таймаут ("timeout …"),
+        // и диагностическое сообщение в прод-логах деградировало бы незаметно.
+        assertNotNull(result.error, "при недоступном порте ошибка обязана попасть в result.error")
+        assertTrue(
+            result.error!!.startsWith("connect:"),
+            "ожидалась классификация connect:, получено: ${result.error}",
+        )
     }
 }

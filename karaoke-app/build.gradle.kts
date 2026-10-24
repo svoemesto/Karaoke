@@ -78,6 +78,35 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+// Ручные сценарии (живая сеть, браузер, живые данные) — отдельный source set.
+//
+// Раньше такие сценарии лежали в общем наборе `src/test` и были помечены
+// `@Disabled`. Пометка — плохая защита: при её снятии (или при переносе класса
+// в другой модуль) `gradle test` на машине без браузера зависал на `readLine()`
+// до таймаута раннера, а «зелёный» прогон учил игнорировать падения тестов.
+//
+// `manualTest` собирается и запускается только по явной команде и НЕ входит
+// в `check`/`build`:
+//   ./gradlew :karaoke-app:manualTest
+val manualTest by sourceSets.creating {
+    // Ручные сценарии видят код приложения (как и тесты) и общую тестовую обвязку.
+    compileClasspath += sourceSets["main"].output
+    runtimeClasspath += sourceSets["main"].output
+    compileClasspath += sourceSets["test"].output
+    runtimeClasspath += sourceSets["test"].output
+}
+
+configurations["manualTestImplementation"].extendsFrom(configurations["testImplementation"])
+configurations["manualTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
+
+tasks.register<Test>("manualTest") {
+    description = "Ручные сценарии (живая сеть/браузер/данные). Не входят в check/build."
+    group = "verification"
+    testClassesDirs = manualTest.output.classesDirs
+    classpath = manualTest.runtimeClasspath
+    shouldRunAfter(tasks.test)
+}
+
 // tasks.bootJar {
 //    // Настройки, если нужно, например, archiveClassifier.set("exec")
 //    // archiveClassifier.set("") // Это может конфликтовать с обычным jar

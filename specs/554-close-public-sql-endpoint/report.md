@@ -1,7 +1,7 @@
 # Отчёт по #357 — Закрыть публичный доступ к `POST /changerecords` (BR-011, спека 554)
 
 > **Спека**: [spec.md](spec.md) | **Ветка**: `554-close-public-sql-endpoint` |
-> **Коммит реализации**: `9aa72b46` | **Дата**: 2026-10-24 |
+> **PR**: [#647](https://github.com/svoemesto/Karaoke/pull/647) — **MERGED** 2026-10-24 | **Дата**: 2026-10-24 |
 > **Аудит**: #336, порция P-35, находка P-35-01 / BR-011 (severity **S1**).
 
 ## Что было
@@ -41,7 +41,7 @@ server-to-server эндпоинт двух-БД синхронизации пе�
 | `knowledge/domains/karaoke-web/components/config.md` | Где задаётся новый секрет (`sync.internal-secret` / env `SYNC_INTERNAL_SECRET`). |
 | `knowledge/domains/processing/components/two-db-sync.md` | Клиент отправляет `X-Internal-Secret`; `403` без повтора. |
 | `knowledge/domains/monitoring/components/log-categories.md` | Зарегистрирована категория `infra.sync.security`. |
-| `specs/336-code-audit/findings/P-35.md`, `specs/336-code-audit/registry.csv` | Статус BR-011 → «исправлено» (`work_package` = 357). |
+| `specs/336-code-audit/findings/P-35.md`, `specs/336-code-audit/registry.csv` | Статус BR-011 → «исправлено» (`work_package` = 3577). |
 
 **Не менялось** (по условиям спеки): формат тела запроса, кодовое слово, состав и порядок
 SQL-действий, транзакционность применения (аудит BR-012 — отдельная задача), другие
@@ -58,7 +58,8 @@ SQL-действий, транзакционность применения (а�
 | `GRADLE_USER_HOME=... ./gradlew ktlintCheck` | **PASS** (все модули, 0 новых нарушений) |
 | `nginx -t` (контейнер `nginx:stable`, изменённый `deploy/prod-single-host/80to8897`) | **PASS** — `syntax is ok` / `test is successful` |
 | `git diff master...HEAD \| grep -inE 'secret\s*=\s*["'][0-9a-f]{16,}'` | **пусто** — в изменениях только имена параметров и `CHANGE_ME` |
-| `pre-commit run --files <изменённые>` | 18 хуков: 17 PASS, 1 FAIL — `subagent-isolation-guard` (см. «Известные проблемы») |
+| `pre-commit run --files <изменённые>` | 18 хуков — **18 PASS** (после пересборки истории ветки; см. «Известные проблемы», п. 1) |
+| CI PR #647 (12 джобов) | **все PASS**: ktlint, ESLint+Prettier (webvue3, karaoke-public), Docs, KDoc, JSDoc, Knowledge SSoT (impact+structure), baseline stats, guard'ы (docker-tags, no-jpa, no-mp4) |
 | `tools/check-knowledge-structure.sh` | **9/9 OK** |
 | `tools/check-knowledge-cross-links.sh` | **OK** (680 ссылок) |
 | `python3 tools/lint-knowledge.py --baseline …` | **OK** |
@@ -68,11 +69,11 @@ SQL-действий, транзакционность применения (а�
 
 ### Известные проблемы (не по этой правке)
 
-1. **`subagent-isolation-guard` (Pass 379+) падает на этой ветке** — коммиты
-   `62812d38`, `f0d648ca`, `f0ff4ed3` (спека/бэклог аудита #336) одновременно входят
-   и в `554-close-public-sql-endpoint`, и в `553-336-code-audit`: ветка создана от
-   `553-336-code-audit`, это состояние существовало **до** реализации #357. Мои коммиты
-   в список не попадают. Решение (rebase/force-push) — за лидом.
+1. **`subagent-isolation-guard` (Pass 379+) — устранено лидом.** Изначально ветка была
+   создана от `553-336-code-audit` и делила с ней коммиты аудита (#336) — гейт падал.
+   Лид пересобрал историю: ветка перенесена на `master`, в неё вошли только 554-коммиты
+   (спека + реализация + отчёт); артефакты аудита остались в `553-336-code-audit` (PR #646).
+   Гейт после пересборки: **PASS** («все commits уникальны»).
 2. **Линтеры фронтов** (`webvue3`, `karaoke-public`) не запускались: `node_modules` в
    worktree отсутствуют, фронтовые файлы правка не трогает. В CI эти джобы отработают.
 3. **Регрессионный тест «до/после»**: на коде **до** правки файл тестов не компилируется
@@ -132,13 +133,18 @@ SQL-действий, транзакционность применения (а�
 - Второй вариант раскладки nginx — `deploy/web-server-deploy/deploy/80to8897` — содержит
   такой же `location /changerecords` **без** фильтра. Правка туда не вносилась (объём
   спеки 554 — `deploy/prod-single-host/80to8897`); требует отдельного решения лида/владельца.
-- `tracker.sh add-comment` / `mark-review` для #357 не выполнялись: по workflow они идут
-  **после merge**, а merge делает лид после ревью (PR не создан).
-- Push и PR не выполнялись — по указанию лида.
+- `tracker.sh add-comment` / `mark-review` для #357 выполняет лид после merge (шаги 4–5
+  workflow по AGENTS.md) — в момент написания отчёта ещё не выполнены.
 
 ## Ветка и коммиты
 
-- Ветка: `554-close-public-sql-endpoint` (worktree `/home/nsa/Karaoke/.worktrees/554`).
-- `9aa72b46` — реализация, тесты, конфигурация, nginx, документация, knowledge
-  (`[tracker-claim-357]`).
-- Коммит с этим отчётом — следующий в той же ветке (`[tracker-claim-357]`).
+- Ветка: `554-close-public-sql-endpoint` → PR **#647** → `master` (merge-коммит `40d08982`).
+- Состав ветки (5 коммитов): спека (`1a3196d2`), уточнение FR-005 по решению владельца
+  (`24043b1c`), план/research/контракт/data-model/quickstart/tasks (`2285dfa5`),
+  реализация с тестами, конфигурацией, nginx, документацией и knowledge (`5a32102f`),
+  отчёт (`6dd7b3c6`) — все с маркером `[tracker-claim-357]`.
+- Реализация выполнялась в отдельном worktree (`git worktree add`), как требует
+  Constitution IX.3 / Pass 379; по завершении worktree удалён.
+- Обновление карточки аудита (`specs/336-code-audit/findings/P-35.md`, `registry.csv`)
+  перенесено в ветку `553-336-code-audit` (PR #646), чтобы фикс-PR не зависел от артефактов
+  аудита, которых ещё нет в master.

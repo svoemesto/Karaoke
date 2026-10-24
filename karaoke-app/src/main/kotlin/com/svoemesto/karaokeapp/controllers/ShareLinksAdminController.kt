@@ -11,6 +11,31 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
+// BR-410 (аудит #336, пакет PKG-S2-17, OpenProject #380): сортировка дайджеста
+// share-ссылок по колонкам, которые реально видит админ.
+//
+// ДО ПРАВКИ белый список сортировки состоял из двух имён (`created_at`, `expires_at`),
+// а UI отдавал ключи вида `songName`/`ownerEmail`. Неизвестный ключ молча заменялся на
+// `created_at` — админ «сортировал по песне» и получал сортировку по дате, причём только
+// внутри одной загруженной страницы. Здесь — явное соответствие «ключ UI → SQL-выражение»;
+// всё, чего нет в таблице соответствия, по-прежнему уходит в серверный дефолт
+// (`l.created_at`), но теперь это осознанный контракт, а не побочный эффект.
+//
+// Значение приходит от клиента, поэтому подставлять его в SQL напрямую нельзя:
+// возвращаются ТОЛЬКО строки из константного списка (никакой интерполяции ввода).
+internal fun shareLinksSortExpression(sortBy: String?): String =
+    when (sortBy) {
+        "id" -> "l.id"
+        "created_at", "createdAt" -> "l.created_at"
+        "expires_at", "expiresAt" -> "l.expires_at"
+        "ownerEmail" -> "u.email"
+        "songName" -> "s.song_name"
+        "revokeReason" -> "l.revoke_reason"
+        "hasActiveSession" -> "(l.active_session_token_hash IS NOT NULL AND l.active_session_lease_until > now())"
+        "secret" -> "l.token_hash"
+        else -> "l.created_at"
+    }
+
 // Админский read-only просмотр ВСЕХ временных share-ссылок (`tbl_song_share_links`). Не путать
 // с per-user `SiteShareLinksController` (там только ссылки одного пользователя). Этот
 // контроллер даёт глобальный обзор с фильтрами (activeOnly/ownerId/songId/createdFrom/createdTo)
@@ -88,12 +113,9 @@ class ShareLinksAdminController {
             val safePageSize = pageSize.coerceIn(1, 100)
             val offset = (safePage - 1) * safePageSize
 
-            // 3. Whitelist сортировки.
-            val sortColumn =
-                when (sortBy) {
-                    "created_at", "expires_at" -> sortBy
-                    else -> "created_at"
-                }
+            // 3. Whitelist сортировки (BR-410): ключ UI -> SQL-выражение. Подстановки
+            //    пользовательского ввода в SQL нет — только значения из when-списка.
+            val sortExpression = shareLinksSortExpression(sortBy)
             val sortDirection = if (sortDir?.uppercase() == "ASC") "ASC" else "DESC"
 
             // 4. Прямой SQL — loadList не подходит из-за computed `has_active_session` (см. шаг 6).
@@ -108,7 +130,7 @@ class ShareLinksAdminController {
                     "LEFT JOIN tbl_site_users u ON u.id = l.owner_site_user_id " +
                     "LEFT JOIN tbl_songs s ON s.id = l.song_id " +
                     (if (where.isEmpty()) "" else " $where ") +
-                    "ORDER BY l.$sortColumn $sortDirection"
+                    "ORDER BY $sortExpression $sortDirection"
 
             val rows = mutableListOf<MutableMap<String, Any?>>()
             val connection = db.getConnection()

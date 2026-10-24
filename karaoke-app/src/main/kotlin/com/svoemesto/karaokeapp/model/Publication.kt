@@ -8,6 +8,29 @@ import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
+// BR-411 (аудит #336, пакет PKG-S2-17, OpenProject #380): разбор клиентской даты
+// `dd.MM.yy` без падения.
+//
+// ДО ПРАВКИ фильтр публикаций парсил `filter_date_from`/`filter_date_to` напрямую
+// `SimpleDateFormat("dd.MM.yy").parse(...)`. Невалидная строка (например `NaN.NaN.N`,
+// которую фронт присылал после клика по штатной кнопке EXCLUSIVE) бросала
+// `ParseException`, глобального `@ControllerAdvice` в приложении нет — клиент получал
+// HTTP 500 вместо ответа. Грид публикаций не обновлялся, а значение сохранялось в
+// webvueProp и переживало F5.
+//
+// Теперь невалидная/пустая граница окна = «границы нет» (фильтр игнорируется), и
+// разбор НИКОГДА не бросает. Контроллер при этом отдельно отвечает 400 на явно
+// некорректный формат, чтобы ошибка не была молчаливой.
+internal fun parsePublishFilterDate(raw: String?): Date? {
+    val value = raw?.trim().orEmpty()
+    if (value.isEmpty()) return null
+    return try {
+        SimpleDateFormat("dd.MM.yy").apply { isLenient = false }.parse(value)
+    } catch (_: java.text.ParseException) {
+        null
+    }
+}
+
 /**
  * DTO для publication: сериализуемое представление для API/UI.
  *
@@ -1763,6 +1786,11 @@ class Publication(
                     }
             }
 
+            // BR-411: границы окна разбираются ОДИН раз и без исключений — прежний
+            // `SimpleDateFormat.parse(filterDateTo)` на невалидной строке давал 500.
+            val windowFrom = parsePublishFilterDate(filterDateFrom)
+            val windowTo = parsePublishFilterDate(filterDateTo)
+
             return Song
                 .loadListFromDb(
                     database = database,
@@ -1773,26 +1801,14 @@ class Publication(
                     it.author !in
                         skipedAuthors
                 }.filter {
-                    it.date != "" &&
-                        it.time != "" &&
-                        (
-                            if (filterDateFrom !=
-                                ""
-                            ) {
-                                SimpleDateFormat("dd.MM.yy").parse(it.date) >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom)
-                            } else {
-                                true
-                            }
-                        ) &&
-                        (
-                            if (filterDateTo !=
-                                ""
-                            ) {
-                                SimpleDateFormat("dd.MM.yy").parse(it.date) <= SimpleDateFormat("dd.MM.yy").parse(filterDateTo)
-                            } else {
-                                true
-                            }
-                        )
+                    if (it.date == "" || it.time == "") {
+                        false
+                    } else {
+                        val songDate = parsePublishFilterDate(it.date)
+                        songDate != null &&
+                            (windowFrom == null || !songDate.before(windowFrom)) &&
+                            (windowTo == null || !songDate.after(windowTo))
+                    }
                 }
         }
 

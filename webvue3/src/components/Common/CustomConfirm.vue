@@ -84,6 +84,8 @@
 </template>
 
 <script>
+import { buildConfirmResult } from '../../lib/confirm-result.js'
+
 /**
  * Универсальная модалка подтверждения (да/нет) с настраиваемым контентом.
  *
@@ -230,19 +232,16 @@ export default {
       this.timeToClose--
     },
     ok() {
-      let ret = {}
-      if (this.params.fields) {
-        for (let i = 0; i < this.params.fields.length; i++) {
-          let paramName = this.params.fields[i].fldName
-          let paramValue = this.params.fields[i].fldValue
-          ret[paramName] = paramValue
-        }
-      }
+      // BR-399: «нажата Да» — это и есть подтверждение; признак `confirmed`
+      // собирается вместе с полями формы (см. lib/confirm-result.js).
+      const ret = buildConfirmResult(this.params, true)
       this.params.callback(ret)
-      this.$emit('close')
+      this.$emit('close', ret)
     },
     close() {
-      this.$emit('close')
+      // BR-399: контракт `@emits close` обещает `confirmed: true/false` — при
+      // закрытии/истечении таймаута подтверждения нет.
+      this.$emit('close', buildConfirmResult(this.params, false))
     },
   },
 }

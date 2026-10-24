@@ -2285,7 +2285,24 @@ class ApiController(
         @RequestParam(required = false) filterDateFrom: String?,
         @RequestParam(required = false) filterDateTo: String?,
         @RequestParam(required = false) filterCond: String?,
-    ): Map<String, Any> {
+    ): ResponseEntity<Map<String, Any>> {
+        // BR-411 (аудит #336, пакет PKG-S2-17, OpenProject #380): формат даты проверяется
+        // явно и отвечает 400. Раньше невалидная строка (например `NaN.NaN.N`, которую
+        // присылал фронт после клика по кнопке EXCLUSIVE) доходила до
+        // `SimpleDateFormat.parse` в Publication и валила запрос в HTTP 500 —
+        // глобального @ControllerAdvice в приложении нет, поэтому пользователь видел
+        // «ошибка сервера» вместо причины. Ошибка формата — ошибка клиента (400).
+        for ((paramName, paramValue) in
+            listOf("filterDateFrom" to filterDateFrom, "filterDateTo" to filterDateTo)) {
+            if (!paramValue.isNullOrBlank() && parsePublishFilterDate(paramValue) == null) {
+                return ResponseEntity.badRequest().body(
+                    mapOf(
+                        "error" to "Некорректная дата в параметре $paramName: ожидается dd.MM.yy",
+                        "parameter" to paramName,
+                    ),
+                )
+            }
+        }
         val args: MutableMap<String, String> = mutableMapOf()
         filterDateFrom?.let { if (filterDateFrom != "") args["filter_date_from"] = filterDateFrom }
         filterDateTo?.let { if (filterDateTo != "") args["filter_date_to"] = filterDateTo }
@@ -2309,9 +2326,11 @@ class ApiController(
                     CrossSong.publications(listOfSongs)
                 }
             }
-        return mapOf(
-            "workInContainer" to APP_WORK_IN_CONTAINER,
-            "publicationsDigest" to publications,
+        return ResponseEntity.ok(
+            mapOf(
+                "workInContainer" to APP_WORK_IN_CONTAINER,
+                "publicationsDigest" to publications,
+            ),
         )
     }
 

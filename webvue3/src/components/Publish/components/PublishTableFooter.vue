@@ -79,7 +79,7 @@
 </template>
 
 <script>
-import { stringDDMMYYaddDays } from '../../../lib/utils'
+import { stringDDMMYYaddDays, isValidDDMMYY } from '../../../lib/utils'
 
 /**
  * Компонент «Publish Table Footer»: легенда из пяти состояний песни (DONE / TODAY / ON_AIR /
@@ -121,11 +121,16 @@ export default {
     },
   },
   async beforeMount() {
+    // BR-411: сохранённое значение могло быть отравлено прежней версией
+    // (`NaN.NaN.N` после клика по EXCLUSIVE). Такая дата не восстанавливается —
+    // иначе один раз испорченный фильтр переживал F5 и грид продолжал падать 500.
+    const storedFrom = await this.$store.getters.getWebvueProp('publishFilterDateFrom', '')
+    const storedTo = await this.$store.getters.getWebvueProp('publishFilterDateTo', '')
     this.$store.dispatch('setPublishFilterDateFrom', {
-      value: await this.$store.getters.getWebvueProp('publishFilterDateFrom', ''),
+      value: isValidDDMMYY(storedFrom) ? storedFrom : '',
     })
     this.$store.dispatch('setPublishFilterDateTo', {
-      value: await this.$store.getters.getWebvueProp('publishFilterDateTo', ''),
+      value: isValidDDMMYY(storedTo) ? storedTo : '',
     })
     this.$store.dispatch('setPublishFilterDays', {
       value: await this.$store.getters.getWebvueProp('publishFilterDays', 90),
@@ -148,7 +153,12 @@ export default {
       this.$store.dispatch('loadPublishDigest', { filterCond: param })
     },
     setDateTo() {
-      this.publishDateTo = stringDDMMYYaddDays(this.publishDateFrom, this.publishDays)
+      // BR-411: пустая/невалидная дата «с» — это «нет нижней границы окна», а не
+      // повод считать `'' + N дней`. Раньше здесь получалось `NaN.NaN.N`, бэкенд
+      // отвечал 500, а значение сохранялось в webvueProp и переживало F5.
+      this.publishDateTo = isValidDDMMYY(this.publishDateFrom)
+        ? stringDDMMYYaddDays(this.publishDateFrom, this.publishDays)
+        : ''
       // let parts =this.publishDateFrom.split('.');
       // let date = new Date('20' + parts[2], parts[1] - 1, parts[0]);
       // date.setDate(date.getDate() + this.publishDays);

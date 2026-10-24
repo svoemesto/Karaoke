@@ -104,7 +104,7 @@ description: "Задачи реализации фичи 554 — закрыти�
 - [x] T024 Обновить `knowledge/domains/processing/components/two-db-sync.md`: клиент отправляет `X-Internal-Secret`
 - [x] T025 Прогнать полный набор проверок проекта: `:karaoke-web:compileKotlin`, `:karaoke-app:compileKotlin`, `:karaoke-web:ktlintCheck`, линтеры фронтов — 7/7 PASS (quickstart, проверка 4)
 - [x] T026 Проверить, что значение секрета не попало в diff (`git diff master...HEAD | grep -inE 'secret\s*=\s*["'][0-9a-f]{16,}'` → пусто) (quickstart, проверка 5)
-- [ ] T027 Написать `specs/554-close-public-sql-endpoint/report.md` для трекера: что было, что изменено, как проверялось, что осталось за владельцем (выдача секрета на боевом хосте, деплой)
+- [x] T027 Написать `specs/554-close-public-sql-endpoint/report.md` для трекера: что было, что изменено, как проверялось, что осталось за владельцем (выдача секрета на боевом хосте, деплой)
 - [x] T028 Обновить карточку аудита `specs/336-code-audit/findings/P-35.md` (запись P-35-01 / BR-011): статус → «исправлено», ссылка на PR; проставить номер задачи в `specs/336-code-audit/registry.csv` (колонка `work_package`)
 
 ---

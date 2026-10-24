@@ -276,8 +276,8 @@ BR-274,P-03,PERF,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke
 BR-275,P-03,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt,67,79,log-loses-throwable:connection,TODO,lead-verified,397
 BR-276,P-03,DATA,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt,652,656,voices-key-flashcolor:karaoke,TODO,lead-verified,398
 BR-277,P-07,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt,4738,4760,broken-symlink-repair-noop:utils,TODO,lead-verified,398
-BR-278,P-02,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,767,822,check-then-act-repair:health,TODO,lead-verified,376
-BR-279,P-02,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,2555,2591,circuit-flags-false:health,TODO,lead-verified,376
+BR-278,P-02,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,767,822,check-then-act-repair:health,исправлено,lead-verified,376
+BR-279,P-02,DATA,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,2555,2591,circuit-flags-false:health,исправлено,lead-verified,376
 BR-280,P-02,PERF,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,752,763,n-plus-one-processes:health,TODO,lead-verified,398
 BR-281,P-02,ERR,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,183,199,cached-fileinfo-ok:health,TODO,lead-verified,398
 BR-282,P-02,RACE,S3,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt,2749,2755,repair-guard-stuck:health,TODO,lead-verified,398
@@ -395,7 +395,7 @@ BR-393,P-54,RACE,S3,webvue3/src/components/News/store.js,85,88,page-race:news,TO
 BR-394,P-54,RACE,S3,webvue3/src/components/Processes/ProcessesTable.vue,447,461,double-load:processes,TODO,lead-verified,403
 BR-395,P-54,RACE,S3,webvue3/src/components/Pictures/store.js,163,175,autosave-stale:pictures,TODO,lead-verified,404
 BR-396,P-54,ERR,S3,webvue3/src/components/Pictures/edit/PictureEdit.vue,299,302,delete-no-wait:pictures,TODO,lead-verified,404
-BR-397,P-54,RACE,S3,webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue,301,302,target-race:newstemplates,TODO,lead-verified,367
+BR-397,P-54,RACE,S3,webvue3/src/components/NewsTemplates/NewsTemplatesEditor.vue,301,302,target-race:newstemplates,исправлено,lead-verified,367
 BR-398,P-54,SEC,S3,webvue3/src/components/Processes/ProcessBulkReportModal.vue,104,110,csv-injection:processes,TODO,lead-verified,404
 BR-399,P-55,ERR,S2,webvue3/src/components/Processes/edit/ProcessEdit.vue,349,357,confirm-ret-broken:processes,TODO,lead-verified,380
 BR-400,P-55,ERR,S3,webvue3/src/components/Processes/edit/ProcessEdit.vue,3,9,error-hidden:processes,TODO,lead-verified,404
@@ -405,9 +405,9 @@ BR-403,P-55,RACE,S3,webvue3/src/components/Processes/audit/ProcessAuditModal.vue
 BR-404,P-55,ERR,S3,webvue3/src/components/Properties/PropertiesTable.vue,290,325,setproperty-error:properties,TODO,lead-verified,404
 BR-405,P-55,ERR,S3,webvue3/src/components/Properties/PropertiesTable.vue,245,252,no-digest:properties,TODO,lead-verified,404
 BR-406,P-55,ERR,S3,webvue3/src/components/Promotions/PromotionsTable.vue,165,184,save-no-catch:promotions,TODO,lead-verified,404
-BR-407,P-55,RACE,S3,webvue3/src/components/Promotions/store.js,39,56,target-race:promotions,TODO,lead-verified,367
+BR-407,P-55,RACE,S3,webvue3/src/components/Promotions/store.js,39,56,target-race:promotions,исправлено,lead-verified,367
 BR-408,P-55,COMPAT,S3,webvue3/src/components/Processes/filter/ProcessesFilterModal.vue,243,258,filter-pagination:processes,TODO,lead-verified,404
-BR-409,P-56,RACE,S2,webvue3/src/components/ShareLinks/store.js,73,83,target-race:sharelinks,TODO,lead-verified,367
+BR-409,P-56,RACE,S2,webvue3/src/components/ShareLinks/store.js,73,83,target-race:sharelinks,исправлено,lead-verified,367
 BR-410,P-56,COMPAT,S2,webvue3/src/components/ShareLinks/ShareLinksTable.vue,335,337,pagination-local:sharelinks,TODO,lead-verified,380
 BR-411,P-56,ERR,S2,webvue3/src/components/Publish/components/PublishTableFooter.vue,140,151,nan-date:publish,TODO,lead-verified,380
 BR-412,P-56,RACE,S3,webvue3/src/components/Publish/store.js,188,195,filter-lost:publish,TODO,lead-verified,404
@@ -487,9 +487,9 @@ BR-485,P-66,COMPAT,S2,webvue3/src/player/KaraokePlayer.js,3223,3229,version-map-
 BR-486,P-66,DATA,S3,webvue3/src/player/KaraokePlayer.js,281,281,flash-times-before-offset:player,TODO,lead-verified,405
 BR-487,P-67,DATA,S2,webvue3/src/views/StatsView.vue,745,749,stats-tab-cache:stats,TODO,lead-verified,381
 BR-488,P-67,BUILD,S3,webvue3/vite.config.js,5,8,vite-no-proxy:build,TODO,lead-verified,405
-BR-489,P-69,PERF,S2,alignment-ml/serve.py,53,73,blocking-sync-in-async:alignment,TODO,lead-verified,370
-BR-490,P-69,PERF,S2,alignment-ml/serve.py,68,72,unbounded-upload-read:alignment,TODO,lead-verified,370
-BR-491,P-69,DATA,S2,alignment-ml/train.py,349,352,stale-vocab-reuse:alignment,TODO,lead-verified,370
+BR-489,P-69,PERF,S2,alignment-ml/serve.py,53,73,blocking-sync-in-async:alignment,исправлено,lead-verified,370
+BR-490,P-69,PERF,S2,alignment-ml/serve.py,68,72,unbounded-upload-read:alignment,исправлено,lead-verified,370
+BR-491,P-69,DATA,S2,alignment-ml/train.py,349,352,stale-vocab-reuse:alignment,исправлено,lead-verified,370
 BR-492,P-69,ERR,S3,alignment-ml/evaluate.py,63,68,eval-swallow:alignment,TODO,lead-verified,392
 BR-493,P-69,ERR,S3,alignment-ml/align.py,103,112,align-error:alignment,TODO,lead-verified,392
 BR-494,P-69,ERR,S3,alignment-ml/align.py,125,132,romanize-fallback:alignment,TODO,lead-verified,392

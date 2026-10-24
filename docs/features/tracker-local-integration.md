@@ -77,8 +77,9 @@ CLI (`tools/tracker.sh`) забирает их, выполняет и публи
 
 | Файл | Подкоманды |
 |------|-----------|
-| `tools/tracker.sh` | Главный CLI (8 подкоманд): `list-projects`, `list-issues`, `get-issue`, `claim-issue`, `add-comment`, `close-issue`, `reopen-issue`, `create-issue`, `healthcheck` |
-| `tools/tracker-lib.sh` | Общие функции: HTTP wrapper с retry на 429, JSON-логирование, Basic Auth |
+| `tools/tracker.sh` | Главный CLI (8 подкоманд): `list-projects`, `list-issues`, `get-issue`, `claim-issue`, `add-comment`, `close-issue`, `reopen-issue`, `create-issue`, `healthcheck`. `list-issues --raw` — TSV без выравнивания `column -t` (для машинного разбора) |
+| `tools/tracker-lib.sh` | Общие функции: HTTP wrapper с retry на 429, JSON-логирование, Basic Auth. Библиотека подключается через `source` и **не меняет настройки вызывающего шелла** (режим `set` задаёт сам вызывающий скрипт) |
+| `tools/tracker-poll.sh` | Polling-сводка задач (`--human` / `--json` / `--quiet`). Режим `--json` разбирает вывод `list-issues --raw` (колонки разделены табом) → `id` / `subject` / `status` заполнены корректно |
 | `tools/install-tracker.sh` | First-run setup: проверка Docker, создание `.env.local-tracker`, `docker compose up`, ожидание healthcheck |
 | `tools/tracker-smoke-test.sh` | End-to-end проверка (8 шагов) |
 

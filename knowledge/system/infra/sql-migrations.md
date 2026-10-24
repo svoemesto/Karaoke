@@ -66,6 +66,29 @@
 Каждая таблица, участвующая в sync, **MUST** иметь `recordhash`
 колонку + триггер. См. [two-db-sync.md](../../domains/processing/components/two-db-sync.md).
 
+Дополнительно (аудит #336, волна C, пакет PKG-DB-RECORDHASH, OpenProject #363):
+
+- **Канонический файл = единственный источник.** Для таблиц sync-движка определение функции
+  живёт в `deploy/recordhash_<table>.sql` (`authors`, `events`, `pictures`,
+  `pictures_sync`, `processes`). Миграция, добавляющая колонку в такую таблицу, обязана
+  добавить её и в канонический файл; оператор применяет канонический файл на **каждой** БД
+  (LOCAL и PROD) — иначе формулы md5 на сторонах разойдутся и diff покажет все строки
+  изменёнными.
+- **Все ссылки в теле триггера — через `NEW.`** Прецедент BR-553: в
+  `50_tbl_songs_free_after_on_air.sql` 31 колонка скопирована из `UPDATE`-выражения без
+  префикса; `CREATE FUNCTION` проходит, а триггер падает на первой записи
+  (`ERROR: column "rate" does not exist`). Бэкфилл ниже функции — единственное место, где
+  имена колонок пишутся без `NEW.` (это обычный `UPDATE`).
+- **Проверка без БД.** `python3 tools/check-recordhash-consistency.py` (CI + pre-commit)
+  проверяет: (1) `NEW.`-префикс во всех триггерных функциях `deploy/**/*.sql`;
+  (2) канонические файлы покрывают все `@KaraokeDbTableField` своих моделей и совпадают с
+  собственным бэкфиллом; (3) `tbl_songs_sync` содержит все колонки, которые пишет
+  `Song.getSqlToInsert(sync = true)`.
+- **Порядок применения.** `50` и `52` правят одну и ту же функцию `tbl_songs_sync`:
+  применять `50 → 52`, после `52` миграцию `50` повторно не применять (она вернёт формулу
+  из 95 колонок).
+
+
 ### Решение 4: Миграции — manual (не Liquibase/Flyway)
 
 Нет `migration tool`. Каждая миграция выполняется вручную
@@ -129,6 +152,9 @@ description, short_description, warning, ready_songs_count, total_songs_count
 
 ## Changelog
 
+- **2026-10-24** (аудит #336, OpenProject #363): Решение 3 дополнено контрактом
+  канонических `deploy/recordhash_*.sql`, правилом `NEW.`-префикса (BR-553), guard'ом
+  `tools/check-recordhash-consistency.py` и порядком «50 → 52» (BR-533).
 - **Pass 382** (2026-10-24, PKG-S2-08 / OpenProject #371): Решение 5
   (initdb-цепочка с нуля: идемпотентность, bootstrap таблицы в 18) и
   Решение 6 (канонический набор/порядок колонок recordhash авторов);

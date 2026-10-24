@@ -85,4 +85,23 @@ class PlayerRightsProvider(
             ) ?: return false
         return assignment.songId == songId && assignment.assigneeId == siteUserId
     }
+
+    /**
+     * Разрешено ли пользователю работать с SKIP-контентом (тег `SKIP`).
+     *
+     * Тот же флаг, что и в публичных выборках (`/api/public/songs`, `/zakroma`):
+     * `SiteUser.canWorkWithSkipped` — выдаётся автору/владельцу контента и админам
+     * (specs/293-skip-author-toggle). Для всех остальных SKIP-контент недоступен (compliance).
+     */
+    fun canWorkWithSkipped(siteUserId: Long): Boolean {
+        if (siteUserId <= 0) return false
+        val user =
+            SiteUser.getSiteUserById(
+                siteUserId,
+                WORKING_DATABASE,
+                storageService,
+                storageApiClient,
+            ) ?: return false
+        return user.canWorkWithSkipped
+    }
 }

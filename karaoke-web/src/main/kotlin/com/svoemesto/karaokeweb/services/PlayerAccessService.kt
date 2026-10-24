@@ -50,6 +50,9 @@ class PlayerAccessService(
         const val REASON_DEMO_TOKEN = "demo_token"
         const val REASON_NO_RIGHTS = "no_rights"
         const val REASON_NO_CREDENTIALS = "no_credentials"
+
+        /** Песня помечена тегом `SKIP` — контент снят по требованию правообладателя. */
+        const val REASON_SONG_SKIPPED = "song_skipped"
     }
 
     private val log = LoggerFactory.getLogger(LOG_CATEGORY)
@@ -91,6 +94,36 @@ class PlayerAccessService(
         val shareSessionValid =
             session != null && shareLinkService.validateShareSession(session, song.id) != null
 
+        // Предпросмотр неодобренной разметки по СВОЕМУ заданию редактора (FR-009). Основание —
+        // владение заданием, проверяется заново: задание могли отозвать или передать.
+        val assignmentId = facts?.assignmentId
+        val assignmentOwned =
+            assignmentId != null &&
+                userId != null &&
+                rightsProvider.isAssignmentOwner(assignmentId, userId, song.id)
+
+        // Аудит BR-022 (OpenProject #378): SKIP-контент (тег `SKIP` — песня снята по требованию
+        // правообладателя) не должен отдаваться публичными путями: раньше `access`/`authorized`
+        // считали достаточным основанием «эфир / премиум / подписка», и полный стем SKIP-песни
+        // уходил анониму или премиум-пользователю, пока песня оставалась в эфире.
+        // Исключения (та же логика, что в публичных выборках и в share-ссылках):
+        //  - `canWorkWithSkipped` — автор/владелец контента (specs/293-skip-author-toggle);
+        //  - предпросмотр по своему заданию редактора (внутренняя работа с контентом).
+        val skipped = hasSkipTag(song.tags)
+        if (skipped) {
+            val mayWorkWithSkipped = userId != null && rightsProvider.canWorkWithSkipped(userId)
+            if (!mayWorkWithSkipped && !assignmentOwned) {
+                log.warn("player:access:denied songId={} reason={}", song.id, REASON_SONG_SKIPPED)
+                return AccessDecision(
+                    full = false,
+                    demoRange = null,
+                    shareGuest = false,
+                    reason = REASON_SONG_SKIPPED,
+                    assignmentId = assignmentId,
+                )
+            }
+        }
+
         // Собственное право посетителя: публичность песни / живой премиум / живая подписка.
         val freelyAvailable = song.isFreelyAvailableNow
         val premium = userId != null && rightsProvider.isPremium(userId)
@@ -112,12 +145,9 @@ class PlayerAccessService(
             return AccessDecision(full = true, demoRange = null, shareGuest = true, reason = REASON_SHARE_GUEST)
         }
 
-        // Предпросмотр неодобренной разметки по СВОЕМУ заданию редактора (FR-009). Основание —
-        // владение заданием, проверяется заново: задание могли отозвать или передать.
-        val assignmentId = facts?.assignmentId
+        // Предпросмотр неодобренной разметки по СВОЕМУ заданию редактора (FR-009).
         if (assignmentId != null) {
-            val owned = userId != null && rightsProvider.isAssignmentOwner(assignmentId, userId, song.id)
-            if (!owned) {
+            if (!assignmentOwned) {
                 log.warn("player:access:denied songId={} reason={}", song.id, REASON_ASSIGNMENT_REVOKED)
                 return AccessDecision(
                     full = false,
@@ -184,4 +214,7 @@ class PlayerAccessService(
         val userId = tokenService.describeToken(token, song.id)?.userId ?: return false
         return rightsProvider.isPremium(userId)
     }
+
+    /** Тег `SKIP` — контент снят по требованию правообладателя (тот же разбор, что в SongPublicDto). */
+    private fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
 }

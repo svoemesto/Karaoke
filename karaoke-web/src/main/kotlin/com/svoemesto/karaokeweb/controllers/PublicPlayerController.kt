@@ -138,6 +138,9 @@ class PublicPlayerController(
     // Song.isContentReady, specs/089-auto-news-song-release).
     private fun stemsReady(song: Song): Boolean = song.isContentReady
 
+    /** Тег `SKIP` — контент снят по требованию правообладателя (specs/293-skip-author-toggle). */
+    private fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
+
     /**
      * Решает, можно ли прямо сейчас показать на странице песни встроенный онлайн-плеер вместо
      * видео ВК (для "в эфире") или сообщения об ожидании (для остального). Не требует секретного
@@ -161,12 +164,19 @@ class PublicPlayerController(
         // Share-сессия: если есть валидный session и контент готов — гость смотрит плеер.
         // canExport всегда false для гостя (Clarifications Q1: гость НЕ скачивает стемы).
         val shareGuest = ready && session != null && shareLinkService.validateShareSession(session, id) != null
-        val canWatch = ready && (song.isFreelyAvailableNow || premium || subscribed || shareGuest)
+        // Аудит BR-022 (OpenProject #378): SKIP-контент (песня снята по требованию правообладателя)
+        // не отдаётся публичными путями — «эфир / премиум / подписка» больше не являются
+        // достаточным основанием. Исключение — пользователи с флагом `canWorkWithSkipped`
+        // (автор/владелец контента, specs/293-skip-author-toggle). Тот же рубеж продублирован в
+        // `PlayerAccessService` — он проверяется в момент отдачи байт.
+        val contentBlocked = hasSkipTag(song.tags) && me?.canWorkWithSkipped != true
+        val canWatch = ready && !contentBlocked && (song.isFreelyAvailableNow || premium || subscribed || shareGuest)
         val canExport = canWatch && premium && !shareGuest
         // Демо-режим: контент готов, но полного доступа нет — вместо отказа выдаём токен,
         // ограниченный диапазоном (фрагмент "куплет минус отступ под фейд-ин"), чтобы не-премиум
         // мог послушать и оценить разметку/качество перед подпиской.
-        val isDemo = ready && !canWatch
+        // Для SKIP-контента демо-фрагмент тоже не выдаётся (compliance).
+        val isDemo = ready && !canWatch && !contentBlocked
         val demoFadeInSeconds = if (isDemo) song.demoFragmentFadeInSeconds else null
         val token =
             when {

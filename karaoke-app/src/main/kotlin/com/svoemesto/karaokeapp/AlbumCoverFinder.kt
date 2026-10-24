@@ -248,6 +248,12 @@ fun findYandexAlbumCovers(
 /** Скачивает картинку по внешнему URL. Используется и для сохранения, и для CORS-прокси. */
 fun downloadImageBytes(url: String): ByteArray? =
     try {
+        // BR-049 (аудит #336, пакет PKG-S2-10): defense in depth — даже если URL пришёл
+        // не из прокси-эндпоинта, в приватные/служебные адреса не ходим.
+        AlbumCoverUrlPolicy.rejectionReason(url)?.let {
+            println("downloadImageBytes: url отклонён политикой: $it")
+            return null
+        }
         val request =
             HttpRequest
                 .newBuilder()
@@ -258,8 +264,30 @@ fun downloadImageBytes(url: String): ByteArray? =
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
                 ).GET()
                 .build()
-        val response = albumCoverHttpClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
-        if (response.statusCode() in 200..299) response.body() else null
+        // Тело читаем потоково с жёстким лимитом: ofByteArray() принимал любой размер
+        // и давал OOM на большом ответе.
+        val response = albumCoverHttpClient.send(request, HttpResponse.BodyHandlers.ofInputStream())
+        if (response.statusCode() !in 200..299) {
+            response.body().close()
+            null
+        } else {
+            response.body().use { stream ->
+                val buffer = java.io.ByteArrayOutputStream()
+                val chunk = ByteArray(16 * 1024)
+                var total = 0L
+                while (true) {
+                    val read = stream.read(chunk)
+                    if (read < 0) break
+                    total += read
+                    if (total > AlbumCoverUrlPolicy.MAX_BYTES) {
+                        println("downloadImageBytes: ответ больше лимита ${AlbumCoverUrlPolicy.MAX_BYTES} байт — обрезан")
+                        return null
+                    }
+                    buffer.write(chunk, 0, read)
+                }
+                buffer.toByteArray()
+            }
+        }
     } catch (e: Exception) {
         println("downloadImageBytes: ошибка скачивания '$url': ${e.message}")
         null

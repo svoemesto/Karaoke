@@ -615,7 +615,20 @@ class ApiController(
         @RequestParam id: Long,
         @RequestParam idAnother: Long,
         @RequestParam fields: String,
-    ): String {
+    ): ResponseEntity<String> {
+        // BR-048 (аудит #336, пакет PKG-S2-10): список полей больше не принимается
+        // «как есть». `ID` и прочие идентифицирующие/путевые поля и неизвестные имена
+        // отклоняются целиком, иначе copyFieldsFromAnother записывал чужой id в
+        // fields[ID], а следующий saveToDbLocked() делал UPDATE чужой строки tbl_songs.
+        val decision = SongCopyFieldsPolicy.decide(fields)
+        if (!decision.isValid) {
+            return ResponseEntity
+                .badRequest()
+                .body("Недопустимый список полей: ${decision.rejected.joinToString(";")}")
+        }
+        if (id == idAnother) {
+            return ResponseEntity.badRequest().body("id и idAnother совпадают")
+        }
         Song
             .loadFromDbById(
                 id,
@@ -623,9 +636,9 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )?.let { song ->
-                song.copyFieldsFromAnother(idAnother, fields.split(";").map { SongField.valueOf(it) })
+                song.copyFieldsFromAnother(idAnother, decision.accepted)
             }
-        return "OK"
+        return ResponseEntity.ok("OK")
     }
 
     // Поиск "оригинала" текущей песни (по кнопке на форме, для песен в статусе NONE) - при успехе копирует
@@ -2515,7 +2528,15 @@ class ApiController(
                 }
             }
         }
-        val lst = songList.map { it.toDTO().toDtoDigest() }
+        // BR-104: имена альбомов — пакетно (один SELECT), а не по одному на песню.
+        val lst =
+            Song
+                .toDTOsWithAlbumNames(
+                    songs = songList,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it.toDtoDigest() }
         var totalMs = 0L
         for (i in lst.indices) {
             if (i > 0) lst[i].idPrevious = lst[i - 1].id
@@ -2660,15 +2681,19 @@ class ApiController(
 
         val lst =
             Song
-                .loadListFromDb(
-                    args,
+                .toDTOsWithAlbumNames(
+                    songs =
+                        Song.loadListFromDb(
+                            args,
+                            database = WORKING_DATABASE,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                            withoutMarkersAndText = true,
+                        ),
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                    withoutMarkersAndText = true,
-                ).map {
-                    it.toDTO()
-                }
+                )
         for (i in lst.indices) {
             if (i > 0) lst[i].idPrevious = lst[i - 1].id
             if (i < lst.size - 1) lst[i].idNext = lst[i + 1].id
@@ -3174,12 +3199,23 @@ class ApiController(
     fun getAlbumCoverProxy(
         @RequestParam url: String,
     ): ResponseEntity<ByteArray> {
+        // BR-049 (аудит #336, пакет PKG-S2-10): прокси — это SSRF-примитив, если ходить
+        // по произвольному url. Разрешены только http(s), порты 80/443 и ПУБЛИЧНЫЕ
+        // адреса; loopback/приватные/link-local диапазоны отклоняются ДО сетевого вызова.
+        AlbumCoverUrlPolicy.rejectionReason(url)?.let { reason ->
+            println("[albumcoverproxy] отклонён url: $reason")
+            return ResponseEntity.badRequest().build()
+        }
         val bytes = downloadImageBytes(url) ?: return ResponseEntity.notFound().build()
+        if (!AlbumCoverUrlPolicy.looksLikeImage(bytes)) {
+            println("[albumcoverproxy] ответ не является изображением (сигнатура не распознана)")
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE).build()
+        }
         val contentType =
-            if (bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte()) {
-                MediaType.IMAGE_JPEG
-            } else {
-                MediaType.IMAGE_PNG
+            when {
+                bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() -> MediaType.IMAGE_JPEG
+                bytes.size >= 4 && bytes.copyOfRange(0, 4).contentEquals("GIF8".toByteArray()) -> MediaType.IMAGE_GIF
+                else -> MediaType.IMAGE_PNG
             }
         return ResponseEntity.ok().contentType(contentType).body(bytes)
     }
@@ -4673,14 +4709,33 @@ class ApiController(
         scPath: String,
         threadId: Int,
     ) {
+        // BR-109 (аудит #336, пакет PKG-S2-10): scPath/scRenameTemplate приходят из запроса
+        // без аутентификации и раньше уходили в Files.createDirectories + chmod 777 + cp.
+        // Валидируем каталог экспорта и шаблон ДО постановки задач (fail-closed, 400).
+        val safePath =
+            SmartCopyPathPolicy.validateExportRoot(scPath)
+                ?: throw org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "smartCopyPath запрещён политикой путей: '$scPath'",
+                )
+        val safeTemplate =
+            if (scRenameTemplate.isBlank()) {
+                ""
+            } else {
+                SmartCopyPathPolicy.sanitizeDestinationTemplate(scRenameTemplate)
+                    ?: throw org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "smartCopyRenameTemplate запрещён политикой имён: '$scRenameTemplate'",
+                    )
+            }
         versions.forEach { scVersion ->
             song.doSmartCopy(
                 prior = prior,
                 scVersion = scVersion,
                 scResolution = scResolution,
                 scCreateSubfoldersAuthors = scCreateSubfoldersAuthors,
-                scRenameTemplate = scRenameTemplate,
-                scPath = scPath,
+                scRenameTemplate = safeTemplate,
+                scPath = safePath,
                 threadId = threadId,
             )
         }
@@ -4826,6 +4881,9 @@ class ApiController(
         // между двумя подряд успешными getLyricsSearch (упавшие запросы не учитываются).
         val cycleStart = System.currentTimeMillis()
         var lastSuccessTime: Long? = null
+        // BR-064: время последнего фактического запроса — пауза отсчитывается от него,
+        // а не от индекса в списке (пропущенные песни не должны «съедать» интервал).
+        var lastRequestTime: Long? = null
         var minIntervalMs: Long? = null
         var successfulCount = 0
 
@@ -4836,7 +4894,7 @@ class ApiController(
                 .map { it }
                 .filter { it != "" }
                 .map { it.toLong() }
-        ids.forEachIndexed { index, id ->
+        ids.forEach { id ->
             val song =
                 Song.loadFromDbById(
                     id = id,
@@ -4845,10 +4903,23 @@ class ApiController(
                     storageApiClient = storageApiClient,
                 )
             var songSearchSucceeded = false
-            val requestStart = System.currentTimeMillis()
+            var requestStart = System.currentTimeMillis()
             song?.let {
                 println("song.haveSourceText = ${song.haveSourceText}")
-                if (!song.haveSourceText || ids.size == 1) {
+                // BR-064 (аудит #336, пакет PKG-S2-10): спать только ПЕРЕД фактическим
+                // запросом. Раньше Thread.sleep стоял вне этой ветки и выполнялся на
+                // каждой итерации, включая песни, для которых getLyricsSearch не звался:
+                // 100 песен = ~16 минут синхронного HTTP-запроса и 504 от nginx.
+                if (LyricsSearchPacing.shouldRequest(song.haveSourceText, ids.size)) {
+                    val waitMs =
+                        LyricsSearchPacing.delayBeforeRequest(
+                            lastRequestAtMs = lastRequestTime,
+                            nowMs = System.currentTimeMillis(),
+                            intervalMs = effectiveTimeout * 1000L,
+                        )
+                    if (waitMs > 0) Thread.sleep(waitMs)
+                    requestStart = System.currentTimeMillis()
+                    lastRequestTime = requestStart
                     try {
                         getLyricsSearch(
                             song = song,
@@ -4872,11 +4943,6 @@ class ApiController(
                 }
                 lastSuccessTime = requestStart
                 successfulCount++
-            }
-
-            // specs/316-search-timeout-configurable (R-002): пауза между запросами, кроме последнего.
-            if (index < ids.size - 1 && effectiveTimeout > 0) {
-                Thread.sleep(effectiveTimeout * 1000L)
             }
         }
 
@@ -7058,6 +7124,31 @@ class ApiController(
         return response
     }
 
+    /**
+     * BR-063 (аудит #336, пакет PKG-S2-10): сохранить флаги премиум-публикации ПОСЛЕ
+     * сетевого вызова, не перезатирая чужие изменения.
+     *
+     * `stale` загружен до `sendVideo` (10–30 с). Пишем на свежую строку, перенося только
+     * флаги публикации: `getDiff` тогда не содержит `id_telegram_demo`/`id_vk` и других
+     * полей, которые успел обновить scheduler/SongEdit.
+     *
+     * @return true, если запись выполнена.
+     */
+    private fun savePublicationFlagsAfterNetwork(stale: Song): Boolean {
+        val fresh =
+            Song.loadFromDbById(
+                id = stale.id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return false
+        SongPublicationFlagsPolicy.copyFlags(from = stale, to = fresh)
+        val saved = fresh.saveToDbLocked()
+        // Ответ эндпоинта читает флаги из исходного объекта — синхронизируем его.
+        SongPublicationFlagsPolicy.copyFlags(from = fresh, to = stale)
+        return saved
+    }
+
     // specs/122-premium-auto-publish: ручная премиум-публикация в Telegram. Endpoint доступен
     // всегда (даже при premiumAutoPublishEnabled=false) — позволяет админу форсировать публикацию
     // повторно после сброса флага или для тестов. В отличие от /api/song/publishToTelegramNow,
@@ -7105,7 +7196,7 @@ class ApiController(
             song.premiumAutoPublishState = "RUNNING"
             song.premiumAttemptCount = 0
             song.premiumAutoPublishLastError = ""
-            song.saveToDb()
+            song.saveToDbLocked()
         }
 
         val result =
@@ -7134,7 +7225,11 @@ class ApiController(
                     song.premiumAutoPublishState = "COMPLETE"
                 }
             }
-            song.saveToDb()
+            // BR-063 (аудит #336, пакет PKG-S2-10): сетевой вызов длился секунды, объект
+            // `song` устарел. Полный saveToDb() перезаписывал чужие изменения (терялся
+            // idTelegramDemo/idVk от air-публикации). Пишем только флаги публикации на
+            // свежую строку.
+            savePublicationFlagsAfterNetwork(song)
         }
 
         val response: MutableMap<String, Any> = mutableMapOf()
@@ -7190,7 +7285,7 @@ class ApiController(
             song.premiumAutoPublishState = "RUNNING"
             song.premiumAttemptCount = 0
             song.premiumAutoPublishLastError = ""
-            song.saveToDb()
+            song.saveToDbLocked()
         }
 
         val result =
@@ -7216,7 +7311,11 @@ class ApiController(
                     song.premiumAutoPublishState = "COMPLETE"
                 }
             }
-            song.saveToDb()
+            // BR-063 (аудит #336, пакет PKG-S2-10): сетевой вызов длился секунды, объект
+            // `song` устарел. Полный saveToDb() перезаписывал чужие изменения (терялся
+            // idTelegramDemo/idVk от air-публикации). Пишем только флаги публикации на
+            // свежую строку.
+            savePublicationFlagsAfterNetwork(song)
         }
 
         val response: MutableMap<String, Any> = mutableMapOf()

@@ -23,11 +23,12 @@
 |---|---|---|---|
 | 1 | `VkAutoPublishService` | 546 | **Самый большой** — авто-постинг в VK (preview warmup + photo upload + wall.post) |
 | 2 | `SongReleaseAnnouncementService` | 506 | Анонсы релизов песен |
-| 3 | `TelegramAutoPublishService` | 338 | Авто-постинг в Telegram |
+| 3 | `TelegramAutoPublishService` | 401 | Авто-постинг в Telegram |
 | 4 | `NewsTemplateService` | 264 | Шаблоны новостей (4 категории) |
 | 5 | `AdminTaskService` | 132 | Админ-задачи (UI helpers) |
 | 6 | `TelegramTemplateService` | ? | Шаблоны TG (Pass 343+) |
 | 7 | `VkTemplateService` | ? | Шаблоны VK (Pass 343+) |
+| 8 | `TelegramPublishClaim` | 222 | Атомарный захват публикации TG (BR-062/BR-138, пакет #366) |
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
 
@@ -117,7 +118,7 @@ group blocked.
 4. Отправляет через `TelegramApiClient` или `VkApiClient` (в
    зависимости от настроек).
 
-### Детально: `TelegramAutoPublishService` (338 строк)
+### Детально: `TelegramAutoPublishService` (401 строка)
 
 **Файл**: `karaoke-app/.../services/TelegramAutoPublishService.kt`.
 
@@ -135,9 +136,38 @@ group blocked.
    `telegramAutoPublishMaxFileSizeMb`, дефолт 50 МБ) → рендер
    (`RENDER_MP4_DEMO`), состояние `RENDERING`, продолжение через
    `onRenderCompleted`.
-6. Иначе — `publishFile`: `TelegramApiClient` (`sendVideo`/`sendPhoto`),
-   при `persistMessageId = true` запись `idTelegramDemo` через
-   `Song.saveToDb` (FR-006).
+6. Иначе — `publishFile`: атомарный захват `publishing` в БД
+   (`acquirePublishClaim` → `TelegramPublishClaim`), затем
+   `TelegramApiClient` (`sendVideo`), при `persistMessageId = true` запись
+   `idTelegramDemo` через `Song.saveToDbLocked` (FR-006).
+
+**Атомарный захват публикации (BR-062/BR-138, аудит #336, #366).**
+Проверки в п.2 читают загруженный в память `Song` — это check-then-act: два
+потока (ручной endpoint `/api/song/publishToTelegramNow` и поток scheduler'а)
+могли пройти проверку одновременно и оба вызвать `sendVideo` → два поста в
+канале. Поэтому непосредственно перед `sendVideo` `publishFile` вызывает
+`TelegramAutoPublishService.acquirePublishClaim`, реализованный в
+`TelegramPublishClaim.kt`:
+
+- `JdbcTelegramPublishClaimStore` открывает транзакцию на ThreadLocal-соединении
+  (ADR-0001), берёт `SELECT id FROM tbl_songs WHERE id = ? FOR NO KEY UPDATE`
+  (тот же примитив, что в `Song.saveToDbLocked`, specs/299), свежо читает
+  `id_telegram_demo` и `player_readiness_flags`;
+- `TelegramPublishClaimPolicy.decide` возвращает `AlreadyPublished` (свежий
+  `id_telegram_demo`), `Busy` (состояние `publishing` не старше
+  `CLAIM_TTL_MS = 15 мин`) или `Claimed`;
+- при `Claimed` пишется только колонка `player_readiness_flags`
+  (`telegramAutoPublishState=publishing`, `telegramAutoPublishLastAttemptAt`)
+  и делается `commit`; сетевой вызов идёт уже без блокировки строки;
+- `Busy`/`Failed`/`NotFound` возвращаются вызывающему без `sendVideo`
+  (fail-closed); TTL нужен, чтобы `publishing`, оставшийся после падения
+  процесса, не блокировал песню навсегда.
+
+Состояние хранится в JSON-блобе `player_readiness_flags`, а не отдельной
+колонкой, поэтому захват сделан блокировкой строки, а не условным
+`UPDATE … WHERE state = …` (см. `deploy/karaoke-db/26_player_readiness_flags.sql`).
+Регрессия: `karaoke-app/src/test/.../services/TelegramPublishClaimRaceTest.kt`
+(8 конкурирующих потоков → ровно один `Claimed`, остальные `Busy`).
 
 ### Детально: `NewsTemplateService` (264 строки)
 
@@ -221,6 +251,14 @@ object NewsTemplateService {
 - [ ] **Идемпотентность** — точные механизмы.
 - [ ] **Premium-публикация** — отдельный сервис или часть
       `VkAutoPublish`?
+
+## Связанные ADR
+
+- [ADR-0001](../../../adr/0001-raw-jdbc.md) — сырой JDBC без пула: захват публикации
+  (`TelegramPublishClaim`) держит `SELECT … FOR NO KEY UPDATE` на соединении потока.
+- [local-0009](../../../adr/local-0009-thread-local-connection-lifecycle.md) — жизненный
+  цикл соединения потока: блокировка берётся и снимается в одном потоке, соединение не
+  закрывается внутри блокировки.
 
 ## Changelog
 

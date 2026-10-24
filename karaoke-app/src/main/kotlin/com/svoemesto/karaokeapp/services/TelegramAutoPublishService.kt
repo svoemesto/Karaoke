@@ -38,6 +38,13 @@ object TelegramAutoPublishService {
     private val client = TelegramApiClient()
 
     /**
+     * Шов для регрессионного теста гонки (BR-062/BR-138): в проде — транзакционный захват
+     * строки `tbl_songs`, в тесте — управляемая реализация. Меняется только тестом
+     * `TelegramPublishClaimRaceTest`; в рантайме перезаписи нет.
+     */
+    internal var claimStore: TelegramPublishClaimStore = JdbcTelegramPublishClaimStore
+
+    /**
      * Выполняет полный цикл автопубликации одной песни (FR-001, FR-003, FR-006, FR-008,
      * FR-010, FR-011). Вызывается scheduler'ом (плановый тик) или endpoint'ом «Опубликовать
      * сейчас» (ручной триггер). Все шаги, кроме рендера (который ставит асинхронную задачу
@@ -259,6 +266,54 @@ object TelegramAutoPublishService {
         return TelegramAutoPublishResult(state = TelegramAutoPublishState.RENDERING)
     }
 
+    /**
+     * Атомарно захватывает право на отправку (BR-062/BR-138). Возвращает `null`, если захват
+     * получен и вызывающий может идти в `sendVideo`; иначе — готовый результат публикации
+     * (`PUBLISHING` при занятом захвате, `PUBLISHED` при уже состоявшейся отправке,
+     * `SEND_FAILED` при ошибке/отсутствии строки) без сетевого вызова.
+     *
+     * Состояние в памяти синхронизируется с тем, что записано в БД захватом, чтобы
+     * последующий `saveToDbLocked()` не перезаписал `publishing` старым значением.
+     */
+    internal fun acquirePublishClaim(
+        song: Song,
+        nowMs: Long = System.currentTimeMillis(),
+    ): TelegramAutoPublishResult? {
+        val nowIso = iso8601(nowMs)
+        return when (val claim = claimStore.claim(song.id, nowMs, nowIso)) {
+            TelegramPublishClaim.Claimed -> {
+                song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHING.code
+                song.telegramAutoPublishLastAttemptAt = nowIso
+                song.telegramAutoPublishLastError = ""
+                null
+            }
+            is TelegramPublishClaim.Busy ->
+                TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.PUBLISHING,
+                    error = "publication already in progress (claimed at ${claim.lastAttemptAt})",
+                )
+            is TelegramPublishClaim.AlreadyPublished -> {
+                // Свежий id из-под блокировки: синхронизируем объект, чтобы ответ и последующий
+                // saveToDbLocked() не «потеряли» уже записанный message_id.
+                song.fields[SongField.ID_TELEGRAM_DEMO] = claim.messageId
+                TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.PUBLISHED,
+                    messageId = claim.messageId,
+                )
+            }
+            TelegramPublishClaim.NotFound ->
+                TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.SEND_FAILED,
+                    error = "song ${song.id} not found — nothing to publish",
+                )
+            is TelegramPublishClaim.Failed ->
+                TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.SEND_FAILED,
+                    error = "publish claim failed: ${claim.error}",
+                )
+        }
+    }
+
     // Выполняет sendVideo (FR-005, FR-010) и записывает результат (FR-006) или ошибку.
     // publicationType — выбор шаблона (AIR-шаблон или PREMIUM-шаблон).
     // persistMessageId — false для PREMIUM-публикации (не записывать idTelegramDemo, чтобы этот же
@@ -287,12 +342,16 @@ object TelegramAutoPublishService {
                 song,
             )
 
-        // PUBLISHING — фиксируем начало sendVideo (для UI «Публикуется»).
-        song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHING.code
-        song.telegramAutoPublishLastAttemptAt = nowIso8601()
-        song.telegramAutoPublishLastError = ""
-        // specs/299: см. комментарий выше
-        song.saveToDbLocked()
+        // BR-062/BR-138 (аудит #336, PKG-RACE-PUBLISH): атомарный захват публикации ДО
+        // sendVideo. Проверки «уже опубликовано / уже публикуется» выше читают загруженный
+        // объект, поэтому два потока (кнопка «Опубликовать сейчас» и scheduler) могли пройти
+        // их одновременно и оба отправить видео. Теперь ровно один поток фиксирует
+        // `publishing` в БД (SELECT … FOR NO KEY UPDATE + точечный UPDATE), остальные
+        // получают Busy/AlreadyPublished и ничего не отправляют.
+        val busy = acquirePublishClaim(song)
+        if (busy != null) {
+            return busy
+        }
 
         val maxFileSizeBytes =
             KaraokeProperties.getLong("telegramAutoPublishMaxFileSizeMb").let { if (it <= 0) 50L else it } * 1024 * 1024
@@ -333,6 +392,10 @@ object TelegramAutoPublishService {
 
     private fun nowMoscow(): Date = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
 
-    private fun nowIso8601(): String =
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").apply { timeZone = TimeZone.getTimeZone("Europe/Moscow") }.format(nowMoscow())
+    private fun nowIso8601(): String = iso8601(System.currentTimeMillis())
+
+    private fun iso8601(epochMs: Long): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+            .apply { timeZone = TimeZone.getTimeZone("Europe/Moscow") }
+            .format(Date(epochMs))
 }

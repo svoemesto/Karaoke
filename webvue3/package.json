@@ -16,6 +16,9 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "measure:input-latency": "node scripts/measure-input-latency.mjs",
+    "measure:formatter-vhtml": "node scripts/measure-formatter-vhtml.mjs",
+    "check:e2e:regressions": "node scripts/e2e-regression-check.mjs",
     "docs": "typedoc --out ../docs/api/typedoc-webvue3 src"
   },
   "dependencies": {

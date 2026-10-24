@@ -2,7 +2,8 @@
 // #187 — утечка document-листенеров и падение после закрытия модалки;
 // #188 — глобальные хоткеи срабатывают при вводе в дочерние модалки.
 //
-// Живая песня 11718 «Говорит Деметра» (2170 маркеров). Логин не требуется.
+// Песня для набора задаётся переменной окружения E2E_SONG_ID (см.
+// e2e/fixtures/song.js) — набор не привязан к одной боевой песни.
 //
 // До фикса:
 //   #187 — после закрытия редактора любое нажатие клавиши давало
@@ -14,53 +15,7 @@
 
 import { expect, test } from '@playwright/test'
 
-const SONG_ID = 11718
-
-async function openEditor(page) {
-  // Список песен тянет POST /api/songs (~81 МБ) — обрываем, он не нужен.
-  // Сравнение по pathname, а не glob: `**/api/songs**` матчит и
-  // `/api/songsdigests`, из-за чего обрывался нужный запрос.
-  await page.route(
-    (url) => url.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-
-  // Песни приходят только с фильтром; нужен loadSongsDigestsPromise — обычный
-  // loadSongsDigests промис не возвращает.
-  await page.evaluate(async (id) => {
-    const store =
-      document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    const raw = await store.dispatch('loadSongsDigestsPromise', { filterId: String(id) })
-    store.commit('updateSongsDigests', JSON.parse(raw))
-  }, SONG_ID)
-
-  await page.locator('.fld-song-name').first().click()
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.locator('.se-subsedit-area').waitFor({ state: 'attached' })
-  await page.locator('#waveform').waitFor({ state: 'attached' })
-  await page.waitForTimeout(7000)
-}
-
-function getSubsEdit(page, fn) {
-  return page.evaluate((body) => {
-    const app = document.querySelector('#app[data-v-app]').__vue_app__
-    const seen = new Set()
-    let inst = null
-    const walk = (v) => {
-      if (!v || typeof v !== 'object' || seen.has(v)) return
-      seen.add(v)
-      const n = v.component?.type
-      if (v.component && n && (n.name || n.__name) === 'SubsEdit') inst = v.component
-      if (Array.isArray(v.children)) v.children.forEach(walk)
-      if (v.component?.subTree) walk(v.component.subTree)
-    }
-    walk(app._container._vnode)
-    if (!inst) return { err: 'экземпляр SubsEdit не найден' }
-    // eslint-disable-next-line no-new-func
-    return new Function('p', `return (${body})(p)`)(inst.proxy)
-  }, fn)
-}
+import { openEditor, withSubsEdit } from './fixtures/song.js'
 
 test.describe('жизненный цикл редактора (#187, #188)', () => {
   test('#187: закрытие модалки снимает слушатели клавиатуры с document', async ({ page }) => {
@@ -147,8 +102,8 @@ test.describe('жизненный цикл редактора (#187, #188)', () 
 
     await openEditor(page)
 
-    const before = await getSubsEdit(page, 'p => p.sourceMarkers.length')
-    expect(before.err).toBeUndefined()
+    const before = await withSubsEdit(page, (p) => p.sourceMarkers.length)
+    expect(before.error, before.error || '').toBeUndefined()
 
     // Открываем AI-редактор — в нём есть textarea, куда печатает пользователь.
     // Кнопка не имеет текста, только иконку с title, поэтому целимся по img[alt].
@@ -166,8 +121,8 @@ test.describe('жизненный цикл редактора (#187, #188)', () 
     await textarea.type('ssw1o', { delay: 40 })
     await page.waitForTimeout(1200)
 
-    const after = await getSubsEdit(page, 'p => p.sourceMarkers.length')
-    expect(after.err).toBeUndefined()
+    const after = await withSubsEdit(page, (p) => p.sourceMarkers.length)
+    expect(after.error, after.error || '').toBeUndefined()
     expect(after, 'ввод текста не должен ни удалять, ни создавать маркеры').toBe(before)
     expect(errors, 'ввод в модалке не должен дёргать хоткеи редактора').toEqual([])
   })

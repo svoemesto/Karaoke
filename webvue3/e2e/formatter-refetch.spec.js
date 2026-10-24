@@ -14,34 +14,9 @@
 
 import { expect, test } from '@playwright/test'
 
-test.setTimeout(180000)
+import { openEditor } from './fixtures/song.js'
 
-const openEditor = async (page) => {
-  await page.route(
-    (u) => u.pathname === '/api/songs',
-    (r) => r.abort(),
-  )
-  await page.goto('/songs', { waitUntil: 'domcontentloaded' })
-  await page.evaluate(async () => {
-    const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-    s.commit(
-      'updateSongsDigests',
-      JSON.parse(await s.dispatch('loadSongsDigestsPromise', { filterId: '11718' })),
-    )
-  })
-  await page.locator('.fld-song-name').first().click()
-  await page.locator('button[title="Редактировать субтитры"]').first().click()
-  await page.waitForFunction(
-    () => {
-      const s = document.querySelector('#app[data-v-app]').__vue_app__.config.globalProperties.$store
-      const song = s.getters.getCurrentSong
-      return Boolean(song && song.id)
-    },
-    null,
-    { timeout: 30000 },
-  )
-  await page.waitForTimeout(2500)
-}
+test.setTimeout(180000)
 
 // Счётчик обращений к трём эндпоинтам форматтеров.
 const countFormatterCalls = async (page) => {

@@ -658,3 +658,23 @@ jobs:
         # Ловит упоминания \bmp4\b и `скачивани` в production коде по оферте
         # «доступ только онлайн». Baseline: tools/check-no-mp4-mentions.baseline.
         run: bash tools/check-no-mp4-mentions.sh --quiet
+
+  # === security-headers guard (2026-10-24, BR-558, аудит #336, OpenProject #372) ===
+  # Прод-nginx публичного сайта (sm-karaoke.ru) обязан отдавать заголовки
+  # безопасности. Guard статически разбирает deploy/prod-single-host/80to8897 и
+  # проверяет: (1) каждый server-блок объявляет X-Frame-Options /
+  # X-Content-Type-Options / Referrer-Policy (+ Strict-Transport-Security для
+  # TLS-сервера) с флагом `always`; (2) location'ы, у которых есть свои
+  # add_header (в nginx такие блоки НЕ наследуют серверные заголовки),
+  # объявляют нужные заголовки явно либо помечены явным исключением.
+  # Регламент: knowledge/guidelines/security-headers.md.
+  security-headers-guard:
+    name: security headers guard (BR-558)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: security headers guard (BR-558)
+        run: python3 tools/check-security-headers.py

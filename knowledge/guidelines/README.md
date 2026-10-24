@@ -10,6 +10,7 @@
 | --- | --- |
 | [architecture-conventions.md](architecture-conventions.md) | Сводный справочник архитектурных конвенций |
 | [code-style.md](code-style.md) | Kotlin / Vue / SQL / Markdown / Shell / Docker style |
+| [security-headers.md](security-headers.md) | Заголовки безопасности в прод-nginx (host-nginx сайта `sm-karaoke.ru`) |
 | [runbooks/README.md](runbooks/README.md) | Индекс операционных playbook'ов |
 
 ## Планируемое наполнение

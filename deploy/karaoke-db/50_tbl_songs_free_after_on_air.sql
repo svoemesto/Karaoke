@@ -24,6 +24,21 @@
 --
 -- Default = false для обратной совместимости: все существующие 18 097 песен
 -- получают false без backfill-скрипта.
+--
+-- ИСПРАВЛЕНИЕ (BR-553, аудит #336, OpenProject #363, 2026-10-24): в теле
+-- update_tbl_songs_sync_recordhash() в последних 31 колонках md5-цепочки был потерян
+-- префикс NEW. (скопировано из UPDATE-выражения, где unqualified-имя корректно). В
+-- PL/pgSQL такое имя не является переменной функции и передаётся SQL-парсеру как
+-- ссылка на колонку; у функции-триггера нет FROM — поэтому первый же INSERT/UPDATE в
+-- tbl_songs_sync падал с 'ERROR: column "rate" does not exist' (функция при этом
+-- создаётся успешно — тело проверяется только синтаксически). Префикс NEW. восстановлен
+-- по эталону 43_song_name_censored_sync.sql; ниже добавлена проверка, которая не даёт
+-- такому регрессу повториться молча.
+--
+-- ВАЖНО: этот файл уже применён на части БД, где сломанная функция осталась в базе.
+-- Доставить исправление на такие БД — миграцией
+-- deploy/karaoke-db/52_tbl_songs_sync_description_fields.sql (она пересобирает эту же
+-- функцию). После применения 52 миграцию 50 переприменять НЕЛЬЗЯ.
 
 -- ==========================================================================================
 -- tbl_songs — добавить колонку
@@ -339,39 +354,82 @@ BEGIN
         COALESCE(NEW.version_boosty::TEXT, '') ||
         COALESCE(NEW.version_sponsr::TEXT, '') ||
         COALESCE(NEW.version_boosty_files::TEXT, '') ||
-        COALESCE(rate::TEXT, '') ||
-        COALESCE(root_id::TEXT, '') ||
-        COALESCE(free::TEXT, '') ||
-        COALESCE(exclusive::TEXT, '') ||
-        COALESCE(formatted_text_song, '') ||
-        COALESCE(formatted_text_tabs, '') ||
-        COALESCE(formatted_text_chords, '') ||
-        COALESCE(id_max_lyrics, '') ||
-        COALESCE(id_max_karaoke, '') ||
-        COALESCE(id_max_chords, '') ||
-        COALESCE(id_max_melody, '') ||
-        COALESCE(version_max_lyrics::TEXT, '') ||
-        COALESCE(version_max_karaoke::TEXT, '') ||
-        COALESCE(version_max_chords::TEXT, '') ||
-        COALESCE(version_max_melody::TEXT, '') ||
-        COALESCE(id_dzen_demo, '') ||
-        COALESCE(version_dzen_demo::TEXT, '') ||
-        COALESCE(id_vk_demo, '') ||
-        COALESCE(version_vk_demo::TEXT, '') ||
-        COALESCE(id_telegram_demo, '') ||
-        COALESCE(version_telegram_demo::TEXT, '') ||
-        COALESCE(id_max_demo, '') ||
-        COALESCE(version_max_demo::TEXT, '') ||
-        COALESCE(song_type, '') ||
-        COALESCE(audio_parent_id::TEXT, '') ||
-        COALESCE(audio_similarity_percent::TEXT, '') ||
-        COALESCE(audio_delta_ms::TEXT, '') ||
-        COALESCE(audio_compare_history, '') ||
-        COALESCE(player_readiness_flags, '') ||
-        COALESCE(song_name_censored, '') ||
-        COALESCE(free_after_on_air::TEXT, 'false')
+        COALESCE(NEW.rate::TEXT, '') ||
+        COALESCE(NEW.root_id::TEXT, '') ||
+        COALESCE(NEW.free::TEXT, '') ||
+        COALESCE(NEW.exclusive::TEXT, '') ||
+        COALESCE(NEW.formatted_text_song, '') ||
+        COALESCE(NEW.formatted_text_tabs, '') ||
+        COALESCE(NEW.formatted_text_chords, '') ||
+        COALESCE(NEW.id_max_lyrics, '') ||
+        COALESCE(NEW.id_max_karaoke, '') ||
+        COALESCE(NEW.id_max_chords, '') ||
+        COALESCE(NEW.id_max_melody, '') ||
+        COALESCE(NEW.version_max_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_max_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_max_chords::TEXT, '') ||
+        COALESCE(NEW.version_max_melody::TEXT, '') ||
+        COALESCE(NEW.id_dzen_demo, '') ||
+        COALESCE(NEW.version_dzen_demo::TEXT, '') ||
+        COALESCE(NEW.id_vk_demo, '') ||
+        COALESCE(NEW.version_vk_demo::TEXT, '') ||
+        COALESCE(NEW.id_telegram_demo, '') ||
+        COALESCE(NEW.version_telegram_demo::TEXT, '') ||
+        COALESCE(NEW.id_max_demo, '') ||
+        COALESCE(NEW.version_max_demo::TEXT, '') ||
+        COALESCE(NEW.song_type, '') ||
+        COALESCE(NEW.audio_parent_id::TEXT, '') ||
+        COALESCE(NEW.audio_similarity_percent::TEXT, '') ||
+        COALESCE(NEW.audio_delta_ms::TEXT, '') ||
+        COALESCE(NEW.audio_compare_history, '') ||
+        COALESCE(NEW.player_readiness_flags, '') ||
+        COALESCE(NEW.song_name_censored, '') ||
+        COALESCE(NEW.free_after_on_air::TEXT, 'false')
     );
     RETURN NEW;
+END;
+$$;
+
+-- ==========================================================================================
+-- Проверка (BR-553, аудит #336, OpenProject #363): в теле функции-триггера ВСЕ колонки
+-- хэша обязаны быть с префиксом NEW.
+--
+-- Почему это критично: в PL/pgSQL идентификатор, не найденный среди переменных функции,
+-- передаётся SQL-парсеру как ссылка на колонку. У функции-триггера нет FROM, поэтому
+-- `COALESCE(rate::TEXT, '')` не разрешается — plpgsql отдаёт его в парсер как колонку
+-- запроса без FROM-списка и получает: ERROR: column "rate" does not exist.
+-- Функция при этом создаётся успешно (тело plpgsql проверяется только синтаксически),
+-- и падает ЛИШЬ при первом срабатывании триггера — то есть на первом же INSERT/UPDATE
+-- в tbl_songs_sync (очередь синхронизации LOCAL→SERVER).
+--
+-- Раньше в последних 31 колонках цепочки префикс NEW. был потерян (скопировано из
+-- UPDATE-выражения, где unqualified-имя корректно). Префикс восстановлен, а проверка
+-- ниже не даёт такой регресс повториться молча.
+-- ==========================================================================================
+DO $$
+DECLARE
+    v_body      TEXT;
+    v_all       INTEGER;
+    v_qualified INTEGER;
+BEGIN
+    SELECT p.prosrc INTO v_body
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE p.proname = 'update_tbl_songs_sync_recordhash'
+       AND n.nspname = 'public';
+
+    IF v_body IS NULL THEN
+        RAISE EXCEPTION 'Функция public.update_tbl_songs_sync_recordhash() не найдена';
+    END IF;
+
+    v_all       := (length(v_body) - length(replace(v_body, 'COALESCE(', ''))) / length('COALESCE(');
+    v_qualified := (length(v_body) - length(replace(v_body, 'COALESCE(NEW.', ''))) / length('COALESCE(NEW.');
+
+    IF v_all <> v_qualified THEN
+        RAISE EXCEPTION
+            'В update_tbl_songs_sync_recordhash() % из % ссылок на колонки без префикса NEW. — триггер упадёт на первой записи',
+            v_all - v_qualified, v_all;
+    END IF;
 END;
 $$;
 

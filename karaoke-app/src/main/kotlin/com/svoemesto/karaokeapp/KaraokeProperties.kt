@@ -16,6 +16,8 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properties"
 
@@ -26,6 +28,18 @@ const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properti
  */
 class KaraokeProperties {
     companion object {
+        /**
+         * BR-244/P-05-01: один писатель на файл. Писателей несколько и в разных потоках
+         * (админский `/api/properties/setproperty`, `TelegramUpdatesConsumer`, очередь
+         * `KaraokeProcessWorker`, `VkIdTokenRefreshScheduler`), а `set()` менял общий `HashMap`
+         * и сразу переписывал весь файл по общему пути `Karaoke.properties.tmp`. Итог — тихая
+         * потеря настройки, `NoSuchFileException` на `Files.move` и порча файла при чтении
+         * карты во время её изменения. Блокировка охватывает «изменить карту → закодировать →
+         * записать»; `set()` внутри уже держит её, поэтому `savePropertiesMap()` вызывается
+         * из-под неё же (ReentrantLock это допускает).
+         */
+        private val propertiesWriteLock = ReentrantLock()
+
         fun pathToFile(): String = PATH_TO_KARAOKE_PROPERTIES_FILE
 
         /**
@@ -40,6 +54,12 @@ class KaraokeProperties {
 
         @OptIn(ExperimentalSerializationApi::class)
         fun loadPropertiesMap() {
+            propertiesWriteLock.withLock {
+                loadPropertiesMapLocked()
+            }
+        }
+
+        private fun loadPropertiesMapLocked() {
             if (propertiesLoadAttempted) return
             propertiesLoadAttempted = true
 
@@ -73,11 +93,13 @@ class KaraokeProperties {
         }
 
         fun savePropertiesMap() {
-            try {
-                writePropertiesFileAtomic(File(pathToFile()), encodePropertiesMap(karaokePropertiesMap))
-                runCommand(listOf("chmod", "666", pathToFile()))
-            } catch (e: Exception) {
-                println("KaraokeProperties: не удалось сохранить файл ${pathToFile()}: ${e.message}")
+            propertiesWriteLock.withLock {
+                try {
+                    writePropertiesFileAtomic(File(pathToFile()), encodePropertiesMap(karaokePropertiesMap))
+                    runCommand(listOf("chmod", "666", pathToFile()))
+                } catch (e: Exception) {
+                    println("KaraokeProperties: не удалось сохранить файл ${pathToFile()}: ${e.message}")
+                }
             }
         }
 
@@ -145,10 +167,12 @@ class KaraokeProperties {
             key: String,
             value: Any,
         ) {
-            val valueInMap = get(key)
-            if (valueInMap !== null && valueInMap !== value) {
-                karaokePropertiesMap[key] = value
-                savePropertiesMap()
+            propertiesWriteLock.withLock {
+                val valueInMap = get(key)
+                if (valueInMap !== null && valueInMap !== value) {
+                    karaokePropertiesMap[key] = value
+                    savePropertiesMap()
+                }
             }
         }
 
@@ -244,22 +268,43 @@ internal fun readPropertiesFile(file: File): Map<String, Any>? =
  * (`ATOMIC_MOVE` — на одной ФС это атомарная операция), а перед заменой снимается
  * копия предыдущей версии в `<имя>.bak` для отката.
  */
+private val propertiesFileWriteLock = Any()
+
 internal fun writePropertiesFileAtomic(
     target: File,
     content: String,
 ) {
-    val dir = target.parentFile ?: File(".")
-    val tmp = File(dir, "${target.name}.tmp")
-    if (target.exists()) {
-        target.copyTo(backupFileFor(target), overwrite = true)
+    // BR-244: низкоуровневая запись тоже сериализуется — функция вызывается и напрямую
+    // (тесты/скрипты), а не только из `savePropertiesMap()` под `propertiesWriteLock`.
+    synchronized(propertiesFileWriteLock) {
+        writePropertiesFileAtomicLocked(target, content)
     }
-    tmp.writeText(content)
-    Files.move(
-        tmp.toPath(),
-        target.toPath(),
-        StandardCopyOption.REPLACE_EXISTING,
-        StandardCopyOption.ATOMIC_MOVE,
-    )
+}
+
+private fun writePropertiesFileAtomicLocked(
+    target: File,
+    content: String,
+) {
+    val dir = target.parentFile ?: File(".")
+    // BR-244: временный файл уникален на вызов. Общий `<имя>.tmp` означал, что два писателя
+    // (в т.ч. из разных процессов) затирали друг другу содержимое, а второй `Files.move`
+    // падал на уже несуществующем файле — настройка оставалась только в памяти.
+    val tmp = Files.createTempFile(dir.toPath(), "${target.name}.", ".tmp")
+    try {
+        if (target.exists()) {
+            target.copyTo(backupFileFor(target), overwrite = true)
+        }
+        tmp.toFile().writeText(content)
+        Files.move(
+            tmp,
+            target.toPath(),
+            StandardCopyOption.REPLACE_EXISTING,
+            StandardCopyOption.ATOMIC_MOVE,
+        )
+    } catch (e: Throwable) {
+        Files.deleteIfExists(tmp)
+        throw e
+    }
 }
 
 val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()

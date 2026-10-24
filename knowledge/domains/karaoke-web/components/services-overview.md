@@ -62,13 +62,13 @@
 | `StorageApiClientWeb` | Реализация `StorageApiClient`: `uploadFile`, `getFileUrl`, `downloadFile`, `deleteFile`, `listFiles`, `checkIfExists`/`fileExists` (WebClient reactive) |
 | `EventsBuffer` | `add(EventRecord)`, `flush()`, `bufferSize()`, `isFlushing()`, `clear()`; SQL — `buildInsertSql` (internal) |
 | `PaymentService` | `hasCredentials()`, `createPayment`, `createCartPayment`, `chargeRecurring`, `verifyAndFetch`, `newIdempotenceKey()` |
-| `PriceService` | `computePrice`, `computeCartPrice` |
+| `PriceService` | `computePrice`, `computeCartPrice`, `withOrdinalLock(userId, scope, block)` — сериализация выдачи порядкового номера для `TYPE_NTH_FREE` (аудит BR-005: блокировка покрывает «расчёт цены → создание подписки → запись PAID», иначе параллельные `POST /create` получали один номер и все — 100% скидку). Полосы блокировок фиксированы (64) — карта не растёт. Межпроцессная атомарность требует уникального индекса `(site_user_id, scope, ordinal)` или строки-счётчика с `SELECT … FOR UPDATE` — за владельцем (меняет схему БД) |
 | `PlayerGestureUnlockService` | `describeToken(token, songId): TokenFacts?`, `issueDirectAccessToken(songId, userId)`, `issueDirectAccessTokenForAssignment(songId, assignmentId, userId)`, `issueDemoAccessToken(songId, start, end, userId)`. Метод `registerClick` (распознавание «скрытого жеста») **удалён** 2026-10-24 (спека 557, OpenProject #358) |
 | `PlayerAccessService` | `evaluate(song, token, session): AccessDecision` — правило доступа к байтам/разметке, вычисляется в момент запроса; `isPremiumByToken(song, token)`. Журнал отказов — категория `infra.player.access` |
 | `PlayerRightsProvider` | `isPremium(siteUserId)`, `isSubscribedToSong(siteUserId, songId)`, `isAssignmentOwner(assignmentId, siteUserId, songId)` — живой источник прав из БД |
 | `PlayerSongLoader` | `load(id): Song?` — загрузка песни для плеера (вынесена из контроллера, чтобы путь доступ→байты тестировался без БД) |
 | `SamplingFilter` | `shouldSkip(restName, parameters, siteUserId, anonId)`, `dedupCacheSize()` |
-| `RateLimitInterceptor` | `preHandle` (`HandlerInterceptor`); настраиваемые поля `endpointName`, `limitPerMinute`; `bucketSize()`, `clear()` |
+| `RateLimitInterceptor` | `preHandle` (`HandlerInterceptor`); `endpointName`/`limitPerMinute` — **конструкторные** (не `@Component`, по экземпляру на endpoint, аудит BR-004); `bucketSize()`, `clear()` |
 | `SiteUserTokenService` | `issueToken`, `resolveToken`, `revokeToken` |
 | `SiteUserResolver` | `resolve(request): SiteUser?` |
 | `DebugDbAccessGuard` | `isAllowed(properties, request)` |
@@ -80,7 +80,7 @@
 | `ShareLinkSweeper` | `sweep()` — `@Scheduled(fixedDelayString = "${karaoke.share.sweep-interval-seconds:60}000")` |
 | `StatsCacheScheduler` | `warmUp()`, `refreshHourly()`, `refreshIfDirty()` |
 | `EventsRetentionScheduler` | `cleanup()` |
-| `SubscriptionRenewalScheduler` | `renewExpiringSiteSubscriptions()` |
+| `SubscriptionRenewalScheduler` | `renewExpiringSiteSubscriptions()`, `renewEach(users, renew)` — изоляция сбоя по пользователю + ограничение частоты подробного лога (6 ч на `siteUserId`), аудит BR-515; `tryRenew(user, database)` — идемпотентность по строке продления (`renew-<userId>-sub<id>`), BR-514/#365 |
 | `StemJobTempCleanupScheduler` | `cleanup()` |
 | `SongReleaseAnnouncementScheduler` | `checkOnAir()` — `@Scheduled(fixedDelay = 5 мин, initialDelay = 60 с)` |
 | `KaraokeWebService` | Конструктор-DI; публичных методов нет — инициализирует глобалы `WEBSOCKET`, `WEB_WORK_IN_CONTAINER`, `WEB_WORK_ON_SERVER`, `DB_*` |
@@ -236,6 +236,12 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 - [x] **YandexCaptcha** — детали (спека 564: fail-closed, четыре исхода, серверный ключ в env).
 
 ## Changelog
+
+- **BR-004/BR-005/BR-515/BR-516** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `RateLimitInterceptor` —
+  конструкторные настройки и отдельный экземпляр на endpoint; `PriceService.withOrdinalLock` —
+  атомарная выдача номера акции «каждая N-я бесплатно»; `SubscriptionRenewalScheduler.renewEach` —
+  сбой одного пользователя не прерывает цикл, подробный лог не чаще 6 ч; карта rate-limit claim'ов
+  в `SongShareLinkService` чистится по TTL и ограничена 50 000 IP. Автор: agent (Karaoke).
 
 - **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес
   источника запроса в `RateLimitInterceptor` теперь берётся из `util/ClientIpResolver`

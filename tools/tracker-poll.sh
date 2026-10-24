@@ -82,18 +82,67 @@ fi
 
 echoerr() { echo "$@" >&2; }
 
+# BR-601: вызов трекера — stdout (данные) и stderr (диагностика) РАЗДЕЛЯЮТСЯ,
+# а код возврата не теряется. Раньше было `2>&1 || true`: текст ошибки
+# трекера попадал в parse_lines и считался «задачами», а `OPEN_CODE=$?`
+# брал код присваивания (всегда 0) → при недоступном OpenProject агент
+# получал «✓ Все задачи закрыты» вместо «трекер недоступен».
+# Документированные коды возврата tracker.sh: 2 — OpenProject недоступен,
+# 3 — токен истёк (tools/tracker.sh:111-112).
+run_tracker() { # $1=имя переменной stdout $2=имя переменной stderr, далее — аргументы tracker.sh
+    local out_var="$1" err_var="$2"
+    shift 2
+    local err_file out err code=0
+    err_file="$(mktemp)"
+    out="$(./tools/tracker.sh "$@" 2>"$err_file")" || code=$?
+    err="$(cat "$err_file")"
+    rm -f "$err_file"
+    printf -v "$out_var" '%s' "$out"
+    printf -v "$err_var" '%s' "$err"
+    return "$code"
+}
+
+tracker_failure() { # $1=код возврата tracker.sh $2=stderr → печать и exit
+    local code="$1" err="$2"
+    echoerr "Ошибка трекера (код $code): OpenProject недоступен или токен недействителен."
+    [ -n "$err" ] && echoerr "$err"
+    if [ "$code" = "3" ]; then
+        echoerr "Обновите TRACKER_API_TOKEN в .env.local-tracker (docs/tracker-setup.md)."
+        exit 3
+    fi
+    exit 2
+}
+
 # 1. Открытые задачи (New/In progress/In review)
 # BR-602: `--raw` — TSV без выравнивания `column -t`: колонки разделены
 # табом, поэтому разбор по табу корректен (в human-режиме `column -t`
 # заменяет табы пробелами, и `split("\t")` давал одну колонку).
-OPEN_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status open --limit "$LIMIT" --raw 2>&1 || true)
-OPEN_CODE=$?
+OPEN_CODE=0
+OPEN_ERR=""
+run_tracker OPEN_LIST OPEN_ERR list-issues --assignee "$ASSIGNEE" --status open --limit "$LIMIT" --raw || OPEN_CODE=$?
+if [ "$OPEN_CODE" -ne 0 ]; then
+    tracker_failure "$OPEN_CODE" "$OPEN_ERR"
+fi
 
 # 2. Задачи в работе (In progress, narrow status filter)
-IN_PROG_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status in-review --limit "$LIMIT" --raw 2>&1 || true)
+IN_PROG_CODE=0
+IN_PROG_ERR=""
+run_tracker IN_PROG_LIST IN_PROG_ERR list-issues --assignee "$ASSIGNEE" --status in-review --limit "$LIMIT" --raw || IN_PROG_CODE=$?
+if [ "$IN_PROG_CODE" -ne 0 ]; then
+    echoerr "ВНИМАНИЕ: список «в ревью» не получен (код $IN_PROG_CODE) — сводка неполная."
+    [ -n "$IN_PROG_ERR" ] && echoerr "$IN_PROG_ERR"
+    IN_PROG_LIST=""
+fi
 
 # 3. Задачи за последние 7 дней (для сводки)
-RECENT_LIST=$(./tools/tracker.sh list-issues --assignee "$ASSIGNEE" --status closed --limit 5 --raw 2>&1 || true)
+RECENT_CODE=0
+RECENT_ERR=""
+run_tracker RECENT_LIST RECENT_ERR list-issues --assignee "$ASSIGNEE" --status closed --limit 5 --raw || RECENT_CODE=$?
+if [ "$RECENT_CODE" -ne 0 ]; then
+    echoerr "ВНИМАНИЕ: список недавно закрытых не получен (код $RECENT_CODE) — сводка неполная."
+    [ -n "$RECENT_ERR" ] && echoerr "$RECENT_ERR"
+    RECENT_LIST=""
+fi
 
 # Парсим вывод: 1-я строка — заголовок, дальше — данные
 parse_lines() {

@@ -55,15 +55,46 @@ MODULE_BASE="$(basename "$MODULE_ABS")"
 # max-warnings 99999 чтобы получить ВСЕ нарушения, не падать.
 cd "$MODULE"
 
-# eslint может вернуть ненулевой код — это OK (есть нарушения).
-# Отключаем set -e временно.
-set +e
-npx eslint . --ext .vue,.js,.ts --format json --max-warnings 99999 > /tmp/eslint-output.json 2>/dev/null
+# BR-595: отслеживаемый baseline-файл НЕ обнуляется до успешного разбора.
+# Раньше вывод eslint писался прямо в ".eslint-baseline.json" (обрезка
+# отслеживаемого файла), и при падении eslint (код ≥ 2: нет node_modules,
+# битый конфиг) оставался файл нулевой длины — CI-гейт frontend-lint потом
+# падал с невнятной ошибкой jq. Теперь: mktemp + jq во временный файл +
+# атомарный mv по месту только после успешного разбора.
+ESLINT_OUT="$(mktemp)"
+ESLINT_ERR="$(mktemp)"
+BASELINE_TMP="$(mktemp)"
+cleanup() { rm -f "$ESLINT_OUT" "$ESLINT_ERR" "$BASELINE_TMP"; }
+trap cleanup EXIT
+
+# eslint может вернуть ненулевой код — это OK (есть нарушения, код 1).
+# Код ≥ 2 — это ОШИБКА eslint (нет node_modules, битый конфиг, …), а не
+# «найдены нарушения»: baseline в этом случае не обновляем.
+# stderr НЕ глушим — в нём причина сбоя.
+npx eslint . --ext .vue,.js,.ts --format json --max-warnings 99999 >"$ESLINT_OUT" 2>"$ESLINT_ERR"
 ESLINT_EXIT=$?
-set -e
+if [ "$ESLINT_EXIT" -ge 2 ]; then
+  echo "ERROR: eslint завершился с кодом $ESLINT_EXIT — это ошибка eslint, а не «найдены нарушения»." >&2
+  echo "       Baseline НЕ изменён ($BASELINE_FILE остался прежним)." >&2
+  if [ -s "$ESLINT_ERR" ]; then
+    echo "--- stderr eslint ---" >&2
+    sed 's/^/  /' "$ESLINT_ERR" >&2
+  fi
+  exit 1
+fi
+if [ -s "$ESLINT_ERR" ]; then
+  echo "WARN: eslint писал в stderr (код $ESLINT_EXIT):" >&2
+  sed 's/^/  /' "$ESLINT_ERR" >&2
+fi
+# Пустой вывод при «успешном» коде тоже означает, что baseline писать не из чего:
+# иначе jq вернёт пустой результат, и на место отслеживаемого файла ляжет пустой.
+if [ ! -s "$ESLINT_OUT" ]; then
+  echo "ERROR: eslint ничего не вывел в stdout (код $ESLINT_EXIT) — baseline НЕ изменён." >&2
+  exit 1
+fi
 
 # Преобразуем в плоский массив {ruleId, file, line, column, message, severity}.
-jq --arg repo_root "$REPO_ROOT" --arg module_rel "$MODULE_REL" --arg module_base "$MODULE_BASE" '
+if ! jq --arg repo_root "$REPO_ROOT" --arg module_rel "$MODULE_REL" --arg module_base "$MODULE_BASE" '
   def norm:
     . as $p
     | if ($p | startswith($repo_root + "/")) then ($p | ltrimstr($repo_root + "/"))
@@ -80,9 +111,13 @@ jq --arg repo_root "$REPO_ROOT" --arg module_rel "$MODULE_REL" --arg module_base
   column: .column,
   message: .message,
   severity: .severity
-}]' /tmp/eslint-output.json > ".eslint-baseline.json"
+}]' "$ESLINT_OUT" > "$BASELINE_TMP"; then
+  echo "ERROR: не удалось разобрать вывод eslint (jq) — baseline НЕ изменён." >&2
+  exit 1
+fi
 
-rm -f /tmp/eslint-output.json
+# Атомарная замена: файл на месте меняется только целиком и только при успехе.
+mv "$BASELINE_TMP" ".eslint-baseline.json"
 
 count=$(jq 'length' ".eslint-baseline.json")
 echo "==> Записано $count нарушений в $BASELINE_FILE"

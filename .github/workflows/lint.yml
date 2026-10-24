@@ -543,6 +543,22 @@ jobs:
         # комментариев и исторических миграций.
         run: bash tools/check-no-legacy-tbl-settings.sh
 
+      - name: Check recordhash consistency (BR-533/540/541/553)
+        # Аудит #336, волна C, пакет PKG-DB-RECORDHASH (OpenProject #363).
+        # Sync-движок сравнивает строки LOCAL↔SERVER ТОЛЬКО по recordhash
+        # (KaraokeDbTable.getListHashes), поэтому цена ошибки в формуле высокая:
+        #   * колонка модели не входит в md5 → изменение не считается расхождением
+        #     и на другую БД не уезжает (тихая потеря синхронизации);
+        #   * «голое» имя колонки в теле триггера → ERROR: column "..." does not exist
+        #     на первой же записи (CREATE FUNCTION это не ловит);
+        #   * колонка, которую пишет Song.getSqlToInsert(sync=true), отсутствует в
+        #     tbl_songs_sync → падает INSERT и не уезжает ни одна песня батча.
+        # Проверки: (1) NEW-префикс во всех триггерных функциях deploy/;
+        # (2) канонические deploy/recordhash_*.sql покрывают все @KaraokeDbTableField
+        # своих моделей и совпадают с собственным бэкфиллом;
+        # (3) tbl_songs_sync содержит все колонки INSERT из Song.kt.
+        run: python3 tools/check-recordhash-consistency.py
+
       - name: Check Knowledge cross-links
         # Проверяет относительные пути ../X.md и related: в knowledge/
         # (исключая adr/, который может содержать legacy ссылки на

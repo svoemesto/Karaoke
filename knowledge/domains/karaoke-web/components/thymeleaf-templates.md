@@ -24,12 +24,12 @@ HTML-шаблоны для статических страниц (не SPA). Р�
 
 | # | Шаблон | Endpoint | Model-атрибуты (контракт) |
 |---|---|---|---|
-| 1 | `main.html` | `GET /` | `onSponsr`, `onAir`, `exclusive`, `inWork`, `total`, `latestNews` |
+| 1 | `main.html` | `GET /` | `onSponsr`, `onAir`, `exclusive`, `inWork`, `total`, `latestNews` (только `http(s)`-ссылки — `SafeLink`, BR-504; новость без безопасной ссылки рендерится текстом) |
 | 2 | `zakroma.html` | `GET /zakroma` | `author_init`, `authors`, `zakroma` |
 | 3 | `song.html` | `GET /song?id=` | `song` |
 | 4 | `song-removed.html` | `GET /song?id=` (SKIP-песня) | `song` |
 | 5 | `filter.html` | `GET /filter` | `authors`, `song` |
-| 6 | `statbysong.html` | `GET /statbysong` | `stats` (`List<StatBySong>`), `totalCount` |
+| 6 | `statbysong.html` | `GET /statbysong` | `stats` (`List<StatBySongDto>`), `totalCount`; поля `cntBoosty` у DTO нет — колонка Boosty удалена (BR-500) |
 | 7 | `webevents.html` | `GET /webevents` | `webevents` |
 | 8 | `testpage.html` | `GET /testpage/{id}` | `song` |
 
@@ -136,6 +136,12 @@ fun main(model: Model, request: HttpServletRequest): String {
 - [ ] **Кеширование** — `Cache-Control` headers, ETag.
 
 ## Changelog
+
+- **BR-500/BR-504** (2026-10-24, OpenProject #378, пакет PKG-S2-15): из `statbysong.html` удалена
+  колонка `cntBoosty` (поля нет в `StatBySongDto`, SpEL ронял всю страницу в 500); `main.html`
+  рендерит ссылку новости только при непустом `link` (модель уже отфильтрована `SafeLink`), иначе —
+  заголовок текстом без `href`/`window.open`. Добавлен рендер-тест шаблонов
+  (`ThymeleafTemplatesTest`). Автор: agent (Karaoke).
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 439** (2026-09-09): Initial. Автор: agent (Karaoke).

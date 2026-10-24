@@ -16,6 +16,7 @@ import java.time.ZoneId
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 // Note: импорты `java.time.ZoneOffset` и `java.time.format.DateTimeFormatter` удалены
 // вместе со старым серверным форматтером — теперь фронт форматирует epoch ms на
@@ -234,7 +235,37 @@ class SongShareLinkService(
     }
 
     private val random = SecureRandom()
-    private val claimRateBuckets = ConcurrentHashMap<String, AtomicInteger>()
+
+    /**
+     * Rate-limit claim-запросов: `ip` → счётчик текущего окна (fixed window, минута).
+     *
+     * Аудит BR-516 (OpenProject #378): раньше карта была `ip → AtomicInteger` с ключом
+     * `"claim:<ip>:<минута>"` и НИКОГДА не чистилась — каждая пара «IP + минута» навсегда
+     * оставалась в памяти, а размер карты рос пропорционально числу разных IP за всё время
+     * жизни процесса (OOM-риск на прод-контейнере `karaoke-web` без заданного `-Xmx`).
+     *
+     * Теперь:
+     *  - ключ — сам IP (окно хранится в значении), поэтому на IP приходится ОДНА запись, а не
+     *    запись на каждую минуту;
+     *  - записи, чьё окно закрылось (старше минуты), удаляются ленивой уборкой — не чаще раза
+     *    в минуту (по времени, а не по счётчику запросов: при малой нагрузке счётчик-based
+     *    уборка могла не сработать никогда);
+     *  - число отслеживаемых IP ограничено [MAX_TRACKED_CLAIM_IPS]: при превышении новые IP
+     *    получают отказ по rate-limit (fail-closed), карта не растёт бесконечно.
+     */
+    private val claimRateBuckets = ConcurrentHashMap<String, ClaimRateBucket>()
+
+    /** Метка времени последней уборки закрытых окон (мс). */
+    private val lastClaimCleanupMs = AtomicLong(0L)
+
+    /** Окно rate-limit'а claim-запросов (минута) — как в [RateLimitInterceptor]. */
+    private val claimWindowMs = 60_000L
+
+    /** Счётчик + метка начала окна для одного IP. */
+    private data class ClaimRateBucket(
+        val windowStartMs: Long,
+        val counter: AtomicInteger,
+    )
 
     // ---------- Owner API ----------
 
@@ -1102,14 +1133,65 @@ class SongShareLinkService(
      * `X-Forwarded-For` → TCP-peer. Клиентский префикс `X-Forwarded-For` адрес не
      * определяет, поэтому подделка заголовка не даёт «свежий» bucket и не обходит
      * лимит (аудит BR-003 «xff-first-element»).
+     *
+     * Аудит BR-516 (OpenProject #378): окно теперь хранится В ЗНАЧЕНИИ записи (не в ключе),
+     * закрытые окна убираются ленивой уборкой (раз в минуту, по времени), а число
+     * отслеживаемых IP ограничено — карта не растёт бесконечно.
      */
     private fun checkRateLimit(request: HttpServletRequest) {
         val ip = ClientIpResolver.resolve(request)
-        val key = "claim:$ip:${System.currentTimeMillis() / 60_000}"
+        val now = System.currentTimeMillis()
+        maybeCleanupClaimBuckets(now)
         val maxPerMin = props.claimRateLimitPerIpPerMin.toInt()
-        val counter = claimRateBuckets.computeIfAbsent(key) { AtomicInteger(0) }
-        val n = counter.incrementAndGet()
+        val bucket =
+            claimRateBuckets.compute(ip) { _, existing ->
+                if (existing == null) {
+                    // Новый IP: карта не должна расти бесконечно — при достижении предела
+                    // новые IP получают отказ по rate-limit (fail-closed).
+                    if (claimRateBuckets.size >= MAX_TRACKED_CLAIM_IPS) {
+                        log.warn("share:claim:ratelimit: предел отслеживаемых IP достигнут size={}", claimRateBuckets.size)
+                        throw RateLimited()
+                    }
+                    ClaimRateBucket(windowStartMs = now, counter = AtomicInteger(1))
+                } else if (now - existing.windowStartMs >= claimWindowMs) {
+                    ClaimRateBucket(windowStartMs = now, counter = AtomicInteger(1))
+                } else {
+                    existing.counter.incrementAndGet()
+                    existing
+                }
+            } ?: throw RateLimited()
+        val n = bucket.counter.get()
         if (n > maxPerMin) throw RateLimited()
+    }
+
+    /**
+     * Ленивая уборка закрытых окон rate-limit'а (не чаще раза в минуту).
+     *
+     * Запись удаляется, когда её окно закрылось (старше [claimWindowMs]) — то есть не позже чем
+     * через минуту после последнего обращения с этого IP. Уборка по ВРЕМЕНИ (а не по счётчику
+     * запросов) — при малой нагрузке счётчик-based уборка могла не сработать никогда, и карта
+     * росла бы бесконечно.
+     */
+    private fun maybeCleanupClaimBuckets(now: Long) {
+        val last = lastClaimCleanupMs.get()
+        if (now - last < claimWindowMs) return
+        if (!lastClaimCleanupMs.compareAndSet(last, now)) return
+        val cutoff = now - claimWindowMs
+        claimRateBuckets.entries.removeIf { it.value.windowStartMs < cutoff }
+    }
+
+    /**
+     * Размер карты rate-limit'а (для тестов/метрик).
+     *
+     * `internal` — видимость ограничена модулем karaoke-web (тот же приём, что у
+     * [clientIpHash]).
+     */
+    internal fun claimBucketSize(): Int = claimRateBuckets.size
+
+    /** Полная очистка карты rate-limit'а (для тестов). */
+    internal fun clearClaimBuckets() {
+        claimRateBuckets.clear()
+        lastClaimCleanupMs.set(0L)
     }
 
     /**
@@ -1135,6 +1217,15 @@ class SongShareLinkService(
     }
 
     companion object {
+        /**
+         * Предел числа одновременно отслеживаемых IP в rate-limit'е claim-запросов (аудит BR-516).
+         *
+         * Страховка от неограниченного роста карты: при превышении новые IP получают отказ
+         * по rate-limit, а не «новую запись». Значение заведомо выше ожидаемого числа
+         * одновременных клиентов публичного сайта.
+         */
+        const val MAX_TRACKED_CLAIM_IPS = 50_000
+
         fun sha256Hex(input: String): String {
             val md = MessageDigest.getInstance("SHA-256")
             val digest = md.digest(input.toByteArray(Charsets.UTF_8))

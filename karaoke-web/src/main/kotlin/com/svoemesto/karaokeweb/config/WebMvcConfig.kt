@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
  *
  * Регистрирует:
  *  - SiteAuthInterceptor для эндпоинтов под /api/public/account/ и /api/siteusers/.
- *  - Два экземпляра RateLimitInterceptor для эндпоинтов /api/public/song-picture/ и
+ *  - Два НЕЗАвисимых экземпляра RateLimitInterceptor для эндпоинтов /api/public/song-picture/ и
  *    /api/public/song-vk-image/ (FR-010, SC-008). Лимиты берутся из KaraokeProperties.
  *
  * @see archive/docs/features/site-traffic-resilience.md (FR-010)
@@ -19,7 +19,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 @Configuration
 class WebMvcConfig(
     private val siteAuthInterceptor: SiteAuthInterceptor,
-    private val rateLimitInterceptor: RateLimitInterceptor,
     private val properties: KaraokeProperties,
 ) : WebMvcConfigurer {
     override fun addInterceptors(registry: InterceptorRegistry) {
@@ -40,25 +39,17 @@ class WebMvcConfig(
             .excludePathPatterns("/api/public/account/subscription/tariffs")
 
         // FR-010: rate-limit для song-picture и song-vk-image (защита от bot-storm).
-        // Используем один @Component RateLimitInterceptor, но конфигурируем endpointName/limitPerMinute
-        // перед каждым addInterceptor. Так как interceptor один — он shared между обоими URL pattern'ами,
-        // ключ buckets строится с endpointName, поэтому bucket'ы НЕ пересекаются.
-        val songPictureInterceptor =
-            rateLimitInterceptor.apply {
-                endpointName = "song-picture"
-                limitPerMinute = properties.rateLimitSongPicturePerMinute
-            }
+        // Аудит BR-004 (OpenProject #378): раньше здесь мутировался ОДИН И ТОТ ЖЕ singleton-бин
+        // RateLimitInterceptor — второй `apply` перетирал `endpointName`/`limitPerMinute` первого,
+        // поэтому оба URL-паттерна работали с лимитом vk-image и делили общий bucket. Теперь
+        // создаются ДВА независимых экземпляра: имя endpoint'а и лимит — конструкторные
+        // (immutable), состояние (bucket'ы) у каждого своё.
         registry
-            .addInterceptor(songPictureInterceptor)
+            .addInterceptor(RateLimitInterceptor("song-picture", properties.rateLimitSongPicturePerMinute))
             .addPathPatterns("/api/public/song-picture/**")
 
-        val songVkImageInterceptor =
-            rateLimitInterceptor.apply {
-                endpointName = "song-vk-image"
-                limitPerMinute = properties.rateLimitSongVkImagePerMinute
-            }
         registry
-            .addInterceptor(songVkImageInterceptor)
+            .addInterceptor(RateLimitInterceptor("song-vk-image", properties.rateLimitSongVkImagePerMinute))
             .addPathPatterns("/api/public/song-vk-image/**")
     }
 }

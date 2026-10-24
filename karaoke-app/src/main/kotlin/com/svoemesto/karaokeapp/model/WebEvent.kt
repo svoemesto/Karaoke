@@ -64,7 +64,10 @@ class WebEvent(
     // не должно участвовать в diff синхронизации: иначе при апдейте строки по другой причине в UPDATE
     // тянется бессмысленное now()-значение, а на pull LOCAL-триггер тут же перезапишет его снова —
     // строки бесконечно «отличаются» по last_update и переписываются каждый прогон (socket timeout).
-    @KaraokeDbTableField(name = "last_update", useInDiff = false)
+    // useInHash = false — тот же контракт, что и useInDiff: поле не входит в md5 и проверяется
+    // статически (tools/check-recordhash-consistency.py, check 2), поэтому набор колонок
+    // recordhash_events.sql не может «потерять» поле молча (аудит #336, BR-540/BR-541).
+    @KaraokeDbTableField(name = "last_update", useInDiff = false, useInHash = false)
     var lastUpdate: Timestamp? = null
 
     @KaraokeDbTableField(name = "referer")

@@ -94,10 +94,10 @@ NB: `Dockerfile*` несколько штук = эксперименты с ра
 | `deploy_public.sh` | Деплой karaoke-public на прод |
 | `deploy_web.sh` | Деплой karaoke-web на прод |
 | `do.sh build_start_public` | Сборка + запуск karaoke-public |
-| `karaoke-db-backup.sh` | Бэкап БД |
+| `karaoke-db-backup.sh` | Бэкап БД. Пароль — через stdin + одноразовый `.pgpass` в контейнере (BR-539, пакет #371); без пароля `pg_dump --no-password` падал с `fe_sendauth: no password supplied` и дампов не было вообще |
 | `tracker-db-backup.sh` | Бэкап БД трекера (OpenProject). Пароль — через stdin + одноразовый `.pgpass` в контейнере, не через argv (BR-552) |
 | `announce.sh` | Анонс в Telegram/VK после деплоя |
-| `prune-images.sh` | Очистка старых Docker images |
+| `prune-images.sh` | Очистка старых Docker images + контроль свободного места (порог 85 %, BR-546) |
 | `analyze-prod-incident.sh` | Анализ prod incident |
 
 ## Приватный registry (с 2026-10-11)
@@ -118,6 +118,29 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
 (`mirror/**`), сторонние образы переносятся `tools/registry-vendor.sh` по
 `registry/images.lock`. Guard R-04/R-05 (`tools/check-docker-image-tags.sh`)
 расширен под registry-квалифицированные имена.
+
+## Hardening S2 (аудит #336, пакет PKG-S2-08 / OpenProject #371)
+
+Пакет закрыл 15 записей аудита по deploy-контуру. Инварианты, которые нельзя
+откатывать (guard: `tools/check-deploy-hardening.sh`, 50 проверок):
+
+| Тема | Инвариант | BR |
+|---|---|---|
+| Секреты | `WHISPER_API_KEY` / `SEARXNG_SECRET` — только из `deploy/do.env` (`${VAR:?…}`, fail-closed); шаблон — `deploy/do.env.example`; в `searxng-settings/settings.yml` — плейсхолдер `ultrasecretkey` (entrypoint заменяет его при старте) | 040 |
+| Push | каждый `docker image push` и `do_registry_login` проверяют код возврата; «Image is up to date» в `deploy_*.sh` — **ошибка деплоя** (`exit 1`), а не WARN | 043 |
+| Бэкапы | пароль БД передаётся в `pg_dump`; блокировка — `ExecStart=flock -n <lock> <script>` на весь прогон (не `ExecStartPre`) | 539, 543 |
+| Сеть | БД/UI локальных сервисов публикуются только на `127.0.0.1`; у трекера убран `network_mode: host`, `DATABASE_URL` — по имени сервиса; порт БД new_comp-контура — loopback | 542, 556 |
+| TLS | `ssl_protocols TLSv1.2 TLSv1.3`, `server_tokens off` в обоих nginx; серверный TLS Postgres включается `DB_SSL_ON=on` (по умолчанию off = прежнее поведение), клиент — `DB_REMOTE_SSL_MODE` (default `prefer`); целевое состояние — `require`/`verify-full` + HTTPS для MinIO | 544, 545, 557 |
+| Логи | в каждом сервисе прод-compose `logging: json-file, max-size 50m, max-file 5`; `prune-images.sh` падает при занятости диска ≥ 85 % | 546 |
+| Compose | `environment:` — список (`- VAR=value`), не смесь отображения и списка | 554 |
+| Watcher | исполняется только `<uuid>.sh`, файл переносится в приватный каталог 700 (закрыто окно TOCTOU), проверяются владелец/права/размер; общая директория не должна быть group/other-writable | 555 |
+
+Что **осталось за владельцем** (зафиксировано в `specs/371-pkg-s2-08/report.md`):
+сертификаты для TLS Postgres/MinIO и выбор «TLS vs SSH/WireGuard-туннель»;
+судьба платёжной истории при удалении пользователя сайта; сервисный
+пользователь для `karaoke_watcher.sh` и удаление bind-mount
+`/sm-karaoke/system` из контейнеров, которым он не нужен; ротация и удаление
+секретов, попавших в историю git.
 
 ## Секреты
 
@@ -159,6 +182,9 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 
 ## Changelog
 
+- **Pass 382** (2026-10-24, PKG-S2-08 / OpenProject #371): раздел «Hardening S2» —
+  инварианты по секретам, push, бэкапам, сети, TLS, логам, compose и watcher'у;
+  guard `tools/check-deploy-hardening.sh`.
 - **Pass 540** (2026-10-11): Приватный контейнерный registry на прод-хосте (Zot,
   `127.0.0.1:5000` + host-nginx `5443to5000`); сборка и прод переведены на
   `sm-karaoke.ru:5443`; guard тегов расширен под registry-квалифицированные имена.

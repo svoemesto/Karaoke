@@ -12,3 +12,16 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Запуск docker image prune"
 docker image prune -a -f
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Готово. Свободно на диске:"
 df -h / | tail -n +2
+
+# BR-546 (аудит #336 / P-73-08, OpenProject #371): ротация логов контейнеров
+# задана в compose-файлах прод-хоста (logging.max-size/max-file) — именно она
+# не даёт json-file съесть диск. Здесь — контрольная точка: если свободного
+# места меньше 15 %, это ошибка юнита (видна в journal и в `systemctl status`),
+# а не тихий лог. Раньше скрипт печатал df и всегда завершался успехом, поэтому
+# «диск кончается» замечали только когда Postgres уже переставал писать.
+DISK_USED_PCT="$(df --output=pcent / | tail -n 1 | tr -dc '0-9')"
+if [[ -n "$DISK_USED_PCT" && "$DISK_USED_PCT" -ge 85 ]]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: занято ${DISK_USED_PCT}% диска / — осталось меньше 15% (BR-546)" >&2
+    exit 1
+fi
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Занято ${DISK_USED_PCT}% диска / (порог 85%)"

@@ -178,6 +178,11 @@
   и `ListSerializer(ListSerializer(SourceMarker.serializer()))`; ошибка → 400
   `bad_payload`. Черновик (`SongAssignmentDraft`) создаётся или обновляется,
   `userStatus = USER_IN_PROGRESS`.
+  **Аудит BR-023 (#378):** результат `KaraokeDbTable.createDbInstance` больше не
+  игнорируется. `null` (нет соединения / сбой INSERT / конкурентная вставка по
+  `UNIQUE(assignment_id)`) → перечитываем существующий черновик и обновляем его
+  (upsert, правка не теряется); если и его нет — `500 {"error":"save_failed"}`.
+  Раньше контроллер отвечал `200 {"ok":true}`, хотя правка не сохранялась.
 - `submit(id, request)` — нет черновика → 400 `no_draft`; иначе
   `USER_SUBMITTED` + `submittedAt` (проверка `canEdit` → 409).
 - `recall(id, request)` разрешён строго из статуса `SUBMITTED` — проверка на
@@ -302,6 +307,9 @@
 
 ## Changelog
 
+- **BR-023** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `POST /tasks/{id}/save` проверяет
+  результат создания черновика, конкурентную вставку доигрывает как upsert, при неудаче отдаёт
+  5xx `save_failed` вместо ложного `200 {"ok":true}`. Автор: agent (Karaoke).
 - **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): `GET /{id}/download` отдаёт файл из приватного каталога результатов вместо анонимного чтения `/minio/karaoke/…`. Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 481-485** (2026-09-09): Initial. Автор: agent (Karaoke).

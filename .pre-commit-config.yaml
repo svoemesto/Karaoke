@@ -138,6 +138,23 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: recordhash-контракт (BR-540/541/553/533, аудит #336, OP #363) ===
+      # Sync-движок сравнивает строки ТОЛЬКО по recordhash, поэтому:
+      #   1) «голое» имя колонки в теле триггерной функции — падение записи на первой
+      #      строке (CREATE FUNCTION такое не ловит) — BR-553;
+      #   2) колонка модели, не попавшая в md5, — тихая потеря синхронизации — BR-540/541;
+      #   3) колонка, которую пишет Song.getSqlToInsert(sync=true), но которой нет в
+      #      tbl_songs_sync, — падение INSERT на первой песне батча — BR-533.
+      # Регламент: knowledge/system/infra/sql-migrations.md (Решение 3),
+      # knowledge/domains/persistence/domain.md § «recordhash-колонка».
+      - id: recordhash-consistency-guard
+        name: recordhash consistency guard (BR-533/540/541/553)
+        entry: python3 tools/check-recordhash-consistency.py --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Guard: экранирование текста подтверждений (спека #558, OP #360, BR-123) ===
       # Общий компонент подтверждения по умолчанию выводит текст как ТЕКСТ,
       # сырая разметка — только при явном `allowHtml: true`. Guard проверяет:

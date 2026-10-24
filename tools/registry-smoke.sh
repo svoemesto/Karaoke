@@ -22,7 +22,10 @@
 #      расхождение дайджеста при существующем теге — WARN (тег upstream подвинулся).
 #
 # Креды берутся в порядке: флаги → окружение (REGISTRY_USER/REGISTRY_PASSWORD) →
-# do.env (deploy/prod-single-host/do.env или deploy/do.env). Секреты НЕ печатаются.
+# do.env (deploy/prod-single-host/do.env или deploy/do.env). Секреты НЕ печатаются
+# и НЕ передаются через argv: `-u user:pass` и `-H "Authorization: …"` видны в
+# `ps -eo args` любому пользователю машины (аудит #336, BR-593/BR-594) — curl
+# получает их через stdin-конфиг (`--config -`).
 #
 # Приёмка должна запускаться СНАРУЖИ (с admin-машины), а не с localhost прод-хоста —
 # SC-006 требует внешней попытки, а не рассуждения.
@@ -88,14 +91,45 @@ if [[ -z "$USER_CRED" || -z "$PASS_CRED" ]]; then
   fi
 fi
 
-http_code() { # $1=url $2=auth(0/1) $3=user $4=pass
-  local args=("${CURL[@]}" -o /dev/null -w '%{http_code}')
-  [[ "$2" == "1" ]] && args+=(-u "$3:$4")
-  "${args[@]}" "$1" 2>/dev/null
+# --- передача кредов без argv (BR-593) -----------------------------------
+# `-u user:pass` и `-H "Authorization: …"` попадают в список процессов
+# (`ps -eo args`, /proc/<pid>/cmdline) — секрет виден любому пользователю
+# машины. Поэтому curl получает креды через stdin-конфиг `--config -`:
+# в argv остаётся только путь/URL.
+cfg_escape() { # экранирование значения для curl --config (кавычки и слэши)
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/ }"
+  printf '%s' "$s"
 }
-check() { # $1=ожидаемый код $2=описание $3=url $4=auth
+
+# $1=url $2=auth(0/1) $3=user $4=pass; остальные аргументы — опции curl.
+curl_registry() {
+  local url="$1" auth="$2" user="$3" pass="$4"
+  shift 4
+  if [[ "$auth" == "1" ]]; then
+    printf 'user = "%s:%s"\n' "$(cfg_escape "$user")" "$(cfg_escape "$pass")" \
+      | "${CURL[@]}" --config - "$@" "$url" 2>/dev/null
+  else
+    "${CURL[@]}" "$@" "$url" 2>/dev/null
+  fi
+}
+
+# Bearer-токен upstream — тоже через stdin-конфиг, не через -H.
+curl_bearer() { # $1=url $2=token; остальные — опции curl
+  local url="$1" token="$2"
+  shift 2
+  printf 'header = "Authorization: Bearer %s"\n' "$(cfg_escape "$token")" \
+    | "${CURL[@]}" --config - "$@" "$url" 2>/dev/null
+}
+
+http_code() { # $1=url $2=auth(0/1) $3=user $4=pass
+  curl_registry "$1" "$2" "$3" "$4" -o /dev/null -w '%{http_code}'
+}
+check() { # $1=ожидаемый код $2=описание $3=url $4=auth $5=user $6=pass
   local got
-  got="$(http_code "$3" "${4:-0}" "$USER_CRED" "$PASS_CRED")"
+  got="$(http_code "$3" "${4:-0}" "${5:-$USER_CRED}" "${6:-$PASS_CRED}")"
   got="${got: -3}"
   if [[ "$got" == "$1" ]]; then pass "$2 ($got)"; else fail "$2 — ожидали $1, получили $got"; fi
 }
@@ -111,7 +145,14 @@ echo "[2] Вне /v2/ поверхность закрыта"
 check 404 "GET / без кредов"                     "$BASE/"
 
 echo "[3] Неверный пароль отвергается"
-check 401 "GET /v2/ с неверным паролем"          "$BASE/v2/"
+# BR-593: раньше `check` вызывался БЕЗ 4-го аргумента → http_code не добавлял
+# креды и уходил ТОТ ЖЕ анонимный GET, что и проверка [1]: строка контракта
+# «GET /v2/ с неверным паролем → 401» (contracts/registry-transport.md § 5)
+# не проверялась никогда. Здесь — заведомо неверная пара; $PASS_CRED
+# НЕ переиспользуется (иначе проверка была бы «с верным паролем»).
+WRONG_USER="${USER_CRED:-smoke-invalid-user}"
+WRONG_PASS="invalid-password-smoke-$$"
+check 401 "GET /v2/ с неверным паролем"          "$BASE/v2/" 1 "$WRONG_USER" "$WRONG_PASS"
 
 echo "[4] Доступ с верными кредами не сломан"
 if [[ -z "$USER_CRED" || -z "$PASS_CRED" ]]; then
@@ -129,7 +170,7 @@ elif [[ -z "$USER_CRED" || -z "$PASS_CRED" ]]; then
 elif ! command -v python3 >/dev/null; then
   skip "нет python3 для разбора JSON"
 else
-  CATALOG="$("${CURL[@]}" -u "$USER_CRED:$PASS_CRED" "$BASE/v2/_catalog" 2>/dev/null)"
+  CATALOG="$(curl_registry "$BASE/v2/_catalog" 1 "$USER_CRED" "$PASS_CRED")"
   LIBS="$(printf '%s' "$CATALOG" | python3 -c \
     'import json,sys
 try: repos=json.load(sys.stdin).get("repositories",[])
@@ -140,8 +181,7 @@ print("\n".join(r for r in repos if r.startswith("library/")))' 2>/dev/null)"
   else
     while IFS= read -r repo; do
       [[ -z "$repo" ]] && continue
-      TAGS="$(curl -sS --max-time 30 -u "$USER_CRED:$PASS_CRED" \
-              "$BASE/v2/$repo/tags/list" 2>/dev/null \
+      TAGS="$(curl_registry "$BASE/v2/$repo/tags/list" 1 "$USER_CRED" "$PASS_CRED" \
               | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin).get("tags") or []))' 2>/dev/null)"
       while IFS= read -r tag; do
         [[ -z "$tag" ]] && continue
@@ -152,10 +192,10 @@ print("\n".join(r for r in repos if r.startswith("library/")))' 2>/dev/null)"
           skip "$repo:$tag — не удалось получить токен upstream"
           continue
         fi
-        UP_CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
-                   -H "Authorization: Bearer $TOKEN" \
+        UP_CODE="$(curl_bearer "$UPSTREAM_REGISTRY/v2/$repo/manifests/$tag" "$TOKEN" \
+                   -o /dev/null -w '%{http_code}' --max-time 30 \
                    -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json' \
-                   -I "$UPSTREAM_REGISTRY/v2/$repo/manifests/$tag" 2>/dev/null)"
+                   -I)"
         UP_CODE="${UP_CODE: -3}"
         if [[ "$UP_CODE" == "404" ]]; then
           fail "$repo:$tag отсутствует у upstream — это НАША запись в read-only зоне (нарушение I-2)"

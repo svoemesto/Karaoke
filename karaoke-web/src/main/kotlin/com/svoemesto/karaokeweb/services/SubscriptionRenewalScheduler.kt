@@ -7,9 +7,11 @@ import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.sql.Timestamp
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Автопродление подписки на сайт (scope=SITE, autoRenew=true). Живёт в karaoke-web (не на
@@ -49,6 +51,17 @@ class SubscriptionRenewalScheduler(
 ) {
     private val db get() = WORKING_DATABASE
 
+    private val log = LoggerFactory.getLogger(SubscriptionRenewalScheduler::class.java)
+
+    /**
+     * Метка времени последнего подробного сообщения об ошибке по конкретному пользователю.
+     *
+     * Аудит BR-515 (OpenProject #378): один сбойный пользователь не должен забивать лог на
+     * каждом тике шедулера — поэтому подробная запись об ошибке пишется не чаще одного раза в
+     * [FAILURE_LOG_INTERVAL_MS] на пользователя, а остальные случаи попадают в сводку.
+     */
+    private val failureLoggedAt = ConcurrentHashMap<Long, Long>()
+
     // Ежедневно в 03:00 — вне пиковой нагрузки. Захватывает и уже истёкшие подписки (грейс-период
     // для ретрая после сбойного списания в прошлый раз — см. класс-комментарий).
     @Scheduled(cron = "0 0 3 * * *")
@@ -56,8 +69,74 @@ class SubscriptionRenewalScheduler(
         val horizon = Timestamp(System.currentTimeMillis() + 24L * 3600_000L)
         val users = SiteUser.loadSitePremiumExpiringBefore(horizon, db, storageService, storageApiClient)
         if (users.isEmpty()) return
-        println("SubscriptionRenewalScheduler: кандидатов на автопродление: ${users.size}")
-        users.forEach { user -> tryRenew(user, db) }
+        log.info("subscription:renew: кандидатов на автопродление: {}", users.size)
+        // BR-515 (#378): изоляция сбоев — один пользователь не должен останавливать весь тик.
+        // tryRenew несёт идемпотентность #365 (ключ от строки продления), сюда она не влияет.
+        renewEach(users) { user -> tryRenew(user, db) }
+    }
+
+    /**
+     * Обрабатывает кандидатов на автопродление ПО ОЧЕРЕДИ, изолируя сбой одного пользователя.
+     *
+     * Аудит BR-515 (OpenProject #378): раньше `users.forEach { tryRenew(user) }` шёл без
+     * `try/catch` — исключение от ПЕРВОГО пользователя (обрыв соединения, таймаут, конфликт
+     * IDENTITY) выходило из цикла, и все остальные кандидаты в этом тике НЕ продлевались: их
+     * премиум истекал в течение суток, автосписания не было. Теперь сбой одного пользователя
+     * логируется и цикл продолжается.
+     *
+     * @param users кандидаты на автопродление.
+     * @param renew операция продления для одного пользователя (в проде — [tryRenew]).
+     */
+    internal fun renewEach(
+        users: List<SiteUser>,
+        renew: (SiteUser) -> Unit,
+    ) {
+        var failed = 0
+        val failedIds = mutableListOf<Long>()
+        users.forEach { user ->
+            try {
+                renew(user)
+            } catch (e: Exception) {
+                failed++
+                failedIds.add(user.id)
+                logRenewFailure(user.id, e)
+            }
+        }
+        if (failed > 0) {
+            log.warn(
+                "subscription:renew: не удалось продлить {} из {} подписок (siteUserIds={})",
+                failed,
+                users.size,
+                failedIds.take(MAX_FAILED_IDS_IN_SUMMARY),
+            )
+        }
+    }
+
+    /**
+     * Подробная запись об ошибке продления — не чаще одного раза в [FAILURE_LOG_INTERVAL_MS] на
+     * пользователя (защита от «забивания» лога одним сбойным пользователем на каждом тике).
+     */
+    private fun logRenewFailure(
+        siteUserId: Long,
+        e: Exception,
+    ) {
+        val now = System.currentTimeMillis()
+        val last = failureLoggedAt[siteUserId] ?: 0L
+        if (now - last < FAILURE_LOG_INTERVAL_MS) {
+            log.debug(
+                "subscription:renew:failed (повтор) siteUserId={} cause={}",
+                siteUserId,
+                e.message ?: e::class.simpleName,
+            )
+            return
+        }
+        failureLoggedAt[siteUserId] = now
+        log.warn(
+            "subscription:renew:failed siteUserId={} cause={}",
+            siteUserId,
+            e.message ?: e::class.simpleName,
+            e,
+        )
     }
 
     /**
@@ -177,6 +256,10 @@ class SubscriptionRenewalScheduler(
         renewal.status = Subscription.STATUS_PENDING
         // Строка коммитится ДО списания — она же несёт Idempotence-Key.
         renewal.save()
+        // Списание выполняет вызывающий [tryRenew] — после того как строка с Idempotence-Key
+        // закоммичена (BR-514, #365). Прежний inline-блок #378 здесь списывал бы второй раз
+        // с ключом от даты, поэтому его логика (charge + PAID + sitePremiumUntil) живёт в
+        // [tryRenew]/[recordPaid] и только в одном экземпляре.
         return renewal
     }
 
@@ -209,5 +292,11 @@ class SubscriptionRenewalScheduler(
             userId: Long,
             renewalId: Long,
         ): String = "renew-$userId-sub$renewalId"
+
+        /** Минимальный интервал между подробными сообщениями об ошибке по одному пользователю. */
+        private const val FAILURE_LOG_INTERVAL_MS = 6L * 3600_000L
+
+        /** Сколько id неудачных пользователей перечислять в сводке за тик. */
+        private const val MAX_FAILED_IDS_IN_SUMMARY = 10
     }
 }

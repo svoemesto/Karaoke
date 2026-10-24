@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: zakroma-tiles-sort-order
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-10-24
 > **Branch**: `307-special-authors-zakroma-order`
 > **Spec**: [`specs/307-special-authors-zakroma-order/spec.md`](../../specs/307-special-authors-zakroma-order/spec.md)
 
@@ -41,6 +41,7 @@ ALTER TABLE public.tbl_authors
 - Default: `0`.
 - NOT NULL.
 - Колонка входит в `recordhash` `tbl_authors` (обновлённый триггер `update_tbl_authors_recordhash` — см. миграцию).
+- Канонический `deploy/recordhash_authors.sql` тоже обязан включать `sort_order`: до аудита #336 (BR-541, OpenProject #363) он отставал от схемы на семь колонок, поэтому применение «канонического» файла откатывало формулу и правки `sort_order` переставали уезжать в sync. Инвариант проверяется статически — `python3 tools/check-recordhash-consistency.py`.
 - Миграция **идемпотентна** (`ADD COLUMN IF NOT EXISTS` + `CREATE OR REPLACE FUNCTION`).
 
 ### SQL ORDER BY
@@ -102,6 +103,10 @@ ORDER BY (sort_order = 0), sort_order ASC, author ASC  -- Pass 311: ненуле
 - **MUST**: `sort_order` входит в `recordhash` `tbl_authors` — иначе sync
   LOCAL↔SERVER не переносил бы изменение
   ([двух-БД sync](../../knowledge/domains/processing/components/two-db-sync.md)).
+- **MUST**: набор колонок `recordhash` в `deploy/recordhash_authors.sql` совпадает с
+  набором `@KaraokeDbTableField` модели `Author` (+ счётчики `ready_songs_count` /
+  `total_songs_count`, которые ведёт БД-триггер) и с бэкфиллом в том же файле —
+  проверяется `tools/check-recordhash-consistency.py` (CI + pre-commit).
 - **MUST**: миграция идемпотентна (`ADD COLUMN IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 - **MUST**: миграция применяется **вручную на LOCAL и на PROD** в одном PR;
   рассинхрон схемы проявляется как `column "sort_order" does not exist` при первом

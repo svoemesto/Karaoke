@@ -5,10 +5,21 @@ Documentation=https://github.com/svoemesto/Karaoke/tree/295-jira-local-integrati
 [Service]
 Type=oneshot
 WorkingDirectory=/home/nsa/Karaoke
-ExecStart=/home/nsa/Karaoke/deploy/tracker-db-backup.sh
+# BR-543 (аудит #336 / P-73-05, OpenProject #371): блокировка держится на ВЕСЬ
+# прогон. flock удерживает lock, пока жив его процесс, поэтому вариант
+# `ExecStartPre=… flock …` отпускал блокировку сразу после успешного захвата —
+# до старта ExecStart. Итог: мьютекс не работал, а два параллельных прогона
+# (таймер 03:00 + ручной запуск; Persistent=true срабатывает сразу после
+# простоя хоста) писали в ОДИН и тот же файл tracker-<дата>.dump.tmp →
+# перемешанные записи → битый custom-format дамп, который при этом проходил
+# проверку «файл не пустой».
+#
+# Теперь: `flock -n <lock> <команда>` — если блокировка занята, flock НЕ
+# запускает бэкап и возвращает ненулевой код (юнит завершается с ошибкой —
+# это видно в journal, а не теряется молча).
+ExecStart=/usr/bin/flock -n /tmp/tracker-db-backup.lock /home/nsa/Karaoke/deploy/tracker-db-backup.sh
 StandardOutput=journal
 StandardError=journal
-ExecStartPre=/bin/bash -c 'flock -n /tmp/tracker-db-backup.lock || { echo "Another backup is running, exiting"; exit 0; }'
 
 [Install]
 WantedBy=default.target

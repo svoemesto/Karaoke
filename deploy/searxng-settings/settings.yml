@@ -10,7 +10,19 @@ search:
   default_lang: "ru"
 
 server:
-  secret_key: "i-love-my-wife-oxana"
+  # BR-040 (аудит #336 / P-70-02, OpenProject #371): реальный секрет НЕ в git.
+  # Здесь только плейсхолдер, который entrypoint образа searxng подменяет на
+  # $SEARXNG_SECRET при старте контейнера (тот же приём, что в штатном
+  # settings.yml образа: "Is overwritten by ${SEARXNG_SECRET}").
+  # Значение секрета — в deploy/do.env (в .gitignore) или deploy/.env.
+  #
+  # NB: entrypoint подменяет плейсхолдер sed-ом прямо в /etc/searxng/settings.yml,
+  # а каталог смонтирован в контейнер как bind-mount → после старта контейнера
+  # ХОСТОВЫЙ файл содержит реальный секрет. Поэтому:
+  #   * перед коммитом — `git checkout -- deploy/searxng-settings/settings.yml`;
+  #   * guard tools/check-deploy-hardening.sh (BR-040) не даёт закоммитить
+  #     файл, в котором secret_key отличается от плейсхолдера.
+  secret_key: "ultrasecretkey"
   limiter: false
   image_proxy: false
 

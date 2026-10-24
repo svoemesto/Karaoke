@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -53,6 +54,8 @@ class PublicSongEditorController(
     private val gestureUnlockService: PlayerGestureUnlockService,
 ) {
     private val db get() = WORKING_DATABASE
+
+    private val log = LoggerFactory.getLogger(PublicSongEditorController::class.java)
 
     // Терпимый к неизвестным ключам декодер: маркеры с фронта могут нести поля, которых нет
     // в SourceMarker (служебные и т.п.), и строгий Json.Default бросил бы на них.
@@ -215,7 +218,22 @@ class PublicSongEditorController(
             draft.editedSourceText = sourceTexts
             draft.editedMarkers = markersPerVoice
             draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
-            KaraokeDbTable.createDbInstance(entity = draft, database = db)
+            // Аудит BR-023 (OpenProject #378): результат вставки игнорировался — контроллер
+            // отвечал 200 {"ok":true}, хотя черновик не сохранён (нет соединения, сбой INSERT или
+            // конкурентная вставка по UNIQUE(assignment_id) — двойной клик/две вкладки).
+            // Теперь результат проверяется, а конкурентный случай доигрывается как upsert:
+            // читаем уже созданный черновик и обновляем его (правка не теряется).
+            val persisted =
+                persistDraftOrExisting(
+                    draft = draft,
+                    create = { entity -> KaraokeDbTable.createDbInstance(entity = entity, database = db) as? SongAssignmentDraft },
+                    loadExisting = { SongAssignmentDraft.getByAssignment(a.id, db, storageService, storageApiClient) },
+                )
+            if (persisted == null) {
+                log.warn("editor:save: черновик задания {} не сохранён (siteUserId={})", a.id, user.id)
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "save_failed"))
+            }
+            draft = persisted
         } else {
             draft.editedSourceText = sourceTexts
             draft.editedMarkers = markersPerVoice
@@ -224,6 +242,36 @@ class PublicSongEditorController(
             draft.save()
         }
         return ResponseEntity.ok(mapOf("ok" to true, "status" to SongAssignmentStatus.IN_PROGRESS.dbValue))
+    }
+
+    /**
+     * Сохраняет НОВЫЙ черновик, доигрывая конкурентную вставку как upsert (аудит BR-023, #378).
+     *
+     * Раньше результат [KaraokeDbTable.createDbInstance] игнорировался: при сбое INSERT или
+     * конкурентной вставке по `UNIQUE(assignment_id)` (двойной клик, две вкладки) контроллер
+     * отвечал `200 {"ok":true}`, а вторая правка молча терялась. Теперь:
+     *  - создание вернуло объект — сохраняем его;
+     *  - создание вернуло `null` — перечитываем черновик (его мог создать параллельный запрос) и
+     *    обновляем существующий (правка не теряется);
+     *  - черновика нет и создать не удалось — `null` → контроллер отдаёт 5xx `save_failed`.
+     *
+     * @param draft черновик с новыми значениями (ещё не в БД).
+     * @param create операция вставки (возвращает сохранённый объект либо null).
+     * @param loadExisting повторное чтение черновика по заданию.
+     * @return сохранённый черновик либо null, если сохранить не удалось.
+     */
+    internal fun persistDraftOrExisting(
+        draft: SongAssignmentDraft,
+        create: (SongAssignmentDraft) -> SongAssignmentDraft?,
+        loadExisting: () -> SongAssignmentDraft?,
+    ): SongAssignmentDraft? {
+        create(draft)?.let { return it }
+        val existing = loadExisting() ?: return null
+        existing.editedSourceText = draft.editedSourceText
+        existing.editedMarkers = draft.editedMarkers
+        existing.userStatus = draft.userStatus
+        existing.save()
+        return existing
     }
 
     // ---- Отправить на проверку ---------------------------------------------------------------

@@ -25,6 +25,7 @@
 | `check-censored-public.sh` | Smoke-test цензурирования на `karaoke-web` без `karaoke-app`. |
 | `check-audit-coverage.sh` | 100% audit coverage. |
 | `check-songedit-field-coverage.sh` | UI↔backend field coverage для SongEdit. |
+| [`check-recordhash-consistency.py`](check-recordhash-consistency.py) | CI gate (аудит #336, BR-533/540/541/553): статически, без БД, проверяет recordhash-контракт — (1) в теле каждой триггерной функции `deploy/**/*.sql` все ссылки на колонки имеют префикс `NEW.` (иначе триггер падает на первой записи, а `CREATE FUNCTION` этого не ловит); (2) канонические `deploy/recordhash_*.sql` покрывают все `@KaraokeDbTableField` своих моделей и совпадают с собственным бэкфиллом; (3) `tbl_songs_sync` содержит все колонки, которые пишет `Song.getSqlToInsert(sync = true)`. **Запускается в GitHub Actions** и в pre-commit. |
 | `check-endpoint-field-coverage.sh` | Общий UI↔backend audit (все пары из endpoint-pairs.yml). |
 
 ## Резерв (build / deploy)

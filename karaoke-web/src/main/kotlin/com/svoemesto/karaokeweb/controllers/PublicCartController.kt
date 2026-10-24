@@ -303,27 +303,50 @@ class PublicCartController(
         val tariff =
             PriceTariff.getDefault(Subscription.SCOPE_SONG, database, storageService, storageApiClient)
                 ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
-        val prices = priceService.computeCartPrice(tariff, eligible.size, user, database, storageService, storageApiClient)
-
+        // Аудит BR-005 (OpenProject #378): порядковые номера позиций для акции «каждая N-я
+        // бесплатно» выделяются под блокировкой (пользователь, scope). Без неё два параллельных
+        // checkout'а читали один и тот же countPaid, и бесплатной становилась одна и та же
+        // позиция в обоих заказах (двойная скидка на границе акции).
         val orderId = UUID.randomUUID().toString()
+        var freeOrder = false
         val subs =
-            eligible.zip(prices).mapNotNull { (item, p) ->
-                Subscription.createNew(
-                    siteUserId = user.id,
-                    scope = Subscription.SCOPE_SONG,
-                    idSong = item.idSong,
-                    tariffId = tariff.id,
-                    periodDays = tariff.periodDays,
-                    basePrice = p.base,
-                    discount = p.discount,
-                    finalPrice = p.final,
-                    promoApplied = p.promoApplied ?: "",
-                    autoRenew = false,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    orderId = orderId,
-                )
+            priceService.withOrdinalLock(user.id, Subscription.SCOPE_SONG) {
+                // Цена считается ВНУТРИ блокировки: countPaid читается и «занимается» атомарно
+                // с созданием строк заказа (BR-005, #378).
+                val prices = priceService.computeCartPrice(tariff, eligible.size, user, database, storageService, storageApiClient)
+                val created =
+                    eligible.zip(prices).mapNotNull { (item, p) ->
+                        Subscription.createNew(
+                            siteUserId = user.id,
+                            scope = Subscription.SCOPE_SONG,
+                            idSong = item.idSong,
+                            tariffId = tariff.id,
+                            periodDays = tariff.periodDays,
+                            basePrice = p.base,
+                            discount = p.discount,
+                            finalPrice = p.final,
+                            promoApplied = p.promoApplied ?: "",
+                            autoRenew = false,
+                            database = database,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                            orderId = orderId,
+                        )
+                    }
+                if (created.size == eligible.size && created.sumOf { it.finalPrice } <= 0.0) {
+                    // Акция довела весь заказ до нуля — начисляем сразу, без ЮKassa. Запись PAID —
+                    // ВНУТРИ блокировки: она «занимает» порядковые номера (BR-005). Начисление идёт
+                    // единой точкой [SubscriptionFulfillmentService] (#365, BR-020).
+                    try {
+                        created.filter { it.status != Subscription.STATUS_PAID }.forEach { fulfillmentService.fulfillPaid(it) }
+                        freeOrder = true
+                    } catch (e: Exception) {
+                        // Начисление не удалось — блокировку отпускаем, корзину НЕ трогаем (BR-014).
+                        // Ответ и повтор начисления отдаёт [fulfillFreeCartOrder] ниже.
+                        log.error("checkout: начисление бесплатного заказа {} не выполнено в блокировке: {}", orderId, e.message, e)
+                    }
+                }
+                created
             }
         if (subs.size != eligible.size) {
             rollbackOrder(subs, database)
@@ -331,8 +354,10 @@ class PublicCartController(
         }
 
         val total = subs.sumOf { it.finalPrice }
-        if (total <= 0.0) {
-            // Акция довела весь заказ до нуля — фиксируем как оплаченный сразу, без похода в ЮKassa.
+        if (freeOrder || total <= 0.0) {
+            // Бесплатный (акционный) заказ: строки уже PAID (запись была в блокировке). Здесь —
+            // очистка корзины и ответ; если начисление в блокировке сорвалось, [fulfillFreeCartOrder]
+            // повторит его и при сбое вернёт ошибку, оставив корзину нетронутой (BR-014).
             return fulfillFreeCartOrder(subs, orderId, user, database)
         }
 

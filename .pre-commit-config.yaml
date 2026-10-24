@@ -216,12 +216,16 @@ repos:
         stages: [pre-commit]
 
       # === Markdown: проверка per-feature документов (6 секций, slug, status) ===
+      # Проверяются ОБА каталога — живые (docs/features/) и архив
+      # (archive/docs/features/). Раньше хук срабатывал только на архиве,
+      # поэтому нарушения FR-009 в живых per-feature документах не ловились
+      # ни локально, ни в CI (BR-510, P-78-04).
       - id: check-feature-doc
         name: check per-feature document structure
-        entry: bash -c './tools/check-feature-doc.sh archive/docs/features/*.md'
+        entry: bash -c './tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md'
         language: system
         pass_filenames: false
-        files: '^archive/docs/features/.*\.md$'
+        files: '^(archive/)?docs/features/.*\.md$'
         stages: [pre-commit]
 
       # === Markdown: ссылки и упоминания файлов/эндпоинтов в текущей документации ===

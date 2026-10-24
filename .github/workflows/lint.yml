@@ -4,13 +4,19 @@
 # push в master и pull request. Per-feature документы проверяются на
 # структуру и (в offline-режиме) на корректность Markdown-ссылок.
 #
+# Начиная с BR-507 (P-78-01) workflow не только линтует, но и СОБИРАЕТ
+# бэкенд и прогоняет его unit-тесты: до этого PR с некомпилируемым
+# Kotlin-кодом или с упавшим тестом проходил CI и мержился в master
+# (ловила только ручная проверка на деплое).
+#
 # См. также:
 #   - CONTRIBUTING.md (раздел «Поток разработки»)
 #   - archive/docs/features/ci-lint-enforcement.md (per-feature документ, FR-009)
 #   - .pre-commit-config.yaml (локальные хуки, идентичный набор правил)
 #
 # Кэширование:
-#   - Gradle: setup-java@v4 cache=gradle (~/.gradle/caches)
+#   - Gradle: setup-java@v4 cache=gradle (путь берётся из GRADLE_USER_HOME
+#     джобы — см. backend-build/backend-test; AGENTS.md Tier-1 «Gradle»)
 #   - npm:    setup-node@v4 cache=npm (per-SPA package-lock.json)
 #
 # Триггеры:
@@ -67,6 +73,79 @@ jobs:
           path: |
             **/build/reports/ktlint/
             **/build/reports/ktlintMainSourceSetCheck/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # === Backend: сборка (BR-507, P-78-01) ===
+  # До появления этого джоба workflow только ЛИНТЕРОВАЛ код: PR с
+  # некомпилируемым Kotlin-кодом проходил CI и мержился в master.
+  # Команды — те же, что локально (AGENTS.md § «Обязательная проверка
+  # после изменения»), с явным GRADLE_USER_HOME (AGENTS.md Tier-1, R-372).
+  # Секреты не нужны, деплой/контейнеры не задействованы.
+  backend-build:
+    name: backend build (Kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Тот же приём, что и локально: Gradle User Home вне read-only
+      # $HOME. В CI — внутри рабочего каталога; setup-java@v4 (cache=gradle)
+      # берёт путь кэша из этой же переменной, поэтому кэш и сборка
+      # используют один каталог.
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Compile backend
+        # AGENTS.md § «Обязательная проверка после изменения», шаг 1.
+        run: ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel --no-daemon
+
+      - name: Package backend (bootJar)
+        # AGENTS.md § «Обязательная проверка после изменения», шаг 3
+        # (+ :karaoke-app:bootJar — как в deploy/do.sh: gradle build jars).
+        run: ./gradlew :karaoke-app:bootJar :karaoke-web:bootJar --parallel --no-daemon
+
+  # === Backend: unit-тесты (BR-507, P-78-01) ===
+  # Те же тесты, что гоняются локально: `./gradlew karaoke-app:test`
+  # (DEVELOPMENT.md § Build & run). Тесты, требующие живых внешних
+  # сервисов, помечены @Disabled (Pass 465) — см. DEVELOPMENT.md.
+  backend-test:
+    name: backend unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Run backend unit tests
+        # Локально: GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew \
+        #   :karaoke-app:test :karaoke-web:test
+        run: ./gradlew :karaoke-app:test :karaoke-web:test --parallel --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            **/build/test-results/test/*.xml
+            **/build/reports/tests/test/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -187,7 +266,11 @@ jobs:
       - name: Check per-feature doc structure
         # 6 обязательных секций + slug == имя файла + Status ∈ {active, deprecated, experimental}.
         # Подробности: contracts/per-feature-doc.md, tools/check-feature-doc.sh.
-        run: bash tools/check-feature-doc.sh archive/docs/features/*.md
+        # Проверяются ОБА каталога — живые документы (docs/features/) и
+        # архив (archive/docs/features/). Раньше CI проверял только один
+        # каталог, поэтому нарушения FR-009 в живых per-feature документах
+        # не ловились (BR-510, P-78-04).
+        run: bash tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md
 
   # === Baseline stats (informational) ===
   # Не валит CI. Публикует текущие счётчики baseline как summary —
@@ -284,6 +367,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Полная история обязательна для шага «No direct commits to master»
+          # ниже: при shallow clone (fetch-depth по умолчанию = 1)
+          # remote-tracking ref origin/master недоступен → `git log` отдаёт
+          # пустоту → счётчик DIRECT_COMMITS всегда 0 → guard «final safety
+          # net» никогда не падал (BR-509, P-78-03).
+          # fetch-depth: 0 — actions/checkout тянет ВСЕ ветки
+          # (+refs/heads/*:refs/remotes/origin/*), поэтому origin/master
+          # существует и в сборке pull_request.
+          fetch-depth: 0
 
       - name: Check Knowledge structure
         # Проверяет: обязательные директории (system/domains/adr/epics/
@@ -349,6 +442,17 @@ jobs:
         # Прецедент: 2026-09-09, спека #354 — agent закоммитил напрямую в master
         # после мержа PR #452, owner поймал.
         run: |
+          # pipefail: если `git log` не отработал (нет истории/битый клон) —
+          # шаг должен упасть, а не рапортовать «нарушений нет».
+          set -o pipefail
+          # Guard обязан УМЕЕТЬ оценить состояние master. Если remote-tracking
+          # ref origin/master недоступен (например, checkout без fetch-depth) —
+          # проверка невозможна, и «успех» был бы ложным (BR-509, P-78-03).
+          if ! git rev-parse --verify --quiet origin/master >/dev/null; then
+            echo "❌ FAIL: origin/master недоступен — проверка прямых коммитов в master невозможна"
+            echo "   Ожидается checkout с fetch-depth: 0 (полная история) + remote-tracking ref."
+            exit 1
+          fi
           DIRECT_COMMITS=$(git log --first-parent origin/master --since=24.hours --no-merges --pretty=format:"%H %s" | wc -l | tr -d ' ')
           if [ "$DIRECT_COMMITS" -gt 0 ]; then
             echo "❌ FAIL: $DIRECT_COMMITS direct commit(s) on master (must be merge commits only)"

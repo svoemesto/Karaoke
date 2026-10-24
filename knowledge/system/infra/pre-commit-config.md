@@ -61,6 +61,11 @@ CI (GitHub Actions) использует **те же проверки**, но к
 - `tools/check-knowledge-cross-links.sh` (Pass 340+)
 - `pre-commit run --all-files`
 
+Кроме того, CI выполняет то, чего нет в pre-commit: **сборку и unit-тесты
+бэкенда** (джобы `backend-build` и `backend-test`, добавлены в BR-507 /
+P-78-01 — `.github/workflows/lint.yml`). Команды совпадают с локальной
+проверкой из AGENTS.md; `GRADLE_USER_HOME` задан явно.
+
 `pre-commit run --all-files` = одна команда, которая покрывает всё
 вышеперечисленное. Рекомендуется запускать **перед** PR.
 
@@ -79,4 +84,12 @@ CI (GitHub Actions) использует **те же проверки**, но к
 
 ## Changelog
 
+- **OpenProject #369 / BR-507** (2026-10-24): в CI добавлены джобы
+  `backend-build` (compileKotlin + bootJar) и `backend-test`
+  (`:karaoke-app:test :karaoke-web:test`) — до этого workflow только
+  линтовал, и PR с некомпилируемым кодом или упавшим тестом мержился
+  в master. Хук `check-feature-doc` и CI-джоб `docs-lint` теперь
+  проверяют **оба** каталога per-feature документов
+  (`docs/features/` и `archive/docs/features/`, BR-510).
+  Автор: agent (Karaoke), аудит #336 (P-78).
 - **Pass 359** (2026-09-09): Initial. Автор: agent (Karaoke).

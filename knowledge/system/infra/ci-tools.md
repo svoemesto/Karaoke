@@ -22,7 +22,7 @@
 | `check-enforcement.sh` | Constitution rules enforcement | CI |
 | `check-eslint-baseline.sh` | ESLint baseline | CI |
 | `baseline-stats.sh` | Baseline metrics | CI (informational) |
-| `check-feature-doc.sh` | Per-feature документ (6 sections) | pre-commit |
+| `check-feature-doc.sh` | Per-feature документ (6 sections); оба каталога — `docs/features/` и `archive/docs/features/` | pre-commit + CI |
 | `check-audit-coverage.sh` | Audit coverage | pre-commit |
 | `check-endpoint-field-coverage.sh` | Endpoint ↔ UI field coverage | CI |
 | `check-songedit-field-coverage.sh` | SongEdit ↔ backend field coverage | CI |
@@ -110,6 +110,12 @@ Knowledge.
 
 ## Changelog
 
+- **OpenProject #369 / BR-507** (2026-10-24): в `.github/workflows/lint.yml`
+  добавлены джобы `backend-build` (сборка бэкенда) и `backend-test`
+  (unit-тесты `karaoke-app`/`karaoke-web`) — до этого workflow выполнял
+  только линтеры и guard-скрипты. Джоб `docs-lint` и pre-commit-хуки
+  `check-feature-doc` проверяют **оба** каталога per-feature документов.
+  Автор: agent (Karaoke), аудит #336 (P-78-01/P-78-04).
 - **Pass 491** (2026-09-27): добавлен `check-doc-references.py` — проверка
   относительных .md-ссылок, путей к файлам кода и `/api`-эндпоинтов в текущей
   документации. Появился после аудита, который нашёл 233 битые ссылки,

@@ -156,6 +156,30 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 Подробности — [`docs/features/stemjob-private-bucket.md`](../../../docs/features/stemjob-private-bucket.md),
 [`specs/561-impl-stem-bucket/research.md`](../../../specs/561-impl-stem-bucket/research.md).
 
+### Решение 6: **`/minio/` отдаётся без `X-Content-Type-Options: nosniff` (BR-558)**
+
+С 2026-10-24 host-nginx публичного сайта отдаёт заголовки безопасности
+(`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, HSTS) — регламент
+`knowledge/guidelines/security-headers.md`, конфиг `deploy/prod-single-host/80to8897`.
+
+**Исключение — MinIO-контур** (`location /minio/` и `location @minio_404`):
+`nosniff` там не применяется, потому что объекты MinIO кладутся **без**
+`Content-Type` (`PutObjectArgs` в `StorageApiClient.kt` собирается без
+`.contentType(...)`) → MinIO отдаёт их как `application/octet-stream`. Браузер,
+получив `nosniff` + `application/octet-stream` на `<img>`/`<audio>`, может
+отказаться показывать файл — а это картинки автора, обложки альбомов и
+превью, которые публичный сайт грузит напрямую с `/minio/karaoke/<файл>`.
+
+`X-Frame-Options` и `Referrer-Policy` в `/minio/` остаются (для бинарных
+файлов безопасны). Побочный эффект решения: `location /minio/` и
+`location @minio_404` имеют собственные `add_header`, а такие блоки в nginx
+**не наследуют** серверные заголовки — поэтому набор там объявлен явно
+(см. регламент, § «наследование `add_header`»).
+
+**Инвариант на будущее:** если загрузка в MinIO начнёт задавать корректный
+`Content-Type` (`image/jpeg`, `audio/mpeg`), исключение можно снять — тогда
+`nosniff` будет действовать и на MinIO-контур.
+
 ## Публичные контракты (API)
 
 ### HTTP-контракты
@@ -373,5 +397,6 @@ LOCAL+REMOTE (включая `exists=false`). Нужен после сброса
 
 ## Changelog
 
+- **Аудит BR-558** (2026-10-24, OpenProject #372): добавлено «Решение 6» — заголовки безопасности в host-nginx и исключение `nosniff` для MinIO-контура. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).
 - **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): бакет `stemjobs` — приватный (ключи `<jobId>/…`), добавлено «Решение 5» (перенос приватных объектов в отдельный бакет + стартовый инвариант политики). Автор: agent (Karaoke).

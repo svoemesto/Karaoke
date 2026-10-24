@@ -116,6 +116,7 @@
 
 <script>
 import CustomConfirm from '../Common/CustomConfirm.vue'
+import { escapeHtml } from '../../utils/escapeHtml.js'
 
 /**
  * Таблица управления двух-БД sync LOCAL ↔ SERVER.
@@ -298,9 +299,10 @@ export default {
     },
     showResultAlert(title, results) {
       const lines = results.map((r) => {
-        if (r.skipped) return `${r.displayName || ''}: пропущено (запрещено настройками)`.trim()
-        const label = r.displayName ? `${r.displayName}: ` : ''
-        if (r.error) return `${label}ошибка: ${r.error}`
+        if (r.skipped)
+          return `${escapeHtml(r.displayName || '')}: пропущено (запрещено настройками)`.trim()
+        const label = r.displayName ? `${escapeHtml(r.displayName)}: ` : ''
+        if (r.error) return `${label}ошибка: ${escapeHtml(r.error)}`
         const created = r.created ? r.created.length : 0
         const updated = r.updated ? r.updated.length : 0
         const deleted = r.deleted ? r.deleted.length : 0
@@ -310,6 +312,7 @@ export default {
         return line
       })
       this.customConfirmParams = {
+        allowHtml: true,
         isAlert: true,
         alertType: 'info',
         header: title,

@@ -2538,6 +2538,7 @@
 
 <script>
 import SubsEdit from './SubsEdit.vue'
+import { escapeHtml } from '../../../utils/escapeHtml.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import HealthReportTable from '../../Common/HealthReport/HealthReportTable.vue'
 import FamilySongsModal from './FamilySongsModal.vue'
@@ -4129,8 +4130,9 @@ export default {
     },
     copyFieldsFromAnother() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание караоке',
-        body: `Скопировать поля из другой песни для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Скопировать поля из другой песни для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doСopyFieldsFromAnother,
         fields: [
           {
@@ -4159,8 +4161,9 @@ export default {
     },
     createPictureBoostyTeaser() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки Boosty Teaser',
-        body: `Создать картинку Boosty Teaser для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку Boosty Teaser для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureBoostyTeaser,
       }
       this.isCustomConfirmVisible = true
@@ -4170,8 +4173,9 @@ export default {
     },
     createPictureSponsrTeaser() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки Sponsr Teaser',
-        body: `Создать картинку Sponsr Teaser для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку Sponsr Teaser для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureSponsrTeaser,
       }
       this.isCustomConfirmVisible = true
@@ -4181,8 +4185,9 @@ export default {
     },
     createPictureBoostyFiles() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки Boosty Files',
-        body: `Создать картинку Boosty Files для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку Boosty Files для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureBoostyFiles,
       }
       this.isCustomConfirmVisible = true
@@ -4192,8 +4197,9 @@ export default {
     },
     createPictureVK() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки VK',
-        body: `Создать картинку VK для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку VK для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureVK,
       }
       this.isCustomConfirmVisible = true
@@ -4203,8 +4209,9 @@ export default {
     },
     createPictureVKlink() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки VKlink',
-        body: `Создать картинку VKlink для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку VKlink для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureVKlink,
       }
       this.isCustomConfirmVisible = true
@@ -4214,8 +4221,9 @@ export default {
     },
     createPictureKaraoke() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки KARAOKE',
-        body: `Создать картинку KARAOKE для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку KARAOKE для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureKaraoke,
       }
       this.isCustomConfirmVisible = true
@@ -4225,8 +4233,9 @@ export default {
     },
     createPictureLyrics() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки LYRICS',
-        body: `Создать картинку LYRICS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку LYRICS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureLyrics,
       }
       this.isCustomConfirmVisible = true
@@ -4236,8 +4245,9 @@ export default {
     },
     createPictureChords() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки CHORDS',
-        body: `Создать картинку CHORDS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку CHORDS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureChords,
       }
       this.isCustomConfirmVisible = true
@@ -4248,8 +4258,9 @@ export default {
 
     createPictureTabs() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание картинки MELODY',
-        body: `Создать картинку MELODY для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать картинку MELODY для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreatePictureMelody,
       }
       this.isCustomConfirmVisible = true
@@ -4260,8 +4271,9 @@ export default {
 
     createDescriptionFileKaraoke() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание текста KARAOKE',
-        body: `Создать текст KARAOKE для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать текст KARAOKE для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateDescriptionFileKaraoke,
       }
       this.isCustomConfirmVisible = true
@@ -4271,8 +4283,9 @@ export default {
     },
     createDescriptionFileLyrics() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание текста LYRICS',
-        body: `Создать текст LYRICS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать текст LYRICS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateDescriptionFileLyrics,
       }
       this.isCustomConfirmVisible = true
@@ -4282,8 +4295,9 @@ export default {
     },
     createDescriptionFileChords() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание текста CHORDS',
-        body: `Создать текст CHORDS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать текст CHORDS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateDescriptionFileChords,
       }
       this.isCustomConfirmVisible = true
@@ -4294,8 +4308,9 @@ export default {
 
     createDescriptionFileTabs() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание текста TABS',
-        body: `Создать текст TABS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать текст TABS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateDescriptionFileTabs,
       }
       this.isCustomConfirmVisible = true
@@ -4306,8 +4321,9 @@ export default {
 
     createKeyBpmFinderProcess() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание BPM и TEMP из файла',
-        body: `Создать текст TABS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать текст TABS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateKeyBpmFinderProcess,
       }
       this.isCustomConfirmVisible = true
@@ -4318,8 +4334,9 @@ export default {
 
     createRenderMp4Version(version) {
       this.customConfirmParams = {
+        allowHtml: true,
         header: `Подтвердите рендер ${version}`,
-        body: `Запустить рендер ${version} из онлайн-плеера для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Запустить рендер ${version} из онлайн-плеера для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: () => this.doCreateRenderMp4Version(version),
       }
       this.isCustomConfirmVisible = true
@@ -4705,8 +4722,9 @@ export default {
     },
     createKaraoke() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание караоке',
-        body: `Создать караоке для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать караоке для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateKaraoke,
         fields: [
           {
@@ -4773,8 +4791,9 @@ export default {
     },
     createDemucs2() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание DEMUCS2',
-        body: `Создать DEMUCS2 для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать DEMUCS2 для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateDemucs2,
         fields: [
           {
@@ -4797,8 +4816,9 @@ export default {
     },
     createDemucs5() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание DEMUCS5',
-        body: `Создать DEMUCS5 для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать DEMUCS5 для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateDemucs5,
         fields: [
           {
@@ -4831,10 +4851,11 @@ export default {
         console.error('Не удалось прочитать настройку alignmentUseFinetunedModel:', error)
       }
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание процесса «Точные маркеры»',
         body:
           `Расставить маркеры через forced-alignment для ВСЕХ голосов песни ` +
-          `<strong>«${this.song.songName}»</strong> фоновым процессом? Текущие маркеры каждого ` +
+          `<strong>«${escapeHtml(this.song.songName)}»</strong> фоновым процессом? Текущие маркеры каждого ` +
           `голоса будут <strong>полностью заменены</strong>.`,
         callback: this.doCreateForcedAlignMarkers,
         fields: [
@@ -4866,8 +4887,9 @@ export default {
     },
     createSheetsage() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание SHEETSAGE',
-        body: `Создать SHEETSAGE для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать SHEETSAGE для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateSheetsage,
         fields: [
           {
@@ -4890,8 +4912,9 @@ export default {
     },
     createMP3Karaoke() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание MP3 KARAOKE',
-        body: `Создать MP3 KARAOKE для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать MP3 KARAOKE для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateMP3Karaoke,
         fields: [
           {
@@ -4914,8 +4937,9 @@ export default {
     },
     createMP3Lyrics() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание MP3 LYRICS',
-        body: `Создать MP3 LYRICS для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать MP3 LYRICS для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateMP3Lyrics,
         fields: [
           {
@@ -4989,8 +5013,9 @@ export default {
     },
     createSymlinks() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите создание SYMLINKs',
-        body: `Создать SYMLINKs для песни <strong>«${this.song.songName}»</strong>?`,
+        body: `Создать SYMLINKs для песни <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         callback: this.doCreateSymlinks,
         fields: [
           {
@@ -5033,8 +5058,9 @@ export default {
     },
     deleteSong() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите удаление песни',
-        body: `Удалить песню <strong>«${this.song.songName}»</strong>?`,
+        body: `Удалить песню <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
         timeout: 10,
         callback: this.doDeleteSong,
       }

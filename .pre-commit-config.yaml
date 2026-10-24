@@ -120,6 +120,33 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: экранирование текста подтверждений (спека #558, OP #360, BR-123) ===
+      # Общий компонент подтверждения по умолчанию выводит текст как ТЕКСТ,
+      # сырая разметка — только при явном `allowHtml: true`. Guard проверяет:
+      #   R1 — компонент не принимает сырую разметку по умолчанию;
+      #   R2 — `allowHtml: true` объявлен тогда и только тогда, когда в тексте
+  #        подтверждения есть статичная разметка;
+      #   R3 — пользовательские значения экранированы при сборке текста.
+      # Проверка падает на коде до правки (см. tools/check-confirm-escape-fixtures.sh).
+      - id: confirm-escape-guard
+        name: confirm escape guard (BR-123)
+        entry: python3 tools/check-confirm-escape.py
+        language: system
+        pass_filenames: false
+        files: '^webvue3/src/.*\.(vue|js)$|^tools/check-confirm-escape\.py$|^config/frontend/confirm-safe-expressions\.txt$'
+        stages: [pre-commit]
+
+      # === Vue: unit-тесты webvue3 (node --test) ===
+      # Встроенный раннер Node; тесты лежат в webvue3/src/utils/__tests__/.
+      # Спека #558: добавлен escapeHtml.test.js — регресс-контроль «до/после».
+      - id: webvue3-unit-tests
+        name: unit tests (webvue3 admin SPA)
+        entry: bash -c 'cd webvue3 && npm run test:unit'
+        language: system
+        pass_filenames: false
+        files: '^webvue3/src/.*\.(vue|js)$'
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

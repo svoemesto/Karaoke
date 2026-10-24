@@ -231,6 +231,7 @@
 
 <script>
 import CustomConfirm from '../../Common/CustomConfirm.vue'
+import { escapeHtml } from '../../../utils/escapeHtml.js'
 import UserEventsModal from '../../Stats/UserEventsModal.vue'
 import UserPlaylistsModal from '../UserPlaylistsModal.vue'
 import UserSubscriptionsModal from '../UserSubscriptionsModal.vue'
@@ -381,8 +382,9 @@ export default {
     ban() {
       let item = { reason: '' }
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите бан пользователя',
-        body: `Забанить пользователя <strong>«${this.siteUserCurrent.email}»</strong>?`,
+        body: `Забанить пользователя <strong>«${escapeHtml(this.siteUserCurrent.email)}»</strong>?`,
         callback: this.doBan,
         fields: [
           {
@@ -403,8 +405,9 @@ export default {
     },
     unban() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите разбан пользователя',
-        body: `Снять бан с пользователя <strong>«${this.siteUserCurrent.email}»</strong>?`,
+        body: `Снять бан с пользователя <strong>«${escapeHtml(this.siteUserCurrent.email)}»</strong>?`,
         callback: this.doUnban,
       }
       this.isCustomConfirmVisible = true
@@ -416,8 +419,9 @@ export default {
     },
     deleteUser() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите удаление пользователя',
-        body: `Удалить пользователя <strong>«${this.siteUserCurrent.email}»</strong>? Это действие необратимо.`,
+        body: `Удалить пользователя <strong>«${escapeHtml(this.siteUserCurrent.email)}»</strong>? Это действие необратимо.`,
         timeout: 10,
         callback: this.doDeleteUser,
       }

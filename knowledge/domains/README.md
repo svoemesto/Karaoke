@@ -76,6 +76,10 @@ knowledge/domains/<name>/
   - `subs-edit-admin-editor.md` — админский редактор SubsEdit: contenteditable,
     инкрементальная перерисовка регионов, подсветка словаря, экранирование
     перед `v-html`.
+  - `confirm-escape.md` — экранирование текста подтверждений админки:
+    текстовый режим по умолчанию в `CustomConfirm.vue`, экранирование на входе
+    в 43 местах, проверка `tools/check-confirm-escape.py` (R1/R2/R3)
+    (спека #558 / 562, OpenProject #360, BR-123).
   - `composable-karaoke-editor.md`, `composable-player-readiness.md`,
     `composable-use-auth.md`, `composable-use-player-access.md`,
     `composable-use-share-link.md` — отдельные детальные composable

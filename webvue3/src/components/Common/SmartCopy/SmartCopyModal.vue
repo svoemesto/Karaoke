@@ -171,6 +171,7 @@
 
 <script>
 import CustomConfirm from '../../../components/Common/CustomConfirm.vue'
+import { escapeHtml } from '../../../utils/escapeHtml.js'
 import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
 
 /**
@@ -247,12 +248,15 @@ export default {
         body = body + `<strong>Не создавать под-папки</strong><br>`
       }
       if (this.smartCopyRenameTemplate !== '') {
-        body = body + `Шаблон переименования: <strong>${this.smartCopyRenameTemplate}</strong><br>`
+        body =
+          body +
+          `Шаблон переименования: <strong>${escapeHtml(this.smartCopyRenameTemplate)}</strong><br>`
       }
-      body = body + `Папка для копирования: <strong>${this.smartCopyPath}</strong><br>`
+      body = body + `Папка для копирования: <strong>${escapeHtml(this.smartCopyPath)}</strong><br>`
       body = body + `<br>Произвести Smart Copy для всех песен?`
 
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите Smart Copy',
         body: body,
         callback: this.doSmartCopy,

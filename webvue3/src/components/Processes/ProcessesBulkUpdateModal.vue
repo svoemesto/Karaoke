@@ -131,6 +131,7 @@ export default {
         return
       }
       this.customConfirmParams = {
+        allowHtml: true,
         isAlert: false,
         header: 'Подтвердите изменение',
         body: `Будет изменено <strong>${this.ids.length}</strong> процессов: <strong>${this.form.field}</strong> → <strong>${this.form.value}</strong>.`,

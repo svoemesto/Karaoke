@@ -196,6 +196,7 @@
 
 <script>
 import CustomConfirm from '../components/Common/CustomConfirm.vue'
+import { escapeHtml } from '../utils/escapeHtml.js'
 import FileExplorerModal from '../components/Common/FileExplorer/FileExplorerModal.vue'
 // import { useFileDialog } from '@vueuse/core'
 /**
@@ -258,6 +259,7 @@ export default {
     async addFilesFromFolder() {
       const defaultTimeout = await this.$store.dispatch('getLyricsSearchTimeout')
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Добавление файлов из папки',
         body: `Добавить файлы из папки?<br>
                Файлы будут добавлены, если их ещё нет в базе данных<br>
@@ -297,6 +299,7 @@ export default {
         .dispatch('createFromFolderPromise', { folder: this.pathToFolder, timeout: timeout })
         .then((data) => {
           this.customConfirmParams = {
+            allowHtml: true,
             isAlert: true,
             alertType: data !== '0' ? 'info' : 'warning',
             header: 'Добавление файлов из папки',
@@ -334,6 +337,7 @@ export default {
     },
     copyToStore() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Обновление хранилища',
         body: `Скопировать недостающие файлы в хранилище<br>и создать задачи на кодирование недостающих 720p?`,
         callback: this.doCopyToStore,
@@ -373,6 +377,7 @@ export default {
         .then((data) => {
           let result = JSON.parse(data)
           this.customConfirmParams = {
+            allowHtml: true,
             isAlert: true,
             alertType: 'info',
             header: 'Обновление хранилища',
@@ -484,6 +489,7 @@ export default {
     doUpdateBpmAndKey() {
       this.$store.dispatch('updateBpmAndKeyPromise').then((data) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Обновление BPM и KEY',
@@ -508,8 +514,9 @@ export default {
     },
     markDublicates() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
-        body: `Найти и обработать дубликаты песен автора «<strong>${this.author}</strong>»?`,
+        body: `Найти и обработать дубликаты песен автора «<strong>${escapeHtml(this.author)}</strong>»?`,
         timeout: 10,
         callback: this.doMarkDublicates,
       }
@@ -518,6 +525,7 @@ export default {
     doMarkDublicates() {
       this.$store.dispatch('markDublicatesPromise', { author: this.author }).then((data) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Поиск дубликатов',
@@ -532,9 +540,10 @@ export default {
     },
     autoAssignOriginalAll() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
-          `Автоматически привязать оригинал по аудио-сверке для песен автора «<strong>${this.author}</strong>» со статусом 1 и ненулевым root_id?<br>` +
+          `Автоматически привязать оригинал по аудио-сверке для песен автора «<strong>${escapeHtml(this.author)}</strong>» со статусом 1 и ненулевым root_id?<br>` +
           `Для каждой будет найден наиболее похожий по аудио вариант из «семьи» (порог 85%), скопированы текст/маркеры со сдвигом, песня сохранена и переведена в статус 2.<br>` +
           `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
         timeout: 15,
@@ -545,6 +554,7 @@ export default {
     doAutoAssignOriginalAll() {
       this.$store.dispatch('autoAssignOriginalAllPromise', { author: this.author }).then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Автопривязка оригинала',
@@ -559,9 +569,10 @@ export default {
     // родителя идёт только среди песен того же автора; при crossAuthor=true — среди всех.
     findParentForAuthor() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
-          `Запустить поиск родителя для всех песен автора «<strong>${this.author}</strong>» с root_id=0?<br>` +
+          `Запустить поиск родителя для всех песен автора «<strong>${escapeHtml(this.author)}</strong>» с root_id=0?<br>` +
           `Для каждой такой песни будет выполнен поиск родителя по точному совпадению нормализованного названия.<br>` +
           `Если родитель найден и у песни ещё нет проверенного текста — root_id будет проставлен.<br>` +
           `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
@@ -586,6 +597,7 @@ export default {
         .dispatch('findParentForAuthorPromise', { author: this.author, crossAuthor: crossAuthor })
         .then((response) => {
           this.customConfirmParams = {
+            allowHtml: true,
             isAlert: true,
             alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
             header: 'Поиск родителя',
@@ -603,9 +615,10 @@ export default {
     // audio_parent_id (=0). Не меняет текст/маркеры/статус — только пишет audio_parent_id.
     findAudioParentForAuthor() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
-          `Запустить поиск аудио-родителя среди всех претендентов в семье для песен автора «<strong>${this.author}</strong>» с root_id ≠ 0, у которых ещё не найден audio_parent_id?<br>` +
+          `Запустить поиск аудио-родителя среди всех претендентов в семье для песен автора «<strong>${escapeHtml(this.author)}</strong>» с root_id ≠ 0, у которых ещё не найден audio_parent_id?<br>` +
           `Для каждой такой песни будет выполнена акустическая сверка (WaveformCompare) с другими песнями в её семье — и при совпадении ≥ 95% будет записан audio_parent_id.<br>` +
           `Текст/маркеры/статус песни НЕ изменяются.<br>` +
           `<strong>Операция очень тяжёлая (ffmpeg-декод на каждого кандидата) и идёт в фоне — итог придёт уведомлением.</strong>`,
@@ -619,6 +632,7 @@ export default {
         .dispatch('findAudioParentForAuthorPromise', { author: this.author })
         .then((response) => {
           this.customConfirmParams = {
+            allowHtml: true,
             isAlert: true,
             alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
             header: 'Поиск аудио-родителя',
@@ -633,9 +647,10 @@ export default {
     },
     recalcPlayerReadiness() {
       const scope = this.author
-        ? `песен автора «<strong>${this.author}</strong>»`
+        ? `песен автора «<strong>${escapeHtml(this.author)}</strong>»`
         : `<strong>ВСЕХ</strong> песен всех авторов`
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Пересчитать и сохранить флаги готовности онлайн-плеера (стемы/картинки) для ${scope}?<br>` +
@@ -649,6 +664,7 @@ export default {
     doRecalcPlayerReadiness() {
       this.$store.dispatch('recalcPlayerReadinessPromise', { author: this.author }).then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Пересчёт готовности плеера',
@@ -664,6 +680,7 @@ export default {
     // recalcPlayerReadiness), т.к. цель — просто освободить место в таблицах результатов поиска.
     deleteSearchResultsForReadySongs() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Удалить сохранённые результаты поиска текста для ВСЕХ готовых песен (статус ≥3)?<br>` +
@@ -677,6 +694,7 @@ export default {
     doDeleteSearchResultsForReadySongs() {
       this.$store.dispatch('deleteSearchResultsForReadySongsPromise').then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Удаление результатов поиска готовых песен',
@@ -693,6 +711,7 @@ export default {
     // попадают через обычную синхронизацию при активном kill-switch'е.
     backfillPublishFlags() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Проставить готовым песням на LOCAL полный complete-набор флагов публикации ` +
@@ -710,6 +729,7 @@ export default {
     doBackfillPublishFlags() {
       this.$store.dispatch('backfillPublishFlagsPromise').then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Backfill флагов публикации (LOCAL)',
@@ -724,6 +744,7 @@ export default {
     // через обычную синхронизацию (RUNBOOK.md §2.2), не повторным запуском этой кнопки.
     backfillAlbumsFromSongs() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Создать альбомы из уже заполненных у песен автора/года/альбома и связать с ними песни?<br>` +
@@ -739,6 +760,7 @@ export default {
     doBackfillAlbumsFromSongs() {
       this.$store.dispatch('backfillAlbumsFromSongsPromise').then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Заполнение альбомов из песен',
@@ -753,6 +775,7 @@ export default {
     // порядок, просто переводя его в сквозную нумерацию — можно перезапускать без риска.
     normalizeAlbumSortOrder() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Перевести порядок отображения альбомов с "внутри года" на сквозной по автору?<br>` +
@@ -768,6 +791,7 @@ export default {
     doNormalizeAlbumSortOrder() {
       this.$store.dispatch('normalizeAlbumSortOrderPromise').then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Нормализация порядка альбомов',
@@ -789,6 +813,7 @@ export default {
     doDelDublicates() {
       this.$store.dispatch('deleteDublicatesPromise').then((data) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Удаление дубликатов',
@@ -813,6 +838,7 @@ export default {
     doClearPreDublicates() {
       this.$store.dispatch('clearPreDublicatesPromise').then((data) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Очистка пре-дубликатов',
@@ -827,8 +853,9 @@ export default {
     },
     dictActionAdd() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
-        body: `Добавить слово «<strong>${this.dictValue.toLowerCase()}</strong>» в словарь «<strong>${this.dictType}</strong>»?`,
+        body: `Добавить слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» в словарь «<strong>${escapeHtml(this.dictType)}</strong>»?`,
         timeout: 10,
         callback: this.doDictActionAdd,
       }
@@ -842,10 +869,11 @@ export default {
       }
       this.$store.getters.doTfd(params).then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Добавление слова в словарь',
-          body: `Слово «<strong>${this.dictValue.toLowerCase()}</strong>» успешно добавлено в словарь «<strong>${this.dictType}</strong>»?`,
+          body: `Слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» успешно добавлено в словарь «<strong>${escapeHtml(this.dictType)}</strong>»?`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true
@@ -853,8 +881,9 @@ export default {
     },
     dictActionRemove() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
-        body: `Удалить слово «<strong>${this.dictValue.toLowerCase()}</strong>» из словаря «<strong>${this.dictType}</strong>»?`,
+        body: `Удалить слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» из словаря «<strong>${escapeHtml(this.dictType)}</strong>»?`,
         timeout: 10,
         callback: this.doDictActionRemove,
       }
@@ -868,10 +897,11 @@ export default {
       }
       this.$store.getters.doTfd(params).then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Удаление слова из словаря',
-          body: `Слово «<strong>${this.dictValue.toLowerCase()}</strong>» успешно удалено из словаря «<strong>${this.dictType}</strong>»?`,
+          body: `Слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» успешно удалено из словаря «<strong>${escapeHtml(this.dictType)}</strong>»?`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true
@@ -892,6 +922,7 @@ export default {
     },
     customFunction() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Запустить поиск родителей и аудио-родителей для песен с root_id=0 и статусом &lt; 3?<br>` +
@@ -905,6 +936,7 @@ export default {
     doCustomFunction() {
       this.$store.dispatch('customFunctionPromise').then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Поиск родителей и аудио-родителей',
@@ -919,6 +951,7 @@ export default {
     // @see specs/413-sync-audio-descendants/spec.md
     syncAudioParents() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Запустить синхронизацию аудио-потомков для всех песен?<br>` +
@@ -933,6 +966,7 @@ export default {
       this.$store.dispatch('syncAudioParentsPromise').then((response) => {
         const alreadyRunning = response === 'ALREADY_RUNNING'
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: alreadyRunning ? 'warning' : 'info',
           header: 'Синхронизация аудио-потомков',
@@ -948,6 +982,7 @@ export default {
     // tbl_songs.song_name_censored по словарю «Censored».
     rescanAllCensoredNames() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Пересканировать цензурированные названия ВСЕХ песен (≈18k строк) по актуальному словарю «Censored»?<br>` +
@@ -961,6 +996,7 @@ export default {
     doRescanAllCensoredNames() {
       this.$store.dispatch('rescanAllCensoredNamesPromise').then((response) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
           header: 'Пересканирование цензурированных названий',
@@ -975,6 +1011,7 @@ export default {
     },
     exportAlignmentDataset() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Собрать манифест (текст + тайминг слогов + путь к вокальному стему) по всем песням с готовой разметкой (статус ≥ PROJECT_CREATE) для дообучения forced-alignment модели?<br>` +
@@ -988,6 +1025,7 @@ export default {
     doExportAlignmentDataset() {
       this.$store.dispatch('exportAlignmentDatasetPromise').then(() => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: 'info',
           header: 'Экспорт датасета для forced-alignment',
@@ -1000,6 +1038,7 @@ export default {
     // Pass 435 (#159): backfill etag/size в tbl_storage_metadata_cache.
     backfillCacheEtagSize() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Заполнить etag/size в кеше хранилища для всех строк с exists=true и пустыми etag/size?<br>` +
@@ -1015,6 +1054,7 @@ export default {
     doBackfillCacheEtagSize() {
       this.$store.dispatch('backfillCacheEtagSizePromise').then((response) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
           header: 'Заполнение etag/size кеша хранилища',
@@ -1030,6 +1070,7 @@ export default {
     // Спека #449 (#182): полный прогрев кеша хранилища.
     warmStorageCache() {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Подтвердите действие',
         body:
           `Полностью прогреть кеш хранилища?<br>` +
@@ -1046,6 +1087,7 @@ export default {
     doWarmStorageCache() {
       this.$store.dispatch('warmStorageCachePromise').then((response) => {
         this.customConfirmParams = {
+          allowHtml: true,
           isAlert: true,
           alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
           header: 'Прогрев кеша хранилища',

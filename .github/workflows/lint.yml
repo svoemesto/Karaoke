@@ -111,6 +111,54 @@ jobs:
         working-directory: ${{ matrix.spa }}
         run: npx prettier --check "src/**/*.{vue,js,ts,json}"
 
+  # === Экранирование текста подтверждений (спека #558, OP #360, BR-123) ===
+  # Общий компонент подтверждения админки по умолчанию выводит текст как
+  # ТЕКСТ; сырая разметка принимается только при явном `allowHtml: true`.
+  # Guard проверяет три инварианта (R1/R2/R3) и умеет «падать на коде до
+  # правки» — см. tools/check-confirm-escape-fixtures.sh.
+  confirm-escape-guard:
+    name: confirm escape guard (BR-123)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check confirm text escaping
+        # python3 tools/check-confirm-escape.py — находит места, где
+        # пользовательские данные попадают в текст подтверждения как разметка.
+        run: python3 tools/check-confirm-escape.py
+
+      - name: Check guard behaviour before/after the fix
+        # Фикстуры: уязвимый снимок кода → отказ, исправленный → успех.
+        run: bash tools/check-confirm-escape-fixtures.sh
+
+  # === Unit-тесты webvue3 (встроенный раннер Node) ===
+  # Спека #558: escapeHtml.test.js — регресс-контроль «выдача совпадает с
+  # базовой линией + 0 двойных экранирований» (прецедент спеки #215).
+  webvue3-unit-tests:
+    name: unit tests (webvue3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webvue3/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: webvue3
+        run: npm ci --no-audit --no-fund
+
+      - name: node --test
+        working-directory: webvue3
+        run: node --test "src/utils/__tests__/*.test.js"
+
   # === Docs: структура per-feature + Markdown-ссылки ===
   # Не блокер-уровень, но даёт быстрый сигнал о сломанной документации.
   # lychee запускается в --offline: проверяет только локальные файлы,

@@ -345,6 +345,7 @@ export default {
 
     changeValue(item) {
       this.customConfirmParams = {
+        allowHtml: true,
         header: 'Изменение значения словаря',
         body: `Запись ID = <strong>${item.id}</strong>`,
         callback: this.doChangeValue,

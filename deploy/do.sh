@@ -430,13 +430,20 @@ function do_stop_app() {
   announce "Остановка karaoke-app" "Бэк адм+инки остан+овлен"
 }
 
+# BR-043 (аудит #336 / P-70-05, OpenProject #371): неудачный push ОБЯЗАН
+# валить деплой. Раньше do.sh не проверял код возврата `docker image push`
+# (в отличие от build-функций, где стоит `|| return $?`), а последней
+# командой функции был announce — он съедал статус. Итог: `deploy_web.sh`
+# под `set -e` продолжал деплой, на проде тянулся ПРЕДЫДУЩИЙ образ ":1",
+# скрипт печатал WARN «Image is up to date» и завершался с кодом 0 —
+# оператор видел «Готово», а прод работал на старом образе.
 function do_push() {
   echo "Pushing images"
-  do_registry_login
-  do_hub_login
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
+  do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
+  do_hub_login || { echo "ERROR: логин в Docker Hub не удался — push не выполняем" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-app:${BUILD_VERSION}" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-webvue3:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-app "${BUILD_VERSION}"
   do_push_hub karaoke-web "${BUILD_VERSION}"
   do_push_hub karaoke-webvue3 "${BUILD_VERSION}"
@@ -445,40 +452,40 @@ function do_push() {
 
 function do_push_app() {
   echo "Pushing APP"
-  do_registry_login
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
+  do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-app:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-app "${BUILD_VERSION}"
   announce "П+ушинг апп"
 }
 
 function do_push_demucs() {
   echo "Pushing DEMUCS"
-  do_registry_login
-  ${DOCKER} image push "$DOCKER_REGISTRY/demucs:${BUILD_VERSION}"
+  do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/demucs:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/demucs:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub demucs "${BUILD_VERSION}"
   announce "П+ушинг дем+укс"
 }
 
 function do_push_web() {
   echo "Pushing WEB"
-  do_registry_login
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
+  do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-web "${BUILD_VERSION}"
   announce "П+ушинг веб"
 }
 
 function do_push_webvue3() {
   echo "Pushing WEBVUE3"
-  do_registry_login
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
+  do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-webvue3:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-webvue3 "${BUILD_VERSION}"
   announce "П+ушинг вебвь+ю"
 }
 
 function do_push_public() {
   echo "Pushing PUBLIC"
-  do_registry_login
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}"
+  do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-public:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-public "${BUILD_VERSION}"
   announce "П+ушинг п+аблик"
 }
@@ -506,14 +513,14 @@ function do_ps() {
 
 function do_pull_app() {
   echo "Pulling APP"
-  do_registry_login
+  do_registry_login || { echo "ERROR: логин в registry не удался — pull не выполняем" >&2; return 1; }
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml pull
   announce "П+уллинг апп"
 }
 
 function do_pull_web() {
   echo "Pulling WEB"
-  do_registry_login
+  do_registry_login || { echo "ERROR: логин в registry не удался — pull не выполняем" >&2; return 1; }
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml pull
   announce "П+уллинг вэб"
 }
@@ -526,7 +533,7 @@ function do_pull_webvue() {
 
 function do_pull_webvue3() {
   echo "Pulling WEBVUE3"
-  do_registry_login
+  do_registry_login || { echo "ERROR: логин в registry не удался — pull не выполняем" >&2; return 1; }
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml pull
   announce "П+уллинг вэбь+ю"
 }

@@ -31,7 +31,14 @@ printf '%s\n' "$PULL_OUT"
 if printf '%s' "$PULL_OUT" | grep -q 'Downloaded newer image'; then
   echo "=== OK: на сервере образ обновлён ==="
 elif printf '%s' "$PULL_OUT" | grep -q 'Image is up to date'; then
-  echo "WARN: на сервере 'Image is up to date' — проверьте, что push прошёл и тег совпал" >&2
+  # BR-043 (аудит #336 / P-70-05, OpenProject #371): «Image is up to date» —
+  # НЕ успешный деплой. Раньше здесь был WARN, и скрипт завершался с кодом 0:
+  # оператор видел «Готово», а прод работал на старом образе (push мог упасть
+  # тихо — теперь это уже невозможно, do.sh проверяет код возврата push).
+  # Если образ реально не изменился (сборка дала тот же digest) — деплой
+  # считаем невыполненным: артефакт не доставлен, молчать об этом нельзя.
+  echo "ERROR: на сервере 'Image is up to date' — новый образ не доставлен (push не прошёл или тег не совпал)" >&2
+  exit 1
 else
   echo "WARN: в выводе pull нет ни 'Downloaded newer image', ни 'Image is up to date' — проверьте вручную" >&2
 fi

@@ -3,9 +3,12 @@ package com.svoemesto.karaokeweb.controllers
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeweb.util.VkIdPkceUtils
+import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -42,12 +45,28 @@ import java.util.concurrent.ConcurrentHashMap
  * с TTL 10 минут (см. [pendingAuths]). Достаточно для одной инстанции `karaoke-web`;
  * для нескольких инстансов потребуется distributed cache (отдельная задача).
  *
+ * **Периметр (аудит BR-001, OpenProject #378)**: оба endpoint'а были опубликованы под
+ * под префиксом `/api/public/` без какой-либо аутентификации — любой анонимный клиент мог получить
+ * authorize-URL, пройти flow СВОИМ VK-аккаунтом, и его токен уходил на admin-машину, где
+ * `POST /api/users/vkIdSaveTokens` принимал любой валидный user-token и перезаписывал
+ * прод-credentials публикации. Теперь:
+ *  - выдача authorize-URL ([getVkIdOAuthUrl]) — только по общему секрету администратора в
+ *    заголовке `X-Internal-Secret` (fail-safe: секрет не настроен → доступ закрыт);
+ *  - callback ([vkIdOAuthCallback]) — браузерный редирект от VK, заголовок передать не может,
+ *    поэтому его рубеж — `state`, который выдаётся ТОЛЬКО защищённым [getVkIdOAuthUrl]
+ *    (одноразовый, с TTL);
+ *  - токен сохраняется на admin-машину только для доверенного VK `user_id`
+ *    (`vk.id.allowed-user-ids`), если список задан.
+ *
  * @see specs/151-vk-id-personal-token/spec.md
  * @see archive/docs/features/vk-id-auth.md (FR-001, FR-002, FR-005)
  */
 @RestController
 class PublicVkIdAuthController {
     private val log = LoggerFactory.getLogger(PublicVkIdAuthController::class.java)
+
+    /** Журнал отказов по периметру endpoint'а (категория безопасности). */
+    private val securityLog = LoggerFactory.getLogger("infra.vkid.security")
 
     // String вместо Long, чтобы избежать NumberFormatException при пустой строке
     // (если VK_ID_CLIENT_ID не задан в ENV). Конвертируем вручную через clientIdLong().
@@ -67,6 +86,26 @@ class PublicVkIdAuthController {
     @Value("\${vk.id.admin-api-url:http://nsa-i9:8898}")
     private var adminApiUrl: String = ""
 
+    /**
+     * Общий секрет администратора для выдачи authorize-URL (env `VK_ID_ADMIN_SECRET`).
+     *
+     * Fail-safe: пустое значение → канал закрыт (403 `secret_not_configured`). Значение
+     * передаётся в заголовке `X-Internal-Secret` — тот же контракт, что у
+     * `InternalStemJobController` / `InternalStatsController`.
+     */
+    @Value("\${vk.id.admin-secret:}")
+    private var adminSecret: String = ""
+
+    /**
+     * Список доверенных VK `user_id` (через запятую), для которых токен сохраняется на
+     * admin-машину (env `VK_ID_ALLOWED_USER_IDS`).
+     *
+     * Пустой список → ограничение НЕ применяется (режим «как раньше»); список задан →
+     * токен любого другого VK-пользователя на admin-машину не уходит.
+     */
+    @Value("\${vk.id.allowed-user-ids:}")
+    private var allowedUserIds: String = ""
+
     /** TTL для pending-значений PKCE (code_verifier + state), 30 минут. */
     private val pendingTtlSeconds = 1800L
 
@@ -84,29 +123,55 @@ class PublicVkIdAuthController {
      * Генерирует случайные `code_verifier` и `state`, сохраняет `code_verifier` в
      * [pendingAuths] с ключом `state` (TTL 10 минут), возвращает URL для авторизации.
      *
+     * **Требует общего секрета администратора** в заголовке `X-Internal-Secret`
+     * (аудит BR-001): без него endpoint закрыт — иначе любой анонимный клиент получил бы
+     * рабочий `state` и смог бы «подсунуть» свой VK-аккаунт в прод-credentials публикации.
+     *
      * @return JSON `{success, url, scopes, clientId, redirectUri, instructions}` или
-     *   `{success: false, error}` если настройки не заданы.
+     *   `{success: false, error}` если настройки не заданы / нет доступа.
      */
     @GetMapping("/api/public/utils/vkIdOAuthUrl", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getVkIdOAuthUrl(): Map<String, Any> {
+    fun getVkIdOAuthUrl(request: HttpServletRequest): ResponseEntity<Map<String, Any>> {
+        // 1. Периметр: общий секрет администратора (fail-safe — пустой секрет закрывает канал).
+        val denialReason = denialReason(request)
+        if (denialReason != null) {
+            securityLog.warn("vkid:security:denied reason={} source={}", denialReason, sourceOf(request))
+            return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(
+                    mapOf(
+                        "success" to false as Any,
+                        "error" to "Доступ закрыт: endpoint выдачи VK ID OAuth-ссылки доступен только с секретом администратора ($denialReason)" as Any,
+                    ),
+                )
+        }
         val clientId = clientIdLong()
         if (clientId <= 0) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vk.id.client-id is empty in application.yml — задайте VK_ID_CLIENT_ID env" as Any,
-            )
+            return ResponseEntity
+                .ok(
+                    mapOf(
+                        "success" to false as Any,
+                        "error" to "vk.id.client-id is empty in application.yml — задайте VK_ID_CLIENT_ID env" as Any,
+                    ),
+                )
         }
         if (redirectUri.isBlank()) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vk.id.redirect-uri is empty in application.yml" as Any,
-            )
+            return ResponseEntity
+                .ok(
+                    mapOf(
+                        "success" to false as Any,
+                        "error" to "vk.id.redirect-uri is empty in application.yml" as Any,
+                    ),
+                )
         }
         if (clientSecret.isBlank()) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vk.id.client-secret is empty — для Code Flow (Web-приложение) он обязателен" as Any,
-            )
+            return ResponseEntity
+                .ok(
+                    mapOf(
+                        "success" to false as Any,
+                        "error" to "vk.id.client-secret is empty — для Code Flow (Web-приложение) он обязателен" as Any,
+                    ),
+                )
         }
         val codeVerifier = VkIdPkceUtils.generateCodeVerifier()
         val codeChallenge = VkIdPkceUtils.generateCodeChallenge(codeVerifier)
@@ -132,13 +197,15 @@ class PublicVkIdAuthController {
                 "4. VK ID редиректит на /api/public/utils/vkIdOAuthCallback?code=XXX — endpoint обменивает на токен и отправляет на admin-машину.",
                 "5. Токены сохранятся в Karaoke.properties admin-машины автоматически (или HTML покажет curl для ручного сохранения).",
             )
-        return mapOf(
-            "success" to true as Any,
-            "url" to url as Any,
-            "scopes" to scopes as Any,
-            "clientId" to clientId as Any,
-            "redirectUri" to redirectUri as Any,
-            "instructions" to instructions,
+        return ResponseEntity.ok(
+            mapOf(
+                "success" to true as Any,
+                "url" to url as Any,
+                "scopes" to scopes as Any,
+                "clientId" to clientId as Any,
+                "redirectUri" to redirectUri as Any,
+                "instructions" to instructions,
+            ),
         )
     }
 
@@ -228,32 +295,20 @@ class PublicVkIdAuthController {
                     "<pre>" + (e.message ?: e.javaClass.simpleName) + "</pre>" +
                     "</body></html>"
             }
-        log.info("VK ID token response: {}...", responseJson.take(200))
-        val parsed: JsonNode =
-            try {
-                ObjectMapper().readTree(responseJson)
-            } catch (e: Exception) {
-                log.error("Cannot parse VK ID token response: {}", responseJson)
-                return htmlPrefix +
-                    "<h2>❌ Не удалось разобрать ответ VK ID</h2>" +
-                    "<pre>" + responseJson.take(800) + "</pre>" +
-                    "</body></html>"
-            }
-        val errorNode = parsed.get("error")?.asText()
-        if (!errorNode.isNullOrBlank()) {
-            val errorDescription = parsed.get("error_description")?.asText() ?: "?"
-            log.error("VK ID OAuth error: {} {}", errorNode, errorDescription)
-            return htmlPrefix +
-                "<h2>❌ VK ID отверг code</h2>" +
-                "<p>error: <b>" + errorNode + "</b></p>" +
-                "<p>error_description: <b>" + errorDescription + "</b></p>" +
-                "</body></html>"
-        }
+        // Аудит BR-002 (OpenProject #378): тело ответа VK ID начинается с `access_token`, и оно
+        // уходило в INFO-лог (и в HTML страницы ошибки) — действующий токен с правами
+        // `vkid.personal_info photos wall video` попадал в stdout контейнера и в централизованные
+        // логи. Разбор и ветки ошибок вынесены в [parseTokenResponse]: тело ответа не пишется в
+        // лог ни на одном уровне и не показывается в HTML — только длина.
+        val (parsedOrNull, tokenErrorHtml) = parseTokenResponse(responseJson)
+        if (tokenErrorHtml != null) return tokenErrorHtml
+        val parsed: JsonNode = parsedOrNull!!
         val accessToken = parsed.get("access_token")?.asText()
         if (accessToken.isNullOrBlank()) {
+            log.warn("VK ID не вернул access_token (ответ длиной {})", responseJson.length)
             return htmlPrefix +
                 "<h2>❌ VK ID не вернул access_token</h2>" +
-                "<pre>" + responseJson.take(800) + "</pre>" +
+                "<p>Подробности — в журнале приложения.</p>" +
                 "</body></html>"
         }
         val refreshToken = parsed.get("refresh_token")?.asText() ?: ""
@@ -266,6 +321,19 @@ class PublicVkIdAuthController {
             accessToken.length,
             refreshToken.isNotBlank(),
         )
+
+        // Аудит BR-001 (OpenProject #378): на admin-стороне токен должен приниматься только от
+        // известного VK-пользователя (владельца группы), а не от любого валидного. Список
+        // доверенных — `vk.id.allowed-user-ids` (env `VK_ID_ALLOWED_USER_IDS`); если он НЕ задан,
+        // ограничение не применяется (режим совместимости) — решение владельца.
+        if (!isUserIdAllowed(userId)) {
+            securityLog.warn("vkid:security:user-not-allowed user_id={}", userId)
+            return htmlPrefix +
+                "<h2>❌ Токен не сохранён</h2>" +
+                "<p>VK user_id <b>" + escapeHtml(userId) + "</b> не в списке доверенных " +
+                "(vk.id.allowed-user-ids). Токен на admin-машину не передан.</p>" +
+                "</body></html>"
+        }
 
         val saveResult = saveTokensOnAdminMachine(accessToken, refreshToken, expiresIn, idToken)
         val autoSaved = saveResult.first
@@ -309,6 +377,48 @@ class PublicVkIdAuthController {
             "<h3>" + headingText + "</h3>" +
             manualBlock +
             "</body></html>"
+    }
+
+    /**
+     * Разбирает ответ VK ID на token-запрос и не показывает его содержимое ни в логе, ни в HTML.
+     *
+     * Аудит BR-002 (OpenProject #378): тело ответа начинается с `access_token`, поэтому тело
+     * ответа недопустимо логировать и вставлять в страницу ошибки. Здесь пишется только длина
+     * (`log.debug`) и `user_id` (см. успешную ветку) — ни одного фрагмента тела.
+     *
+     * @param responseJson сырой ответ VK ID.
+     * @return пара: (распарсенный JSON, null) при успехе либо (null, HTML страницы ошибки).
+     */
+    internal fun parseTokenResponse(responseJson: String): Pair<JsonNode?, String?> {
+        log.debug("VK ID token response получен (length={})", responseJson.length)
+        val parsed =
+            try {
+                ObjectMapper().readTree(responseJson)
+            } catch (e: Exception) {
+                log.error("Cannot parse VK ID token response (length={}) cause={}", responseJson.length, e.message)
+                return null to
+                    (
+                        HTML_PREFIX +
+                            "<h2>❌ Не удалось разобрать ответ VK ID</h2>" +
+                            "<p>Ответ VK ID не является JSON (длина " + responseJson.length + " символов). " +
+                            "Подробности — в журнале приложения.</p>" +
+                            "</body></html>"
+                    )
+            }
+        val errorNode = parsed.get("error")?.asText()
+        if (!errorNode.isNullOrBlank()) {
+            val errorDescription = parsed.get("error_description")?.asText() ?: "?"
+            log.error("VK ID OAuth error: {} {}", errorNode, errorDescription)
+            return null to
+                (
+                    HTML_PREFIX +
+                        "<h2>❌ VK ID отверг code</h2>" +
+                        "<p>error: <b>" + escapeHtml(errorNode) + "</b></p>" +
+                        "<p>error_description: <b>" + escapeHtml(errorDescription) + "</b></p>" +
+                        "</body></html>"
+                )
+        }
+        return parsed to null
     }
 
     /**
@@ -377,6 +487,46 @@ class PublicVkIdAuthController {
             false
         }
 
+    /**
+     * Причина отказа по периметру (fail-safe).
+     *
+     * Сравнение выполняется ТОЛЬКО при непустом настроенном секрете: при незаданном секрете
+     * (`""`) и запросе с ПРИСУТСТВУЮЩИМ, но пустым заголовком сравнение прошло бы и доступ
+     * открылся бы (та же ловушка, что закрыта в `MainController.syncDenialReason`).
+     *
+     * @return причина отказа (`secret_not_configured` / `missing_secret` / `invalid_secret`)
+     *         либо `null`, если запрос разрешён.
+     */
+    private fun denialReason(request: HttpServletRequest): String? {
+        if (adminSecret.isBlank()) return "secret_not_configured"
+        val provided = request.getHeader(SECRET_HEADER) ?: return "missing_secret"
+        if (provided != adminSecret) return "invalid_secret"
+        return null
+    }
+
+    /** Адрес источника запроса для журнала безопасности (только `X-Real-IP`, без XFF). */
+    private fun sourceOf(request: HttpServletRequest): String {
+        val realIp = request.getHeader("X-Real-IP")?.trim()
+        if (!realIp.isNullOrEmpty()) return realIp
+        return request.remoteHost ?: "unknown"
+    }
+
+    /**
+     * Доверен ли VK `user_id` (список `vk.id.allowed-user-ids`).
+     *
+     * Пустой/незаданный список → ограничение НЕ применяется (совместимость с прежним
+     * поведением; решение владельца). Заданный список → в нём должен быть user_id.
+     */
+    internal fun isUserIdAllowed(userId: String?): Boolean {
+        val allowed =
+            allowedUserIds
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+        if (allowed.isEmpty()) return true
+        return userId != null && allowed.any { it.equals(userId.trim(), ignoreCase = true) }
+    }
+
     /** Удаляет протухшие pending-записи (старше pendingTtlSeconds). */
     private fun cleanExpiredPending() {
         val cutoff = Instant.now().minusSeconds(pendingTtlSeconds)
@@ -392,4 +542,15 @@ class PublicVkIdAuthController {
 
     /** Экранирует одиночные кавычки для shell single-quoted строк в curl. */
     private fun escapeShellSingle(s: String): String = s.replace("'", "'\\''")
+
+    companion object {
+        /**
+         * Заголовок с общим секретом администратора — тот же контракт, что у
+         * `InternalStemJobController` / `InternalStatsController` / `MainController`.
+         */
+        const val SECRET_HEADER = "X-Internal-Secret"
+
+        /** Начало HTML-страницы ответа callback'а (общее для всех веток). */
+        private const val HTML_PREFIX = "<html><body style=\"font-family:sans-serif;padding:40px;max-width:900px\">"
+    }
 }

@@ -150,3 +150,12 @@ vk:
     client-secret: ${VK_ID_CLIENT_SECRET:}
     redirect-uri: ${VK_ID_REDIRECT_URI:https://sm-karaoke.ru/api/public/utils/vkIdOAuthCallback}
     admin-api-url: ${VK_ID_ADMIN_API_URL:http://nsa-i9:8898}
+    # Аудит BR-001 (OpenProject #378): выдача authorize-URL и приём callback'а закрыты
+    # общим секретом администратора (fail-safe: пусто → доступ закрыт). Секрет передаётся
+    # в заголовке X-Internal-Secret — как в InternalStemJobController/InternalStatsController.
+    # ВАЖНО: без заданного VK_ID_ADMIN_SECRET endpoint выдачи OAuth-ссылки не работает —
+    # значение задаёт владелец на проде (deploy), здесь только объявление.
+    admin-secret: ${VK_ID_ADMIN_SECRET:}
+    # Список доверенных VK user_id (через запятую), для которых токен сохраняется на
+    # admin-машину. Пусто → ограничение не применяется (решение владельца).
+    allowed-user-ids: ${VK_ID_ALLOWED_USER_IDS:}

@@ -268,8 +268,61 @@ generic-saver `setAuthorValuePromise` с `fldName`/`fldValue` — то есть 
 | `e5a66a17` | BR-379/399/410/411, BR-426 — параметры запросов, confirm, серверная пагинация share-ссылок, дата публикаций |
 | `054db6e5` | BR-093/380/388 — поколение ответов дайджеста песен, HR-списка и bulk-snapshot процессов |
 | `1731d8a7` | BR-087/088/124/125/370/416/417 — премиум-статус в DTO, flush автосейва, ручная публикация ВК, адресация ответов, payload автора, поля маркеров |
-| `(этот коммит)` | SSoT (`knowledge/`), per-feature документ, отчёт пакета; ktlint-фикс `ApiController.kt` |
+| `1b7be3bd` | SSoT (`knowledge/`), per-feature документ, отчёт пакета; ktlint-фикс `ApiController.kt` |
+| этот коммит | финальный прогон: точные выводы проверок; правит только этот отчёт |
 
 ## Финальный прогон
 
-Заполняется последней командой пакета (см. ниже — вывод дословно).
+Дословно (последний прогон перед финальным коммитом):
+
+```
+$ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle JAVA_TOOL_OPTIONS="-Djava.awt.headless=true" \
+    ./gradlew --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" \
+    -Djava.awt.headless=true :karaoke-app:test :karaoke-web:test
+BUILD SUCCESSFUL in 1m 17s
+# test-results: 747 тестов, 0 failures, 0 errors
+
+$ ./gradlew ... ktlintCheck
+BUILD SUCCESSFUL in 8s (19 actionable tasks: 19 up-to-date)
+
+$ cd webvue3 && npm run test:unit
+ℹ tests 186 · suites 31 · pass 186 · fail 0
+
+$ cd webvue3 && npx prettier --check "src/**/*.{vue,js,ts,json}"
+All matched files use Prettier code style!
+
+$ bash tools/check-eslint-baseline.sh webvue3
+Текущих нарушений: 0 · В baseline: 0 · OK: новых нарушений нет
+
+$ bash tools/check-knowledge-structure.sh
+OK: knowledge/ structure valid (9/9 checks passed)
+
+$ python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt
+All documentation passes architectural style and structural checks.
+
+$ python3 tools/check-doc-references.py
+Проверено: ссылок 4257, путей 2432, эндпоинтов 327; whitelist: 51 записей.
+OK: битых ссылок, несуществующих путей и эндпоинтов нет.
+
+$ python3 tools/check-recordhash-consistency.py
+OK recordhash-контракт: NEW-префикс в триггерах, канонические файлы == модели
+(+бэкфилл), tbl_songs_sync содержит все колонки INSERT.
+
+$ bash tools/check-no-mp4-mentions.sh
+✅ OK: all 139 MP4 mentions are in baseline (grandfathered)
+
+$ bash tools/check-feature-doc.sh docs/features/*.md
+==> Все документы валидны
+
+$ bash tools/check-subagent-isolation.sh
+✅ Все commits в ветке 600-pkg-s2-17 уникальны (нет race condition)
+
+$ python3 tools/check-ssot-impact.py
+[3/3] Checked 1 rules; 0 violation(s)
+OK: all matched SSoT-impact rules satisfied.
+```
+
+Примечание: `tools/check-recordhash-consistency.py` — это Python-скрипт
+(`#!/usr/bin/env python3`), CI вызывает его как `python3 tools/check-recordhash-consistency.py`
+(`.github/workflows/lint.yml:560`); запуск через `bash` даёт синтаксические ошибки bash и
+ничего не проверяет.

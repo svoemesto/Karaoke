@@ -252,6 +252,14 @@ object NewsTemplateService {
 - [ ] **Premium-публикация** — отдельный сервис или часть
       `VkAutoPublish`?
 
+## Связанные ADR
+
+- [ADR-0001](../../../adr/0001-raw-jdbc.md) — сырой JDBC без пула: захват публикации
+  (`TelegramPublishClaim`) держит `SELECT … FOR NO KEY UPDATE` на соединении потока.
+- [local-0009](../../../adr/local-0009-thread-local-connection-lifecycle.md) — жизненный
+  цикл соединения потока: блокировка берётся и снимается в одном потоке, соединение не
+  закрывается внутри блокировки.
+
 ## Changelog
 
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).

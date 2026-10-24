@@ -25,10 +25,13 @@ transformers/torch, доступность чекпоинта, реальный 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import random
 import re
 import statistics
+import tempfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -167,6 +170,104 @@ def build_vocab(texts: list[str]) -> dict[str, int]:
     vocab["[UNK]"] = len(vocab)
     vocab["[PAD]"] = len(vocab)
     return vocab
+
+
+VOCAB_META_NAME = "vocab.meta.json"
+
+
+def dataset_fingerprint(items: list[tuple[str, int, int, str]]) -> dict:
+    """Отпечаток состава обучающих чанков для привязки vocab.json к данным (BR-491).
+
+    Покрывает ровно то, что определяет набор символов словаря: какие файлы, какие интервалы и
+    какие тексты пошли в обучение. Порядок чанков не важен (сортируем), поэтому пересборка
+    манифеста с тем же составом песен отпечаток не меняет."""
+    digest = hashlib.sha256()
+    for audio_file, start_ms, end_ms, text in sorted(items):
+        digest.update(f"{Path(audio_file).as_posix()}\t{start_ms}\t{end_ms}\t{text}\n".encode("utf-8"))
+    songs = {Path(audio_file).as_posix() for audio_file, _start, _end, _text in items}
+    return {"fingerprint": digest.hexdigest(), "songs": len(songs), "chunks": len(items)}
+
+
+def has_checkpoints(output_dir: Path) -> bool:
+    """Есть ли в --output-dir сохранённые чекпоинты. У них CTC-голова зашита под конкретный
+    vocab_size/индексы символов, поэтому перестраивать словарь рядом с живыми чекпоинтами нельзя."""
+    return any(p.is_dir() and p.name.startswith("checkpoint-") for p in output_dir.glob("checkpoint-*"))
+
+
+def resolve_vocab(
+    vocab_path: Path,
+    meta_path: Path,
+    train_items: list[tuple[str, int, int, str]],
+    checkpoints_present: bool,
+) -> tuple[dict[str, int], str]:
+    """Решает, какой словарь символов использовать: существующий или перестроенный по текущим
+    данным (BR-491, P-69-03).
+
+    До правки существующий vocab.json переиспользовался ВСЕГДА - поэтому словарь, записанный
+    смоук-прогоном (--limit 5) или прерванным прогоном, молча становился словарём полного
+    обучения: все символы вне тех 5 песен превращались в [UNK], а прогон выглядел успешным.
+
+    Возвращает (vocab, источник), где источник:
+      "new"              - словаря не было, строим по текущим данным;
+      "reuse"            - сохранившийся словарь построен ровно на этом наборе данных (отпечаток
+                           совпал) либо рядом есть чекпоинты, а метаданных нет (см. ниже);
+      "reuse-unverified" - словарь без метаданных, но обучать дальше нужно с чекпоинтов:
+                           перестраивать нельзя (сломает веса), работаем как раньше с громким
+                           предупреждением в лог;
+      "rebuild"          - словарь построен на другом наборе данных и чекпоинтов нет, перестройка
+                           безопасна (vocab_size и ignore_mismatched_sizes и так задаются заново).
+    """
+    if not vocab_path.exists():
+        return build_vocab([text for _audio, _start, _end, text in train_items]), "new"
+
+    try:
+        vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        vocab = None
+
+    if vocab is None:
+        if checkpoints_present:
+            raise SystemExit(
+                f"Словарь {vocab_path} повреждён (не читается как JSON), а в {vocab_path.parent} есть "
+                f"чекпоинты - пересобрать словарь, не сломав их CTC-голову, нельзя. Укажите другой "
+                f"--output-dir либо удалите чекпоинты вместе со словарём, если они не нужны."
+            )
+        return build_vocab([text for _audio, _start, _end, text in train_items]), "rebuild"
+
+    current = dataset_fingerprint(train_items)
+    meta = None
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            meta = None
+
+    if meta is not None and meta.get("fingerprint") == current["fingerprint"]:
+        return vocab, "reuse"
+
+    if checkpoints_present:
+        if meta is None:
+            # Словарь создан до BR-491 (метаданных нет). Пересборка сломает сохранённые веса,
+            # поэтому продолжаем с ним, но не выдаём это за проверенную совместимость.
+            return vocab, "reuse-unverified"
+        raise SystemExit(
+            f"Словарь {vocab_path} построен на другом наборе данных: сейчас "
+            f"{current['songs']} песен / {current['chunks']} чанков, в метаданных "
+            f"{meta.get('songs')} / {meta.get('chunks')}. Пересобрать словарь нельзя: в "
+            f"{vocab_path.parent} есть чекпоинты, у которых CTC-голова зашита под старый vocab_size. "
+            f"Запустите обучение с отдельным --output-dir (для смоук-прогонов это правило и так "
+            f"рекомендуется) либо удалите чекпоинты вместе со словарём, если они не нужны."
+        )
+
+    return build_vocab([text for _audio, _start, _end, text in train_items]), "rebuild"
+
+
+def write_json_atomic(path: Path, payload: dict) -> None:
+    """Пишет JSON через временный файл + os.replace: оборванный прогон не оставит недописанный
+    vocab.json, который следующий запуск принял бы за валидный."""
+    tmp_path = path.with_name(path.name + ".tmp")
+    tmp_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp_path, path)
 
 
 def build_chunk_items(rows, chunk_args: dict) -> list[tuple[str, int, int, str]]:
@@ -378,19 +479,46 @@ def main():
     print(f"Чанков для обучения: {len(train_items)}, для оценки: {len(eval_items)}")
 
     vocab_path = Path(args.output_dir) / "vocab.json"
+    vocab_meta_path = vocab_path.with_name(VOCAB_META_NAME)
     vocab_path.parent.mkdir(parents=True, exist_ok=True)
-    if vocab_path.exists():
-        # Уже есть словарь от предыдущего запуска (в т.ч. при --resume) - переиспользуем как есть,
-        # НЕ перестраиваем из текущих train_items: у уже сохранённых чекпоинтов CTC-голова модели
-        # зашита под конкретный vocab_size/индексы символов - малейшее расхождение (другой --limit,
-        # другой набор голосов и т.п. дали бы другой набор символов) сломает загрузку весов чекпоинта.
-        vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
-        print(f"Использую существующий словарь {vocab_path} (для совместимости с уже сохранёнными чекпоинтами)")
-    else:
-        vocab = build_vocab([text for _, _, _, text in train_items])
-        vocab_path.write_text(json.dumps(vocab, ensure_ascii=False), encoding="utf-8")
+    fingerprint = dataset_fingerprint(train_items)
+    vocab, vocab_source = resolve_vocab(vocab_path, vocab_meta_path, train_items, has_checkpoints(vocab_path.parent))
+    if vocab_source == "reuse":
+        print(f"Использую существующий словарь {vocab_path}: набор данных совпал с сохранённым отпечатком")
+    elif vocab_source == "reuse-unverified":
+        print(
+            f"ВНИМАНИЕ: использую существующий словарь {vocab_path} без метаданных (создан до привязки "
+            f"словаря к данным, BR-491) - рядом есть чекпоинты, пересборка сломала бы их CTC-голову. "
+            f"Совместимость словаря с текущим набором данных НЕ проверена; удалите {vocab_meta_path.parent}/ "
+            f"vocab.json и чекпоинты, если начинаете обучение заново",
+            flush=True,
+        )
+    elif vocab_source == "rebuild":
+        print(
+            f"Словарь {vocab_path} построен на другом наборе данных (сейчас {fingerprint['songs']} песен / "
+            f"{fingerprint['chunks']} чанков) - перестраиваю по текущим данным; чекпоинтов рядом нет, "
+            f"перестройка безопасна (vocab_size задаётся заново, ignore_mismatched_sizes=True)",
+            flush=True,
+        )
 
-    tokenizer = Wav2Vec2CTCTokenizer(str(vocab_path), unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|")
+    if vocab_source in ("new", "rebuild"):
+        # BR-491: словарь пишем в --output-dir только ПОСЛЕ проверок ниже (CTC-фильтр + «остались ли
+        # пригодные чанки»): иначе словарь от прерванного/смоук-прогона оставался на диске и молча
+        # переиспользовался. Пока проверки не прошли, токенизатору отдаём тот же словарь через
+        # временный файл - Wav2Vec2CTCTokenizer читает файл в __init__ и дальше его не держит.
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp_vocab:
+            json.dump(vocab, tmp_vocab, ensure_ascii=False)
+            tokenizer_vocab_path = tmp_vocab.name
+    else:
+        tokenizer_vocab_path = str(vocab_path)
+
+    try:
+        tokenizer = Wav2Vec2CTCTokenizer(
+            tokenizer_vocab_path, unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|"
+        )
+    finally:
+        if vocab_source in ("new", "rebuild"):
+            Path(tokenizer_vocab_path).unlink(missing_ok=True)
     feature_extractor = Wav2Vec2FeatureExtractor(
         feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=True
     )
@@ -415,6 +543,15 @@ def main():
     eval_items = _filter_ctc_viable(eval_items, model, tokenizer, feature_extractor.sampling_rate, "оценки")
     if not train_items:
         raise SystemExit("После фильтрации не осталось ни одного чанка для обучения - см. вывод выше")
+
+    if vocab_source in ("new", "rebuild"):
+        write_json_atomic(vocab_path, vocab)
+        write_json_atomic(vocab_meta_path, fingerprint)
+        print(
+            f"Словарь символов записан: {vocab_path} (символов: {len(vocab)}, песен: "
+            f"{fingerprint['songs']}, чанков: {fingerprint['chunks']}; отпечаток набора - "
+            f"{vocab_meta_path.name})"
+        )
 
     train_dataset = AlignmentDataset(train_items, processor, feature_extractor.sampling_rate)
     eval_dataset = AlignmentDataset(eval_items, processor, feature_extractor.sampling_rate)

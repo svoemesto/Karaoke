@@ -59,8 +59,17 @@ POST /align
     ok: bool
     syllables: [{label, start_ms, end_ms}]
     used_finetuned: bool
-  ошибка: 400, если use_finetuned=true, а ALIGN_MODEL_PATH не задан
+  ошибка: 400, если use_finetuned=true, а ALIGN_MODEL_PATH не задан;
+          413 — файл больше ALIGN_MAX_UPLOAD_MB или аудио длиннее
+          ALIGN_MAX_AUDIO_SECONDS (проверка по заголовку до декодирования);
+          415 — файл не читается как FLAC/WAV
 ```
+
+`/align` объявлен **синхронным** обработчиком (`def`, не `async def`):
+Starlette исполняет такой обработчик в threadpool, поэтому выравнивание
+(загрузка 1B-модели, forward, CTC) не блокирует event loop и `GET /health`
+отвечает во время запроса. Тело запроса читается из `UploadFile.file`
+потоково (не `await file.read()` целиком в память).
 
 ### `GET /health`
 
@@ -89,6 +98,12 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
   `checkpoints/mms-ft`). Без неё запрос с `use_finetuned=true` вернёт
   **400** (нечего использовать).
 - `ALIGN_DEFAULT_USE_FINETUNED` — дефолт для режима.
+- `ALIGN_MAX_UPLOAD_MB` — предел размера загружаемого файла, МиБ
+  (по умолчанию **64**). Превышение — **413**, в том числе по
+  `Content-Length` до разбора multipart.
+- `ALIGN_MAX_AUDIO_SECONDS` — предел длительности аудио в секундах
+  (по умолчанию **600**). Проверяется через `soundfile.info` по
+  заголовку контейнера, **до** декодирования в PCM.
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
@@ -128,12 +143,31 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
   тексте (ad-libs и т.п.). Слоги вставок помечаются
   `hasGroundTruth: false` в манифесте.
 
-### Логика обучения (`train.py`)
+### Логика обучения (`train.py`)
 
 1. `manifest.jsonl` → train.py читает.
 2. `chunking.py` — разбивает длинные аудио на чанки.
 3. Дообучение baseline-модели на этих чанках.
 4. Результат — чекпоинт в `checkpoints/mms-ft/`.
+
+**Словарь CTC-головы привязан к данным.** Рядом с «vocab.json» пишется
+«vocab.meta.json» с отпечатком (sha256) состава обучающих чанков (файлы,
+интервалы, тексты) и их количеством. Правила (`train.resolve_vocab`):
+
+- отпечаток совпал → словарь переиспользуется (`--resume` штатно);
+- отпечаток не совпал, **чекпоинтов в `--output-dir` нет** → словарь
+  перестраивается по текущим данным (безопасно: `vocab_size` и
+  `ignore_mismatched_sizes=True` задаются заново);
+- отпечаток не совпал, **чекпоинты есть** → `SystemExit` с требованием
+  отдельного `--output-dir`: перестройка сломала бы CTC-голову весов;
+- словарь без метаданных (создан до BR-491) + чекпоинты → используется с
+  громким предупреждением «совместимость не проверена»; без чекпоинтов —
+  перестраивается.
+
+«vocab.json» и «vocab.meta.json» пишутся **после** CTC-фильтра и проверки
+«остались ли пригодные чанки», атомарно (`os.replace`): словарь от
+смоук-прогона (`--limit`) или прерванного прогона больше не остаётся на
+диске и не подхватывается молча полным прогоном.
 
 **Скрипты**:
 
@@ -180,4 +214,10 @@ multipart upload к этому сервису.
 
 ## Changelog
 
+- **BR-489/490/491** (2026-10-24, OpenProject #370, аудит #336, пакет PKG-S2-07):
+  `/align` переведён на синхронный обработчик (threadpool) — выравнивание
+  больше не блокирует event loop; добавлены пределы приёма
+  (`ALIGN_MAX_UPLOAD_MB`, `ALIGN_MAX_AUDIO_SECONDS`, `soundfile.info` до
+  декодирования, потоковое чтение тела) и коды 413/415; словарь CTC-головы
+  привязан к составу данных через «vocab.meta.json». Автор: agent (Karaoke).
 - **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).

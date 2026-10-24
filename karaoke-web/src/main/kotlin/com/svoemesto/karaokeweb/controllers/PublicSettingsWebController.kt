@@ -63,7 +63,7 @@ class PublicSettingsWebController(
      * секрет не заводится — решение владельца от 2026-10-24, п. 2. Пустое значение = секрет
      * не настроен → доступ закрыт **всегда** (fail-safe).
      */
-    @Value($$"{publicsettings.internal-secret:}") private val internalSecret: String,
+    @Value("\${publicsettings.internal-secret:}") private val internalSecret: String,
 ) {
     /**
      * Установить/снять произвольный флаг в `tbl_public_settings` (защищённый канал).

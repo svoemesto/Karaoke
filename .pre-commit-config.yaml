@@ -236,6 +236,18 @@ repos:
         files: '^(knowledge|docs|archive/docs)/.*\.md$'
         stages: [pre-commit]
 
+      # === Kotlin: @Value не должен терять плейсхолдер ===
+      # Дефект 2026-10-24 (волна A): `@Value($$"{свойство}")` без '$' внутри кавычек
+      # компилируется в литерал `{свойство}` — Spring внедряет текст, и сравнение
+      # секретов всегда ложно (на проде синхронизация и капча отклоняли всё).
+      - id: check-value-placeholders
+        name: check @Value placeholders in Kotlin sources
+        entry: bash tools/check-value-placeholders.sh
+        language: system
+        pass_filenames: false
+        files: '^(karaoke-web|karaoke-app)/src/.*\.kt$'
+        stages: [pre-commit]
+
       # === Field coverage: SongEdit ↔ /song/update ===
       # specs/302-fix-censored-name-loss FR-005/006 — ловит баг "UI шлёт X, бэкенд не принимает".
       - id: songedit-field-coverage

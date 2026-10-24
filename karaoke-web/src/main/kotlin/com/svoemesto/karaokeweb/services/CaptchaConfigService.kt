@@ -41,7 +41,7 @@ class CaptchaConfigService(
      * Пусто = «проверка не настроена»: регистрация отклоняется (fail-closed), а не
      * пропускается.
      */
-    @Value($$"{captcha.server-key:}") private val serverKey: String,
+    @Value("\${captcha.server-key:}") private val serverKey: String,
 ) {
     /**
      * Категория журнала конфигурации проверки капчи (спека 564, research D9).

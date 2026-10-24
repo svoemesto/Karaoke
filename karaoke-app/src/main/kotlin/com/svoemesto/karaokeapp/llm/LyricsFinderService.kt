@@ -47,7 +47,7 @@ class LyricsFinderService(
 
         // 2. Перебираем URL и пытаемся извлечь текст с каждого
         for (url in urls) {
-            val lyrics = extractLyricsFromUrl(url)
+            val lyrics = extractLyricsFromUrl(url, artist = artist, songTitle = songTitle)
 
             if (lyrics != null) {
                 logger.info("🎵 [Оркестратор] Успех! Текст найден на: $url")
@@ -100,9 +100,15 @@ class LyricsFinderService(
 
     /**
      * Функция извлечения текста песни с одного URL
+     * @param artist исполнитель запрошенной песни (BR-227: модель должна знать, что ищет)
+     * @param songTitle название запрошенной песни
      * @return текст песни или null, если текст не найден
      */
-    fun extractLyricsFromUrl(url: String): String? {
+    fun extractLyricsFromUrl(
+        url: String,
+        artist: String = "",
+        songTitle: String = "",
+    ): String? {
         logger.info("📄 [Извлечение текста] Обрабатываю URL: $url")
 
         // 1. Загружаем и очищаем страницу
@@ -125,7 +131,7 @@ class LyricsFinderService(
         // 3. LLM анализирует текст
         val lyrics =
             try {
-                scraperAgent.extractLyrics(pageText)
+                scraperAgent.extractLyrics(pageText, artist = artist, songTitle = songTitle)
             } catch (e: Exception) {
                 logger.error("❌ [Извлечение текста] Ошибка ScraperAgent для $url: ${e.message}")
                 return null

@@ -72,10 +72,13 @@ class StatsController {
         endpoint: String,
         requestUri: String,
         target: String?,
+        params: Map<String, String> = emptyMap(),
         compute: (KaraokeConnection) -> Map<String, Any>,
     ): ResponseEntity<Map<String, Any>> =
         try {
-            val key = StatsCacheKey(endpoint, emptyMap())
+            // BR-195: параметры запроса обязаны входить в ключ, иначе смена периода/режима/БД
+            // в течение TTL показывает цифры предыдущего запроса.
+            val key = StatsCacheKey.forEndpoint(endpoint = endpoint, target = target, params = params)
 
             @Suppress("UNCHECKED_CAST")
             val cached = StatsCache.get(key) as? Map<String, Any>
@@ -194,6 +197,11 @@ class StatsController {
             endpoint = "timeseries",
             requestUri = "/api/stats/timeseries",
             target = target,
+            params =
+                mapOf(
+                    "days" to days.toString(),
+                    "mode" to mode,
+                ),
             compute = { db ->
                 mapOf("items" to StatsByEvents.getEventsTimeSeries(database = db, days = days, mode = mode))
             },

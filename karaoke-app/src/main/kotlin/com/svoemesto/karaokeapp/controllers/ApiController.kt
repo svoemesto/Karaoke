@@ -5323,6 +5323,15 @@ class ApiController(
             )
         }
         val result = runEntitySync(key = target.key, direction = syncDirection, id = id)
+        // BR-251: цель не подтвердила чанк — не выдаём ложный успех и не трогаем источник.
+        if (result.error) {
+            return ResponseEntity.status(502).body(
+                mapOf(
+                    "error" to "sync_target_not_confirmed",
+                    "message" to "Цель не подтвердила изменения; операция прервана, источник не очищался.",
+                ),
+            )
+        }
         val (created, updated, deleted, moved) = result
         if (created.size + updated.size + deleted.size + moved.size != 0) {
             SNS.send(SseNotification.crud(listOf(created, updated, deleted)))

@@ -16,7 +16,34 @@ import java.time.Instant
 data class StatsCacheKey(
     val endpoint: String,
     val params: Map<String, String> = emptyMap(),
-)
+) {
+    companion object {
+        /**
+         * BR-195/P-20-01: ключ обязан включать фактические параметры запроса.
+         *
+         * Раньше `StatsController.respondCached` строил `StatsCacheKey(endpoint, emptyMap())`,
+         * поэтому `/api/stats/timeseries?days=7` и `?days=30`, а также `target=local|remote`
+         * попадали в одну запись кеша и 60 секунд отдавали чужие цифры (в т.ч. другой БД).
+         *
+         * `target` нормализуется к тому же значению, по которому [com.svoemesto.karaokeapp.Connection]
+         * выбирает БД (`remote` → REMOTE, всё остальное → LOCAL), чтобы `target=REMOTE` и
+         * отсутствие параметра не создавали двух разных ключей для одной и той же БД.
+         */
+        fun forEndpoint(
+            endpoint: String,
+            target: String?,
+            params: Map<String, String> = emptyMap(),
+        ): StatsCacheKey =
+            StatsCacheKey(
+                endpoint = endpoint,
+                params =
+                    params +
+                        mapOf(
+                            "target" to if (target == "remote") "remote" else "local",
+                        ),
+            )
+    }
+}
 
 /**
  * Значение кеша для [com.svoemesto.karaokeapp.services.StatsCache].

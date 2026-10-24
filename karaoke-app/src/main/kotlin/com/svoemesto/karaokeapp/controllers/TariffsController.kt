@@ -5,11 +5,13 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.PriceTariff
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.server.ResponseStatusException
 
 // Админка тарифов подписки (tbl_price_tariffs). Target-aware, как SiteUsersController: реальные
 // тарифы правятся на прод-БД (target=remote), т.к. платёжный конвейер karaoke-web работает на
@@ -42,6 +44,60 @@ class TariffsController {
         }
     }
 
+    private fun rejectInvalidTariff(
+        scope: String,
+        priceRub: Double,
+        periodDays: Int,
+    ) {
+        val errorCode = validateTariffValues(scope = scope, priceRub = priceRub, periodDays = periodDays)
+        if (errorCode != null) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, errorCode)
+        }
+    }
+
+    /**
+     * Сохраняет тариф и, если он назначен default, снимает прежний default в ТОЙ ЖЕ транзакции
+     * (BR-219). `save()` пишет через `database.getConnection()` — то есть то же ThreadLocal-соединение,
+     * поэтому `autoCommit=false` охватывает обе операции.
+     */
+    private fun saveWithSingleDefault(
+        db: KaraokeConnection,
+        tariff: PriceTariff,
+        makeDefault: Boolean,
+    ) {
+        val connection =
+            db.getConnection()
+                ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "db_unavailable")
+        val previousAutoCommit = connection.autoCommit
+        try {
+            connection.autoCommit = false
+            if (makeDefault) {
+                connection
+                    .prepareStatement(
+                        "UPDATE ${PriceTariff.TABLE_NAME} SET is_default = false WHERE scope = ? AND id <> ?",
+                    ).use { ps ->
+                        ps.setString(1, tariff.scope)
+                        ps.setLong(2, tariff.id)
+                        ps.executeUpdate()
+                    }
+                tariff.isDefault = true
+            }
+            tariff.save()
+            connection.commit()
+        } catch (e: Exception) {
+            try {
+                connection.rollback()
+            } catch (_: Exception) {
+            }
+            throw e
+        } finally {
+            try {
+                connection.autoCommit = previousAutoCommit
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     @PostMapping("/list")
     @ResponseBody
     fun list(
@@ -61,7 +117,9 @@ class TariffsController {
         @RequestParam(required = false) periodDays: Int?,
     ): Long =
         withDb(target) { db ->
-            PriceTariff.createNew(scope, name, priceRub, periodDays ?: 0, db, KSS_APP, SAC_APP)?.id ?: 0L
+            val days = periodDays ?: 0
+            rejectInvalidTariff(scope = scope, priceRub = priceRub, periodDays = days)
+            PriceTariff.createNew(scope, name, priceRub, days, db, KSS_APP, SAC_APP)?.id ?: 0L
         }
 
     @PostMapping("/update")
@@ -82,9 +140,16 @@ class TariffsController {
                 priceRub?.let { tariff.priceRub = it }
                 periodDays?.let { tariff.periodDays = it }
                 isActive?.let { tariff.isActive = it }
-                isDefault?.let { tariff.isDefault = it }
                 sortOrder?.let { tariff.sortOrder = it }
-                tariff.save()
+                // BR-219: проверяем ИТОГОВЫЕ значения (а не только переданные), иначе прежний
+                // periodDays=0 у SITE можно сохранить, не передавая параметр.
+                rejectInvalidTariff(scope = tariff.scope, priceRub = tariff.priceRub, periodDays = tariff.periodDays)
+                if (isDefault == true) {
+                    saveWithSingleDefault(db = db, tariff = tariff, makeDefault = true)
+                } else {
+                    isDefault?.let { tariff.isDefault = it }
+                    tariff.save()
+                }
                 tariff.id
             } ?: 0L
         }

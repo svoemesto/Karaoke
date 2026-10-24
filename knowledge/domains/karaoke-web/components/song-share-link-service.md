@@ -113,9 +113,12 @@ CRUD + lifecycle для `SongShareLink` (см.
 
 ### Claim playback-сессии (`tryClaim`)
 
-1. `checkRateLimit(request)` — bucket `claim:<ip>:<минута>` в
-   `ConcurrentHashMap`, `> claimRateLimitPerIpPerMin` (дефолт 10/мин)
-   → `RateLimited`.
+1. `checkRateLimit(request)` — окно минуты на IP (дефолт 10/мин,
+   `claimRateLimitPerIpPerMin`) → `RateLimited`. Аудит BR-516 (#378): ключ карты —
+   сам IP (окно в значении), а не `claim:<ip>:<минута>`; закрытые окна удаляются
+   ленивой уборкой раз в минуту, число отслеживаемых IP ограничено
+   `MAX_TRACKED_CLAIM_IPS = 50 000` (при превышении новые IP получают отказ —
+   fail-closed). Раньше карта не чистилась и росла на каждую пару «IP + минута».
 2. `resolveForGuest(secret)` — SHA-256 секрета ищется в
    `tbl_song_share_links` (`active`, не отозван, не истёк) → `linkId`.
 3. Если по ссылке уже есть живой lease
@@ -162,9 +165,16 @@ CRUD + lifecycle для `SongShareLink` (см.
 Сами ссылки/сессии — только в PostgreSQL: сервис переживает рестарт
 karaoke-web (в отличие от `PlayerGestureUnlockService`, чьи токены плеера живут
 только в памяти процесса).
-Единственное in-memory состояние — bucket'ы rate-limit claim
-(`ConcurrentHashMap<String, AtomicInteger>`, ключ `claim:<ip>:<минута>`),
-то есть лимит сбрасывается при рестарте.
+Единственное in-memory состояние — окна rate-limit claim
+(`ConcurrentHashMap<String, ClaimRateBucket>`, ключ — IP; окно и счётчик — в
+значении). Закрытые окна удаляются ленивой уборкой (не чаще раза в минуту), число
+IP ограничено `MAX_TRACKED_CLAIM_IPS`; при рестарте лимит сбрасывается. Аудит
+BR-516 (#378): раньше ключ включал минуту и карта не чистилась — утечка памяти.
+
+## Changelog
+
+- **BR-516** (2026-10-24, OpenProject #378, пакет PKG-S2-15): карта rate-limit claim'ов чистится
+  по TTL (окно в значении, уборка по времени) и ограничена 50 000 IP (fail-closed). Автор: agent (Karaoke).
 
 ## Hot paths
 

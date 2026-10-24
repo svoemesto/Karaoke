@@ -34,17 +34,16 @@ beans, properties.
   `/api/public/auth/me`, `/api/public/auth/logout`, `/api/siteusers/**`;
   исключение — `/api/public/account/subscription/tariffs`
   (витрина тарифов видна анонимам).
-- Два экземпляра `RateLimitInterceptor` для
+- Два **независимых** экземпляра `RateLimitInterceptor` для
   `/api/public/song-picture/**` и `/api/public/song-vk-image/**`;
-  `endpointName`/`limitPerMinute` берутся из
+  `endpointName`/`limitPerMinute` — конструкторные (immutable), лимиты берутся из
   `KaraokeProperties.rateLimitSongPicturePerMinute` и
-  `rateLimitSongVkImagePerMinute`.
+  `rateLimitSongVkImagePerMinute`. Аудит BR-004/#378 (см. Changelog).
 
 ```kotlin
 @Configuration
 class WebMvcConfig(
     private val siteAuthInterceptor: SiteAuthInterceptor,
-    private val rateLimitInterceptor: RateLimitInterceptor,
     private val properties: KaraokeProperties,
 ) : WebMvcConfigurer {
     override fun addInterceptors(registry: InterceptorRegistry) {
@@ -55,11 +54,10 @@ class WebMvcConfig(
             )
             .excludePathPatterns("/api/public/account/subscription/tariffs")
 
-        rateLimitInterceptor.apply {
-            endpointName = "song-picture"
-            limitPerMinute = properties.rateLimitSongPicturePerMinute
-        }
-        // ... и второй экземпляр для /api/public/song-vk-image/**
+        registry.addInterceptor(
+            RateLimitInterceptor("song-picture", properties.rateLimitSongPicturePerMinute),
+        ).addPathPatterns("/api/public/song-picture/**")
+        // ... и второй независимый экземпляр для /api/public/song-vk-image/**
     }
 }
 ```
@@ -257,6 +255,10 @@ karaoke-app сюда не попадает). Авторизацию делает
 
 ## Changelog
 
+- **BR-004** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `WebMvcConfig` больше не мутирует
+  singleton-бин `RateLimitInterceptor` — регистрируются два независимых экземпляра с
+  конструкторными `endpointName`/`limitPerMinute`. Раньше второй `apply` перетирал настройки
+  первого: оба публичных endpoint'а работали с лимитом vk-image и делили общий bucket. Автор: agent (Karaoke).
 - **Спека 564** (2026-10-24, OpenProject #359 + #362): добавлены параметры `publicsettings.internal-secret` (тот же env `SYNC_INTERNAL_SECRET` — новый секрет не заводится) и `captcha.server-key` (env `CAPTCHA_SERVER_KEY`, пусто = «проверка не настроена», регистрация отклоняется). Автор: agent (Karaoke).
 - **Спека 554** (2026-10-24, OpenProject #357): добавлен параметр `sync.internal-secret` (env `SYNC_INTERNAL_SECRET`) — внутренний секрет эндпоинта `POST /changerecords`; пусто = доступ закрыт (fail-safe). Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).

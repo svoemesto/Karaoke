@@ -173,33 +173,49 @@ class PublicSubscriptionController(
             }
         }
 
-        val price = priceService.computePrice(tariff, user, db, storageService, storageApiClient)
-
+        // Аудит BR-005 (OpenProject #378): цена и создание подписки считаются под блокировкой
+        // (пользователь, scope). Раньше `countPaid(...) + 1` для акции «каждая N-я бесплатно»
+        // читался без блокировки: залп параллельных `POST /create` на границе акции давал всем
+        // один и тот же номер, кратный N, и каждый получал 100% скидку (ветка нулевой цены
+        // ставит PAID без платежа). Теперь порядковый номер и его «занятие» (запись PAID)
+        // атомарны: второй запрос читает уже увеличенный countPaid.
+        var freeByPromo = false
         val sub =
-            Subscription.createNew(
-                siteUserId = user.id,
-                scope = scope,
-                idSong = if (scope == Subscription.SCOPE_SONG) songId else null,
-                tariffId = tariff.id,
-                periodDays = tariff.periodDays,
-                basePrice = price.base,
-                discount = price.discount,
-                finalPrice = price.final,
-                promoApplied = price.promoApplied ?: "",
-                // По умолчанию включено для подписки на сайт (см. план: "автопродление по умолчанию"),
-                // для подписки на песню значение не имеет смысла (бессрочная, продлевать нечего).
-                autoRenew = if (scope == Subscription.SCOPE_SITE) (autoRenew ?: true) else false,
-                database = db,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ) ?: return ResponseEntity.internalServerError().body(mapOf("error" to "create_failed"))
+            priceService.withOrdinalLock(user.id, scope) {
+                val price = priceService.computePrice(tariff, user, db, storageService, storageApiClient)
+                val created =
+                    Subscription.createNew(
+                        siteUserId = user.id,
+                        scope = scope,
+                        idSong = if (scope == Subscription.SCOPE_SONG) songId else null,
+                        tariffId = tariff.id,
+                        periodDays = tariff.periodDays,
+                        basePrice = price.base,
+                        discount = price.discount,
+                        finalPrice = price.final,
+                        promoApplied = price.promoApplied ?: "",
+                        // По умолчанию включено для подписки на сайт (см. план: "автопродление по умолчанию"),
+                        // для подписки на песню значение не имеет смысла (бессрочная, продлевать нечего).
+                        autoRenew = if (scope == Subscription.SCOPE_SITE) (autoRenew ?: true) else false,
+                        database = db,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                // Акция довела цену до нуля — фиксируем как оплаченную сразу, без похода в ЮKassa
+                // (там ненулевой минимум суммы платежа). Запись PAID — внутри блокировки: именно
+                // она «занимает» порядковый номер для следующего запроса.
+                if (created != null && price.final <= 0.0) {
+                    created.status = Subscription.STATUS_PAID
+                    created.paidAt = java.sql.Timestamp(System.currentTimeMillis())
+                    created.save()
+                    freeByPromo = true
+                }
+                created
+            } ?: return ResponseEntity.internalServerError().body(mapOf("error" to "create_failed"))
 
-        // Акция довела цену до нуля — фиксируем как оплаченную сразу, без похода в ЮKassa
-        // (там ненулевой минимум суммы платежа).
-        if (price.final <= 0.0) {
-            sub.status = Subscription.STATUS_PAID
-            sub.paidAt = java.sql.Timestamp(System.currentTimeMillis())
-            sub.save()
+        if (freeByPromo) {
+            // Fulfillment (продление sitePremiumUntil) — вне блокировки: к порядковому номеру он
+            // отношения не имеет, а держать блокировку на время записи пользователя незачем.
             applyFulfillment(sub)
             return ResponseEntity.ok(mapOf("subscriptionId" to sub.id, "status" to sub.status, "confirmationUrl" to null))
         }

@@ -38,10 +38,7 @@ class RateLimitInterceptorTest {
     }
 
     private fun interceptor(limitPerMinute: Int): RateLimitInterceptor =
-        RateLimitInterceptor(KaraokeProperties()).apply {
-            endpointName = "song-picture"
-            this.limitPerMinute = limitPerMinute
-        }
+        RateLimitInterceptor("song-picture", limitPerMinute)
 
     @Test
     fun `spoofedForwardedForDoesNotBypassRateLimit`() {

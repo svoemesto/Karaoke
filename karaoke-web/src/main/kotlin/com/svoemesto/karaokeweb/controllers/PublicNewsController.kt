@@ -6,6 +6,7 @@ import com.svoemesto.karaokeweb.services.SiteUserResolver
 
 import com.svoemesto.karaokeapp.model.News
 import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -34,6 +35,8 @@ import org.springframework.web.bind.annotation.RestController
 class PublicNewsController(
     private val siteUserResolver: SiteUserResolver,
 ) {
+    private val log = LoggerFactory.getLogger(PublicNewsController::class.java)
+
     // Server-side polling cache для `/since` (FR-008, clarified 2026-08-14).
     // TTL = 60 сек: новости меняются нечасто (release-анонсы раз в несколько дней), polling 45 сек.
     // При cache-hit DB не дёргается вообще (см. PollingCache KDoc).
@@ -42,13 +45,29 @@ class PublicNewsController(
     // Только опубликованные (publish_at уже наступил), свежие сверху — публичная лента /news.
     // Постранично (specs/090-news-pagination) — при 19000+ строках в tbl_news (см.
     // specs/089-auto-news-song-release) полная выгрузка одним ответом деградирует ленту.
+    //
+    // Аудит BR-015 (OpenProject #378): `page`/`size` приходили от клиента без ограничений —
+    // `size=100000` уходил в `LIMIT ?` и вытягивал всю tbl_news с телами новостей (3.5+ MB JSON,
+    // инцидент Pass 52), а `page` мог быть отрицательным (offset < 0 → ошибка SQL). Теперь
+    // параметры нормализуются: `size` ограничен [1, MAX_PAGE_SIZE], `page` — неотрицателен,
+    // offset считается в Long (нет переполнения int на больших page*size).
     @GetMapping("")
     fun list(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Map<String, Any> {
-        val offset = page * size
-        val items = News.loadPublished(WORKING_DATABASE, limit = size, offset = offset)
+        val (safePage, safeSize) = normalizePaging(page, size)
+        if (safeSize != size || safePage != page) {
+            log.warn(
+                "news:list: параметры нормализованы page={} size={} → page={} size={}",
+                page,
+                size,
+                safePage,
+                safeSize,
+            )
+        }
+        val offset = (safePage.toLong() * safeSize.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val items = News.loadPublished(WORKING_DATABASE, limit = safeSize, offset = offset)
         val total = News.countPublished(WORKING_DATABASE)
         return mapOf(
             "items" to items,
@@ -89,5 +108,29 @@ class PublicNewsController(
                 mapOf("count" to items.size, "items" to items)
             }
         }
+    }
+
+    /**
+     * Нормализует параметры постраничной выдачи публичной ленты (аудит BR-015, OpenProject #378).
+     *
+     * `size` ограничивается диапазоном [1, [MAX_PAGE_SIZE]], `page` — неотрицательным. Без этого
+     * `?size=100000` уходил в `LIMIT ?` и вытягивал всю `tbl_news` с телами новостей (3.5+ MB JSON),
+     * а отрицательный `page` давал отрицательный offset (ошибка SQL).
+     *
+     * @return пара (page, size) после нормализации.
+     */
+    internal fun normalizePaging(
+        page: Int,
+        size: Int,
+    ): Pair<Int, Int> = page.coerceAtLeast(0) to size.coerceIn(1, MAX_PAGE_SIZE)
+
+    companion object {
+        /**
+         * Максимальный размер одной страницы публичной ленты новостей (аудит BR-015).
+         *
+         * Ограничение публичного периметра: без него `?size=100000` вытягивал всю `tbl_news`
+         * (19k+ строк с телами новостей) одним ответом — 3.5+ MB JSON на запрос (инцидент Pass 52).
+         */
+        const val MAX_PAGE_SIZE = 100
     }
 }

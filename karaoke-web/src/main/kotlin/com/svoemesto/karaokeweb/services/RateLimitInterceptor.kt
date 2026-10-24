@@ -4,7 +4,6 @@ import com.svoemesto.karaokeweb.util.ClientIpResolver
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -40,13 +39,21 @@ import java.util.concurrent.atomic.AtomicLong
  * **Не thread-safe ли?** ConcurrentHashMap.compute сериализует доступ к ключу атомарно —
  * параллельные запросы с одного IP не потеряют инкремент.
  *
+ * **Экземпляр на endpoint (аудит BR-004, OpenProject #378).** Раньше это был `@Component` с
+ * изменяемыми полями `endpointName`/`limitPerMinute`, и `WebMvcConfig` мутировал ОДИН и тот же
+ * бин дважды — оба паттерна URL в итоге работали с `endpointName = "song-vk-image"` и лимитом
+ * vk-image, а bucket'ы двух публичных endpoint'ов были общим. Теперь имя endpoint'а и лимит —
+ * конструкторные (immutable), а экземпляры создаются по одному на каждый паттерн в
+ * `WebMvcConfig.addInterceptors`: состояние разных endpoint'ов физически разделено.
+ *
  * @see archive/docs/features/site-traffic-resilience.md
  * @see docs/features/client-ip-resolution.md
- * @see KaraokeProperties
  */
-@Component
 class RateLimitInterceptor(
-    private val properties: KaraokeProperties,
+    /** Имя endpoint'а для ключа (например, "song-picture"). */
+    val endpointName: String,
+    /** Лимит для этого endpoint'а (req/мин). */
+    val limitPerMinute: Int,
 ) : HandlerInterceptor {
     private val log = LoggerFactory.getLogger(RateLimitInterceptor::class.java)
 
@@ -59,14 +66,6 @@ class RateLimitInterceptor(
     private val buckets = ConcurrentHashMap<String, Bucket>()
     private val callsSinceCleanup = AtomicLong(0L)
     private val cleanupEvery = 1000L
-
-    /** Имя endpoint'а для ключа (например, "song-picture"). Устанавливается в WebMvcConfig. */
-    @Volatile
-    var endpointName: String = "default"
-
-    /** Лимит для текущего endpoint'а (req/мин). Устанавливается в WebMvcConfig. */
-    @Volatile
-    var limitPerMinute: Int = 60
 
     override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
         val now = System.currentTimeMillis()

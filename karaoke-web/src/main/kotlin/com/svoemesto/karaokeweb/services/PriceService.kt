@@ -10,6 +10,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
+import java.util.concurrent.locks.ReentrantLock
 
 /**
  * Расчёт итоговой цены тарифа с учётом активных акций (tbl_promo_rules). Единственный source of
@@ -39,6 +40,49 @@ class PriceService {
     )
 
     private val objectMapper = ObjectMapper()
+
+    /**
+     * Полосы блокировок выдачи порядкового номера для `TYPE_NTH_FREE` (аудит BR-005, OpenProject #378).
+     *
+     * `countPaid(...) + 1` без блокировки — это check-then-act: два параллельных
+     * `POST /account/subscription/create` одного пользователя читают один и тот же `countPaid`,
+     * оба получают номер, кратный `n`, и оба получают 100% скидку (ветка нулевой цены сразу
+     * ставит `PAID` без платежа) — залп из K запросов на границе акции давал K бесплатных
+     * подписок вместо одной. Блокировка сериализует «расчёт номера → создание подписки →
+     * фиксацию `PAID`» для пары (пользователь, scope), поэтому второй запрос читает уже
+     * увеличенный `countPaid`.
+     *
+     * Фиксированный набор полос (а не карта на пользователя) — чтобы сама защита не стала
+     * источником неограниченного роста памяти. Ключ полосы — `userId:scope`, поэтому разные
+     * пользователи и разные scope почти всегда работают параллельно.
+     */
+    private val ordinalLocks = Array(ORDINAL_LOCK_STRIPES) { ReentrantLock() }
+
+    /**
+     * Выполняет [block] под блокировкой выдачи порядкового номера для (пользователя, scope).
+     *
+     * Вызывать вокруг пары «[computePrice] → создание подписки → фиксация `PAID`»: только тогда
+     * порядковый номер и его «занятие» атомарны. Одиночная блокировка вокруг самого расчёта
+     * бесполезна — между расчётом и записью `PAID` остаётся окно гонки.
+     *
+     * Ограничение: блокировка внутрипроцессная. `karaoke-web` развёрнут одним инстансом
+     * (см. KDoc `PublicVkIdAuthController`), поэтому в проде этого достаточно; при
+     * горизонтальном масштабировании нужен уникальный индекс в БД `(site_user_id, scope, ordinal)`
+     * либо строка-счётчик с `SELECT … FOR UPDATE` — это решение владельца (меняет схему БД).
+     */
+    fun <T> withOrdinalLock(
+        userId: Long,
+        scope: String,
+        block: () -> T,
+    ): T {
+        val lock = ordinalLocks[Math.floorMod("$userId:$scope".hashCode(), ORDINAL_LOCK_STRIPES)]
+        lock.lock()
+        try {
+            return block()
+        } finally {
+            lock.unlock()
+        }
+    }
 
     fun computePrice(
         tariff: PriceTariff,
@@ -203,5 +247,10 @@ class PriceService {
 
             else -> 0.0
         }
+    }
+
+    companion object {
+        /** Число полос блокировки выдачи порядкового номера (степень двойки не обязательна). */
+        private const val ORDINAL_LOCK_STRIPES = 64
     }
 }

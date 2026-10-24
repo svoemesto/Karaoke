@@ -72,6 +72,9 @@
 
 <script>
 import { promisedXMLHttpRequest } from '../../lib/utils'
+// BR-416: payload маркеров собирается общим helper'ом (как в SongKaraokeEditorView и
+// karaoke-public), а не вручную — ручная сборка стирала note/chord/stringLad/lockLad.
+import { markersToSave } from '../../composables/useKaraokeEditor.js'
 import SongKaraokeEditorView from './SongKaraokeEditorView.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
 
@@ -82,8 +85,10 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 // В обоих режимах canEdit=true всегда (для админа нет блокировки по статусу, как было в karaoke-public
 // для конечных редакторов сайта).
 //
-// Футер содержит кнопки «Отмена» (закрыть без нового сохранения — автосохранение продолжает
-// работать в фоне) и «Сохранить» (принудительный flush текущего черновика).
+// Футер содержит кнопки «Отмена» и «Сохранить». Обе закрывают/фиксируют с принудительным
+// сохранением: «Сохранить» — flush текущего черновика, «Отмена» — тоже flush, если есть
+// несохранённые правки (BR-417: раньше «Отмена» при pending-таймере молча теряла правки
+// последних ≤3 секунд — автосохранение в фоне не успевало сработать).
 //
 // Автосохранение через 3 секунды молчания (как в karaoke-public) — удобство без сюрприза.
 /**
@@ -126,6 +131,10 @@ export default {
       saveState: 'idle',
       saveTimer: null,
       saving: false,
+      // BR-417: есть правки, ещё не подтверждённые успешным сохранением. `saveState`
+      // после правки равен 'idle' («ещё не сохраняли»), и по нему нельзя отличить
+      // «всё сохранено» от «правка ждёт таймера».
+      hasUnsavedChanges: false,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
     }
@@ -160,6 +169,11 @@ export default {
   },
   beforeUnmount() {
     if (this.saveTimer) clearTimeout(this.saveTimer)
+    // BR-417: если модалку снимают извне (родитель/маршрут), несохранённые правки всё равно
+    // уходят на сервер. XHR переживает размонтирование компонента.
+    if (this.hasUnsavedChanges && !this.saving) {
+      this.saveNow()
+    }
   },
   methods: {
     async load() {
@@ -213,6 +227,9 @@ export default {
       // karaoke-public). Сохраняем ВСЕ голоса разом.
       if (this.saveTimer) clearTimeout(this.saveTimer)
       this.saveState = 'idle'
+      // BR-417: правка сразу помечается несохранённой — иначе закрытие в течение 3 с
+      // молча теряло её (подтверждение показывалось только для saveState === 'error').
+      this.hasUnsavedChanges = true
       this.saveTimer = setTimeout(() => this.saveNow(), 3000)
     },
     async saveNow() {
@@ -227,24 +244,13 @@ export default {
       this.saveState = 'saving'
       try {
         const sourceTexts = editor.voices.map((v) => v.sourceText)
-        // markersToSave приводит ts в формат сервера (без uid, c нотой/аккордом = '').
-        const markersPerVoice = editor.voices.map((v) => {
-          const out = []
-          for (const m of v.markers) {
-            out.push({
-              time: m.time,
-              label: m.label || '',
-              note: '',
-              chord: '',
-              stringLad: '',
-              lockLad: '',
-              color: m.color || '',
-              position: m.position || 'bottom',
-              markertype: m.markertype,
-            })
-          }
-          return out
-        })
+        // BR-416: note/chord/stringLad/lockLad лёгкий редактор НЕ редактирует, но обязан
+        // пронести без изменений. Бэкенд полностью заменяет набор маркеров голоса
+        // (`setAllVoices`), поэтому прежняя ручная сборка с `note: ''` / `chord: ''`
+        // стирала у всех голосов ноты, аккорды и привязку к ладу при КАЖДОМ сохранении
+        // (включая автосохранение через 3 с), а `Song.hasChords` становился false.
+        // markersToSave уже собирает формат сервера (без uid) и переносит эти поля.
+        const markersPerVoice = editor.voices.map((v) => markersToSave(v.markers))
         const params = {
           id: this.id,
           mode: this.mode,
@@ -263,6 +269,9 @@ export default {
         // пользователю как «Сохранено ✓» (см. research.md §1).
         const body = respText ? JSON.parse(respText) : null
         this.saveState = body && body.ok === true ? 'saved' : 'error'
+        // BR-417: правки считаются сохранёнными только после подтверждения сервера
+        // (`editSave` умеет вернуть {ok:false} с кодом 200).
+        this.hasUnsavedChanges = this.saveState !== 'saved'
       } catch (e) {
         this.saveState = 'error'
       } finally {
@@ -273,20 +282,40 @@ export default {
     // или «Отмена») блокируется явным предупреждением - пользователь либо подтверждает потерю
     // несохранённых правок, либо дожидается успешного сохранения. Без автоматического повтора
     // попытки сохранения (решение зафиксировано в spec.md, Clarifications).
-    requestClose() {
+    async requestClose() {
+      // BR-417: закрытие крестиком/«Отменой» при непустом pending-таймере больше не теряет
+      // правки последних ≤3 секунд. Раньше подтверждение показывалось только для
+      // `saveState === 'error'`, а после правки состояние равно 'idle' — модалка
+      // закрывалась, `beforeUnmount` гасил таймер, и POST /api/songeditor/edit/save не
+      // отправлялся вовсе.
       if (this.saveState === 'error') {
-        this.customConfirmParams = {
-          header: 'Есть несохранённые правки',
-          body:
-            'Последняя попытка сохранения завершилась ошибкой. Если закрыть редактор сейчас, ' +
-            'несохранённые правки будут потеряны. Закрыть без сохранения?',
-          alertType: 'error',
-          callback: () => this.$emit('close'),
-        }
-        this.isCustomConfirmVisible = true
+        this.showCloseWithoutSaveConfirm()
         return
       }
+      if (this.hasUnsavedChanges || this.saveTimer) {
+        // Синхронно (в рамках обработчика закрытия) сохраняем и ждём результата. Таймер
+        // гасит сам saveNow; если сервер отказал — спрашиваем так же, как при ошибке.
+        await this.saveNow()
+        if (this.saveState === 'error' || this.hasUnsavedChanges) {
+          this.showCloseWithoutSaveConfirm()
+          return
+        }
+      }
       this.$emit('close')
+    },
+    /**
+     * Подтверждение «закрыть без сохранения» (FR-004 спеки 163, BR-417).
+     */
+    showCloseWithoutSaveConfirm() {
+      this.customConfirmParams = {
+        header: 'Есть несохранённые правки',
+        body:
+          'Последняя попытка сохранения завершилась ошибкой. Если закрыть редактор сейчас, ' +
+          'несохранённые правки будут потеряны. Закрыть без сохранения?',
+        alertType: 'error',
+        callback: () => this.$emit('close'),
+      }
+      this.isCustomConfirmVisible = true
     },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false

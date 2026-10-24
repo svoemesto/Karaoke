@@ -1,7 +1,13 @@
 <template>
   <div :style="styleRoot">
     <div v-if="song">
-      <subs-edit v-if="isSubsEditVisible" :voices="voices" :song="song" @close="closeSubsEdit" />
+      <subs-edit
+        v-if="isSubsEditVisible"
+        :voices="voices"
+        :song="song"
+        :song-id="subsEditSongId"
+        @close="closeSubsEdit"
+      />
       <custom-confirm
         v-if="isCustomConfirmVisible"
         :params="customConfirmParams"
@@ -2539,6 +2545,10 @@
 <script>
 import SubsEdit from './SubsEdit.vue'
 import { escapeHtml } from '../../../utils/escapeHtml.js'
+// BR-124: прямой XHR вместо несуществующего Vuex-action `promisedXMLHttpRequest`.
+import { promisedXMLHttpRequest } from '../../../lib/utils.js'
+// BR-088: очередь автосохранения — вызов во время запроса больше не теряется.
+import { createAutosaveQueue } from '../../../lib/autosave-queue.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import HealthReportTable from '../../Common/HealthReport/HealthReportTable.vue'
 import FamilySongsModal from './FamilySongsModal.vue'
@@ -2635,6 +2645,8 @@ export default {
   data() {
     return {
       isSubsEditVisible: false,
+      // BR-125: песня, для которой открыта модалка субтитров (сохранение адресуется ей).
+      subsEditSongId: null,
       isCustomConfirmVisible: false,
       isHealthReportTableVisible: false,
       isFamilySongsVisible: false,
@@ -3776,6 +3788,9 @@ export default {
   async mounted() {
     const { create } = useToast()
     this.createToast = create
+    // BR-088: очередь автосохранения (не в data — не участвует в рендере и не должна
+    // становиться реактивной).
+    this.autosaveQueue = createAutosaveQueue()
     this.$store
       .dispatch('getAuthorPictureBase64Promise')
       .then((image) => (this.imageAuthorBase64 = image))
@@ -3827,6 +3842,15 @@ export default {
     this.isUnmounted = true
     clearTimeout(this.saveTimer)
     this.saveTimer = undefined
+    // BR-088: перед размонтированием непустой diff отправляется на сервер. Раньше таймер
+    // просто гасился: правка, сделанная менее секунды назад (или при закрытии карточки),
+    // в БД не уходила — при этом локальная копия песни в `songPages` уже содержала новое
+    // значение, поэтому при возврате поле выглядело сохранённым, а после F5 исчезало.
+    // `executeSave` читает diff синхронно (до первого await), поэтому снимок правок
+    // берётся ещё до фактического демонтажа компонента.
+    if (this.diff.length !== 0) {
+      this.executeSave()
+    }
   },
 
   methods: {
@@ -3839,7 +3863,10 @@ export default {
         this.coAuthors = []
         return
       }
-      this.$store.dispatch('loadSongCoAuthorsPromise', this.song.id).then((coAuthors) => {
+      // BR-125: ответ применяется только к той песне, для которой ушёл запрос.
+      const requestedId = this.song.id
+      this.$store.dispatch('loadSongCoAuthorsPromise', requestedId).then((coAuthors) => {
+        if (!this.song || this.song.id !== requestedId) return
         this.coAuthors = coAuthors || []
       })
     },
@@ -4017,8 +4044,14 @@ export default {
     async findAudioParent() {
       if (this.isFindingAudioParent) return
       this.isFindingAudioParent = true
+      // BR-125: id фиксируется на момент запроса. Между отправкой и ответом проходят
+      // десятки секунд (ffmpeg-декод на бэкенде), а навигация не блокируется: без этой
+      // проверки поля `audio*` песни A записывались в открытую карточку песни B, затем
+      // автосейв отправлял их в B — песне B приписывался аудио-родитель A.
+      const requestedId = this.song && this.song.id
       try {
         const data = await this.$store.dispatch('findAudioParentPromise')
+        if (!this.song || this.song.id !== requestedId) return
         const result = JSON.parse(data)
         if (result) {
           this.song.audioParentId = result.audioParentId
@@ -4415,12 +4448,18 @@ export default {
     publishToVkNow(type = 'air') {
       if (this.isPublishingVk) return
       this.isPublishingVk = true
-      const params = { id: this.$store.state.currentSongId, type }
+      // BR-124: id берём из ОБЪЕКТА песни. Раньше читался `this.$store.state.currentSongId`,
+      // но состояние модуля лежит под ключом `song`: в state корня такого поля нет, в
+      // params уходил `id=undefined`, и `@RequestParam id: Long` вернул бы 400.
+      const requestedId = this.song.id
+      const params = { id: requestedId, type }
       const request = { method: 'POST', url: '/api/song/publishToVkNow', params }
-      this.$store
-        .dispatch('promisedXMLHttpRequest', request)
+      // BR-124: `promisedXMLHttpRequest` — импортированная функция, а НЕ Vuex-action.
+      // `dispatch('promisedXMLHttpRequest')` печатал `[vuex] unknown action type` и
+      // возвращал undefined → `.then` бросал TypeError ДО отправки запроса, а
+      // `isPublishingVk` навсегда оставался true (кнопки «Публикация…» до перемонтирования).
+      promisedXMLHttpRequest(request)
         .then((response) => {
-          this.isPublishingVk = false
           let data = {}
           try {
             data = typeof response === 'string' ? JSON.parse(response) : response
@@ -4443,8 +4482,9 @@ export default {
               'toast-header-copytoclipboard',
               'toast-body-copytoclipboard',
             )
-            // Обновим idVk из ответа, если пришёл postId.
-            if (data.postId) {
+            // Обновим idVk из ответа, если пришёл postId и карточка всё ещё показывает ту же
+            // песню (BR-125: ответ применяется только к песне, для которой ушёл запрос).
+            if (data.postId && this.song && this.song.id === requestedId) {
               this.$store.commit('setCurrentSongField', { name: 'idVk', value: data.postId })
             }
           } else {
@@ -4458,7 +4498,6 @@ export default {
           }
         })
         .catch((error) => {
-          this.isPublishingVk = false
           const msg = error && error.message ? error.message : 'Ошибка запроса публикации в ВК.'
           this.showTelegramToast(
             msg,
@@ -4466,6 +4505,11 @@ export default {
             'toast-header-copytoclipboard',
             'toast-body-copytoclipboard',
           )
+        })
+        .finally(() => {
+          // BR-124: сброс флага ОДНОЙ точкой — иначе исключение в обработчике ответа
+          // оставляло кнопки в состоянии «Публикация…» до перемонтирования карточки.
+          this.isPublishingVk = false
         })
     },
 
@@ -4597,20 +4641,27 @@ export default {
       this.$store.getters.playRenderMp4Version('DEMO')()
     },
 
-    goToPreviousSong() {
+    // BR-088: навигация сначала сохраняет непустой diff. Раньше переход по стрелке
+    // перезаписывал `snapshotSong` (диff обнулялся) и отложенный автосейв срабатывал уже
+    // на пустом diff — правка терялась молча.
+    async goToPreviousSong() {
       const id = this.getNeighbourSongId('Previous')
+      if (!(await this.flushPendingSave())) return
       this.$store.dispatch('setCurrentSongId', id)
     },
-    goToNextSong() {
+    async goToNextSong() {
       const id = this.getNeighbourSongId('Next')
+      if (!(await this.flushPendingSave())) return
       this.$store.dispatch('setCurrentSongId', id)
     },
-    goToLeftSong() {
+    async goToLeftSong() {
       const id = this.getNeighbourSongId('Left')
+      if (!(await this.flushPendingSave())) return
       this.$store.dispatch('setCurrentSongId', id)
     },
-    goToRightSong() {
+    async goToRightSong() {
       const id = this.getNeighbourSongId('Right')
+      if (!(await this.flushPendingSave())) return
       this.$store.dispatch('setCurrentSongId', id)
     },
     getNeighbourSongId(neighbour) {
@@ -5071,7 +5122,14 @@ export default {
       this.$emit('close')
     },
     async showSubsEdit() {
-      this.voices = JSON.parse(await this.$store.getters.getVoices).voices
+      // BR-125: голоса запрашиваются по id песни на момент клика. Если за время ответа
+      // карточка переключилась на другую песню, модалка получила бы «голоса A / песня B»
+      // и сохранение ушло бы в B, затерев разметку B текстом A.
+      const requestedId = this.song && this.song.id
+      const voices = JSON.parse(await this.$store.getters.getVoices).voices
+      if (!this.song || this.song.id !== requestedId) return
+      this.voices = voices
+      this.subsEditSongId = requestedId
       this.isSubsEditVisible = true
     },
     closeSubsEdit() {
@@ -5758,13 +5816,25 @@ export default {
         // modelValue: true
       })
     },
-    // Асинхронный метод непосредственного сохранения
+    // Асинхронный метод непосредственного сохранения.
+    //
+    // BR-088: вызов во время идущего запроса больше НЕ отбрасывается (раньше здесь стоял
+    // `if (this.isSaving) return`, и принудительное сохранение перед сменой песни или
+    // размонтированием могло молча не выполниться). Очередь запоминает вызов и выполняет
+    // его сразу после текущего — см. lib/autosave-queue.js.
     async executeSave() {
-      // Если сохранение уже идет, просто выходим, чтобы не дублировать запросы
-      if (this.isSaving) return
-
       this.isSaving = true
-
+      try {
+        return await this.autosaveQueue.run(() => this.performSave())
+      } finally {
+        this.isSaving = this.autosaveQueue.isRunning()
+      }
+    },
+    /**
+     * Один проход сохранения: собирает diff и отправляет `saveSong`.
+     * Вызывается ТОЛЬКО через очередь (`executeSave`/`flushPendingSave`).
+     */
+    async performSave() {
       try {
         // Собираем актуальные изменения.
         // #216: id берём из САМОГО объекта песни, из которого считан diff, а не из
@@ -5777,10 +5847,7 @@ export default {
         }
 
         // Если изменений нет (например, нажали кнопку вручную, но всё уже сохранено)
-        if (Object.keys(params).length === 1) {
-          this.isSaving = false
-          return
-        }
+        if (Object.keys(params).length === 1) return
 
         // Ждем завершения сохранения на сервере
         await this.$store.dispatch('saveSong', params)
@@ -5800,16 +5867,42 @@ export default {
         // пользователя сообщение (см. store.js saveSong) — показываем его тостом, а не только в
         // консоли, чтобы пользователь понимал, почему поле не сохранилось.
         this.createToast({
-          slots: { default: () => [error && error.message ? error.message : 'Ошибка сохранения'] },
+          slots: {
+            default: () => [error && error.message ? error.message : 'Ошибка сохранения'],
+          },
           title: 'Ошибка сохранения',
           autoHideDelay: 8000,
           variant: 'danger',
           appendToast: false,
           position: 'top-start',
         })
-      } finally {
-        this.isSaving = false
       }
+    },
+    /**
+     * BR-088: принудительное сохранение непустого diff «сейчас» — перед сменой песни,
+     * размонтированием карточки или закрытием.
+     *
+     * Раньше автосейв был отложен на `autoSaveDelayMs` (1000 мс) и нигде не форсировался:
+     * `snapshotSong` перезаписывался при переходе, `diff` обнулялся, таймер срабатывал на
+     * пустом diff — правка, сделанная менее секунды назад, в БД не уходила. Локальная
+     * копия песни в `songPages` при этом уже содержала новое значение, поэтому при
+     * возврате поле выглядело сохранённым, а после F5 правка исчезала.
+     *
+     * @returns {Promise<boolean>} true — сохранять больше нечего (diff пуст).
+     */
+    async flushPendingSave() {
+      if (this.saveTimer) {
+        clearTimeout(this.saveTimer)
+        this.saveTimer = undefined
+      }
+      if (this.diff.length === 0) return true
+      await this.executeSave()
+      // Ждём и текущий запрос, и поставленный в очередь (иначе проверка ниже увидела бы
+      // ещё не отправленный diff и зря заблокировала бы навигацию).
+      await this.autosaveQueue.whenIdle()
+      // Провал сохранения оставляет diff непустым — навигацию в этом случае не пускаем
+      // (fail-closed: лучше остаться на карточке с видимой ошибкой, чем потерять правку).
+      return this.diff.length === 0
     },
   },
 }

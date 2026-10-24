@@ -1,4 +1,58 @@
 import { promisedXMLHttpRequest } from '../../../lib/utils.js'
+import { createRequestGeneration } from '../../../lib/target-request-guard.js'
+
+// BR-380 (аудит #336, пакет PKG-S2-17, OpenProject #380).
+//
+// ДЕФЕКТ. `healthReportList` — единственный глобальный список в Vuex, а
+// `loadHealthReportList` коммитил ответ безусловно: ни поколения запроса, ни сверки
+// «ответ всё ещё для той песни». `HealthReportTable` монтируется на каждую песню
+// (`AssignModal.vue:166`, `v-if="hrSongId"`) и размонтируется при закрытии, но
+// отправленный запрос продолжает жить. Открыть тяжёлую песню A (перебор
+// KaraokeFileType × MinIO), закрыть, открыть B → ответ A приходит позже ответа B и
+// затирает список B: модалка с `:id` песни B показывает строки A, а кнопка «repair»
+// отправляет `item.songId` (A) в `/api/song/executeHealthReportActions` — ремонт
+// ДРУГОЙ песни, чем та, для которой открыта модалка.
+//
+// РЕШЕНИЕ. (1) Поколение запроса: применяет ответ только владелец текущего поколения.
+// (2) `healthReportListSongId` — песня, которой принадлежит показанный список; «repair»
+// отказывается работать, если строка относится к другой песне (fail-closed: лучше
+// не отремонтировать, чем отремонтировать чужое).
+//
+// Функция вынесена из action, чтобы тест мог подставить транспорт
+// (`src/components/Common/HealthReport/__tests__/health-report-generation.test.js`).
+const healthReportGeneration = createRequestGeneration()
+
+/**
+ * Загружает HR-список песни, отбрасывая ответы устаревших запросов.
+ *
+ * @param {Object} params
+ * @param {function(Object): Promise<string>} params.request
+ * @param {function(string, any): void} params.commit
+ * @param {{next: function(): number, isCurrent: function(number): boolean}} params.generation
+ * @param {number|string} params.id — id песни.
+ * @returns {Promise<{applied: boolean, stale: boolean, error?: Error}>}
+ */
+export function loadHealthReportListWith({ request, commit, generation, id }) {
+  const ticket = generation.next()
+  commit('setHealthReportListIsLoading', true)
+  return request({ method: 'POST', url: '/api/song/healthReportList', params: { id } })
+    .then((data) => {
+      if (!generation.isCurrent(ticket)) return { applied: false, stale: true }
+      commit('updateHealthReportList', JSON.parse(data))
+      commit('setHealthReportListSongId', id)
+      return { applied: true, stale: false }
+    })
+    .catch((error) => {
+      if (!generation.isCurrent(ticket)) return { applied: false, stale: true }
+      console.log(error)
+      return { applied: false, stale: false, error }
+    })
+    .finally(() => {
+      // OpenProject #325: модалка HR живёт и при нуле записей, поэтому флаг загрузки
+      // обязан сбрасываться и при ошибке — иначе останется «Загрузка…».
+      if (generation.isCurrent(ticket)) commit('setHealthReportListIsLoading', false)
+    })
+}
 
 /**
  * Компонент «Store».
@@ -6,10 +60,29 @@ import { promisedXMLHttpRequest } from '../../../lib/utils.js'
  * @see AGENTS.md
  */
 
+/**
+ * Проверяет, что строка отчёта относится к песне, для которой открыта модалка.
+ *
+ * @param {number|string|null|undefined} shownSongId — песня показанного списка.
+ * @param {number|string} itemSongId — песня строки, по которой нажали «repair».
+ * @returns {string|null} текст ошибки либо null, если ремонт допустим.
+ */
+export function repairTargetError(shownSongId, itemSongId) {
+  if (shownSongId === null || shownSongId === undefined) {
+    return 'Список отчётов ещё не загружен — ремонт отменён.'
+  }
+  if (String(itemSongId) !== String(shownSongId)) {
+    return `Строка принадлежит песне ${itemSongId}, а открыта песня ${shownSongId} — ремонт отменён.`
+  }
+  return null
+}
+
 export default {
   state: {
     healthReportList: [],
     healthReportListIsLoading: false,
+    // Песня, которой принадлежит показанный healthReportList (null — список ещё не загружен).
+    healthReportListSongId: null,
   },
   getters: {
     getHealthReportList(state) {
@@ -17,6 +90,9 @@ export default {
     },
     getHealthReportListIsLoading(state) {
       return state.healthReportListIsLoading
+    },
+    getHealthReportListSongId(state) {
+      return state.healthReportListSongId
     },
   },
   mutations: {
@@ -26,28 +102,25 @@ export default {
     setHealthReportListIsLoading(state, isLoading) {
       state.healthReportListIsLoading = isLoading
     },
+    setHealthReportListSongId(state, songId) {
+      state.healthReportListSongId = songId === undefined ? null : songId
+    },
   },
   actions: {
     loadHealthReportList(ctx, id) {
-      const params = { id: id }
-      let request = { method: 'POST', url: '/api/song/healthReportList', params: params }
-      ctx.commit('setHealthReportListIsLoading', true)
-      return promisedXMLHttpRequest(request)
-        .then((data) => {
-          let result = JSON.parse(data)
-          // console.log('loadHealthReportList result', result);
-          ctx.commit('updateHealthReportList', result)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
-        .finally(() => {
-          // OpenProject #325: модалка HR живёт и при нуле записей, поэтому флаг
-          // загрузки обязан сбрасываться и при ошибке — иначе останется «Загрузка…».
-          ctx.commit('setHealthReportListIsLoading', false)
-        })
+      return loadHealthReportListWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: healthReportGeneration,
+        id,
+      })
     },
     repairOneRecord(ctx, item) {
+      // BR-380: fail-closed сверка «строка относится к открытой модалке». Если список
+      // принадлежит другой песне (гонка ответов, старая строка в UI), ремонт ушёл бы
+      // в чужую песню — молча. Лучше отказаться с понятной ошибкой.
+      const guardError = repairTargetError(ctx.state.healthReportListSongId, item.songId)
+      if (guardError) return Promise.reject(new Error(guardError))
       const params = {
         id: item.songId,
         healthReportTypeName: item.healthReportTypeName,

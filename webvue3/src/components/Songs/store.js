@@ -1,4 +1,5 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
+import { createRequestGeneration } from '../../lib/target-request-guard.js'
 // import {useIntervalFn} from "@vueuse/core";
 
 /**
@@ -36,6 +37,68 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  *
  * @see AGENTS.md
  */
+// BR-093 (аудит #336, пакет PKG-S2-17, OpenProject #380).
+//
+// ДЕФЕКТ. `loadSongsDigests` не имел ни идентификатора запроса, ни проверки «этот ответ
+// ещё актуален»: любой ответ безусловно коммитил `updateSongsDigests`. При двух
+// перекрывающихся загрузках (применение фильтра + смена «Строк на странице» или два
+// применения фильтра подряд) выигрывал ПОСЛЕДНИЙ ПРИШЕДШИЙ ответ, а не последний
+// запрошенный: таблица показывала строки старого фильтра, при этом `countRows` и все
+// массовые операции (`getSongsDigestIds` → `searchTextForAll` с `forceResearch: true`)
+// работали по устаревшему набору id. Кроме того, action не возвращал промис, а ошибка
+// только писалась в консоль: `await dispatch('loadSongsDigests')` в `SongsTable`
+// завершался до получения ответа, а при сбое `/api/songsdigests` флаг
+// `songsDigestIsLoading` не снимался — таблица навсегда оставалась в состоянии «загрузка».
+//
+// РЕШЕНИЕ. Монотонное поколение запроса: результат применяет только владелец текущего
+// поколения, остальные ответы отбрасываются (отмена XHR не нужна — «побеждает последний
+// запрос», как в BR-397/BR-409). `songsDigestIsLoading` снимает тоже только владелец, а
+// `finally` гарантирует снятие при любой ошибке. Action возвращает промис.
+//
+// Функция вынесена из action, чтобы регрессионный тест мог подставить управляемый
+// транспорт и воспроизвести гонку без браузера и бэкенда
+// (`src/components/Songs/__tests__/songs-digest-race.test.js`).
+const songsDigestGeneration = createRequestGeneration()
+
+/**
+ * Применяет ответ `/api/songsdigests`, если он принадлежит последнему запросу.
+ *
+ * @param {Object} params
+ * @param {function(Object): Promise<string>} params.request — транспорт (XHR).
+ * @param {function(string, any): void} params.commit — коммит мутации.
+ * @param {{next: function(): number, isCurrent: function(number): boolean}} params.generation
+ * @param {Object} params.params — параметры запроса фильтра.
+ * @returns {Promise<{applied: boolean, stale: boolean, result?: Object, error?: Error}>}
+ */
+export function loadSongsDigestsWith({ request, commit, generation, params }) {
+  const ticket = generation.next()
+  commit('setSongsDigestIsLoading', true)
+  return request({ method: 'POST', url: '/api/songsdigests', params })
+    .then((data) => {
+      if (!generation.isCurrent(ticket)) {
+        // Ответ устарел: за время запроса ушёл более новый. Ничего не меняем —
+        // иначе таблица показала бы строки прежнего фильтра.
+        return { applied: false, stale: true }
+      }
+      const result = JSON.parse(data)
+      commit('updateSongsDigests', result)
+      commit('setSongsDigestsError', '')
+      return { applied: true, stale: false, result }
+    })
+    .catch((error) => {
+      if (!generation.isCurrent(ticket)) return { applied: false, stale: true }
+      // Ошибку видно в UI (SongsTable), а не только в консоли.
+      commit(
+        'setSongsDigestsError',
+        (error && error.message) || 'Не удалось загрузить список песен',
+      )
+      return { applied: false, stale: false, error }
+    })
+    .finally(() => {
+      if (generation.isCurrent(ticket)) commit('setSongsDigestIsLoading', false)
+    })
+}
+
 export default {
   state: {
     toSync: false,
@@ -243,6 +306,7 @@ export default {
 
     songsDigest: [],
     songsDigestIsLoading: false,
+    songsDigestsError: '',
     totalDuration: '',
 
     searchResultsListIsLoading: false,
@@ -944,6 +1008,9 @@ export default {
     },
     getSongsDigestIds(state) {
       return state.songsDigest ? state.songsDigest.flatMap((song) => song.id) : []
+    },
+    getSongsDigestsError(state) {
+      return state.songsDigestsError
     },
     getSongsDigestIsLoading(state) {
       return state.songsDigestIsLoading
@@ -1671,6 +1738,9 @@ export default {
     },
     setSongsDigestIsLoading(state, isLoading) {
       state.songsDigestIsLoading = isLoading
+    },
+    setSongsDigestsError(state, message) {
+      state.songsDigestsError = message || ''
     },
     setSongsTableCurrentPage(state, page) {
       state.songsTableCurrentPage = page
@@ -2576,7 +2646,13 @@ export default {
     },
     async saveSourceTextAndMarkers(ctx, payload) {
       let params = {
-        id: ctx.state.currentSongId,
+        // BR-125: адресат сохранения — песня, для которой открыт редактор (payload.songId),
+        // и только при его отсутствии — текущая в сторе. Раньше всегда бралась текущая:
+        // переключение карточки во время открытой модалки записывало разметку A в песню B.
+        id:
+          payload.songId !== undefined && payload.songId !== null
+            ? payload.songId
+            : ctx.state.currentSongId,
         voice: payload.voice,
         sourceText: payload.sourceText,
         sourceMarkers: payload.sourceMarkers,
@@ -2731,17 +2807,13 @@ export default {
       }
     },
     loadSongsDigests(ctx, params) {
-      let request = { method: 'POST', url: '/api/songsdigests', params: params }
-      ctx.commit('setSongsDigestIsLoading', true)
-      promisedXMLHttpRequest(request)
-        .then((data) => {
-          let result = JSON.parse(data)
-          ctx.commit('updateSongsDigests', result)
-          ctx.commit('setSongsDigestIsLoading', false)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
+      // BR-093: ответ применяется только если он принадлежит последнему запросу.
+      return loadSongsDigestsWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: songsDigestGeneration,
+        params,
+      })
     },
     loadSongsDigestsPromise(ctx, params) {
       let request = { method: 'POST', url: '/api/songsdigests', params: params }

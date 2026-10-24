@@ -1,4 +1,5 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
+import { createRequestGeneration } from '../../lib/target-request-guard.js'
 
 /**
  * Компонент «Store».
@@ -33,6 +34,68 @@ function buildProcessQuery(filters) {
   if (filters.limit) q.push(`limit=${encodeURIComponent(filters.limit)}`)
   if (filters.offset) q.push(`offset=${encodeURIComponent(filters.offset)}`)
   return q.join('&')
+}
+
+// BR-388 (аудит #336, пакет PKG-S2-17, OpenProject #380).
+//
+// ДЕФЕКТ. Массовые операции берут id из серверного snapshot `bulkSelectionIds`, но при
+// смене фильтра snapshot не очищался и не помечался поколением: `loadProcesses` и
+// `fetchBulkSelectionIds` уходили параллельно, `clearBulkSelection` не диспатчился
+// нигде. Пока snapshot нового фильтра не пришёл (или если он упал — `catch` только
+// `console.error` + `throw`, а `loadPage` промис не ловил), кнопки оставались активны
+// (`canBulk` = `total > 0`), а `effectiveBulkIds` отдавал id ПРОШЛОГО фильтра: админ
+// видел один набор, а «Массовое удаление» применялось к другому. После самой операции
+// snapshot тоже не пересчитывался, поэтому повторная операция снова слала старые id.
+//
+// РЕШЕНИЕ (fail-closed). (1) Поколение snapshot: применяет результат только владелец
+// последнего запроса. (2) Старт каждой загрузки помечает выборку устаревшей
+// (`markBulkSelectionStale`) — сразу после смены фильтра массовые кнопки неактивны, пока
+// не придёт snapshot ЭТОГО фильтра. (3) Сбой snapshot оставляет выборку пустой и
+// неготовой, а не «прошлую». (4) Fallback компонента на `items` (только текущая
+// страница) убран — он и создавал расхождение «показано N, удалено M».
+//
+// Функция вынесена из action, чтобы тест мог подставить транспорт
+// (`src/components/Processes/__tests__/bulk-selection-generation.test.js`).
+const bulkSelectionGeneration = createRequestGeneration()
+
+/**
+ * Загружает snapshot id массовой выборки, отбрасывая результаты устаревших запросов.
+ *
+ * @param {Object} params
+ * @param {function(string): Promise<Object>} params.getJson
+ * @param {function(Object): string} params.buildQuery
+ * @param {function(string, any): void} params.commit
+ * @param {{next: function(): number, isCurrent: function(number): boolean}} params.generation
+ * @param {Object} params.filters
+ * @returns {Promise<Object|null>} snapshot либо null, если ответ устарел/сбой.
+ */
+export function fetchBulkSelectionIdsWith({ getJson, buildQuery, commit, generation, filters }) {
+  const ticket = generation.next()
+  const query = buildQuery(filters)
+  const url = `/api/admin/processes/bulk/snapshot${query ? `?${query}` : ''}`
+  // Выборка прежнего фильтра не должна участвовать в массовых операциях ни секунды
+  // дольше, чем нужно: помечаем устаревшей ДО запроса.
+  commit('markBulkSelectionStale')
+  return getJson(url)
+    .then((result) => {
+      // Пока шёл запрос, фильтр мог измениться — тогда применяет владелец нового.
+      if (!generation.isCurrent(ticket)) return null
+      commit('setBulkSelection', {
+        ids: result.ids || [],
+        total: result.total || 0,
+        timestamp: new Date().toISOString(),
+      })
+      return result
+    })
+    .catch((error) => {
+      if (generation.isCurrent(ticket)) {
+        // Snapshot не получен — выборки нет. Никакого «оставим прежнюю».
+        commit('markBulkSelectionStale')
+      }
+      // eslint-disable-next-line no-console
+      console.error('[bulk] fetchBulkSelectionIds failed', url, error)
+      return null
+    })
 }
 
 export default {
@@ -72,6 +135,9 @@ export default {
     bulkSelectionIds: [], // Array<Number> — snapshot id по текущему фильтру (≤ 10000)
     bulkSelectionTotal: 0, // Number — total в БД по фильтру (может > ids.length из-за cap)
     bulkSelectionTimestamp: null, // ISO String — когда сделан snapshot
+    // BR-388: snapshot готов для ТЕКУЩЕГО фильтра. Пока false — массовые операции запрещены
+    // (fail-closed): иначе смена фильтра оставляла в state id прошлой выборки.
+    bulkSelectionReady: false,
     bulkOperationInProgress: false, // Boolean — флаг «операция идёт»
     bulkOperationReport: null, // Object | null — последний BulkOperationReport
     bulkTaskStatus: null, // Object | null — для async: { taskId, status, processedCount, ... }
@@ -148,6 +214,8 @@ export default {
     getBulkSelectionTimestamp: (state) => state.bulkSelectionTimestamp,
     getBulkSelectionCount: (state) => state.bulkSelectionIds.length,
     getCanBulk: (state) => state.bulkSelectionIds.length >= 1,
+    // BR-388: готовность snapshot текущего фильтра — отдельно от непустоты списка.
+    getIsBulkSelectionReady: (state) => state.bulkSelectionReady,
     getBulkOperationInProgress: (state) => state.bulkOperationInProgress,
     getBulkOperationReport: (state) => state.bulkOperationReport,
     getBulkTaskStatus: (state) => state.bulkTaskStatus,
@@ -281,11 +349,22 @@ export default {
       state.bulkSelectionIds = ids || []
       state.bulkSelectionTotal = total || 0
       state.bulkSelectionTimestamp = timestamp || new Date().toISOString()
+      // BR-388: snapshot принадлежит текущему фильтру — только теперь bulk разрешён.
+      state.bulkSelectionReady = true
     },
     clearBulkSelection(state) {
       state.bulkSelectionIds = []
       state.bulkSelectionTotal = 0
       state.bulkSelectionTimestamp = null
+      state.bulkSelectionReady = false
+    },
+    // BR-388: «выборка устарела» — id прежнего фильтра больше не должны участвовать
+    // в массовых операциях, пока не придёт snapshot нового.
+    markBulkSelectionStale(state) {
+      state.bulkSelectionIds = []
+      state.bulkSelectionTotal = 0
+      state.bulkSelectionTimestamp = null
+      state.bulkSelectionReady = false
     },
     setBulkOperationInProgress(state, val) {
       state.bulkOperationInProgress = !!val
@@ -493,29 +572,18 @@ export default {
      * @param {Object} filters - {status[], type[], threadId, chainId, includeDeleted, name, topLevelOnly, parentId}
      * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-5)
      */
+    /**
+     * BR-388: snapshot id для массовых операций, привязанный к поколению запроса.
+     * Владелец только последнего запроса; смена фильтра и любой сбой очищают выборку.
+     */
     fetchBulkSelectionIds(ctx, filters = {}) {
-      const query = buildProcessQuery(filters)
-      // Путь /bulk/snapshot вместо /ids-by-filter — чтобы избежать routing-конфликта
-      // с GET /{id} в Spring Boot 3.x (см. WP #68 comment 320).
-      const url = `/api/admin/processes/bulk/snapshot${query ? `?${query}` : ''}`
-      // eslint-disable-next-line no-console
-      console.debug('[bulk] fetchBulkSelectionIds', { url, filters })
-      return getJson(url)
-        .then((result) => {
-          // eslint-disable-next-line no-console
-          console.debug('[bulk] fetchBulkSelectionIds result', result)
-          ctx.commit('setBulkSelection', {
-            ids: result.ids || [],
-            total: result.total || 0,
-            timestamp: new Date().toISOString(),
-          })
-          return result
-        })
-        .catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error('[bulk] fetchBulkSelectionIds failed', url, error)
-          throw error
-        })
+      return fetchBulkSelectionIdsWith({
+        getJson,
+        buildQuery: buildProcessQuery,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: bulkSelectionGeneration,
+        filters,
+      })
     },
 
     /**

@@ -164,6 +164,26 @@ data class SongDTO(
     // Song, при отсутствии значения, возвращает SongType.SONG.
     val songType: String,
     val haveSourceText: Boolean,
+    // BR-087 (аудит #336, пакет PKG-S2-17, OpenProject #380): состояние премиум-автопубликации
+    // (specs/122-premium-auto-publish, FR-006/FR-007/FR-008).
+    //
+    // ДО ПРАВКИ этих полей не было в ЕДИНСТВЕННОМ контракте `/api/song` и `/api/songs`:
+    // `SongEdit.vue:2740/2782` вычисляет `premiumTelegramPublishState`/`premiumVkPublishState`
+    // из них, получал `undefined` и всегда возвращал `null` — блоки статуса и кнопки
+    // «Повторить» в карточке песни не рендерились НИКОГДА (админ не видел ни состояния
+    // публикации, ни текста последней ошибки, ни возможности ручного повтора).
+    //
+    // Значения берутся из readiness-флагов `Song` (JSON-поле `fields`), т.е. это те же
+    // данные, что использует планировщик на бэкенде. Дефолты оставлены, чтобы DTO можно
+    // было собрать в тестах/старом коде без этих полей.
+    val newsPremiumPublishPending: Boolean = false,
+    val newsPremiumTelegramSent: Boolean = false,
+    val newsPremiumVkSent: Boolean = false,
+    val premiumAttemptCountTelegram: Int = 0,
+    val premiumAttemptCountVk: Int = 0,
+    val premiumAutoPublishLastError: String = "",
+    val telegramAutoPublishState: String = "",
+    val vkAutoPublishState: String = "",
 ) : Serializable,
     Comparable<SongDTO>,
     KaraokeDbTableDto {

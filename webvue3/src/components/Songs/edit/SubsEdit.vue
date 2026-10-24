@@ -1451,6 +1451,13 @@ export default {
       type: Object,
       required: true,
     },
+    // BR-125 (аудит #336, пакет PKG-S2-17): песня, для которой открыта модалка. Сохранение
+    // адресуется ЕЙ, а не `currentSongId` стора: пока модалка открыта, карточка могла
+    // переключиться на другую песню, и разметка A записывалась в B.
+    songId: {
+      type: [Number, String],
+      default: null,
+    },
   },
   data() {
     return {
@@ -3165,6 +3172,8 @@ export default {
       this.saving = true
       try {
         const result = await this.$store.dispatch('saveSourceTextAndMarkers', {
+          // BR-125: явный адрес сохранения — песня модалки, а не текущая в сторе.
+          songId: this.songId,
           voice: this.currentVoice,
           sourceText: this.sourceText,
           sourceMarkers: JSON.stringify(this.getMarkersToSave()),

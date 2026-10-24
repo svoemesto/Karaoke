@@ -207,6 +207,7 @@
 </template>
 
 <script>
+import { buildAuthorUpdatePayload } from '../../lib/author-payload.js'
 import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import AuthorsFilter from '../../components/Authors/filter/AuthorsFilterModal.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
@@ -743,12 +744,12 @@ export default {
         event.target.value = String(value)
         return
       }
+      // BR-370: apisUpdateAuthor — не generic-saver. Он требует author/ymId/vkId/
+      // lastAlbum*/watched/skip, а `sortOrder` в прежнем payload отсутствовал вовсе:
+      // каждое изменение колонки Sort давало HTTP 400 и откат значения. Собираем тот же
+      // полный payload, что и модалка «Изменение автора» (AuthorAliasesModal.save).
       this.$store
-        .dispatch('setAuthorValuePromise', {
-          fldName: 'sortOrder',
-          fldValue: value,
-          id: item.id,
-        })
+        .dispatch('setAuthorValuePromise', buildAuthorUpdatePayload(item, { sortOrder: value }))
         .then(() => {
           // Оптимистично обновляем локальное значение в строке (без полного refetch).
           item.sortOrder = value

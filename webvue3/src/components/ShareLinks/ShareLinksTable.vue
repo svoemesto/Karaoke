@@ -19,7 +19,7 @@
         :id="`rows-per-page-share_links`"
         type="number"
         min="1"
-        max="1000"
+        :max="maxPerPage"
         size="sm"
         style="width: 65px"
         :model-value="perPage"
@@ -38,13 +38,15 @@
     </div>
 
     <div class="slt-table-body">
+      <!-- BR-410: строки приходят ОДНОЙ страницей с сервера — локальная нарезка
+           (:per-page/:current-page) и локальная сортировка выключены, иначе
+           b-table резал серверную страницу второй раз и страницы 2+ были пусты. -->
       <b-table
         v-model:sort-by="sortBy"
         :items="digest"
         :busy="isBusy"
         :fields="fields"
-        :per-page="perPage"
-        :current-page="currentPage"
+        no-local-sorting
         small
         bordered
         hover
@@ -152,6 +154,11 @@
 <script>
 import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import ShareLinksFilterModal from './ShareLinksFilterModal.vue'
+import {
+  buildShareLinksDigestParams,
+  clampShareLinksPerPage,
+  SHARELINKS_MAX_PER_PAGE,
+} from '../../lib/sharelinks-digest-params.js'
 
 /**
  * Таблица глобального списка временных share-ссылок (`tbl_song_share_links`) в админ-SPA.
@@ -181,6 +188,8 @@ export default {
   data() {
     return {
       perPage: 25,
+      // BR-410: верхняя граница размера страницы, которую принимает бэкенд.
+      maxPerPage: SHARELINKS_MAX_PER_PAGE,
       currentPage: this.$store.getters.getShareLinksTableCurrentPage || 1,
       sortBy: [],
       isBusy: false,
@@ -259,7 +268,9 @@ export default {
         {
           key: 'status',
           label: 'Статус',
-          sortable: true,
+          // BR-410: статус вычисляется на клиенте из active/expiresAt — серверной
+          // сортировки по нему нет, а локальная сортировала бы только текущую страницу.
+          sortable: false,
           style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' },
         },
         {
@@ -300,13 +311,30 @@ export default {
     },
     currentPage(newPage) {
       this.$store.commit('setShareLinksTableCurrentPage', newPage)
+      // BR-410: страница — серверная. Раньше здесь только коммитилась страница в store,
+      // повторного запроса не было, и страница 2+ оставалась пустой.
+      this.loadPage()
+    },
+    sortBy: {
+      deep: true,
+      handler() {
+        // BR-410: сортировка тоже серверная (no-local-sorting) — после смены колонки
+        // возвращаемся на первую страницу и перезапрашиваем.
+        if (this.currentPage !== 1) {
+          this.currentPage = 1
+          return
+        }
+        this.loadPage()
+      },
     },
   },
   async mounted() {
     // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
     // защищён флагом  в store ).
     await this.$store.dispatch('loadTableSettings')
-    this.perPage = this.$store.getters.getRowsPerPage('share_links')
+    // BR-410: бэкенд клампит pageSize к 1..100. Приводим perPage к тому же диапазону
+    // ЗАРАНЕЕ, иначе UI считает страницы по 1000 строк, а сервер отдаёт по 100.
+    this.perPage = clampShareLinksPerPage(this.$store.getters.getRowsPerPage('share_links'))
 
     this.reload()
   },
@@ -324,7 +352,7 @@ export default {
       // а не значение. Извлекаем value из target.
       const rawValue = e && e.target ? e.target.value : e
       const parsed = parseInt(rawValue, 10)
-      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+      if (isNaN(parsed) || parsed < 1 || parsed > SHARELINKS_MAX_PER_PAGE) {
         // eslint-disable-next-line no-console
         console.warn('[ShareLinks.onPerPageChange] invalid value', rawValue)
         return
@@ -339,15 +367,35 @@ export default {
         value: parsed,
       })
       if (ok) {
-        this.perPage = this.$store.getters.getRowsPerPage('share_links')
-        await this.$store.dispatch('loadShareLinksDigest', {
-          page: this.currentPage,
-          perPage: this.perPage,
-        })
+        // BR-410: приводим к диапазону бэкенда (1..100) и грузим серверную страницу
+        // через общий buildDigestParams — раньше здесь уходил ключ `perPage`,
+        // которого бэкенд не знает, поэтому размер страницы терялся.
+        this.perPage = clampShareLinksPerPage(this.$store.getters.getRowsPerPage('share_links'))
+        await this.loadPage()
       }
     },
+    /**
+     * BR-410: параметры серверной страницы для `POST /api/sharelinks/digest`.
+     * `page`/`pageSize`/`sortBy`/`sortDir` — контракт ShareLinksAdminController.
+     *
+     * @returns {{page: number, pageSize: number, sortBy?: string, sortDir: string}}
+     */
+    buildDigestParams() {
+      return buildShareLinksDigestParams({
+        page: this.currentPage,
+        perPage: this.perPage,
+        sortBy: this.sortBy,
+      })
+    },
+    /**
+     * BR-410: перезагрузка текущей серверной страницы (раньше отправлялся пустой
+     * запрос — всегда первая страница из 25 строк).
+     */
+    loadPage() {
+      return this.$store.dispatch('loadShareLinksDigest', this.buildDigestParams())
+    },
     reload() {
-      this.$store.dispatch('loadShareLinksDigest', {})
+      return this.loadPage()
     },
     onTargetChange() {
       this.currentPage = 1

@@ -147,6 +147,29 @@ UNPUBLISH показывает только `idStatus = 6` (полностью �
   Колонка `exclusive` по-прежнему не переносится: в сущности `Song` нет её
   поля (см. отчёт `specs/373-pkg-s2-10/report.md`, «за владельцем»).
 
+### DTO песни: состояние премиум-автопубликации (аудит #336, PKG-S2-17)
+
+`SongDTO` — единственный контракт и `/api/song` (карточка), и `/api/songs`
+(список). С пакета `PKG-S2-17` (OpenProject #380, BR-087) в нём отдаются
+readiness-флаги премиум-цикла спеки 122:
+
+| Поле DTO | Источник в `Song` | Смысл |
+| --- | --- | --- |
+| `newsPremiumPublishPending` | readiness-флаг | песня входит в премиум-цикл и публикация ещё не завершена |
+| `newsPremiumTelegramSent` / `newsPremiumVkSent` | readiness-флаг | премиум-пост отправлен в соответствующий канал |
+| `premiumAttemptCountTelegram` / `premiumAttemptCountVk` | readiness-строка → `Int` | число неудачных попыток по каналу |
+| `premiumAutoPublishLastError` | readiness-строка | текст последней ошибки публикации |
+| `telegramAutoPublishState` / `vkAutoPublishState` | readiness-строка | `rendering` / `publishing` / `published` / `error` |
+
+**Контракт.** Поля обязаны доезжать до клиента: `SongEdit.vue` строит из них
+`premiumTelegramPublishState`/`premiumVkPublishState` (FR-006/FR-007/FR-008). До
+BR-087 их не было в DTO, компонент получал `undefined`, состояния всегда были
+`null`, и блоки статуса с кнопками «Повторить» не рендерились никогда.
+
+**Запрещено.** Добавлять новое поле `Song` в UI-логику без соответствующего поля
+`SongDTO` — именно это расхождение и породило дефект: сущность знала о состоянии
+публикации, а контракт молчал.
+
 ### «Пустой голос» и его удаление при сохранении (specs/547)
 
 Голос песни — пара «текст + маркеры», адресуемая индексом с нуля

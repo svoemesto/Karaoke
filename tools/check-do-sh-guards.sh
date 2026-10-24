@@ -10,13 +10,21 @@
 # Опыт B не пересоздаёт контейнеры: он лишь проверяет, что при отсутствующем
 # образе функция отказывается работать ДО остановки контейнера.
 #
+# BR-571: опыт A больше НЕ переписывает отслеживаемый
+# `deploy/karaoke-public/Dockerfile`. Раньше скрипт подменял его на
+# «FROM scratch» и восстанавливал в конце, но `trap` на восстановление не был
+# установлен → при Ctrl-C / SIGTERM / падении машины в репозитории оставался
+# сломанный Dockerfile и неотслеживаемый .bak. Теперь эксперимент идёт на
+# КОПИИ deploy-дерева во временном каталоге: отслеживаемый файл не пишется
+# вообще, а прерывание не может оставить мусор в репозитории.
+#
 # Использование:
 #   bash tools/check-do-sh-guards.sh             # только опыт A (локально)
 #   bash tools/check-do-sh-guards.sh --prod      # A + B (B — на проде, read-only по сути)
 #
 # Код возврата: 0 — оба выполненных опыта прошли, 1 — провал.
 
-set -u
+set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY="$REPO/deploy"
@@ -43,20 +51,65 @@ ok()   { echo "  PASS  $*"; pass=$((pass + 1)); }
 bad()  { echo "  FAIL  $*"; fail=$((fail + 1)); }
 
 echo "=== Опыт A: падающая сборка обязана дать ненулевой код ==="
+
+# BR-571: эксперимент выполняется на КОПИИ deploy-дерева во временном
+# каталоге. Отслеживаемый Dockerfile не переписывается → прерывание
+# (Ctrl-C/SIGTERM) не может оставить в репозитории сломанный файл.
+TMP_ROOT="$(mktemp -d)"
+BUILD_LOG="$(mktemp)"
+cleanup() { rm -rf "$TMP_ROOT"; rm -f "$BUILD_LOG"; }
+trap cleanup EXIT INT TERM
+
+cp -a "$DEPLOY" "$TMP_ROOT/deploy"
+# do.env (там секреты) не копируем — ссылаемся на исходный файл, если он есть.
+rm -f "$TMP_ROOT/deploy/do.env"
+if [ -f "$DEPLOY/do.env" ]; then
+  ln -s "$DEPLOY/do.env" "$TMP_ROOT/deploy/do.env"
+else
+  : > "$TMP_ROOT/deploy/do.env"
+fi
+# do.sh читает версию из gradlew в корне проекта (deploy/do.sh:48); в копии его
+# нет — подставляем заглушку. Формат обязан совпадать с build.gradle.kts:81
+# (`println("KaraokeVersion: ${project.version}")`): do.sh берёт
+# `awk '/':'/{print $2}'`, поэтому лишние пробелы дали бы APP_VERSION=":" и
+# невалидный тег образа — опыт падал бы не на Dockerfile.
+printf '#!/usr/bin/env bash\necho "KaraokeVersion: 0.0.0-guardtest"\n' > "$TMP_ROOT/gradlew"
+chmod +x "$TMP_ROOT/gradlew"
+
+# Заведомо падающий Dockerfile — в КОПИИ: в scratch нет /bin/sh, сборка рушится
+# сразу и без сети.
+BROKEN_DOCKERFILE="$TMP_ROOT/deploy/karaoke-public/Dockerfile"
+printf 'FROM scratch\nRUN exit 1\n' > "$BROKEN_DOCKERFILE"
+
 before_sum="$(sha256sum "$DOCKERFILE" | cut -d' ' -f1)"
-cp "$DOCKERFILE" "$DOCKERFILE.guardtest.bak"
-# Заведомо падающий Dockerfile: в scratch нет /bin/sh, сборка рушится сразу и без сети.
-printf 'FROM scratch\nRUN exit 1\n' > "$DOCKERFILE"
-( cd "$DEPLOY" && bash do.sh build_public >/tmp/guardtest-build.log 2>&1 )
+# Тег образа обязан быть валидным: иначе docker падает на проверке тега, а не на
+# Dockerfile — и опыт ничего не доказывает. Приоритет у do.env (реальный
+# registry), иначе — заведомо несуществующий хост (push не выполняется).
+( cd "$TMP_ROOT/deploy" \
+    && DOCKER_REGISTRY="${DOCKER_REGISTRY:-guardtest.invalid/karaoke}" \
+       bash do.sh build_public ) >"$BUILD_LOG" 2>&1
 rc=$?
-cp "$DOCKERFILE.guardtest.bak" "$DOCKERFILE"; rm -f "$DOCKERFILE.guardtest.bak"
 after_sum="$(sha256sum "$DOCKERFILE" | cut -d' ' -f1)"
-[ "$before_sum" = "$after_sum" ] && ok "Dockerfile восстановлен (sha256 ${before_sum:0:16}…)" \
-                               || bad "Dockerfile НЕ восстановлен!"
+
+[ "$before_sum" = "$after_sum" ] \
+  && ok "отслеживаемый Dockerfile не изменён (sha256 ${before_sum:0:16}…)" \
+  || bad "отслеживаемый Dockerfile ИЗМЕНЁН — эксперимент не должен его трогать"
+if [ -e "$DOCKERFILE.guardtest.bak" ]; then
+  bad "в репозитории остался мусорный $DOCKERFILE.guardtest.bak"
+else
+  ok "мусорных файлов (.guardtest.bak) в репозитории нет"
+fi
 if [ "$rc" -ne 0 ]; then
   ok "build_public на падающей сборке вернул код $rc (было 0 — «молча зелёный»)"
 else
   bad "build_public вернул 0 на падающей сборке — дефект жив"
+fi
+if grep -q 'invalid reference format' "$BUILD_LOG"; then
+  bad "эксперимент некорректен: невалидный тег образа — падение вызвано не Dockerfile"
+fi
+if ! grep -qiE 'RUN exit 1|did not complete successfully|no such file or directory|failed to build' "$BUILD_LOG"; then
+  bad "в логе сборки нет признаков падения на «зломанном» Dockerfile — опыт не доказан"
+  sed 's/^/    /' "$BUILD_LOG" | tail -10
 fi
 
 if [ "$WITH_PROD" = "1" ]; then

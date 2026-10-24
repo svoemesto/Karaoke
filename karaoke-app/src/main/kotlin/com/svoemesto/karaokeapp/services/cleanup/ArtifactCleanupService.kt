@@ -3,7 +3,8 @@ package com.svoemesto.karaokeapp.services.cleanup
 import com.svoemesto.karaokeapp.KaraokeFileType
 import java.io.File
 import java.nio.file.Files
-import java.util.concurrent.ConcurrentHashMap
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
 /**
@@ -59,9 +60,76 @@ class ArtifactCleanupService(
     private val planner: ArtifactCleanupPlanner = ArtifactCleanupPlanner(),
     private val journal: CleanupJournal = CleanupJournal(),
 ) {
-    private val plans = ConcurrentHashMap<String, CleanupPlan>()
-    private val runs = ConcurrentHashMap<String, CleanupRunStatus>()
+    companion object {
+        /** BR-111: сколько отчётов держим в heap (каждый — до десятков тысяч путей). */
+        internal const val MAX_RETAINED_PLANS = 32
+
+        /** BR-111: сколько статусов прогонов держим в heap. */
+        internal const val MAX_RETAINED_RUNS = 128
+
+        /** BR-111: TTL отчёта; после него `planById` отвечает 404, запись вытесняется. */
+        internal const val PLAN_TTL_MINUTES = 30L
+    }
+
+    /**
+     * Хранилища отчётов и прогонов (BR-111, аудит #336).
+     *
+     * Раньше это были `ConcurrentHashMap` без удаления: каждый `POST /plan`
+     * навсегда оставлял в heap полный список путей (десятки тысяч строк), а
+     * `runs` — историю прогонов. Теперь — LRU по числу записей + TTL для
+     * отчётов; отчёт удаляется после терминального статуса `apply`.
+     * Доступ — под `synchronized` (низкочастотные admin-вызовы, горячего пути нет).
+     */
+    private val plans = LinkedHashMap<String, CleanupPlan>()
+    private val runs = LinkedHashMap<String, CleanupRunStatus>()
     private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "artifact-cleanup") }
+
+    private fun putPlan(plan: CleanupPlan) {
+        synchronized(plans) {
+            plans[plan.planId] = plan
+            while (plans.size > MAX_RETAINED_PLANS) {
+                val eldest = plans.entries.iterator()
+                if (!eldest.hasNext()) break
+                eldest.next()
+                eldest.remove()
+            }
+        }
+    }
+
+    private fun getPlan(planId: String): CleanupPlan? {
+        synchronized(plans) {
+            val plan = plans[planId] ?: return null
+            if (isPlanExpired(plan)) {
+                plans.remove(planId)
+                return null
+            }
+            return plan
+        }
+    }
+
+    private fun isPlanExpired(plan: CleanupPlan): Boolean =
+        runCatching {
+            val generatedAt = LocalDateTime.parse(plan.generatedAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            generatedAt.plusMinutes(PLAN_TTL_MINUTES).isBefore(LocalDateTime.now())
+        }.getOrDefault(false)
+
+    private fun putRun(run: CleanupRunStatus) {
+        synchronized(runs) {
+            runs[run.runId] = run
+            while (runs.size > MAX_RETAINED_RUNS) {
+                val eldest = runs.entries.iterator()
+                if (!eldest.hasNext()) break
+                eldest.next()
+                eldest.remove()
+            }
+        }
+    }
+
+    private fun getRun(runId: String): CleanupRunStatus? = synchronized(runs) { runs[runId] }
+
+    private fun removePlan(planId: String) {
+        synchronized(plans) { plans.remove(planId) }
+    }
 
     /** Классы реестра для `GET /api/cleanup/classes`. */
     fun classes(): List<ArtifactCleanupClass> = ArtifactCleanupClass.entries.toList()
@@ -81,15 +149,17 @@ class ArtifactCleanupService(
             throw CleanupException(503, "journal_unavailable", "каталог журнала '${journal.journalDir}' недоступен для записи")
         }
         val plan = planner.plan(classId)
-        plans[plan.planId] = plan
+        putPlan(plan)
         return plan
     }
 
     /** Найти ранее построенный отчёт. */
-    fun planById(planId: String): CleanupPlan = plans[planId] ?: throw CleanupException(404, "unknown_plan", "отчёт '$planId' не найден; постройте новый plan")
+    fun planById(planId: String): CleanupPlan =
+        getPlan(planId) ?: throw CleanupException(404, "unknown_plan", "отчёт '$planId' не найден; постройте новый plan")
 
     /** Статус прогона. */
-    fun status(runId: String): CleanupRunStatus = runs[runId] ?: throw CleanupException(404, "unknown_run", "прогон '$runId' не найден")
+    fun status(runId: String): CleanupRunStatus =
+        getRun(runId) ?: throw CleanupException(404, "unknown_run", "прогон '$runId' не найден")
 
     /**
      * Запустить удаление по утверждённому отчёту.
@@ -152,11 +222,11 @@ class ArtifactCleanupService(
                 journalPath = journalPath,
                 approvedBy = approvedBy,
             )
-        runs[runId] = approved
+        putRun(approved)
 
         // Длительная операция не должна идти в HTTP-потоке (Constitution IV).
         executor.submit { run(plan, classId, approved, approvedBy) }
-        return runs[runId] ?: approved
+        return getRun(runId) ?: approved
     }
 
     private fun run(
@@ -165,7 +235,7 @@ class ArtifactCleanupService(
         approved: CleanupRunStatus,
         approvedBy: String,
     ) {
-        runs[approved.runId] = approved.copy(state = CleanupRunState.RUNNING)
+        putRun(approved.copy(state = CleanupRunState.RUNNING))
         var deleted = 0L
         var failed = 0L
         var freed = 0L
@@ -188,15 +258,16 @@ class ArtifactCleanupService(
                 failed++
                 journal.appendFailed(entry.path, size, classId.name, approvedBy, approved.runId, "delete failed")
             }
-            val current = runs[approved.runId] ?: approved
-            runs[approved.runId] =
+            val current = getRun(approved.runId) ?: approved
+            putRun(
                 current.copy(
                     state = CleanupRunState.RUNNING,
                     deletedCount = deleted,
                     failedCount = failed,
                     freedBytes = freed,
                     errors = errors.toList(),
-                )
+                ),
+            )
         }
 
         val finalState =
@@ -205,14 +276,17 @@ class ArtifactCleanupService(
                 failed > 0L -> CleanupRunState.PARTIAL
                 else -> CleanupRunState.DONE
             }
-        runs[approved.runId] =
+        putRun(
             approved.copy(
                 state = finalState,
                 deletedCount = deleted,
                 failedCount = failed,
                 freedBytes = freed,
                 errors = errors.toList(),
-            )
+            ),
+        )
+        // BR-111: терминальный прогон — отчёт больше не нужен, освобождаем память.
+        removePlan(plan.planId)
         println("[cleanup] прогон ${approved.runId} (${classId.name}): $finalState, удалено $deleted, ошибок $failed")
     }
 
@@ -226,7 +300,7 @@ class ArtifactCleanupService(
     ): CleanupRunStatus {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
-            val current = runs[runId] ?: throw CleanupException(404, "unknown_run", "прогон '$runId' не найден")
+            val current = getRun(runId) ?: throw CleanupException(404, "unknown_run", "прогон '$runId' не найден")
             if (current.state in setOf(CleanupRunState.DONE, CleanupRunState.PARTIAL, CleanupRunState.FAILED)) return current
             Thread.sleep(20)
         }

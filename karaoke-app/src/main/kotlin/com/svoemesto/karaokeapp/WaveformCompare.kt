@@ -2,7 +2,8 @@ package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.Song
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
+import java.util.LinkedHashMap
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -50,9 +51,26 @@ object WaveformCompare {
     private const val MAX_LAG_BASE_SEC = 45 // базовое окно поиска сдвига
     private const val MAX_LAG_MARGIN_SEC = 20 // запас поверх разницы длительностей
 
+    /**
+     * Верхняя граница кэша огибающих (BR-110, аудит #336).
+     *
+     * Раньше кэш был `ConcurrentHashMap` без вытеснения: каждая версия стема
+     * (ключ содержит `lastModified`) оставалась в памяти навсегда. 64 записи —
+     * это ~6 МБ при огибающей 100 Гц на 4-минутную песню (~96 КБ), что с
+     * запасом покрывает «текущая + кандидаты» одного прогона сверки.
+     */
+    internal const val ENVELOPE_CACHE_MAX_ENTRIES = 64
+
     // Кэш огибающих: при "Сверить все" текущая песня декодируется один раз, повторная "Сверить" — бесплатна.
     // Ключ учитывает mtime файла, чтобы после пересчёта стема кэш инвалидировался сам.
-    private val envelopeCache = ConcurrentHashMap<String, FloatArray>()
+    // accessOrder=true + removeEldestEntry — LRU, а не безграничный рост (BR-110).
+    private val envelopeCache: MutableMap<String, FloatArray> =
+        Collections.synchronizedMap(
+            object : LinkedHashMap<String, FloatArray>(16, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, FloatArray>?): Boolean =
+                    size > ENVELOPE_CACHE_MAX_ENTRIES
+            },
+        )
 
     fun compareWaveforms(
         current: Song,
@@ -103,7 +121,13 @@ object WaveformCompare {
         val cacheKey = "$audioPath|${file.lastModified()}|$frameRateHz"
         envelopeCache[cacheKey]?.let { return it }
         val env = computeEnvelope(audioPath) ?: return null
-        envelopeCache[cacheKey] = env
+        synchronized(envelopeCache) {
+            // BR-110: после пересчёта стема старый ключ того же пути (другой mtime)
+            // больше не нужен — удаляем его, чтобы LRU не вытеснял живые записи.
+            val pathPrefix = "$audioPath|"
+            envelopeCache.keys.removeAll { it.startsWith(pathPrefix) }
+            envelopeCache[cacheKey] = env
+        }
         return env
     }
 

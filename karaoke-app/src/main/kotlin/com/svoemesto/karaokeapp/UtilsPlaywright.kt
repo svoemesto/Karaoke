@@ -6,7 +6,9 @@ import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import org.slf4j.LoggerFactory
 
 private val log = LoggerFactory.getLogger("UtilsPlaywright")
@@ -38,14 +40,61 @@ fun main1() {
     }
 }
 
-var authLatch = CountDownLatch(1)
+/**
+ * Таймаут интерактивного auth-flow (BR-113, аудит #336).
+ *
+ * 10 минут — с запасом на ручной вход (SMS/2FA), но конечное значение: раньше
+ * `authLatch.await()` без таймаута навсегда занимал HTTP-поток Tomcat и оставлял
+ * живым видимый Chromium, если оператор закрыл вкладку и не вызвал `completeAuth()`.
+ */
+private const val AUTH_FLOW_TIMEOUT_MS = 10 * 60 * 1000L
 
-// Не даёт запустить второй auth-flow, пока не завершён предыдущий — иначе второй вызов
-// переписывает authLatch, и поток первого flow блокируется на уже "осиротевшем" latch навсегда.
-val authInProgress = AtomicBoolean(false)
+/**
+ * Состояние одного auth-flow (BR-113).
+ *
+ * Заменяет глобальный `var authLatch`, который `runAuthFlow` переприсваивал уже
+ * после `compareAndSet(false, true)`: `completeAuth()` из другого потока мог
+ * прочитать старый latch и отсчитать «не тот» объект. Теперь latch создаётся
+ * локально для запуска, а `complete()` всегда отсчитывает текущий.
+ */
+internal class AuthFlowGate(
+    private val timeoutMs: Long = AUTH_FLOW_TIMEOUT_MS,
+) {
+    private val inProgress = AtomicBoolean(false)
+    private val current = AtomicReference<CountDownLatch?>(null)
+
+    /** `null` — flow уже идёт; иначе latch этого запуска. */
+    fun tryStart(): CountDownLatch? {
+        if (!inProgress.compareAndSet(false, true)) return null
+        val latch = CountDownLatch(1)
+        current.set(latch)
+        return latch
+    }
+
+    /** Отпускает текущий flow (идемпотентно). */
+    fun complete() {
+        current.get()?.countDown()
+    }
+
+    /** Ожидание `complete()` с таймаутом; `false` — истёк таймаут/поток прерван. */
+    fun await(latch: CountDownLatch): Boolean =
+        try {
+            latch.await(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+
+    fun finish() {
+        current.set(null)
+        inProgress.set(false)
+    }
+}
+
+private val authGate = AuthFlowGate()
 
 fun completeAuth() {
-    authLatch.countDown()
+    authGate.complete()
 }
 
 // Общий каркас обоих auth-flow: гард от параллельного запуска, сброс latch, ожидание
@@ -57,14 +106,14 @@ private fun runAuthFlow(
     createContext: (Playwright) -> Pair<BrowserContext, () -> Unit>,
     onAuthorized: (BrowserContext) -> Unit,
 ) {
-    if (!authInProgress.compareAndSet(false, true)) {
-        println("Авторизация уже выполняется, дождитесь её завершения (completeAuth()) перед повторным запуском")
-        return
-    }
+    val latch =
+        authGate.tryStart()
+            ?: run {
+                println("Авторизация уже выполняется, дождитесь её завершения (completeAuth()) перед повторным запуском")
+                return
+            }
 
     try {
-        authLatch = CountDownLatch(1) // Сбрасываем latch
-
         Playwright.create().use { playwright ->
             val (context, closeContext) = createContext(playwright)
             val page = context.pages().firstOrNull() ?: context.newPage()
@@ -73,7 +122,16 @@ private fun runAuthFlow(
                 page.navigate(startUrl)
                 println(startMessage)
 
-                authLatch.await() // Блокируется до вызова countDown()
+                // BR-113: конечное ожидание. По таймауту контекст закрывается в finally,
+                // HTTP-поток возвращается, следующий auth-flow снова доступен.
+                if (!authGate.await(latch)) {
+                    log.warn(
+                        "auth-flow: истёк таймаут {} мс — браузер закрывается, авторизация не завершена; " +
+                            "повторите запуск и вызовите completeAuth()",
+                        AUTH_FLOW_TIMEOUT_MS,
+                    )
+                    return@use
+                }
 
                 onAuthorized(context)
             } catch (e: Exception) {
@@ -83,7 +141,7 @@ private fun runAuthFlow(
             }
         }
     } finally {
-        authInProgress.set(false)
+        authGate.finish()
     }
 }
 

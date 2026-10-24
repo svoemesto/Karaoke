@@ -150,6 +150,29 @@ CREATE
 Используется, чтобы при ручной отмене задание пошло в
 `WAITING` (а не `ERROR`) и было перезапущено.
 
+### Код возврата и ожидание завершения
+
+С аудита #336 (OpenProject #364, BR-029) воркер не «проглатывает»
+результат внешнего процесса:
+
+- после EOF слитого stdout (`redirectErrorStream(true)`, ADR-0006)
+  вызывается `awaitProcessExit(...)` (`ProcessExitGuard.kt`):
+  `waitFor(timeout)`, таймаут по умолчанию 60 с
+  (`KARAOKE_PROCESS_EXIT_TIMEOUT_SECONDS`), при превышении —
+  `destroyForcibly()` и `ProcessExitException`;
+- `exitValue() != 0` → `ProcessExitException` → статус `ERROR`
+  (`processExitFailure`): в сообщении есть команда, код, распознавание
+  типовых кодов docker/ffmpeg/melt и хвост stdout/stderr (stderr в нём
+  потому, что потоки слиты — R-43/ADR-0006);
+- единственное исключение из правила — `SHEETSAGE` с известным
+  `NotImplementedError` в последней строке: для него штатно создаётся
+  `SHEETSAGE2`, и ненулевой код не переводит задание в `ERROR`;
+- force-stop по-прежнему даёт `WAITING` (переигровка), а не `ERROR`.
+
+До исправления код возврата не проверялся вообще (`waitFor`/`exitValue`
+в файле отсутствовали): любой ненулевой exit от `docker compose run`,
+`ffmpeg` или `melt` давал «успешно завершено» и `DONE`.
+
 ### Парсинг stdout
 
 Известные regex'ы (см. KDoc + парсер в `KaraokeProcessThread.run()`):
@@ -278,5 +301,9 @@ Per-process force-stop в коде нет: остановка адресуетс
 
 ## Changelog
 
+- **2026-10-24, аудит #336 (OpenProject #364, BR-029)**: зафиксирован контракт
+  проверки кода возврата subprocess (`awaitProcessExit`/`processExitFailure`,
+  таймаут, stderr-хвост, исключение `SHEETSAGE`). Ранее документация уже
+  описывала `exit ≠ 0 → ERROR`, но код этого не делал.
 - **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).

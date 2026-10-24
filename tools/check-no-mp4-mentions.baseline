@@ -90,7 +90,14 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:a9df1388f63ea38b  # "маркер: если присутствует — бот прикрепит демо-MP4 видео к посту; сам маркер из текста удаляется",
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:b2e6e703f12b41ff  # * отрендеренный текст поста + флаг прикрепления демо-MP4 (маркер `{demoVideo}`).
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:e69fc027126b4bb6  # * - `{demoVideo}` — **маркер**: если присутствует в шаблоне, бот прикрепит демо-MP4
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/ProcessExitWiringTest.kt:99650c61235a74b2  # assertTrue(text.contains("File(outputPath).delete()"), "недописанный output.mp4 должен удаляться")
 karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt:ae926df2ff8b9cc5  # "Ария - Дай жару [Official Video].mp4",
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:20327ec237b7c9a2  # assertTrue(output.exists(), "успешный ffmpeg оставляет output.mp4")
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:2ecc12f88e99c99c  # assertFalse(output.exists(), "недописанный output.mp4 должен удаляться")
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:3b7b2b4df11117f7  # val output = File(tempDir, "output.mp4")
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:4b4cc96022dd3da6  # * вызывающий `executeRenderMp4` копировал недописанный mp4 в `done_files`.
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:896ac26f577e8d98  # assertFalse(output.exists(), "недописанный output.mp4 должен удаляться, иначе он уйдёт в done_files")
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:eef359f331305cea  # fun `ненулевой exit ffmpeg — исключение, недописанный mp4 удалён, 100 процентов не выставляется`() {
 karaoke-public/src/components/SongSubscriptionModal.vue:ba27e77096f45f35  # без передачи файлов и без возможности скачивания. Полные условия — в
 karaoke-public/src/player/KaraokePlayer.js:1cb66f470a7dc211  # // _offline/_forcedTime are otherwise always inert (the headless mp4 exporter only drives the
 karaoke-public/src/player/KaraokePlayer.js:377071c5e03475b2  # // fetch на стадии скачивания, но НЕ прерывает уже запущенный decodeAudioData (Web Audio API не

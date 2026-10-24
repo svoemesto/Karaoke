@@ -137,14 +137,22 @@ class PriceTariff(
                 storageApiClient = storageApiClient,
             ) as? PriceTariff?
 
+        /**
+         * Детерминированный выбор тарифа по умолчанию (BR-219): ровно один SELECT и явный порядок.
+         *
+         * Раньше делались два запроса, а выбор первого попавшегося default зависел от порядка
+         * выдачи СУБД без `ORDER BY` — при двух default (см. фикс TariffsController) возвращался
+         * произвольный тариф, и новая цена могла не применяться. Приоритет: default, затем
+         * `sortOrder`, затем `id`.
+         */
         fun getDefault(
             scope: String,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): PriceTariff? =
-            loadActiveByScope(scope, database, storageService, storageApiClient).firstOrNull { it.isDefault }
-                ?: loadActiveByScope(scope, database, storageService, storageApiClient).firstOrNull()
+            loadActiveByScope(scope, database, storageService, storageApiClient)
+                .minWithOrNull(compareByDescending<PriceTariff> { it.isDefault }.thenBy { it.sortOrder }.thenBy { it.id })
 
         fun createNew(
             scope: String,

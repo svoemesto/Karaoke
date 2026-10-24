@@ -13,10 +13,12 @@ import kotlinx.serialization.json.Json
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.server.ResponseStatusException
 import java.io.File
 
 /**
@@ -73,12 +75,27 @@ class MainController(
         return true
     }
 
-    // Обновить хранилище
+    // Обновить хранилище.
+    // BR-234/P-10-04: раньше вызывалось с `emptyList()` и `threadId = 1`, поэтому не копировалось
+    // ни одной песни и не создавалось ни одного задания 720p, а UI получал «успех». Теперь список
+    // грузится так же, как в API-зеркале, лейн — THREAD_LANE_HEAVY_RENDER (0), а наружу уходят
+    // реальные счётчики, чтобы «0 сделано» отличалось от успеха.
     @GetMapping("/utils/collectstore")
     @ResponseBody
-    fun doCollectStore(): Boolean {
-        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(emptyList(), threadId = 1)
-        return true
+    fun doCollectStore(): List<Int> {
+        val songList =
+            Song.loadListFromDb(
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                withoutMarkersAndText = true,
+            )
+        val (countCopy, countCode) =
+            collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
+                songList = songList,
+                threadId = KaraokeProcess.THREAD_LANE_HEAVY_RENDER,
+            )
+        return listOf(countCopy, countCode)
     }
 
     @PostMapping("/utils/censored")
@@ -445,6 +462,11 @@ class MainController(
             )
         text =
             song?.let {
+                // BR-235: неограниченный `voice` из URL приводил к паддингу списков до 10^8
+                // элементов и OOM всего JVM (вместе с очередью KaraokeProcess) — отклоняем до записи.
+                if (!isValidVoiceIndex(voice = voice, countVoices = song.countVoices)) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "bad_voice")
+                }
                 // specs/547: текст и маркеры одного голоса — одним сохранением (research R4).
                 song.setSourceTextAndMarkers(voice = voice, text = sourceText, markers = song.getSourceMarkers(voice))
                 song.updateMarkersFromSourceText(voice)
@@ -698,6 +720,10 @@ class MainController(
                 )
             text =
                 song?.let {
+                    // BR-235: см. saveSourceText — проверка диапазона до паддинга списков.
+                    if (!isValidVoiceIndex(voice = voice, countVoices = song.countVoices)) {
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "bad_voice")
+                    }
                     val markers =
                         try {
                             Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
@@ -1717,6 +1743,8 @@ class MainController(
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
         @RequestParam(required = false) filter_result_version: String?,
+        // BR-206/214: номер страницы legacy-списка; 1-based, вне диапазона → пустая страница.
+        @RequestParam(required = false) filter_page: Int?,
         model: Model,
     ): String {
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1743,16 +1771,23 @@ class MainController(
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute(
-            "song",
+        // BR-206/214: страница больше не отдаёт весь каталог (438 МиБ HTML). Берём LIMIT+1,
+        // чтобы отличить «последняя страница» от «есть следующая», без COUNT(*).
+        val page = normalizePageNumber(filter_page)
+        args["limit"] = (LEGACY_PAGE_SIZE + 1).toString()
+        args["offset"] = pageOffset(page).toString()
+        val loadedSongs =
             Song.loadListFromDb(
                 args,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
                 withoutMarkersAndText = true,
-            ),
-        )
+            )
+        model.addAttribute("song", loadedSongs.take(LEGACY_PAGE_SIZE))
+        model.addAttribute("page", page)
+        model.addAttribute("hasNext", loadedSongs.size > LEGACY_PAGE_SIZE)
+        model.addAttribute("hasPrev", page > 1)
         model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("albums", Song.loadListAlbums(WORKING_DATABASE))
         return "songs"
@@ -1775,7 +1810,10 @@ class MainController(
         @RequestParam(required = false) song_fileName: String,
         @RequestParam(required = false) song_rootFolder: String,
         @RequestParam(required = false) song_idBoosty: String,
-        @RequestParam(required = false) song_idBoostyFiles: String,
+        // BR-205/BR-213: этих полей нет ни в одной из legacy-форм (`songs.html`, `songs2.html`),
+        // поэтому параметр обязан быть nullable: иначе Spring передаёт null, а Kotlin-проверка
+        // non-null бросает NPE → 500 на каждом «Сохранить» (и правка теряется молча).
+        @RequestParam(required = false) song_idBoostyFiles: String?,
         @RequestParam(required = false) song_idVk: String,
         @RequestParam(required = false) song_idDzenLyrics: String,
         @RequestParam(required = false) song_idDzenKaraoke: String,
@@ -1786,7 +1824,7 @@ class MainController(
         @RequestParam(required = false) song_idTelegramLyrics: String,
         @RequestParam(required = false) song_idTelegramKaraoke: String,
         @RequestParam(required = false) song_idTelegramChords: String,
-        @RequestParam(required = false) song_resultVersion: String,
+        @RequestParam(required = false) song_resultVersion: String?,
         @RequestParam(required = false) select_status: String,
     ): String {
         val songId: Long = song_id.toLong()
@@ -1813,7 +1851,7 @@ class MainController(
             songValue.fields[SongField.BPM] = song_bpm
             songValue.fields[SongField.MS] = song_ms
             songValue.fields[SongField.ID_BOOSTY] = song_idBoosty
-            songValue.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
+            song_idBoostyFiles?.let { songValue.fields[SongField.ID_BOOSTY_FILES] = it }
             songValue.fields[SongField.ID_VK] = song_idVk
             songValue.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
             songValue.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
@@ -1824,7 +1862,8 @@ class MainController(
             songValue.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
             songValue.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
             songValue.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
-            songValue.fields[SongField.RESULT_VERSION] = song_resultVersion
+            // BR-205/BR-213: не передан — не затираем сохранённое значение (fail-closed).
+            song_resultVersion?.let { songValue.fields[SongField.RESULT_VERSION] = it }
             songValue.fields[SongField.ID_STATUS] = select_status
             songValue.saveToDb()
             // specs/544 (FR-006): sidecar-файл состояния не пишется.
@@ -1840,6 +1879,8 @@ class MainController(
         @RequestParam(required = false) filter_date_from: String?,
         @RequestParam(required = false) filter_date_to: String?,
         @RequestParam(required = false) filter_cond: String?,
+        // BR-200: строка расписания — день; 31 день на страницу вместо всего каталога.
+        @RequestParam(required = false) filter_page: Int?,
         model: Model,
     ): String {
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1847,16 +1888,19 @@ class MainController(
         filter_date_to?.let { if (filter_date_to != "") args["filter_date_to"] = filter_date_to }
         filter_cond?.let { if (filter_cond != "") args["filter_cond"] = filter_cond }
 
-        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute(
-            "publications",
+        val allPublications =
             Publication.getPublicationList(
                 args,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            ),
-        )
+            )
+        val page = normalizePageNumber(filter_page)
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
+        model.addAttribute("publications", pageSlice(allPublications, page, PUBLICATION_PAGE_SIZE))
+        model.addAttribute("page", page)
+        model.addAttribute("hasNext", hasNextPage(allPublications, page, PUBLICATION_PAGE_SIZE))
+        model.addAttribute("hasPrev", page > 1)
         return "publications"
     }
 
@@ -1906,6 +1950,8 @@ class MainController(
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
         @RequestParam(required = false) filter_result_version: String?,
+        // BR-206/214: номер страницы legacy-списка; 1-based, вне диапазона → пустая страница.
+        @RequestParam(required = false) filter_page: Int?,
         model: Model,
     ): String {
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1932,16 +1978,23 @@ class MainController(
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute(
-            "song",
+        // BR-206/214: страница больше не отдаёт весь каталог (438 МиБ HTML). Берём LIMIT+1,
+        // чтобы отличить «последняя страница» от «есть следующая», без COUNT(*).
+        val page = normalizePageNumber(filter_page)
+        args["limit"] = (LEGACY_PAGE_SIZE + 1).toString()
+        args["offset"] = pageOffset(page).toString()
+        val loadedSongs =
             Song.loadListFromDb(
                 args,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
                 withoutMarkersAndText = true,
-            ),
-        )
+            )
+        model.addAttribute("song", loadedSongs.take(LEGACY_PAGE_SIZE))
+        model.addAttribute("page", page)
+        model.addAttribute("hasNext", loadedSongs.size > LEGACY_PAGE_SIZE)
+        model.addAttribute("hasPrev", page > 1)
         model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("albums", Song.loadListAlbums(WORKING_DATABASE))
         return "songs2"
@@ -1964,7 +2017,10 @@ class MainController(
         @RequestParam(required = false) song_fileName: String,
         @RequestParam(required = false) song_rootFolder: String,
         @RequestParam(required = false) song_idBoosty: String,
-        @RequestParam(required = false) song_idBoostyFiles: String,
+        // BR-205/BR-213: этих полей нет ни в одной из legacy-форм (`songs.html`, `songs2.html`),
+        // поэтому параметр обязан быть nullable: иначе Spring передаёт null, а Kotlin-проверка
+        // non-null бросает NPE → 500 на каждом «Сохранить» (и правка теряется молча).
+        @RequestParam(required = false) song_idBoostyFiles: String?,
         @RequestParam(required = false) song_idVk: String,
         @RequestParam(required = false) song_idDzenLyrics: String,
         @RequestParam(required = false) song_idDzenKaraoke: String,
@@ -1975,7 +2031,7 @@ class MainController(
         @RequestParam(required = false) song_idTelegramLyrics: String,
         @RequestParam(required = false) song_idTelegramKaraoke: String,
         @RequestParam(required = false) song_idTelegramChords: String,
-        @RequestParam(required = false) song_resultVersion: String,
+        @RequestParam(required = false) song_resultVersion: String?,
         @RequestParam(required = false) select_status: String,
     ): String {
         val songId: Long = song_id.toLong()
@@ -2002,7 +2058,7 @@ class MainController(
             songValue.fields[SongField.BPM] = song_bpm
             songValue.fields[SongField.MS] = song_ms
             songValue.fields[SongField.ID_BOOSTY] = song_idBoosty
-            songValue.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
+            song_idBoostyFiles?.let { songValue.fields[SongField.ID_BOOSTY_FILES] = it }
             songValue.fields[SongField.ID_VK] = song_idVk
             songValue.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
             songValue.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
@@ -2013,7 +2069,8 @@ class MainController(
             songValue.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
             songValue.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
             songValue.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
-            songValue.fields[SongField.RESULT_VERSION] = song_resultVersion
+            // BR-205/BR-213: не передан — не затираем сохранённое значение (fail-closed).
+            song_resultVersion?.let { songValue.fields[SongField.RESULT_VERSION] = it }
             songValue.fields[SongField.ID_STATUS] = select_status
             songValue.saveToDb()
             // specs/544 (FR-006): sidecar-файл состояния не пишется.

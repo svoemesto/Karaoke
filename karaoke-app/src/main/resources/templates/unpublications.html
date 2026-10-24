@@ -5,8 +5,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
-    <script src="sockjs.js"></script>
-    <script src="stomp.js"></script>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
     <link rel="stylesheet" href="song_context.css">
@@ -172,19 +170,6 @@
 
 <script type="text/javascript">
 
-    var stompClient = null;
-
-    function connect() {
-        var socket = new SockJS('/api/message');
-        stompClient = Stomp.over(socket);
-        stompClient.connect({}, function(frame) {
-            console.log('Connected: ' + frame);
-            stompClient.subscribe('/api/messages/recordchange', function(recordchange){
-                console.log("Получено сообщение...");
-                updateSettingsFromMessage(JSON.parse(recordchange.body));
-            });
-        });
-    }
 
     function doPlay(id, name) {
         $.ajax({
@@ -352,7 +337,6 @@
     }
 
     $(function() {
-        connect();
     });
 
 </script>

@@ -5,8 +5,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
-    <script src="sockjs.js"></script>
-    <script src="stomp.js"></script>
 
     <title>Процессы</title>
     <style>
@@ -85,23 +83,24 @@
 
     <script type="text/javascript">
 
-        var stompClient = null;
 
-        function connect() {
-            var socket = new SockJS('/api/message');
-            stompClient = Stomp.over(socket);
-            stompClient.connect({}, function(frame) {
-                console.log('Connected: ' + frame);
-                stompClient.subscribe('/api/messages/processesrecordchange', function(recordchange){
-                    console.log("Получено сообщение...");
-                    updateProcessesFromMessage(JSON.parse(recordchange.body));
-                });
+        var prevWorkingId = 0;
+
+        // BR-201/P-26-02: STOMP-брокера в karaoke-app нет (WebSocketConfig удалён в 2024-08-15,
+        // остался только в karaoke-web — другой процесс/порт), а точка подключения на этом же
+        // origin отдаёт 404. Вместо мёртвой подписки — опрос уже существующего эндпоинта
+        // GET /process/lastupdated; при изменениях страница перезагружается.
+        var lastProcessPollMs = Date.now();
+
+        function pollProcessChanges() {
+            $.getJSON('/process/lastupdated', {lastTime: lastProcessPollMs}, function (ids) {
+                if (ids && ids.length > 0) {
+                    location.reload();
+                }
             });
         }
 
-
-
-        var prevWorkingId = 0;
+        setInterval(pollProcessChanges, 5000);
 
         function updateWorkingProcess() {
 
@@ -267,7 +266,6 @@
 
         $(function() {
 
-            connect();
             var isWorkingElement = document.getElementById("isworking");
             isWorkingElement.innerText = getIsWorkingStatus();
             //

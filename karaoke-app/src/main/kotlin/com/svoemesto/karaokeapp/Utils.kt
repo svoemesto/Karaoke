@@ -925,44 +925,84 @@ fun setSongToSyncRemoteTable(ids: List<Long>): List<String> {
 
     val chunkedSize = 10
 
-    if (listToDelete.isNotEmpty()) {
+    // BR-251: очистку очереди синхронизации нельзя делать, если сервер не подтвердил DELETE:
+    // иначе при отказе CREATE записи уже удалены из очереди, а UI рапортует успех.
+    val deleteChunks = listToDelete.chunked(chunkedSize)
+    if (deleteChunks.isNotEmpty()) {
         println("[${Timestamp.from(Instant.now())}] Запрос на сервер на удаление.")
-
-        val chunked = listToDelete.chunked(chunkedSize)
-        chunked.forEach { lstToDelete ->
-            val values: Map<String, Any> =
-                mapOf(
-                    "dataCreate" to emptyList<Map<String, Any>>(),
-                    "dataUpdate" to emptyList<Map<String, Any>>(),
-                    "dataDelete" to lstToDelete,
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
-                )
-
-            val objectMapper = ObjectMapper()
-            val requestBody: String = objectMapper.writeValueAsString(values)
-            SyncRemoteClient.postChangeRecords(requestBody)
+        val confirmed =
+            postChunksConfirming(
+                chunks = deleteChunks,
+                buildBody = { lstToDelete -> changeRecordsBody(emptyList(), emptyList(), lstToDelete) },
+                send = { requestBody -> SyncRemoteClient.postChangeRecords(requestBody) },
+            )
+        if (confirmed < deleteChunks.size) {
+            println("[${Timestamp.from(Instant.now())}] Сервер не подтвердил удаление из очереди синхронизации — прекращаем.")
+            return emptyList()
         }
     }
 
-    if (listToCreate.isNotEmpty()) {
+    val createChunks = listToCreate.chunked(chunkedSize)
+    if (createChunks.isNotEmpty()) {
         println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
-        val chunked = listToCreate.chunked(chunkedSize)
-        chunked.forEach { lstToCreate ->
-            val values: Map<String, Any> =
-                mapOf(
-                    "dataCreate" to lstToCreate,
-                    "dataUpdate" to emptyList<Map<String, Any>>(),
-                    "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
-                )
-
-            val objectMapper = ObjectMapper()
-            val requestBody: String = objectMapper.writeValueAsString(values)
-            SyncRemoteClient.postChangeRecords(requestBody)
+        val confirmed =
+            postChunksConfirming(
+                chunks = createChunks,
+                buildBody = { lstToCreate -> changeRecordsBody(lstToCreate, emptyList(), emptyList()) },
+                send = { requestBody -> SyncRemoteClient.postChangeRecords(requestBody) },
+            )
+        if (confirmed < createChunks.size) {
+            println("[${Timestamp.from(Instant.now())}] Сервер не подтвердил добавление в очередь синхронизации — возвращаем пустой результат.")
+            return emptyList()
         }
     }
 
     return listToCreateNames
+}
+
+/**
+ * Тело запроса `POST /changerecords`: списки операций + зашифрованное слово-маркер.
+ * `null` — не удалось зашифровать `word`, и такой чанк нельзя отправлять как SQL (BR-251).
+ */
+private fun changeRecordsBody(
+    dataCreate: List<Map<String, Any>>,
+    dataUpdate: List<Map<String, Any>>,
+    dataDelete: List<Map<String, Any>>,
+): Map<String, Any>? {
+    val word = Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: return null
+    return mapOf(
+        "dataCreate" to dataCreate,
+        "dataUpdate" to dataUpdate,
+        "dataDelete" to dataDelete,
+        "word" to word,
+    )
+}
+
+/**
+ * Отправляет чанки строго по одному и считает ПОДТВЕРЖДЁННЫЕ (BR-251/P-07-01).
+ *
+ * Раньше `SyncRemoteClient.postChangeRecords(...)` возвращал `Boolean`, но результат
+ * игнорировался: при 401/500/таймауте синхронизация рапортовала успех, а в move-режиме
+ * удаляла строки из источника — данные терялись и в цели, и в источнике.
+ *
+ * @param buildBody тело чанка; `null` трактуется как сбой этого чанка (шифрование не удалось).
+ * @param send отправка; `false` — цель не подтвердила чанк.
+ * @return число подтверждённых подряд чанков (0 — первый же отказ). Отправка прекращается
+ *   на первом отказе, чтобы не гнать остальные чанки в заведомо недоступную цель.
+ */
+internal fun postChunksConfirming(
+    chunks: List<List<Map<String, Any>>>,
+    buildBody: (List<Map<String, Any>>) -> Map<String, Any>?,
+    send: (String) -> Boolean,
+): Int {
+    var confirmed = 0
+    for (chunk in chunks) {
+        val body = buildBody(chunk) ?: break
+        val requestBody = ObjectMapper().writeValueAsString(body)
+        if (!send(requestBody)) break
+        confirmed++
+    }
+    return confirmed
 }
 
 /**
@@ -975,6 +1015,12 @@ data class SyncResult(
     val updated: List<String>,
     val deleted: List<String>,
     val moved: List<String>,
+    /**
+     * BR-251/P-07-01: цель не подтвердила (или не удалось зашифровать) хотя бы один чанк.
+     * При `true` списки пусты, а источник НЕ очищался: вызывающий код обязан показать ошибку,
+     * а не «успех». Добавлено в конец, чтобы деструктуризация `val (c, u, d) = ...` не сломалась.
+     */
+    val error: Boolean = false,
 )
 
 fun updateRemotePictureFromLocalDatabase(id: Long): SyncResult =
@@ -1126,6 +1172,10 @@ fun updateDatabases(
         if (!ok) return SyncResult(emptyList(), emptyList(), emptyList(), emptyList())
     }
 
+    // BR-251: цель (SERVER) может не подтвердить чанк (401/500/таймаут). Пока не подтверждены
+    // ВСЕ чанки, нельзя ни считать операцию успешной, ни чистить источник в move-режиме.
+    var targetConfirmed = true
+
     if (toDatabase.name == "SERVER") {
         // Полнострочные операции (INSERT/UPDATE) — по весу самой тяжёлой из синхронизируемых таблиц
         // (минимум per-table rowChunkSize), удаления — по общему большому DELETE_CHUNK_SIZE (payload
@@ -1134,59 +1184,47 @@ fun updateDatabases(
 
         if (listToCreate.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
-            val chunked = listToCreate.chunked(rowChunk)
-            chunked.forEach { lstToCreate ->
-                val values: Map<String, Any> =
-                    mapOf(
-                        "dataCreate" to lstToCreate,
-                        "dataUpdate" to emptyList<Map<String, Any>>(),
-                        "dataDelete" to emptyList<Map<String, Any>>(),
-                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
-                    )
-
-                val objectMapper = ObjectMapper()
-                val requestBody: String = objectMapper.writeValueAsString(values)
-                SyncRemoteClient.postChangeRecords(requestBody)
-            }
+            val chunks = listToCreate.chunked(rowChunk)
+            val confirmed =
+                postChunksConfirming(
+                    chunks = chunks,
+                    buildBody = { lstToCreate -> changeRecordsBody(lstToCreate, emptyList(), emptyList()) },
+                    send = { requestBody -> SyncRemoteClient.postChangeRecords(requestBody) },
+                )
+            if (confirmed < chunks.size) targetConfirmed = false
         }
 
-        if (listToDelete.isNotEmpty()) {
+        if (targetConfirmed && listToDelete.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на удаление.")
-
-            val chunked = listToDelete.chunked(SyncRegistry.DELETE_CHUNK_SIZE)
-            chunked.forEach { lstToDelete ->
-                val values: Map<String, Any> =
-                    mapOf(
-                        "dataCreate" to emptyList<Map<String, Any>>(),
-                        "dataUpdate" to emptyList<Map<String, Any>>(),
-                        "dataDelete" to lstToDelete,
-                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
-                    )
-
-                val objectMapper = ObjectMapper()
-                val requestBody: String = objectMapper.writeValueAsString(values)
-                SyncRemoteClient.postChangeRecords(requestBody)
-            }
+            val chunks = listToDelete.chunked(SyncRegistry.DELETE_CHUNK_SIZE)
+            val confirmed =
+                postChunksConfirming(
+                    chunks = chunks,
+                    buildBody = { lstToDelete -> changeRecordsBody(emptyList(), emptyList(), lstToDelete) },
+                    send = { requestBody -> SyncRemoteClient.postChangeRecords(requestBody) },
+                )
+            if (confirmed < chunks.size) targetConfirmed = false
         }
 
-        if (listToUpdate.isNotEmpty()) {
+        if (targetConfirmed && listToUpdate.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на изменение.")
-
-            val chunked = listToUpdate.chunked(rowChunk)
-            chunked.forEach { lstToUpdate ->
-                val values: Map<String, Any> =
-                    mapOf(
-                        "dataCreate" to emptyList<Map<String, Any>>(),
-                        "dataUpdate" to lstToUpdate,
-                        "dataDelete" to emptyList<Map<String, Any>>(),
-                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
-                    )
-
-                val objectMapper = ObjectMapper()
-                val requestBody: String = objectMapper.writeValueAsString(values)
-                SyncRemoteClient.postChangeRecords(requestBody)
-            }
+            val chunks = listToUpdate.chunked(rowChunk)
+            val confirmed =
+                postChunksConfirming(
+                    chunks = chunks,
+                    buildBody = { lstToUpdate -> changeRecordsBody(emptyList(), lstToUpdate, emptyList()) },
+                    send = { requestBody -> SyncRemoteClient.postChangeRecords(requestBody) },
+                )
+            if (confirmed < chunks.size) targetConfirmed = false
         }
+    }
+
+    if (!targetConfirmed) {
+        println(
+            "[${Timestamp.from(Instant.now())}] Цель ${toDatabase.name} не подтвердила часть изменений — " +
+                "операция прервана, источник не очищается.",
+        )
+        return SyncResult(emptyList(), emptyList(), emptyList(), emptyList(), error = true)
     }
 
     // Режим «перемещение»: удаляем перенесённые строки из ИСТОЧНИКА. Делаем это ПОСЛЕ всех записей в
@@ -3552,52 +3590,62 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
 //    return result
 // }
 
+/**
+ * Порядок перебора авторов для поиска нового альбома: ровно один круг, начиная со следующего
+ * после [lastAuthor] (BR-266/P-07-09).
+ *
+ * Раньше `getAuthorForRequest` был рекурсивным без множества посещённых и без предела глубины:
+ * если ни один автор не подходил, функция обходила список по кругу и падала `StackOverflowError`
+ * (при единственном авторе — сразу). `Error` не ловился `catch (e: Exception)` в
+ * `KaraokeProcessWorker.doStart`, и поток очереди останавливался до ручного перезапуска.
+ * Плюс каждый уровень рекурсии заново делал `SELECT` всех авторов и загрузку картинок.
+ *
+ * @return список кандидатов без повторов; для одного автора — из одного элемента.
+ */
+internal fun authorRequestOrder(
+    listSongAuthors: List<String>,
+    lastAuthor: String,
+): List<String> {
+    if (listSongAuthors.isEmpty()) return emptyList()
+    val lastIndex = listSongAuthors.indexOf(lastAuthor)
+    val startIndex = if (lastIndex < 0) 0 else (lastIndex + 1) % listSongAuthors.size
+    return List(listSongAuthors.size) { offset -> listSongAuthors[(startIndex + offset) % listSongAuthors.size] }
+}
+
 fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     val listSongAuthors = Song.loadListAuthors(database = WORKING_DATABASE)
     if (listSongAuthors.isEmpty()) return null
     val requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
 
-    val authorForRequest =
-        if (requestNewSongLastSuccessAuthor == "") {
-            listSongAuthors.first()
-        } else {
-            var result = ""
-            listSongAuthors.forEachIndexed { indexAuthor, author ->
-                if (author == requestNewSongLastSuccessAuthor) {
-                    result =
-                        if (indexAuthor < listSongAuthors.size - 1) {
-                            listSongAuthors[indexAuthor + 1]
-                        } else {
-                            listSongAuthors[0]
-                        }
-                    return@forEachIndexed
-                }
-            }
-            if (result == "") result = listSongAuthors.first()
-            result
+    // BR-266: один проход по списку вместо неограниченной рекурсии; список авторов читается один раз.
+    for (authorForRequest in authorRequestOrder(listSongAuthors, requestNewSongLastSuccessAuthor)) {
+        var author =
+            Author.getAuthorByName(
+                author = authorForRequest,
+                database = WORKING_DATABASE,
+                storageService = KSS_APP,
+                storageApiClient = SAC_APP,
+            )
+
+        if (author == null) {
+            val newAuthor = Author()
+            newAuthor.author = authorForRequest
+            Author.createNewAuthor(newAuthor = newAuthor, database = WORKING_DATABASE)
+            author = newAuthor
+            println("Автор «$authorForRequest» отсутствует в таблице tbl_authors. Создаём запись.")
         }
-    var author =
-        Author.getAuthorByName(
-            author = authorForRequest,
-            database = WORKING_DATABASE,
-            storageService = KSS_APP,
-            storageApiClient = SAC_APP,
-        )
 
-    if (author == null) {
-        val newAuthor = Author()
-        newAuthor.author = authorForRequest
-        Author.createNewAuthor(newAuthor = newAuthor, database = WORKING_DATABASE)
-        author = newAuthor
-        println("Автор «$authorForRequest» отсутствует в таблице tbl_authors. Создаём запись.")
-    }
-
-    if (author.watched && author.ymId !== "" && author.lastAlbumYm == author.lastAlbumProcessed) {
-        return author
-    } else {
+        // `ymId != ""` (не `!==`): сравнение строк по ссылке пропускало автора с пустым ym_id,
+        // из-за чего `searchLastAlbumYm3("")` запрашивал несуществующий альбом и мог зафиксировать
+        // ротацию на нём (P-07-10).
+        if (author.watched && author.ymId != "" && author.lastAlbumYm == author.lastAlbumProcessed) {
+            return author
+        }
         println("Поиск для автора «$authorForRequest» не нужен, ищем другого автора...")
-        return getAuthorForRequest(authorForRequest)
     }
+
+    println("Ни один автор не требует поиска нового альбома — проверять некого.")
+    return null
 }
 
 /**

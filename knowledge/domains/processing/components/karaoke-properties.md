@@ -148,6 +148,19 @@ KaraokeProperties.set(key, value)
 MP4 в MinIO не перекодируются автоматически. Для перекодировки —
 отдельный эпик «re-render all».
 
+- **Писателей несколько, файл один (BR-244).** `set()` (админский
+  `/api/properties/setproperty`), `TelegramUpdatesConsumer`, очередь
+  `KaraokeProcessWorker` и `VkIdTokenRefreshScheduler` пишут один и тот же файл. Контракт:
+  цикл «изменить карту → закодировать → записать» идёт под `propertiesWriteLock`
+  (`ReentrantLock`), временный файл создаётся `Files.createTempFile(...)` на вызов, а
+  `writePropertiesFileAtomic` дополнительно сериализуется JVM-локом (её вызывают и напрямую
+  из тестов/скриптов). Общий `<имя>.tmp` возвращать нельзя: второй писатель получал
+  `NoSuchFileException`, и настройка оставалась только в памяти.
+- **`set()` не сообщает об ошибке записи (остаточный риск, за владельцем).** Исключение
+  записи ловится и печатается в stdout, HTTP отвечает `200`. Если браться за это место,
+  сначала сделать `savePropertiesMap()` возвращающим результат — иначе «ложный успех»
+  сохранится.
+
 ## Связанные ADR | Related ADRs
 
 - ADR по admin UI для KaraokeProperties (TODO).

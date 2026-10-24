@@ -272,7 +272,7 @@ private fun getLyricsSearchViaSearchTool(
     // прекращаем обработку остальных URL (HTTP-запрос НЕ делается).
     for (searchResult in searchedRightResults) {
         val url = searchResult.url
-        val lyrics = lyricsFinderService.extractLyricsFromUrl(url)
+        val lyrics = lyricsFinderService.extractLyricsFromUrl(url, artist = song.author, songTitle = song.songName)
         if (!lyrics.isNullOrBlank()) {
             println("Успешное извлечение текста по ссылке $url, символов: ${lyrics.length}")
             searchResult.text = lyrics

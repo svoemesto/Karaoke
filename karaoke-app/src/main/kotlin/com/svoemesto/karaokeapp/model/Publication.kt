@@ -1538,23 +1538,16 @@ class Publication(
                 }
             }
 
-            var i = 0
-            listStack.maxOfOrNull { it.size }?.let {
-                while (it > 0) {
-                    i++
-                    val publicationInList: MutableList<Publication> = mutableListOf()
-                    for (i in listUnpublished.indices) {
-                        val publication = Publication(database)
-                        publication.publish10 =
-                            if (listStack[i].isNotEmpty()) {
-                                listStack[i].pop()
-                            } else {
-                                null
-                            }
-                        publicationInList.add(publication)
-                    }
-                    result.add(publicationInList)
+            // BR-188: условие выхода читает живое состояние стопок (см. popPublicationStacks).
+            val publicationRows = popPublicationStacks(listStack)
+            publicationRows.forEach { row ->
+                val publicationInList: MutableList<Publication> = mutableListOf()
+                row.forEach { song ->
+                    val publication = Publication(database)
+                    publication.publish10 = song
+                    publicationInList.add(publication)
                 }
+                result.add(publicationInList)
             }
 
             return result
@@ -1601,23 +1594,16 @@ class Publication(
                 }
             }
 
-            var i = 0
-            listStack.maxOfOrNull { it.size }?.let {
-                while (it > 0) {
-                    i++
-                    val publicationInList: MutableList<Publication> = mutableListOf()
-                    for (i in listUnpublished.indices) {
-                        val publication = Publication(database)
-                        publication.publish10 =
-                            if (listStack[i].isNotEmpty()) {
-                                listStack[i].pop()
-                            } else {
-                                null
-                            }
-                        publicationInList.add(publication)
-                    }
-                    result.add(publicationInList)
+            // BR-188: условие выхода читает живое состояние стопок (см. popPublicationStacks).
+            val publicationRows = popPublicationStacks(listStack)
+            publicationRows.forEach { row ->
+                val publicationInList: MutableList<Publication> = mutableListOf()
+                row.forEach { song ->
+                    val publication = Publication(database)
+                    publication.publish10 = song
+                    publicationInList.add(publication)
                 }
+                result.add(publicationInList)
             }
 
             return result
@@ -1823,4 +1809,25 @@ class Publication(
                 withoutMarkersAndText = true,
             )
     }
+}
+
+/**
+ * Раскладывает стопки публикаций в строки расписания (одна строка — один слот у каждого автора).
+ *
+ * BR-188/P-17-01: раньше условие цикла брало `listStack.maxOfOrNull { it.size }` — захваченное
+ * значение, которое внутри тела не менялось. При непустом списке неопубликованных песен цикл
+ * не завершался никогда (`result` рос до `OutOfMemoryError`), а раздел «Un-Публикации» не
+ * открывался. Теперь условие читает живое состояние стопок, а каждая итерация гарантированно
+ * опустошает хотя бы одну из них.
+ */
+internal fun <T> popPublicationStacks(stacks: List<Stack<T?>>): MutableList<MutableList<T?>> {
+    val rows = mutableListOf<MutableList<T?>>()
+    while (stacks.any { it.isNotEmpty() }) {
+        rows.add(
+            stacks
+                .map { stack -> if (stack.isNotEmpty()) stack.pop() else null }
+                .toMutableList(),
+        )
+    }
+    return rows
 }

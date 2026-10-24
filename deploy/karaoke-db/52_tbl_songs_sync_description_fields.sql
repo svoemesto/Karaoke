@@ -355,9 +355,11 @@ WHERE id > 0;
 -- ==========================================================================================
 -- 1. Убедиться, что в админке не идёт пакет «Добавить в SYNC» (БД не в середине синхронизации)
 --    и что 50 уже применена: 52 пересобирает ту же функцию, порядок «50 → 52» важен.
--- 2. LOCAL:  psql -f deploy/karaoke-db/52_tbl_songs_sync_description_fields.sql
--- 3. PROD:   docker exec -i karaoke-db psql -U postgres -d karaoke \
+-- 2. LOCAL:  psql -v ON_ERROR_STOP=1 -f deploy/karaoke-db/52_tbl_songs_sync_description_fields.sql
+-- 3. PROD:   docker exec -i karaoke-db psql -v ON_ERROR_STOP=1 -U postgres -d karaoke \
 --              < /root/Karaoke/deploy/karaoke-db/52_tbl_songs_sync_description_fields.sql
+--    -v ON_ERROR_STOP=1 обязателен: без него psql продолжает после ошибки, и проверка
+--    DO $$ (BR-553) не остановит применение.
 -- 4. Проверить на ОБЕИХ БД состав колонок и тело функции:
 --      \d tbl_songs_sync | grep -E 'status_process_demo|id_tariff|description|warning'
 --      SELECT prosrc FROM pg_proc WHERE proname = 'update_tbl_songs_sync_recordhash';

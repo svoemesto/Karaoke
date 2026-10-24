@@ -122,8 +122,8 @@ SET recordhash = md5(
 -- ==========================================================================================
 -- Runbook применения (миграции — manual, knowledge/system/infra/sql-migrations.md, Решение 4)
 -- ==========================================================================================
--- 1. LOCAL:  psql -f deploy/recordhash_authors.sql
--- 2. PROD:   docker exec -i karaoke-db psql -U postgres -d karaoke \
+-- 1. LOCAL:  psql -v ON_ERROR_STOP=1 -f deploy/recordhash_authors.sql
+-- 2. PROD:   docker exec -i karaoke-db psql -v ON_ERROR_STOP=1 -U postgres -d karaoke \
 --              < /root/Karaoke/deploy/recordhash_authors.sql
 -- 3. Проверить на ОБЕИХ БД, что тело функции содержит 17 колонок и все — с NEW.:
 --      SELECT prosrc FROM pg_proc WHERE proname = 'update_tbl_authors_recordhash';

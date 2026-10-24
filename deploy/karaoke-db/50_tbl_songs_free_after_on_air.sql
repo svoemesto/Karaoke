@@ -541,8 +541,10 @@ UPDATE public.tbl_songs_sync SET recordhash = md5(
 -- ==========================================================================================
 -- 1. Подключиться к прод-серверу: ssh root@${PROD_HOST:-<server>}
 -- 2. Применить этот файл на прод-БД (идемпотентно):
---      docker exec -i karaoke-db psql -U postgres -d karaoke \
+--      docker exec -i karaoke-db psql -v ON_ERROR_STOP=1 -U postgres -d karaoke \
 --        < /root/Karaoke/deploy/karaoke-db/50_tbl_songs_free_after_on_air.sql
+--    -v ON_ERROR_STOP=1 обязателен: без него psql продолжает после ошибки, и проверка
+--    DO $$ ниже (BR-553) не остановит применение.
 -- 3. Проверить:
 --      docker exec karaoke-db psql -U postgres -d karaoke \
 --        -c "\d tbl_songs" | grep free_after_on_air

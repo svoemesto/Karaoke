@@ -67,6 +67,16 @@ P-04, P-08, P-09, P-18): очередь заданий и `mediainfo` (поте�
   (`failedCount`, `failedReason`).
 - **BR-069** — `extractlyricsbysearchresultid`: `ResponseEntity` + явный 404.
 - **BR-070** — `/api/files`: 404 «путь не найден» / 400 «не каталог» вместо подмены на `/`.
+- **BR-072/080/083** — геттеры `Song` больше не пишут в БД и не запускают процессы:
+  `sourceMarkersList` (чистый разбор + явная `migrateSourceMarkersFormat`),
+  `songLengthMs`/`getMltProp` (пустые маркеры — не ошибка), `ms` (чистое чтение +
+  `refreshDurationMsFromAudioFile`).
+- **BR-076/077/081** — валидация аппликатур и индексов: `voice in indices`,
+  `clampTabsVariantIndex`, `parseLockedStringLad` с фолбэком на автоподбор строя.
+- **BR-082** — тишина перед первым слогом считается по непустым голосам.
+- **BR-085** — `getKeyBpmFromFile` через `parseKeyBpmFileOrNull` (битый файл — `WARN` + пустой
+  результат, шаг цепочки не падает).
+- **BR-086** — все интерполируемые значения в HTML аккордов/табов проходят `escapeHtml()`.
 - **BR-114** — `AdminApiTokenFilter`: при заданном `karaoke.security.admin-token`
   admin-префиксы требуют заголовок `X-Admin-Token` (иначе 401); без токена
   поведение прежнее, но в лог уходит `WARN`. Механизм аутентификации —
@@ -93,6 +103,11 @@ P-04, P-08, P-09, P-18): очередь заданий и `mediainfo` (поте�
   файл сохраняется копией.
 - `/api/song/{id}/playerfile` не собирает архив в памяти (стрим в ответ), а
   ffmpeg-конвертация стема не может висеть бесконечно.
+- Геттеры `Song` (`sourceMarkersList`, `ms`, `songLengthMs`, `getMltProp`) не меняют БД
+  и не запускают внешние процессы; миграция формата разметки и заполнение `song_ms` —
+  только явными операциями.
+- Пустые маркеры (`source_markers = "[]"`) — штатное состояние: длительность 0,
+  рендер не падает, аппликатуры/индекс строя валидируются.
 
 ## Ссылки
 

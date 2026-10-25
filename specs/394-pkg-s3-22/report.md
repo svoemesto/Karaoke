@@ -187,6 +187,31 @@ BR-065 (`parsePeriodDate` → `null`, старый `LocalDate.parse` → `DateTi
 `OneShotThreadWiringTest` (сырые одноразовые потоки запрещены — утечка thread-local соединения);
 итог — вывод ffmpeg в временный файл, без потока.
 
+## Партия 3 (P-18a): BR-072, BR-076, BR-077, BR-080, BR-081, BR-082, BR-083, BR-085, BR-086 — закрыто (9 записей)
+
+Все правки — в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`.
+
+| BR | Было | Стало |
+|---|---|---|
+| BR-072 | `sourceMarkersList` при неразбираемом JSON перезаписывал `source_markers` и вызывал `saveToDb()` — чтение уничтожало разметку | чистый разбор `parseSourceMarkersOrEmpty`: пустой список + `ERROR` с `songId`/значением; миграция формата — только явная `migrateSourceMarkersFormat()` |
+| BR-076 | `sourceMarkersList[voice]` без проверки размера; `variants.minOf` на пустом списке | проверка `voice in indices` и пустых `variants` → пустой результат + `WARN` |
+| BR-077 | `size.coerceAtMost(index)` давал `size` (на 1 больше последнего индекса) → `IndexOutOfBoundsException` | `clampTabsVariantIndex` → `coerceIn(0, size-1)`, пустой список → 0 |
+| BR-080 | `maxOf`/`[0]` на пустых маркерах → `NoSuchElementException`/`IndexOutOfBounds` | `maxOfOrNull ?: 0`, `firstOrNull() ?: emptyList()`, `firstOrNull() ?: 0L` |
+| BR-081 | `stringLad.split("|")`/`toInt()`/`stringNote[string]` без валидации — падение рендера табов | `parseLockedStringLad` (0..5, лад ≥ 0) + фолбэк на автоподбор строя + `WARN` |
+| BR-082 | минимум по ВСЕМ голосам: один голос без SYLLABLES/NOTE → `NoSuchElementException` → тихие 5000 мс (сдвиг разметки до 5 с) | минимум по непустым голосам (`minOfOrNull … minOrNull`), пусто — 0, сбой — `WARN` с id |
+| BR-083 | геттер `ms` запускал `ffprobe` и писал `UPDATE`; при недоступном файле — subprocess на КАЖДОЕ чтение | геттер — чистое чтение `song_ms`; заполнение — явная `refreshDurationMsFromAudioFile()` |
+| BR-085 | `getKeyBpmFromFile`: `Json.decodeFromString` без `try/catch` — битый файл ронял шаг цепочки | через `parseKeyBpmFileOrNull`: `null` → `WARN` + `Pair("", 0)`, шаг деградирует |
+| BR-086 | `originalKey`/`newKey`/`capo`/`noteOctave` вставлялись в HTML без экранирования | все интерполируемые значения — `escapeHtml()` (defense-in-depth до «мягкой» починки парсера нот) |
+
+Тесты — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PkgS322SongTest.kt` (13 тестов).
+Поведенческие: BR-072 (неразбираемое значение не переписывается и не открывает соединение —
+`FakeKaraokeConnection.getConnectionCalls == 0`), BR-076/080/082 (старая реплика падает,
+новая возвращает пустой/нулевой результат), BR-077 (`coerceAtMost` vs `clampTabsVariantIndex`),
+BR-081 (`parseLockedStringLad` на невалидных значениях), BR-083 (чтение не ходит в БД),
+BR-085 (битый JSON → `null`). Статический guard: BR-086 (все четыре значения проходят
+`escapeHtml()`, в HTML не осталось неэкранированного `$originalKey`) — сам HTML-путь
+аккордов сейчас недостижим без падения парсера нот (`P-18-01`, S2, вне этого пакета).
+
 ## Оговорки
 
 - **`check-subagent-isolation.sh` падает на общих предках веток.** Скрипт считает
@@ -197,6 +222,24 @@ BR-065 (`parsePeriodDate` → `null`, старый `LocalDate.parse` → `DateTi
   `origin/master`. Требует решения владельца/инфраструктуры (проверять только
   коммиты «своей» ветки, а не общую историю).
 
-## Остаток
+## Остаток (передаётся следующему исполнителю)
 
-Партии 3–4 (Song.kt: BR-072…BR-086, BR-103, BR-105, BR-106, BR-107) — в работе.
+**Закрыто 30 из 40 записей.** Осталось 10 — все в `model/Song.kt`, сгруппированы по риску:
+
+| BR | Карточка | Суть (из карточки) |
+|---|---|---|
+| BR-073 | P-18-03 | геттер `rootFolder` мутирует `_rootFolder` и делает `UPDATE tbl_songs SET root_folder` из геттера; эвристика подбора корня не проверяет однозначность (чужой каталог) |
+| BR-074 | P-18-04 | геттеры `pictureAuthor`/`pictureAlbum` — read-путь, который пишет: INSERT `tbl_pictures`, заливка в MinIO, `saveToDb()`; флаг готовности ставится по локальному файлу до проверки в хранилище; `ImageIO.read` без проверки на `null` |
+| BR-075 | P-18-05 | `player_readiness_flags`: read-modify-write одного JSON без блокировки/версии — два потока затирают ключи друг друга |
+| BR-078 | P-18-08 | парсер `sheetsageInfo`: `substring(1, length-2)`, destructuring `split`, индексы `beattimes[...]`, `toDouble()` — без проверок, исключения наружу |
+| BR-079 | P-18-09 | `sheetsageInfo` возвращает `Map<String, Any>` с необязательными ключами — потребители читают `as String`/`as List<String>` (NPE). Нужен типизированный `SheetsageInfo` |
+| BR-084 | P-18-14 | `player_readiness_flags` парсится заново на каждое чтение каждого из ~20 флагов; `sourceMarkersList` — тоже; нужна мемоизация с инвалидацией при записи поля |
+| BR-103 | P-18-20 | `normalizeVoicesBeforeSave()` нормализует устаревший снимок голосов: добавленный редактором голос исчезает при сохранении долгоживущего объекта; нужен трёхсторонний diff/мерж по голосам |
+| BR-105 | P-18-22 | `filter_count_voices` применяется в памяти и опирается на заглушку `"[[]]"` при `withoutMarkersAndText = true` → `countVoices == 1` у всех песен; нужен SQL (`jsonb_array_length`) или загрузка `source_markers` |
+| BR-106 | P-18-23 | `deleteFromDb(withFiles = true)`: файлы удаляются ДО строки, вокал/аккомпанемент — `deleteOnExit()`, `ps.executeUpdate()` без `use/try` (при `SQLException` строка остаётся, аудио уже удалено) |
+| BR-107 | P-18-24 | `createDbInstance` ловит ЛЮБУЮ ошибку INSERT, «лечит» сиквенс и возвращает `null`; `saveToDb` игнорирует `null` → песня с `id = 0` уходит в процессы |
+
+Все десять — S3-«данные/гонки» в модели `Song` (крупные, с риском регрессии: затрагивают
+сохранение, импорт и геттеры, от которых зависят DDL/рендер). Для них нужен отдельный
+проход с прогоном `:karaoke-app:test` целиком и проверкой `RecordHash`-консистентности
+(см. `BR-103` — merge голосов связан с `getDiff`/`saveToDbLocked`).

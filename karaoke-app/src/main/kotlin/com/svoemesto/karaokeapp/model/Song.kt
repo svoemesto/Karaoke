@@ -261,59 +261,74 @@ class Song(
             _rootFolder = value
         }
 
+    /**
+     * Длительность аудиофайла песни, мс.
+     *
+     * BR-083 (аудит #336, пакет PKG-S3-22): геттер больше НЕ запускает `ffprobe` и НЕ пишет
+     * `UPDATE tbl_songs SET song_ms = …`. Раньше обычное чтение свойства (в том числе из DTO
+     * списка и из эндпоинта границ демо) порождало subprocess, а при недоступном файле —
+     * ещё и subprocess на КАЖДОЕ обращение. Теперь: чистое чтение сохранённого значения,
+     * отсутствие — `0`; заполнение — явной операцией [refreshDurationMsFromAudioFile]
+     * (импорт/анализ/редактор).
+     */
     var ms: Long
-        get() {
-            val value = fields[SongField.MS]?.toLongOrNull() ?: 0L
-            return if (value == 0L) {
-                val argForDurationFromAudioFileMs =
-                    listOf(
-                        "ffprobe",
-                        "-v",
-                        "error",
-                        "-show_entries",
-                        "format=duration",
-                        "-of",
-                        "default=noprint_wrappers=1:nokey=1",
-                        fileAbsolutePath,
-                    )
-                val durationFromAudioFileMs =
-                    try {
-                        val tmp =
-                            try {
-                                ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
-                            } catch (_: Exception) {
-                                val message = "runCommand - Ошибка получения длительности аудиофайла для песни $fileName. Параметры вызова: $argForDurationFromAudioFileMs"
-                                throw RuntimeException(message)
-                            }
-                        fields[SongField.MS] = tmp.toString()
-                        val sql = "UPDATE tbl_songs SET song_ms = ? WHERE id = ?"
-                        val connection = database.getConnection()
-                        if (connection == null) {
-                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                            return 0L
-                        }
-                        val ps = connection.prepareStatement(sql)
-                        ps.setLong(1, tmp)
-                        ps.setLong(2, id)
-                        try {
-                            ps.executeUpdate()
-                        } catch (e: Exception) {
-                            val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
-                            println(errorMessage)
-                        }
-                        ps.close()
-                        tmp
-                    } catch (_: Exception) {
-                        0
-                    }
-                durationFromAudioFileMs
-            } else {
-                value
-            }
-        }
+        get() = fields[SongField.MS]?.toLongOrNull() ?: 0L
         set(value) {
             fields[SongField.MS] = value.toString()
         }
+
+    /**
+     * Явное заполнение [ms] по аудиофайлу (`ffprobe`), BR-083.
+     *
+     * Вызывать осознанно (импорт, анализ, рендер), а не из геттера. Ошибка внешнего CLI —
+     * `WARN` с путём и `0`, без исключения: шаг цепочки не должен падать из-за метаданных.
+     *
+     * @return длительность в мс (0 — файл недоступен/`ffprobe` не ответил)
+     */
+    fun refreshDurationMsFromAudioFile(): Long {
+        val stored = ms
+        if (stored > 0L) return stored
+        val args =
+            listOf(
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                fileAbsolutePath,
+            )
+        val durationMs =
+            try {
+                ((runCommand(args).trim().toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+            } catch (e: Exception) {
+                sourceMarkersLog.warn(
+                    "refreshDurationMsFromAudioFile: ffprobe не дал длительность (songId={}, файл='{}'): {}",
+                    id,
+                    fileAbsolutePath,
+                    e.toString(),
+                )
+                0L
+            }
+        if (durationMs <= 0L) return 0L
+        fields[SongField.MS] = durationMs.toString()
+        val connection = database.getConnection()
+        if (connection == null) {
+            sourceMarkersLog.warn("refreshDurationMsFromAudioFile: нет соединения с БД {} — song_ms не сохранён", database.name)
+            return durationMs
+        }
+        connection.prepareStatement("UPDATE tbl_songs SET song_ms = ? WHERE id = ?").use { ps ->
+            ps.setLong(1, durationMs)
+            ps.setLong(2, id)
+            try {
+                ps.executeUpdate()
+            } catch (e: Exception) {
+                sourceMarkersLog.warn("refreshDurationMsFromAudioFile: song_ms не сохранён (songId={}): {}", id, e.toString())
+            }
+        }
+        return durationMs
+    }
 
     var fileName: String = ""
 //    val rightSettingFileName: String get() {
@@ -442,22 +457,73 @@ class Song(
             fields[SongField.SOURCE_MARKERS] = value
         }
 
+    /**
+     * Разметка песни по голосам.
+     *
+     * BR-072 (аудит #336, пакет PKG-S3-22): геттер больше НЕ пишет в БД. Раньше при
+     * неразбираемом JSON он перезаписывал `source_markers` результатом разбора и вызывал
+     * `saveToDb()` — обычное ЧТЕНИЕ объекта уничтожало разметку (`"[]"`), если не разобрался
+     * ни multi-voice, ни одиночный формат. Теперь: fallback + `ERROR` с `songId` и исходной
+     * строкой; миграция формата — явная операция ([migrateSourceMarkersFormat]).
+     */
     @get:JsonIgnore
-    val sourceMarkersList: List<List<SourceMarker>> get() {
-        return try {
-            Json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), sourceMarkers)
+    val sourceMarkersList: List<List<SourceMarker>> get() = parseSourceMarkersOrEmpty(sourceMarkers)
+
+    /**
+     * Разбор `source_markers` без побочных эффектов: multi-voice формат, при неудаче —
+     * одиночный голос, при неудаче — пустой список (BR-072).
+     */
+    internal fun parseSourceMarkersOrEmpty(raw: String): List<List<SourceMarker>> =
+        try {
+            Json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), raw)
         } catch (_: Exception) {
-            val data =
-                try {
-                    listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-                } catch (_: Exception) {
-                    println("Не удалось десериализовать поле sourceMarkers для песни $fileName")
-                    emptyList()
-                }
-            sourceMarkers = Json.encodeToString(data)
-            saveToDb()
-            data
+            try {
+                listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), raw))
+            } catch (_: Exception) {
+                sourceMarkersLog.error(
+                    "Не удалось десериализовать source_markers (songId={}, файл='{}'): значение '{}'",
+                    id,
+                    fileName,
+                    raw,
+                )
+                emptyList()
+            }
         }
+
+    /**
+     * Явная миграция формата `source_markers` (BR-072): единственное место, где разбор
+     * «одиночного» формата превращается в запись. Вызывать осознанно (health-action/импорт),
+     * а не из геттера; исходное значение теряется только здесь и осознанно.
+     *
+     * @return `true`, если формат требовал миграции и он был переписан
+     */
+    fun migrateSourceMarkersFormat(): Boolean {
+        val raw = sourceMarkers
+        try {
+            Json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), raw)
+            return false
+        } catch (_: Exception) {
+            // падаем дальше: возможно, это одиночный формат
+        }
+        val single =
+            try {
+                listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), raw))
+            } catch (_: Exception) {
+                sourceMarkersLog.error(
+                    "migrateSourceMarkersFormat: значение не разбирается, миграция отменена (songId={}, файл='{}')",
+                    id,
+                    fileName,
+                )
+                return false
+            }
+        sourceMarkersLog.warn(
+            "migrateSourceMarkersFormat: одиночный формат source_markers переписан в multi-voice (songId={}, файл='{}')",
+            id,
+            fileName,
+        )
+        sourceMarkers = Json.encodeToString(single)
+        saveToDb()
+        return true
     }
 
     @get:JsonIgnore
@@ -494,6 +560,9 @@ class Song(
     // specs/547-drop-empty-song-voices: WARN-лог нормализации голосов — факт удаления и fail-safe
     // при нечитаемых данных (FR-012). Категория по конвенции infra.<subsystem>.<feature>.
     private val voiceNormalizeLog = LoggerFactory.getLogger("infra.song.voices")
+
+    /** Логгер разметки/маркеров (BR-072/076/077/078/080/081/082, PKG-S3-22). */
+    private val sourceMarkersLog = LoggerFactory.getLogger("infra.song.markers")
 
     @get:JsonIgnore
     val sourceUnmute: List<Pair<Double, Double>> get() {
@@ -1886,13 +1955,20 @@ class Song(
                 runCommand(args = arg, skipRunFunctionWithArgs = true, envs = envs)
             }
         }
+        // BR-085 (аудит #336, пакет PKG-S3-22): нечитаемый/недописанный `<file> [key].json`
+        // ронял шаг цепочки исключением (`Json.decodeFromString` без try/catch). Теперь —
+        // уже существующий безопасный разбор `parseKeyBpmFileOrNull`: при неудаче `WARN`
+        // и `Pair("", 0)`, шаг цепочки деградирует, а не падает. `println` пути — в лог.
+        val fromFile = parseKeyBpmFileOrNull(pathToFileKeyBpmFinder)
+        if (fromFile != null) {
+            return Pair(fromFile.key!!, fromFile.bpm!!)
+        }
         if (File(pathToFileKeyBpmFinder).exists()) {
-            println(pathToFileKeyBpmFinder)
-            val text = File(pathToFileKeyBpmFinder).readText(Charsets.UTF_8)
-            val data = Json.decodeFromString(AudioAnalysisResult.serializer(), text)
-            if (data.key != null && data.bpm != null) {
-                return Pair(data.key, data.bpm)
-            }
+            sourceMarkersLog.warn(
+                "getKeyBpmFromFile: файл '{}' есть, но не разобран (songId={}) — ключ/темп не получены",
+                pathToFileKeyBpmFinder,
+                id,
+            )
         }
         return Pair("", 0)
     }
@@ -2695,17 +2771,25 @@ class Song(
     @get:JsonIgnore
     var voicesForMlt: List<SongVoice> = emptyList()
 
+    /**
+     * Длительность песни по END-маркеру, мс.
+     *
+     * BR-080 (аудит #336, пакет PKG-S3-22): `maxOf` на пустом списке голосов бросал
+     * `NoSuchElementException`, а пустой список — штатное состояние (`source_markers = "[]"`).
+     * Теперь `maxOfOrNull … ?: 0` — 0 для песни без маркеров.
+     */
     val songLengthMs: Long get() =
         (
-            sourceMarkersList.maxOf { marker ->
-                marker
-                    .firstOrNull {
-                        it.markertype == Markertype.SETTING.value &&
-                            it.label == "END"
-                    }?.time
-                    ?: 0.0
-            } *
-                1000
+            (
+                sourceMarkersList.maxOfOrNull { marker ->
+                    marker
+                        .firstOrNull {
+                            it.markertype == Markertype.SETTING.value &&
+                                it.label == "END"
+                        }?.time
+                        ?: 0.0
+                } ?: 0.0
+            ) * 1000
         ).toLong()
 
     val endTimecode: String get() = convertMillisecondsToTimecode(songLengthMs)
@@ -2834,7 +2918,9 @@ class Song(
         mltProp.setCountVoices(countVoices)
 
         // setSongCapo - лад каподастра
-        val markers = this.sourceMarkersList[0]
+        // BR-080: `sourceMarkersList[0]` до этой правки падал на пустом списке голосов —
+        // заменяем на явный пустой список и не разыменовываем [0].
+        val markers = this.sourceMarkersList.firstOrNull() ?: emptyList()
         val capo =
             markers
                 .firstOrNull { marker -> marker.markertype == Markertype.SETTING.value && marker.label.startsWith("CAPO|") }
@@ -3334,7 +3420,9 @@ class Song(
         // Заполняем TransformProperty для HEADER
         // Изначально HEADER на экране. Начинать убираться вверх он должен в момент появления первого каунтера и делать это в течение 2 тактов (4 полу ноты)
         // Начинать показываться сверху в конце песни HEADER должен в момент окончания последней текстовой строки, но не позже чем за 4 такта до конца песни
-        val startTimeFirstCounterMs = timesForFlashList[0]
+        // BR-080: список времён FLASH пуст, если ни у одного голоса нет текстовых строк —
+        // `[0]` падал `IndexOutOfBoundsException`; для пустого случая берём начало песни.
+        val startTimeFirstCounterMs = timesForFlashList.firstOrNull() ?: 0L
         val endTimeHidingHeaderMs =
             startSilentOffsetMs +
                 (
@@ -3519,24 +3607,38 @@ class Song(
     @Suppress("unused")
     fun getSongDurationVideoMsTimecode() = convertMillisecondsToTimecode(getSongDurationVideoMs())
 
+    /**
+     * Тишина перед первым слогом, мс.
+     *
+     * BR-082 (аудит #336, пакет PKG-S3-22): раньше минимум считался по ВСЕМ голосам сразу:
+     * если хотя бы один голос не содержал ни `SYLLABLES`-, ни `NOTE`-маркеров, внутренний
+     * `minOf` бросал `NoSuchElementException`, его глушил общий `catch`, и функция молча
+     * возвращала 5000 мс — сдвиг всей разметки относительно аудио до 5 секунд. Теперь минимум
+     * по НЕПУСТЫМ голосам, пустой случай — явный 0, сбой — `WARN` с id песни.
+     */
     fun getStartSilentOffsetMs(): Long {
-        val timeFirstSyllable =
+        val firstSyllableMs =
             try {
-                (
-                    sourceMarkersList.minOf { lstMarkers ->
-                        lstMarkers
-                            .filter { marker ->
-                                marker.markertype in
-                                    listOf(Markertype.SYLLABLES.value, Markertype.NOTE.value)
-                            }.map { it.time }
-                            .minOf { it }
-                    } *
-                        1000
-                ).toLong()
-            } catch (_: Exception) {
+                val firstMarkers =
+                    sourceMarkersList
+                        .mapNotNull { lstMarkers ->
+                            lstMarkers
+                                .filter { marker ->
+                                    marker.markertype in
+                                        listOf(Markertype.SYLLABLES.value, Markertype.NOTE.value)
+                                }.minOfOrNull { it.time }
+                        }.minOrNull()
+                ((firstMarkers ?: 0.0) * 1000).toLong()
+            } catch (e: Exception) {
+                sourceMarkersLog.warn(
+                    "getStartSilentOffsetMs: сбой расчёта первого слога (songId={}, файл='{}') — принят 0",
+                    id,
+                    fileName,
+                    e,
+                )
                 0L
             }
-        return if (timeFirstSyllable > 5000L) 0L else 5000L - timeFirstSyllable
+        return if (firstSyllableMs > 5000L) 0L else 5000L - firstSyllableMs
     }
 
     // Демо-режим онлайн-плеера: "первый куплет" = текст группы 0 (по умолчанию currentGroupId=0 —
@@ -4078,7 +4180,65 @@ class Song(
         val diff: Int,
     )
 
+    /**
+     * Разбор зафиксированной пользователем аппликатуры `stringLad` (`"5|3"`), BR-081.
+     *
+     * @return `null`, если значение невалидно (нет разделителя, не число, струна вне 0..5
+     *   или отрицательный лад) — вызывающий падает обратно на автоматический подбор строя.
+     */
+
+    /**
+     * Безопасный индекс варианта строя (BR-077, аудит #336, пакет PKG-S3-22).
+     *
+     * Было `size.coerceAtMost(index)` — при `index >= size` возвращался `size`, то есть на
+     * единицу больше последнего валидного индекса → `IndexOutOfBoundsException` на следующей
+     * строке. Теперь `coerceIn(0, size - 1)`, а для пустого списка — 0.
+     */
+    internal fun clampTabsVariantIndex(
+        index: Int,
+        size: Int,
+    ): Int = if (size <= 0) 0 else index.coerceIn(0, size - 1)
+
+    internal fun parseLockedStringLad(raw: String): GuitarStringLad? {
+        val parts = raw.split("|")
+        if (parts.size != 2) {
+            sourceMarkersLog.warn("parseLockedStringLad: ожидался формат 'струна|лад', получено '{}' (songId={})", raw, id)
+            return null
+        }
+        val string = parts[0].trim().toIntOrNull()
+        val lad = parts[1].trim().toIntOrNull()
+        if (string == null || lad == null || string !in 0..5 || lad < 0) {
+            sourceMarkersLog.warn(
+                "parseLockedStringLad: невалидная аппликатура '{}' (струна={}, лад={}, songId={}) — автоподбор",
+                raw,
+                string,
+                lad,
+                id,
+            )
+            return null
+        }
+        return GuitarStringLad(string = string, lad = lad)
+    }
+
+    /**
+     * Варианты аппликатур (строй/лад) для всех нот голоса [voice].
+     *
+     * BR-076 (аудит #336, пакет PKG-S3-22): раньше `sourceMarkersList[voice]` брался без проверки
+     * размера (`IndexOutOfBoundsException` при несуществующем голосе), а `variants.minOf { … }`
+     * падал `NoSuchElementException`, когда ни одна нота не нашлась в таблицах струн (пустой
+     * `variants`). Теперь: несуществующий голос — пустой результат, пустые варианты — пустой
+     * список (как уже было для пустых `markersNotes`).
+     */
     fun getStringsForAllNotesInSong(voice: Int): List<List<DiffGuitarStringLad>> {
+        if (voice !in sourceMarkersList.indices) {
+            sourceMarkersLog.warn(
+                "getStringsForAllNotesInSong: голос {} отсутствует (songId={}, голосов={}) — пустой результат",
+                voice,
+                id,
+                sourceMarkersList.size,
+            )
+            return emptyList()
+        }
         val markersNotes = this.sourceMarkersList[voice].filter { it.note != "" }.map { it.note }
         if (markersNotes.isEmpty()) return emptyList()
         val notes = markersNotes.toSet().toList() // Уникальный список нот в песне
@@ -4126,6 +4286,17 @@ class Song(
             }
         }
 
+        // BR-076: `variants` пуст, если ни одна нота песни не нашлась в таблицах струн —
+        // `minOf` падал `NoSuchElementException`; пустой результат для UI осмысленнее.
+        if (variants.isEmpty()) {
+            sourceMarkersLog.warn(
+                "getStringsForAllNotesInSong: нет ни одного варианта аппликатуры (songId={}, голос={}, нот={})",
+                id,
+                voice,
+                markersNotes.size,
+            )
+            return emptyList()
+        }
         val minDiffLad = variants.minOf { it.diff }
         return variants.filter { it.diff == minDiffLad }.map { it.listDiffGuitarStringLad }
     }
@@ -4164,9 +4335,17 @@ class Song(
                     val originalKey = originalNote + originalMinor
                     val newKey = getTransposingChord(originalKey, capo)
 
-                    var lineCapo = spanStyleCapo + "Каподастр на $capo-м ладу" + spanEnd + br
-                    lineCapo += spanStyleCapo + "Оригинальная тональность: $originalKey" + spanEnd + br
-                    lineCapo += spanStyleCapo + "Аккорды для тональности: $newKey" + spanEnd + br
+                    // BR-086 (аудит #336, пакет PKG-S3-22): HTML собирается конкатенацией, и
+                    // `originalKey`/`newKey` (из поля `key` редактора) попадали в разметку БЕЗ
+                    // экранирования. Сейчас путь инъекции закрыт случайно (падение
+                    // `getTransposingChord`), но после «мягкой» починки парсера нота — прямой
+                    // stored XSS в `v-html` публичной страницы. Экранируем всё интерполируемое.
+                    val capoSafe = capo.toString().escapeHtml()
+                    val originalKeySafe = originalKey.escapeHtml()
+                    val newKeySafe = newKey.escapeHtml()
+                    var lineCapo = spanStyleCapo + "Каподастр на $capoSafe-м ладу" + spanEnd + br
+                    lineCapo += spanStyleCapo + "Оригинальная тональность: $originalKeySafe" + spanEnd + br
+                    lineCapo += spanStyleCapo + "Аккорды для тональности: $newKeySafe" + spanEnd + br
                     result += lineCapo + br
                 }
                 markers.forEach { marker ->
@@ -4328,7 +4507,10 @@ class Song(
         for (voice in 0 until countVoices) {
             val stringsForAllNotesArray = getStringsForAllNotesInSong(voice)
             if (stringsForAllNotesArray.isEmpty()) break
-            val indexStringsForAllNotes = stringsForAllNotesArray.size.coerceAtMost(indexTabsVariant)
+            // BR-077 (аудит #336, пакет PKG-S3-22): `coerceAtMost(size)` давал индекс == size —
+            // на единицу больше последнего валидного, и следующая строка падала
+            // `IndexOutOfBoundsException`. `indexTabsVariant` приходит из БД/API без валидации.
+            val indexStringsForAllNotes = clampTabsVariantIndex(indexTabsVariant, stringsForAllNotesArray.size)
 
             val spanStyleNote = """<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
             val spanStyleTabLine = """<span style="color: #66BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
@@ -4401,19 +4583,30 @@ class Song(
                             noteOctave = if (noteParts.size > 1) noteParts[1] else ""
                             val noteLength = note.length
                             // Находим номер струны и номер лада, подставляем их в массив stringNote
+                            // BR-081 (аудит #336, пакет PKG-S3-22): `stringLad` — свободная строка
+                            // маркера из черновика редактора. Раньше `split("|")` падал
+                            // `IndexOutOfBounds` без разделителя, `toInt()` — `NumberFormatException`
+                            // на нечисле, а `stringNote[string]` — `ArrayIndexOutOfBounds` при
+                            // string вне 0..5. Теперь невалидное значение — `WARN` и фолбэк на
+                            // автоматический подбор строя (ветка else), без падения рендера.
+                            val lockedStringLad = parseLockedStringLad(marker.stringLad)
                             val sn =
-                                if (marker.lockLad.toBoolean()) {
-                                    val (stringTxt, ladTxt) = marker.stringLad.split("|")
-                                    DiffGuitarStringLad(
-                                        diff = 0,
-                                        guitarStringLad = GuitarStringLad(string = stringTxt.toInt(), lad = ladTxt.toInt()),
-                                    )
+                                if (marker.lockLad.toBoolean() && lockedStringLad != null) {
+                                    DiffGuitarStringLad(diff = 0, guitarStringLad = lockedStringLad)
                                 } else {
                                     stringsForAllNotes[stringsForAllNotesIndex]
                                 }
                             val stringIndex = sn.guitarStringLad.string
-                            val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "-" else ""}"
-                            stringNote[stringIndex] = lad
+                            if (stringIndex !in stringNote.indices) {
+                                sourceMarkersLog.warn(
+                                    "getFormattedTabs: струна {} вне диапазона 0..5 (songId={}) — пропущено",
+                                    stringIndex,
+                                    id,
+                                )
+                            } else {
+                                val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "-" else ""}"
+                                stringNote[stringIndex] = lad
+                            }
                             stringsForAllNotesIndex++
 
                             // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
@@ -4448,7 +4641,8 @@ class Song(
                             stringNote = mutableListOf("-", "-", "-", "-", "-", "-")
                         }
 
-                        lineNotes += spanStyleNote + noteHtml + spanEnd + spanStyleOctave + noteOctave + spanEnd
+                        // BR-086: октава приходит из маркера редактора — экранируем.
+                        lineNotes += spanStyleNote + noteHtml + spanEnd + spanStyleOctave + noteOctave.escapeHtml() + spanEnd
                         lineText += spanStyleText + txtHtml + spanEnd
                         if (!endOfWord) {
                             lineText += "$spanStyleDefis-$spanEnd"
@@ -4490,7 +4684,10 @@ class Song(
         for (voice in 0 until countVoices) {
             val stringsForAllNotesArray = getStringsForAllNotesInSong(voice)
             if (stringsForAllNotesArray.isEmpty()) break
-            val indexStringsForAllNotes = stringsForAllNotesArray.size.coerceAtMost(indexTabsVariant)
+            // BR-077 (аудит #336, пакет PKG-S3-22): `coerceAtMost(size)` давал индекс == size —
+            // на единицу больше последнего валидного, и следующая строка падала
+            // `IndexOutOfBoundsException`. `indexTabsVariant` приходит из БД/API без валидации.
+            val indexStringsForAllNotes = clampTabsVariantIndex(indexTabsVariant, stringsForAllNotesArray.size)
 
             val br = "\n"
             val stringsForAllNotes = stringsForAllNotesArray[indexStringsForAllNotes]
@@ -4557,19 +4754,26 @@ class Song(
                             noteOctave = if (noteParts.size > 1) noteParts[1] else ""
                             val noteLength = note.length
                             // Находим номер струны и номер лада, подставляем их в массив stringNote
+                            // BR-081: см. первый (аналогичный) блок в getFormattedTabs — невалидный
+                            // `stringLad` даёт фолбэк на автоматический подбор строя, а не падение.
+                            val lockedStringLad = parseLockedStringLad(marker.stringLad)
                             val sn =
-                                if (marker.lockLad.toBoolean()) {
-                                    val (stringTxt, ladTxt) = marker.stringLad.split("|")
-                                    DiffGuitarStringLad(
-                                        diff = 0,
-                                        guitarStringLad = GuitarStringLad(string = stringTxt.toInt(), lad = ladTxt.toInt()),
-                                    )
+                                if (marker.lockLad.toBoolean() && lockedStringLad != null) {
+                                    DiffGuitarStringLad(diff = 0, guitarStringLad = lockedStringLad)
                                 } else {
                                     stringsForAllNotes[stringsForAllNotesIndex]
                                 }
                             val stringIndex = sn.guitarStringLad.string
-                            val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "⎼" else ""}"
-                            stringNote[stringIndex] = lad
+                            if (stringIndex !in stringNote.indices) {
+                                sourceMarkersLog.warn(
+                                    "getFormattedTabs: струна {} вне диапазона 0..5 (songId={}) — пропущено",
+                                    stringIndex,
+                                    id,
+                                )
+                            } else {
+                                val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "⎼" else ""}"
+                                stringNote[stringIndex] = lad
+                            }
                             stringsForAllNotesIndex++
                             // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
                             val vowelPosition = txt.getFirstVowelIndex()
@@ -4594,7 +4798,7 @@ class Song(
                             stringNote = mutableListOf("⎼", "⎼", "⎼", "⎼", "⎼", "⎼")
                         }
 
-                        lineNotes += noteHtml + noteOctave
+                        lineNotes += noteHtml + noteOctave.escapeHtml()
                         lineText += txtHtml
                         if (!endOfWord) {
                             lineText += "-"

@@ -209,6 +209,30 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 - **Не заменяйте проекцию на `Song.loadListFromDb(emptyMap())`** ради «единообразия»:
   это полная материализация ~100 полей на строку ради одной даты (было ровно так).
 
+### Геттеры `Song` не пишут и не запускают процессы (BR-072/080/083, PKG-S3-22)
+
+Правило после аудита #336: **чтение свойства не меняет БД и не запускает внешний CLI**.
+
+- `sourceMarkersList` — чистый разбор (`parseSourceMarkersOrEmpty`): неразбираемое значение
+  даёт пустой список и `ERROR` с `songId`/исходной строкой, но НЕ перезаписывает
+  `source_markers`. Явная миграция «одиночный формат → multi-voice» — только
+  `migrateSourceMarkersFormat()` (вызывается осознанно: health-action/импорт).
+  Раньше геттер при неудаче разбора писал `"[]"` и вызывал `saveToDb()` — обычное чтение
+  уничтожало разметку песни.
+- `ms` — чистое чтение сохранённого `song_ms` (0, если пусто). Заполнение — только явной
+  операцией `refreshDurationMsFromAudioFile()` (`ffprobe` + `UPDATE`), а не геттером: раньше
+  каждое чтение (включая DTO списка) порождало subprocess, а при недоступном файле —
+  subprocess на каждое обращение.
+- `songLengthMs`, `getMltProp`, `timesForFlashList[0]`, `getStartSilentOffsetMs` — устойчивы к
+  пустым маркерам: `maxOfOrNull ?: 0`, `firstOrNull()`, минимум по НЕПУСТЫМ голосам.
+  Пустой список — штатное состояние (`source_markers = "[]"`), а не ошибка.
+- `getStringsForAllNotesInSong` — проверяет `voice in sourceMarkersList.indices` и пустые
+  варианты аппликатур; `parseLockedStringLad` валидирует `stringLad` (0..5, лад ≥ 0) с
+  фолбэком на автоподбор строя; `clampTabsVariantIndex` не выпускает индекс за границу.
+- HTML аккордов/табов собирается конкатенацией: **все** интерполируемые значения
+  (`originalKey`, `newKey`, `capo`, `noteOctave`) обязаны проходить `escapeHtml()` —
+  иначе stored XSS в `v-html` публичной страницы.
+
 ## Hot paths
 
 - **`POST /api/songs`** — на каждое изменение фильтра/страницы.
@@ -238,6 +262,11 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 
 ## Changelog
 
+- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-072/076/077/080/081/082/083/085/086)**:
+  зафиксировано правило «геттеры не пишут и не запускают процессы», миграция формата
+  `source_markers` вынесена в явную операцию, пустые маркеры больше не роняют длительность/
+  рендер, добавлена валидация `stringLad`/индекса строя и экранирование HTML. См.
+  `specs/394-pkg-s3-22/report.md`.
 - **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-057)**: добавлена
   лёгкая проекция `Song.loadPublicationDateCandidates` / `PublicationDateCandidate`
   и общий разбор `parsePublishDateTime` для `Song.dateTimePublish`. См.

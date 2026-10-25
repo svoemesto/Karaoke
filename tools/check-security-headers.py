@@ -53,6 +53,20 @@ DEFAULT_FILES = (
     # BR-549 (порция P-73-11, OpenProject #393): SPA-контейнер публичного сайта. Раньше
     # guard его не видел — заголовки отсутствовали и в host-nginx, и здесь.
     "deploy/prod-single-host/nginx_karaoke-public.conf",
+    # Тот же конфиг в дереве приложения. Копий было две, и они РАЗОШЛИСЬ: в
+    # prod-single-host попали заголовки и лимит 200m, а в приложении остались
+    # заголовков нет и 1024m. Контейнер берёт конфиг с хоста (в образ он не
+    # копируется — Dockerfile кладёт только dist), поэтому проверять надо обе
+    # копии и требовать их равенства.
+    "karaoke-public/nginx_karaoke-public.conf",
+)
+
+# Копии, которые обязаны быть идентичны (иначе правка уходит не туда).
+MIRROR_PAIRS = (
+    (
+        "deploy/prod-single-host/nginx_karaoke-public.conf",
+        "karaoke-public/nginx_karaoke-public.conf",
+    ),
 )
 
 # Заголовки, обязательные для каждого server-блока.
@@ -416,6 +430,22 @@ def main() -> int:
             errors.append(f"{path}: файл не найден")
             continue
         errors.extend(check_file(path))
+
+    # Копии конфига обязаны совпадать: иначе правка уходит в один файл, а контейнер
+    # получает другой (контейнер берёт конфиг с хоста — в образ он не копируется).
+    if not args.files:
+        for left, right in MIRROR_PAIRS:
+            if not (os.path.isfile(left) and os.path.isfile(right)):
+                continue
+            with open(left, encoding="utf-8") as fh:
+                left_text = fh.read()
+            with open(right, encoding="utf-8") as fh:
+                right_text = fh.read()
+            if left_text != right_text:
+                errors.append(
+                    f"копии конфига разошлись: {left} и {right} — "
+                    "правка уходит не в тот файл (контейнер берёт конфиг с хоста)"
+                )
 
     if errors:
         if not args.quiet:

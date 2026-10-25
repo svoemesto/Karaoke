@@ -177,12 +177,25 @@ check_br039() {
 #   Значения переносятся в deploy/do.env (в .gitignore) и подставляются
 #   через ${WHISPER_API_KEY} / ${SEARXNG_SECRET}.
 # ---------------------------------------------------------------------
+# Проверка наличия паттерна в ЗАКОММИЧЕННОМ содержимом файла (git show HEAD:<path>).
+# Нужна там, где рабочая копия может быть stale (skip-worktree) или содержать
+# локальные значения, которых нет в репозитории.
+git_file_has() {
+    local pattern="$1" path="$2"
+    git -C "$REPO" show "HEAD:$path" 2>/dev/null | grep -qE "$pattern"
+}
+
 check_br040() {
     local br="BR-040"
     local leaks
-    leaks="$(grep -rlE 'nafanya_whisper_2026|i-love-my-wife-oxana' "$REPO/deploy" 2>/dev/null | sed "s|$REPO/||" || true)"
+    # Ищем ТОЛЬКО в отслеживаемых git файлах: deploy/do.env — локальный, gitignored
+    # файл с реальными значениями секретов (по решению BR-040 они живут там), и его
+    # наличие не является закоммиченной утечкой. Проверка по файловой системе давала
+    # ложное срабатывание на любой машине, где do.env заполнен.
+    leaks="$(git -C "$REPO" grep -lE 'nafanya_whisper_2026|i-love-my-wife-oxana' HEAD -- 'deploy/*' 2>/dev/null \
+        | sed "s|^HEAD:||" || true)"
     if [[ -z "$leaks" ]]; then
-        ok "$br" "в deploy/ нет закоммиченных значений WHISPER_API_KEY / SEARXNG_SECRET"
+        ok "$br" "в отслеживаемых файлах deploy/ нет значений WHISPER_API_KEY / SEARXNG_SECRET"
     else
         bad "$br" "закоммиченные секреты в: $(echo "$leaks" | tr '\n' ' ')"
     fi
@@ -202,7 +215,9 @@ check_br040() {
 
     # settings.yml: в репозитории — только плейсхолдер, который entrypoint
     # образа searxng подменяет на $SEARXNG_SECRET при старте контейнера.
-    if file_has 'secret_key:[[:space:]]*"ultrasecretkey"' "deploy/searxng-settings/settings.yml"; then
+    # Читаем ЗАКОММИЧЕННОЕ содержимое: локально файл может быть stale (skip-worktree),
+    # и тогда проверка видит старый реальный секрет, которого в git уже нет.
+    if git_file_has 'secret_key:[[:space:]]*"ultrasecretkey"' "deploy/searxng-settings/settings.yml"; then
         ok "$br" "searxng-settings/settings.yml: secret_key — плейсхолдер, реальный секрет не в git"
     else
         bad "$br" "searxng-settings/settings.yml: secret_key не плейсхолдер (реальный секрет в git)"
@@ -916,6 +931,16 @@ check_br548() {
 check_br550() {
     local br="BR-550"
     local f="deploy/prod-single-host/nginx_karaoke-public.conf"
+    # Лимит должен стоять в ОБЕИХ копиях конфига: контейнер берёт конфиг с хоста,
+    # а в дереве приложения лежит вторая копия — раньше они разошлись, и правка
+    # уходила только в одну из них.
+    for mirror in "karaoke-public/nginx_karaoke-public.conf"; do
+        if file_has 'client_max_body_size[[:space:]]+200m;' "$mirror"; then
+            ok "$br" "$mirror: лимит тела = 200m (вторая копия конфига)"
+        else
+            bad "$br" "$mirror: во второй копии конфига лимит тела не приведён к 200m"
+        fi
+    done
     if file_has 'client_max_body_size[[:space:]]+200m;' "$f"; then
         ok "$br" "$f: лимит тела = 200m (как у karaoke-web multipart)"
     else

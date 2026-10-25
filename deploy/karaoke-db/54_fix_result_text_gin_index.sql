@@ -15,8 +15,8 @@
 -- колонке. Прод-дамп (`deploy/new_comp/.../karaoke_clear_dump.sql:2146`) уже содержит корректное
 -- определение на tbl_songs — на проде миграция ничего не меняет, кроме пересоздания индекса.
 --
--- Идемпотентно: DROP IF EXISTS + CREATE IF NOT EXISTS. Таблица определяется по факту:
--- после 28_rename_settings_to_songs.sql это tbl_songs, на БД «до 28» — tbl_settings.
+-- Идемпотентно: DROP IF EXISTS + CREATE IF NOT EXISTS. Таблица — tbl_songs (старое имя
+-- tbl_settings переименовано миграцией 28; состояние «28 не применена» не поддерживается).
 -- Применять вручную на КАЖДОЙ БД отдельно (LOCAL + PROD), см.
 -- knowledge/system/infra/sql-migrations.md, Решение 4.
 --
@@ -32,13 +32,12 @@ DO $$
 DECLARE
     target regclass;
 BEGIN
-    target := COALESCE(
-        to_regclass('public.tbl_songs'),
-        to_regclass('public.tbl_settings')
-    );
+    -- В initdb-цепочке файл идёт после 28_rename_settings_to_songs.sql, поэтому таблица
+    -- называется tbl_songs. Состояние «миграция 28 ещё не применена» не поддерживается.
+    target := to_regclass('public.tbl_songs');
 
     IF target IS NULL THEN
-        RAISE NOTICE 'ни tbl_songs, ни tbl_settings не найдены — миграция не применима';
+        RAISE NOTICE 'tbl_songs не найдена — миграция не применима';
         RETURN;
     END IF;
 

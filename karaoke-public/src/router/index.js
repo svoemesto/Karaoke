@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { trackUi } from '../services/tracking'
+import { routeGuardOutcome } from '../utils/routeGuard.js'
 import store from '../store'
 import HomeView from '../views/HomeView.vue'
 import SearchView from '../views/SearchView.vue'
@@ -157,7 +158,18 @@ router.beforeEach(async (to) => {
   if (to.path === '/zakroma' && to.query.author) {
     const authorName = String(to.query.author)
     // Дедуп 30 сек внутри loadAuthorTiles — лишних HTTP-запросов не будет.
-    await store.dispatch('zakroma/loadAuthorTiles', 'main')
+    // BR-316 (аудит #336, PKG-S3-27): `loadAuthorTiles` реджектит промис на ЛЮБОМ не-2xx.
+    // Раньше отклонённый guard ОТМЕНЯЛ навигацию: при прямом заходе по ссылке router-view
+    // оставался пустым (белый экран), а при клике переход «не срабатывал» без сообщения.
+    // Теперь ошибка предзагрузки не отменяет переход — страница сама покажет своё
+    // сообщение («Автор не найден» / кнопку «Повторить»).
+    try {
+      await store.dispatch('zakroma/loadAuthorTiles', 'main')
+    } catch (e) {
+      const outcome = routeGuardOutcome(e)
+      console.warn('[router] loadAuthorTiles failed, navigation continues:', e)
+      if (outcome.abort) return false
+    }
     const tile = store.state.zakroma?.authorTiles?.find((t) => t.author === authorName)
     if (tile && tile.id) {
       return { path: `/zakroma/${tile.id}`, replace: true }
@@ -170,7 +182,15 @@ router.beforeEach(async (to) => {
     return { path: '/zakroma', replace: true }
   }
   if (/^\/zakroma\/\d+$/.test(to.path)) {
-    await store.dispatch('zakroma/loadAuthorTiles', 'main')
+    // BR-316: та же защита — падение предзагрузки не должно оставлять пользователя на
+    // пустом экране.
+    try {
+      await store.dispatch('zakroma/loadAuthorTiles', 'main')
+    } catch (e) {
+      const outcome = routeGuardOutcome(e)
+      console.warn('[router] loadAuthorTiles failed, navigation continues:', e)
+      if (outcome.abort) return false
+    }
   }
 })
 

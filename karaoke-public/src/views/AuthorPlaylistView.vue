@@ -148,6 +148,14 @@ import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { usePlaylistPlayer } from '../composables/usePlaylistPlayer'
 import { usePremiumModal } from '../composables/usePremiumModal'
 import AppHeader from '../components/AppHeader.vue'
+import {
+  SONG_STATUS,
+  buildSongStatusMap,
+  lockIconFor,
+  lockTitleFor,
+  playableSongIds,
+  songStatusOf,
+} from '../utils/statusMap.js'
 
 const PREMIUM_BENEFITS = [
   'Онлайн-плеер для всех песен, а не только «в эфире»',
@@ -199,48 +207,41 @@ export default {
 
     // Pass 239 (specs/239-zakroma-author-songs-batch-render): статус песни из флагов, не per-row readiness.
     // available | premium (готова, но нужен премиум) | notready (ещё не готова)
+    //
+    // BR-325 (аудит #336, PKG-S3-27): карта статусов строится ОДИН раз на изменение
+    // songs/isPremium/subscriptionIds. Раньше `statusOf()` искал песню линейным `find` по всему
+    // массиву, а вызывался из шаблона на каждую строку 4 раза + в `hasPlayable`/`playableIds` —
+    // O(n²) на каждый рендер (n ≈ 2500 песен крупного автора), причём перерисовка идёт на
+    // каждое событие плеера.
+    const statusMap = computed(() =>
+      buildSongStatusMap(songs.value, isPremium.value, subscriptions.subscriptionIds),
+    )
     function statusOf(songId) {
-      const s = songs.value.find((x) => x.songId === songId)
-      if (!s) return 'loading'
-      if (!s.contentReady) return 'notready'
-      // contentReady=true AND (freelyAvailableNow OR premium OR hasSubscription) → available
-      if (
-        s.freelyAvailableNow ||
-        isPremium.value ||
-        (subscriptions && subscriptions.subscriptionIds.has(Number(songId)))
-      )
-        return 'available'
-      return 'premium'
+      return songStatusOf(statusMap.value, songId)
     }
     function lockIcon(songId) {
-      const s = statusOf(songId)
-      if (s === 'available') return '♪'
-      if (s === 'loading') return '…'
-      if (s === 'premium') return '🪙'
-      return '🔒'
+      return lockIconFor(statusOf(songId))
     }
     function lockTitle(songId) {
-      const s = statusOf(songId)
-      if (s === 'available') return 'Доступна'
-      if (s === 'premium') return 'Доступно премиум-пользователям'
-      if (s === 'notready') return 'Песня ещё готовится'
-      return ''
+      return lockTitleFor(statusOf(songId))
     }
     function clickable(songId) {
       const s = statusOf(songId)
-      return s === 'available' || s === 'premium'
+      return s === SONG_STATUS.AVAILABLE || s === SONG_STATUS.PREMIUM
     }
     // Клик по строке: доступную — играем с неё; премиум-песню — призыв премиума; иначе ничего.
     function onSongClick(item) {
       const s = statusOf(item.songId)
-      if (s === 'available') player.playFrom(item.songId, playableIds(), modes)
-      else if (s === 'premium') openPremiumRequired({ benefits: PREMIUM_BENEFITS })
+      if (s === SONG_STATUS.AVAILABLE) player.playFrom(item.songId, playableIds(), modes)
+      else if (s === SONG_STATUS.PREMIUM) openPremiumRequired({ benefits: PREMIUM_BENEFITS })
     }
 
-    const hasPlayable = computed(() => songs.value.some((s) => statusOf(s.songId) === 'available'))
+    const hasPlayable = computed(() =>
+      playableSongIds(songs.value, statusMap.value).length > 0,
+    )
 
     function playableIds() {
-      const arr = songs.value.filter((s) => statusOf(s.songId) === 'available').map((s) => s.songId)
+      const arr = playableSongIds(songs.value, statusMap.value)
       if (modes.shuffle) {
         for (let k = arr.length - 1; k > 0; k--) {
           const j = Math.floor(Math.random() * (k + 1))

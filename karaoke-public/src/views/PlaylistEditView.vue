@@ -13,6 +13,11 @@
     </div>
     <div v-else-if="notFound" class="km-loading">Плейлист не найден.</div>
 
+    <!-- BR-342: мутация (имя/порядок/mute/удаление) не применена — сообщаем и не врём. -->
+    <p v-if="mutationError" class="km-load-error km-mutation-error" role="alert">
+      {{ mutationError }}
+    </p>
+
     <div v-else class="km-content">
       <!-- Имя плейлиста -->
       <div class="km-name-row">
@@ -206,11 +211,13 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, getCurrentInstance, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import draggable from 'vuedraggable'
 import { fetchPlayerToken } from '../services/playerLauncher'
+import { LOAD_STATE, classifyLoad, loadErrorCode } from '../utils/loadState.js'
+import { notify } from '../utils/notify.js'
 import {
   fetchPlaylist,
   renamePlaylist,
@@ -262,6 +269,9 @@ export default {
     const loading = ref(true)
     const notFound = ref(false)
     const loadError = ref('')
+    // BR-342: сообщение о несохранённой мутации (имя/порядок/mute/удаление).
+    const mutationError = ref('')
+    const instance = getCurrentInstance()
     const playlist = reactive({ id, name: '', favorites: false })
     const items = ref([])
     const nameEdit = ref('')
@@ -377,12 +387,26 @@ export default {
       notFound.value = false
       try {
         const { status, body } = await fetchPlaylist(id)
-        if (status === 401) {
-          loadError.value = 'Сессия истекла — войдите заново'
+        // BR-341 (аудит #336, PKG-S3-27): 403/5xx больше НЕ трактуются как «Плейлист не найден».
+        // `notFound` ставится только на 404; 401/403 — «войдите заново», остальное — «не удалось
+        // загрузить, повторить». Раньше любой не-200 давал «Плейлист не найден.».
+        const outcome = classifyLoad(status, body, {
+          notFoundStatuses: [404],
+          unauthorizedStatuses: [401, 403],
+        })
+        if (outcome.state === LOAD_STATE.UNAUTHORIZED) {
+          loadError.value = outcome.message
           return
         }
-        if (status !== 200 || !body || !body.playlist) {
+        if (outcome.state === LOAD_STATE.NOT_FOUND) {
           notFound.value = true
+          return
+        }
+        if (outcome.state !== LOAD_STATE.READY) {
+          const code = loadErrorCode(body)
+          loadError.value = code
+            ? `Не удалось загрузить плейлист (${code}) — попробуйте ещё раз`
+            : outcome.message
           return
         }
         Object.assign(playlist, body.playlist)
@@ -548,37 +572,83 @@ export default {
     }
 
     // --- Список: имя / порядок / mute / удаление ---
-    function onRename() {
+    //
+    // BR-342 (аудит #336, PKG-S3-27): все мутации были fire-and-forget — `.then` без catch и
+    // без ветки «не 200», а локальное состояние менялось ОПТИМИСТИЧНО. При 403/500/обрыве
+    // сети UI показывал применённое изменение, которого нет на сервере (после перезагрузки
+    // mute/порядок/имя откатывались), а rejection из authGet уходил в unhandled rejection.
+    // Теперь: await + проверка status, откат оптимистичного изменения и сообщение.
+    async function onRename() {
       const nm = nameEdit.value.trim()
       if (!nm || nm === playlist.name) {
         nameEdit.value = playlist.name
         return
       }
-      renamePlaylist(id, nm).then(({ status }) => {
-        if (status === 200) playlist.name = nm
-      })
+      const previousName = playlist.name
+      try {
+        const { status } = await renamePlaylist(id, nm)
+        if (status === 200) {
+          playlist.name = nm
+          return
+        }
+        nameEdit.value = previousName
+        notifyMutationFailed(`Не удалось переименовать плейлист (${status})`)
+      } catch (e) {
+        nameEdit.value = previousName
+        notifyMutationFailed('Нет связи с сервером — плейлист не переименован')
+      }
     }
-    function onReorder() {
-      reorderPlaylist(
-        id,
-        items.value.map((it) => it.songId),
-      )
-      // Отложенный push (FR-010): если пользователь сделал drag-drop сразу после клика ▶ —
-      // даём плееру время применить свою очередь из playPos() до нашего setqueue.
-      pushQueueDeferred()
+    async function onReorder() {
+      const previousOrder = items.value.map((it) => it.songId)
+      try {
+        const { status } = await reorderPlaylist(
+          id,
+          previousOrder,
+        )
+        if (status === 200) {
+          // Отложенный push (FR-010): если пользователь сделал drag-drop сразу после клика ▶ —
+          // даём плееру время применить свою очередь из playPos() до нашего setqueue.
+          pushQueueDeferred()
+          return
+        }
+        notifyMutationFailed(`Не удалось сохранить порядок песен (${status})`)
+      } catch (e) {
+        notifyMutationFailed('Нет связи с сервером — порядок песен не сохранён')
+      }
     }
-    function toggleMute(item) {
+    async function toggleMute(item) {
+      const previous = !!item.muted
       item.muted = !item.muted
-      setSongMute(id, item.songId, item.muted)
-      pushQueueDeferred()
+      try {
+        const { status } = await setSongMute(id, item.songId, item.muted)
+        if (status === 200) {
+          pushQueueDeferred()
+          return
+        }
+        item.muted = previous
+        notifyMutationFailed(`Не удалось изменить звук песни (${status})`)
+      } catch (e) {
+        item.muted = previous
+        notifyMutationFailed('Нет связи с сервером — настройка звука не применена')
+      }
     }
-    function removeItem(item) {
-      removeSongFromPlaylist(id, item.songId).then(({ status }) => {
+    async function removeItem(item) {
+      try {
+        const { status } = await removeSongFromPlaylist(id, item.songId)
         if (status === 200) {
           items.value = items.value.filter((it) => it.songId !== item.songId)
           pushQueueDeferred()
+          return
         }
-      })
+        notifyMutationFailed(`Не удалось удалить песню (${status})`)
+      } catch (e) {
+        notifyMutationFailed('Нет связи с сервером — песня не удалена')
+      }
+    }
+    // Сообщение об откате мутации (BR-342) — пользователь видит, что изменение не применено.
+    function notifyMutationFailed(message) {
+      mutationError.value = message
+      notify(instance && instance.proxy, message, 'error')
     }
 
     onMounted(async () => {
@@ -614,6 +684,7 @@ export default {
       loading,
       notFound,
       loadError,
+      mutationError,
       playlist,
       items,
       nameEdit,

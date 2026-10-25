@@ -129,17 +129,29 @@ function setPlaylistIds(id, ids) {
 // ---- Список плейлистов пользователя -------------------------------------------------------
 const playlists = ref([])
 let playlistsLoaded = false
+// BR-318 (аудит #336, PKG-S3-27): единственная из трёх bulk-загрузок без try/catch.
+// `authGet` реджектит промис на сетевой ошибке (`xhr.onerror`), поэтому reject уходил
+// наружу: `useAuthBootstrap.onLogin` (Promise.all) давал unhandled rejection, а
+// `PlaylistIcon.openMenu` обрывался ДО `open.value = true` — меню плейлистов молча
+// не открывалось.
 async function loadPlaylists(force = false) {
   const { token } = useAuth()
   if (!token.value) {
     playlists.value = []
+    playlistsLoaded = false
     return []
   }
   if (playlistsLoaded && !force) return playlists.value
-  const { status, body } = await fetchPlaylists()
-  if (status === 200 && Array.isArray(body)) {
-    playlists.value = body
-    playlistsLoaded = true
+  try {
+    const { status, body } = await fetchPlaylists()
+    if (status === 200 && Array.isArray(body)) {
+      playlists.value = body
+      playlistsLoaded = true
+    }
+  } catch (e) {
+    // Ошибка загрузки не должна менять текущий список и не должна ронять вызывающий код.
+    // Признак ошибки возвращаем наружу (null), чтобы UI мог показать сообщение/повтор.
+    return null
   }
   return playlists.value
 }

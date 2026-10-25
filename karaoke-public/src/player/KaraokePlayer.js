@@ -8,6 +8,18 @@ import {
 } from '../services/tracking'
 import { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'
 import { isStaleLoad, resolveShareReleaseReason } from './loadGuard.js'
+import {
+  INIT_ERROR,
+  classifyInitError,
+  createBackgroundCanvas,
+  createSeekTracker,
+  isStaleGeneration,
+  prerollDisplayTime,
+  readStoredNumber,
+  roundRectPath,
+  shouldGenerateStarfield,
+  transposeYieldDue,
+} from './playerGuards.js'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
@@ -39,7 +51,11 @@ export default class KaraokePlayer {
       this.authToken = authToken
     }
     this._smkaraokeObjectUrls = []
-    this._seekTrackTimer = null
+    // BR-306 (аудит #336, PKG-S3-27): трекер отложенного seek-события. id песни захватывается
+    // в момент перемотки; таймер снимается при смене трека (playSong) и при destroy().
+    this._seekTracker = createSeekTracker((songId, positionMs) => {
+      trackPlayerSeek(songId, positionMs)
+    })
     // Вехи прослушивания (25/50/75%): каждая стреляет один раз за воспроизведение. Сбрасываются
     // в _onEnded() и переармируются при перемотке назад в _seekTo().
     this._progressFlags = { 25: false, 50: false, 75: false }
@@ -107,6 +123,10 @@ export default class KaraokePlayer {
     this._silentOffset = 0
     this._preroll = 5.0 // splashDur + silentOffset, recalculated after parse
     this._isPrerolling = false // true while wall-clock preroll is active
+    // BR-305 (аудит #336, PKG-S3-27): пауза ВНУТРИ pre-roll (splash не доигран).
+    // Отдельный флаг: `_isPrerolling` остаётся true (мы ещё в splash), а этот — «стоп-часы
+    // заморожены».
+    this._prerollPaused = false
     this._dtPaused = 0 // display time when paused during preroll
     this._prerollRef = 0 // Date.now() when preroll clock was last started
     this._prerollTimeout = null // setTimeout handle for preroll→audio transition
@@ -135,6 +155,10 @@ export default class KaraokePlayer {
 
     this.wsAcc = null
     this.wsVoc = null
+    // BR-307 (аудит #336, PKG-S3-27): поколение загрузки. Инкрементится при смене трека
+    // (playSong) и при уничтожении плеера (destroy) — по нему отсекаются запоздавшие
+    // колбэки динамического import('wavesurfer.js').
+    this._loadGeneration = 0
     this._lastWsSync = 0
     this._endedHandled = false
 
@@ -171,7 +195,12 @@ export default class KaraokePlayer {
     // заново и видели ЧУЖОЙ (не отменённый) контроллер.
     const controller = new AbortController()
     this._activeAbortController = controller
-    this._bgCanvas = this._generateStarfield()
+    // BR-309 (аудит #336, PKG-S3-27): фоновая текстура 4096×4096 (≈64 МиБ) генерировалась
+    // заново на КАЖДЫЙ init() — то есть на каждый трек плейлиста (джанк + пик памяти на
+    // каждом переходе). Теперь она генерируется ОДИН раз на инстанс.
+    if (shouldGenerateStarfield(this._bgCanvas)) {
+      this._bgCanvas = this._generateStarfield()
+    }
     if (!this._offline) this._startRenderLoop()
     this._loadImage('/KARAOKE_LOGO.png')
       .then((img) => {
@@ -287,6 +316,13 @@ export default class KaraokePlayer {
       this._dtPaused = 0
       if (!this._offline) this._buildWaveforms()
       this._ready = true
+      // BR-304 (аудит #336, PKG-S3-27): успешная загрузка скрывает индикатор загрузки (в нём
+      // могла остаться строка ошибки от предыдущей попытки этого же трека).
+      const loadingEl = this.container?.querySelector('#kp-loading')
+      if (loadingEl) {
+        loadingEl.style.display = 'none'
+        loadingEl.textContent = ''
+      }
       if (!this._offline) this._startFadeStartedAt = Date.now() // запустить переход logo→splash
       this._updateExportMenuAvailability()
       // Премиум-гейт скорости: не-премиум в api-режиме не наследует сохранённую не-базовую
@@ -299,9 +335,21 @@ export default class KaraokePlayer {
       // Восстановить per-song сдвиг тональности (FR-011) и пересчитать подписи подменю от
       // загруженного data.key. Премиум-гейт: не-премиум в api-режиме не восстанавливает.
       // @see archive/docs/features/player-transpose.md
-      this._restoreTranspose()
+      // BR-308: транспонирование асинхронное — ждём его, иначе init() завершится до
+      // применения сдвига (и длительность/буферы останутся исходными).
+      await this._restoreTranspose()
       this._updateTransposeMenu()
     } catch (e) {
+      // BR-304 (аудит #336, PKG-S3-27): отменённый или устаревший запрос НЕ показываем как
+      // ошибку. Раньше catch писал e.message в `#kp-loading` через общий querySelector — то
+      // есть в элемент СЛЕДУЮЩЕГО трека (уже перестроенный _buildUI), и ложная ошибка
+      // «The user aborted a request» висела поверх видео до следующего переключения.
+      const stale = isStaleLoad(this._activeAbortController, controller)
+      const outcome = classifyInitError(e, { aborted: controller.signal.aborted, stale })
+      if (outcome === INIT_ERROR.IGNORE) {
+        console.warn('KaraokePlayer init aborted or stale:', e)
+        return
+      }
       console.error('KaraokePlayer init error:', e)
       const loading = this.container?.querySelector('#kp-loading')
       if (loading) {
@@ -350,8 +398,16 @@ export default class KaraokePlayer {
   _getDisplayTime() {
     if (this._forcedTime !== null) return this._forcedTime
     if (this._isPrerolling) {
-      const elapsed = this.isPlaying ? (Date.now() - this._prerollRef) / 1000 : 0
-      return this._dtPaused + elapsed
+      // BR-305 (аудит #336, PKG-S3-27): на паузе в pre-roll отсчёт стоп-часов заморожен —
+      // иначе после паузы время прыгало на `_preroll`, и возобновление шло по ветке «аудио
+      // уже началось» (минуя splash и silent offset).
+      const value = prerollDisplayTime({
+        prerolling: true,
+        paused: this._prerollPaused,
+        dtPaused: this._dtPaused,
+        elapsedMs: this.isPlaying ? Date.now() - this._prerollRef : 0,
+      })
+      return value === null ? this._dtPaused : value
     }
     return (
       this._preroll +
@@ -1528,12 +1584,23 @@ export default class KaraokePlayer {
     const accPeaks = silence.concat(this._extractPeaks(this.accBuffer, audioPeakCount))
     const vocPeaks = silence.concat(this._extractPeaks(this.vocBuffer, audioPeakCount))
 
+    // BR-307 (аудит #336, PKG-S3-27): поколение загрузки. Создание WaveSurfer идёт в `.then`
+    // динамического import('wavesurfer.js') — если за время загрузки чанка вызваны destroy()
+    // или playSong(), колбэк всё равно выполнялся: контейнеры уже принадлежали новому треку (или
+    // уничтоженному плееру), а созданные инстансы никто не уничтожал — дубли canvas в
+    // контейнерах вейвформ и удержанные внутренние листенеры WaveSurfer.
+    const myGeneration = this._loadGeneration
+
     import('wavesurfer.js')
       .then(({ default: WaveSurfer }) => {
+        // Поколение устарело (плеер уничтожен или начат другой трек) — инстансы не создаём.
+        if (isStaleGeneration(this._loadGeneration, myGeneration)) {
+          return
+        }
         const ac = this.container.querySelector('#kp-ws-acc')
         const vc = this.container.querySelector('#kp-ws-voc')
         if (!ac || !vc) return
-        this.wsAcc = WaveSurfer.create({
+        const wsAcc = WaveSurfer.create({
           container: ac,
           height: 40,
           waveColor: '#4af',
@@ -1541,7 +1608,7 @@ export default class KaraokePlayer {
           peaks: [accPeaks],
           duration: totalDuration,
         })
-        this.wsVoc = WaveSurfer.create({
+        const wsVoc = WaveSurfer.create({
           container: vc,
           height: 40,
           waveColor: '#fa4',
@@ -1549,6 +1616,18 @@ export default class KaraokePlayer {
           peaks: [vocPeaks],
           duration: totalDuration,
         })
+        // Пока генерировали второй инстанс, поколение могло устареть — тогда уничтожаем оба.
+        if (isStaleGeneration(this._loadGeneration, myGeneration)) {
+          try {
+            wsAcc.destroy()
+          } catch {}
+          try {
+            wsVoc.destroy()
+          } catch {}
+          return
+        }
+        this.wsAcc = wsAcc
+        this.wsVoc = wsVoc
         // interaction gives seconds within totalDuration → map directly to dt
         this.wsAcc.on('interaction', (newTime) => {
           if (!this._wsSeeking) this._seekToDisplayTime(newTime)
@@ -1599,6 +1678,8 @@ export default class KaraokePlayer {
     if (dt < this._preroll) {
       // Pre-roll phase: run on wall clock, schedule audio start
       this._isPrerolling = true
+      // BR-305: возобновление из паузы продолжает splash с сохранённой позиции.
+      this._prerollPaused = false
       this._dtPaused = dt
       this._prerollRef = Date.now()
       this.isPlaying = true
@@ -1637,6 +1718,7 @@ export default class KaraokePlayer {
     vocSrc.start(0, offset)
     this.isPlaying = true
     this._isPrerolling = false
+    this._prerollPaused = false
     this._endedHandled = false
     const btn = this.container.querySelector('#kp-play')
     if (btn) btn.textContent = '⏸'
@@ -1668,8 +1750,13 @@ export default class KaraokePlayer {
   _pause() {
     clearTimeout(this._prerollTimeout)
     if (this._isPrerolling) {
+      // BR-305 (аудит #336, PKG-S3-27): остаёмся В pre-roll, но замораживаем отсчёт.
+      // Раньше `_isPrerolling = false` — и `_getDisplayTime()` тут же возвращал
+      // `_preroll + pausedAt` (ровно 5.0 с при pausedAt=0), из-за чего возобновление шло
+      // по ветке «аудио уже началось»: звук стартовал с нуля, splash и silent offset
+      // пропускались, счётчики первой строки не показывались.
       this._dtPaused = this._getDisplayTime()
-      this._isPrerolling = false
+      this._prerollPaused = true
     } else {
       this.pausedAt = this._getCurrentTime()
       this._endedHandled = true
@@ -1685,6 +1772,7 @@ export default class KaraokePlayer {
     this.pausedAt = 0
     this._dtPaused = 0
     this._isPrerolling = true // next play restarts from splash
+    this._prerollPaused = false
     this.isPlaying = false
     this._endFadeStartedAt = Date.now() // start logo→splash idle transition
     const btn = this.container.querySelector('#kp-play')
@@ -1797,7 +1885,12 @@ export default class KaraokePlayer {
   // НОВЫЙ AudioBuffer с изменённой высотой при сохранении темпа/длительности. tempo=1 сохраняет
   // длительность → караоке-маркеры остаются синхронными (FR-006). Работает во всех браузерах с
   // Web Audio API. @see archive/docs/features/player-transpose.md
-  _transposeBuffer(buffer, semitones) {
+  //
+  // BR-308 (аудит #336, PKG-S3-27): обработка идёт ЧАНКАМИ с уступкой главного потока между
+  // ними. Раньше цикл `while (written < outLength)` крутил SoundTouch по всем сэмплам 5-минутной
+  // песни без единого await — UI замирал на секунды (на мобильных — риск OOM/падения вкладки).
+  // Вынос в Web Worker/AudioWorklet — за владельцем (здесь — честное уменьшение блокировки).
+  async _transposeBuffer(buffer, semitones) {
     if (!this.audioCtx || semitones === 0) return buffer
     const soundTouch = new SoundTouch()
     soundTouch.pitchSemitones = semitones
@@ -1822,6 +1915,10 @@ export default class KaraokePlayer {
         if (numChannels > 1) outR[written + i] = tmp[i * 2 + 1]
       }
       written += frames
+      // Уступаем главный поток каждые N чанков — иначе браузер не может перерисовать UI.
+      if (transposeYieldDue(written, CHUNK)) {
+        await new Promise((r) => setTimeout(r, 0))
+      }
     }
     const final = this.audioCtx.createBuffer(numChannels, written, sampleRate)
     final.getChannelData(0).set(outL.subarray(0, written))
@@ -1845,6 +1942,7 @@ export default class KaraokePlayer {
       if (this._isPrerolling) {
         this._dtPaused = this._getDisplayTime()
         this._isPrerolling = false
+        this._prerollPaused = false
       } else {
         this.pausedAt = resumePos
         this._endedHandled = true
@@ -1866,8 +1964,10 @@ export default class KaraokePlayer {
         this.accBuffer = this._accBufferOriginal
         this.vocBuffer = this._vocBufferOriginal
       } else {
-        this.accBuffer = this._transposeBuffer(this._accBufferOriginal, this._transpose)
-        this.vocBuffer = this._transposeBuffer(this._vocBufferOriginal, this._transpose)
+        // BR-308 (аудит #336, PKG-S3-27): транспонирование асинхронное (чанки с уступкой
+        // главного потока) — UI не замирает на секунды.
+        this.accBuffer = await this._transposeBuffer(this._accBufferOriginal, this._transpose)
+        this.vocBuffer = await this._transposeBuffer(this._vocBufferOriginal, this._transpose)
       }
       this.duration = Math.max(this.accBuffer.duration, this.vocBuffer.duration)
     } catch (e) {
@@ -1917,14 +2017,19 @@ export default class KaraokePlayer {
   // (синхронно, до первого _play). FR-011. Премиум-гейт: не-премиум в api-режиме не
   // восстанавливает сохранённый сдвиг (фича недоступна) — оставляет 0/оригиналы.
   // @see archive/docs/features/player-transpose.md
-  _restoreTranspose() {
+  async _restoreTranspose() {
     if (!this.data || this.data.id == null) {
       this._transpose = 0
       return
     }
-    const saved = localStorage.getItem('kp_transpose_' + this.data.id)
-    const n = saved !== null ? Number(saved) : 0
-    this._transpose = saved !== null && Number.isInteger(n) && n >= -12 && n <= 12 ? n : 0
+    // BR-310 (аудит #336, PKG-S3-27): чтение localStorage обёрнуто в try/catch (как в
+    // соседних _loadPersistedSettings/_saveTranspose). В песочнице iframe без
+    // allow-same-origin (и в некоторых приватных режимах) обращение к хранилищу бросает
+    // SecurityError — необязательное чтение не должно ронять плеер (init() навсегда
+    // оставался в _ready=false с текстом «Ошибка: Failed to read the 'localStorage' property…»).
+    const stored = readStoredNumber(localStorage, 'kp_transpose_' + this.data.id)
+    const n = stored === null ? 0 : stored
+    this._transpose = stored !== null && Number.isInteger(n) && n >= -12 && n <= 12 ? n : 0
     // Премиум-гейт: не-премиум в api-режиме — не восстанавливать (фича недоступна).
     if (this._mode === 'api' && this.data?.canExport !== true) {
       this._transpose = 0
@@ -1932,8 +2037,8 @@ export default class KaraokePlayer {
     }
     if (this._transpose !== 0 && this._accBufferOriginal && this._transposeSupported) {
       try {
-        this.accBuffer = this._transposeBuffer(this._accBufferOriginal, this._transpose)
-        this.vocBuffer = this._transposeBuffer(this._vocBufferOriginal, this._transpose)
+        this.accBuffer = await this._transposeBuffer(this._accBufferOriginal, this._transpose)
+        this.vocBuffer = await this._transposeBuffer(this._vocBufferOriginal, this._transpose)
         this.duration = Math.max(this.accBuffer.duration, this.vocBuffer.duration)
       } catch (e) {
         console.error('KaraokePlayer: restore transpose failed, disabling:', e)
@@ -2013,6 +2118,9 @@ export default class KaraokePlayer {
     // отменяется ДО того, как мы уничтожим wsAcc/wsVoc и стартуем новый init(). Это гарантирует,
     // что ответы старых fetch'ов не запишут state нового трека (research.md §R1).
     this._abortActive()
+    // BR-307: новое поколение загрузки — запоздавшие колбэки import('wavesurfer.js')
+    // предыдущего трека не должны создавать инстансы в контейнерах нового.
+    this._loadGeneration += 1
     if (this.animId) {
       cancelAnimationFrame(this.animId)
       this.animId = null
@@ -2065,6 +2173,7 @@ export default class KaraokePlayer {
     this._lastWsSync = 0
     this.flashTimes = []
     this._isPrerolling = false
+    this._prerollPaused = false
     this._dtPaused = 0
     this._silentOffset = 0
     this._preroll = this._splashDur
@@ -2083,6 +2192,9 @@ export default class KaraokePlayer {
     this._progressFlags = { 25: false, 50: false, 75: false }
     clearTimeout(this._prerollTimeout)
     this._prerollTimeout = null
+    // BR-306: отложенное seek-событие предыдущей песни отменяется — иначе оно уйдёт уже с
+    // id нового трека (статистика получает seek, приписанный чужой песне).
+    this._seekTracker.cancel()
 
     await this.init()
     if (autoplay && this._ready) this._play()
@@ -2116,6 +2228,7 @@ export default class KaraokePlayer {
       this._stopSources()
     }
     this._isPrerolling = false
+    this._prerollPaused = false
     this.isPlaying = false
     this.pausedAt = time
     if (was) this._play()
@@ -2141,8 +2254,11 @@ export default class KaraokePlayer {
     const totalDuration = this._preroll + this.duration
     dt = Math.max(0, Math.min(dt, totalDuration))
     if (this._mode === 'api') {
-      clearTimeout(this._seekTrackTimer)
-      this._seekTrackTimer = setTimeout(() => trackPlayerSeek(this.songId, Math.round(dt)), 400)
+      // BR-306 (аудит #336, PKG-S3-27): id песни фиксируется В МОМЕНТ перемотки, а не в момент
+      // срабатывания таймера. Раньше читался `this.songId` в колбэке — при переходе на следующий
+      // трек в пределах 400 мс событие seek уходило с ID уже другой песни (статистика получала
+      // seek, приписанный чужой песне). Таймер снимается в playSong()/destroy().
+      this._seekTracker.schedule(this.songId, dt, 400)
     }
     const audioTime = dt - this._preroll
     if (audioTime >= 0) {
@@ -2243,7 +2359,15 @@ export default class KaraokePlayer {
 
   _startRenderLoop() {
     const render = () => {
-      this._renderFrame()
+      // BR-311 (аудит #336, PKG-S3-27): тело кадра обёрнуто в try/catch. Раньше исключение
+      // (например, отсутствующий `ctx.roundRect` в Safari 16.0–16.3 / Firefox < 112) обрывало
+      // цикл: requestAnimationFrame не вызывался, canvas замирал на последнем кадре, звук
+      // продолжал играть, пользователю ничего не сообщалось.
+      try {
+        this._renderFrame()
+      } catch (e) {
+        console.error('KaraokePlayer render frame error:', e)
+      }
       this.animId = requestAnimationFrame(render)
     }
     this.animId = requestAnimationFrame(render)
@@ -2266,8 +2390,19 @@ export default class KaraokePlayer {
     // Pan range: X: 0→2176, Y: 0→3016 (triangle-wave oscillation via performance.now)
     const TW = 4096,
       TH = 4096
-    const canvas = new OffscreenCanvas(TW, TH)
+    // BR-311 (аудит #336, PKG-S3-27): feature-detection. В браузере без OffscreenCanvas
+    // (Safari/iOS < 16.4) `new OffscreenCanvas(...)` бросал TypeError, init() падал, и плеер
+    // не запускался вообще («OffscreenCanvas is not defined»). Fallback — обычный <canvas>.
+    const canvas = createBackgroundCanvas(TW, TH)
+    if (!canvas) {
+      console.warn('KaraokePlayer: no canvas backend available, background disabled')
+      return null
+    }
     const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      console.warn('KaraokePlayer: 2d context unavailable, background disabled')
+      return null
+    }
     const seed = Math.abs(parseInt(this.songId) || 42)
     const rng = this._seededRandom(seed)
 
@@ -2680,7 +2815,7 @@ export default class KaraokePlayer {
     ctx.save()
     ctx.fillStyle = 'rgba(0,0,0,0.55)'
     ctx.beginPath()
-    ctx.roundRect(x, y, boxW, boxH, boxH / 2)
+    roundRectPath(ctx, x, y, boxW, boxH, boxH / 2)
     ctx.fill()
     ctx.fillStyle = '#f80'
     ctx.textAlign = 'center'
@@ -2714,7 +2849,7 @@ export default class KaraokePlayer {
     ctx.save()
     ctx.fillStyle = 'rgba(0,0,0,0.55)'
     ctx.beginPath()
-    ctx.roundRect(x, y, boxW, boxH, boxH / 2)
+    roundRectPath(ctx, x, y, boxW, boxH, boxH / 2)
     ctx.fill()
     ctx.fillStyle = '#08f'
     ctx.textAlign = 'center'
@@ -2840,13 +2975,13 @@ export default class KaraokePlayer {
       const r = barH / 2
       ctx.fillStyle = TRACK
       ctx.beginPath()
-      ctx.roundRect(barX, y, barW, barH, r)
+      roundRectPath(ctx, barX, y, barW, barH, r)
       ctx.fill()
       if (p < 1) {
         // Скачивание: заполнение = доля скачанного
         ctx.fillStyle = ACCENT
         ctx.beginPath()
-        ctx.roundRect(barX, y, Math.max(barH, barW * p), barH, r)
+        roundRectPath(ctx, barX, y, Math.max(barH, barW * p), barH, r)
         ctx.fill()
       } else {
         // Декодирование (прогресса нет): полоса заполнена целиком, мягкая пульсация яркости
@@ -2854,7 +2989,7 @@ export default class KaraokePlayer {
         ctx.globalAlpha = pulse
         ctx.fillStyle = ACCENT
         ctx.beginPath()
-        ctx.roundRect(barX, y, barW, barH, r)
+        roundRectPath(ctx, barX, y, barW, barH, r)
         ctx.fill()
         ctx.globalAlpha = 1
       }
@@ -3728,6 +3863,7 @@ export default class KaraokePlayer {
     this._lastWsSync = 0
     this.flashTimes = []
     this._isPrerolling = false
+    this._prerollPaused = false
     this._dtPaused = 0
     this._silentOffset = 0
     this._preroll = this._splashDur
@@ -3751,14 +3887,26 @@ export default class KaraokePlayer {
     // T023 (FR-007): страховка от утечки на закрытие вкладки — прерываем все in-flight fetch
     // сразу, до любых других действий.
     this._abortActive()
+    // BR-307: уничтожение плеера — новое поколение (запоздавшие колбэки не создают инстансы).
+    this._loadGeneration += 1
     if (this.animId) cancelAnimationFrame(this.animId)
     clearTimeout(this._prerollTimeout)
+    // BR-306: после teardown отложенное seek-событие отправляться не должно.
+    this._seekTracker.cancel()
     this._endedHandled = true
     this._hidePremiumUpsellOverlay()
     this._stopSources()
     this.audioCtx?.close()
     this.wsAcc?.destroy()
     this.wsVoc?.destroy()
+    this.wsAcc = null
+    this.wsVoc = null
+    // BR-307: контейнеры вейвформ очищаются — иначе после destroy() в них остаются canvas'ы
+    // (а запоздавший колбэк import('wavesurfer.js') мог бы добавить туда ещё два).
+    const accEl = this.container?.querySelector('#kp-ws-acc')
+    if (accEl) accEl.innerHTML = ''
+    const vocEl = this.container?.querySelector('#kp-ws-voc')
+    if (vocEl) vocEl.innerHTML = ''
     window.removeEventListener('resize', this._resizeHandler)
     document.removeEventListener('fullscreenchange', this._fsHandler)
     document.removeEventListener('click', this._menuOutsideClickHandler)

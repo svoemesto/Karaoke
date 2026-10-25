@@ -1,7 +1,12 @@
 import { apiGet } from '../../services/api'
+import { createRequestGuard } from '../../utils/requestGuard.js'
 
-let latestSearchId = 0
-let latestLoadMoreId = 0
+// BR-321 (аудит #336, PKG-S3-27): у `search` и `loadMoreSearchResults` были НЕЗАВИСИМЫЕ
+// счётчики поколений. Новый `search` не инвалидировал in-flight `loadMore`, поэтому ответ
+// старой подгрузки применялся к новому состоянию: page 2 СТАРОГО запроса дописывалась в
+// результаты НОВОГО, а `searchPagination` перезаписывался старыми page/totalCount.
+// Теперь поколение ВЫДАЧИ одно на оба действия.
+const searchGuard = createRequestGuard()
 let latestSongId = 0
 
 /**
@@ -27,6 +32,12 @@ export default {
       isLoadingMore: false,
       error: false,
     },
+    // BR-345 (аудит #336, PKG-S3-27): ошибка ПЕРВИЧНОГО поиска — отдельный флаг.
+    // Раньше один и тот же `searchPagination.error` использовался и для первичного поиска,
+    // и для подгрузки: ошибка поиска показывалась как «Не удалось загрузить ещё», а retry
+    // повторял подгрузку (которая упиралась в guard `hasMore=false` и ничего не делала) —
+    // после клика страница показывала ложное «Ничего не найдено».
+    searchError: false,
     currentSong: null,
     currentSongIsLoading: false,
   },
@@ -39,6 +50,8 @@ export default {
     searchIsLoadingMore: (state) => state.searchPagination.isLoadingMore,
     searchTotalCount: (state) => state.searchPagination.totalCount,
     searchPaginationError: (state) => state.searchPagination.error,
+    // BR-345: отдельный getter для ошибки первичного поиска.
+    searchError: (state) => state.searchError,
     currentSong: (state) => state.currentSong,
     currentSongIsLoading: (state) => state.currentSongIsLoading,
   },
@@ -68,6 +81,10 @@ export default {
     setSearchPaginationError(state, value) {
       state.searchPagination.error = value
     },
+    // BR-345: флаг ошибки первичного поиска (отдельно от ошибки подгрузки).
+    setSearchError(state, value) {
+      state.searchError = value
+    },
     setCurrentSong(state, song) {
       state.currentSong = song
     },
@@ -84,16 +101,23 @@ export default {
       // Spec 262-search-pagination: params теперь может включать page/pageSize.
       // При смене фильтров (songName/author/text/album) — page сбрасывается в 1,
       // searchResults очищаются (FR-011 спеки).
-      const requestId = ++latestSearchId
+      // BR-321: новый поиск открывает НОВОЕ поколение выдачи — любой in-flight loadMore
+      // от прошлого запроса становится устаревшим и его ответ отбрасывается.
+      const requestId = searchGuard.begin()
       commit('setSearchIsLoading', true)
+      // BR-345: ошибка ПЕРВИЧНОГО поиска — отдельный флаг (ошибка подгрузки — другая).
+      commit('setSearchError', false)
       commit('setSearchPaginationError', false)
+      // Сбрасываем пагинацию СИНХРОННО до запроса — иначе кнопка «Загрузить ещё» остаётся
+      // активной со старыми page/totalCount, пока идёт новый поиск.
+      commit('setSearchPagination', { page: 1, hasMore: false, isLoadingMore: false })
       try {
         // Если переданы фильтры и page/pageSize не указаны явно — сбрасываем page в 1.
         const page = params.page != null ? params.page : 1
         const pageSize = params.pageSize != null ? params.pageSize : 35
         const apiParams = { ...params, page, pageSize }
         const result = await apiGet('/api/public/songs', apiParams)
-        if (requestId !== latestSearchId) return
+        if (!searchGuard.isCurrent(requestId)) return
         // Бэкенд может вернуть либо массив (старый формат), либо объект { items, ... }.
         // Нормализуем к объекту для единообразной обработки (FR-016 спеки).
         const items = Array.isArray(result) ? result : result.items || []
@@ -111,11 +135,15 @@ export default {
           // кнопка «Загрузить ещё» остаётся скрытой (hasMore=false).
         }
       } catch (e) {
-        if (requestId === latestSearchId) {
-          commit('setSearchPaginationError', true)
+        if (searchGuard.isCurrent(requestId)) {
+          // BR-345: сбой первичного поиска — свой флаг + очистка прежних результатов
+          // (иначе пользователь читал выдачу ПРЕДЫДУЩЕГО запроса как результат нового).
+          commit('setSearchError', true)
+          commit('setSearchResults', [])
+          commit('setSearchPagination', { page: 1, hasMore: false, isLoadingMore: false })
         }
       } finally {
-        if (requestId === latestSearchId) commit('setSearchIsLoading', false)
+        if (searchGuard.isCurrent(requestId)) commit('setSearchIsLoading', false)
       }
     },
     async loadMoreSearchResults({ commit, state }, currentFilters = {}) {
@@ -125,7 +153,9 @@ export default {
       const pagination = state.searchPagination
       // Guards: rapid-click protection + окончание списка.
       if (!pagination.hasMore || pagination.isLoadingMore) return
-      const requestId = ++latestLoadMoreId
+      // BR-321: loadMore помнит поколение ВЫДАЧИ на старте. Если параллельно начался новый
+      // `search` (поколение сменилось) — ответ этой подгрузки отбрасывается целиком.
+      const generation = searchGuard.current()
       commit('setSearchPaginationLoadingMore', true)
       commit('setSearchPaginationError', false)
       try {
@@ -137,7 +167,7 @@ export default {
           page: pagination.page + 1,
           pageSize: pagination.pageSize,
         })
-        if (requestId !== latestLoadMoreId) return
+        if (!searchGuard.isCurrent(generation)) return
         const items = Array.isArray(result) ? result : result.items || []
         commit('appendSearchResults', items)
         if (!Array.isArray(result)) {
@@ -150,12 +180,12 @@ export default {
           })
         }
       } catch (e) {
-        if (requestId === latestLoadMoreId) {
+        if (searchGuard.isCurrent(generation)) {
           commit('setSearchPaginationError', true)
           commit('setSearchPaginationLoadingMore', false)
         }
       } finally {
-        if (requestId === latestLoadMoreId) commit('setSearchPaginationLoadingMore', false)
+        if (searchGuard.isCurrent(generation)) commit('setSearchPaginationLoadingMore', false)
       }
     },
     async loadSong({ commit }, id) {

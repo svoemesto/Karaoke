@@ -138,6 +138,9 @@ export default {
       expandedId.value = null
       showAdd.value = false
       await membership.loadPlaylists(true)
+      // BR-318 (аудит #336, PKG-S3-27): loadPlaylists() больше не реджектит, а возвращает
+      // null при ошибке. Раньше reject обрывал openMenu ДО `open.value = true` — меню
+      // плейлистов молча не появлялось. Теперь меню открывается всегда.
       open.value = true
     }
     function close() {

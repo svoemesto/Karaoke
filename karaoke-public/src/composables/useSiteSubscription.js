@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { authGet, authPost } from '../services/authApi'
 import { useAuth } from './useAuth'
+import { createRequestGuard } from '../utils/requestGuard.js'
 
 // Периодическая подписка на сайт (scope=SITE) — см. план монетизации. Аналог useSongSubscription.js,
 // но с выбором тарифа (несколько сроков/цен) и флагом автопродления (включён по умолчанию).
@@ -12,6 +13,11 @@ export function useSiteSubscription() {
   const priceInfo = ref(null)
   const submitting = ref(false)
   const error = ref('')
+
+  // BR-315 (аудит #336, PKG-S3-27): быстрый выбор двух тарифов давал гонку — ответ на
+  // первый тариф мог прийти последним, и в UI оставалась цена первого тарифа при выбранном
+  // втором («Оформить» отправляет tariffId второго, а пользователь видит другую сумму).
+  const priceGuard = createRequestGuard()
 
   // Список тарифов теперь публичный (не требует токена, см. WebMvcConfig.excludePathPatterns) —
   // цена должна быть видна анониму на /premium и странице песни, до входа/регистрации.
@@ -30,6 +36,7 @@ export function useSiteSubscription() {
   }
 
   async function loadPrice(tariffId) {
+    const requestId = priceGuard.begin()
     loadingPrice.value = true
     error.value = ''
     priceInfo.value = null
@@ -38,12 +45,15 @@ export function useSiteSubscription() {
         `/api/public/account/subscription/price?scope=SITE&tariffId=${tariffId}`,
         token.value,
       )
+      // Устаревший ответ (пользователь уже выбрал другой тариф) — не трогаем state.
+      if (!priceGuard.isCurrent(requestId)) return
       if (status === 200 && body) priceInfo.value = body
       else error.value = (body && body.error) || 'price_unavailable'
     } catch (e) {
+      if (!priceGuard.isCurrent(requestId)) return
       error.value = 'network_error'
     }
-    loadingPrice.value = false
+    if (priceGuard.isCurrent(requestId)) loadingPrice.value = false
   }
 
   async function subscribe(tariffId, autoRenew, disclaimerAccepted) {

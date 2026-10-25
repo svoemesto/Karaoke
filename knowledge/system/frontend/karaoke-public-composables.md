@@ -36,6 +36,20 @@
 | 17 | `useDesign` | 25 | `useDesign.js` | Classic/modern дизайн |
 | 18 | `editorStatus` | 9 | `editorStatus.js` | ENUM статусов редактора |
 
+## Слой чистых функций (`karaoke-public/src/utils/`)
+
+Помимо composables, в публичном SPA есть **слой чистых функций** —
+модулей без зависимостей (`karaoke-public/src/utils/*.js`, `karaoke-public/src/player/playerGuards.js`).
+Они не держат состояние Vue и не ходят в сеть: только чистая логика
+(классификация ответов, счётчики поколений, статусы). Такой слой:
+
+- тестируется `node --test` без `node_modules` и без браузера;
+- переиспользуется из composables, store-модулей и компонентов;
+- не даёт «размазать» правило по десяткам мест.
+
+Каталог — в
+[karaoke-public-audit-invariants.md](karaoke-public-audit-invariants.md).
+
 ## Архитектурные решения
 
 ### Решение 1: Composition API, не Vuex
@@ -89,6 +103,23 @@ export function useCart() {
 }
 ```
 
+### Решение 6: Ответ применяется только к последнему запросу
+
+Ресурсы, которые можно запросить повторно (цена тарифа, цена песни, страница
+выдачи поиска), читаются через счётчик поколений — `createRequestGuard()`
+(`karaoke-public/src/utils/requestGuard.js`). Устаревший ответ отбрасывается целиком.
+
+Для `useSiteSubscription` и `useSongSubscription` счётчик локален для
+composable (экземпляр на модалку). Для store-модуля `songs` поколение
+**общее** на `search` и `loadMoreSearchResults` — новая выдача инвалидирует
+in-flight подгрузку.
+
+### Решение 7: Мутация подтверждается сервером
+
+Оптимистичное изменение состояния (mute, переименование, порядок песен,
+переключение стема) применяется только после ответа `200`; иначе изменение
+откатывается и пользователь получает сообщение.
+
 ## Известные TODO
 
 - [ ] **Каждый из 18 composables** — детальный state/actions.
@@ -109,6 +140,15 @@ export function useCart() {
 - **Monetization** ([monetization domain](../../domains/monetization/domain.md)) —
   `useCart`, `useSongSubscription`, `useSiteSubscription`.
 
+## Связанные документы
+
+- [karaoke-public-audit-invariants.md](karaoke-public-audit-invariants.md) —
+  инварианты публичного SPA (аудит #336, `PKG-S3-27`).
+- [karaoke-public-tests.md](karaoke-public-tests.md) — тестовая инфраструктура.
+
 ## Changelog
 
+- **OpenProject #399** (2026-10-25, аудит #336, `PKG-S3-27`): добавлен слой
+  чистых функций `karaoke-public/src/utils/` (12 модулей); описаны решения 6 (поколения
+  запросов) и 7 (подтверждение мутаций сервером).
 - **Pass 350** (2026-09-09): Initial overview. Автор: agent (Karaoke).

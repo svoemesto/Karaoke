@@ -13,6 +13,14 @@
 
       <div v-if="loading" class="km-loading">Загрузка...</div>
 
+      <!-- BR-322 (аудит #336, PKG-S3-27): сбой загрузки отличается от «пусто». Раньше ни
+           catch, ни ветки на status !== 200 не было — 5xx/обрыв сети показывался как
+           «Вы пока ничего не слушали». -->
+      <div v-else-if="error" class="km-empty">
+        {{ error }}
+        <button class="km-retry-btn" @click="reload">Повторить</button>
+      </div>
+
       <div v-else-if="!items.length" class="km-empty">
         Вы пока ничего не слушали.
         <RouterLink to="/zakroma">Перейти к каталогу</RouterLink>
@@ -39,6 +47,7 @@ import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
 import { fetchHistory } from '../services/historyApi'
 import AppHeader from '../components/AppHeader.vue'
+import { LOAD_STATE, classifyLoad } from '../utils/loadState.js'
 
 /**
  * View-страница «История прослушиваний» (QW-13) — список недавно прослушанных песен
@@ -54,7 +63,7 @@ export default {
     return { isLoggedIn }
   },
   data() {
-    return { items: [], loading: true }
+    return { items: [], loading: true, error: '' }
   },
   async mounted() {
     if (this.isLoggedIn) await this.reload()
@@ -62,9 +71,27 @@ export default {
   methods: {
     async reload() {
       this.loading = true
-      const { status, body } = await fetchHistory()
-      if (status === 200 && body && Array.isArray(body.items)) this.items = body.items
-      this.loading = false
+      this.error = ''
+      try {
+        // BR-322 (аудит #336, PKG-S3-27): единый шаблон загрузки — try/catch/finally с
+        // явным состоянием ошибки. Раньше 5xx (или reject на обрыве сети) молча оставлял
+        // пустой список, и пользователь думал, что истории у него нет.
+        const { status, body } = await fetchHistory()
+        const outcome = classifyLoad(status, body, {
+          isEmpty: (b) => !b || !Array.isArray(b.items) || b.items.length === 0,
+        })
+        if (outcome.state === LOAD_STATE.READY) {
+          this.items = body.items
+        } else if (outcome.state === LOAD_STATE.EMPTY) {
+          this.items = []
+        } else {
+          this.error = outcome.message
+        }
+      } catch (e) {
+        this.error = 'Нет связи с сервером — попробуйте ещё раз'
+      } finally {
+        this.loading = false
+      }
     },
     open(item) {
       this.$router.push({ path: '/song', query: { id: item.songId } })
@@ -103,6 +130,16 @@ export default {
   color: var(--km-text2);
   font-size: 0.9rem;
   padding: 1rem 0;
+}
+/* BR-322: кнопка повтора при сбое загрузки. */
+.km-retry-btn {
+  margin-left: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--km-accent);
+  color: var(--km-accent);
+  border-radius: 8px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
 }
 
 .km-list {

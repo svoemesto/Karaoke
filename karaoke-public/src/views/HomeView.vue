@@ -11,7 +11,13 @@
       </div>
 
       <!-- Статистика -->
-      <div v-if="!isLoading" class="km-stats km-stats-4">
+      <!-- BR-323 (аудит #336, PKG-S3-27): сбой загрузки больше не рисуется как нули.
+           Раньше при 5xx/обрыве сети показывалось «0 Песен в коллекции» — как реальные данные. -->
+      <div v-if="statsError" class="km-stats km-stats-4 km-stats-error">
+        <p class="km-stats-error-text">{{ statsError }}</p>
+        <button class="km-stats-retry" @click="loadStats">Повторить</button>
+      </div>
+      <div v-else-if="!isLoading" class="km-stats km-stats-4">
         <div class="km-stat-card">
           <div class="km-stat-number">{{ formatNum(onSponsr) }}</div>
           <div class="km-stat-label">Песен в коллекции</div>
@@ -158,6 +164,7 @@ export default {
       'inWork',
       'total',
       'isLoading',
+      'statsError',
     ]),
   },
   mounted() {
@@ -242,6 +249,28 @@ export default {
   text-align: center;
   color: var(--km-text2);
   padding: 1.5rem;
+}
+/* BR-323: состояние «статистика недоступна» вместо нулей. */
+.km-stats-error {
+  display: block;
+  text-align: center;
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: 14px;
+  padding: 1.5rem 1rem;
+}
+.km-stats-error-text {
+  color: var(--km-text2);
+  margin: 0 0 0.75rem;
+}
+.km-stats-retry {
+  background: transparent;
+  border: 1px solid var(--km-accent);
+  color: var(--km-accent);
+  border-radius: 10px;
+  padding: 0.5rem 1.1rem;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 /* Описание */

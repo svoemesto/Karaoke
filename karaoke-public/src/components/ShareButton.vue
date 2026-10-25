@@ -17,12 +17,18 @@
         <span class="share-icon">{{ copied ? '✅' : '🔗' }}</span>
         {{ copied ? 'Ссылка скопирована' : 'Скопировать ссылку' }}
       </button>
+      <!-- BR-296: копирование могло не удаться (нет clipboard-доступа) — раньше UI всё равно
+           писал «Ссылка скопирована». Теперь при неудаче — явная подсказка. -->
+      <p v-if="copyFailed" class="share-copy-failed">
+        Не удалось скопировать автоматически — скопируйте ссылку из адресной строки.
+      </p>
     </div>
   </div>
 </template>
 
 <script>
 import { trackUi } from '../services/tracking'
+import { copyTextToClipboard } from '../utils/clipboard.js'
 
 // Стандартные share-URL соцсетей (без SDK/API-ключей, без новых npm-зависимостей).
 // Иконки — emoji, а не SvgIcon: WhatsApp/Odnoklassniki нет в SvgIcon.viewBoxMap, а emoji уже
@@ -63,7 +69,7 @@ const SHARE_TARGETS = [
 export default {
   name: 'ShareButton',
   data() {
-    return { menuOpen: false, copied: false, shareTargets: SHARE_TARGETS }
+    return { menuOpen: false, copied: false, copyFailed: false, shareTargets: SHARE_TARGETS }
   },
   methods: {
     openTarget(target) {
@@ -76,23 +82,19 @@ export default {
     },
     async copyLink() {
       trackUi('share', 'copy-link')
-      try {
-        await navigator.clipboard.writeText(window.location.href)
-      } catch (e) {
-        // Старые браузеры / отсутствие clipboard API — fallback через скрытый textarea.
-        const textarea = document.createElement('textarea')
-        textarea.value = window.location.href
-        textarea.style.position = 'fixed'
-        textarea.style.opacity = '0'
-        document.body.appendChild(textarea)
-        textarea.select()
-        try {
-          document.execCommand('copy')
-        } catch (e2) {
-          /* ignore — копирование недоступно, пользователь скопирует ссылку из адресной строки */
-        }
-        document.body.removeChild(textarea)
+      // BR-296 (аудит #336, PKG-S3-27): результат копирования ПРОВЕРЯЕТСЯ. Раньше
+      // `this.copied = true` выставлялся безусловно, даже если `execCommand('copy')` вернул
+      // false или бросил — UI писал «Ссылка скопирована» при пустом буфере.
+      const ok = await copyTextToClipboard(window.location.href)
+      if (!ok) {
+        this.copied = false
+        this.copyFailed = true
+        setTimeout(() => {
+          this.copyFailed = false
+        }, 4000)
+        return
       }
+      this.copyFailed = false
       this.copied = true
       setTimeout(() => {
         this.copied = false
@@ -161,5 +163,10 @@ export default {
 .share-icon {
   font-size: 1.1rem;
   line-height: 1;
+}
+.share-copy-failed {
+  margin: 8px 10px 4px;
+  font-size: 0.8rem;
+  color: var(--km-text2, #5a5a80);
 }
 </style>

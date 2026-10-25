@@ -67,6 +67,9 @@ knowledge/domains/<name>/
 - `02-containers.md` — C4 L2 (Pass 356).
 - `utilities.md` — утилиты (Pass 341 P3c детальный, с security issue).
 - `frontend/`:
+  - `karaoke-web-error-contract.md` — контракт ошибок и отказов `karaoke-web`:
+    отказы контроллеров, кеш ответов, коды капчи, параметризованный SQL,
+    транзакции, правила шаблонов (аудит #336, волна E, `PKG-S3-29`).
   - `vuex-patterns.md` — webvue3 stores (Pass 349).
   - `karaoke-public-composables.md` — public composables (Pass 350).
   - `webvue3-views.md` — admin views (Pass 351).

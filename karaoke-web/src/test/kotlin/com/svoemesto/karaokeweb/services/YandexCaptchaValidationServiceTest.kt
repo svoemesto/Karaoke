@@ -83,7 +83,8 @@ class YandexCaptchaValidationServiceTest {
             }
 
         assertEquals(CaptchaValidationResult.UNAVAILABLE, result)
-        assertEquals("captcha", result.errorCode)
+        // BR-522: «сервис недоступен» и «капча не пройдена» — разные коды отказа.
+        assertEquals("captcha_unavailable", result.errorCode)
     }
 
     @Test

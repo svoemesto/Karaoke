@@ -296,7 +296,9 @@ class SongShareLinkService(
         }
 
         val maxActive = props.maxActivePerUser
-        val activeCount = countActiveForUser(siteUserId, database)
+        // BR-519: ссылка на ЭТУ ЖЕ песню исключается — перевыпуск заменяет её,
+        // и сама она не должна блокировать перевыпуск (см. countActiveForUser).
+        val activeCount = countActiveForUser(siteUserId, database, excludeSongId = songId)
         if (activeCount >= maxActive) {
             log.warn(
                 "share limit: maxActivePerUser hit for user=$siteUserId " +
@@ -335,6 +337,16 @@ class SongShareLinkService(
         val expiresAt = now + ttlSeconds * 1000L
 
         val conn = database.getConnection() ?: throw SongUnavailable()
+        // BR-520 (аудит #336, OpenProject #401): отзыв старой ссылки и вставка новой —
+        // ОДНА транзакция.
+        //
+        // Раньше отзыв (UPDATE) шёл первым и коммитился сам по себе (autoCommit=true),
+        // а INSERT выполнялся следующим отдельным оператором. Если INSERT падал
+        // (нарушение ограничения, обрыв БД, таймаут) — старая ссылка уже была отозвана,
+        // а новой не появилось: пользователь ТЕРЯЛ рабочую ссылку на свою же песню.
+        // Теперь при любой ошибке делается rollback — состояние не меняется.
+        val wasAutoCommit = conn.autoCommit
+        conn.autoCommit = false
         try {
             conn
                 .prepareStatement(
@@ -367,13 +379,22 @@ class SongShareLinkService(
                     rs.next()
                     newId = rs.getLong(1)
                 }
+            conn.commit()
             return CreateResult(
                 linkId = newId,
                 secret = secret,
                 expiresAt = expiresAt,
                 url = "$baseUrl/share/$newId/$secret",
             )
+        } catch (e: Exception) {
+            // Откат: отзыв старой ссылки не должен остаться в силе, если новая не создана.
+            runCatching { conn.rollback() }
+                .onFailure { log.warn("share:create:rollback failed user={} song={}", siteUserId, songId, it) }
+            throw e
         } finally {
+            // Восстанавливаем режим соединения: оно thread-local и переиспользуется
+            // следующим запросом в этом потоке (см. KaraokeConnection.getConnection).
+            runCatching { conn.autoCommit = wasAutoCommit }
             // Не закрываем соединение — оно per-thread (см. KaraokeConnection.getConnection).
             // Вызывающий код (HTTP-поток Tomcat) переиспользует соединение для следующего запроса.
             // (см. принцип specs/087-fix-shared-db-connection).
@@ -936,17 +957,38 @@ class SongShareLinkService(
     // не отдаёт строковые метки — только единственное числовое поле `expiresAt`
     // (Long, реальный момент). См. spec.md §«Трактовка дат» (FR-013).
 
-    private fun countActiveForUser(siteUserId: Long, database: KaraokeConnection): Long {
+    /**
+     * BR-519 (аудит #336, OpenProject #401): считаем активные ссылки пользователя.
+     *
+     * Два уточнения к прежней формулировке «`owner_site_user_id=? AND active`»:
+     *  - **ссылка на ту же песню не считается** ([excludeSongId]): перевыпуск ссылки
+     *    (reissue) заменяет ссылку на эту же песню, поэтому её наличие не должно
+     *    блокировать перевыпуск — иначе пользователь, у которого уже выбран лимит
+     *    активных ссылок, НЕ МОГ обновить свою же ссылку (счётчик до замены уже
+     *    включал её). Чинится исключением ссылки на эту песню из подсчёта.
+     *  - **истёкшие ссылки не считаются**: `active` остаётся true до отработки
+     *    sweeper'а, поэтому просроченная (но ещё не убранная) ссылка занимала лимит
+     *    пользователя. Учитываем только те, чей срок ещё не вышел.
+     */
+    private fun countActiveForUser(
+        siteUserId: Long,
+        database: KaraokeConnection,
+        excludeSongId: Long? = null,
+    ): Long {
         val conn = database.getConnection() ?: return 0
-        conn
-            .prepareStatement(
-                "SELECT count(*) FROM tbl_song_share_links WHERE owner_site_user_id=? AND active",
-            ).use { ps ->
-                ps.setLong(1, siteUserId)
-                val rs = ps.executeQuery()
-                rs.next()
-                return rs.getLong(1)
+        val sql =
+            "SELECT count(*) FROM tbl_song_share_links WHERE owner_site_user_id=? AND active " +
+                "AND expires_at > now()" +
+                (if (excludeSongId != null) " AND song_id <> ?" else "")
+        conn.prepareStatement(sql).use { ps ->
+            ps.setLong(1, siteUserId)
+            if (excludeSongId != null) {
+                ps.setLong(2, excludeSongId)
             }
+            val rs = ps.executeQuery()
+            rs.next()
+            return rs.getLong(1)
+        }
     }
 
     private fun countGenerationsLast24h(siteUserId: Long, database: KaraokeConnection): Long {

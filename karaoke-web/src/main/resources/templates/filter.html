@@ -477,22 +477,14 @@
 <script type="text/javascript">
 
     $(function() {
-        const fieldAuthor = document.getElementById('field_author');
-        fieldAuthor.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                var url = "/zakroma?author=" + fieldAuthor.value.replaceAll('&', '%26');
-                window.location.href = url;
-            }
-        });
-
-        // fieldAuthor.onchange = e => window.location.href = "/zakroma?author=" + e.target.value;
-
-        fieldAuthor.addEventListener('change', function(event) {
-            var sel = event.target.value;
-            var url = "/zakroma?author=" + sel.replaceAll('&', '%26');
-            window.location.href = url;
-            fieldAuthor.value = sel;
-        });
+        // BR-502 (аудит #336, OpenProject #401): блок с `field_author` УДАЛЁН.
+        // Элемента `field_author` на странице /filter нет (его select закомментирован),
+        // поэтому `document.getElementById('field_author')` возвращал null, а следующая
+        // строка `fieldAuthor.addEventListener(...)` бросала TypeError. Ошибка прерывала
+        // ВЕСЬ ready-обработчик — и обвязка ссылок (`getElementsByName('link')` с
+        // регистрацией клика в аналитике) не навешивалась ВООБЩЕ: страница теряла
+        // события clickToLink по всем песням. Блок относился к странице «Закрома»
+        // (там поле есть — см. zakroma.html).
 
         const linkElements = document.getElementsByName('link');
         for (let i = 0; i < linkElements.length; i++) {
@@ -518,7 +510,11 @@
         var author = document.getElementById("fld_songauthor").value;
         var name = document.getElementById("fld_songname").value;
         var text = document.getElementById("fld_songtext").value;
-        var url = "/filter?author=" + author.replaceAll('&', '%26') + '&songName=' + name.replaceAll('&', '%26') + '&text=' + text.replaceAll('&', '%26');
+        // BR-503 (аудит #336, OpenProject #401): параметры кодируются encodeURIComponent.
+// Ручное экранирование только '&' ломало всё остальное: 'C++' превращалось в 'C  '
+// ('+' → пробел на сервере), '#' обрезал URL, '%' давал невалидную последовательность,
+// пробелы и '&' внутри значения ломали разбор.
+var url = "/filter?author=" + encodeURIComponent(author) + '&songName=' + encodeURIComponent(name) + '&text=' + encodeURIComponent(text);
         btn.disabled = true
         btn.innerText = "Ищу..."
         window.location.href = url;

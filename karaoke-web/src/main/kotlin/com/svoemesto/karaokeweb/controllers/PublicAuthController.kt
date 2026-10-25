@@ -65,11 +65,22 @@ class PublicAuthController(
     ): ResponseEntity<Map<String, Any>> {
         // Fail-closed: любой исход, кроме PASSED, отклоняет регистрацию. Код отказа берётся
         // из самого исхода (CaptchaValidationResult.errorCode): «captcha_not_configured» —
-        // проверка не настроена, «captcha» — не пройдена или сервис недоступен.
-        val captchaErrorCode =
-            yandexCaptchaValidationService.validate(captchaToken ?: "", request.remoteAddr).errorCode
+        // проверка не настроена, «captcha» — не пройдена, «captcha_unavailable» — внешний
+        // сервис проверки недоступен.
+        //
+        // BR-522 (аудит #336, OpenProject #401): «сервис проверки недоступен» — это 503,
+        // а не 400. Раньше оба отказа отдавали 400 с кодом «captcha»: посетителю
+        // сообщали «вы не робот», хотя капча была недоступна.
+        val captchaResult = yandexCaptchaValidationService.validate(captchaToken ?: "", request.remoteAddr)
+        val captchaErrorCode = captchaResult.errorCode
         if (captchaErrorCode != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to captchaErrorCode))
+            val status =
+                if (captchaResult == CaptchaValidationResult.UNAVAILABLE) {
+                    HttpStatus.SERVICE_UNAVAILABLE
+                } else {
+                    HttpStatus.BAD_REQUEST
+                }
+            return ResponseEntity.status(status).body(mapOf("error" to captchaErrorCode))
         }
         if (!email.contains("@") || email.length < 5) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "invalid_email"))

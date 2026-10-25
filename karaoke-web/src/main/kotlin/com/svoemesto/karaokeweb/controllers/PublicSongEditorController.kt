@@ -322,6 +322,23 @@ class PublicSongEditorController(
 
     // ---- Отказаться от активного задания (US-2) ---------------------------------------------
 
+    companion object {
+        /**
+         * BR-024: статусы, из которых заказчик вправе отказаться от задания.
+         *
+         * `submitted` — нельзя: есть отдельный `/recall` (вернуть в работу, работа не
+         * теряется). `approved` — нельзя: черновик стал архивом разметки (FR-012),
+         * удалять его — потеря данных; для одобренных есть `/delete` (удаляет только
+         * запись назначения, архив остаётся).
+         */
+        private val REFUSABLE_STATUSES =
+            setOf(
+                SongAssignmentStatus.ASSIGNED,
+                SongAssignmentStatus.IN_PROGRESS,
+                SongAssignmentStatus.REJECTED,
+            )
+    }
+
     /**
      * Отказаться от задания в активном статусе (`assigned`/`in_progress`/`submitted`/`rejected`).
      * Удаляет запись задания И связанный черновик (orphan-cleanup, как `SongEditorController.revoke()`).
@@ -338,6 +355,29 @@ class PublicSongEditorController(
         val user = currentUser(request)
         if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
+        // BR-024 (аудит #336, OpenProject #401): отказ разрешён ТОЛЬКО из активных статусов.
+        //
+        // Раньше проверки статуса не было вовсе: `refuse` удалял задание и черновик
+        // ЛЮБОГО статуса. Для `approved` черновик — архив после апрува (FR-012), и его
+        // удаление через `/refuse` теряло архив разметки; для `submitted` есть отдельный
+        // `/recall` (вернуть в работу), а отказ удаляет работу пользователя целиком.
+        val status = statusOf(a, SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient))
+        if (status !in REFUSABLE_STATUSES) {
+            return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                    mapOf(
+                        "error" to "not_refusable",
+                        "status" to status.dbValue,
+                        "use" to
+                            when (status) {
+                                SongAssignmentStatus.SUBMITTED -> "recall"
+                                SongAssignmentStatus.APPROVED -> "delete"
+                                else -> "refuse"
+                            },
+                    ),
+                )
+        }
         // Чистим черновик ДО удаления задания (как в admin revoke()).
         //
         // BR-129 (аудит #336, пакет `PKG-S3-23`): если очистка черновика НЕ удалась,

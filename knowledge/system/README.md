@@ -20,13 +20,15 @@ C4-модель верхнего уровня:
 
 - [`utilities.md`](utilities.md) — общие утилиты ядра (в т.ч. кеширование
   и определение страны для VPN-проверки).
-- [`frontend/`](frontend/) — 41 документ по `webvue3/` и `karaoke-public/`:
+- [`frontend/`](frontend/) — 42 документа по `webvue3/`, `karaoke-public/` и `karaoke-web`:
   Vuex-паттерны, store-docs по компонентам, composables, views, экранирование
   текста подтверждений ([`frontend/confirm-escape.md`](frontend/confirm-escape.md)),
   тестовая инфраструктура публичного SPA
   ([`frontend/karaoke-public-tests.md`](frontend/karaoke-public-tests.md)),
   инварианты публичного SPA из аудита #336
-  ([`frontend/karaoke-public-audit-invariants.md`](frontend/karaoke-public-audit-invariants.md)).
+  ([`frontend/karaoke-public-audit-invariants.md`](frontend/karaoke-public-audit-invariants.md)),
+  контракт ошибок и отказов `karaoke-web` из аудита #336
+  ([`frontend/karaoke-web-error-contract.md`](frontend/karaoke-web-error-contract.md)).
 - [`infra/`](infra/) — 16 документов по инфраструктуре репозитория: `tools/`,
   `deploy/`, `do.sh`, `registry` (приватный контейнерный registry), `specs/`,
   pre-commit-хуки, governance-документы, SQL-миграции, per-feature-документы.

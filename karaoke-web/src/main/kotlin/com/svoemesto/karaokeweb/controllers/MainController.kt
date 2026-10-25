@@ -22,6 +22,7 @@ import com.svoemesto.karaokeweb.util.ClientIpResolver
 import com.svoemesto.karaokeweb.util.SafeLink
 // import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -603,6 +604,7 @@ class MainController(
         @RequestParam(required = true) id: Long,
         model: Model,
         request: HttpServletRequest,
+        response: HttpServletResponse,
     ): String {
         val song =
             Song.loadFromDbById(
@@ -611,6 +613,13 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-501 (аудит #336, OpenProject #401): песни нет → 404, а не 500.
+        // Раньше модель получала song=null, и шаблон падал на `${song.songName}`
+        // (EL1007E) — то есть «страница не найдена» отдавалась как «сервер сломался».
+        // Теперь статус честный, а шаблон сам рисует ветку «песня не найдена».
+        if (song == null) {
+            response.status = HttpServletResponse.SC_NOT_FOUND
+        }
 //        song?.let {
 //            if (!song.haveVkGroupLink) {
 //                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${song.id}.png"
@@ -671,6 +680,52 @@ class MainController(
                 .getStatBySongCount(database = WORKING_DATABASE),
         )
         return "statbysong"
+    }
+
+    /**
+     * BR-505 (аудит #336, OpenProject #401): пагинированная выгрузка статистики по песням.
+     *
+     * Раньше баннер на странице `/statbysong` вёл на `/api/stats/by-song?page=1&pageSize=50` —
+     * такой эндпоинт есть только в karaoke-app (админское приложение), а страницу отдаёт
+     * karaoke-web. Ссылка была относительной, поэтому на хосте karaoke-web пути не было:
+     * «полная выгрузка», о которой обещал баннер, отдавала 404.
+     *
+     * Почему эндпоинт живёт ВНЕ `/api/`: прод-nginx маршрутизирует `/api/` на karaoke-web
+     * (`deploy/prod-single-host/80to8897`, `location /api/`), то есть `/api/stats/by-song`
+     * в karaoke-web стал бы ПУБЛИЧНЫМ на sm-karaoke.ru — выгрузка статистики по всем песням
+     * утекла бы наружу. Путь `/statbysong-export` находится там же, где сама страница
+     * `/statbysong`: на проде этот путь отдаёт публичный SPA, а не karaoke-web
+     * (`location /` → :7907), то есть статистика остаётся недоступной снаружи — как задумано.
+     * Локально (админская машина) страница и выгрузка доступны, как и раньше.
+     *
+     * Источник данных — тот же [com.svoemesto.karaokeapp.model.StatsByEvents], что и у
+     * страницы; `pageSize` ограничен safety-guard'ом `normalizeStatsPaging` (1..1000).
+     */
+    @GetMapping("/statbysong-export")
+    fun statBySongExport(
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+    ): ResponseEntity<Map<String, Any?>> {
+        val safePage = page.coerceAtLeast(1)
+        val safePageSize = pageSize.coerceIn(1, 1000)
+        val offset = (safePage - 1) * safePageSize
+        val items =
+            com.svoemesto.karaokeapp.model.StatsByEvents.getStatBySong(
+                database = WORKING_DATABASE,
+                limit = safePageSize,
+                offset = offset,
+            )
+        val totalCount =
+            com.svoemesto.karaokeapp.model.StatsByEvents
+                .getStatBySongCount(database = WORKING_DATABASE)
+        return ResponseEntity.ok(
+            mapOf(
+                "items" to items,
+                "totalCount" to totalCount,
+                "page" to safePage,
+                "pageSize" to safePageSize,
+            ),
+        )
     }
 
     @GetMapping("/webevents")

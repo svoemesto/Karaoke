@@ -149,8 +149,10 @@
             <div class="alert alert-info" role="alert" style="margin-bottom: 12px;">
                 Показано топ-1000 из ~<span th:text="${totalCount}">0</span> доступных.
                 Для полной выгрузки используйте
-                <a href="/api/stats/by-song?page=1&amp;pageSize=50" target="_blank">/api/stats/by-song</a>
-                с пагинацией.
+                <a href="/statbysong-export?page=1&amp;pageSize=50" target="_blank">/statbysong-export</a>
+                с пагинацией (page, pageSize). Эндпоинт отдаёт JSON
+                {items, totalCount, page, pageSize} и живёт вне /api/ — на проде публичный
+                nginx отдаёт по этому пути SPA, а не статистику.
             </div>
 
             <div id="areaLeftTable">

@@ -219,6 +219,11 @@ class PublicShareController(
         return heartbeatPollingCache.getOrCompute(
             key = "share_heartbeat:$sessionTokenHash",
             ttlSeconds = 15,
+            // BR-026 (аудит #336, OpenProject #401): кешируем только успех и «lease истёк».
+            // Раньше кешировался ЛЮБОЙ ответ, включая 500 share.internal, — хотя комментарий
+            // прямо говорил «внутренние ошибки НЕ кешируем». Итог: при падении БД публичный
+            // клиент получал залипший 500 ещё 15 секунд после восстановления БД.
+            shouldCache = { it.statusCode.is2xxSuccessful || it.statusCode.value() == 410 },
         ) {
             try {
                 shareService.heartbeat(sessionTokenHash)

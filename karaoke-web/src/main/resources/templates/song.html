@@ -1,8 +1,22 @@
 <!doctype html>
+<!--
+    BR-501 (аудит #336, OpenProject #401): страница переживает отсутствие песни.
+
+    Раньше шаблон безусловно читал `${song.songName}` — при song == null SpEL падал
+    (EL1007E «Property or field 'songName' cannot be found on null») → HTTP 500 вместо
+    404. Теперь обе ветки явные: песня есть / песни нет.
+-->
 <head>
     <meta charset="UTF-8">
-    <title th:text="${song.songName} + ' ★♫★ ' + ${song.author}">Karaoke</title>
+    <title th:if="${song != null}" th:text="${song.songName} + ' ★♫★ ' + ${song.author}">Karaoke</title>
+    <title th:unless="${song != null}">Песня не найдена</title>
 </head>
 <body>
-    <img th:src="'/api/public/song-vk-image/' + ${song.id}" style="width: 537px; display: block; margin: auto" />
+    <div th:if="${song != null}">
+        <img th:src="'/api/public/song-vk-image/' + ${song.id}" style="width: 537px; display: block; margin: auto" />
+    </div>
+    <div th:unless="${song != null}" style="font-family: sans-serif; padding: 40px">
+        <h1>Песня не найдена</h1>
+        <p>Проверьте адрес: возможно, песня удалена или ещё не опубликована.</p>
+    </div>
 </body>

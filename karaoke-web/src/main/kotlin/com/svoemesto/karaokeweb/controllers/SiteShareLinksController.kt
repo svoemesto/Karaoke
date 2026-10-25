@@ -7,12 +7,16 @@ import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
 import com.svoemesto.karaokeweb.services.SongShareLinkService
 import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.RestControllerAdvice
 
 /**
  * Admin-endpoint'ы для управления share-ссылками site-user'ов (используется из webvue3 → modal
@@ -128,9 +132,53 @@ class SiteShareLinksController(
             }
             else -> WORKING_DATABASE
         }
+}
 
-    /** Внутреннее исключение для 403 share.notEditor (Spring-уровневый маппинг в JSON). */
-    private class ShareAccessDeniedException(
-        message: String,
-    ) : RuntimeException(message)
+/**
+ * BR-007 (аудит #336, OpenProject #401): отказ «вы не редактор» должен быть **403**,
+ * а не 500.
+ *
+ * Раньше исключение было `private class` ВНУТРИ контроллера и НЕ имело
+ * `@ResponseStatus`: Spring не находил ни обработчика, ни аннотации → RuntimeException
+ * уезжал в стандартный 500. При этом KDoc самого класса обещал «403 share.notEditor
+ * (Spring-уровневый маппинг в JSON)» — маппинга не было нигде.
+ *
+ * Теперь:
+ *  - `@ResponseStatus(FORBIDDEN)` — корректный статус даже без advice;
+ *  - класс верхнего уровня (виден обработчику исключений);
+ *  - [SiteShareLinksExceptionHandler] отдаёт JSON `{"errorCode":"share.notEditor"}`,
+ *    как остальные endpoint'ы этого контроллера.
+ */
+@ResponseStatus(HttpStatus.FORBIDDEN)
+class ShareAccessDeniedException(
+    message: String,
+) : RuntimeException(message)
+
+/**
+ * BR-007: маппинг исключений [SiteShareLinksController] в JSON с `errorCode`.
+ *
+ * Advice ОГРАНИЧЕН этим контроллером (`assignableTypes`), чтобы не перехватывать
+ * исключения других endpoint'ов.
+ *
+ *  - [ShareAccessDeniedException] → 403 `share.notEditor` (не редактор);
+ *  - `IllegalStateException` → 500 `share.internal` (например, `SiteAuthInterceptor`
+ *    не выставил атрибут — это наша ошибка конфигурации, а не «пользователь виноват»).
+ */
+@RestControllerAdvice(assignableTypes = [SiteShareLinksController::class])
+class SiteShareLinksExceptionHandler {
+    @ExceptionHandler(ShareAccessDeniedException::class)
+    fun onAccessDenied(e: ShareAccessDeniedException): ResponseEntity<Map<String, Any?>> =
+        ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(mapOf("errorCode" to "share.notEditor", "message" to (e.message ?: "not editor")))
+
+    @ExceptionHandler(IllegalStateException::class)
+    fun onIllegalState(e: IllegalStateException): ResponseEntity<Map<String, Any?>> {
+        LoggerFactory
+            .getLogger(SiteShareLinksExceptionHandler::class.java)
+            .warn("share-links:internal error", e)
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(mapOf("errorCode" to "share.internal"))
+    }
 }

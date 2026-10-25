@@ -251,7 +251,7 @@ BR-085 (битый JSON → `null`). Статический guard: BR-086 (вс�
 
 ### Тесты партии 4
 
-`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PkgS322SongDataTest.kt` (18 тестов).
+`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PkgS322SongDataTest.kt` (24 теста).
 
 Поведенческие (падали на старом коде):
 

@@ -5,6 +5,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 source "${SCRIPT_DIR}/announce.sh"
+# Синхронизация конфигурации на прод (compose + nginx публичного SPA) — общий шаг.
+source "${SCRIPT_DIR}/sync_prod_config.sh"
 
 # PROD_HOST — единственный источник правды: deploy/.env (не хардкодим в скрипте).
 # Приоритет: shell-окружение → deploy/.env. Если нигде нет — fail-fast.
@@ -31,6 +33,11 @@ bash do.sh build_public
 
 echo "=== Push в registry (см. do.env: DOCKER_REGISTRY; DUAL_PUSH зеркалит в Hub) ==="
 bash do.sh push_public
+
+echo "=== Синхронизация конфигурации на прод (compose + nginx SPA) ==="
+# nginx-конфиг публичного SPA монтируется на хосте в контейнер — без этого шага
+# правка заголовков (BR-549) оставалась в репозитории и не доезжала до контейнера.
+sync_prod_config public
 
 echo "=== Pull и restart на сервере ==="
 # Pass 540 (issue #286): после pull проверяем, что на сервере действительно НОВЫЙ образ.

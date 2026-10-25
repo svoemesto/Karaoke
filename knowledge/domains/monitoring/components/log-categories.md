@@ -58,6 +58,8 @@
 | `infra.admin.processes` | `karaoke-app/.../controllers/MainController.kt` (аудит #336, BR-236) | Ошибки admin-контроллера: разбор маркеров песни (`songId=`, `voice=`), отсутствующая песня (`songId=`, `voice=`) | WARN |
 | `infra.render.tabs` | `karaoke-app/.../mlt/mko/MkoMelodyTabs.kt` (аудит #336, BR-239) | Некорректные данные маркеров при генерации `.mlt`: неверный `stringLad` (таб пропущен), строка без TEXT-элемента (слой пуст) | WARN |
 | `infra.render.counters` | `karaoke-app/.../mlt/mko/MkoCounter.kt` (аудит #336, BR-243) | Некорректная конфигурация счётчиков: свойство `voices` без голосов/групп, свойство `countersColors` короче числа счётчиков или пусто | WARN |
+| `infra.settings.write` | `karaoke-app/.../KaraokeProperties.kt` (аудит #336, BR-249) | Не удалось записать файл настроек на диск (нет каталога, read-only ФС, ошибка `Files.move`) — значение изменено только в памяти и будет потеряно при рестарте | ERROR |
+| `infra.ai.search` | `karaoke-app/.../UtilsAI.kt` (аудит #336, BR-265) | Сбои загрузки HTML в AI-поиске: сетевой сбой, не-2xx код ответа, пустой документ (`url=`, причина) | WARN |
 
 ### Конвенция имён
 

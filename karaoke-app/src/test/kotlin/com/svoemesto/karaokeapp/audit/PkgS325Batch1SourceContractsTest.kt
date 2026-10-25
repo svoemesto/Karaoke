@@ -90,14 +90,16 @@ class PkgS325Batch1SourceContractsTest {
 
     @Test
     fun `BR-230 UUID узлов MLT берутся из кеша, а не по одному SELECT на узел`() {
+        // Реализацию дал пакет PKG-S3-24 (BR-197, слит раньше): кеш таблицы
+        // tbl_uuids в model/Uuids.kt (loadAll/cachedUuid/putCached). Этот пакет
+        // принёс вторую, параллельную реализацию того же исправления — при слиянии
+        // оставлена одна (из PKG-S3-24), поэтому проверка здесь — на общий смысл
+        // (кеш и запрет точечного SELECT), а не на конкретные имена API.
         val source = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Uuids.kt")
+        val model = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Uuids.kt")
         assertTrue(
-            source.contains("class UuidCache"),
-            "BR-230: нужен кеш UUID структурных узлов MLT",
-        )
-        assertTrue(
-            source.contains("loadAll = { Uuids.loadAllToMap(WORKING_DATABASE) }"),
-            "BR-230: кеш должен загружать таблицу tbl_uuids ОДНИМ запросом",
+            model.contains("loadAll") && model.contains("cachedUuid"),
+            "BR-230: нужен кеш UUID структурных узлов MLT (загрузка таблицы одним запросом)",
         )
         assertFalse(
             source.contains("Uuids.load(id, WORKING_DATABASE)?.uuid ?: \"\""),
@@ -112,10 +114,17 @@ class PkgS325Batch1SourceContractsTest {
             mlt.contains("getStoredUuid("),
             "BR-230: Mlt.getMisList берёт UUID через getStoredUuid — функция должна быть кешированной",
         )
+        // Реализация кеша — из PKG-S3-24 (BR-197): таблица tbl_uuids читается
+        // одним запросом (Uuids.loadAll), а getStoredUuid идёт через кеш
+        // (Uuids.cachedUuid), а не точечным SELECT на каждый узел.
         val uuids = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Uuids.kt")
         assertTrue(
-            uuids.contains("fun getStoredUuid(key: List<Any>): String = uuidCache.get(storedUuidId(key))"),
+            uuids.contains("Uuids.cachedUuid("),
             "BR-230: getStoredUuid должен идти через кеш, а не делать SELECT на каждый узел",
+        )
+        assertFalse(
+            uuids.contains("uuidCache.get(storedUuidId(key))"),
+            "BR-230: реализация из PKG-S3-24 заменила дублирующий UuidCache",
         )
     }
 

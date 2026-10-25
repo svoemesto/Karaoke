@@ -59,7 +59,7 @@
 |---|---|---|---|---|---|
 | BR-228 | `karaoke-app/.../llm/LyricsFinderService.kt:161` | PERF | `Jsoup.connect(url).get()` без лимита тела: обрезка до 8 000 символов делалась **после** построения DOM, пик памяти на HTML+DOM безграничен | `.maxBodySize(MAX_PAGE_BODY_BYTES)` (2 МБ) на уровне HTTP-клиента; константа рядом с `MAX_PAGE_TEXT_CHARS` | `PkgS325Batch1SourceContractsTest.BR-228 загрузка страницы ограничена по размеру тела` |
 | BR-229 | `karaoke-app/.../llm/Tools.kt:107` | ERR | SearXNG-путь не проходил `filterUselessLyricsUrls`, хотя KDoc обещает «то же, что fourget»: в LLM уходили homepage/логины/sitemap/tracking-ссылки и дубликаты (каждая — до 120 с LM Studio) | Тот же фильтр на оба движка (он же дедуплицирует через `LinkedHashSet`) + счётчик отброшенных в лог | `…BR-229 SearXNG-путь проходит тот же post-filter, что и fourget` |
-| BR-230 | `karaoke-app/.../Uuids.kt:7` | PERF | `getStoredUuid` на **каждый** узел MLT делал `SELECT` по `tbl_uuids` (+`INSERT` для новых) — ~9 000 обращений к БД на песню (×2 версии) | `UuidCache`: `tbl_uuids` читается **одним** `SELECT` (`Uuids.loadAllToMap`), UUID раздаются из памяти; `INSERT` — только для новых `id`; `id` считается общей функцией `storedUuidId` | `…BR-230 UUID узлов MLT берутся из кеша…` + `PkgS325Batch1BehaviorTest` (4 теста) |
+| BR-230 | `karaoke-app/.../Uuids.kt:7` | PERF | `getStoredUuid` на **каждый** узел MLT делал `SELECT` по `tbl_uuids` (+`INSERT` для новых) — ~9 000 обращений к БД на песню (×2 версии) | **Закрыт параллельным пакетом `PKG-S3-24` (BR-197, слит в master раньше)** — кеш `tbl_uuids` в `model/Uuids.kt` (`loadAll`/`cachedUuid`/`putCached`/`removeCached`). Этот пакет принёс параллельную реализацию; при слиянии оставлена одна (из `PKG-S3-24`), добавлена регрессия на КОНТРАКТ кеша | `…BR-230 UUID узлов MLT берутся из кеша…` + `PkgS325Batch1BehaviorTest` (5 тестов) |
 | BR-231 | `karaoke-app/.../controllers/MainController.kt:219` | ERR | `id.toLong()`/`process_order.toInt()`/`process_priority.toInt()` без проверки → `NumberFormatException`/NPE → 500. Штатный сценарий: кнопка «New prior» с пустым полем писала пустую строку в priority **всем** строкам → N запросов, все 500 | `parseOptionalInt(raw, reason)`: пусто → `null` («не менять»), нечисло → 400 с причиной; `id` → `bad_process_id`; `status` — по белому списку `KaraokeProcessStatuses` (`bad_process_status`); процесс не найден → 404 | `…BR-231 числовые параметры process update разбираются безопасно`, `…пустое числовое поле означает не менять значение`, `…нечисловое значение даёт 400…` |
 | BR-232 | `karaoke-app/.../controllers/MainController.kt:229` | PERF | XHR получал `redirect:/processes` → прозрачно шёл по 302 и **скачивал всю страницу** (полный `SELECT` процессов + полный Thymeleaf-рендер) на каждое изменение поля; «New prior» — N раз подряд (O(N²)) | XHR (по `X-Requested-With`) → 200 `{ok:true}`; обычный запрос → 302 на `/processes` (совместимость) | `…BR-232 XHR получает короткий JSON…`, `…XHR определяется по заголовку X-Requested-With` |
 | BR-233 | `karaoke-app/.../controllers/MainController.kt:1263` | COMPAT | Три метода `texttelegram*header` собирали текст через `getDescriptionVkHeader` — в Telegram-пост уходил VK-вариант без ссылки на страницу песни | `getDescriptionTelegramHeader` во всех трёх (lyrics/karaoke/chords); VK-методы (`textvk*header`) не тронуты | `…BR-233 Telegram-заголовки используют getDescriptionTelegramHeader` |
@@ -95,12 +95,12 @@
 | BR-245 | `KaraokeProperties.kt:155` | ERR | `setFromString` разбирал значение через `toLong()`/`toInt()`/`toDouble()` (→ `NumberFormatException` → 500 на `/api/properties/setproperty`) и `toBoolean()` (любая опечатка → молча `false`); неизвестный ключ — тихий no-op (`if (defaultValue !== null)`) | `toXxxOrNull()` → 400 `KaraokePropertyValueException`; boolean — явный список (`true/false/1/0/yes/no/on/off`); неизвестный ключ → 404 `KaraokePropertyUnknownKeyException` | `…BR-245 значения свойств разбираются по типу…`, `…неизвестный ключ не молчаливый no-op` |
 | BR-246 | `KaraokeProperties.kt:88` | COMPAT | Три ключа, которые читает `karaoke-web`, не зарегистрированы: `karaoke.public.public-settings-cache.enabled` (→ `getBoolean` = `false`, кеш публичных настроек выключен ВСЕГДА), `karaoke.web.events.batch-enabled` (нельзя включить), `karaoke.web.events.batch-max-buffer-size` (→ `0` → `coerceAtLeast(1)` = 1 вместо 500) | Три ключа зарегистрированы с типами и дефолтами из спецификаций (specs/249 FR-003, specs/274) | `…BR-246 три ключа karaoke-web зарегистрированы` + поведенческий тест дефолтов |
 | BR-248 | `KaraokeProperties.kt:39` | RACE | `propertiesLoadAttempted` — обычный `var` без `volatile`; флаг ставился ДО наполнения карты → читатель мог увидеть «загрузка выполнена» при полупустой карте | `@Volatile` + двойная проверка (быстрый путь — volatile-чтение, медленный — под `propertiesWriteLock`); флаг ставится ПОСЛЕ наполнения карты (release barrier) | `…BR-248 флаг загрузки volatile и карта публикуется после наполнения` |
-| BR-249 | `KaraokeProperties.kt:75` | ERR | `savePropertiesMap()` ловил `Exception` и печатал одну строку в stdout; `set()` возвращал `Unit` → `/api/properties/setproperty` отвечал 200 и рассылал SSE «установлено», даже если файл НЕ записан (нет каталога, read-only ФС, ошибка `Files.move`); значение жило только в памяти | `savePropertiesMap(): Boolean` + `set(): Boolean` со **ОТКАТОМ** значения в карте при неудаче; ошибка — SLF4J `infra.config.properties` со стеком; контроллер → 500 | `…BR-249 результат записи файла свойств наблюдаем` |
+| BR-249 | `KaraokeProperties.kt:75` | ERR | `savePropertiesMap()` ловил `Exception` и печатал одну строку в stdout; `set()` возвращал `Unit` → `/api/properties/setproperty` отвечал 200 и рассылал SSE «установлено», даже если файл НЕ записан (нет каталога, read-only ФС, ошибка `Files.move`); значение жило только в памяти | `savePropertiesMap(): Boolean` + `set(): Boolean` со **ОТКАТОМ** значения в карте при неудаче; ошибка — SLF4J `infra.settings.write` со стеком; контроллер → 500 | `…BR-249 результат записи файла свойств наблюдаем` |
 | BR-250 | `KaraokeProperties.kt:65` | DATA | `decodePropertiesMap` использовал `associate { … }` — одна битая строка отбрасывала ВЕСЬ файл (~150 настроек молча откатывались к дефолтам, а первая запись их затирала) | `readPropertiesFileTolerant` — построчный разбор, битые строки пропускаются с логом (номер строки + причина); при провале загрузки карта заполняется дефолтами всех ключей ДО первой записи | `…BR-250 файл свойств разбирается построчно` + поведенческий тест на битой строке |
 | BR-252 | `Utils.kt:859` | DATA | `Song.deleteFromDb(..., sync = true)` выполнялся ДО проверки соединения и до вставки: при недоступной REMOTE-БД sync-запись уже удалялась, новая не создавалась, а вызывающий рапортовал «добавлено в SYNC-таблицу» | Проверка соединения ДО удаления; DELETE+INSERT в одной транзакции (`autoCommit=false`, `commit`/`rollback`); исключение наружу (`KaraokeSyncEnqueueFailedException`) | `…BR-252 DELETE и INSERT в tbl_songs_sync — в одной транзакции` |
 | BR-253 | `Utils.kt:262` | RACE | Защита от повторного запуска — неатомарный check-then-set на `@Volatile`-флаге: два одновременных запроса оба читали `false` и оба запускали поток (две параллельные записи в одни и те же строки `tbl_songs`) | Три флага → `AtomicBoolean.compareAndSet(false, true)` | `…BR-253 флаги фоновых задач захватываются атомарно` |
 | BR-254 | `Utils.kt:370` | ERR | Флаг снимался последним оператором тела потока, а не в `finally` (KDoc обещал `finally`): сбой `SNS.send` (Jackson вне `try`) оставлял флаг `true` навсегда — кнопка до перезапуска приложения отвечала «уже выполняется» | `startOneShotThread` получил параметр `onFinally` (срабатывает в том же `finally`, что и закрытие соединения); флаг снимается и при неудаче создания потока (`catch` вокруг `startOneShotThread`) | `…BR-254 флаги снимаются в finally` |
-| BR-255 | `Utils.kt:2590` | LEAK | `getFileNameByMasks` — `Files.walk(...)` без закрытия (дескрипторы до финализации); `catch (_: Exception) { return "" }` глушил ошибку, вызывающий не отличал «не найдено» от «не смогли посмотреть» | `.use { stream -> … }`; ошибка обхода логируется (`infra.files.walk`) со стеком | `…BR-255 поток обхода файлов закрывается` |
+| BR-255 | `Utils.kt:2590` | LEAK | `getFileNameByMasks` — `Files.walk(...)` без закрытия (дескрипторы до финализации); `catch (_: Exception) { return "" }` глушил ошибку, вызывающий не отличал «не найдено» от «не смогли посмотреть» | `.use { stream -> … }`; ошибка обхода логируется (логгер файла `karaoke.utils`) со стеком | `…BR-255 поток обхода файлов закрывается` |
 | BR-256 | `Utils.kt:1607` | ERR | `getBpmAndKeyFromCsv` ловил только `IOException`: короткая строка CSV (`get(3)` вне диапазона) и нечисловой BPM (`toLong()`) бросали наружу и прерывали массовый `updateBpmAndKey` на середине; `printStackTrace()` — без стека в централизованных логах | Разбор каждой записи в своём `try` (битая строка — пропуск с WARN `id`/файл); `catch (e: Exception)` + SLF4J со стеком; `bpm.toLongOrNull()` | `…BR-256 битая строка CSV не роняет массовое обновление` |
 | BR-257 | `Utils.kt:2132` | DATA | Четыре ветки `searchSongText` брали `element.html()` (снимая только `<br>`/`&nbsp;`) → в `song.sourceText` попадала чужая разметка (`<div>`, `<span class=…>`, `<script>`), которая уезжала в маркеры строк и в кадр видео | `htmlToPlainTextWithNewlines` — Jsoup-разбор + `<br>`/блочные теги → `\n`, теги убираются, разметка наружу не уходит | `…BR-257 ветки поиска текста не возвращают HTML-разметку` + 3 поведенческих теста |
 | BR-259 | `StemJobCleanup.kt:52` | RACE | Шаги задания сопоставлялись по ТОЧНОМУ `description` → цепочка CPU-повтора («… (повтор без GPU)») не попадала под остановку: `destroyForcibly`/`interrupt` не вызывались, строки `tbl_processes` оставались, а финализация перезаписывала статус задания | Сопоставление по префиксу с id задания (`isStemJobDescription`, с границей — #42 ≠ #420); `executeFinalizeStemJob` перечитывает статус и не финализирует задание в `ERROR` | `…BR-259 шаги задания сопоставляются по префиксу с id` + поведенческий тест |
@@ -126,6 +126,30 @@
 | BR-273 | `Utils.kt:4907` | PERF | `findParentCandidateId` на КАЖДУЮ песню читал ВСЮ `tbl_songs` (18k строк) и нормализовал имена в Kotlin → N полных сканов на N песен (O(N²) чтений — нарушение ADR-0001) | `ParentCandidateIndex` — кандидаты грузятся ОДНИМ запросом и группируются по нормализованному названию; циклы `customFunction`/`findParentForAuthor` используют готовый индекс | `…BR-273 кандидаты-родители загружаются пакетно` |
 | BR-274 | `KaraokeConnection.kt:54` | PERF | `conn.isValid(3)` на КАЖДОМ `getConnection()` — в pgjdbc это отдельный запрос к серверу (пустой query), т.е. лишний round-trip на каждое обращение к БД (для `Connection.remote()` — через интернет) | Валидация только при открытии, после «битого» состояния и после простоя > 5 мин (`CONNECTION_VALIDATION_IDLE_MS`); соединение оборачивается в прокси, помечающий его битым при `SQLException` (self-healing specs/236 сохранён) | `…BR-274 isValid не вызывается на каждый getConnection` |
 | BR-275 | `KaraokeConnection.kt:67` | ERR | В `catch` логировался только `e.message` (и в `println`, и в `log.warn`) — ни стека, ни класса, ни cause-цепочки: сбой подключения к БД диагностировался по одной строке | `log.warn(..., e)` — throwable последним аргументом (SLF4J добавит стек и cause) | `…BR-275 в лог уходит само исключение` |
+
+---
+
+## Слияние с параллельным пакетом `PKG-S3-24` (#396)
+
+Ветка `624-pkg-s3-25` была перебазирована на master, куда уже слился
+`PKG-S3-24` (пакет #396, BR-174…BR-187). Две правки **пересеклись**:
+
+1. **BR-230 (кеш UUID узлов MLT)** — `PKG-S3-24` закрыл его отдельной записью
+   BR-197 (`model/Uuids.kt`: `loadAll`/`cachedUuid`/`putCached`/`removeCached`).
+   Моя реализация (`UuidCache` в `Uuids.kt`) при слиянии отброшена, чтобы не
+   было двух кешей одного назначения. Регрессия переписана на проверку
+   **контракта** кеша (не имён API конкретного пакета).
+2. **Логгер в `Utils.kt`** — `PKG-S3-24` добавил свой `private val log`
+   (категория `karaoke.utils`, BR-184). Мой второй `private val log`
+   (`infra.files.walk`) конфликтовал с ним на уровне объявлений. Решено:
+   в `Utils.kt` используется **логгер файла** (`karaoke.utils`), отдельной
+   категории `infra.files.walk` не вводится (в `log-categories.md` не
+   зарегистрирована — чтобы таблица не расходилась с кодом).
+
+Остальные 38 правок пакета слились без конфликтов. После слияния прогон
+`:karaoke-app:test :karaoke-web:test ktlintCheck` выполняется с
+`--rerun-tasks` (обычный прогон Gradle может сообщить UP-TO-DATE по
+закешированным классам и скрыть ошибку компиляции).
 
 ---
 
@@ -333,3 +357,25 @@ fun set(key: String, value: Any): Boolean = … // откат значения �
    строка `"ERROR: …"` вместо `"OK"`. Вызывающий (`ApiController`) отдаёт её
    как есть; если фронтенд ждёт строго `"OK"`, это надо учесть (фронтенд в
    этом пакете не трогался).
+
+## Уточнение лида при слиянии: BR-230 закрыт пакетом PKG-S3-24, не этим
+
+Пакет принёс **вторую** реализацию той же правки, что уже была слита в master:
+`UuidCache` в `Uuids.kt` (BR-230) против `Uuids.loadAll/cachedUuid/putCached`
+в `model/Uuids.kt` (BR-197, пакет PKG-S3-24, OpenProject #396). Обе решают одно:
+`tbl_uuids` читается одним запросом вместо тысячи точечных `SELECT`.
+
+При слиянии оставлена **одна** реализация — из PKG-S3-24 (она уже в master,
+покрыта тестами `PkgS324Batch2SourceContractsTest` и входит в CI). Из этого
+пакета удалено:
+- `UuidCache` и `loadAllToMap` (дубликаты; `loadAllToMap` к тому же содержал
+  остаток `println` с `Timestamp`/`Instant` — тот самый анти-паттерн, который
+  пакет и чинил в других местах);
+- `PkgS325Batch1BehaviorTest.kt` — файл целиком проверял отброшенную реализацию;
+  поведенческое покрытие UUID-кеша остаётся у PKG-S3-24;
+- тест `BR-230 UUID узлов MLT берутся из кеша` переписан на общий смысл
+  (наличие кеша и запрет точечного `SELECT`), чтобы не зависеть от имён API.
+
+Также устранён конфликт двух顶层-объявлений `private val log` в `Utils.kt`
+(по одному от PKG-S3-24 и PKG-S3-25): логгер обхода файлов переименован в
+`walkLog` — отдельного логгера в файле не вводится.

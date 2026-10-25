@@ -43,9 +43,9 @@ class KaraokeProperties {
         /**
          * BR-249: категория для ошибок записи файла настроек. Зарегистрирована в
          * `knowledge/domains/monitoring/components/log-categories.md`
-         * (`infra.config.properties`).
+         * (`infra.settings.write`).
          */
-        private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.config.properties")
+        private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.settings.write")
 
         fun pathToFile(): String = PATH_TO_KARAOKE_PROPERTIES_FILE
 
@@ -137,7 +137,7 @@ class KaraokeProperties {
          * единого признака в ответе.
          *
          * Теперь метод возвращает `Boolean`: `false` — файл не записан. Ошибка
-         * пишется в SLF4J **со стеком** (категория `infra.config.properties`).
+         * пишется в SLF4J **со стеком** (категория `infra.settings.write`).
          */
         fun savePropertiesMap(): Boolean =
             propertiesWriteLock.withLock {

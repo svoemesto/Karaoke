@@ -164,45 +164,6 @@ class Uuids(
             return uuid
         }
 
-        /**
-         * BR-230: загрузить ВСЕ `id → uuid` ОДНИМ запросом.
-         *
-         * Нужен для [com.svoemesto.karaokeapp.UuidCache]: вместо тысячи точечных
-         * `SELECT id` по одному узлу MLT делается один `SELECT id, uuid`.
-         *
-         * Значения читаются как есть (`uuid` — строка), никакой интерпретации.
-         */
-        fun loadAllToMap(database: KaraokeConnection): Map<Int, String> {
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return emptyMap()
-            }
-            val result = mutableMapOf<Int, String>()
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-            try {
-                statement = connection.createStatement()
-                rs = statement.executeQuery("SELECT id, uuid FROM tbl_uuids")
-                while (rs.next()) {
-                    val uuid = rs.getString("uuid")
-                    if (!uuid.isNullOrBlank()) {
-                        result[rs.getInt("id")] = uuid
-                    }
-                }
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close()
-                    statement?.close()
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return result
-        }
-
         fun loadList(
             args: Map<String, String> = emptyMap(),
             database: KaraokeConnection,

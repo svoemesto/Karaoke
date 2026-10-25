@@ -2747,7 +2747,8 @@ fun getFileNameByMasks(
         }
     } catch (e: Exception) {
         // BR-255: ошибка обхода (нет прав, слишком длинный путь) больше не выглядит
-        // как «файла нет» — она логируется. Раньше `catch (_: Exception) { return "" }`
+        // как «файла нет» — она логируется (категория `karaoke.utils` — логгер файла,
+        // см. BR-184/пакет `PKG-S3-24`). Раньше `catch (_: Exception) { return "" }`
         // глушил всё, и вызывающий не мог отличить «не найдено» от «не смогли
         // посмотреть».
         log.warn("getFileNameByMasks: не удалось обойти каталог «$pathToFolder» — ${e.message}", e)
@@ -5879,14 +5880,6 @@ fun getFreeTimeSlots(): List<String> {
     }
     return result
 }
-
-/**
- * BR-255/BR-256: логгер для ошибок обхода файловой системы и разбора данных.
- *
- * Категория `infra.files.walk` зарегистрирована в
- * `knowledge/domains/monitoring/components/log-categories.md`.
- */
-private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.files.walk")
 
 /**
  * BR-257: HTML-фрагмент → чистый текст С СОХРАНЕНИЕМ переводов строк.

@@ -245,6 +245,29 @@ class PkgS322ProcessTest {
         )
     }
 
+    @Test
+    fun `BR-035 вывод быстро завершившегося процесса не теряется`() {
+        // Регресс на гонку: destroyForcibly() закрывает потоки процесса. Если главный
+        // поток доходит до него раньше, чем поток-читатель заберёт данные из пайпа,
+        // вывод теряется целиком (IOException: Stream closed) — сообщение об ошибке
+        // уходило без хвоста, а валидный JSON читался как пустой.
+        // На быстрой машине читатель успевает, на CI-раннере (2 ядра) — нет.
+        // Отдельной программой воспроизводилось как 13 пустых выводов из 300.
+        val script =
+            stubScript(
+                """
+                echo '{"media":{"track":[{"@type":"Audio","Duration":"214.560"}]}}'
+                """.trimIndent(),
+            )
+
+        var empty = 0
+        repeat(100) {
+            val out = MediaInfo.runMediaInfo(listOf(script.absolutePath), timeoutSeconds = 5)
+            if (out.isBlank()) empty++
+        }
+        assertEquals(0, empty, "вывод процесса терялся: $empty из 100 запусков")
+    }
+
     /** Команда через /bin/sh: не зависит от прав на временном файле (см. комментарий в тесте). */
     private fun sh(script: String): List<String> = listOf("/bin/sh", "-c", script)
 

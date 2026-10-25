@@ -4,6 +4,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/announce.sh"
+# Синхронизация конфигурации на прод (compose/nginx) — общий шаг.
+source "${SCRIPT_DIR}/sync_prod_config.sh"
 
 # PROD_HOST — единственный источник правды: deploy/.env (не хардкодим в скрипте).
 # Приоритет: shell-окружение → deploy/.env. Если нигде нет — fail-fast.
@@ -25,12 +27,19 @@ fi
 export BUILD_VERSION="${BUILD_VERSION:-1}"
 echo "=== Тег образов (BUILD_VERSION): ${BUILD_VERSION} ==="
 
+
 echo "=== Сборка karaoke-web jar + Docker образа (под локом сборки, см. build-lock.sh) ==="
 cd "$SCRIPT_DIR"
 bash do.sh build_web
 
 echo "=== Push в registry (см. do.env: DOCKER_REGISTRY; DUAL_PUSH зеркалит в Hub) ==="
 bash do.sh push_web
+
+echo "=== Синхронизация конфигурации на прод (compose) ==="
+# Конфиги на проде — каталог выкладки без git-чекаута; их нужно копировать явно.
+# Без этого шага правка compose (healthcheck, лимиты, теги образов) оставалась
+# в репозитории и не доезжала — как не доехал BR-549.
+sync_prod_config web
 
 echo "=== Pull и restart на сервере ==="
 # Pass 540 (issue #286): после pull проверяем, что на сервере действительно НОВЫЙ образ.

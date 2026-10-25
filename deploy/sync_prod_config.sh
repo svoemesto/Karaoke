@@ -22,6 +22,8 @@
 #   source "$(dirname "${BASH_SOURCE[0]}")/sync_prod_config.sh"
 #   sync_prod_config web      # docker-compose-web.yml
 #   sync_prod_config public   # docker-compose-public.yml + nginx_karaoke-public.conf
+#   sync_prod_config db       # docker-compose-database.yml
+#   sync_prod_config storage  # docker-compose-storage.yml
 
 PROD_DEPLOY_DIR="/root/Karaoke/deploy"
 PROD_CONFIG_SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/prod-single-host"
@@ -60,8 +62,14 @@ sync_prod_config() {
     public)
       files=("docker-compose-public.yml" "nginx_karaoke-public.conf")
       ;;
+    db)
+      files=("docker-compose-database.yml")
+      ;;
+    storage)
+      files=("docker-compose-storage.yml")
+      ;;
     *)
-      echo "ERROR: неизвестная цель '$target' (ожидаются: web | public)" >&2
+      echo "ERROR: неизвестная цель '$target' (ожидаются: web | public | db | storage)" >&2
       return 1
       ;;
   esac

@@ -90,6 +90,17 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 4. **Recovered-сообщения тоже логируются** (INFO), чтобы видеть
    возвращение нормы.
 5. **Никаких side-эффектов** в MonitorCheck — только чтение и алерт.
+6. **Ошибка логируется СО СТЕКОМ** (аудит #336, пакет `PKG-S3-25`):
+   - `log.warn(..., e)` — throwable последним аргументом (SLF4J сам добавит
+     стек и cause-цепочку); `println` — только текстом, без стека (BR-275);
+   - `printStackTrace()` в затронутом коде заменён на SLF4J-категорию
+     `infra.*` (BR-249, BR-255, BR-256);
+   - «сбой БД» и «нет данных» — разные состояния и разные коды ответа
+     (BR-236, BR-240, BR-264) — см.
+     [boundary-validation](components/boundary-validation.md).
+7. **Пакетная загрузка вместо N+1** (BR-230, BR-273): структурные данные
+   читаются ОДНИМ запросом и раздаются из кеша/индекса; точечный
+   `SELECT` на каждый элемент цикла — нарушение ADR-0001.
 
 ## Публичные контракты (API)
 
@@ -106,6 +117,7 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 ## Структура компонентов (C4 L3)
 
 - [error-semantics](components/error-semantics.md) — сквозной инвариант «сбой ≠ штатный результат»: как отличать «нет данных» от «хранилище/БД/сеть не ответили» (аудит #336, пакет `PKG-S3-23`, 39 записей).
+- [boundary-validation](components/boundary-validation.md) — сквозной инвариант «вход проверяется ДО использования»: HTTP-параметры, страницы из интернета, значения из админских свойств и ссылки внутри `.mlt` (аудит #336, пакет `PKG-S3-25`).
 - [log-categories](components/log-categories.md) — В Karaoke есть **соглашение о SLF4J-категориях**: компоненты логируют через `infra.*` категории для удобного grep'а в…
 - [monitor-checks-detailed](components/monitor-checks-detailed.md) — детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](components/monitor-checks.md).
 - [monitor-checks](components/monitor-checks.md) — Эта компонента — единая точка регистрации всех проверок мониторинга. Каждая проверка реализует `MonitorCheck` интерфейс…

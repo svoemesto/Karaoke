@@ -564,12 +564,16 @@ class Album(
             includeSkipped: Boolean = false,
             database: KaraokeConnection,
         ): List<Album> {
+            // BR-240: «нет соединения» и «ошибка выборки» больше НЕ выглядят как
+            // «у автора нет альбомов». Раньше оба случая возвращали пустой (или
+            // частичный) список, публичный эндпоинт отдавал 200 с `[]`, а частичный
+            // результат ещё и кэшировался на TTL. Теперь сбой БД — исключение
+            // [AlbumTilesUnavailableException], публичный эндпоинт превращает его в 503.
             val connection =
                 database.getConnection()
-                    ?: run {
-                        println("[${java.sql.Timestamp.from(java.time.Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                        return emptyList()
-                    }
+                    ?: throw AlbumTilesUnavailableException(
+                        "Нет соединения с БД ${database.name} при загрузке альбомов автора $authorId",
+                    )
             val sql =
                 buildString {
                     append("SELECT id, author_id, year, name, album_type, sort_order, description, short_description, warning, ")
@@ -615,7 +619,12 @@ class Album(
                     }
                 }
             } catch (e: SQLException) {
-                e.printStackTrace()
+                // BR-240: частичный список больше не маскируется под «у автора нет
+                // альбомов» — сбой выборки пробрасывается наружу.
+                throw AlbumTilesUnavailableException(
+                    "Ошибка выборки альбомов автора $authorId: ${e.message}",
+                    e,
+                )
             }
             return result
         }
@@ -895,3 +904,16 @@ class Album(
         }
     }
 }
+
+/**
+ * BR-240: сбой загрузки альбомов автора.
+ *
+ * Отличает «у автора нет альбомов» (пустой список — штатный результат) от «БД
+ * недоступна / выборка упала» (сбой). Публичный эндпоинт
+ * `GET /api/public/authors/{authorId}/albums` превращает это исключение в 503,
+ * а не отдаёт 200 с пустым/частичным списком.
+ */
+class AlbumTilesUnavailableException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)

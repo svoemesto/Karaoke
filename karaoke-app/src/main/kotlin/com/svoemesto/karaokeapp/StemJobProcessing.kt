@@ -156,6 +156,15 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
             StemJob.getById(jobId, database = database, storageService = KSS_APP, storageApiClient = SAC_APP)
                 ?: return false
 
+        // BR-259: авторитетный статус задания. Если задание уже помечено
+        // `ERROR` (админ нажал «Стоп») или удалено, финализация НЕ должна
+        // перезаписывать его статус на `DONE` — «остановленное» задание
+        // доходило до `DONE`, а удалённое — обновляло уже несуществующую строку.
+        if (job.status == StemJobStatus.ERROR) {
+            println("[StemJobProcessing] executeFinalizeStemJob jobId=$jobId: задание уже в ERROR — финализация пропущена")
+            return false
+        }
+
         val tempFolder = File("$PATH_TO_TEMP_STEMJOB_FOLDER/${job.id}")
         val stemNames = StemJobMode.stemNames(job.mode)
         val uploadFile = File(tempFolder, "upload.${job.originalExt}")
@@ -178,7 +187,17 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
                 retryProcess.description = "Демукс премиум-задания #${job.id} (повтор без GPU)"
                 retryProcess.args = retryArgs
                 retryProcess.envs = retryEnvs
-                KaraokeProcess.createDbInstance(KaraokeProcess.separate(retryProcess))
+                // BR-260: результат вставки CPU-повтора ПРОВЕРЯЕТСЯ. Раньше
+                // `createDbInstance` мог вернуть `null` (сбой вставки), а значение
+                // отбрасывалось — задание оставалось `WORKING` без продолжения
+                // (и без автовосстановления).
+                val retryCreated = KaraokeProcess.createDbInstance(KaraokeProcess.separate(retryProcess))
+                if (retryCreated == null) {
+                    job.status = StemJobStatus.ERROR
+                    job.errorMessage = "Не удалось поставить повторную попытку демукса (без GPU) в очередь"
+                    job.finishedAt = Timestamp(System.currentTimeMillis())
+                    job.save()
+                }
                 return false
             }
 

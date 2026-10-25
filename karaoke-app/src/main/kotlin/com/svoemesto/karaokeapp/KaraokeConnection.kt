@@ -48,6 +48,82 @@ abstract class KaraokeConnection(
     private val threadLocalConnection = ThreadLocal<java.sql.Connection?>()
 
     /**
+     * BR-274: время последней успешной валидации соединения (мс, системное время).
+     *
+     * `conn.isValid(3)` в pgjdbc — это НЕ локальная проверка флага, а отдельный
+     * запрос к серверу (пустой query) с временной подменой network timeout. Если
+     * вызывать его на КАЖДОМ `getConnection()`, то каждое обращение к БД
+     * удорожается ещё одним round-trip — а на удалённой БД (`Connection.remote()`)
+     * это десятки тысяч лишних запросов за прогон.
+     *
+     * Теперь соединение валидируется:
+     *  - при открытии (всегда — это единственный раз, когда нужно проверить живость);
+     *  - после `SQLException` (соединение помечается «битым» и переоткрывается);
+     *  - при простое дольше [CONNECTION_VALIDATION_IDLE_MS] (5 минут) — чтобы
+     *    «протухшее» соединение, о котором никто не знает (например, после
+     *    перезапуска БД), всё-таки обнаруживалось.
+     */
+    private val threadLocalLastValidationMs = ThreadLocal<Long>()
+
+    /**
+     * BR-274: соединение помечено «битым» (после `SQLException`) — следующий
+     * `getConnection()` переоткроет его, не дожидаясь таймера.
+     */
+    private val threadLocalPoisoned = ThreadLocal<Boolean>()
+
+    /** Как долго соединение может не использоваться, прежде чем будет проверено снова. */
+    private val connectionValidationIdleMs: Long = CONNECTION_VALIDATION_IDLE_MS
+
+    /** BR-274: помечает соединение текущего потока «битым» — вызывать после `SQLException`. */
+    fun markConnectionBroken() {
+        threadLocalPoisoned.set(true)
+    }
+
+    /**
+     * BR-274: нужно ли валидировать закешированное соединение.
+     *
+     * `true` — соединения нет; соединение закрыто (`isClosed` — локальная
+     * проверка флага, не round-trip); соединение помечено битым (после
+     * `SQLException`); прошло больше [connectionValidationIdleMs] с последней
+     * успешной валидации.
+     */
+    private fun needsValidation(conn: java.sql.Connection?): Boolean {
+        if (conn == null) return true
+        if (conn.isClosed) return true
+        if (threadLocalPoisoned.get() == true) return true
+        val lastValidation = threadLocalLastValidationMs.get() ?: return true
+        return (System.currentTimeMillis() - lastValidation) > connectionValidationIdleMs
+    }
+
+    /**
+     * BR-274: обёртка соединения, которая помечает его «битым» при `SQLException`.
+     *
+     * Это то, что позволяет убрать `isValid(3)` из горячего пути, НЕ потеряв
+     * self-healing (specs/236): как только запрос упал с `SQLException` (соединение
+     * умерло / сеть отвалилась), следующий вызов `getConnection()` переоткроет
+     * соединение. Пока ни одного `SQLException` не было, соединение считается
+     * живым — проверять его сервером не нужно.
+     */
+    private fun wrapForBrokenDetection(connection: java.sql.Connection): java.sql.Connection =
+        java.lang.reflect.Proxy
+            .newProxyInstance(
+                java.sql.Connection::class.java.classLoader,
+                arrayOf(java.sql.Connection::class.java),
+            ) { proxy, method, args ->
+                try {
+                    method.invoke(connection, *(args ?: emptyArray()))
+                } catch (e: java.lang.reflect.InvocationTargetException) {
+                    val cause = e.targetException
+                    if (cause is java.sql.SQLException) {
+                        // BR-274: помечаем соединение битым — следующий вызов
+                        // getConnection() переоткроет его.
+                        threadLocalPoisoned.set(true)
+                    }
+                    throw cause
+                }
+            } as java.sql.Connection
+
+    /**
      * Возвращает рабочее соединение для текущего потока, пересоздавая его
      * при необходимости (см. KDoc класса).
      *
@@ -58,7 +134,15 @@ abstract class KaraokeConnection(
      */
     open fun getConnection(): java.sql.Connection? {
         val conn = threadLocalConnection.get()
-        if (conn == null || conn.isClosed || !conn.isValid(3)) {
+        // BR-274: `isValid(3)` — это отдельный запрос к серверу (пустой query) в
+        // pgjdbc, а не локальная проверка флага. Вызывать его на КАЖДОМ
+        // обращении — значит платить лишним round-trip за каждый SELECT/UPDATE
+        // (на удалённой БД это десятки тысяч лишних запросов за прогон).
+        //
+        // Теперь соединение проверяется только когда это реально нужно:
+        // при открытии, после «битого» состояния (SQLException) и после
+        // простоя дольше CONNECTION_VALIDATION_IDLE_MS.
+        if (needsValidation(conn)) {
             // specs/236-fix-karaoke-connection-self-healing: при входе в ветку пересоздания
             // обязательно сбрасываем ThreadLocal. Без этого, если DriverManager.getConnection
             // бросит исключение, в ThreadLocal останется закрытое/протухшее соединение от
@@ -66,11 +150,24 @@ abstract class KaraokeConnection(
             // ветку пересоздания (conn != null && !conn.isClosed) и вернёт мёртвый объект →
             // PSQLException: Соединение уже было закрыто на loadList/createStatement.
             threadLocalConnection.set(null)
+            threadLocalPoisoned.set(false)
             Class.forName("org.postgresql.Driver")
             try {
-                threadLocalConnection.set(DriverManager.getConnection(url, username, password))
+                val opened = DriverManager.getConnection(url, username, password)
+                // BR-274: соединение оборачивается в прокси, который помечает его
+                // «битым» при SQLException — это заменяет горячую проверку isValid.
+                threadLocalConnection.set(wrapForBrokenDetection(opened))
+                // BR-274: валидация выполнена — метка времени обновляется, чтобы
+                // следующие обращения не платили ещё за один round-trip.
+                threadLocalLastValidationMs.set(System.currentTimeMillis())
             } catch (e: Exception) {
-                // Сохраняем println для обратной совместимости (docker logs читают stdout).
+                // BR-275: в лог уходит САМ объект исключения (последний аргумент
+                // SLF4J) — так сохраняются стек, класс и cause-цепочка. Раньше
+                // логировался только `e.message`, и в stdout/централизованных
+                // логах не оставалось ни стека, ни причины, ни типа исключения.
+                //
+                // Сохраняем println для обратной совместимости (docker logs читают
+                // stdout), но с полным текстом исключения.
                 println("KaraokeConnection getConnection Exception: ${e.message}")
                 // FR-004 spec.md: структурированный SLF4J warn для диагностики.
                 // specs/236: добавляем urlHost (без credentials) — сразу видно, к какому
@@ -81,6 +178,7 @@ abstract class KaraokeConnection(
                     Thread.currentThread().name,
                     url.substringAfter("://").substringBefore("/"),
                     e.message ?: "unknown",
+                    e,
                 )
             }
         }
@@ -134,3 +232,16 @@ abstract class KaraokeConnection(
         }
     }
 }
+
+/**
+ * BR-274: как долго закешированное соединение может не использоваться, прежде чем
+ * будет проверено снова (`isValid`).
+ *
+ * Раньше проверка выполнялась на КАЖДОМ вызове `getConnection()`, а `isValid(3)` в
+ * pgjdbc — это отдельный запрос к серверу (пустой query). Для удалённой БД
+ * (`Connection.remote()`) это десятки тысяч лишних round-trip за прогон.
+ *
+ * 5 минут — компромисс: «протухшее» соединение (перезапуск БД, обрыв сети)
+ * обнаруживается за минуты, а не за миллисекунды.
+ */
+internal const val CONNECTION_VALIDATION_IDLE_MS: Long = 5 * 60 * 1000

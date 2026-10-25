@@ -19,6 +19,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
+import jakarta.servlet.http.HttpServletRequest
 import java.io.File
 
 /**
@@ -32,6 +33,14 @@ class MainController(
     private val storageApiClient: StorageApiClient,
     private val lyricsFinderService: LyricsFinderService,
 ) {
+    /**
+     * BR-236: журнал admin-контроллера. Категория зарегистрирована в
+     * `knowledge/domains/monitoring/components/log-categories.md`
+     * (`infra.admin.processes`) — по правилу компоненты новая категория обязана
+     * быть зафиксирована в таблице.
+     */
+    private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.admin.processes")
+
     @GetMapping("/")
     fun main(model: Model): String {
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
@@ -223,35 +232,71 @@ class MainController(
             }
     }
 
+    /**
+     * BR-231: разбор числовых параметров без 500.
+     *
+     * Раньше `id.toLong()` / `process_order.toInt()` / `process_priority.toInt()` бросали
+     * `NumberFormatException` (или NPE на non-null Kotlin-параметре с `required = false`),
+     * а наружу уходил 500. Штатный сценарий — кнопка «New prior» с пустым полем: она
+     * проставляет пустую строку в priority ВСЕМ строкам и вызывает `updateProcess` для
+     * каждой — каждый вызов получал 500, приоритеты в БД не менялись.
+     *
+     * Теперь: параметры nullable, пустое/пропущенное поле означает «не менять», а
+     * нечисловое значение — 400 с причиной. Статус проверяется по
+     * [KaraokeProcessStatuses], чтобы в БД не попал мусор.
+     *
+     * BR-232: для XHR возвращается короткий JSON, а не `redirect:/processes`. Раньше XHR
+     * прозрачно шёл по 302 и СКАЧИВАЛ ВСЮ страницу `/processes` (полный SELECT всех
+     * процессов + полный Thymeleaf-рендер) на КАЖДОЕ изменение поля, а «New prior» —
+     * N раз подряд (O(N²)). Теперь XHR получает `{ok:true}` и обновляет строку сама.
+     */
     @PostMapping("/process/update")
     fun progressUpdate(
-        @RequestParam(required = false) id: String,
-        @RequestParam(required = false) process_name: String,
-        @RequestParam(required = false) process_status: String,
-        @RequestParam(required = false) process_order: String,
-        @RequestParam(required = false) process_priority: String,
-        @RequestParam(required = false) process_description: String,
-        @RequestParam(required = false) process_type: String,
-    ): String {
-        val processId: Long = id.toLong()
+        @RequestParam(required = false) id: String?,
+        @RequestParam(required = false) process_name: String?,
+        @RequestParam(required = false) process_status: String?,
+        @RequestParam(required = false) process_order: String?,
+        @RequestParam(required = false) process_priority: String?,
+        @RequestParam(required = false) process_description: String?,
+        @RequestParam(required = false) process_type: String?,
+        request: HttpServletRequest,
+    ): ResponseEntity<Any> {
+        val processId =
+            id?.trim()?.toLongOrNull()
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "bad_process_id")
+        val order = parseOptionalInt(process_order, "bad_process_order")
+        val priority = parseOptionalInt(process_priority, "bad_process_priority")
+        val status =
+            process_status?.trim()?.takeIf { it.isNotEmpty() }?.let { value ->
+                if (KaraokeProcessStatuses.entries.none { it.name == value }) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "bad_process_status")
+                }
+                value
+            }
+
         val process = KaraokeProcess.load(processId, WORKING_DATABASE)
-        process?.let {
-            process.name = process_name
-            process.status = process_status
-            process.order = process_order.toInt()
-            process.priority = process_priority.toInt()
-            process.description = process_description
-            process.type = process_type
-
-            process.save()
-            process.updateStatusProcessSong(
-                database = WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            )
+        if (process == null) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "process_not_found")
         }
+        process.name = process_name ?: process.name
+        status?.let { process.status = it }
+        order?.let { process.order = it }
+        priority?.let { process.priority = it }
+        process.description = process_description ?: process.description
+        process.type = process_type ?: process.type
 
-        return "redirect:/processes"
+        process.save()
+        process.updateStatusProcessSong(
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+
+        return if (isXhr(request)) {
+            ResponseEntity.ok(mapOf("ok" to true))
+        } else {
+            ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, "/processes").build()
+        }
     }
 
     @GetMapping("/songs/lastupdated")
@@ -727,8 +772,16 @@ class MainController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
+            // BR-236: раньше «нет песни» и «битый JSON» отдавались одинаково — строкой
+            // "Error" с HTTP 200, а стек терялся (только println без стека). Теперь
+            // различаем: 404 — песни нет, 400 — маркеры не разобрались. Логируем через
+            // SLF4J со стеком и songId/voice.
+            if (song == null) {
+                log.warn("Маркеры для песни $id (голос $voice): песня не найдена в БД")
+                throw ResponseStatusException(HttpStatus.NOT_FOUND, "song_not_found")
+            }
             text =
-                song?.let {
+                song.let {
                     // BR-235: см. saveSourceText — проверка диапазона до паддинга списков.
                     if (!isValidVoiceIndex(voice = voice, countVoices = song.countVoices)) {
                         throw ResponseStatusException(HttpStatus.BAD_REQUEST, "bad_voice")
@@ -737,14 +790,14 @@ class MainController(
                         try {
                             Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
                         } catch (e: Exception) {
-                            println("Ошибка при парсинге маркеров для песни $id: ${e.message}")
-                            return@let "Error"
+                            log.warn("Ошибка при парсинге маркеров для песни $id (голос $voice)", e)
+                            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "bad_source_markers")
                         }
                     // specs/547: текст и маркеры одного голоса — одним сохранением (research R4).
                     song.setSourceTextAndMarkers(voice = voice, text = song.getSourceText(voice), markers = markers)
                     // specs/544-song-artifact-cleanup (FR-008): файл субтитров не создаётся.
                     "OK"
-                } ?: "Error"
+                }
         }
         model.addAttribute("text", text)
         return "text"
@@ -1307,9 +1360,12 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-233: для Telegram-заголовка нужен `getDescriptionTelegramHeader` (он добавляет
+        // ссылку на страницу песни), а не VK-вариант. Раньше три «Telegram header»-метода
+        // клали в буфер обмена VK-текст без ссылки, и администратор публиковал пост без неё.
         val text =
             song?.let {
-                val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+                val text = it.getDescriptionTelegramHeader(SongVersion.LYRICS)
                 text
             } ?: ""
         return text
@@ -1327,9 +1383,10 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-233: см. getSongTextTelegramLyricsHeader.
         val text =
             song?.let {
-                val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
+                val text = it.getDescriptionTelegramHeader(SongVersion.KARAOKE)
                 text
             } ?: ""
         return text
@@ -1347,9 +1404,10 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-233: см. getSongTextTelegramLyricsHeader.
         val text =
             song?.let {
-                val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
+                val text = it.getDescriptionTelegramHeader(SongVersion.CHORDS)
                 text
             } ?: ""
         return text
@@ -2114,3 +2172,28 @@ class MainController(
         return "redirect:/songs2"
     }
 }
+
+/**
+ * BR-231: разбор НЕОБЯЗАТЕЛЬНОГО целого параметра.
+ *
+ * `null`/пустая строка → `null` («поле не передано — оставить как было»).
+ * Нечисловое значение → 400 с причиной (раньше был 500 из `NumberFormatException`).
+ */
+internal fun parseOptionalInt(
+    raw: String?,
+    reason: String,
+): Int? {
+    val trimmed = raw?.trim()
+    if (trimmed.isNullOrEmpty()) return null
+    return trimmed.toIntOrNull() ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, reason)
+}
+
+/**
+ * BR-232: признак XHR-запроса.
+ *
+ * jQuery проставляет `X-Requested-With: XMLHttpRequest`; такие запросы не должны
+ * получать HTML-страницу целиком (см. `/process/update`).
+ */
+internal fun isXhr(request: HttpServletRequest): Boolean =
+    "XMLHttpRequest".equals(request.getHeader("X-Requested-With"), ignoreCase = true) ||
+        request.getHeader("X-Requested-With")?.contains("XMLHttpRequest", ignoreCase = true) == true

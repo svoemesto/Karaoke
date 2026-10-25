@@ -156,12 +156,29 @@ data class MkoMainBin(
                                 if (type.isSequence) {
                                     "{$uuid}"
                                 } else {
-                                    MltGenerator.nameProducer(
-                                        type,
-                                        Integer.max(mis.voiceId, 0),
-                                        Integer.max(mis.childId, 0),
-                                        Integer.max(mis.elementId, 0),
-                                    )
+                                    // BR-242: для не-sequence типов ссылка должна вести на
+                                    // СУЩЕСТВУЮЩИЙ узел. Раньше здесь всегда подставлялось
+                                    // `producer_<type>...`, но для LINETRACK (и ещё двух
+                                    // типов) класс Mko НЕ переопределяет `producer()` — узел
+                                    // `<producer>` в `.mlt` не создаётся, и ссылка в
+                                    // `main_bin` оказывалась битой (`producer_linetrack_*`).
+                                    // Для таких типов ссылаемся на ТРАКТОР, который
+                                    // создаётся всегда (`MkoLineTrack.tractor()` и т.п.).
+                                    if (type in PRODUCER_TYPES_WITHOUT_PRODUCER) {
+                                        MltGenerator.nameTractor(
+                                            type,
+                                            Integer.max(mis.voiceId, 0),
+                                            Integer.max(mis.childId, 0),
+                                            Integer.max(mis.elementId, 0),
+                                        )
+                                    } else {
+                                        MltGenerator.nameProducer(
+                                            type,
+                                            Integer.max(mis.voiceId, 0),
+                                            Integer.max(mis.childId, 0),
+                                            Integer.max(mis.elementId, 0),
+                                        )
+                                    }
                                 },
                             "in" to "00:00:00.000",
                             "out" to (if (type == ProducerType.MAINBIN) totalEndTimecode else songEndTimecode),
@@ -308,3 +325,21 @@ data class MkoMainBin(
                         .build(),
             )
 }
+
+/**
+ * BR-242: типы продюсеров, у которых класс `Mko*` НЕ переопределяет `producer()`.
+ *
+ * Для таких типов в `.mlt` НЕ создаётся узел `<producer>`, поэтому ссылка
+ * `producer_<type>...` в корневом плейлисте `main_bin` была битой (в реальных
+ * проектах — 182 ссылки вида `producer_linetrack_*` на 12 свежих `.mlt`).
+ *
+ * Список закрытый и проверяется тестом `PkgS325Batch1BehaviorTest`
+ * (BR-242): любой новый тип без `producer()` обязан попасть сюда, иначе в `main_bin`
+ * появится битая ссылка.
+ */
+internal val PRODUCER_TYPES_WITHOUT_PRODUCER: Set<ProducerType> =
+    setOf(
+        ProducerType.LINETRACK,
+        ProducerType.CHORDPICTURELINETRACK,
+        ProducerType.SCROLLERTRACK,
+    )

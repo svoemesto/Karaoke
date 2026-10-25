@@ -6500,7 +6500,36 @@ class ApiController(
                     .body(mapOf("error" to "value must be integer in 1..1000"))
             }
         }
-        KaraokeProperties.setFromString(key, stringValue)
+        // BR-245: значение разбирается по ТИПУ свойства. Нечисло для числового
+        // свойства — 400 с причиной (было 500 из NumberFormatException), опечатка
+        // в boolean больше не превращается молча в `false`, а неизвестный ключ —
+        // 404 вместо тихого no-op (было 200 + «установлено», хотя ничего не
+        // менялось).
+        // BR-249: неудачная запись файла — 5xx, а не 200 (значение осталось бы
+        // только в памяти и исчезло при рестарте).
+        val saved =
+            try {
+                KaraokeProperties.setFromString(key, stringValue)
+            } catch (e: KaraokePropertyValueException) {
+                return ResponseEntity
+                    .status(400)
+                    .body(
+                        mapOf(
+                            "error" to (e.message ?: "неверное значение свойства"),
+                            "key" to e.key,
+                            "expectedType" to e.expectedType,
+                        ),
+                    )
+            } catch (e: KaraokePropertyUnknownKeyException) {
+                return ResponseEntity
+                    .status(404)
+                    .body(mapOf("error" to (e.message ?: "неизвестное свойство"), "key" to e.key))
+            }
+        if (!saved) {
+            return ResponseEntity
+                .status(500)
+                .body(mapOf("error" to "Не удалось сохранить свойство «$key» на диск", "key" to key))
+        }
         if (key == "resourceLimitsEnabled" || key.startsWith("cpuLimitPercent")) {
             applyLiveCpuLimitToRunningProcesses()
         }

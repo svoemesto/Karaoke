@@ -55,6 +55,11 @@
 | `infra.sponsr.sync` | `karaoke-app/.../services/SponsrSyncService.kt` (BR-167) | Сбой продления премиума Sponsr для конкретного пользователя (`siteUserId`) | WARN |
 | `infra.waveform.compare` | `karaoke-app/.../WaveformCompare.kt` (BR-122) | Таймаут декодирования через ffmpeg, ненулевой код возврата, нечитаемый вывод | WARN |
 | `infra.stemjobs.transfer` | `karaoke-app/.../StemJobResultPublisher.kt` (спека 561, OpenProject #361) | Передача приватных объектов из `karaoke-app` в `karaoke-web`: `stemjobs:transfer:ok` (`jobId=`, `file=`, `bytes=`), `stemjobs:transfer:retry` (сетевая ошибка, следующая попытка), `stemjobs:transfer:denied` (403 — отказ по правам, повтор не выполняется) | INFO (ok), WARN (retry/denied) |
+| `infra.admin.processes` | `karaoke-app/.../controllers/MainController.kt` (аудит #336, BR-236) | Ошибки admin-контроллера: разбор маркеров песни (`songId=`, `voice=`), отсутствующая песня (`songId=`, `voice=`) | WARN |
+| `infra.render.tabs` | `karaoke-app/.../mlt/mko/MkoMelodyTabs.kt` (аудит #336, BR-239) | Некорректные данные маркеров при генерации `.mlt`: неверный `stringLad` (таб пропущен), строка без TEXT-элемента (слой пуст) | WARN |
+| `infra.render.counters` | `karaoke-app/.../mlt/mko/MkoCounter.kt` (аудит #336, BR-243) | Некорректная конфигурация счётчиков: свойство `voices` без голосов/групп, свойство `countersColors` короче числа счётчиков или пусто | WARN |
+| `infra.settings.write` | `karaoke-app/.../KaraokeProperties.kt` (аудит #336, BR-249) | Не удалось записать файл настроек на диск (нет каталога, read-only ФС, ошибка `Files.move`) — значение изменено только в памяти и будет потеряно при рестарте | ERROR |
+| `infra.ai.search` | `karaoke-app/.../UtilsAI.kt` (аудит #336, BR-265) | Сбои загрузки HTML в AI-поиске: сетевой сбой, не-2xx код ответа, пустой документ (`url=`, причина) | WARN |
 
 ### Конвенция имён
 

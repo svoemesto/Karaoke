@@ -56,6 +56,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.*
 import kotlin.io.inputStream
 import kotlin.io.outputStream
@@ -129,6 +131,9 @@ fun customFunction(
         var parentMatched = 0
         var parentSkippedHasText = 0
         val matchedParentIds = mutableListOf<Long>()
+        // BR-273: индекс кандидатов-родителей загружается ОДИН раз на весь цикл
+        // (было — полный скан tbl_songs на КАЖДУЮ песню, то есть O(N²) чтений).
+        val parentCandidateIndex = loadParentCandidateIndex(WORKING_DATABASE)
         ids.forEachIndexed { index, id ->
             try {
                 val song =
@@ -142,7 +147,7 @@ fun customFunction(
                     println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
                     return@forEachIndexed
                 }
-                val candidateId = findParentCandidateId(song, WORKING_DATABASE)
+                val candidateId = findParentCandidateId(song, parentCandidateIndex)
                 when {
                     candidateId == null -> {
                         println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — родитель не найден")
@@ -273,117 +278,133 @@ fun findParentForAuthor(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): String {
-    if (isFindParentInProgress) return "ALREADY_RUNNING"
-    isFindParentInProgress = true
+    // BR-253: атомарный захват флага — два одновременных запроса не запустят
+    // две тяжёлые фоновые задачи.
+    if (!isFindParentInProgress.compareAndSet(false, true)) return "ALREADY_RUNNING"
 
-    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
-    // (`startOneShotThread`, BR-060, аудит #336).
-    startOneShotThread(WORKING_DATABASE, "find-parent-for-author") {
-        val ids = mutableListOf<Long>()
-        try {
-            val connection = WORKING_DATABASE.getConnection()
-            if (connection != null) {
-                connection
-                    .prepareStatement(
-                        "SELECT id FROM tbl_songs WHERE root_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
-                    ).use { ps ->
-                        ps.setString(1, author)
-                        ps.executeQuery().use { rs ->
-                            while (rs.next()) ids.add(rs.getLong("id"))
-                        }
-                    }
-            }
-        } catch (e: Exception) {
-            println("Поиск родителя (автор «$author»): ошибка выборки песен — ${e.message}")
-        }
-
-        println("Поиск родителя (автор «$author»): найдено песен: ${ids.size}")
-
-        // Фаза 1 (только текстовый родитель; аудио-фаза намеренно НЕ запускается).
-        var parentMatched = 0
-        var parentSkippedHasText = 0
-        ids.forEachIndexed { index, id ->
+    try {
+        // BR-254: снятие флага — в `finally` потока (`onFinally`), а при неудаче
+        // создания потока — в `catch` ниже. Иначе флаг остался бы `true`
+        // навсегда и повторный запуск стал бы невозможен до перезапуска.
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (`startOneShotThread`, BR-060, аудит #336).
+        startOneShotThread(
+            database = WORKING_DATABASE,
+            name = "find-parent-for-author",
+            onFinally = { isFindParentInProgress.set(false) },
+        ) {
+            val ids = mutableListOf<Long>()
             try {
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
-                if (song == null) {
-                    println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
-                    return@forEachIndexed
-                }
-                val candidateId = findParentCandidateId(song, WORKING_DATABASE, crossAuthor)
-                when {
-                    candidateId == null -> {
-                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — родитель не найден")
-                    }
-                    song.sourceText.isNotBlank() && song.idStatus >= 2 -> {
-                        parentSkippedHasText++
-                        println(
-                            "  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — " +
-                                "родитель найден (id=$candidateId), но текст уже проверен (id_status=${song.idStatus}) — пропущено",
-                        )
-                    }
-                    else -> {
-                        val original =
-                            Song.loadFromDbById(
-                                id = candidateId,
-                                database = WORKING_DATABASE,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient,
-                            )
-                        if (original == null) {
-                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — кандидат id=$candidateId не найден при загрузке")
-                        } else {
-                            if (original.sourceText.isNotBlank()) {
-                                applyDuplicateOriginal(song, original)
-                            } else {
-                                // specs/281-find-lyrics-overwrites-key-bpm (FR-010): reload-from-db-before-save.
-                                // Между loadFromDbById(song) выше и этим saveToDb проходит несколько секунд
-                                // (findParentCandidateId + loadFromDbById(original)). Параллельный KEY_BPM_FROM_FILE
-                                // мог успеть записать key/bpm — без reload они попадут в diff и перезатрутся.
-                                val songToSave =
-                                    Song.loadFromDbById(
-                                        id = song.id,
-                                        database = WORKING_DATABASE,
-                                        storageService = storageService,
-                                        storageApiClient = storageApiClient,
-                                    ) ?: song
-                                songToSave.rootId = original.id
-                                // specs/357-folder-import-overwrite (FR-140): autoAssignOriginalByWaveform —
-                                // ffmpeg-сверка между load и save, десятки секунд. Параллельный SongEdit
-                                // мог обновить поля. saveToDbLocked() защищает.
-                                songToSave.saveToDbLocked()
-                                song.rootId = original.id
+                val connection = WORKING_DATABASE.getConnection()
+                if (connection != null) {
+                    connection
+                        .prepareStatement(
+                            "SELECT id FROM tbl_songs WHERE root_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
+                        ).use { ps ->
+                            ps.setString(1, author)
+                            ps.executeQuery().use { rs ->
+                                while (rs.next()) ids.add(rs.getLong("id"))
                             }
-                            parentMatched++
-                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — привязан родитель [${songLogLabel(original)}]")
                         }
-                    }
                 }
             } catch (e: Exception) {
-                println("  [родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                println("Поиск родителя (автор «$author»): ошибка выборки песен — ${e.message}")
             }
-        }
-        println("Поиск родителя (автор «$author»): завершено. Обработано ${ids.size}, родитель назначен $parentMatched (найдено, но пропущено из-за текста: $parentSkippedHasText)")
 
-        val summary =
-            "Обработано ${ids.size}, родитель назначен $parentMatched " +
-                "(найдено, но пропущено из-за текста: $parentSkippedHasText)"
-        SNS.send(
-            SseNotification.message(
-                Message(
-                    type = "info",
-                    head = "Поиск родителя (автор «$author»)",
-                    body = summary,
+            println("Поиск родителя (автор «$author»): найдено песен: ${ids.size}")
+
+            // Фаза 1 (только текстовый родитель; аудио-фаза намеренно НЕ запускается).
+            var parentMatched = 0
+            var parentSkippedHasText = 0
+            // BR-273: индекс кандидатов-родителей — ОДИН запрос на весь цикл
+            // (было — полный скан tbl_songs на каждую песню, O(N²) чтений).
+            val parentCandidateIndex = loadParentCandidateIndex(WORKING_DATABASE)
+            ids.forEachIndexed { index, id ->
+                try {
+                    val song =
+                        Song.loadFromDbById(
+                            id = id,
+                            database = WORKING_DATABASE,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        )
+                    if (song == null) {
+                        println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                        return@forEachIndexed
+                    }
+                    val candidateId = findParentCandidateId(song, parentCandidateIndex, crossAuthor)
+                    when {
+                        candidateId == null -> {
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — родитель не найден")
+                        }
+                        song.sourceText.isNotBlank() && song.idStatus >= 2 -> {
+                            parentSkippedHasText++
+                            println(
+                                "  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — " +
+                                    "родитель найден (id=$candidateId), но текст уже проверен (id_status=${song.idStatus}) — пропущено",
+                            )
+                        }
+                        else -> {
+                            val original =
+                                Song.loadFromDbById(
+                                    id = candidateId,
+                                    database = WORKING_DATABASE,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
+                            if (original == null) {
+                                println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — кандидат id=$candidateId не найден при загрузке")
+                            } else {
+                                if (original.sourceText.isNotBlank()) {
+                                    applyDuplicateOriginal(song, original)
+                                } else {
+                                    // specs/281-find-lyrics-overwrites-key-bpm (FR-010): reload-from-db-before-save.
+                                    // Между loadFromDbById(song) выше и этим saveToDb проходит несколько секунд
+                                    // (findParentCandidateId + loadFromDbById(original)). Параллельный KEY_BPM_FROM_FILE
+                                    // мог успеть записать key/bpm — без reload они попадут в diff и перезатрутся.
+                                    val songToSave =
+                                        Song.loadFromDbById(
+                                            id = song.id,
+                                            database = WORKING_DATABASE,
+                                            storageService = storageService,
+                                            storageApiClient = storageApiClient,
+                                        ) ?: song
+                                    songToSave.rootId = original.id
+                                    // specs/357-folder-import-overwrite (FR-140): autoAssignOriginalByWaveform —
+                                    // ffmpeg-сверка между load и save, десятки секунд. Параллельный SongEdit
+                                    // мог обновить поля. saveToDbLocked() защищает.
+                                    songToSave.saveToDbLocked()
+                                    song.rootId = original.id
+                                }
+                                parentMatched++
+                                println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — привязан родитель [${songLogLabel(original)}]")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("  [родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                }
+            }
+            println("Поиск родителя (автор «$author»): завершено. Обработано ${ids.size}, родитель назначен $parentMatched (найдено, но пропущено из-за текста: $parentSkippedHasText)")
+
+            val summary =
+                "Обработано ${ids.size}, родитель назначен $parentMatched " +
+                    "(найдено, но пропущено из-за текста: $parentSkippedHasText)"
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Поиск родителя (автор «$author»)",
+                        body = summary,
+                    ),
                 ),
-            ),
-        )
-
-        isFindParentInProgress = false
+            )
+        }
+    } catch (e: Throwable) {
+        // BR-254: поток не создался (исчерпание ресурсов) — флаг всё равно снимаем,
+        // иначе он остался бы `true` навсегда.
+        isFindParentInProgress.set(false)
+        throw e
     }
     return "OK"
 }
@@ -425,75 +446,86 @@ fun findAudioParentForAuthor(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): String {
-    if (isFindAudioParentInProgress) return "ALREADY_RUNNING"
-    isFindAudioParentInProgress = true
+    // BR-253: атомарный захват флага — два одновременных запроса не запустят
+    // два параллельных прохода ffmpeg-сверки по одним и тем же песням.
+    if (!isFindAudioParentInProgress.compareAndSet(false, true)) return "ALREADY_RUNNING"
 
-    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
-    // (`startOneShotThread`, BR-060, аудит #336).
-    startOneShotThread(WORKING_DATABASE, "find-audio-parent-for-author") {
-        val ids = mutableListOf<Long>()
-        try {
-            val connection = WORKING_DATABASE.getConnection()
-            if (connection != null) {
-                // Фильтр audio_parent_id = 0 обеспечивает идемпотентность: песни, для которых
-                // findAudioParentByWaveform уже отработал ранее (audio_parent_id <> 0), повторно
-                // не обрабатываются. Тяжёлая ffmpeg-сверка для них не нужна.
-                connection
-                    .prepareStatement(
-                        "SELECT id FROM tbl_songs WHERE root_id <> 0 AND audio_parent_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
-                    ).use { ps ->
-                        ps.setString(1, author)
-                        ps.executeQuery().use { rs ->
-                            while (rs.next()) ids.add(rs.getLong("id"))
-                        }
-                    }
-            }
-        } catch (e: Exception) {
-            println("Поиск аудио-родителя (автор «$author»): ошибка выборки песен — ${e.message}")
-        }
-
-        println("Поиск аудио-родителя (автор «$author»): найдено песен в семье без audio_parent_id: ${ids.size}")
-
-        var audioMatched = 0
-        var audioSkipped = 0
-        ids.forEachIndexed { index, id ->
+    try {
+        // BR-254: снятие флага — в `finally` потока (`onFinally`), а при неудаче
+        // создания потока — в `catch` ниже.
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (`startOneShotThread`, BR-060, аудит #336).
+        startOneShotThread(
+            database = WORKING_DATABASE,
+            name = "find-audio-parent-for-author",
+            onFinally = { isFindAudioParentInProgress.set(false) },
+        ) {
+            val ids = mutableListOf<Long>()
             try {
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
-                if (song == null) {
-                    println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
-                    return@forEachIndexed
+                val connection = WORKING_DATABASE.getConnection()
+                if (connection != null) {
+                    // Фильтр audio_parent_id = 0 обеспечивает идемпотентность: песни, для которых
+                    // findAudioParentByWaveform уже отработал ранее (audio_parent_id <> 0), повторно
+                    // не обрабатываются. Тяжёлая ffmpeg-сверка для них не нужна.
+                    connection
+                        .prepareStatement(
+                            "SELECT id FROM tbl_songs WHERE root_id <> 0 AND audio_parent_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
+                        ).use { ps ->
+                            ps.setString(1, author)
+                            ps.executeQuery().use { rs ->
+                                while (rs.next()) ids.add(rs.getLong("id"))
+                            }
+                        }
                 }
-                // searchOtherAuthors=false: ищем только в семье (по root_id транзитивно),
-                // не подмешиваем кандидатов из searchSongsByNormalizedName.
-                val result = findAudioParentByWaveform(song, WORKING_DATABASE, storageService, storageApiClient, searchOtherAuthors = false)
-                if (result.matched) audioMatched++ else audioSkipped++
-                println("  [аудио-родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — ${result.reason}")
             } catch (e: Exception) {
-                audioSkipped++
-                println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                println("Поиск аудио-родителя (автор «$author»): ошибка выборки песен — ${e.message}")
             }
-        }
-        println("Поиск аудио-родителя (автор «$author»): завершено. Обработано ${ids.size}, аудио-родитель назначен $audioMatched, пропущено $audioSkipped")
 
-        val summary =
-            "Обработано ${ids.size}, аудио-родитель назначен $audioMatched, пропущено $audioSkipped"
-        SNS.send(
-            SseNotification.message(
-                Message(
-                    type = "info",
-                    head = "Поиск аудио-родителя (автор «$author»)",
-                    body = summary,
+            println("Поиск аудио-родителя (автор «$author»): найдено песен в семье без audio_parent_id: ${ids.size}")
+
+            var audioMatched = 0
+            var audioSkipped = 0
+            ids.forEachIndexed { index, id ->
+                try {
+                    val song =
+                        Song.loadFromDbById(
+                            id = id,
+                            database = WORKING_DATABASE,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        )
+                    if (song == null) {
+                        println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                        return@forEachIndexed
+                    }
+                    // searchOtherAuthors=false: ищем только в семье (по root_id транзитивно),
+                    // не подмешиваем кандидатов из searchSongsByNormalizedName.
+                    val result = findAudioParentByWaveform(song, WORKING_DATABASE, storageService, storageApiClient, searchOtherAuthors = false)
+                    if (result.matched) audioMatched++ else audioSkipped++
+                    println("  [аудио-родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — ${result.reason}")
+                } catch (e: Exception) {
+                    audioSkipped++
+                    println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                }
+            }
+            println("Поиск аудио-родителя (автор «$author»): завершено. Обработано ${ids.size}, аудио-родитель назначен $audioMatched, пропущено $audioSkipped")
+
+            val summary =
+                "Обработано ${ids.size}, аудио-родитель назначен $audioMatched, пропущено $audioSkipped"
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Поиск аудио-родителя (автор «$author»)",
+                        body = summary,
+                    ),
                 ),
-            ),
-        )
-
-        isFindAudioParentInProgress = false
+            )
+        }
+    } catch (e: Throwable) {
+        // BR-254: поток не создался — флаг всё равно снимаем.
+        isFindAudioParentInProgress.set(false)
+        throw e
     }
     return "OK"
 }
@@ -501,25 +533,38 @@ fun findAudioParentForAuthor(
 /**
  * Флаг защиты от гонок для [rescanAllCensoredNames] (см. research.md §4). JVM-single-instance,
  * in-memory достаточно — `karaoke-app` запускается в одном контейнере на admin-машине.
+ *
+ * BR-253: `AtomicBoolean` — захват флага атомарный (`compareAndSet`), а не
+ * check-then-set. BR-254: снимается в `finally` (внутри потока и при неудаче
+ * создания потока).
  */
-@Volatile
-private var isCensoredRescanInProgress: Boolean = false
+private val isCensoredRescanInProgress = AtomicBoolean(false)
 
 /**
  * specs/283-admin-find-parent: флаг защиты от гонок для [findParentForAuthor] (по образцу
  * [isCensoredRescanInProgress] выше). Если фоновая задача уже запущена — повторный вызов
  * возвращает `"ALREADY_RUNNING"` без запуска нового потока.
+ *
+ * BR-253: `AtomicBoolean`, а не `@Volatile var`. Прежняя пара
+ * `if (flag) return "ALREADY_RUNNING"; flag = true` была неатомарным
+ * check-then-set: два одновременных HTTP-запроса (двойной клик, две вкладки)
+ * оба читали `false` и оба запускали поток — две параллельные записи в одни и
+ * те же строки `tbl_songs`. Теперь захват флага — `compareAndSet(false, true)`.
+ *
+ * BR-254: флаг снимается в `finally` ВНУТРИ потока (через `onFinally` в
+ * `startOneShotThread`) и при неудаче создания потока — раньше он снимался
+ * последним оператором тела, и сбой `SNS.send` (Jackson вне `try`) оставлял
+ * флаг `true` навсегда: кнопка до перезапуска приложения отвечала
+ * `ALREADY_RUNNING`.
  */
-@Volatile
-private var isFindParentInProgress: Boolean = false
+private val isFindParentInProgress = AtomicBoolean(false)
 
 /**
  * specs/283-admin-find-parent: флаг защиты от гонок для [findAudioParentForAuthor] (по образцу
  * [isFindParentInProgress] выше). Отдельный флаг — чтобы можно было запустить аудио-фазу
- * параллельно с текстовой.
+ * параллельно с текстовой. BR-253/BR-254 — см. [isFindParentInProgress].
  */
-@Volatile
-private var isFindAudioParentInProgress: Boolean = false
+private val isFindAudioParentInProgress = AtomicBoolean(false)
 
 /**
  specs/277-song-name-censored: фоновая функция — реckan всех `tbl_songs.song_name_censored`
@@ -546,119 +591,130 @@ fun rescanAllCensoredNames(
     lyricsFinderService: LyricsFinderService,
     storageApiClient: StorageApiClient,
 ): String {
-    if (isCensoredRescanInProgress) return "ALREADY_RUNNING"
-    isCensoredRescanInProgress = true
+    // BR-253: атомарный захват флага — два одновременных запроса не запустят
+    // два параллельных рескана, пишущих одни и те же строки tbl_songs.
+    if (!isCensoredRescanInProgress.compareAndSet(false, true)) return "ALREADY_RUNNING"
 
-    // Одноразовый фоновый поток: соединение потока закрывается в `finally`
-    // (`startOneShotThread`, BR-060, аудит #336).
-    startOneShotThread(WORKING_DATABASE, "rescan-all-censored-names") {
-        val startMs = System.currentTimeMillis()
-        var processed = 0
-        var updated = 0
-        var errors = 0
-        try {
-            // Шаг 1: собрать все id (одним запросом, чтобы не тянуть JOIN'ы и result_text).
-            val ids = mutableListOf<Long>()
+    try {
+        // BR-254: снятие флага — в `finally` потока (`onFinally`), а при неудаче
+        // создания потока — в `catch` ниже.
+        // Одноразовый фоновый поток: соединение потока закрывается в `finally`
+        // (`startOneShotThread`, BR-060, аудит #336).
+        startOneShotThread(
+            database = WORKING_DATABASE,
+            name = "rescan-all-censored-names",
+            onFinally = { isCensoredRescanInProgress.set(false) },
+        ) {
+            val startMs = System.currentTimeMillis()
+            var processed = 0
+            var updated = 0
+            var errors = 0
             try {
-                val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
-                connection
-                    .prepareStatement("SELECT id FROM tbl_songs ORDER BY id")
-                    .use { ps ->
-                        ps.executeQuery().use { rs ->
-                            while (rs.next()) ids.add(rs.getLong("id"))
+                // Шаг 1: собрать все id (одним запросом, чтобы не тянуть JOIN'ы и result_text).
+                val ids = mutableListOf<Long>()
+                try {
+                    val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
+                    connection
+                        .prepareStatement("SELECT id FROM tbl_songs ORDER BY id")
+                        .use { ps ->
+                            ps.executeQuery().use { rs ->
+                                while (rs.next()) ids.add(rs.getLong("id"))
+                            }
                         }
+                } catch (e: Exception) {
+                    println("rescanAllCensoredNames: ошибка выборки id — ${e.message}")
+                    SNS.send(
+                        SseNotification.message(
+                            Message(
+                                type = "error",
+                                head = "Пересканирование цензурированных названий",
+                                body = "Ошибка выборки id из tbl_songs: ${e.message}",
+                            ),
+                        ),
+                    )
+                    return@startOneShotThread
+                }
+
+                println("rescanAllCensoredNames: найдено песен: ${ids.size}")
+
+                // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
+                val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
+                ids.forEachIndexed { index, id ->
+                    try {
+                        val psSel =
+                            connection.prepareStatement(
+                                "SELECT song_name, song_name_censored FROM tbl_songs WHERE id = ?",
+                            )
+                        psSel.setLong(1, id)
+                        val rs = psSel.executeQuery()
+                        if (!rs.next()) {
+                            rs.close()
+                            psSel.close()
+                            return@forEachIndexed
+                        }
+                        val songName = rs.getString("song_name") ?: ""
+                        val current = rs.getString("song_name_censored") ?: ""
+                        rs.close()
+                        psSel.close()
+
+                        processed++
+                        val censoredValue = songName.censored(WORKING_DATABASE)
+                        if (censoredValue != current) {
+                            val psUpd =
+                                connection.prepareStatement(
+                                    "UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?",
+                                )
+                            psUpd.setString(1, censoredValue)
+                            psUpd.setLong(2, id)
+                            psUpd.executeUpdate()
+                            psUpd.close()
+                            updated++
+                        }
+
+                        if ((index + 1) % 1000 == 0) {
+                            println(
+                                "rescanAllCensoredNames: прогресс ${index + 1}/${ids.size} " +
+                                    "(обновлено $updated)",
+                            )
+                        }
+                    } catch (e: Exception) {
+                        errors++
+                        println("rescanAllCensoredNames: ошибка на id=$id — ${e.message}")
                     }
+                }
+
+                val durationSec = (System.currentTimeMillis() - startMs) / 1000
+                val summary =
+                    "Обработано $processed песен за $durationSec сек, обновлено $updated" +
+                        if (errors > 0) ", ошибок: $errors" else ""
+                println("rescanAllCensoredNames: завершено. $summary")
+
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Пересканирование цензурированных названий",
+                            body = summary,
+                        ),
+                    ),
+                )
             } catch (e: Exception) {
-                println("rescanAllCensoredNames: ошибка выборки id — ${e.message}")
+                println("rescanAllCensoredNames: непредвиденная ошибка — ${e.message}")
                 SNS.send(
                     SseNotification.message(
                         Message(
                             type = "error",
                             head = "Пересканирование цензурированных названий",
-                            body = "Ошибка выборки id из tbl_songs: ${e.message}",
+                            body = "Ошибка: ${e.message}",
                         ),
                     ),
                 )
-                return@startOneShotThread
             }
-
-            println("rescanAllCensoredNames: найдено песен: ${ids.size}")
-
-            // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
-            val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
-            ids.forEachIndexed { index, id ->
-                try {
-                    val psSel =
-                        connection.prepareStatement(
-                            "SELECT song_name, song_name_censored FROM tbl_songs WHERE id = ?",
-                        )
-                    psSel.setLong(1, id)
-                    val rs = psSel.executeQuery()
-                    if (!rs.next()) {
-                        rs.close()
-                        psSel.close()
-                        return@forEachIndexed
-                    }
-                    val songName = rs.getString("song_name") ?: ""
-                    val current = rs.getString("song_name_censored") ?: ""
-                    rs.close()
-                    psSel.close()
-
-                    processed++
-                    val censoredValue = songName.censored(WORKING_DATABASE)
-                    if (censoredValue != current) {
-                        val psUpd =
-                            connection.prepareStatement(
-                                "UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?",
-                            )
-                        psUpd.setString(1, censoredValue)
-                        psUpd.setLong(2, id)
-                        psUpd.executeUpdate()
-                        psUpd.close()
-                        updated++
-                    }
-
-                    if ((index + 1) % 1000 == 0) {
-                        println(
-                            "rescanAllCensoredNames: прогресс ${index + 1}/${ids.size} " +
-                                "(обновлено $updated)",
-                        )
-                    }
-                } catch (e: Exception) {
-                    errors++
-                    println("rescanAllCensoredNames: ошибка на id=$id — ${e.message}")
-                }
-            }
-
-            val durationSec = (System.currentTimeMillis() - startMs) / 1000
-            val summary =
-                "Обработано $processed песен за $durationSec сек, обновлено $updated" +
-                    if (errors > 0) ", ошибок: $errors" else ""
-            println("rescanAllCensoredNames: завершено. $summary")
-
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Пересканирование цензурированных названий",
-                        body = summary,
-                    ),
-                ),
-            )
-        } catch (e: Exception) {
-            println("rescanAllCensoredNames: непредвиденная ошибка — ${e.message}")
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "error",
-                        head = "Пересканирование цензурированных названий",
-                        body = "Ошибка: ${e.message}",
-                    ),
-                ),
-            )
-        } finally {
-            isCensoredRescanInProgress = false
         }
+    } catch (e: Throwable) {
+        // BR-254: поток не создался — флаг всё равно снимаем.
+        isCensoredRescanInProgress.set(false)
+        throw e
     }
 
     return "OK"
@@ -887,16 +943,52 @@ fun setSongToSyncRemoteTable(id: Long) {
                 storageService = KSS_APP,
                 storageApiClient = SAC_APP,
             )?.getSqlToInsert(sync = true)
-    if (sqlToInsert != null) {
-        Song.deleteFromDb(id = id, database = Connection.remote(), sync = true)
-        val connection = Connection.remote().getConnection()
-        if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных REMOTE")
-            return
+    if (sqlToInsert == null) return
+
+    // BR-252: DELETE и INSERT теперь — в ОДНОЙ транзакции, и соединение
+    // проверяется ДО удаления.
+    //
+    // Раньше было: `Song.deleteFromDb(..., sync = true)` (удаление sync-записи) →
+    // `getConnection()` → если соединения нет (`return`) или `executeUpdate()`
+    // бросил исключение — sync-запись уже была удалена, а новая не создана.
+    // Изменение песни никогда не уезжало на прод, а вызывающий рапортовал
+    // «Запись добавлена в SYNC-таблицу».
+    val connection = Connection.remote().getConnection()
+    if (connection == null) {
+        val message = "Невозможно установить соединение с базой данных REMOTE (постановка песни $id в sync)"
+        log.error("setSongToSyncRemoteTable: $message")
+        throw KaraokeSyncEnqueueFailedException(id, message)
+    }
+    try {
+        val previousAutoCommit = connection.autoCommit
+        connection.autoCommit = false
+        try {
+            connection.prepareStatement("DELETE FROM tbl_songs_sync WHERE id = ?").use { ps ->
+                ps.setLong(1, id)
+                ps.executeUpdate()
+            }
+            connection.prepareStatement(sqlToInsert).use { ps ->
+                ps.executeUpdate()
+            }
+            connection.commit()
+        } catch (e: Exception) {
+            // Откат: sync-запись не должна пропасть из-за неудачной вставки.
+            try {
+                connection.rollback()
+            } catch (rollbackError: Exception) {
+                log.error("setSongToSyncRemoteTable: не удалось откатить транзакцию для песни $id", rollbackError)
+            }
+            throw e
+        } finally {
+            try {
+                connection.autoCommit = previousAutoCommit
+            } catch (e: Exception) {
+                log.warn("setSongToSyncRemoteTable: не удалось вернуть autoCommit для песни $id", e)
+            }
         }
-        val ps = connection.prepareStatement(sqlToInsert)
-        ps.executeUpdate()
-        ps.close()
+    } catch (e: Exception) {
+        log.error("setSongToSyncRemoteTable: не удалось поставить песню $id в sync-таблицу REMOTE", e)
+        throw KaraokeSyncEnqueueFailedException(id, e.message ?: "не удалось выполнить DELETE+INSERT", e)
     }
 }
 
@@ -1661,22 +1753,36 @@ fun getBpmAndKeyFromCsv(song: Song): Pair<Long, String> {
     }
 
     try {
-        println(csvFilePath)
         FileReader(csvFilePath).use { fileReader ->
             val csvParser = CSVParser(fileReader, CSVFormat.DEFAULT)
 
             // Проходимся по записям CSV и читаем данные
             for (csvRecord in csvParser) {
-                val fileName = csvRecord.get(0)
-                val bpm = csvRecord.get(3)
-                val key = csvRecord.get(4)
-                if (fileName == song.fileName + ".flac") {
-                    return Pair(bpm.toLong(), key)
+                // BR-256: короткая строка CSV (меньше 5 колонок) и нечисловой BPM
+                // раньше бросали `ArrayIndexOutOfBoundsException`/`NumberFormatException`
+                // НАРУЖУ — ими прерывался массовый цикл `updateBpmAndKey` на середине
+                // (часть песен уже сохранена, остальные не обработаны, сводка не
+                // сформирована). Теперь такая строка — пропуск с логированием.
+                try {
+                    val fileName = csvRecord.get(0)
+                    val bpm = csvRecord.get(3)
+                    val key = csvRecord.get(4)
+                    if (fileName == song.fileName + ".flac") {
+                        return Pair(bpm.trim().toLongOrNull() ?: 0L, key)
+                    }
+                } catch (e: Exception) {
+                    log.warn(
+                        "getBpmAndKeyFromCsv: строка CSV пропущена (файл «$csvFilePath», " +
+                            "песня «${song.fileName}»): ${e::class.simpleName}: ${e.message}",
+                        e,
+                    )
                 }
             }
         }
-    } catch (e: IOException) {
-        e.printStackTrace()
+    } catch (e: Exception) {
+        // BR-256: printStackTrace → SLF4J со стеком; ловится и IOException,
+        // и RuntimeException (последние — от разбора CSV).
+        log.error("getBpmAndKeyFromCsv: не удалось разобрать «$csvFilePath» (песня «${song.fileName}»)", e)
     }
 
     return Pair(0, "")
@@ -2202,15 +2308,14 @@ fun searchSongText(song: Song): String {
             }
 
             lyricsElement = document.getElementById("tab01")
-//            println(lyricsElement?.ownText())
-//            println(lyricsElement?.html())
 
-            var text = lyricsElement?.html()
+            // BR-257: раньше бралось `lyricsElement?.html()` — в `song.sourceText`
+            // попадала HTML-разметка (`<div>`, `<span class=…>`, `<script>`), которая
+            // потом уезжала в маркеры строк и в кадр видео как литеральные символы.
+            // Теперь — текстовое содержимое с сохранением переводов строк.
+            val text = lyricsElement?.html()?.let { htmlToPlainTextWithNewlines(it) }
 
             if (text != null) {
-                text = text.replace("<br> &nbsp;", "")
-                text = text.replace("<br> ", "")
-                text = text.replace("<br>", "")
                 return text
             }
         } else if (href.startsWith("https://textypesen.com/")) {
@@ -2224,18 +2329,11 @@ fun searchSongText(song: Song): String {
             }
 
             lyricsElement = document.selectFirst("div.col-sm-100.text-center")
-            println(lyricsElement?.ownText())
-            println(lyricsElement?.html())
 
-            var text = lyricsElement?.html()
+            // BR-257: `html()` → текст (без разметки), с сохранением переводов строк.
+            val text = lyricsElement?.html()?.let { htmlToPlainTextWithNewlines(it) }
 
             if (text != null) {
-                text = text.replace("<br> ", "\n")
-                text = text.replace("<br>", "\n")
-                text = text.replace("&nbsp;", " ")
-                text = text.replace("<p class=\"font-size-20\">", "")
-                text = text.replace("</p>", "")
-                println(text)
                 return text
             }
         } else if (href.startsWith("https://musictxt.ru/")) {
@@ -2254,26 +2352,13 @@ fun searchSongText(song: Song): String {
             }
 
             lyricsElement = document.getElementById("layer2")
-            println("text()")
-            println(lyricsElement?.text())
-            println("ownText()")
-            println(lyricsElement?.ownText())
-            println("html()")
-            println(lyricsElement?.html())
 
-            var text = lyricsElement?.html()
+            // BR-257: `html()` → текст (без разметки). Раньше в `sourceText` попадали
+            // Yandex-рекламные `<div id="yandex_rtb_...">` и `<script>…</script>`,
+            // которые потом уезжали в маркеры строк и в кадр видео.
+            val text = lyricsElement?.html()?.let { htmlToPlainTextWithNewlines(it) }
 
             if (text != null) {
-                text = text.replace("<br> ", "\n")
-                text = text.replace("<br>", "\n")
-                text = text.replace("<!-- Yandex.RTB R-A-587487-5 -->", "")
-                text =
-                    text.replace(
-                        """<div id="yandex_rtb_R-A-587487-5"></div><script>window.yaContextCb.push(()=>{Ya.Context.AdvManager.render({"blockId": "R-A-587487-5","renderTo": "yandex_rtb_R-A-587487-5"})})</script></pre>""",
-                        "",
-                    )
-                text = text.replace("<pre>", "")
-                println(text)
                 return text
             }
         } else if (href.startsWith("https://textocat.ru/")) {
@@ -2363,22 +2448,11 @@ fun searchSongText(song: Song): String {
             }
 
             lyricsElement = document.getElementById("text")
-            println("text()")
-            println(lyricsElement?.text())
-            println("ownText()")
-            println(lyricsElement?.ownText())
-            println("html()")
-            println(lyricsElement?.html())
 
-            var text = lyricsElement?.html()
+            // BR-257: `html()` → текст (без разметки), с сохранением переводов строк.
+            val text = lyricsElement?.html()?.let { htmlToPlainTextWithNewlines(it) }
 
             if (text != null) {
-                text = text.replace("<br> ", "\n")
-                text = text.replace("<br>", "\n")
-                text = text.replace("&nbsp;", " ")
-                text = text.replace("""<span class="status_select" itemprop="lyrics">""", "")
-                text = text.replace("</span>", "")
-
                 return text
             }
         } else if (href.startsWith("https://text-lyrics.ru/")) {
@@ -2653,16 +2727,31 @@ fun getFileNameByMasks(
         val files =
             Files
                 .walk(Path(pathToFolder))
-                .filter(Files::isRegularFile)
-                .map { it.toString() }
-                .filter { it.endsWith(extension) && it.startsWith("$pathToFolder/$startWith") }
-                .map { Path(it).toFile().name }
-                .toList()
+                // BR-255: `Files.walk` держит открытый DirectoryStream и ОБЯЗАН быть
+                // закрыт. Раньше поток только терминально собирался в список и не
+                // закрывался — файловые дескрипторы оставались до финализации.
+                // Геттеры `Song.audioMusicFileName`/`audioVocalFileName`/… вызывают
+                // эту функцию до двух раз за чтение песни, поэтому утечка была
+                // массовой.
+                .use { stream ->
+                    stream
+                        .filter(Files::isRegularFile)
+                        .map { it.toString() }
+                        .filter { it.endsWith(extension) && it.startsWith("$pathToFolder/$startWith") }
+                        .map { Path(it).toFile().name }
+                        .toList()
+                }
         suffixes.forEach { suffix ->
             val filename = files.firstOrNull { it.startsWith("${startWith}$suffix") }
             if (filename != null) return filename
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        // BR-255: ошибка обхода (нет прав, слишком длинный путь) больше не выглядит
+        // как «файла нет» — она логируется (категория `karaoke.utils` — логгер файла,
+        // см. BR-184/пакет `PKG-S3-24`). Раньше `catch (_: Exception) { return "" }`
+        // глушил всё, и вызывающий не мог отличить «не найдено» от «не смогли
+        // посмотреть».
+        log.warn("getFileNameByMasks: не удалось обойти каталог «$pathToFolder» — ${e.message}", e)
         return ""
     }
     return ""
@@ -3127,7 +3216,11 @@ fun replaceVowelOrConsonantLetters(
 fun getSyllables(text: String): List<String> {
     val result: MutableList<String> = mutableListOf()
     val regexWords = """\S+""".toRegex(setOf(RegexOption.IGNORE_CASE))
-    val words = regexWords.find(text)?.groupValues ?: emptyList()
+    // BR-268: `find` давал ТОЛЬКО первое совпадение (первое слово) — для
+    // многословного текста возвращались слоги одного слова, а
+    // `updateMarkersFromSourceText` обнулял `label` всем маркерам сверх
+    // длины списка. Теперь — ВСЕ слова (`findAll`).
+    val words = regexWords.findAll(text).map { it.value }.toList()
 
     val regexSyllables =
         """[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])"""
@@ -3761,29 +3854,40 @@ internal fun extractCountryCode(
 private fun fetchCountryCodeFromService(
     url: String,
     regex: Regex,
-): String? =
-    try {
-        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+): String? {
+    var conn: java.net.HttpURLConnection? = null
+    return try {
+        conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
         conn.setRequestProperty("User-Agent", "Mozilla/5.0")
         conn.connectTimeout = 5000
         conn.readTimeout = 5000
         val status = conn.responseCode
         if (status != 200) {
-            println("isVpnActive: $url вернул HTTP $status")
+            log.warn("isVpnActive: $url вернул HTTP $status")
             null
         } else {
             extractCountryCode(
+                // BR-269: тело читается в `use { }` — поток закрывается.
                 conn.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .trim(),
+                    .use { stream ->
+                        stream.bufferedReader().use { reader -> reader.readText() }
+                    }.trim(),
                 regex,
             )
         }
     } catch (e: Exception) {
-        println("isVpnActive: исключение при запросе $url: ${e.message}")
+        // BR-269: ошибка логируется (а не только печатается в stdout).
+        log.warn("isVpnActive: исключение при запросе $url: ${e.message}", e)
         null
+    } finally {
+        // BR-269: соединение закрывается ВСЕГДА (и в успешной ветке, и в catch).
+        try {
+            conn?.disconnect()
+        } catch (e: Exception) {
+            log.warn("isVpnActive: не удалось закрыть соединение с $url", e)
+        }
     }
+}
 
 /**
  * Определяет страну текущего внешнего IP с кэшем на `vpnCheckCacheTtlSeconds` секунд.
@@ -4190,11 +4294,24 @@ fun createScriptForHost(
     args: List<String>,
     waitToDone: Boolean = false,
 ) {
-    val txt = args.joinToString(" ")
+    // BR-271: значения больше НЕ склеиваются в shell-строку «как есть».
+    // Раньше `args.joinToString(" ")` + `wrapInApostraf()` (= `'value'`) давали
+    // незакрытую кавычку для пути с апострофом (автор/альбом/песня вида
+    // `Guns N' Roses`, `I'm…`): watcher исполнял искажённую команду — воспроизведение
+    // не работало, а при подконтрольном имени — произвольная команда.
+    //
+    // Теперь скрипт — POSIX-sh: значения передаются ПОЗИЦИОННЫМИ параметрами
+    // (`set -- 'v1' 'v2'` + `exec 'cmd' "$@"`), где каждое значение экранировано
+    // функцией [shellEscape]. Watcher на хосте запускает файл БЕЗ аргументов
+    // (`/bin/bash <file>`), поэтому значения «внутри» скрипта — единственный
+    // способ их передать без склейки.
+    val txt = buildHostScript(args)
     val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"
     val file = File(fileName)
     file.writeText(txt)
-    runCommand(listOf("chmod", "777", fileName))
+    // BR-271: права `700` вместо `777` — скрипт исполняет watcher на хосте,
+    // и любой пользователь/контейнер не должен его перезаписать.
+    setExecutableScriptPermissions(fileName)
     if (waitToDone) {
         // Ожидание удаления файла с таймаутом
         val timeoutMillis = 120_000 // 120 секунд таймаут
@@ -4205,6 +4322,72 @@ fun createScriptForHost(
             }
             Thread.sleep(100) // Пауза 100 мс между проверками
         }
+    }
+}
+
+/**
+ * BR-271: текст POSIX-sh скрипта для watcher'а на хосте.
+ *
+ * Команда и её значения передаются позиционными параметрами:
+ * ```sh
+ * set -- 'значение1' 'значение2'
+ * exec 'команда' "$@"
+ * ```
+ * Значение экранировано одинарными кавычками (внутри — `'\''` для самого
+ * апострофа), поэтому пользовательское имя (автор/альбом/путь) не может повлиять
+ * на разбор команды. `"$@"` — без разбиения по пробелам и без подстановки
+ * glob-символов.
+ *
+ * @param args команда (`args[0]`) и её значения (`args[1..]`).
+ * @return текст скрипта.
+ */
+internal fun buildHostScript(args: List<String>): String {
+    val command = args.firstOrNull().orEmpty()
+    val arguments = args.drop(1)
+    val sb = StringBuilder()
+    sb.append("#!/bin/sh\n")
+    sb.append("# BR-271: значения передаются позиционными параметрами, а не склейкой.\n")
+    if (arguments.isNotEmpty()) {
+        sb.append("set --")
+        arguments.forEach { value ->
+            sb.append(" ").append(shellEscape(value))
+        }
+        sb.append("\n")
+    }
+    sb.append("exec ").append(shellEscape(command))
+    if (arguments.isNotEmpty()) {
+        sb.append(" \"$@\"")
+    }
+    sb.append("\n")
+    return sb.toString()
+}
+
+/**
+ * BR-271: экранирование значения для POSIX-sh.
+ *
+ * Апостроф внутри значения закрывает одинарную кавычку — поэтому он заменяется на
+ * `'\''` (закрыть кавычку, экранированный апостроф, открыть кавычку).
+ */
+internal fun shellEscape(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+/**
+ * BR-271: права `700` на скрипт для watcher'а.
+ *
+ * Раньше был `chmod 777` — скрипт, исполняемый на ХОСТЕ, мог переписать любой
+ * пользователь или контейнер с тем же монтированием.
+ */
+private fun setExecutableScriptPermissions(pathToFile: String) {
+    try {
+        Files.setPosixFilePermissions(
+            Path.of(pathToFile),
+            setOf(
+                java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                java.nio.file.attribute.PosixFilePermission.OWNER_WRITE,
+                java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE,
+            ),
+        )
+    } catch (e: Exception) {
+        log.warn("createScriptForHost: не удалось выставить права 700 на '$pathToFile': ${e.message}", e)
     }
 }
 
@@ -4703,6 +4886,7 @@ fun runCommand(
     ignoreErrors: Boolean = false,
     skipRunFunctionWithArgs: Boolean = false,
     envs: Map<String, String> = emptyMap(),
+    timeoutMs: Long = DEFAULT_RUN_COMMAND_TIMEOUT_MS,
 ): String {
     if (args.isNotEmpty() && args[0] == "runFunctionWithArgs" && !skipRunFunctionWithArgs) {
         return runFunctionWithArgs(args)
@@ -4716,20 +4900,33 @@ fun runCommand(
     // Направляем стандартный поток ошибок в стандартный поток вывода для удобства
     processBuilder.redirectErrorStream(true)
 
+    var process: Process? = null
     try {
         // Запускаем процесс
-        val process = processBuilder.start()
+        process = processBuilder.start()
 
-        // Читаем вывод процесса
-        val reader = BufferedReader(InputStreamReader(process.inputStream))
+        // BR-270: вывод читается в `use { }` (поток закрывается), накапливается
+        // с ОГРАНИЧЕНИЕМ (иначе команда с непрерывным выводом съедала память),
+        // а процесс ждёт с ТАЙМАУТОМ.
         val result = StringBuilder()
-        var line: String?
-        while (reader.readLine().also { line = it } != null) {
-            result.append(line).append("\n")
+        BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                if (result.length < MAX_RUN_COMMAND_OUTPUT_CHARS) {
+                    result.append(line).append("\n")
+                }
+            }
         }
 
-        // Ждем завершения процесса
-        val exitCode = process.waitFor()
+        // BR-270: `waitFor(timeout)` вместо бесконечного `waitFor()` — зависший
+        // дочерний процесс (docker при недоступном демоне, rm на залипшей ФС)
+        // больше не держит поток Tomcat/очереди навсегда.
+        val finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            throw RuntimeException("Process timed out after $timeoutMs ms: ${args.firstOrNull()}")
+        }
+        val exitCode = process.exitValue()
         if (exitCode != 0 && !ignoreErrors) {
             throw RuntimeException("Process exited with error code $exitCode")
         }
@@ -4737,7 +4934,23 @@ fun runCommand(
         // Возвращаем результат, удаляя последний символ новой строки
         return result.toString().trim()
     } catch (e: Exception) {
+        // BR-270: процесс УБИВАЕТСЯ при любом исходе (в т.ч. исключении в цикле
+        // чтения) — иначе он остаётся жить и держит пайп stdout.
+        try {
+            process?.destroyForcibly()
+        } catch (destroyError: Exception) {
+            log.warn("runCommand: не удалось убить процесс ${args.firstOrNull()}", destroyError)
+        }
+        if (e is RuntimeException && e.message?.startsWith("Process ") == true) throw e
         throw RuntimeException("Error running runCommand", e)
+    } finally {
+        try {
+            process?.inputStream?.close()
+            process?.outputStream?.close()
+            process?.errorStream?.close()
+        } catch (e: Exception) {
+            log.warn("runCommand: не удалось закрыть потоки процесса ${args.firstOrNull()}", e)
+        }
     }
 }
 
@@ -4969,7 +5182,7 @@ fun findDuplicateOriginal(
     return Song.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 }
 
-private data class ParentCandidate(
+internal data class ParentCandidate(
     val id: Long,
     val author: String,
 )
@@ -4999,39 +5212,108 @@ fun findParentCandidateId(
     database: KaraokeConnection,
     crossAuthor: Boolean = true,
 ): Long? {
-    val cleanedName = normalizeSongNameForSearch(song.songName)
-    if (cleanedName.isBlank()) return null
-    val connection = database.getConnection() ?: return null
-    val ps =
-        connection.prepareStatement(
-            "SELECT id, song_name, song_author FROM tbl_songs WHERE id <> ?",
-        )
-    ps.setLong(1, song.id)
-    val rs = ps.executeQuery()
-    val candidates = mutableListOf<ParentCandidate>()
-    while (rs.next()) {
-        if (normalizeSongNameForSearch(rs.getString("song_name")) == cleanedName) {
-            candidates.add(
-                ParentCandidate(
-                    id = rs.getLong("id"),
-                    author = rs.getString("song_author") ?: "",
-                ),
-            )
-        }
-    }
-    rs.close()
-    ps.close()
-    if (candidates.isEmpty()) return null
-
-    // specs/283-admin-find-parent: родитель ищется среди ВСЕХ песен с тем же нормализованным
-    // названием (без фильтра по наличию текста — раньше приоритизировались кандидаты с
-    // source_text, что ошибочно отсеивало «сирот»-родителей без текста).
-    val sameAuthor = candidates.filter { it.author.equals(song.author, ignoreCase = true) }
-    // При crossAuthor=false фоллбэка на других авторов нет — если sameAuthor пуст, родитель
-    // не найден (вернётся null ниже).
-    val finalPool = if (crossAuthor) sameAuthor.ifEmpty { candidates } else sameAuthor
-    return finalPool.minByOrNull { it.id }?.id
+    // BR-273: полный скан таблицы песен — ОДИН раз на весь цикл, а не на каждую
+    // песню. Внутри цикла (customFunction, findParentForAuthor) вызывается
+    // пакетный вариант с готовым индексом.
+    val index = loadParentCandidateIndex(database)
+    return findParentCandidateId(song, index, crossAuthor)
 }
+
+/**
+ * BR-273: индекс кандидатов-родителей, загруженный ОДНИМ запросом.
+ *
+ * Ключ — нормализованное название ([normalizeSongNameForSearch]), значение —
+ * список кандидатов (отсортирован по id). Сборка индекса заменяет N полных
+ * сканов `tbl_songs` на один: для выборки из N песен было N сканов
+ * (O(N²) чтений — прямое нарушение ADR-0001 § «O(n) not O(n²)» и
+ * «Пакетная загрузка, не по одной»).
+ *
+ * @param candidates кандидаты, сгруппированные по нормализованному названию.
+ */
+internal class ParentCandidateIndex(
+    private val candidates: Map<String, List<ParentCandidate>>,
+) {
+    /**
+     * Кандидат-родитель для песни [song].
+     *
+     * @param song песня, для которой ищется родитель.
+     * @param crossAuthor разрешён ли подбор среди песен других авторов.
+     * @return `id` кандидата или `null`.
+     */
+    fun findCandidateId(
+        song: Song,
+        crossAuthor: Boolean = true,
+    ): Long? {
+        val cleanedName = normalizeSongNameForSearch(song.songName)
+        if (cleanedName.isBlank()) return null
+        val pool = candidates[cleanedName] ?: return null
+        if (pool.isEmpty()) return null
+        // BR-273: в индексе — ВСЕ песни, включая саму [song]. Прежний запрос
+        // исключал её условием `id <> ?`, поэтому здесь исключаем явно: песня
+        // не может быть своим собственным родителем.
+        val withoutSelf = pool.filter { it.id != song.id }
+        if (withoutSelf.isEmpty()) return null
+        // specs/283-admin-find-parent: родитель ищется среди ВСЕХ песен с тем же нормализованным
+        // названием (без фильтра по наличию текста — раньше приоритизировались кандидаты с
+        // source_text, что ошибочно отсеивало «сирот»-родителей без текста).
+        val sameAuthor = withoutSelf.filter { it.author.equals(song.author, ignoreCase = true) }
+        // При crossAuthor=false фоллбэка на других авторов нет — если sameAuthor пуст, родитель
+        // не найден (вернётся null ниже).
+        val finalPool = if (crossAuthor) sameAuthor.ifEmpty { withoutSelf } else sameAuthor
+        return finalPool.minByOrNull { it.id }?.id
+    }
+}
+
+/**
+ * BR-273: загрузка индекса кандидатов-родителей ОДНИМ запросом.
+ *
+ * @param database соединение с БД.
+ * @return индекс «нормализованное название → кандидаты».
+ */
+internal fun loadParentCandidateIndex(database: KaraokeConnection): ParentCandidateIndex {
+    val byName = mutableMapOf<String, MutableList<ParentCandidate>>()
+    val connection = database.getConnection() ?: return ParentCandidateIndex(emptyMap())
+    try {
+        connection
+            .prepareStatement("SELECT id, song_name, song_author FROM tbl_songs")
+            .use { ps ->
+                ps.executeQuery().use { rs ->
+                    while (rs.next()) {
+                        val cleaned = normalizeSongNameForSearch(rs.getString("song_name"))
+                        if (cleaned.isBlank()) continue
+                        byName
+                            .getOrPut(cleaned) { mutableListOf() }
+                            .add(
+                                ParentCandidate(
+                                    id = rs.getLong("id"),
+                                    author = rs.getString("song_author") ?: "",
+                                ),
+                            )
+                    }
+                }
+            }
+    } catch (e: Exception) {
+        log.error("loadParentCandidateIndex: не удалось загрузить кандидатов-родителей: ${e.message}", e)
+        return ParentCandidateIndex(emptyMap())
+    }
+    // Кандидаты сортируются по id — выбор «с наименьшим id» становится первым
+    // элементом списка (findCandidateId берёт minByOrNull — O(k) на группу).
+    return ParentCandidateIndex(byName.mapValues { (_, list) -> list.sortedBy { it.id } })
+}
+
+/**
+ * BR-273: кандидат-родитель по ГОТОВОМУ индексу (без обращения к БД).
+ *
+ * @param song песня, для которой ищется родитель.
+ * @param index индекс кандидатов ([loadParentCandidateIndex]).
+ * @param crossAuthor разрешён ли подбор среди песен других авторов.
+ * @return `id` кандидата-родителя или `null`, если подходящего нет.
+ */
+internal fun findParentCandidateId(
+    song: Song,
+    index: ParentCandidateIndex,
+    crossAuthor: Boolean = true,
+): Long? = index.findCandidateId(song, crossAuthor)
 
 fun searchSongsByNormalizedName(
     currentSong: Song,
@@ -5598,3 +5880,77 @@ fun getFreeTimeSlots(): List<String> {
     }
     return result
 }
+
+/**
+ * BR-257: HTML-фрагмент → чистый текст С СОХРАНЕНИЕМ переводов строк.
+ *
+ * Зачем. `searchSongText` в четырёх ветках брал `element.html()` и снимал только
+ * `<br>`/`&nbsp;`. В `song.sourceText` (и следом в `id_status = 1`) попадала
+ * посторонняя разметка: `<div>`, `<span class=…>`, `<a href>`, даже `<script>`.
+ * Дальше она уезжала в маркеры строк (`getSourceMarkers` → `MltNode`) и в кадр
+ * видео как литеральные символы, а также в админский редактор текста.
+ *
+ * Что делает:
+ *  1. Разбирает фрагмент через Jsoup (`parseBodyFragment`);
+ *  2. Превращает `<br>` и блочные теги (`p`, `div`, `li`, `tr`, `h1…h6`, `pre`,
+ *     `blockquote`) в перевод строки — иначе `text()` склеил бы куплеты в одну
+ *     строку;
+ *  3. Убирает теги (`wholeText()`), неразрывные пробелы и лишние пустые строки;
+ *  4. Возвращает ТЕКСТ, а не разметку.
+ *
+ * @param html HTML-фрагмент (результат `Element.html()`).
+ * @return текст песни без разметки, строки разделены `\n`.
+ */
+internal fun htmlToPlainTextWithNewlines(html: String): String {
+    if (html.isBlank()) return ""
+    val document = Jsoup.parseBodyFragment(html)
+    document.outputSettings().prettyPrint(false)
+    document.select("br").before("\n")
+    document.select("p, div, li, tr, h1, h2, h3, h4, h5, h6, pre, blockquote").before("\n")
+    val raw =
+        document
+            .wholeText()
+            .replace("\r\n", "\n")
+            .replace('\u00A0', ' ')
+    return raw
+        .lines()
+        .joinToString("\n") { it.trim() }
+        .replace(Regex("\n{3,}"), "\n\n")
+        .trim()
+}
+
+/**
+ * BR-252: постановка песни в `tbl_songs_sync` на REMOTE не удалась.
+ *
+ * Раньше `setSongToSyncRemoteTable` при недоступной REMOTE-БД или ошибке вставки
+ * просто делал `return`/`printStackTrace`, а вызывающий рапортовал «Запись
+ * добавлена в SYNC-таблицу». Теперь — исключение: изменение песни не уедет на
+ * прод, и об этом знают и вызывающий, и оператор.
+ */
+class KaraokeSyncEnqueueFailedException(
+    val songId: Long,
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
+ * BR-270: таймаут по умолчанию для [runCommand].
+ *
+ * Раньше `process.waitFor()` ждал бесконечно: зависший дочерний процесс
+ * (`docker` при недоступном демоне, `rm` на залипшей ФС) держал HTTP-поток
+ * Tomcat или поток очереди НАВСЕГДА, и отменить такой запрос было нечем.
+ *
+ * Значение по умолчанию — 2 часа: этого хватает самому долгому реальному
+ * вызову (`docker run` с demucs на CPU — десятки минут), но ограничивает
+ * бесконечное ожидание. Вызывающий может задать свой таймаут параметром
+ * `timeoutMs`.
+ */
+internal const val DEFAULT_RUN_COMMAND_TIMEOUT_MS: Long = 2 * 60 * 60 * 1000
+
+/**
+ * BR-270: максимальный объём вывода, который накапливается в памяти.
+ *
+ * Раньше весь stdout процесса копился в `StringBuilder` без ограничения — для
+ * команды с большим или непрерывным выводом это неограниченная память.
+ */
+internal const val MAX_RUN_COMMAND_OUTPUT_CHARS: Int = 1024 * 1024

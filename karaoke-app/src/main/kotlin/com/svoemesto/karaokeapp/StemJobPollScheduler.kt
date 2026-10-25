@@ -71,17 +71,24 @@ class StemJobPollScheduler {
             return
         }
 
+        // BR-263: три разных исхода измерения длительности — «измерили»,
+        // «не смогли измерить» и «превышает лимит». Раньше `null` (ffprobe не
+        // дал числа) попадал в ту же ветку, что и превышение лимита, и задание
+        // отклонялось с ложным сообщением «Длительность превышает лимит».
         val durationSeconds = probeDurationSeconds(uploadFile)
-        if (durationSeconds == null || durationSeconds > StemJob.MAX_DURATION_SECONDS) {
+        if (durationSeconds == null) {
+            // BR-263: не удалось измерить — это НЕ «превышение лимита».
+            failJob(job, "Не удалось измерить длительность файла (ffprobe не вернул значение)")
+            tempFolder.deleteRecursively()
+            ackRawFileConsumed(job.id)
+            return
+        }
+        if (durationSeconds > StemJob.MAX_DURATION_SECONDS) {
             failJob(job, "Длительность файла превышает лимит (${StemJob.MAX_DURATION_SECONDS / 60} мин)")
             tempFolder.deleteRecursively()
             ackRawFileConsumed(job.id)
             return
         }
-
-        job.status = StemJobStatus.WORKING
-        job.startedAt = Timestamp(System.currentTimeMillis())
-        job.save()
 
         val (args, envs) = argsStemJobDemucs(job)
         val karaokeProcess = KaraokeProcess(Connection.local())
@@ -98,7 +105,24 @@ class StemJobPollScheduler {
         karaokeProcess.envs = envs
 
         val separated = KaraokeProcess.separate(karaokeProcess)
-        KaraokeProcess.createDbInstance(separated)
+        // BR-260: результат вставки ПРОВЕРЯЕТСЯ. Раньше `createDbInstance`
+        // возвращал `null` при сбое вставки (исключения не бросал), а вызов
+        // его значение отбрасывал — задание оставалось `WORKING` без единого
+        // шага в очереди: `loadWaiting` его больше не возвращал, `loadPendingCleanup`
+        // не забирал, автовосстановления не было. Пользователь видел «в работе»
+        // до алерта `StemJobsStuckCheck` через 30 минут.
+        val created = KaraokeProcess.createDbInstance(separated)
+        if (created == null) {
+            failJob(job, "Не удалось поставить шаг демукса в очередь (LOCAL-БД недоступна или отказ вставки)")
+            tempFolder.deleteRecursively()
+            ackRawFileConsumed(job.id)
+            return
+        }
+
+        // BR-260: статус `WORKING` ставится ТОЛЬКО ПОСЛЕ успешной вставки шага.
+        job.status = StemJobStatus.WORKING
+        job.startedAt = Timestamp(System.currentTimeMillis())
+        job.save()
     }
 
     private fun failJob(

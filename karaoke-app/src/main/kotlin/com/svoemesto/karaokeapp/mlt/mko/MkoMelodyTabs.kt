@@ -20,6 +20,13 @@ data class MkoMelodyTabs(
 ) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId, elementId)
 
+    /**
+     * BR-239: предупреждения о некорректных данных маркеров (некорректный `stringLad`).
+     * Категория зарегистрирована в `knowledge/domains/monitoring/components/log-categories.md`
+     * (`infra.render.tabs`).
+     */
+    private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.render.tabs")
+
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
@@ -89,15 +96,24 @@ data class MkoMelodyTabs(
     override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 
     override fun template(): MltNode {
-        val targetSong = song ?: return MltNode()
+        // BR-241: раньше при отсутствии элемента возвращался `MltNode()` — узел с
+        // ПУСТЫМ именем. `MltNode.toString()` даёт `< />`, и это уходит в `xmldata`
+        // титра: получается не well-formed XML, который kdenlive-титр не разберёт.
+        // Теперь возвращается ВАЛИДНЫЙ пустой `kdenlivetitle` (слой пустой, но XML
+        // корректен), а причина логируется.
+        val targetSong = song ?: return emptyKdenliveTitle()
         val element =
             try {
                 targetSong.voicesForMlt[voiceId]
                     .getLines()[lineId]
                     .getElements(songVersion)
                     .first { it.type == SongVoiceLineElementTypes.TEXT }
-            } catch (_: Exception) {
-                return MltNode()
+            } catch (e: NoSuchElementException) {
+                log.warn("MkoMelodyTabs: у строки $lineId (голос $voiceId) нет TEXT-элемента — слой табов пуст", e)
+                return emptyKdenliveTitle()
+            } catch (e: IndexOutOfBoundsException) {
+                log.warn("MkoMelodyTabs: строка $lineId (голос $voiceId) вне диапазона — слой табов пуст", e)
+                return emptyKdenliveTitle()
             }
 
         val sylFontSize = element.fontSize
@@ -236,9 +252,21 @@ data class MkoMelodyTabs(
         element.getSyllables().forEach { noteElement ->
             val stringLadText = noteElement.stringLad
             if (stringLadText.contains("|")) {
-                val (stringText, ladText) = stringLadText.split("|")
-                val stringIndex = stringText.toInt()
-//                val ladIndex = ladText.toInt()
+                // BR-239: строка табулятуры разбиралась без проверки — `split("|")` +
+                // `toInt()` на значении вида `undefined|undefined` (его умеет записать
+                // редактор маркеров) бросал NumberFormatException, и падала генерация
+                // ВСЕГО `.mlt` для TABS, а не только слой табов. Теперь формат
+                // проверяется регулярным выражением, несоответствие — предупреждение в
+                // лог и пропуск таба (слой рисуется, рендер не падает).
+                val parsed = parseStringLad(stringLadText)
+                if (parsed == null) {
+                    log.warn(
+                        "MkoMelodyTabs: некорректный stringLad '$stringLadText' — таб пропущен " +
+                            "(ожидается <0-5>|<лад>)",
+                    )
+                    return@forEach
+                }
+                val (stringIndex, ladText) = parsed
 
                 val initialXposition = noteElement.x()
                 val areaW = noteElement.w()
@@ -311,3 +339,43 @@ data class MkoMelodyTabs(
         )
     }
 }
+
+/**
+ * BR-239: разбор строки табулятуры `<строка>|<лад>`.
+ * Формат строки табулятуры: номер строки (0…5) и лад (двузначное число).
+ * Возвращает `null`, если формат неверный — вызывающий обязан пропустить таб и
+ * записать предупреждение, а НЕ бросать исключение (иначе падает генерация всего
+ * `.mlt` для TABS-версии песни).
+ */
+internal fun parseStringLad(stringLad: String): Pair<Int, String>? {
+    val match = STRING_LAD_REGEX.matchEntire(stringLad.trim()) ?: return null
+    val (stringText, ladText) = match.destructured
+    val stringIndex = stringText.toIntOrNull() ?: return null
+    if (stringIndex !in 0..5) return null
+    return stringIndex to ladText
+}
+
+/** BR-239: допустимый формат строки табулятуры — номер строки (0…5) и лад. */
+private val STRING_LAD_REGEX = Regex("^([0-5])\\|(\\d{1,2})$")
+
+/**
+ * BR-241: валидный ПУСТОЙ `kdenlivetitle`.
+ *
+ * Используется, когда у строки нет TEXT-элемента (например, строка состоит только
+ * из комментария). Раньше на этом месте возвращался `MltNode()` — узел с пустым
+ * именем, `toString()` которого даёт `< />`, и такой не-well-formed XML уходил в
+ * `xmldata` титра.
+ */
+internal fun emptyKdenliveTitle(): MltNode =
+    MltNode(
+        name = "kdenlivetitle",
+        fields =
+            mutableMapOf(
+                Pair("duration", "0"),
+                Pair("LC_NUMERIC", "C"),
+                Pair("width", "0"),
+                Pair("height", "0"),
+                Pair("out", "0"),
+            ),
+        body = mutableListOf<MltNode>(),
+    )

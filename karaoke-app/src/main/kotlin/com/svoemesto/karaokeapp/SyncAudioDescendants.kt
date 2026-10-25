@@ -201,6 +201,8 @@ object SyncAudioDescendants {
         var processedChildren = 0
         var synced = 0
         var skipped = 0
+        // BR-264: счётчик ошибок (сбой выборки/БД) — отдельно от «пропущено».
+        var errors = 0
         while (true) {
             val parentId =
                 synchronized(lock) {
@@ -215,6 +217,8 @@ object SyncAudioDescendants {
                     syncOneParent(parentId)
                 } catch (e: Exception) {
                     println("[sync-audio] parent=$parentId — error: ${e.message}")
+                    // BR-264: ошибка считается ОТДЕЛЬНО, а не прячется в «пропущено».
+                    errors++
                     SyncAudioResult(parentId, 0, 0, 1, "error:${e.message}")
                 }
             processedParents++
@@ -226,6 +230,7 @@ object SyncAudioDescendants {
         adminProcessedChildren = processedChildren
         adminSynced = synced
         adminSkipped = skipped
+        adminErrors = errors
     }
 
     @Volatile private var adminProcessedParents = 0
@@ -236,15 +241,21 @@ object SyncAudioDescendants {
 
     @Volatile private var adminSkipped = 0
 
+    /** BR-264: число родителей, на которых синхронизация упала (сбой БД/выборки). */
+    @Volatile private var adminErrors = 0
+
     private fun notifyAdminSummary() {
+        // BR-264: в сводке — счётчик ошибок. Раньше ошибка выборки выглядела как
+        // «потомков 0» — админ видел успешную сводку при сбое БД.
         val summary =
             "Обработано родителей $adminProcessedParents, потомков $adminProcessedChildren: " +
-                "синхронизировано $adminSynced, пропущено $adminSkipped"
-        println("[sync-audio] admin — processed_parents=$adminProcessedParents processed_children=$adminProcessedChildren synced=$adminSynced skipped=$adminSkipped")
+                "синхронизировано $adminSynced, пропущено $adminSkipped" +
+                (if (adminErrors > 0) ", ошибок: $adminErrors" else "")
+        println("[sync-audio] admin — processed_parents=$adminProcessedParents processed_children=$adminProcessedChildren synced=$adminSynced skipped=$adminSkipped errors=$adminErrors")
         SNS.send(
             SseNotification.message(
                 Message(
-                    type = "info",
+                    type = if (adminErrors > 0) "error" else "info",
                     head = "Синхронизация аудио-потомков",
                     body = summary,
                 ),
@@ -335,7 +346,15 @@ object SyncAudioDescendants {
         database: KaraokeConnection,
     ): List<Long> {
         val result = mutableListOf<Long>()
-        val connection = database.getConnection() ?: return result
+        // BR-264: «нет соединения» и «ошибка выборки» — это НЕ «потомков нет».
+        // Раньше оба случая возвращали пустой список, и вызывающий рапортовал
+        // успех с нулями («Обработано родителей N, потомков 0»), хотя синхронизация
+        // фактически не проверилась.
+        val connection =
+            database.getConnection()
+                ?: throw SyncAudioSelectionException(
+                    "Нет соединения с БД ${database.name} (выборка потомков родителя $parentId)",
+                )
         try {
             connection
                 .prepareStatement(
@@ -347,7 +366,11 @@ object SyncAudioDescendants {
                     }
                 }
         } catch (e: Exception) {
-            println("[sync-audio] parent=$parentId — ошибка выборки потомков: ${e.message}")
+            // BR-264: ошибка выборки пробрасывается наружу (не «пусто»).
+            throw SyncAudioSelectionException(
+                "Ошибка выборки потомков родителя $parentId: ${e.message}",
+                e,
+            )
         }
         return result
     }
@@ -415,7 +438,17 @@ object SyncAudioDescendants {
         synchronized(lock) {
             if (workerRunning && adminPending) return "ALREADY_RUNNING"
         }
-        val parentIds = loadParentsWithPendingChildren()
+        // BR-264: сбой выборки родителей — ОШИБКА, а не «нет родителей».
+        // Раньше `loadParentsWithPendingChildren` возвращала пустой список, и
+        // `syncAll` отвечал «OK» с сообщением «нет потомков со статусом <6» —
+        // админ видел успех при сбое БД.
+        val parentIds =
+            try {
+                loadParentsWithPendingChildren()
+            } catch (e: SyncAudioSelectionException) {
+                println("[sync-audio] admin — ошибка выборки родителей: ${e.message}")
+                return "ERROR: ${e.message}"
+            }
         if (parentIds.isEmpty()) {
             println("[sync-audio] admin — нет потомков со статусом <6")
             return "OK"
@@ -439,7 +472,12 @@ object SyncAudioDescendants {
 
     private fun loadParentsWithPendingChildren(): List<Long> {
         val result = mutableListOf<Long>()
-        val connection = WORKING_DATABASE.getConnection() ?: return result
+        // BR-264: сбой выборки — не «нет родителей».
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: throw SyncAudioSelectionException(
+                    "Нет соединения с БД ${WORKING_DATABASE.name} (выборка родителей)",
+                )
         try {
             connection
                 .prepareStatement(
@@ -450,7 +488,7 @@ object SyncAudioDescendants {
                     }
                 }
         } catch (e: Exception) {
-            println("[sync-audio] admin — ошибка выборки родителей: ${e.message}")
+            throw SyncAudioSelectionException("Ошибка выборки родителей: ${e.message}", e)
         }
         return result
     }
@@ -475,3 +513,15 @@ object SyncAudioDescendants {
     @Suppress("unused")
     private fun now(): Timestamp = Timestamp.from(Instant.now())
 }
+
+/**
+ * BR-264: сбой выборки при синхронизации аудио-потомков.
+ *
+ * Отличает «потомков/родителей нет» (пустой список — штатный результат) от
+ * «БД недоступна / выборка упала» (сбой). Раньше оба случая выглядели как
+ * пустой список, и массовая админская операция рапортовала успех при сбое БД.
+ */
+class SyncAudioSelectionException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)

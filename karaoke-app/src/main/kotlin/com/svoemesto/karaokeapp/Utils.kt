@@ -637,6 +637,10 @@ fun rescanAllCensoredNames(
 
                 println("rescanAllCensoredNames: найдено песен: ${ids.size}")
 
+                // BR-294 (аудит #336, пакет PKG-S3-26): словарь «Censored» читается ОДИН раз
+                // на пакет, а не на каждую песню (было N SELECT'ов + N×M компиляций regex).
+                val censoredRules = CensoredDictionaryRules.load(WORKING_DATABASE)
+
                 // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
                 val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
                 ids.forEachIndexed { index, id ->
@@ -658,7 +662,7 @@ fun rescanAllCensoredNames(
                         psSel.close()
 
                         processed++
-                        val censoredValue = songName.censored(WORKING_DATABASE)
+                        val censoredValue = songName.censored(censoredRules)
                         if (censoredValue != current) {
                             val psUpd =
                                 connection.prepareStatement(
@@ -710,87 +714,6 @@ fun rescanAllCensoredNames(
                     ),
                 )
             }
-
-            println("rescanAllCensoredNames: найдено песен: ${ids.size}")
-
-            // BR-294 (аудит #336, пакет PKG-S3-26): словарь «Censored» читается ОДИН раз
-            // на пакет, а не на каждую песню (было N SELECT'ов + N×M компиляций regex).
-            val censoredRules = CensoredDictionaryRules.load(WORKING_DATABASE)
-
-            // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
-            val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
-            ids.forEachIndexed { index, id ->
-                try {
-                    val psSel =
-                        connection.prepareStatement(
-                            "SELECT song_name, song_name_censored FROM tbl_songs WHERE id = ?",
-                        )
-                    psSel.setLong(1, id)
-                    val rs = psSel.executeQuery()
-                    if (!rs.next()) {
-                        rs.close()
-                        psSel.close()
-                        return@forEachIndexed
-                    }
-                    val songName = rs.getString("song_name") ?: ""
-                    val current = rs.getString("song_name_censored") ?: ""
-                    rs.close()
-                    psSel.close()
-
-                    processed++
-                    val censoredValue = songName.censored(censoredRules)
-                    if (censoredValue != current) {
-                        val psUpd =
-                            connection.prepareStatement(
-                                "UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?",
-                            )
-                        psUpd.setString(1, censoredValue)
-                        psUpd.setLong(2, id)
-                        psUpd.executeUpdate()
-                        psUpd.close()
-                        updated++
-                    }
-
-                    if ((index + 1) % 1000 == 0) {
-                        println(
-                            "rescanAllCensoredNames: прогресс ${index + 1}/${ids.size} " +
-                                "(обновлено $updated)",
-                        )
-                    }
-                } catch (e: Exception) {
-                    errors++
-                    println("rescanAllCensoredNames: ошибка на id=$id — ${e.message}")
-                }
-            }
-
-            val durationSec = (System.currentTimeMillis() - startMs) / 1000
-            val summary =
-                "Обработано $processed песен за $durationSec сек, обновлено $updated" +
-                    if (errors > 0) ", ошибок: $errors" else ""
-            println("rescanAllCensoredNames: завершено. $summary")
-
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Пересканирование цензурированных названий",
-                        body = summary,
-                    ),
-                ),
-            )
-        } catch (e: Exception) {
-            println("rescanAllCensoredNames: непредвиденная ошибка — ${e.message}")
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "error",
-                        head = "Пересканирование цензурированных названий",
-                        body = "Ошибка: ${e.message}",
-                    ),
-                ),
-            )
-        } finally {
-            isCensoredRescanInProgress = false
         }
     } catch (e: Throwable) {
         // BR-254: поток не создался — флаг всё равно снимаем.

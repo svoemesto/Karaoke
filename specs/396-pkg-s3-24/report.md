@@ -293,3 +293,62 @@ BR-211, BR-212, BR-215 — `10 tests completed, 10 failed`.
 
 Правки этих записей в этом пакете **не дублируются** — заново закрывать их нельзя, реестр
 (`registry.csv`) их не меняет (вне правки пакета).
+
+---
+
+## Финальные проверки (CI-набор)
+
+Выполнено в worktree `/home/nsa/Karaoke/.worktrees/waveE-s3-24`, ветка `623-pkg-s3-24`
+(база `b2c4b06f`).
+
+| Проверка | Результат |
+|---|---|
+| `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true :karaoke-app:test :karaoke-web:test` | BUILD SUCCESSFUL (750 тестов, 0 падений) |
+| `ktlintCheck` | BUILD SUCCESSFUL |
+| `bash tools/check-knowledge-structure.sh` | OK (9/9) |
+| `python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt` | OK |
+| `python3 tools/check-doc-references.py` | OK (ссылок 4332, путей 2607, эндпоинтов 353) |
+| `python3 tools/check-recordhash-consistency.py` | OK |
+| `bash tools/check-no-mp4-mentions.sh` | OK (139 упоминаний — в baseline) |
+| `bash tools/check-feature-doc.sh docs/features/*.md` | OK (все документы валидны) |
+| `bash tools/check-subagent-isolation.sh` | OK |
+| `bash tools/check-file-permissions.sh` | OK (baseline: 100 совпадений) |
+| `python3 tools/check-ssot-impact.py` | OK (0 нарушений) |
+
+**Фронтенд (`webvue3`, `karaoke-public`):** файлы фронтенда этим пакетом **не менялись**
+(`git diff origin/master -- webvue3 karaoke-public` — пусто), поэтому их проверки
+(`npm run lint`, `npm run test:unit`) дают **предсуществующие** падения, не связанные с
+пакетом:
+
+- `webvue3`: `npm run lint` → `ESLint couldn't find an eslint.config.(js|mjs|cjs) file`
+  (ESLint 10.5.0 не поддерживает `.eslintignore`, flat-конфига в репозитории нет);
+  `npm run test:unit` → падает `src/player/__tests__/karaoke-player-s2-18.test.js`;
+- `karaoke-public`: `npm run lint` — ошибка конфигурации ESLint (та же причина),
+  `npm run test:unit` — 0 падений.
+
+Исправление фронтовой тулчейки — вне периметра пакета `PKG-S3-24` (фронтенд ведут пакеты
+`PKG-S3-31`…`PKG-S3-33`).
+
+## Коммиты
+
+| Коммит | Содержание |
+|---|---|
+| `4abfd195` | партия 1: BR-174…BR-187 (10 записей) |
+| `930be882` | партия 2: BR-189…BR-199 (10 записей) |
+| `f3982127` | партия 3: BR-202…BR-215 (10 записей) |
+| `1c1c0e79` | SSoT (`knowledge/`) + per-feature документ (`docs/features/pkg-s3-24.md`) |
+
+## Итог
+
+- **Закрыто 30/40 записей пакета** (партии 1–3); ещё **10 записей закрыты волнами A–D**
+  (BR-182, BR-185, BR-188, BR-195, BR-200, BR-201, BR-205, BR-206, BR-213, BR-214) —
+  их правки не дублировались, ссылки на пакеты приведены выше.
+- **Регрессия**: 3 класса, 41 тест (`PkgS324Batch1*` — 19, `PkgS324Batch2*` — 12,
+  `PkgS324Batch3*` — 10). На старом коде падают **все** тесты каждой партии
+  (проверено через `git stash` изменённых исходников), после правки — проходят.
+- **Регрессионные тесты, которые не удалось сделать поведенческими** (SQL-путь к живой БД,
+  запись в БД и запуск контейнеров пакетом запрещены): BR-177, BR-178, BR-184, BR-186,
+  BR-187, BR-189, BR-190, BR-192, BR-193 (частично), BR-194, BR-196 (частично),
+  BR-197, BR-198, BR-199 — для них доказательство «до/после» даёт контрактный тест по
+  тексту исходника (падает на старом коде). Поведенческими сделаны BR-174, BR-179, BR-180,
+  BR-183, BR-191 (разбор даты), BR-193 (признак ошибки счётчика), BR-196 (нормализация).

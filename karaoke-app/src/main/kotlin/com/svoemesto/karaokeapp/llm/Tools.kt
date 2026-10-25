@@ -109,10 +109,20 @@ class SearchTool(
                 val searchResponse = objectMapper.readValue(response.body(), SearxngTextSearchResponse::class.java)
                 val urls = searchResponse.results.map { it.url }.filter { it.isNotBlank() }
 
-                logger.info("✅ [SearchTool] SearXNG — найдено URL: ${urls.size}")
-                urls.forEach { logger.info("  → $it") }
+                // BR-229: SearXNG-путь не проходил post-filter, хотя KDoc метода обещает
+                // «то же самое, что searchUrls» (fourget). Из-за этого в LLM-парсер уходили
+                // homepage/логины/sitemap/tracking-ссылки и дубликаты — а каждая ссылка
+                // стоит до 120 с вызова LM Studio (lmStudioTimeoutMs).
+                // Один фильтр на оба движка: filterUselessLyricsUrls заодно дедуплицирует
+                // результат через LinkedHashSet.
+                val filteredUrls = filterUselessLyricsUrls(urls)
+                logger.info(
+                    "✅ [SearchTool] SearXNG — найдено URL: ${urls.size} (после post-filter: ${filteredUrls.size}, " +
+                        "отброшено ${urls.size - filteredUrls.size})",
+                )
+                filteredUrls.forEach { logger.info("  → $it") }
 
-                urls
+                filteredUrls
             }
         } catch (e: Exception) {
             logger.error("❌ [SearchTool] Ошибка SearXNG: ${e.message}", e)

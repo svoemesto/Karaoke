@@ -4,6 +4,7 @@ import com.svoemesto.karaokeweb.WORKING_DATABASE
 
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Album
+import com.svoemesto.karaokeapp.model.AlbumTilesUnavailableException
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RestName
@@ -55,6 +56,7 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.ImageIO
 import org.slf4j.LoggerFactory
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
+import org.springframework.web.server.ResponseStatusException
 
 /**
  * JSON API для нового публичного SPA (karaoke-public). Чисто аддитивный контроллер:
@@ -459,12 +461,22 @@ class PublicApiController(
                 Author.getAuthorById(authorId, WORKING_DATABASE, KSS_APP, SAC_APP)
             val authorName = authorEntity?.author ?: ""
             val albums =
-                Album.loadAlbumTilesWithCounts(
-                    authorId = authorId,
-                    onlyPublished = onlyPublished,
-                    includeSkipped = canSeeSkipped,
-                    database = WORKING_DATABASE,
-                )
+                try {
+                    Album.loadAlbumTilesWithCounts(
+                        authorId = authorId,
+                        onlyPublished = onlyPublished,
+                        includeSkipped = canSeeSkipped,
+                        database = WORKING_DATABASE,
+                    )
+                } catch (e: AlbumTilesUnavailableException) {
+                    // BR-240: сбой БД — это 503, а не «у автора нет альбомов» (200 + []).
+                    // Исключение пробрасывается ДО кэширования, поэтому сбойный (частичный)
+                    // результат в кеш не попадает.
+                    throw ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "albums.unavailable",
+                    )
+                }
             albums.map { album -> AlbumTilePublicDto.fromAlbum(album, authorName) }
         }
     }

@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.xmldata
+import java.awt.Color
 
 /**
  * Класс Mko Counter.
@@ -23,6 +24,13 @@ data class MkoCounter(
     val elementId: Int = 0,
 ) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
+
+    /**
+     * BR-243: предупреждения о некорректной конфигурации счётчиков (`voices`,
+     * `countersColors`). Категория зарегистрирована в
+     * `knowledge/domains/monitoring/components/log-categories.md` (`infra.render.counters`).
+     */
+    private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.render.counters")
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
@@ -73,12 +81,39 @@ data class MkoCounter(
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
-        val mltText: MltText =
-            Karaoke.voices[0]
-                .groups[0]
-                .mltText
-                .copy(childId.toString(), fontSize)
-        mltText.shapeColor = Karaoke.countersColors[childId]
+        // BR-243: конфигурационные списки индексировались без проверки размера:
+        // `Karaoke.voices[0].groups[0]` и `Karaoke.countersColors[childId]`. Значения
+        // берутся из админских свойств (`POST /api/properties/setproperty` → строковое
+        // свойство без валидации), поэтому короткий/битый список давал
+        // IndexOutOfBoundsException ПРЯМО В `template()` — падала генерация `.mlt`.
+        // Теперь: проверка размера + fallback (первый голос/первая группа, последний
+        // цвет) + предупреждение в лог.
+        val voices = Karaoke.voices
+        val voice = voices.getOrNull(0)
+        val group = voice?.groups?.getOrNull(0)
+        if (voice == null || group == null) {
+            log.warn(
+                "MkoCounter: в свойстве 'voices' нет ни одного голоса с группами — " +
+                    "используется запасной шрифт счётчика",
+            )
+        }
+        val baseMltText = group?.mltText ?: Karaoke.melodyTabsFont
+        val mltText: MltText = baseMltText.copy(childId.toString(), fontSize)
+        val colors = Karaoke.countersColors
+        val color =
+            colors.getOrNull(childId)
+                ?: colors.lastOrNull()
+                ?: run {
+                    log.warn("MkoCounter: свойство 'countersColors' пусто — используется цвет по умолчанию")
+                    Color(255, 255, 255, 255)
+                }
+        if (colors.size <= childId) {
+            log.warn(
+                "MkoCounter: в 'countersColors' ${colors.size} цветов, а счётчик #$childId — " +
+                    "используется последний цвет",
+            )
+        }
+        mltText.shapeColor = color
 
         return MltNode(
             name = "kdenlivetitle",

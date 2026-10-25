@@ -47,7 +47,12 @@ data class MkoSplashStart(
             }
         }
     private val cds = mltProp.getSongChordDescription().replace("\n", ", ")
-    private val chordDescriptionText = if (cds !== "") cds else toneBpmDescriptionText
+
+    // BR-238: `cds !== ""` сравнивал строки ПО ССЫЛКЕ, а `replace(...)` всегда возвращает
+    // новый объект String — условие было истинно всегда, и fallback «Key/BPM» не
+    // срабатывал НИКОГДА (в итоге на заставке пропадала строка с тональностью и темпом).
+    // Теперь сравнение по значению + проверка на пустоту.
+    private val chordDescriptionText = if (cds.isNotBlank()) cds else toneBpmDescriptionText
 
     override fun producer(): MltNode =
         mltGenerator

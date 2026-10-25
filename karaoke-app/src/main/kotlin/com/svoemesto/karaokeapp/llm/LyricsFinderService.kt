@@ -164,6 +164,11 @@ class LyricsFinderService(
             .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
             .timeout(10000)
+            // BR-228: без лимита jsoup читает тело ответа целиком и строит полный DOM.
+            // Обрезка до MAX_PAGE_TEXT_CHARS (8 000) делается ПОСЛЕ парсинга, то есть
+            // пик памяти на HTML+DOM был безграничен. maxBodySize ограничивает тело
+            // на уровне HTTP-клиента — страница больше лимита отбрасывается целиком.
+            .maxBodySize(MAX_PAGE_BODY_BYTES)
             .get()
 }
 
@@ -180,6 +185,15 @@ private const val NEWLINE_MARKER = "\\n"
  * `8000` в `loadAndCleanPage`; вынесено сюда, чтобы граница была одна и её видел тест.
  */
 internal const val MAX_PAGE_TEXT_CHARS = 8000
+
+/**
+ * BR-228: максимальный размер тела HTML-страницы, который скачивает jsoup.
+ *
+ * 2 МБ — с запасом над [MAX_PAGE_TEXT_CHARS] (8 000 символов) после очистки тегами:
+ * даже «толстая» страница с текстом песни весит десятки килобайт, а мегабайтные
+ * архивы/форумы в выдаче поиска отбрасываются целиком, не раздувая heap контейнера.
+ */
+internal const val MAX_PAGE_BODY_BYTES = 2 * 1024 * 1024
 
 /**
  * Превращает HTML в текст для LLM, **сохраняя переводы строк**.

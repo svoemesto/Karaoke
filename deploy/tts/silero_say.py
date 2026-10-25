@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import os
 import re
 import subprocess
@@ -6,12 +7,25 @@ import sys
 import tempfile
 import xml.sax.saxutils as saxutils
 
-import soundfile as sf
-import torch
-
 MODEL_DIR = os.path.expanduser("~/.cache/silero-tts")
 MODEL_PATH = os.path.join(MODEL_DIR, "v4_ru.pt")
 MODEL_URL = "https://models.silero.ai/models/tts/ru/v4_ru.pt"
+# BR-548 (аудит #336 / P-73-10, OpenProject #393): целостность модели TTS.
+#
+# Было: `torch.hub.download_url_to_file` качал модель без сверки контрольной суммы, а
+# `torch.package.PackageImporter(...).load_pickle(...)` исполняет содержимое файла как код
+# (pickle) в процессе пользователя, запустившего деплой. Компрометация models.silero.ai / CDN /
+# канала → произвольный код на admin-машине (доступ к ~/.docker/config.json, репозиторию).
+#
+# Стало: sha256 модели зафиксирован (это файл, который реально использовался на admin-машине;
+# размер — 40 107 184 байта). Загрузка идёт во временный файл и переименовывается только после
+# совпадения хэша; существующий файл проверяется перед каждой загрузкой pickle. Несовпадение —
+# отказ (SystemExit), pickle не загружается.
+#
+# Обновление модели — только осознанно: скачать, сверить глазами источник, заменить константу
+# и добавить запись в отчёт. `sha256sum ~/.cache/silero-tts/v4_ru.pt` — как получить значение.
+MODEL_SHA256 = "896ab96347d5bd781ab97959d4fd6885620e5aab52405d3445626eb7c1414b00"
+MODEL_SIZE_BYTES = 40107184
 SAMPLE_RATE = 48000
 # Нумерация голосов — как при прослушивании образцов: 1=aidar, 2=baya, 3=kseniya,
 # 4=xenia, 5=eugene. Задать конкретный номер можно вторым аргументом CLI или
@@ -76,10 +90,51 @@ def ensure_pronounceable(text):
     return re.sub(r"[A-Za-z]+", lambda m: transliterate_word(m.group(0)), text)
 
 
+def sha256_file(path):
+    """sha256 файла (потоково, чтобы не держать 40 МБ в памяти)."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_model(path):
+    """Проверка размера и sha256; при несовпадении — отказ (pickle не загружаем)."""
+    size = os.path.getsize(path)
+    if size != MODEL_SIZE_BYTES:
+        raise SystemExit(
+            f"ERROR: размер модели TTS {size} != ожидаемого {MODEL_SIZE_BYTES} байт; "
+            f"файл {path} не загружаем (BR-548)"
+        )
+    actual = sha256_file(path)
+    if actual != MODEL_SHA256:
+        raise SystemExit(
+            f"ERROR: sha256 модели TTS {actual} != ожидаемого {MODEL_SHA256}; "
+            f"файл {path} не загружаем — удалите его и скачайте заново из доверенного источника (BR-548)"
+        )
+
+
+def download_model():
+    """Скачать модель во временный файл и переименовать только после сверки sha256."""
+    import torch  # тяжёлый импорт — только на пути загрузки/синтеза
+
+    temporary = MODEL_PATH + ".part"
+    try:
+        torch.hub.download_url_to_file(MODEL_URL, temporary)
+        verify_model(temporary)
+        os.replace(temporary, MODEL_PATH)
+    finally:
+        if os.path.isfile(temporary):
+            os.remove(temporary)
+
+
 def ensure_model():
     os.makedirs(MODEL_DIR, exist_ok=True)
     if not os.path.isfile(MODEL_PATH):
-        torch.hub.download_url_to_file(MODEL_URL, MODEL_PATH)
+        download_model()
+    # Проверяем и уже лежащий файл: подмена в кеше так же опасна, как подмена при загрузке.
+    verify_model(MODEL_PATH)
 
 
 def play(wav_path):
@@ -96,8 +151,12 @@ def main():
     speaker = resolve_speaker(sys.argv[2].strip() if len(sys.argv) > 2 else "")
     rate = sys.argv[3].strip() if len(sys.argv) > 3 and sys.argv[3].strip() else None
 
-    torch.set_num_threads(2)
+    # BR-548: сначала целостность модели, и только потом torch/soundfile и pickle.
     ensure_model()
+    import soundfile as sf
+    import torch
+
+    torch.set_num_threads(2)
     model = torch.package.PackageImporter(MODEL_PATH).load_pickle("tts_models", "model")
     model.to(torch.device("cpu"))
 

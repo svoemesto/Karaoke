@@ -32,7 +32,14 @@
    Отсюда автоматически ловится и старое имя колонки (`settings_id` вместо `song_id`), и
    пропущенная колонка.
 
-3. **Sync-таблица догоняет основную** (`BR-533`). Все колонки, которые пишет
+3. **Миграции tbl_site_users не откатывают формулу** (`BR-044`). Семь миграций
+   (12/13/14/17/21/40/45) переопределяют `update_tbl_site_users_recordhash()`; любая из них
+   может быть запущена повторно (шапки предписывают ручной прогон). Все обязаны объявлять
+   ровно ту же формулу и тот же бэкфилл, что и канонический `deploy/recordhash_site_users.sql`.
+   Иначе повторный прогон старой миграции молча сужает md5, и правки выпавших колонок
+   (премиум-сроки, персональная скидка, флаги) не уезжают в sync LOCAL↔SERVER.
+
+4. **Sync-таблица догоняет основную** (`BR-533`). Все колонки, которые пишет
    `Song.getSqlToInsert(sync = true)` (список `Pair("колонка", …)` в `Song.kt`), обязаны
    существовать в `tbl_songs_sync` — иначе `INSERT INTO tbl_songs_sync` падает на первой песне
    батча (`column "…" of relation "tbl_songs_sync" does not exist`). Колонки `tbl_songs_sync`
@@ -146,6 +153,15 @@ ALLOWED_WORDS = KEYWORDS | FUNCTIONS | TYPES
 
 # Канонические файлы: что именно они обязаны покрывать.
 CANONICAL = {
+    # BR-044 (аудит #336 / P-70-06, OpenProject #393): до этого файла канонического определения
+    # для tbl_site_users не было — формула жила в семи копиях (12/13/14/17/21/40/45), и каждая
+    # знала только «свои» колонки. last_login_at/created_at намеренно вне md5 (авто-поля: вход
+    # на сайт не должен давать расхождение в diff) — помечены useInHash = false в модели.
+    "deploy/recordhash_site_users.sql": {
+        "table": "tbl_site_users",
+        "model": "karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteUser.kt",
+        "extras": set(),
+    },
     "deploy/recordhash_authors.sql": {
         "table": "tbl_authors",
         "model": "karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt",
@@ -174,6 +190,18 @@ CANONICAL = {
         "extras": set(),
     },
 }
+
+# Миграции, которые переопределяют update_tbl_site_users_recordhash() (BR-044). Каждая
+# применяется на БД отдельно и может быть запущена повторно — формула обязана быть общей.
+SITE_USERS_MIGRATIONS = (
+    "12_site_user_limits.sql",
+    "13_site_user_editor_role.sql",
+    "14_site_user_premium_sources.sql",
+    "17_site_user_personal_discount.sql",
+    "21_site_user_welcome_message.sql",
+    "40_site_user_can_self_assign_tasks.sql",
+    "45_site_user_can_work_with_skipped.sql",
+)
 
 SONG_MODEL = "karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt"
 SONGS_SYNC_TABLE = "tbl_songs_sync"
@@ -466,6 +494,97 @@ def check_songs_sync_columns(root: Path) -> None:
         )
 
 
+def migration_functions(root: Path) -> list[tuple[str, str, str]]:
+    """(relative path, normalized md5 функции, normalized md5 бэкфилла) для миграций site_users.
+
+    Каждая из миграций 12/13/14/17/21/40/45 переопределяет update_tbl_site_users_recordhash(),
+    потому что применяется на БД отдельно. Любая из них может быть запущена повторно (шапки
+    прямо это предписывают) — значит все обязаны объявлять ОДНУ И ТУ ЖЕ полную формулу.
+    """
+    result = []
+    for name in SITE_USERS_MIGRATIONS:
+        path = root / "deploy" / "karaoke-db" / name
+        if not path.is_file():
+            fail(f"deploy/karaoke-db/{name}", "[check 5] миграция не найдена")
+            continue
+        text = read_text(path)
+        functions = [m for m in FUNC_RE.finditer(text)
+                     if m.group(1).endswith("update_tbl_site_users_recordhash")]
+        if not functions:
+            fail(f"deploy/karaoke-db/{name}",
+                 "[check 5] нет CREATE OR REPLACE FUNCTION update_tbl_site_users_recordhash()")
+            continue
+        function = functions[0]
+        tag_match = DOLLAR_RE.search(text, function.end())
+        if tag_match is None:
+            fail(f"deploy/karaoke-db/{name}", "[check 5] не найден dollar-quoted блок тела функции")
+            continue
+        tag = tag_match.group(1)
+        body = text[tag_match.end(): text.find(tag, tag_match.end())]
+        expressions = md5_expressions(body)
+        if len(expressions) != 1:
+            fail(f"deploy/karaoke-db/{name}",
+                 f"[check 5] ожидалось одно выражение md5 в функции, найдено {len(expressions)}")
+            continue
+        backfill = re.search(
+            r"UPDATE\s+(?:public\.)?tbl_site_users\s+SET\s+recordhash\s*=\s*md5\s*\(",
+            text,
+            re.IGNORECASE,
+        )
+        if backfill is None:
+            fail(f"deploy/karaoke-db/{name}",
+                 "[check 5] нет бэкфилла UPDATE public.tbl_site_users SET recordhash = md5(...) — "
+                 "после смены формулы существующие строки останутся со старым хэшем")
+            continue
+        result.append((
+            f"deploy/karaoke-db/{name}",
+            normalize(expressions[0]),
+            normalize(balanced_paren(text, backfill.end() - 1)),
+        ))
+    return result
+
+
+def check_site_users_migrations(root: Path) -> None:
+    """Check 5 (BR-044): все миграции tbl_site_users объявляют каноническую формулу."""
+    canonical_path = root / "deploy/recordhash_site_users.sql"
+    if not canonical_path.is_file():
+        fail("deploy/recordhash_site_users.sql", "[check 5] канонический файл отсутствует")
+        return
+    canonical_text = read_text(canonical_path)
+    canonical_functions = [m for m in FUNC_RE.finditer(canonical_text)
+                           if m.group(1).endswith("update_tbl_site_users_recordhash")]
+    if not canonical_functions:
+        fail("deploy/recordhash_site_users.sql",
+             "[check 5] нет функции update_tbl_site_users_recordhash()")
+        return
+    tag_match = DOLLAR_RE.search(canonical_text, canonical_functions[0].end())
+    if tag_match is None:
+        fail("deploy/recordhash_site_users.sql", "[check 5] не найден dollar-quoted блок тела")
+        return
+    tag = tag_match.group(1)
+    body = canonical_text[tag_match.end(): canonical_text.find(tag, tag_match.end())]
+    canonical_expressions = md5_expressions(body)
+    if len(canonical_expressions) != 1:
+        fail("deploy/recordhash_site_users.sql", "[check 5] ожидалось одно выражение md5")
+        return
+    expected = normalize(canonical_expressions[0])
+
+    for relative, function_expression, backfill_expression in migration_functions(root):
+        if function_expression != expected:
+            fail(
+                relative,
+                "[check 5] формула recordhash tbl_site_users отличается от канонической "
+                "(deploy/recordhash_site_users.sql): повторное применение этой миграции "
+                "откатит набор колонок в md5 — изменение выпавших полей не уедет в sync",
+            )
+        if backfill_expression != expected:
+            fail(
+                relative,
+                "[check 5] бэкфилл не совпадает с формулой функции — существующие строки "
+                "останутся со старым recordhash",
+            )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="recordhash consistency guard")
     parser.add_argument("--root", default=None, help="корень репозитория (по умолчанию — родитель tools/)")
@@ -481,6 +600,7 @@ def main() -> int:
         check_new_prefix(root)
         check_canonical(root)
         check_songs_sync_columns(root)
+        check_site_users_migrations(root)
     except (OSError, ValueError) as error:  # pragma: no cover — защита от битого входа
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
@@ -498,7 +618,8 @@ def main() -> int:
     if not arguments.quiet:
         print(
             "OK recordhash-контракт: NEW-префикс в триггерах, канонические файлы == модели "
-            "(+бэкфилл), tbl_songs_sync содержит все колонки INSERT."
+            "(+бэкфилл), миграции tbl_site_users == канонической формуле, "
+            "tbl_songs_sync содержит все колонки INSERT."
         )
     return 0
 

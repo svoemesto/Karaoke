@@ -1,10 +1,18 @@
 version: "3.9"
 services:
   karaoke-storage:
-    image: minio/minio:latest
+    # BR-047 (аудит #336 / P-70-09, OpenProject #393): плавающий `minio/minio:latest` → пин
+    # (тег + digest), как у postgres и MinIO на прод-хосте. `minio/minio` удалён с Docker Hub
+    # (404), поэтому образ берётся из нашего registry-зеркала — тем же пином, что прод
+    # (deploy/prod-single-host/docker-compose-storage.yml и registry/images.lock:
+    # RELEASE.2025-09-07T16-13-09Z, платформенный манифест sha256:a1a8bd4a…). Любой
+    # `docker compose pull` больше не может подтянуть произвольную будущую версию MinIO.
+    image: ${DOCKER_REGISTRY:-sm-karaoke.ru:5443}/mirror/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
     environment:
-      - MINIO_ACCESS_KEY=${STORAGE_KEY}
-      - MINIO_SECRET_KEY=${STORAGE_SECRET}
+      # BR-047: MINIO_ACCESS_KEY/MINIO_SECRET_KEY — устаревшие имена (с 2021 —
+      # MINIO_ROOT_USER/MINIO_ROOT_PASSWORD); на новых образах старые не гарантированы.
+      - MINIO_ROOT_USER=${STORAGE_KEY}
+      - MINIO_ROOT_PASSWORD=${STORAGE_SECRET}
       - WORK_IN_CONTAINER=1
     container_name: karaoke-storage
     ports:

@@ -47,7 +47,13 @@ import argparse
 import os
 import sys
 
-DEFAULT_FILES = ("deploy/prod-single-host/80to8897",)
+DEFAULT_FILES = (
+    # BR-558 (порция P-72-06): host-nginx публичного сайта, TLS-терминация.
+    "deploy/prod-single-host/80to8897",
+    # BR-549 (порция P-73-11, OpenProject #393): SPA-контейнер публичного сайта. Раньше
+    # guard его не видел — заголовки отсутствовали и в host-nginx, и здесь.
+    "deploy/prod-single-host/nginx_karaoke-public.conf",
+)
 
 # Заголовки, обязательные для каждого server-блока.
 BASE_HEADERS = ("X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy")
@@ -252,6 +258,14 @@ def block_exemptions(block: Block, markers: dict[int, dict[str, str]]) -> dict[s
     return found
 
 
+def iter_servers(block: Block):
+    """Все server-блоки рекурсивно: полный nginx.conf оборачивает их в http{}."""
+    for child in block.blocks:
+        if child.name == "server":
+            yield child
+        yield from iter_servers(child)
+
+
 def iter_locations(block: Block):
     """Все location-блоки внутри (рекурсивно), включая вложенные в if/limit."""
     for child in block.blocks:
@@ -295,7 +309,7 @@ def check_file(path: str) -> list[str]:
 
     markers = collect_exemptions(text)
 
-    servers = [b for b in root.blocks if b.name == "server"]
+    servers = list(iter_servers(root))
     if not servers:
         return [f"{path}: в файле нет ни одного server-блока"]
 

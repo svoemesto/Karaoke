@@ -2,13 +2,17 @@
 
 > **Status**: active
 > **Feature Key**: deploy-hardening
-> **Last Updated**: 2026-10-24
-> **Spec**: [specs/371-pkg-s2-08/report.md](../../specs/371-pkg-s2-08/report.md)
+> **Last Updated**: 2026-10-25
+> **Spec**: [specs/371-pkg-s2-08/report.md](../../specs/371-pkg-s2-08/report.md),
+> [specs/393-pkg-s3-21/report.md](../../specs/393-pkg-s3-21/report.md)
 > **Created**: 2026-10-24
 > **История**: аудит #336 (порции P-70, P-71, P-72, P-73; 15 записей
 > BR-039, BR-040, BR-041, BR-043, BR-534, BR-539, BR-542, BR-543, BR-544,
 > BR-545, BR-546, BR-554, BR-555, BR-556, BR-557) → пакет PKG-S2-08,
 > OpenProject #371, ветка `579-pkg-s2-08`.
+> **Продолжение**: волна E, пакет PKG-S3-21 (15 S3-записей BR-042, BR-044,
+> BR-045, BR-046, BR-047, BR-535, BR-536, BR-537, BR-538, BR-547, BR-548,
+> BR-549, BR-550, BR-559, BR-560), OpenProject #393, ветка `611-pkg-s3-21`.
 
 ## Что делает
 
@@ -36,6 +40,21 @@ TLS, ротацию логов, compose-окружение и исполнени
 | 555 | watcher исполнял любой `.sh` из общей с контейнерами директории (`chmod +x` на месте) | только `<uuid>.sh`, перенос в приватный каталог 700, проверки владельца/прав/размера |
 | 556 | БД new_comp-контура слушала `0.0.0.0:8832` | `127.0.0.1:8832:5432` |
 | 557 | JDBC без `sslmode`, MinIO по `http://` | `DB_REMOTE_SSL_MODE` (default `prefer`, целевое `verify-full`), `DB_SSL_ON`, требование HTTPS для MinIO зафиксировано |
+| 042 | сборка тегировала `:${BUILD_VERSION}`, а прод тянул литерал `:1` | `IMAGE_TAG` — единый тег: `deploy_*.sh` передаёт его на прод по ssh, compose подставляет `${IMAGE_TAG:-1}`; предыдущий тег — в `.version.prev` для откката |
+| 044 | семь миграций `tbl_site_users` держали каждая свой набор колонок; повторный прогон старой сужал md5 | канонический `deploy/recordhash_site_users.sql` (19 колонок) + все семь миграций повторяют его целиком, каждая сама добавляет колонки; миграция `56` доставляет формулу на существующие БД |
+| 045 | GIN-индекс построен по константе `'result_text'` (и на `tbl_settings`, а поиск идёт по `tbl_songs`) | индекс по колонке в `01`/`02`, `02` пересоздаёт его через DROP+CREATE, `54` пересоздаёт на существующих БД |
+| 046 | `restore_db`/`create_clear_db` искали `/dumps` без mount, `-U postgres`, `exec -it`, не проверяли код возврата | mount `./karaoke-db/dumps:/dumps`, `-U ${DB_LOCAL_POSTGRES_USER}`, `exec -i`, проверка кода возврата до `announce` |
+| 047 | `minio/minio:latest` и устаревшие `MINIO_ACCESS_KEY/SECRET_KEY` | пин тегом + `@sha256` (registry-зеркало, как прод), `MINIO_ROOT_USER/PASSWORD` в локальном и прод-compose |
+| 535 | `UPDATE … WHERE id_status >= 3` переводил незавершённые песни (3/4/5) в READY | `WHERE id_status IN (3, 4, 5)` — повторный запуск действительно no-op |
+| 536 | INSERT песни не переносил `album_id` (и поздние колонки) | закрыто пакетом PKG-S2-10 (BR-108), здесь — регрессия в guard'е |
+| 537 | `tbl_stem_jobs.site_user_id ON DELETE CASCADE` → объекты MinIO остаются сиротами | `ON DELETE RESTRICT` в `22` + миграция `55`; удаление — приложение (сначала объекты) |
+| 538 | `44` обещала `CREATE OR REPLACE TRIGGER`, а делала `CREATE TRIGGER` → падала при повторе | `DROP TRIGGER IF EXISTS` перед `CREATE TRIGGER`, шапка приведена в соответствие |
+| 547 | у прод-`karaoke-web` нет healthcheck/лимитов, `-XX:HeapDumpPath=/dumps` без mount | healthcheck (HTTP 200 `/api/public/authors-tiles`), `mem_limit`/`cpus`, mount `./karaoke-db/dumps:/dumps` |
+| 548 | TTS-модель качалась без сверки и грузилась через pickle | sha256 модели зафиксирован, загрузка во временный файл + `os.replace` после сверки, проверка перед `load_pickle` |
+| 549 | у SPA-nginx публичного сайта нет защитных заголовков | `X-Frame-Options`/`nosniff`/`Referrer-Policy` в server и в каждом location со своими `add_header`; guard расширен на этот файл |
+| 550 | `client_max_body_size 1024m` на публичном контуре | `200m` — как `spring.servlet.multipart` и host-nginx |
+| 559 | new_comp `do.sh`: `source .env` без проверки, без fail-fast | `set -euo pipefail`, проверка наличия обоих env-файлов, ошибки compose валят скрипт |
+| 560 | new_comp compose: нет `restart`/healthcheck/лимитов | `restart: unless-stopped`, healthcheck, `mem_limit`/`cpus` у app/web, `restart` у webvue/webvue3 |
 
 ## Зачем
 
@@ -84,6 +103,15 @@ TLS, ротацию логов, compose-окружение и исполнени
   `deploy/prod-single-host/certs/postgres/`, клиент — `DB_REMOTE_SSL_MODE`.
 - **Логи**: `logging.max-size/max-file` у каждого сервиса прод-compose;
   `prune-images.sh` дополнительно валит юнит при занятости диска ≥ 85 %.
+- **Тег образа**: `deploy/do.sh` собирает и пушит `${BUILD_VERSION}` (из `deploy/.version`
+  или окружения); `deploy_web.sh`/`deploy_public.sh` передают этот тег на прод
+  (`BUILD_VERSION=<тег> bash do.sh pull_web`), прод-`do.sh` экспортирует `IMAGE_TAG`, а
+  compose-файлы подставляют `${IMAGE_TAG:-1}`. Предыдущий тег сохраняется в `.version.prev`.
+- **recordhash `tbl_site_users`**: канонический `deploy/recordhash_site_users.sql`; миграции
+  12/13/14/17/21/40/45 повторяют ту же формулу и сами добавляют все 10 колонок, чтобы их
+  бэкфилл работал на чистой БД; `56` доставляет формулу на существующие БД.
+- **Каскады и хранилище**: `tbl_stem_jobs.site_user_id` — `RESTRICT` (удаление пользователя с
+  заданиями отклоняется; объекты и строки убирает `StemJobCleanup` по `expires_at`).
 - **Watcher**: `createScriptForHost` кладёт `<uuid>.sh` в
   `/sm-karaoke/system/scriptsFromDocker`; watcher принимает только это
   имя, переносит файл в `/tmp/karaoke-script-exec` (700), проверяет
@@ -115,9 +143,24 @@ TLS, ротацию логов, compose-окружение и исполнени
 11. Watcher MUST NOT исполнять файл из общей директории: только
     `<uuid>.sh` после переноса в приватный каталог.
 
-Все 11 инвариантов проверяет `bash tools/check-deploy-hardening.sh`
-(50 проверок, по одной строке PASS/FAIL на каждую запись пакета; `--repo
-PATH` — чужой checkout, `--self-test` — проверка самих правил).
+12. Тег образа MUST быть один на сборку, push и pull: литерал `:1` в прод-скриптах и
+    compose запрещён; предыдущий тег MUST сохраняться для откката.
+13. `recordhash`-функция `tbl_site_users` MUST совпадать с
+    `deploy/recordhash_site_users.sql` во всех миграциях, которые её переопределяют.
+14. GIN-индекс `idx_gin_result_text` MUST строиться по колонке `result_text`, а не по
+    строковому литералу.
+15. FK на владельца у таблиц, которым соответствуют объекты MinIO, MUST быть
+    `ON DELETE RESTRICT`, а не `CASCADE`.
+16. Образы инфраструктуры в отслеживаемых compose MUST быть запинены (тег + digest);
+    креды MinIO — `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`.
+17. Скрипт, читающий `.env`, MUST падать при отсутствии файла (никакой работы на пустых
+    значениях); у сервисов new_comp MUST быть политика перезапуска и cgroup-потолок.
+
+Все 17 инвариантов проверяют `bash tools/check-deploy-hardening.sh`
+(95 проверок, по одной строке PASS/FAIL на каждую запись пакета; `--repo
+PATH` — чужой checkout, `--self-test` — проверка самих правил),
+`python3 tools/check-recordhash-consistency.py` (инвариант 13) и
+`python3 tools/check-security-headers.py` (BR-549, файл SPA-nginx).
 
 ## Известные ловушки
 
@@ -142,13 +185,30 @@ PATH` — чужой checkout, `--self-test` — проверка самих п�
   на обеих БД и с backfill.
 - **`docker exec -e PGPASSWORD=…`** светит пароль в `ps`/`docker inspect` —
   использовать stdin + `.pgpass`.
+- **Повторное применение старой миграции `tbl_site_users` — регресс.** До BR-044 каждая из
+  семи миграций знала только «свои» колонки: прогон `12`/`13`/… после `45` молча сужал md5.
+  Теперь все семь объявляют полный набор, но порядок колонок менять всё равно нельзя —
+  только в конец и с backfill на обеих БД.
+- **`tbl_songs_sync` и `album_id`.** Поздние колонки песни должны попадать и в INSERT, и в
+  sync-таблицу: иначе push падает (`column … does not exist`) или изменение не уезжает.
+  Регрессия закрыта guard'ом (BR-536).
+- **MinIO-образ тянется из нашего registry.** `minio/minio` удалён с Docker Hub (404), пин —
+  платформенный манифест зеркала (`sha256:a1a8bd4a…`); на машине без доступа к registry
+  `docker compose pull` для storage не сработает — это ожидаемо.
+- **Healthcheck `karaoke-web` дергает `/api/public/authors-tiles`**, а не `/stats`:
+  `/stats` пишет событие в `tbl_events` (побочный эффект каждые 30 с). Эндпоинта
+  `/actuator/health` в `karaoke-web` нет (нет зависимости actuator).
+- **`/dumps` нужен и web-контейнеру** (`-XX:HeapDumpPath`), и БД (`restore_db`): дампы —
+  персональные данные, каталог `deploy/karaoke-db/dumps/` в `.gitignore` (держится
+  `.gitkeep`). Не коммитить дампы.
 - **Каталог watcher'а общий с контейнерами**: пока контейнерный процесс —
   root на bind-mount, права каталога его не останавливают. Полное
   решение (сервисный пользователь + вынос mount'ов) — за владельцем.
 
 ## Ссылки
 
-- [specs/371-pkg-s2-08/report.md](../../specs/371-pkg-s2-08/report.md) — отчёт пакета.
+- [specs/371-pkg-s2-08/report.md](../../specs/371-pkg-s2-08/report.md) — отчёт пакета S2-08.
+- [specs/393-pkg-s3-21/report.md](../../specs/393-pkg-s3-21/report.md) — отчёт пакета S3-21.
 - [knowledge/system/infra/sql-migrations.md](../../knowledge/system/infra/sql-migrations.md) — Решения 5 и 6.
 - [knowledge/system/infra/sql-migrations-monetization.md](../../knowledge/system/infra/sql-migrations-monetization.md) — миграция 51.
 - [knowledge/system/infra/deploy-overview.md](../../knowledge/system/infra/deploy-overview.md) — раздел «Hardening S2».

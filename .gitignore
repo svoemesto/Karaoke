@@ -120,3 +120,10 @@ playwright-report/
 # Локальные разовые артефакты (AGENTS.md, .scratch/karaoke/README.md)
 .scratch/
 .npm-cache/
+
+# BR-046 (аудит #336, OpenProject #393): каталог дампов локальной БД монтируется в контейнер
+# (deploy/docker-compose-database.yml: ./karaoke-db/dumps:/dumps). Дампы содержат персональные
+# данные — в git им нельзя; каталог держим пустым (.gitkeep), чтобы docker не создавал его
+# root-овым при первом restore_db.
+/deploy/karaoke-db/dumps/*
+!/deploy/karaoke-db/dumps/.gitkeep

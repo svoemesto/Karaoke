@@ -16,8 +16,12 @@
 -- Стало: обе команды идемпотентны — файл одинаково применим к БД из 01
 -- и к БД, где патч уже накатан.
 --
--- NB: сам GIN-индекс построен по константе 'result_text', а не по колонке
--- (P-70-07, S3, отдельная запись аудита) — здесь не меняется.
+-- BR-045 (аудит #336 / P-70-07, OpenProject #393): выражение индекса было построено по
+-- строковой КОНСТАНТЕ 'result_text' (в кавычках) — одинаково для всех строк, поиск его не
+-- использует. Плюс на БД, где индекс уже создан (из 01), `CREATE INDEX IF NOT EXISTS` молча
+-- оставлял старое определение. Теперь индекс пересоздаётся по колонке: DROP IF EXISTS +
+-- CREATE IF NOT EXISTS. Имя индекса при переименовании таблицы (28) сохраняется.
 
 ALTER TABLE public.tbl_settings ADD COLUMN IF NOT EXISTS result_text TEXT;
-CREATE INDEX IF NOT EXISTS idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('russian'::regconfig, 'result_text'));
+DROP INDEX IF EXISTS public.idx_gin_result_text;
+CREATE INDEX IF NOT EXISTS idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('russian'::regconfig, result_text));

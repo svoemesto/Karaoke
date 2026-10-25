@@ -539,16 +539,39 @@ function do_pull_webvue3() {
 }
 
 function do_restore_db() {
-  do_start_db
-  echo "Создание базы данных из бекапа в контейнере karaoke-db..."
-  ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_dump.sql" karaoke'
+  echo "Восстановление БД из бекапа в контейнере karaoke-db..."
+  do_start_db || { echo "ERROR: контейнер karaoke-db не поднялся — восстановление отменено" >&2; return 1; }
+  # BR-046 (аудит #336 / P-70-08, OpenProject #393):
+  #  * /dumps монтируется в локальном compose (./karaoke-db/dumps:/dumps);
+  #  * -U ${DB_LOCAL_POSTGRES_USER} вместо хардкода postgres (пользователь БД задаётся
+  #    POSTGRES_USER в docker-compose-database.yml);
+  #  * без -t: docker exec -it требует TTY и падает из скрипта/CI;
+  #  * код возврата проверяется, «Restore DB!» печатается только после успеха.
+  local dump="/dumps/karaoke_dump.sql"
+  if ! ${DOCKER} exec -i karaoke-db test -f "$dump"; then
+    echo "ERROR: нет файла $dump в контейнере (положите дамп в deploy/karaoke-db/dumps)" >&2
+    return 1
+  fi
+  if ! ${DOCKER} exec -i karaoke-db psql -U "${DB_LOCAL_POSTGRES_USER}" --file="$dump" karaoke; then
+    echo "ERROR: восстановление БД не выполнено (psql вернул ошибку)" >&2
+    return 1
+  fi
   announce "Restore DB!"
 }
 
 function do_create_clear_db() {
-  do_start_db
-  echo "Создание базы данных из бекапа в контейнере karaoke-db..."
-  ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_clear_dump.sql" -d postgres'
+  echo "Создание чистой БД из бекапа в контейнере karaoke-db..."
+  do_start_db || { echo "ERROR: контейнер karaoke-db не поднялся — создание БД отменено" >&2; return 1; }
+  # BR-046: см. комментарий в do_restore_db.
+  local dump="/dumps/karaoke_clear_dump.sql"
+  if ! ${DOCKER} exec -i karaoke-db test -f "$dump"; then
+    echo "ERROR: нет файла $dump в контейнере (положите дамп в deploy/karaoke-db/dumps)" >&2
+    return 1
+  fi
+  if ! ${DOCKER} exec -i karaoke-db psql -U "${DB_LOCAL_POSTGRES_USER}" --file="$dump" -d postgres; then
+    echo "ERROR: создание БД не выполнено (psql вернул ошибку)" >&2
+    return 1
+  fi
   announce "Create clear DB!"
 }
 

@@ -18,7 +18,15 @@
 -- Применение: ОДИН РАЗ на LOCAL-БД и на SERVER-БД отдельно (см. шапку
 -- deploy/karaoke-db/27_author_special_order.sql и 32_song_status_lifecycle.sql).
 -- Идемпотентно: ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE FUNCTION,
--- CREATE OR REPLACE TRIGGER, UPDATE — повторный запуск не ломает.
+-- DROP TRIGGER IF EXISTS + CREATE TRIGGER, UPDATE — повторный запуск не ломает.
+--
+-- BR-538 (аудит #336 / P-71-06, OpenProject #393): раньше шапка обещала
+-- `CREATE OR REPLACE TRIGGER`, а в тексте был голый `CREATE TRIGGER`. `CREATE OR REPLACE
+-- TRIGGER` появился только в PostgreSQL 14, но и он не помог бы на PG < 14; повторное
+-- применение падало с `trigger "trg_tbl_songs_update_author_counts" for relation
+-- "tbl_songs" already exists`, и при `psql -v ON_ERROR_STOP=1` весь файл считался
+-- неуспешным, а исправленное тело триггера не доставлялось. Теперь триггер
+-- пересоздаётся явно: DROP IF EXISTS перед CREATE.
 
 -- ===== 1. Новые колонки в tbl_authors =====
 ALTER TABLE public.tbl_authors
@@ -184,6 +192,10 @@ $$;
 
 -- На LOCAL-БД: tbl_songs есть, INSERT/UPDATE/DELETE активны, триггер работает.
 -- На SERVER-БД: tbl_songs пуста, триггер no-op (безопасно — не плодит мусор).
+--
+-- BR-538: DROP IF EXISTS делает повторное применение (и доставку нового тела триггера)
+-- возможными. Без него второй прогон падал на «trigger already exists».
+DROP TRIGGER IF EXISTS trg_tbl_songs_update_author_counts ON public.tbl_songs;
 CREATE TRIGGER trg_tbl_songs_update_author_counts
     AFTER INSERT OR UPDATE OR DELETE
     ON public.tbl_songs

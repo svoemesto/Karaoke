@@ -1,35 +1,52 @@
 #!/usr/bin/env bash
+#
+# BR-559 (аудит #336 / P-72-07, OpenProject #393): fail-fast и проверка env-файлов.
+#
+# Было: только `set -a`; `.env` и `do.env` (оба в .gitignore) загружались через `source` без
+# проверки результата. Отсутствие файла печаталось в stderr, но скрипт продолжал работу с
+# ПУСТЫМИ значениями: compose получал STORAGE_FOLDER= (том превращался в анонимный — данные
+# хранилища «исчезали» из-под сервиса), пустые креды и порты; код возврата docker-compose не
+# проверялся, и оператор видел «STORAGE запущен»/«WEB запущен» при фактически нерабочем сервисе.
+#
+# Стало: `set -euo pipefail` + явная проверка каждого env-файла (нет файла → exit 1 с путём).
+# Любая ошибка compose/build теперь прерывает скрипт, а сообщение об успехе печатается только
+# после успешного шага. Шаблон для новой машины — deploy/.env.example и deploy/do.env.example.
+set -euo pipefail
 
-clear
+# `clear` без TERM возвращает 1 и под set -e уронил бы скрипт до первой команды.
+clear 2>/dev/null || true
 
 set -a
 
 echo "Starting do.sh"
 
-
-
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 APP_VERSION=1
-DOCKER=$(which docker)
-COMPOSE=$(which docker-compose)
+DOCKER=$(command -v docker)
+COMPOSE=$(command -v docker-compose)
 
-source ${DEPLOY_DIR}/.env
-source ${DEPLOY_DIR}/do.env
+# BR-559: без этих файлов скрипт не имеет права работать «на пустых значениях».
+for env_file in "${DEPLOY_DIR}/.env" "${DEPLOY_DIR}/do.env"; do
+  if [[ ! -f "${env_file}" ]]; then
+    echo "ERROR: нет файла ${env_file} — скопируйте deploy/.env.example и deploy/do.env.example" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  source "${env_file}"
+done
 
-echo "DEPLOY_DIR = $DEPLOY_DIR"
-echo "BASE_DIR = $BASE_DIR"
-echo "GRADLE = $GRADLE"
-echo "APP_VERSION = $APP_VERSION"
-echo "BUILD_VERSION = $BUILD_VERSION"
-echo "DOCKER = $DOCKER"
-echo "COMPOSE = $COMPOSE"
+echo "DEPLOY_DIR = ${DEPLOY_DIR}"
+echo "APP_VERSION = ${APP_VERSION}"
+echo "BUILD_VERSION = ${BUILD_VERSION:-1}"
+echo "DOCKER = ${DOCKER}"
+echo "COMPOSE = ${COMPOSE}"
 
 function do_start_db() {
   do_stop_db
   echo "Старт DATABASE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-db-new-comp.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "DATABASE запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "DATABASE запущен" || true
 }
 
 function do_stop_db() {
@@ -41,8 +58,8 @@ function do_start_storage() {
   do_stop_storage
   echo "Старт STORAGE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-storage-new-comp.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "STORAGE запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "STORAGE запущен" || true
 }
 
 function do_stop_storage() {
@@ -54,8 +71,8 @@ function do_start_web() {
   do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web-new-comp.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEB запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEB запущен" || true
 }
 
 function do_stop_web() {
@@ -67,7 +84,7 @@ function do_start_webvue() {
   do_stop_webvue
   echo "Старт WEBVUE"
     # Определяем первый IP-адрес с помощью hostname -I
-    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+    IP_ADDRESS="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
 
     # Проверяем, что IP-адрес был получен
     if [ -z "$IP_ADDRESS" ]; then
@@ -91,15 +108,15 @@ function do_start_webvue() {
     fi
 
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue-new-comp.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE запущен" || true
 }
 
 function do_start_webvue3() {
   do_stop_webvue3
   echo "Старт WEBVUE3"
     # Определяем первый IP-адрес с помощью hostname -I
-    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+    IP_ADDRESS="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
 
     # Проверяем, что IP-адрес был получен
     if [ -z "$IP_ADDRESS" ]; then
@@ -123,8 +140,8 @@ function do_start_webvue3() {
     fi
 
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3-new-comp.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE3 запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE3 запущен" || true
 }
 
 function do_stop_webvue() {
@@ -141,69 +158,69 @@ function do_start_app() {
   do_stop_app
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "APP запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "APP запущен" || true
 }
 
 function do_start_app2() {
   do_stop_app
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml up
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "APP запущен"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "APP запущен" || true
 }
 
 function do_stop_app() {
   echo "Остановка APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml down
-  docker rm karaoke-app
+  docker rm karaoke-app 2>/dev/null || true
 }
 
 function do_pull_app() {
   echo "Pulling APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml pull
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling APP!"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling APP!" || true
 }
 
 function do_pull_web() {
   echo "Pulling WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web-new-comp.yml pull
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEB!"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEB!" || true
 }
 
 function do_pull_webvue() {
   echo "Pulling WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue-new-comp.yml pull
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEBVUE!"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEBVUE!" || true
 }
 
 function do_pull_webvue3() {
   echo "Pulling WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3-new-comp.yml pull
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEBVUE3!"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEBVUE3!" || true
 }
 
 function do_restore_db() {
   do_start_db
   echo "Создание базы данных из бекапа в контейнере karaoke-db..."
   ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_dump.sql" karaoke'
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Restore DB!"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Restore DB!" || true
 }
 
 function do_create_clear_db() {
   do_start_db
   echo "Создание базы данных из бекапа в контейнере karaoke-db..."
   ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_clear_dump.sql" -d postgres'
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Create clear DB!"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga || true
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Create clear DB!" || true
 }
 
-cmd=$1
+cmd="${1:-}"
 
 case ${cmd} in
 

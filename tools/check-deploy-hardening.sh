@@ -83,7 +83,14 @@ read_file() {
 file_has() {
     local pattern="$1" file="$2"
     [[ -f "$REPO/$file" ]] || return 1
-    grep -vE '^[[:space:]]*#' "$REPO/$file" | grep -qE "$pattern"
+    # awk, а не `grep -v | grep -q`: при `set -o pipefail` ранний выход второго grep
+    # убивает первый SIGPIPE-ом (141), и проверка «есть ли шаблон» ложно падает на больших
+    # файлах (Song.kt). Комментарии по-прежнему не проверяются (в них дефект не исполняется).
+    awk -v pattern="$pattern" '
+        /^[[:space:]]*#/ { next }
+        $0 ~ pattern { found = 1; exit }
+        END { exit !found }
+    ' "$REPO/$file"
 }
 
 # grep -q по файлу БЕЗ фильтрации комментариев — для маркеров-документации
@@ -616,6 +623,369 @@ check_br557() {
     fi
 }
 
+# ---------------------------------------------------------------------
+# BR-042 — тег образа един для сборки, push и pull на проде (P-70-04).
+#   Литерал :1 в прод-скриптах и compose означал: при BUILD_VERSION != 1
+#   push уходил в :<номер>, а прод тянул :1 (предыдущий образ).
+# ---------------------------------------------------------------------
+check_br042() {
+    local br="BR-042"
+    local f="deploy/prod-single-host/do.sh"
+    if file_has 'karaoke-(web|public):1"' "$f"; then
+        bad "$br" "$f: тег образа прибит литералом :1"
+    else
+        ok "$br" "$f: тег образа не прибит литералом :1"
+    fi
+    if file_has 'IMAGE_TAG="\$\{BUILD_VERSION\}"' "$f" && file_has 'karaoke-web:\$\{IMAGE_TAG\}' "$f"; then
+        ok "$br" "$f: IMAGE_TAG — единый источник тега для pull/build/require_image"
+    else
+        bad "$br" "$f: нет единого IMAGE_TAG (pull/build проверяют разные теги)"
+    fi
+    if file_has_anywhere '\.version\.prev' "$f"; then
+        ok "$br" "$f: предыдущий тег сохраняется для откката (.version.prev)"
+    else
+        bad "$br" "$f: предыдущий тег не сохраняется — откат невозможен"
+    fi
+    local compose
+    for compose in deploy/prod-single-host/docker-compose-web.yml \
+        deploy/prod-single-host/docker-compose-public.yml; do
+        if grep -vE '^[[:space:]]*#' "$REPO/$compose" | grep -qE 'image:.*\$\{IMAGE_TAG'; then
+            ok "$br" "$compose: образ подставляется через \${IMAGE_TAG}"
+        else
+            bad "$br" "$compose: образ прибит литералом :1 вместо \${IMAGE_TAG}"
+        fi
+    done
+    local deploy_script
+    for deploy_script in deploy/deploy_web.sh deploy/deploy_public.sh; do
+        if grep -vE '^[[:space:]]*#' "$REPO/$deploy_script" | grep -qE 'BUILD_VERSION=.*bash do\.sh pull_'; then
+            ok "$br" "$deploy_script: собранный тег передаётся на прод по ssh"
+        else
+            bad "$br" "$deploy_script: на прод не передаётся тег — прод тянет :1"
+        fi
+    done
+}
+
+# ---------------------------------------------------------------------
+# BR-045 — GIN-индекс полнотекстового поиска по колонке, а не по константе
+#   (P-70-07). Было: to_tsvector(..., 'result_text') — выражение одинаково
+#   для всех строк; индекс лежал на tbl_settings, а поиск идёт по tbl_songs.
+# ---------------------------------------------------------------------
+check_br045() {
+    local br="BR-045"
+    local f="deploy/karaoke-db/01_initdb.sql"
+    if file_has "to_tsvector\\('russian'::regconfig, result_text\\)" "$f"; then
+        ok "$br" "$f: индекс строится по колонке result_text"
+    else
+        bad "$br" "$f: индекс строится не по колонке result_text"
+    fi
+    if grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -qiE "to_tsvector\\('russian'::regconfig, 'result_text'\\)"; then
+        bad "$br" "$f: выражение индекса содержит литерал 'result_text' (индекс бесполезен)"
+    else
+        ok "$br" "$f: литерала 'result_text' в выражении индекса нет"
+    fi
+
+    f="deploy/karaoke-db/02_result_text_and_index.sql"
+    if file_has 'DROP[[:space:]]+INDEX[[:space:]]+IF[[:space:]]+EXISTS[[:space:]]+(public\.)?idx_gin_result_text' "$f" &&
+        file_has "to_tsvector\\('russian'::regconfig, result_text\\)" "$f"; then
+        ok "$br" "$f: старый индекс пересоздаётся по колонке (DROP + CREATE)"
+    else
+        bad "$br" "$f: индекс не пересоздаётся по колонке (IF NOT EXISTS оставит старое определение)"
+    fi
+
+    f="deploy/karaoke-db/54_fix_result_text_gin_index.sql"
+    if [[ -f "$REPO/$f" ]] &&
+        file_has 'to_regclass' "$f" &&
+        file_has 'DROP[[:space:]]+INDEX[[:space:]]+IF[[:space:]]+EXISTS' "$f" &&
+        file_has "to_tsvector\\(''russian''::regconfig, result_text\\)" "$f"; then
+        ok "$br" "$f: миграция для существующих БД (tbl_songs или tbl_settings)"
+    else
+        bad "$br" "$f: нет миграции, пересоздающей индекс на существующих БД"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-046 — restore_db/create_clear_db действительно восстанавливают БД
+#   (P-70-08): каталог дампов смонтирован, пользователь БД не хардкожен,
+#   TTY не требуется, код возврата проверяется.
+# ---------------------------------------------------------------------
+check_br046() {
+    local br="BR-046"
+    local f="deploy/docker-compose-database.yml"
+    if file_has '\./karaoke-db/dumps:/dumps' "$f"; then
+        ok "$br" "$f: каталог дампов смонтирован в /dumps"
+    else
+        bad "$br" "$f: /dumps не смонтирован — psql --file=/dumps/... не находит файл"
+    fi
+
+    f="deploy/do.sh"
+    local block
+    block="$(sed -n '/^function do_restore_db()/,/^function do_create_clear_db()/p' "$REPO/$f")"
+    if [[ -z "$block" ]]; then
+        bad "$br" "$f: не найдены функции do_restore_db/do_create_clear_db"
+        return
+    fi
+    if grep -qE 'exec -i karaoke-db psql -U "\$\{DB_LOCAL_POSTGRES_USER\}"' <<<"$block"; then
+        ok "$br" "$f: psql запускается без TTY и с пользователем из окружения"
+    else
+        bad "$br" "$f: psql запускается с -it и/или с хардкодом -U postgres"
+    fi
+    if grep -qE '^function do_restore_db.*' <<<"$block" && \
+        ! grep -vE '^[[:space:]]*#' <<<"$block" | grep -qE 'exec -it'; then
+        ok "$br" "$f: в restore-функциях нет docker exec -it (падает без TTY)"
+    else
+        bad "$br" "$f: в restore-функциях остался docker exec -it"
+    fi
+    if grep -qE 'if ! \$\{DOCKER\} exec -i karaoke-db (test -f|psql)' <<<"$block"; then
+        ok "$br" "$f: код возврата проверяется до announce «Restore DB!»"
+    else
+        bad "$br" "$f: ошибка psql не проверяется — печатается успех при провале"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-047 — образ хранилища запинен (тег + digest), креды — ROOT-имена
+#   (P-70-09).
+# ---------------------------------------------------------------------
+check_br047() {
+    local br="BR-047"
+    local f="deploy/docker-compose-storage.yml"
+    local image
+    image="$(grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -E '^[[:space:]]*image:' | head -1)"
+    if grep -qE '@sha256:[0-9a-f]{64}' <<<"$image" && grep -qE 'RELEASE\.[0-9T:-]+Z' <<<"$image"; then
+        ok "$br" "$f: образ запинен тегом и digest"
+    else
+        bad "$br" "$f: образ не запинен (плавающий тег / нет @sha256)"
+    fi
+    if grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -qE 'MINIO_ACCESS_KEY|MINIO_SECRET_KEY'; then
+        bad "$br" "$f: устаревшие MINIO_ACCESS_KEY/MINIO_SECRET_KEY"
+    else
+        ok "$br" "$f: креды — MINIO_ROOT_USER/MINIO_ROOT_PASSWORD"
+    fi
+    if file_has 'MINIO_ROOT_USER=\$\{STORAGE_KEY\}' "$f"; then
+        ok "$br" "$f: MINIO_ROOT_USER подставляется из STORAGE_KEY"
+    else
+        bad "$br" "$f: MINIO_ROOT_USER не задан"
+    fi
+    local prod="deploy/prod-single-host/docker-compose-storage.yml"
+    if file_has 'MINIO_ROOT_USER=\$\{STORAGE_KEY\}' "$prod"; then
+        ok "$br" "$prod: те же ROOT-имена на прод-хосте"
+    else
+        bad "$br" "$prod: устаревшие имена кредов MinIO"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-535 — миграция статусов действительно идемпотентна (P-71-03):
+#   условие не должно захватывать незавершённые состояния 3/4/5.
+# ---------------------------------------------------------------------
+check_br535() {
+    local br="BR-535"
+    local f="deploy/karaoke-db/32_song_status_lifecycle.sql"
+    if file_has 'WHERE[[:space:]]+id_status[[:space:]]+IN[[:space:]]*\([[:space:]]*3[[:space:]]*,[[:space:]]*4[[:space:]]*,[[:space:]]*5[[:space:]]*\)' "$f"; then
+        ok "$br" "$f: условие сужено до 3/4/5 (повторный запуск — no-op)"
+    else
+        bad "$br" "$f: условие не сужено — повторный запуск переводит незавершённые песни в READY"
+    fi
+    if grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -qE 'WHERE[[:space:]]+id_status[[:space:]]*>=[[:space:]]*3'; then
+        bad "$br" "$f: осталось WHERE id_status >= 3 (захватывает 3/4/5)"
+    else
+        ok "$br" "$f: WHERE id_status >= 3 отсутствует"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-536 — INSERT песни переносит album_id и поздние колонки (P-71-04).
+#   Запись уже исправлена пакетом PKG-S2-10 (BR-108); здесь — регрессия.
+# ---------------------------------------------------------------------
+check_br536() {
+    local br="BR-536"
+    local f="karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt"
+    local column
+    local missing=0
+    for column in album_id status_process_demo id_tariff song_name_censored free_after_on_air \
+        description short_description warning; do
+        if ! file_has "Pair\(\"${column}\"" "$f"; then
+            bad "$br" "$f: колонка ${column} не переносится INSERT'ом (связь/поле не доедет в sync)"
+            missing=$((missing + 1))
+        fi
+    done
+    if [[ "$missing" -eq 0 ]]; then
+        ok "$br" "$f: album_id и поздние колонки входят в INSERT"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-537 — каскад не уносит строки заданий MinIO (P-71-05): RESTRICT,
+#   иначе объекты остаются в бакете навсегда.
+# ---------------------------------------------------------------------
+check_br537() {
+    local br="BR-537"
+    local f="deploy/karaoke-db/22_stem_jobs.sql"
+    local block
+    block="$(sed -n '/CREATE TABLE public.tbl_stem_jobs/,/);/p' "$REPO/$f")"
+    if grep -qE 'site_user_id[^;]*REFERENCES public\.tbl_site_users\(id\) ON DELETE RESTRICT' <<<"$block"; then
+        ok "$br" "$f: tbl_stem_jobs.site_user_id — ON DELETE RESTRICT"
+    else
+        bad "$br" "$f: каскад удаляет строки заданий, объекты MinIO остаются сиротами"
+    fi
+    f="deploy/karaoke-db/55_stem_jobs_on_delete_restrict.sql"
+    if [[ -f "$REPO/$f" ]] && file_has 'ON DELETE RESTRICT' "$f" &&
+        file_has 'DROP CONSTRAINT' "$f"; then
+        ok "$br" "$f: миграция для существующих БД пересоздаёт FK с RESTRICT"
+    else
+        bad "$br" "$f: нет миграции для существующих БД"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-538 — триггер в 44 пересоздаётся (P-71-06): DROP IF EXISTS перед
+#   CREATE, иначе повторное применение падает на «already exists».
+# ---------------------------------------------------------------------
+check_br538() {
+    local br="BR-538"
+    local f="deploy/karaoke-db/44_author_song_counts.sql"
+    local drop_line create_line
+    drop_line="$(grep -nE '^[[:space:]]*DROP[[:space:]]+TRIGGER[[:space:]]+IF[[:space:]]+EXISTS[[:space:]]+trg_tbl_songs_update_author_counts[[:space:]]+ON[[:space:]]+public\.tbl_songs' "$REPO/$f" | head -1 | cut -d: -f1)"
+    create_line="$(grep -nE '^[[:space:]]*CREATE[[:space:]]+TRIGGER[[:space:]]+trg_tbl_songs_update_author_counts' "$REPO/$f" | head -1 | cut -d: -f1)"
+    if [[ -n "$drop_line" && -n "$create_line" && "$drop_line" -lt "$create_line" ]]; then
+        ok "$br" "$f: DROP TRIGGER IF EXISTS стоит перед CREATE TRIGGER"
+    else
+        bad "$br" "$f: повторное применение падает на «trigger already exists»"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-547 — прод karaoke-web: healthcheck, потолок ресурсов, смонтированные
+#   дампы под -XX:HeapDumpPath (P-73-09).
+# ---------------------------------------------------------------------
+check_br547() {
+    local br="BR-547"
+    local f="deploy/prod-single-host/docker-compose-web.yml"
+    if file_has 'healthcheck:' "$f" && file_has 'CMD-SHELL' "$f"; then
+        ok "$br" "$f: healthcheck задан"
+    else
+        bad "$br" "$f: healthcheck отсутствует — зависший контейнер не виден мониторингу"
+    fi
+    if file_has 'mem_limit:' "$f" && file_has 'cpus:' "$f"; then
+        ok "$br" "$f: mem_limit/cpus заданы (OOM-kiiller не выберет БД)"
+    else
+        bad "$br" "$f: нет лимитов памяти/CPU"
+    fi
+    if file_has '\-XX:HeapDumpPath=/dumps' "$f" && file_has '\./karaoke-db/dumps:/dumps' "$f"; then
+        ok "$br" "$f: /dumps смонтирован — HeapDumpPath работает"
+    else
+        bad "$br" "$f: HeapDumpPath указывает в несмонтированный каталог (дамп теряется)"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-548 — TTS-модель проверяется по sha256 до загрузки pickle (P-73-10).
+# ---------------------------------------------------------------------
+check_br548() {
+    local br="BR-548"
+    local f="deploy/tts/silero_say.py"
+    if file_has '^MODEL_SHA256 = "[0-9a-f]{64}"' "$f"; then
+        ok "$br" "$f: sha256 модели зафиксирован"
+    else
+        bad "$br" "$f: sha256 модели не зафиксирован — pickle грузится без проверки"
+    fi
+    if file_has 'hashlib\.sha256' "$f" && file_has 'def verify_model' "$f"; then
+        ok "$br" "$f: есть проверка sha256 файла модели"
+    else
+        bad "$br" "$f: нет проверки sha256"
+    fi
+    if file_has 'def download_model' "$f" && file_has 'os\.replace\(temporary, MODEL_PATH\)' "$f"; then
+        ok "$br" "$f: загрузка идёт во временный файл, подмена — только после сверки"
+    else
+        bad "$br" "$f: модель скачивается сразу в целевой путь (проверка после загрузки бессмысленна)"
+    fi
+    local verify_line pickle_line
+    verify_line="$(awk '!/^[[:space:]]*#/ && /^[[:space:]]+ensure_model\(\)/ { print NR; exit }' "$REPO/$f")"
+    pickle_line="$(awk '!/^[[:space:]]*#/ && /load_pickle/ { print NR; exit }' "$REPO/$f")"
+    if [[ -n "$verify_line" && -n "$pickle_line" && "$verify_line" -lt "$pickle_line" ]]; then
+        ok "$br" "$f: проверка модели выполняется до load_pickle"
+    else
+        bad "$br" "$f: pickle грузится до проверки целостности"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-550 — лимит тела запроса публичного контура соответствует продукту
+#   (P-73-12): 200 МБ (spring multipart), а не 1 ГБ.
+# ---------------------------------------------------------------------
+check_br550() {
+    local br="BR-550"
+    local f="deploy/prod-single-host/nginx_karaoke-public.conf"
+    if file_has 'client_max_body_size[[:space:]]+200m;' "$f"; then
+        ok "$br" "$f: лимит тела = 200m (как у karaoke-web multipart)"
+    else
+        bad "$br" "$f: лимит тела не приведён к фактическому (200m)"
+    fi
+    if grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -qE 'client_max_body_size[[:space:]]+1024m'; then
+        bad "$br" "$f: остался client_max_body_size 1024m"
+    else
+        ok "$br" "$f: гигабайтного лимита нет"
+    fi
+    if file_has 'client_max_body_size[[:space:]]+200m;' "deploy/prod-single-host/80to8897"; then
+        ok "$br" "deploy/prod-single-host/80to8897: тот же лимит продублирован в host-nginx"
+    else
+        bad "$br" "deploy/prod-single-host/80to8897: host-nginx не подтверждает лимит 200m"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-559 — new_comp do.sh падает на отсутствии env-файла, а не работает
+#   на пустых значениях (P-72-07).
+# ---------------------------------------------------------------------
+check_br559() {
+    local br="BR-559"
+    local f="deploy/new_comp/sm-karaoke-system/deploy/do.sh"
+    if file_has 'set -euo pipefail' "$f"; then
+        ok "$br" "$f: set -euo pipefail"
+    else
+        bad "$br" "$f: нет fail-fast (ошибка compose/login не прерывает скрипт)"
+    fi
+    if file_has '\[\[ ! -f "\$\{env_file\}" \]\]' "$f" && file_has 'source "\$\{env_file\}"' "$f"; then
+        ok "$br" "$f: env-файлы проверяются на существование"
+    else
+        bad "$br" "$f: отсутствие .env/do.env не проверяется — работа на пустых значениях"
+    fi
+    if grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -qE '^[[:space:]]*source \$\{DEPLOY_DIR\}/(\.env|do\.env)$'; then
+        bad "$br" "$f: остался безусловный source env-файла"
+    else
+        ok "$br" "$f: безусловного source env-файлов нет"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# BR-560 — new_comp compose: политика перезапуска, healthcheck и потолки
+#   ресурсов (P-72-08).
+# ---------------------------------------------------------------------
+check_br560() {
+    local br="BR-560"
+    local dir="deploy/new_comp/sm-karaoke-system/deploy"
+    local f="$dir/docker-compose-app-new-comp.yml"
+    if file_has 'restart:[[:space:]]+unless-stopped' "$f"; then
+        ok "$br" "$f: restart: unless-stopped"
+    else
+        bad "$br" "$f: нет restart — упавшее приложение не поднимается само"
+    fi
+    if file_has 'healthcheck:' "$f" && file_has 'mem_limit:' "$f" && file_has 'cpus:' "$f"; then
+        ok "$br" "$f: healthcheck + mem_limit + cpus"
+    else
+        bad "$br" "$f: нет healthcheck и/или cgroup-потолка"
+    fi
+    local compose
+    for compose in web webvue webvue3; do
+        f="$dir/docker-compose-${compose}-new-comp.yml"
+        if file_has 'restart:' "$f"; then
+            ok "$br" "$f: политика перезапуска задана"
+        else
+            bad "$br" "$f: нет restart"
+        fi
+    done
+}
+
 CHECKS=(
     check_br039
     check_br040
@@ -632,6 +1002,19 @@ CHECKS=(
     check_br555
     check_br556
     check_br557
+    check_br042
+    check_br045
+    check_br046
+    check_br047
+    check_br535
+    check_br536
+    check_br537
+    check_br538
+    check_br547
+    check_br548
+    check_br550
+    check_br559
+    check_br560
 )
 
 if [[ "$MODE" == "list" ]]; then

@@ -12,14 +12,28 @@ APP_VERSION=1
 DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
 
-if [[ -z "${BUILD_VERSION}" ]]; then
-  BUILD_VERSION="$(touch .version && cat .version)"
-  if [[ -z "${BUILD_VERSION}" ]]; then
-    echo "${APP_VERSION}" >.version
-  fi
-else
-  echo "${BUILD_VERSION}" >.version
+# BR-042 (аудит #336 / P-70-04, OpenProject #393): единый тег образа.
+#
+# Было: build_* тегировали `${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}`, а pull_*/start_*
+# и compose-файлы прода были прибиты ЛИТЕРАЛОМ `:1`. Пока BUILD_VERSION=1 они совпадали, но
+# как только сборка шла с BUILD_VERSION=<номер>, push уходил в :<номер>, а прод продолжал
+# тянуть :1 — то есть предыдущий (или чужой) образ, и deploy_web.sh этого не различал.
+#
+# Стало: IMAGE_TAG — единственный источник тега. deploy_web.sh/deploy_public.sh передают
+# собранный тег на прод по ssh (`BUILD_VERSION=<тег> bash do.sh pull_web`), а compose-файлы
+# подставляют `${IMAGE_TAG}` (экспортируется ниже, set -a активен). Без переменной окружения
+# берётся `.version` этого хоста, а если и его нет — 1 (прежнее поведение).
+PREV_VERSION="$(cat "${DEPLOY_DIR}/.version" 2>/dev/null || true)"
+if [[ -z "${BUILD_VERSION:-}" ]]; then
+  BUILD_VERSION="${PREV_VERSION:-${APP_VERSION}}"
 fi
+# Предыдущий тег — для откката: `BUILD_VERSION=$(cat .version.prev) bash do.sh pull_web`.
+if [[ -n "${PREV_VERSION}" && "${PREV_VERSION}" != "${BUILD_VERSION}" ]]; then
+  echo "${PREV_VERSION}" >"${DEPLOY_DIR}/.version.prev"
+fi
+echo "${BUILD_VERSION}" >"${DEPLOY_DIR}/.version"
+IMAGE_TAG="${BUILD_VERSION}"
+export IMAGE_TAG
 
 source ${DEPLOY_DIR}/do.env
 
@@ -51,23 +65,23 @@ function build_web() {
   ${DOCKER} image build $DEPLOY_DIR/karaoke-web-jar/ \
   --build-arg VERSION=1 \
   --build-arg APP_VERSION=1 \
-  -t "$DOCKER_REGISTRY/karaoke-web:1" \
+  -t "$DOCKER_REGISTRY/karaoke-web:${IMAGE_TAG}" \
   -f $DEPLOY_DIR/karaoke-web/Dockerfile
 }
 
 function pull_web() {
   echo "Pull WEB image from registry"
   do_registry_login || { echo "ERROR: логин в registry не удался — контейнер НЕ трогаем." >&2; return 1; }
-  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:1"; then
-    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-web:1 не скачан — контейнер НЕ трогаем." >&2
+  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:${IMAGE_TAG}"; then
+    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-web:${IMAGE_TAG} не скачан — контейнер НЕ трогаем." >&2
     return 1
   fi
-  require_image "$DOCKER_REGISTRY/karaoke-web:1" || return 1
+  require_image "$DOCKER_REGISTRY/karaoke-web:${IMAGE_TAG}" || return 1
   do_start_web
 }
 
 function do_start_public() {
-  require_image "$DOCKER_REGISTRY/karaoke-public:1" || return 1
+  require_image "$DOCKER_REGISTRY/karaoke-public:${IMAGE_TAG}" || return 1
   do_stop_public
   echo "Старт PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
@@ -81,11 +95,11 @@ function do_stop_public() {
 function pull_public() {
   echo "Pull PUBLIC image from registry"
   do_registry_login || { echo "ERROR: логин в registry не удался — контейнер НЕ трогаем." >&2; return 1; }
-  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:1"; then
-    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-public:1 не скачан — контейнер НЕ трогаем." >&2
+  if ! ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:${IMAGE_TAG}"; then
+    echo "ERROR: образ $DOCKER_REGISTRY/karaoke-public:${IMAGE_TAG} не скачан — контейнер НЕ трогаем." >&2
     return 1
   fi
-  require_image "$DOCKER_REGISTRY/karaoke-public:1" || return 1
+  require_image "$DOCKER_REGISTRY/karaoke-public:${IMAGE_TAG}" || return 1
   do_start_public
 }
 
@@ -101,7 +115,7 @@ function do_stop_db() {
 }
 
 function do_start_web() {
-  require_image "$DOCKER_REGISTRY/karaoke-web:1" || return 1
+  require_image "$DOCKER_REGISTRY/karaoke-web:${IMAGE_TAG}" || return 1
   do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml up -d

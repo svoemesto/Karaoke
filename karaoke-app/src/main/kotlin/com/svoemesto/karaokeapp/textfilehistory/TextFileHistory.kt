@@ -1,7 +1,7 @@
 package com.svoemesto.karaokeapp.textfilehistory
 
 import com.svoemesto.karaokeapp.COUNT_HISTORY_LINES
-import com.svoemesto.karaokeapp.runCommand
+import com.svoemesto.karaokeapp.setPublishedFilePermissions
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -55,7 +55,10 @@ interface TextFileHistory {
     fun save() {
         val path = pathToFile()
         withFileLock(path) { writeAtomically(path, encode(history)) }
-        runCommand(listOf("chmod", "666", path))
+        // BR-115 (аудит #336, #407): файл истории — опубликованный, права 644.
+        // Раньше здесь стоял `chmod 666` — запись для всех: любой локальный
+        // пользователь или контейнер мог подменить историю.
+        setPublishedFilePermissions(path)
     }
 
     fun add(element: Map<String, String>) {
@@ -72,7 +75,8 @@ interface TextFileHistory {
             history = current
             writeAtomically(path, encode(current))
         }
-        runCommand(listOf("chmod", "666", path))
+        // BR-115 (аудит #336, #407): см. save() — права 644 вместо 666.
+        setPublishedFilePermissions(path)
     }
 
     @OptIn(ExperimentalSerializationApi::class)

@@ -28,14 +28,16 @@ import argparse
 import hashlib
 import json
 import os
-import random
 import re
 import statistics
+import sys
 import tempfile
 import time
+import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import soundfile as sf
 import torch
 import torchaudio
 from torch.utils.data import Dataset
@@ -337,17 +339,30 @@ def _filter_ctc_viable(
 class AlignmentDataset(Dataset):
     """Каждый элемент - короткий (20-30 сек, см. chunking.py) кусок аудио + текст ИМЕННО этого
     куска (не всей песни). Точные тайминги слогов из манифеста здесь дальше не нужны - только для
-    подбора границ чанка и для evaluate.py."""
+    подбора границ чанка и для evaluate.py.
+
+    BR-495 (P-69-07): нечитаемый чанк не подменяется случайным другим (раньше ``except Exception``
+    брал ``random.randrange(len(self.items))`` - эпоха получала дубликаты, а обучающая выборка
+    тихо отличалась от заявленной). Теперь ``__getitem__`` возвращает ``None`` (sentinel),
+    запоминает индекс в ``bad_indices``, печатает трессировку в stderr, а вызывающая сторона
+    исключает такие индексы через ``rebuild_without_bad()``/префильтр ``exclude_unreadable_items``.
+    Исключения, не связанные с конкретным файлом (ImportError, KeyError, TypeError - сломанное
+    окружение/код), не глотаются: они пробрасываются наверх."""
+
+    #: Ошибки, которые означают "этот файл/фрагмент не читается", а не "сломан код/окружение".
+    #: soundfile.LibsndfileError - подкласс RuntimeError (проверено на soundfile 0.14).
+    PER_ITEM_ERRORS = (OSError, RuntimeError, ValueError)
 
     def __init__(self, items: list[tuple[str, int, int, str]], processor: Wav2Vec2Processor, sample_rate: int):
         self.items = items
         self.processor = processor
         self.sample_rate = sample_rate
+        self.bad_indices: set[int] = set()
 
     def __len__(self):
         return len(self.items)
 
-    def __getitem__(self, idx, _attempt: int = 0):
+    def __getitem__(self, idx):
         audio_file, start_ms, end_ms, text = self.items[idx]
         try:
             waveform, sr = read_audio_segment(audio_file, start_ms, end_ms)
@@ -369,18 +384,77 @@ class AlignmentDataset(Dataset):
             # убранный) способ переключить процессор на токенизатор текста; современный - звать
             # tokenizer напрямую, он всегда доступен как атрибут Wav2Vec2Processor.
             labels = self.processor.tokenizer(text_normalized).input_ids
-        except Exception as e:
-            # Многочасовое обучение не должно падать целиком из-за одного плохого чанка (битый
-            # FLAC, временный сбой сетевого диска, пустой фрагмент и т.п. - см. выше). Пробуем
-            # другой случайный чанк вместо этого индекса; ограничение попыток - на случай, если
-            # проблема массовая (например, диск отвалился целиком), чтобы не уйти в бесконечную
-            # рекурсию, а упасть с понятной ошибкой.
-            if _attempt >= 5:
-                raise
-            print(f"[train] чанк idx={idx} ({audio_file}) не обработан ({e}) - беру другой чанк", flush=True)
-            return self.__getitem__(random.randrange(len(self.items)), _attempt + 1)
+        except self.PER_ITEM_ERRORS as e:
+            # BR-495: исключаем пример, а не подменяем его. Трессировка - чтобы причина (битый FLAC,
+            # отвалившийся диск) была видна в логе многочасового прогона.
+            print(
+                f"[train] чанк idx={idx} ({audio_file}) не обработан ({type(e).__name__}: {e}) - "
+                f"исключаю из выборки (замена другим примером запрещена, BR-495)",
+                file=sys.stderr,
+                flush=True,
+            )
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
+            self.bad_indices.add(idx)
+            return None
 
         return {"input_values": input_values, "labels": labels}
+
+    def rebuild_without_bad(self) -> "AlignmentDataset":
+        """Датасет без индексов, отвалившихся при чтении (BR-495). Счётчик плохих индексов
+        накапливается во время эпохи; пересобрать выборку нужно между эпохами/перед новым
+        запуском, чтобы DataLoader больше их не запрашивал."""
+        if not self.bad_indices:
+            return AlignmentDataset(self.items, self.processor, self.sample_rate)
+        kept = [item for i, item in enumerate(self.items) if i not in self.bad_indices]
+        print(
+            f"[train] пересобрана выборка без нечитаемых чанков: {len(self.items)} -> {len(kept)} "
+            f"(исключено {len(self.items) - len(kept)})",
+            flush=True,
+        )
+        return AlignmentDataset(kept, self.processor, self.sample_rate)
+
+
+def exclude_unreadable_items(
+    items: list[tuple[str, int, int, str]],
+    label_for_log: str,
+) -> list[tuple[str, int, int, str]]:
+    """Префильтр «заранее» (BR-495): убирает чанки, у которых файл отсутствует/не читается как
+    аудио или интервал не содержит ни одного семпла. Проверяется только заголовок контейнера
+    (``soundfile.info``), без декодирования PCM - дёшево для десятков тысяч чанков.
+
+    Это основной механизм исключения: до создания датасета и DataLoader в обучение попадают
+    только заведомо читаемые чанки, поэтому ``__getitem__``-sentinel остаётся страховкой от сбоя,
+    случившегося уже во время прогона (диск отвалился и т.п.)."""
+    kept: list[tuple[str, int, int, str]] = []
+    dropped = 0
+    for item in items:
+        audio_file, start_ms, end_ms, _text = item
+        try:
+            info = sf.info(audio_file)
+            start_frame = max(0, int(start_ms / 1000 * info.samplerate))
+            end_frame = min(info.frames, int(end_ms / 1000 * info.samplerate))
+            usable = info.samplerate > 0 and end_frame - start_frame > 0
+        except (OSError, RuntimeError, ValueError) as e:
+            print(
+                f"[train] чанк ({audio_file}) исключён префильтром: {type(e).__name__}: {e}",
+                file=sys.stderr,
+                flush=True,
+            )
+            dropped += 1
+            continue
+        if not usable:
+            print(
+                f"[train] чанк ({audio_file}, {start_ms}-{end_ms} мс) исключён префильтром: "
+                f"файл короче интервала манифеста/пустой фрагмент",
+                file=sys.stderr,
+                flush=True,
+            )
+            dropped += 1
+            continue
+        kept.append(item)
+    if dropped:
+        print(f"[train] префильтр {label_for_log}: исключено нечитаемых чанков: {dropped} из {len(items)}")
+    return kept
 
 
 class DataCollatorCTCWithPadding:
@@ -388,8 +462,17 @@ class DataCollatorCTCWithPadding:
         self.processor = processor
 
     def __call__(self, features):
-        input_features = [{"input_values": f["input_values"]} for f in features]
-        label_features = [{"input_ids": f["labels"]} for f in features]
+        # BR-495: AlignmentDataset.__getitem__ может вернуть None (чанк исключён). Такие элементы
+        # выбрасываем, а не подменяем; пустой батч - явная ошибка с причиной в stderr, чтобы
+        # обучение не пошло молча на чужой выборке.
+        real = [f for f in features if f is not None]
+        if not real:
+            raise RuntimeError(
+                "батч целиком состоит из нечитаемых чанков (BR-495) - см. трессировки в stderr; "
+                "перезапустите обучение после устранения причины, префильтр выбросит эти чанки"
+            )
+        input_features = [{"input_values": f["input_values"]} for f in real]
+        label_features = [{"input_ids": f["labels"]} for f in real]
 
         batch = self.processor.pad(input_features, padding=True, return_tensors="pt")
         labels_batch = self.processor.tokenizer.pad(label_features, padding=True, return_tensors="pt")
@@ -541,6 +624,10 @@ def main():
 
     train_items = _filter_ctc_viable(train_items, model, tokenizer, feature_extractor.sampling_rate, "обучения")
     eval_items = _filter_ctc_viable(eval_items, model, tokenizer, feature_extractor.sampling_rate, "оценки")
+    # BR-495: нечитаемые чанки исключаются ДО создания DataLoader (проверка заголовка, без
+    # декодирования PCM), а не подменяются случайными во время обучения.
+    train_items = exclude_unreadable_items(train_items, "обучения")
+    eval_items = exclude_unreadable_items(eval_items, "оценки")
     if not train_items:
         raise SystemExit("После фильтрации не осталось ни одного чанка для обучения - см. вывод выше")
 

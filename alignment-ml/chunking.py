@@ -10,9 +10,10 @@ SILENCE_THRESHOLD_MS - считаем это паузой между строк�
 тащим в чанк ни хвост тишины перед следующим слогом, ни от текущего).
 
 Если после такой "умной" резки кусок всё равно длиннее MAX_CHUNK_MS (в песне долго нет пауз -
-например быстрый безостановочный текст) - дорезаем его по самому большому из ВНУТРЕННИХ разрывов
-(даже если он меньше порога "тишины"), рекурсивно, пока куски не уложатся в лимит - это просто
-защита от слишком длинных чанков, не "умная" резка по смыслу.
+например быстрый безостановочный текст) - дорезаем его, но по границам СЛОВ (BR-496): чанк, разрезанный
+посреди слова, содержал бы в тексте слово, чьё аудио осталось в соседнем чанке. Это просто защита от
+слишком длинных чанков, не "умная" резка по смыслу; padding (LEAD_PAD_MS/TAIL_PAD_MS) на таких
+принудительных границах не добавляется - паузы там нет, и padding затянул бы в чанк соседнее слово.
 """
 
 from __future__ import annotations
@@ -24,6 +25,11 @@ from syllables import split_text_into_words
 DEFAULT_SILENCE_THRESHOLD_MS = 3000
 DEFAULT_MAX_CHUNK_MS = 20_000  # снижено с 30с - меньше пиковая память на самых длинных чанках (16GB VRAM впритык)
 DEFAULT_MIN_CHUNK_MS = 1000
+# BR-496 (P-69-08): padding добавляется ТОЛЬКО на границах, которые пришли из настоящей паузы
+# (> silence_threshold_ms): там 200/800 мс целиком лежат в тишине. На принудительном резе по
+# max_chunk_ms и на склейке коротких кусков паузы нет - padding затянул бы в чанк начало
+# следующего слова (или конец предыдущего), а текст чанка его не описывает. Поэтому на таких
+# границах padding = 0 (см. build_chunks), а сами резы делаются по границам слов.
 DEFAULT_LEAD_PAD_MS = 200
 DEFAULT_TAIL_PAD_MS = 800
 
@@ -58,21 +64,36 @@ def _split_by_gaps(indices: list[int], times_ms: list[int], threshold_ms: int) -
     return groups
 
 
-def _enforce_max_length(group: list[int], times_ms: list[int], max_ms: int) -> list[list[int]]:
-    """Жадно копит подряд идущие слоги, режет, как только длительность от начала текущего куска
+def _enforce_max_length(
+    group: list[int],
+    times_ms: list[int],
+    max_ms: int,
+    word_of_syllable: list[int],
+) -> list[list[int]]:
+    """Жадно копит подряд идущие слоги и режет, как только длительность от начала текущего куска
     превышает max_ms. НЕ пытается искать "лучшее" место реза (это не "умная" резка по паузам, а
     механический потолок длины) - важно, что это просто и не вырождается: попытка резать по
     "самому большому внутреннему разрыву" рекурсивно ломается на равномерных/близких интервалах
     (например, безостановочный речитатив) - при tie-break на первом найденном максимуме рекурсия
-    отрезает по одному слогу за раз вместо деления пополам."""
+    отрезает по одному слогу за раз вместо деления пополам.
+
+    BR-496: режем по границе СЛОВА, а не слога. Иначе слово, расщеплённое принудительным резом,
+    попадало своими слогами в соседние чанки, а ``text_chunk`` (собирается по словам) описывал
+    его целиком в обоих - аудио и текст чанка переставали соответствовать. Если слово само длиннее
+    max_ms, деваться некуда: режем механически (такой чанк отсеет CTC-фильтр в train.py)."""
     if not group:
         return []
     result: list[list[int]] = []
     current = [group[0]]
     for idx in group[1:]:
         if times_ms[idx] - times_ms[current[0]] > max_ms:
-            result.append(current)
-            current = [idx]
+            word = word_of_syllable[idx]
+            # Первый слог текущего куска, который принадлежит слову idx: всё до него - целые слова.
+            cut_at = next((i for i, syl in enumerate(current) if word_of_syllable[syl] == word), len(current))
+            if cut_at <= 0:
+                cut_at = len(current)  # слово само длиннее лимита - механический рез
+            result.append(current[:cut_at])
+            current = current[cut_at:] + [idx]
         else:
             current.append(idx)
     result.append(current)
@@ -146,16 +167,25 @@ def build_chunks(
     indices = list(range(len(syllables)))
 
     groups = _split_by_gaps(indices, times_ms, silence_threshold_ms)
-    groups = [g for group in groups for g in _enforce_max_length(group, times_ms, max_chunk_ms)]
+    groups = [g for group in groups for g in _enforce_max_length(group, times_ms, max_chunk_ms, word_of_syllable)]
     groups = _merge_short_chunks(groups, times_ms, min_chunk_ms, silence_threshold_ms)
 
     chunks = []
-    for group in groups:
-        start_ms = max(0, times_ms[group[0]] - lead_pad_ms)
+    for pos, group in enumerate(groups):
+        # BR-496: padding только на "тихих" границах (разрыв между соседними группами больше
+        # silence_threshold_ms). Граница после принудительного реза/склейки - это непрерывное
+        # пение: padding затянул бы в чанк аудио соседнего слова, которого нет в text_chunk.
+        lead_pad = 0
+        if pos == 0 or times_ms[group[0]] - times_ms[groups[pos - 1][-1]] > silence_threshold_ms:
+            lead_pad = lead_pad_ms
+        tail_pad = 0
+        if pos + 1 == len(groups) or times_ms[groups[pos + 1][0]] - times_ms[group[-1]] > silence_threshold_ms:
+            tail_pad = tail_pad_ms
+        start_ms = max(0, times_ms[group[0]] - lead_pad)
         # duration_ms - тоже данные из манифеста (см. вызывающую сторону) - на случай, если оно
         # само окажется меньше времени последнего слога группы (не должно происходить в норме, но
         # это отдельное поле, а не производное от times_ms), не допускаем end_ms < start_ms.
-        end_ms = max(start_ms, min(duration_ms, times_ms[group[-1]] + tail_pad_ms))
+        end_ms = max(start_ms, min(duration_ms, times_ms[group[-1]] + tail_pad))
         word_indices = sorted({word_of_syllable[i] for i in group})
         text_chunk = " ".join("".join(words[w]) for w in word_indices)
         chunks.append(Chunk(start_ms=start_ms, end_ms=end_ms, text=text_chunk))

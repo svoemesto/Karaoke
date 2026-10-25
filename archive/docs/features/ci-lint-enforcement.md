@@ -59,8 +59,9 @@ per-feature контрактам.
 Остальные джобы workflow: `confirm-escape-guard`, `webvue3-unit-tests`
 (`node --test`), `ssot-impact`, `knowledge-structure` (включая guard
 «No direct commits to master»), `docker-image-tags-guard`,
-`no-jpa-imports-guard`, `no-mp4-mentions-guard` — полный перечень
-в `.github/workflows/lint.yml`.
+`no-jpa-imports-guard`, `no-mp4-mentions-guard`,
+`actions-pinned-guard` (все сторонние actions закреплены по SHA
+коммита, BR-508) — полный перечень в `.github/workflows/lint.yml`.
 
 ## Зачем
 
@@ -109,10 +110,10 @@ concurrency:
 
 | Job | Cache | Ключ |
 |-----|-------|------|
-| `backend-lint` | Gradle | `setup-java@v4 cache=gradle` → `~/.gradle/caches` |
-| `backend-build` | Gradle | `setup-java@v4 cache=gradle` → `$GRADLE_USER_HOME/caches` |
-| `backend-test` | Gradle | `setup-java@v4 cache=gradle` → `$GRADLE_USER_HOME/caches` |
-| `frontend-lint` | npm | `setup-node@v4 cache= npm` + `cache-dependency-path: $spa/package-lock.json` |
+| `backend-lint` | Gradle | `setup-java` (v4.x) `cache=gradle` → `~/.gradle/caches` |
+| `backend-build` | Gradle | `setup-java` (v4.x) `cache=gradle` → `$GRADLE_USER_HOME/caches` |
+| `backend-test` | Gradle | `setup-java` (v4.x) `cache=gradle` → `$GRADLE_USER_HOME/caches` |
+| `frontend-lint` | npm | `setup-node` (v4.x) `cache=npm` + `cache-dependency-path: $spa/package-lock.json` |
 
 Без кэша `ktlintCheck` холодным стартом — ~6 минут (загрузка
 Spring Boot 3.5 + Jackson 2.14 + всех Gradle плагинов). С кэшем —
@@ -121,8 +122,34 @@ Spring Boot 3.5 + Jackson 2.14 + всех Gradle плагинов). С кэше�
 В джобах `backend-build`/`backend-test` `GRADLE_USER_HOME` задан явно
 на уровне джобы: `${{ github.workspace }}/.gradle` — тот же приём, что
 локально (AGENTS.md Tier-1, R-372: Gradle User Home вне read-only `$HOME`).
-`actions/setup-java@v4` (cache=gradle) берёт путь кэша из этой же переменной,
-поэтому кэш и сборка используют один каталог.
+`actions/setup-java` (v4.x, SHA-pinned) берёт путь кэша из этой же
+переменной, поэтому кэш и сборка используют один каталог.
+
+### Закрепление actions по SHA (BR-508)
+
+Все сторонние actions в workflow указываются полным SHA коммита
+с комментарием версии:
+
+```yaml
+- uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+```
+
+Плавающий тег (`@v4`) можно перенаправить на другой коммит в чужом
+репозитории: GitHub Actions подтянет новый код без изменения нашего
+репозитория и без ревью (supply chain). SHA коммита неизменяем, поэтому
+такой подмены не происходит. `permissions: contents: read` уменьшает,
+но не устраняет blast radius — action исполняется с правами workflow.
+
+Guard `tools/check-actions-pinned.sh` (джоб `actions-pinned-guard`)
+требует, чтобы каждый `uses:` в `.github/workflows/*.yml` имел
+`owner/repo@<40 hex>`; локальные actions (`./…`) и `docker://`
+исключены. `--self-test` прогоняет guard на снимках «до» (тег) и
+«после» (SHA) из `tools/fixtures/actions-pinned/` — так видно, что
+проверка не выродилась в no-op.
+
+Обновление SHA — отдельным PR с проверкой, что новый коммит
+соответствует ожидаемой версии. Автоматическое обновление через
+Dependabot — решение владельца (в пакет PKG-S3-19 не входит).
 
 ### Baseline-стратегия
 
@@ -211,15 +238,30 @@ Prettier — non-functional формат. Baseline для него **не вве
    делать checkout с `fetch-depth: 0`; если `origin/master` недоступен —
    шаг **падает**, а не рапортует «нарушений нет» (BR-509, P-78-03).
 
-6. **`actions/setup-java@v4` + `actions/setup-node@v4` — pinned
-   major.** Minor-обновления получаем автоматически (security patches),
-   breaking changes — только через явный PR.
+6. **Все сторонние actions закреплены по SHA коммита** (BR-508).
+   Плавающий major-тег (`@v4`) подменяем на полный SHA с комментарием
+   версии; minor/security-обновления приходят только явным PR
+   (Dependabot — решение владельца). Guard `actions-pinned-guard`
+   валит CI, если в `.github/workflows/*.yml` появился `uses:` с тегом.
 
 7. **`permissions: contents: read`** — workflow не пишет в репо
    (нет `gh release create` и т.п.). Минимизирует blast radius
    при компрометации action.
 
 ## Известные ловушки
+
+### Плавающий тег action = дыра в supply chain
+
+`uses: actions/checkout@v4` — это тег, а тег в чужом репозитории можно
+перенаправить на другой коммит. CI подхватит его без изменения нашего
+репозитория и без ревью (BR-508, P-78-02). Поэтому в workflow только
+полный SHA + комментарий версии, а `tools/check-actions-pinned.sh`
+валит PR с тегом. Не «оптимизируйте» обратно на `@v4`.
+
+Обновление версии action — это замена **двух** вещей: SHA и
+комментария `# vX.Y.Z`. Если комментарий отстал от SHA, CI не упадёт,
+но ревьюер не увидит, какая версия реально исполняется — сверяйте
+SHA с тегом в репозитории action'а.
 
 ### `ktlintCheck` UP-TO-DATE = пройден
 
@@ -253,8 +295,10 @@ bash tools/generate-eslint-baseline.sh karaoke-public
 
 ### lychee v1.9.0 vs v1.10.0
 
-Action pinned на `v1.9.0`. Версия 1.10.0 меняет формат `--accept`
-флага. Обновление — отдельный PR с проверкой на тестовом PR.
+Action закреплён SHA коммита, соответствующим `v1.9.0`
+(`22134d37a1fff6c2974df9c92a7c7e1e86a08f9c`). Версия 1.10.0 меняет
+формат `--accept` флага. Обновление — отдельный PR с проверкой на
+тестовом PR и заменой SHA + комментария версии.
 
 ### Backend job ~6 мин cold start
 
@@ -309,6 +353,7 @@ remote-tracking ref `origin/master` — есть только ref самого P
 - [tools/check-eslint-baseline.sh](../../tools/check-eslint-baseline.sh) — ESLint baseline-aware чек.
 - [tools/generate-eslint-baseline.sh](../../tools/generate-eslint-baseline.sh) — регенерация baseline.
 - [tools/check-feature-doc.sh](../../tools/check-feature-doc.sh) — структура per-feature документа.
+- [tools/check-actions-pinned.sh](../../tools/check-actions-pinned.sh) — guard: actions закреплены по SHA (BR-508).
 - [tools/verify-doc-links.sh](../../tools/verify-doc-links.sh) — offline link checker.
 - [.pre-commit-config.yaml](../../.pre-commit-config.yaml) — локальные хуки (тот же набор).
 - [build.gradle.kts:102-145](../../build.gradle.kts) — ktlint + Dokka.
@@ -316,4 +361,4 @@ remote-tracking ref `origin/master` — есть только ref самого P
 - [lycheeverse/lychee-action](https://github.com/lycheeverse/lychee-action) — действие для проверки ссылок.
 - [actions/setup-java](https://github.com/actions/setup-java) — JDK setup.
 - [actions/setup-node](https://github.com/actions/setup-node) — Node.js setup.
-- [specs/336-code-audit/findings/P-78.md](../../../specs/336-code-audit/findings/P-78.md) — карточки аудита #336: P-78-01 (BR-507, нет сборки/тестов), P-78-03 (BR-509, shallow checkout), P-78-04 (BR-510, один каталог per-feature документов).
+- [specs/336-code-audit/findings/P-78.md](../../../specs/336-code-audit/findings/P-78.md) — карточки аудита #336: P-78-01 (BR-507, нет сборки/тестов), P-78-02 (BR-508, actions по SHA), P-78-03 (BR-509, shallow checkout), P-78-04 (BR-510, один каталог per-feature документов).

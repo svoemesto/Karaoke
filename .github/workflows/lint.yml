@@ -9,15 +9,23 @@
 # Kotlin-кодом или с упавшим тестом проходил CI и мержился в master
 # (ловила только ручная проверка на деплое).
 #
+# Начиная с BR-508 (P-78-02) все сторонние actions закреплены по SHA
+# коммита с комментарием версии. Плавающий тег (`actions/checkout@v4`)
+# можно перенаправить на другой коммит в чужом репозитории — CI
+# исполнит новый код без изменения нашего репозитория и без ревью.
+# Guard: tools/check-actions-pinned.sh (джоб actions-pinned-guard).
+# Обновление SHA — отдельным PR, при необходимости через Dependabot
+# (решение владельца).
+#
 # См. также:
 #   - CONTRIBUTING.md (раздел «Поток разработки»)
 #   - archive/docs/features/ci-lint-enforcement.md (per-feature документ, FR-009)
 #   - .pre-commit-config.yaml (локальные хуки, идентичный набор правил)
 #
 # Кэширование:
-#   - Gradle: setup-java@v4 cache=gradle (путь берётся из GRADLE_USER_HOME
+#   - Gradle: setup-java (v4.x) cache=gradle (путь берётся из GRADLE_USER_HOME
 #     джобы — см. backend-build/backend-test; AGENTS.md Tier-1 «Gradle»)
-#   - npm:    setup-node@v4 cache=npm (per-SPA package-lock.json)
+#   - npm:    setup-node (v4.x) cache=npm (per-SPA package-lock.json)
 #
 # Триггеры:
 #   - push в master (post-merge sanity-check)
@@ -43,6 +51,25 @@ permissions:
   contents: read
 
 jobs:
+  # === Guard: actions закреплены по SHA коммита (BR-508, PKG-S3-19) ===
+  # Плавающий тег (`actions/checkout@v4`) можно перенаправить на другой
+  # коммит в чужом репозитории — CI исполнит новый код без ревью.
+  # Guard требует полный SHA (40 hex) + комментарий версии; обновление
+  # SHA — отдельным PR (Dependabot — решение владельца).
+  actions-pinned-guard:
+    name: actions pinned by SHA (BR-508)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check actions pinned by commit SHA
+        run: bash tools/check-actions-pinned.sh
+
+      - name: Self-test guard (до/после)
+        run: bash tools/check-actions-pinned.sh --self-test
+
   # === Backend: ktlint (Kotlin/Java) ===
   # Baseline-aware: новые нарушения валят, старые (из baseline) — нет.
   # См. build.gradle.kts: ktlint-gradle 12.x автоматически читает
@@ -53,10 +80,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -67,7 +94,7 @@ jobs:
 
       - name: Upload ktlint reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ktlint-reports
           path: |
@@ -94,10 +121,10 @@ jobs:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -124,10 +151,10 @@ jobs:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -151,7 +178,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: backend-test-reports
           path: |
@@ -173,10 +200,10 @@ jobs:
         spa: [webvue3, karaoke-public]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -212,7 +239,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check confirm text escaping
         # python3 tools/check-confirm-escape.py — находит места, где
@@ -232,10 +259,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -260,10 +287,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -287,10 +314,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
 
@@ -311,7 +338,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check secret in argv
         run: bash tools/check-secret-in-argv.sh
@@ -334,7 +361,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check world-writable chmod
         run: bash tools/check-file-permissions.sh
@@ -353,10 +380,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -419,10 +446,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: lychee (offline links check)
-        uses: lycheeverse/lychee-action@v1.9.0
+        uses: lycheeverse/lychee-action@22134d37a1fff6c2974df9c92a7c7e1e86a08f9c # v1.9.0
         with:
           args: >-
             --offline
@@ -452,7 +479,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
@@ -470,7 +497,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check KDoc coverage (strict, ≥50%)
         run: bash tools/check-kdoc-coverage.sh --strict
@@ -485,7 +512,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check JSDoc coverage (strict, ≥50%)
         run: bash tools/check-jsdoc-coverage.sh --strict
@@ -506,13 +533,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Нужна история для git diff master...HEAD.
           fetch-depth: 50
 
       - name: Setup Python (для YAML парсинга)
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
@@ -536,7 +563,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Полная история обязательна для шага «No direct commits to master»
           # ниже: при shallow clone (fetch-depth по умолчанию = 1)
@@ -665,7 +692,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: docker-image-tags guard (Pass 379, R-04, R-05, wayfinder #106)
         # Ловит FROM nginx:/FROM node: с запрещёнными тегами (nginx:alpine, nginx:latest,
@@ -683,7 +710,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: no-jpa-imports guard (Pass 379, R-07)
         # Ловит импорты JPA/Hibernate в .kt/.java исходниках karaoke-app и karaoke-web.
@@ -700,7 +727,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: "Value placeholders guard (@Value in Kotlin sources)"
         run: bash tools/check-value-placeholders.sh
@@ -713,7 +740,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: no-mp4-mentions guard (Pass 379, R-11)
         # Ловит упоминания \bmp4\b и `скачивани` в production коде по оферте
@@ -735,7 +762,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: security headers guard (BR-558)
         run: python3 tools/check-security-headers.py

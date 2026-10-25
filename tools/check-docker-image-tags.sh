@@ -19,6 +19,11 @@
 # Плюс режим `--selftest` — постоянная самопроверка матчера (SC-009 требует ловить
 # подставной запрещённый тег И ПОСЛЕ смены имён).
 #
+# BR-576 (аудит #336, пакет PKG-S3-30): самодиагностика «матчер ослеп» была
+# недостижима (точный матч + ветка n/a исключали друг друга). Теперь семейство
+# nginx/node определяется по исходному ref НЕЧЁТКО, а образ вне whitelist
+# помечается как UNRECOGNIZED (fail), а не пропускается молча.
+#
 # Whitelist (LTS / stable / pinned):
 #   nginx:stable, nginx:stable-alpine, nginx:1.27-alpine
 #   node:22-alpine, node:20-alpine, node:20-bookworm-slim
@@ -111,15 +116,48 @@ verdict_for() {
 }
 
 # Похожа ли строка на nginx/node-образ (после нормализации, без тега).
+#
+# BR-576 (аудит #336, пакет PKG-S3-30): проверка была ТОЧНОЙ (base == "nginx"
+# || base == "node"), а verdict_for отдавал "n/a" ровно тогда, когда base НЕ
+# равно nginx/node. Поэтому условие «вердикт n/a, но имя похоже» было
+# НЕДОСТИЖИМО — самодиагностика «матчер ослеп» не срабатывала никогда.
+# Теперь совпадение НЕЧЁТКОЕ (по префиксу): nginx-unprivileged,
+# node-exporter и т.п. — варианты того же семейства, whitelist их не
+# покрывает, значит тег проверить нечем → такой образ помечается
+# как UNRECOGNIZED, а не молча пропускается.
 looks_like_watched() {
   local base
   base="$(normalize_ref "$1")"; base="${base%%:*}"
-  [[ "$base" == "nginx" || "$base" == "node" ]]
+  [[ "$base" == nginx* || "$base" == node* ]]
+}
+
+# Итоговый вердикт по ИСХОДНОМУ ref:
+#   allow        — образ из whitelist (nginx/node)
+#   deny         — образ из семейства nginx/node, но тег запрещён
+#   unrecognized — образ ПОХОЖ на nginx/node, но whitelist его не покрывает
+#   n/a          — образ не из семейства nginx/node (правило неприменимо)
+#
+# BR-576: семейство определяется ДО вынесения вердикта (по исходному ref),
+# поэтому ветка «unrecognized» достижима и покрыта self-test'ом.
+judge_ref() {
+  local ref="$1" norm verdict
+  norm="$(normalize_ref "$ref")"
+  if ! looks_like_watched "$ref"; then
+    printf 'n/a'
+    return
+  fi
+  verdict="$(verdict_for "$norm")"
+  case "$verdict" in
+    allow) printf 'allow' ;;
+    deny)  printf 'deny' ;;
+    *)     printf 'unrecognized' ;;
+  esac
 }
 
 # ---- Самопроверка матчера (SC-009) -----------------------------------
 run_selftest() {
   local fails=0 total=0
+  # Формат: "<FROM-строка>|<ожидаемый вердикт judge_ref>"
   local cases=(
     "FROM nginx:stable AS production-stage|allow"
     "FROM node:22-alpine|allow"
@@ -133,13 +171,17 @@ run_selftest() {
     "FROM mirror/library/node:22-alpine@sha256:deadbeef AS build|allow"
     "FROM sm-karaoke.ru:5443/library/node:20-alpine|allow"
     "FROM ubuntu:22.04|n/a"
+    # BR-576: вердикт n/a, но имя ПОХОЖЕ на nginx/node → unrecognized
+    # (раньше такая пара была недостижима — ветка самодиагностики не срабатывала).
+    "FROM nginx-unprivileged:1.25|unrecognized"
+    "FROM sm-karaoke.ru:5443/library/node-exporter:1.7|unrecognized"
   )
   local c line expected norm got
   for c in "${cases[@]}"; do
     line="${c%|*}"; expected="${c##*|}"
     total=$((total + 1))
     norm="$(normalize_ref "$(parse_from "$line")")"
-    got="$(verdict_for "$norm")"
+    got="$(judge_ref "$(parse_from "$line")")"
     if [[ "$got" == "$expected" ]]; then
       color_green "  ✅ $line → $norm → $got"
     else
@@ -179,7 +221,7 @@ check_docker_image_tags() {
       local ref norm verdict
       ref="$(parse_from "$rest")"
       norm="$(normalize_ref "$ref")"
-      verdict="$(verdict_for "$norm")"
+      verdict="$(judge_ref "$ref")"
 
       case "$verdict" in
         allow)
@@ -197,14 +239,19 @@ check_docker_image_tags() {
             esac
           fi
           ;;
-        n/a)
-          # Строка не про nginx/node — но если имя на них похоже, матчер ослеп:
-          # это регресс защиты, а не «правило неприменимо».
-          if looks_like_watched "$ref"; then
-            violations=$((violations + 1))
-            [[ "$quiet" != "yes" ]] && \
-              color_red "❌ UNRECOGNIZED: $file:$lineno  '$ref' похоже на nginx/node, но не распознано"
+        unrecognized)
+          # BR-576: семейство nginx/node определено по исходному ref, но
+          # whitelist образ не покрывает → тег проверить нечем. Это регресс
+          # защиты, а не «правило неприменимо».
+          checked=$((checked + 1))
+          violations=$((violations + 1))
+          if [[ "$quiet" != "yes" ]]; then
+            color_red "❌ UNRECOGNIZED: $file:$lineno  '$ref' похоже на nginx/node, но не распознано"
+            color_yellow "   (whitelist не покрывает такой образ — проверьте тег вручную)"
           fi
+          ;;
+        n/a)
+          # Строка не про nginx/node — правило неприменимо.
           ;;
       esac
     done < <(grep -Hn '^FROM ' "$file" 2>/dev/null || true)

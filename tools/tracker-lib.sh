@@ -20,6 +20,18 @@
 #   - tracker_add_comment() — POST /api/v3/work_packages/{id}/activities
 #   - tracker_close_issue() — PATCH /api/v3/work_packages/{id} (status → closed)
 #   - tracker_reopen_issue() — PATCH /api/v3/work_packages/{id} (status → open)
+#
+# BR-604 (аудит #336, пакет PKG-S3-30): ветка «соединение не установлено»
+# была НЕДОСТИЖИМА. `curl -w "%{http_code}" ... || echo "000"` при ошибке
+# соединения печатал в stdout "000" (из -w) И добавлял ещё "000" из `||` —
+# получалось "000000", что не совпадало ни с одной веткой `case`. Guard
+# сообщал «неожиданный HTTP статус 000000» и возвращал 5 вместо 2.
+# Теперь код возврата curl проверяется явно, а статус приводится к "000".
+#
+# BR-614 (аудит #336, пакет PKG-S3-30): ошибка записи аудит-лога полностью
+# проглатывалась (`|| true` на mkdir и на echo) — при недоступном каталоге
+# лога не было ни ошибки, ни следа. Теперь в stderr печатается предупреждение
+# (один раз за сессию, не на каждый вызов).
 # =====================================================================
 
 # BR-611: библиотека ПОДКЛЮЧАЕТСЯ через `source` — она не имеет права
@@ -37,6 +49,9 @@ TRACKER_LIB_VERSION="295.2.0"
 TRACKER_LOG_FILE_DEFAULT="${REPO_ROOT:-/home/nsa/Karaoke}/logs/tracker-agent.log"
 TRACKER_HTTP_RETRIES=3
 TRACKER_HTTP_BACKOFFS=(2 4 8)  # секунды
+
+# BR-614: предупреждение о недоступности аудит-лога печатается ОДИН раз.
+TRACKER_AUDIT_WARNED=0
 
 # --- Цвета (если TTY) ---
 if [ -t 1 ]; then
@@ -106,6 +121,17 @@ tracker_require_tools() {
 }
 
 # =====================================================================
+# tracker_audit_warn — предупреждение об аудит-логе, один раз за сессию
+# =====================================================================
+tracker_audit_warn() {
+    if [ "${TRACKER_AUDIT_WARNED}" -eq 1 ]; then
+        return 0
+    fi
+    TRACKER_AUDIT_WARNED=1
+    echo "${C_YELLOW}WARN${C_RESET}: $*" >&2
+}
+
+# =====================================================================
 # tracker_log_audit — JSON-запись в logs/tracker-agent.log
 # =====================================================================
 tracker_log_audit() {
@@ -144,8 +170,18 @@ tracker_log_audit() {
             '{ts: $ts, cmd: $cmd, req_id: $req_id, endpoint: $endpoint, http_status: $http_status, duration_ms: $duration_ms, retry_count: $retry_count}')
     fi
 
-    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
-    echo "$entry" >> "$LOG_FILE" 2>/dev/null || true
+    # BR-614: ошибка записи аудит-лога больше не проглатывается молча —
+    # в stderr уходит предупреждение (один раз за сессию).
+    local log_dir
+    log_dir="$(dirname "$LOG_FILE")"
+    if ! mkdir -p "$log_dir" 2>/dev/null; then
+        tracker_audit_warn "не удалось создать каталог аудит-лога: ${log_dir} — аудит не записан"
+        return 0
+    fi
+    if ! echo "$entry" >> "$LOG_FILE" 2>/dev/null; then
+        tracker_audit_warn "не удалось записать аудит-лог: ${LOG_FILE} — аудит не записан"
+        return 0
+    fi
 }
 
 # =====================================================================
@@ -178,6 +214,10 @@ tracker_http_request() {
     for attempt in $(seq 1 $((TRACKER_HTTP_RETRIES + 1))); do
         start_ts=$(date +%s%N)
 
+        # BR-604: код возврата curl проверяется явно. Раньше `|| echo "000"`
+        # дописывал "000" к уже напечатанному curl'ом "000" (из -w) — выходило
+        # "000000", и ветка «соединение не установлено» была недостижима.
+        local curl_rc=0
         if [ -n "$body" ]; then
             http_status=$(curl -sS -o "$response_file" -w "%{http_code}" \
                 --config - \
@@ -186,14 +226,19 @@ tracker_http_request() {
                 -H "Content-Type: application/json" \
                 -H "Accept: application/json" \
                 --data-raw "$body" \
-                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"" || echo "000")
+                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"") || curl_rc=$?
         else
             http_status=$(curl -sS -o "$response_file" -w "%{http_code}" \
                 --config - \
                 -X "$method" \
                 --max-time "$TRACKER_HTTP_TIMEOUT" \
                 -H "Accept: application/json" \
-                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"" || echo "000")
+                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"") || curl_rc=$?
+        fi
+
+        # При недоступном сервере статус всегда приводим к "000".
+        if [ "${curl_rc}" -ne 0 ] || ! [[ "${http_status}" =~ ^[0-9]{3}$ ]]; then
+            http_status="000"
         fi
 
         end_ts=$(date +%s%N)
@@ -275,7 +320,12 @@ tracker_healthcheck() {
     trap "rm -f '$response'" RETURN
 
     start_ts=$(date +%s%N)
-    http_status=$(curl -sS -o "$response" -w "%{http_code}" --max-time "$TRACKER_HTTP_TIMEOUT" "$url" 2>/dev/null || echo "000")
+    # BR-604: тот же принцип — код возврата curl проверяется, статус "000".
+    local curl_rc=0
+    http_status=$(curl -sS -o "$response" -w "%{http_code}" --max-time "$TRACKER_HTTP_TIMEOUT" "$url" 2>/dev/null) || curl_rc=$?
+    if [ "${curl_rc}" -ne 0 ] || ! [[ "${http_status}" =~ ^[0-9]{3}$ ]]; then
+        http_status="000"
+    fi
     end_ts=$(date +%s%N)
     duration_ms=$(( (end_ts - start_ts) / 1000000 ))
 

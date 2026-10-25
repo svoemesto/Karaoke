@@ -95,12 +95,14 @@ ERROR: Knowledge-first pre-flight не выполнен (Pass 340, см. AGENTS.
 
 Перед tools/specify-bootstrap.sh MUST выполнить:
 
-  bash tools/spec-knowledge-preflight.sh <<'KNOWLEDGE'
+  bash tools/spec-knowledge-preflight.sh --create-marker ${SLUG} <<'KNOWLEDGE'
   knowledge/domains/<X>/domain.md — зачем прочитан
   knowledge/domains/<X>/components/<Y>.md — зачем прочитан
   knowledge/adr/local-NNNN-<slug>.md — принятое решение
   KNOWLEDGE
-  touch ${PREFLIGHT_MARKER}
+
+(файл-маяк ${PREFLIGHT_MARKER} создаёт сам pre-flight — вручную touch'ать
+его больше не нужно; BR-612 — root_cause_key preflight-marker-manual)
 
 После этого повторить запуск bootstrap.
 EOF
@@ -147,9 +149,31 @@ else
   # Обычный путь: передаём slug в reserve-branch-number.sh, он сам
   # резервирует NNN и создаёт ветку NNN-slug.
   # Перехватываем вывод скрипта, чтобы извлечь NNN.
-  RESERVE_OUT="$(./tools/reserve-branch-number.sh "$SLUG" 2>/dev/null || true)"
+  #
+  # BR-612 (аудит #336, пакет PKG-S3-30): сбой reserve-branch-number.sh (нет
+  # сети, конфликт тега, ошибка git) ПОЛНОСТЬЮ ПРОГЛАТЫВАЛСЯ: stderr уходил в
+  # /dev/null, `|| true` гасил код возврата, а FEATURE_NUM мог оказаться пустым
+  # → BRANCH получался "-<slug>" (ветка с мусорным именем), и ошибка терялась.
+  # Теперь stderr показывается, код возврата проверяется, а FEATURE_NUM
+  # обязан быть числом.
+  RESERVE_ERR_FILE="$(mktemp)"
+  RESERVE_RC=0
+  RESERVE_OUT="$(./tools/reserve-branch-number.sh "$SLUG" 2>"${RESERVE_ERR_FILE}")" || RESERVE_RC=$?
+  if [ -s "${RESERVE_ERR_FILE}" ]; then
+    sed 's/^/[reserve-branch-number] /' "${RESERVE_ERR_FILE}" >&2
+  fi
+  rm -f "${RESERVE_ERR_FILE}"
+  if [ "${RESERVE_RC}" -ne 0 ]; then
+    echo "ERROR: tools/reserve-branch-number.sh завершился с кодом ${RESERVE_RC} — ветка не создана." >&2
+    exit 1
+  fi
   # Последняя строка stdout скрипта — это NNN (см. reserve-branch-number.sh:65).
-  FEATURE_NUM="$(echo "$RESERVE_OUT" | tail -n 1)"
+  FEATURE_NUM="$(printf '%s\n' "${RESERVE_OUT}" | tail -n 1 | tr -d '[:space:]')"
+  if ! [[ "${FEATURE_NUM}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: не удалось определить номер фичи (FEATURE_NUM='${FEATURE_NUM}') — ветка не создана." >&2
+    echo "       Ожидался NNN из stdout tools/reserve-branch-number.sh." >&2
+    exit 1
+  fi
   BRANCH="${FEATURE_NUM}-${SLUG}"
   # reserve-branch-number.sh сам делает git checkout -b, но проверим что мы
   # действительно на нужной ветке (защита от сбоя).

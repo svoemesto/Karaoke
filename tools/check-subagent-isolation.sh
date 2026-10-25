@@ -33,7 +33,15 @@
 # Exit codes:
 #   0 — isolation OK (или advisory warnings only)
 #   1 — isolation нарушена (PR-ветка содержит чужой commit)
-#   2 — usage error
+#   2 — usage error ИЛИ проверка не могла быть выполнена (fail-closed)
+#
+# BR-597 (аудит #336, пакет PKG-S3-30): «не удалось вычислить» и «вычислили —
+# нарушений нет» были НЕРАЗЛИЧИМЫ. `git log master..<branch>` при отсутствии
+# ref'а master (или при битом клоне) молча отдавал пустоту, guard печатал
+# «⚠️ ветка не содержит новых commits» и возвращал 0 — то есть fail-open на
+# самом важном пути (не смог проверить → «всё хорошо»). Теперь код возврата
+# git проверяется, базовая ветка разрешается явно (master → origin/master →
+# main → origin/main), а невозможность проверки даёт НЕНУЛЕВОЙ код.
 # =====================================================================
 
 set -uo pipefail
@@ -45,11 +53,26 @@ color_green() { printf '\033[0;32m%s\033[0m\n' "$*"; }
 color_yellow() { printf '\033[1;33m%s\033[0m\n' "$*"; }
 color_cyan() { printf '\033[0;36m%s\033[0m\n' "$*"; }
 
+# Разрешить базовую ветку, относительно которой считаются «свои» коммиты.
+# BR-597: жёсткое "master" в ref'е ломало guard в клонах без локального
+# master. Возвращает имя ref'а или пустую строку, если базу найти нельзя.
+resolve_base_ref() {
+  local candidate
+  for candidate in master origin/master main origin/main; do
+    if git rev-parse --verify --quiet "${candidate}" >/dev/null 2>&1; then
+      printf '%s' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
 # Получить список commits текущей ветки (последние N, которые не в master).
 get_branch_commits() {
   local branch="$1"
-  # Берём commits, которые есть в branch, но не в master.
-  git log "master..${branch}" --pretty=format:'%H' 2>/dev/null
+  local base="$2"
+  # Берём commits, которые есть в branch, но не в base.
+  git log "${base}..${branch}" --pretty=format:'%H'
 }
 
 # Получить список всех открытых PR-веток из origin.
@@ -64,23 +87,45 @@ check_isolation() {
   local pr_branches=()
 
   # Проверка 1: текущая ветка не содержит чужие commits.
-  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [[ -z "$current_branch" ]] || [[ "$current_branch" == "master" ]]; then
-    # На master нечего проверять (это не feature-ветка).
-    color_green "✅ На master — isolation check not applicable"
+  # BR-597: код возврата git проверяется — «не смогли вычислить» ≠ «нарушений нет».
+  if ! current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); then
+    color_red "❌ Не удалось определить текущую ветку (git rev-parse failed)."
+    color_red "   Проверка изоляции НЕ выполнена — fail-closed, а не «всё хорошо»."
+    return 2
+  fi
+  if [[ -z "$current_branch" ]]; then
+    color_red "❌ git rev-parse вернул пустую ветку — проверка изоляции невозможна."
+    return 2
+  fi
+
+  local base_ref
+  if ! base_ref=$(resolve_base_ref); then
+    color_red "❌ Не найдена базовая ветка (master / origin/master / main / origin/main)."
+    color_red "   Проверка изоляции НЕ выполнена — fail-closed."
+    return 2
+  fi
+
+  if [[ "$current_branch" == "master" ]] || [[ "$current_branch" == "main" ]]; then
+    # На базовой ветке нечего проверять (это не feature-ветка).
+    color_green "✅ На $current_branch — isolation check not applicable"
     return 0
   fi
 
-  color_cyan "🔍 Subagent isolation check for branch: $current_branch"
+  color_cyan "🔍 Subagent isolation check for branch: $current_branch (base: $base_ref)"
 
-  # Получаем список commits текущей ветки, которых НЕТ в master.
+  # Получаем список commits текущей ветки, которых НЕТ в базовой ветке.
   # Эти commits принадлежат этой ветке. Если какой-то из них есть в другой
   # PR-ветке — это симптом race condition.
   local current_commits
-  current_commits=$(git log "master..${current_branch}" --pretty=format:'%H %s' 2>/dev/null)
+  if ! current_commits=$(git log "${base_ref}..${current_branch}" --pretty=format:'%H %s' 2>&1); then
+    color_red "❌ git log '${base_ref}..${current_branch}' завершился с ошибкой:"
+    color_red "   $current_commits"
+    color_red "   Проверка изоляции НЕ выполнена — fail-closed."
+    return 2
+  fi
 
   if [[ -z "$current_commits" ]]; then
-    color_yellow "⚠️  Ветка $current_branch не содержит новых commits относительно master"
+    color_yellow "⚠️  Ветка $current_branch не содержит новых commits относительно $base_ref"
     color_yellow "   (может быть уже merged или пустая)"
     return 0
   fi

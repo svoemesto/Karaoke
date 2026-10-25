@@ -9,11 +9,18 @@
 #
 # Запуск: ./tools/generate-docs.sh
 #         (или с флагом --clean для удаления старых выходов перед генерацией)
+#
+# BR-598 (аудит #336, пакет PKG-S3-30): в скрипте был только `set -e` (без
+# `-o pipefail`), а все четыре шага сборки были пайпами в `tail -3`.
+# Код возврата пайпа = код возврата `tail` (всегда 0), поэтому падение
+# dokka/typedoc НЕ прерывало скрипт: он доходил до «✅ Готово!» и сообщал
+# об успехе при отсутствующей документации. Теперь `set -euo pipefail` и
+# явная проверка кода возврата каждого шага.
 
-set -e
+set -euo pipefail
 
 CLEAN=0
-if [ "$1" == "--clean" ]; then
+if [ "${1:-}" == "--clean" ]; then
     CLEAN=1
 fi
 
@@ -32,16 +39,30 @@ if [ $CLEAN -eq 1 ]; then
 fi
 
 echo "==> [1/4] Dokka для karaoke-app (Kotlin backend)..."
-./gradlew :karaoke-app:dokkaJavadoc --no-daemon 2>&1 | tail -3
+# BR-598: pipefail делает код возврата пайпа кодом возврата dokka/typedoc,
+# а `if !` даёт понятное сообщение вместо молчаливого «успеха».
+if ! ./gradlew :karaoke-app:dokkaJavadoc --no-daemon 2>&1 | tail -3; then
+    echo "ERROR: dokkaJavadoc для karaoke-app завершился с ошибкой." >&2
+    exit 1
+fi
 
 echo "==> [2/4] Dokka для karaoke-web (Kotlin public)..."
-./gradlew :karaoke-web:dokkaJavadoc --no-daemon 2>&1 | tail -3
+if ! ./gradlew :karaoke-web:dokkaJavadoc --no-daemon 2>&1 | tail -3; then
+    echo "ERROR: dokkaJavadoc для karaoke-web завершился с ошибкой." >&2
+    exit 1
+fi
 
 echo "==> [3/4] typedoc для webvue3 (admin SPA)..."
-(cd webvue3 && bash -lc 'npx typedoc --out ../docs/api/typedoc-webvue3' 2>&1) | tail -3
+if ! (cd webvue3 && bash -lc 'npx typedoc --out ../docs/api/typedoc-webvue3' 2>&1) | tail -3; then
+    echo "ERROR: typedoc для webvue3 завершился с ошибкой." >&2
+    exit 1
+fi
 
 echo "==> [4/4] typedoc для karaoke-public (public SPA)..."
-(cd karaoke-public && bash -lc 'npx typedoc --out ../docs/api/typedoc-karaoke-public' 2>&1) | tail -3
+if ! (cd karaoke-public && bash -lc 'npx typedoc --out ../docs/api/typedoc-karaoke-public' 2>&1) | tail -3; then
+    echo "ERROR: typedoc для karaoke-public завершился с ошибкой." >&2
+    exit 1
+fi
 
 # Собираем Dokka в один общий каталог
 echo "==> Объединяю Dokka в docs/api/dokka/..."

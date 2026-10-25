@@ -21,6 +21,13 @@
 #   0 — успех (claim выполнен ИЛИ no-op).
 #   1 — найден Issue ID, но tracker.sh claim-issue упал (token истёк, network).
 #   2 — usage / parser error.
+#
+# BR-610 (аудит #336, пакет PKG-S3-30): регулярка определения Issue ID давала
+# ЛОЖНЫЕ СРАБАТЫВАНИЯ на обычных словах. `оп\w*`/`op\w*` без ограничения слова
+# матчили «опубликация 5», «операция 4», «operation 7», «drop 9» — и агент
+# получал claim ЧУЖОЙ задачи. Теперь «оп»/«op» — только отдельное слово
+# (перед ним обязателен не-буквенный разделитель), а слова вроде
+# «задача/таск/task» по-прежнему распознаются с любым окончанием.
 # =====================================================================
 
 set -uo pipefail
@@ -39,19 +46,94 @@ log() { printf '[tracker-bootstrap] %s\n' "$*" >&2; }
 #   * "#69" / "№69"
 #   * "task 69" / "таск 69" / "Task#69"
 #   * "задача 69" / "задачи 69" / "задачу 69" / "задачей 69"
-#   * "OP #69" / "OP#69" / "ОР #69" / "openproject 69" / "OpenProject #69"
-# Не триггерится на: "%69%", "issue42" (без пробела), "timeout 30s", "retry 3".
+#   * "OP #69" / "OP#69" / "ОП #69" / "openproject 69" / "OpenProject #69"
+# Не триггерится на: "%69%", "issue42" (без пробела), "timeout 30s", "retry 3",
+# "опубликация 5", "operation 7", "drop 9" (BR-610).
 extract_issue_id() {
     local input="$1"
-    # Robust pattern: supports #69, №69, задача/задачей 69, task 69,
-    # OP#69, OpenProject 69. Case-insensitive (cyrillic + english).
-    # \w в GNU grep -E = [[:alnum:]_], поддерживает кириллицу.
-    local pattern='(задач\w*|task\w*|таск\w*|#|№|оп\w*|op\w*|openproject|open[ \-]?project)[[:space:]]*[#№]?[[:space:]]*([0-9]{1,5})'
+    # BR-610: `оп\w*`/`op\w*` матчили любые слова, начинающиеся с «оп»/«op»
+    # («опубликация», «operation», «drop»). Теперь:
+    #   * «оп»/«op» — ТОЛЬКО отдельное слово: перед ним обязателен
+    #     не-буквенный разделитель (пробел, начало строки, скобка…);
+    #   * «задача/задачи/таск/task» — по-прежнему с любым окончанием
+    #     (нужно, чтобы «задача 69»/«задачей 69» распознавались);
+    #   * «openproject» / «open project» — как раньше.
+    local pattern='(#|№|(^|[^[:alnum:]_])(задач[[:alpha:]]*|таск[[:alpha:]]*|task[[:alpha:]]*|openproject|open[ -]?project|оп|op))[[:space:]]*[#№]?[[:space:]]*([0-9]{1,5})'
     echo "$input" | tr '[:upper:]' '[:lower:]' \
         | grep -Eoi "$pattern" 2>/dev/null \
         | grep -Eo '[0-9]+' \
         | head -n 1
 }
+
+# =====================================================================
+# Самопроверка регулярки (BR-610)
+# =====================================================================
+self_test() {
+    local rc=0
+    local -a positive=(
+        "задача 69:69"
+        "задачей 69:69"
+        "таск 69:69"
+        "task 69:69"
+        "Task#69:69"
+        "OP #69:69"
+        "OP#69:69"
+        "ОП #69:69"
+        "openproject 69:69"
+        "open project 69:69"
+        "#69:69"
+        "№69:69"
+        "оп 12:12"
+        "op 34:34"
+    )
+    local -a negative=(
+        "опубликация 5:"
+        "операция 4:"
+        "operation 7:"
+        "drop 9:"
+        "timeout 30s:"
+        "retry 3:"
+        "issue42:"
+        "%69%:"
+    )
+    local entry text want got
+
+    for entry in "${positive[@]}"; do
+        text="${entry%:*}"
+        want="${entry##*:}"
+        got="$(extract_issue_id "$text")"
+        if [[ "$got" != "$want" ]]; then
+            echo "self-test: '$text' → ожидалось '$want', получено '${got}'" >&2
+            rc=1
+        else
+            echo "self-test: ✅ '$text' → $got"
+        fi
+    done
+
+    for entry in "${negative[@]}"; do
+        text="${entry%:*}"
+        want="${entry##*:}"
+        got="$(extract_issue_id "$text")"
+        if [[ "$got" != "$want" ]]; then
+            echo "self-test: '$text' → ожидалось пусто, получено '$got' (ложное срабатывание)" >&2
+            rc=1
+        else
+            echo "self-test: ✅ '$text' → <не Issue ID>"
+        fi
+    done
+
+    if [[ $rc -ne 0 ]]; then
+        echo "SELFTEST FAIL: регулярка дала неожиданные результаты" >&2
+        return 1
+    fi
+    echo "SELFTEST OK: ${#positive[@]}+${#negative[@]} фикстур совпали"
+    return 0
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+    self_test
+    exit $?
+fi
 
 # Сканируем все аргументы + окружение.
 ISSUE_ID=""

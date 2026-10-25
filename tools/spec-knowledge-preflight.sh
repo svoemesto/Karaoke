@@ -28,11 +28,42 @@
 #   SPECIFY_STRICT — если задан и != "0", pre-flight становится
 #     failure-stop'ом для tools/specify-bootstrap.sh (через exit 3,
 #     bootstrap должен проверить).
+#
+#   bash tools/spec-knowledge-preflight.sh --create-marker <slug> <<'KNOWLEDGE'
+#     → после успешного pre-flight САМ создаёт файл-маяк
+#       .specify/.preflight-<slug>.ok, который требует tools/specify-bootstrap.sh.
+#       Раньше маркер создавался агентом вручную (`touch ...`), и его отсутствие
+#       можно было «закрыть» руками, не читая knowledge (root_cause_key
+#       preflight-marker-manual, BR-612).
 
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$REPO_ROOT"
+
+# --- Разбор аргументов (--create-marker <slug>) --------------------------
+MARKER_SLUG=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --create-marker)
+            MARKER_SLUG="${2:-}"
+            shift 2
+            ;;
+        -h|--help)
+            sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *)
+            echo "ERROR: неизвестный аргумент: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -n "${MARKER_SLUG}" ] && ! [[ "${MARKER_SLUG}" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    echo "ERROR: slug '${MARKER_SLUG}' должен быть kebab-case" >&2
+    exit 2
+fi
 
 # Читаем stdin в массив (если есть).
 # Используем `read -r FIRST` для определения наличия данных — `[ -t0 ]`
@@ -92,3 +123,18 @@ fi
 # спеки (Knowledge Compliance, см. .specify/templates/checklist-template.md).
 
 echo "OK: Knowledge-first pre-flight пройден — $COUNT ссылок на knowledge/." >&2
+
+# BR-612: маркер создаёт сам pre-flight — агенту больше не нужно делать
+# `touch .specify/.preflight-<slug>.ok` вручную.
+if [ -n "${MARKER_SLUG}" ]; then
+    MARKER_DIR="${REPO_ROOT}/.specify"
+    mkdir -p "${MARKER_DIR}"
+    MARKER_FILE="${MARKER_DIR}/.preflight-${MARKER_SLUG}.ok"
+    {
+        echo "# Knowledge-first pre-flight marker"
+        echo "# создан: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "# slug: ${MARKER_SLUG}"
+        echo "# ссылок на knowledge/: ${COUNT}"
+    } > "${MARKER_FILE}"
+    echo "OK: создан файл-маяк ${MARKER_FILE}" >&2
+fi

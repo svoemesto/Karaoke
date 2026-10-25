@@ -87,10 +87,19 @@ if [ "${#SLUG}" -gt 60 ]; then
 fi
 
 # 4. Следующий номер спеки
-NEXT_NUM=$(ls -d "$REPO_ROOT/specs"/[0-9]*-* 2>/dev/null \
-            | grep -oE '/[0-9]+-' | grep -oE '[0-9]+' \
-            | sort -n | tail -1)
-NEXT_NUM="${NEXT_NUM:-0}"
+#
+# BR-613 (аудит #336, пакет PKG-S3-30): значение по умолчанию
+# `NEXT_NUM="${NEXT_NUM:-0}"` было НЕДОСТИЖИМО. Под `set -euo pipefail` пайп
+# `ls | grep | grep | sort | tail` падал, если ни одной спеки не найдено
+# (ls → код 2, grep → код 1), и скрипт УМИРАЛ на этой строке — до дефолта.
+# Теперь пайп не роняет скрипт, а результат валидируется как число.
+NEXT_NUM=$( { ls -d "$REPO_ROOT/specs"/[0-9]*-* 2>/dev/null \
+                | grep -oE '/[0-9]+-' | grep -oE '[0-9]+' \
+                | sort -n | tail -1; } || true )
+if ! [[ "${NEXT_NUM}" =~ ^[0-9]+$ ]]; then
+    # Нет ни одной спеки — начинаем с 1 (валидный номер, а не мусор).
+    NEXT_NUM=0
+fi
 NEXT_NUM=$((NEXT_NUM + 1))
 
 SPEC_DIR="$REPO_ROOT/specs/$(printf '%03d' "$NEXT_NUM")-$SLUG"

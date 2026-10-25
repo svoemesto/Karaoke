@@ -12,6 +12,14 @@ Scope policy (Pass 349 governance amendment):
 Used by `.github/workflows/lint.yml` (spec-tracker gate).
 Exit 0 = OK, exit 1 = FAIL with detailed report.
 
+BR-596 (аудит #336, пакет PKG-S3-30): guard ПРИНИМАЛ два формата поля
+Issue ID — жирный `**Issue ID**` и заголовок `### Issue ID`, — но значение
+извлекал ТОЛЬКО из жирного формата. Спека с заголовком проходила проверку
+«поле есть», а Issue ID оставался None → `has_issue` = False → обязательные
+команды Workflow (`tracker.sh claim-issue/add-comment/mark-review`) НЕ
+проверялись. Guard fail-open на целый класс спек. Теперь значение
+извлекается в обоих форматах, а поле без значения — ошибка, а не «пропуск».
+
 @see .specify/templates/spec-template.md § OpenProject Tracking
 @see AGENTS.md § Issue-tracker OpenProject
 @see specs/349-tracker-must-link/spec.md (Pass 349 governance amendment).
@@ -20,6 +28,7 @@ Exit 0 = OK, exit 1 = FAIL with detailed report.
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 REQUIRED_SECTION_HEADING = "## OpenProject Tracking"
@@ -34,6 +43,47 @@ REQUIRED_COMMANDS = (
     "tracker.sh add-comment",
     "tracker.sh mark-review",
 )
+
+
+def extract_issue_id(section: str) -> str | None:
+    """Извлечь Issue ID из секции OpenProject Tracking.
+
+    Поддерживаются оба формата, которые guard принимает как «поле есть»:
+      1. Жирный: ``**Issue ID**: 402`` / ``**Issue ID**: `#402` `` / ``none``.
+      2. Заголовок: ``### Issue ID`` — значение в той же строке
+         (``### Issue ID: 402``) или на следующих непустых строках.
+
+    BR-596: раньше поддерживался только формат (1) — спека с форматом (2)
+    проходила проверку наличия поля, но её Issue ID не извлекался, и
+    обязательные Workflow-команды не проверялись (fail-open).
+    """
+    # 1) Жирный формат.
+    match = re.search(
+        r"\*\*\s*Issue ID\s*\*\*\s*:\s*[`']?(?:#?)([A-Za-z0-9_-]+)\b",
+        section,
+    )
+    if match:
+        return match.group(1)
+
+    # 2) Формат заголовка (## / ### Issue ID).
+    heading = re.search(r"^\#{2,3}\s+Issue ID\b[^\S\n]*(.*)$", section, re.MULTILINE)
+    if not heading:
+        return None
+
+    # Значение в той же строке (после «:», «-», «—» или просто пробел).
+    tail = heading.group(1).lstrip(" \t:-\u2014\u2013")
+    value = re.match(r"[`']?(?:#?)([A-Za-z0-9_-]+)\b", tail)
+    if value:
+        return value.group(1)
+
+    # Значение — на следующих непустых строках секции.
+    for line in section[heading.end():].split("\n")[1:]:
+        if not line.strip():
+            break
+        value = re.match(r"\s*(?:[-*]\s*)?[`']?(?:#?)([A-Za-z0-9_-]+)\b", line)
+        if value:
+            return value.group(1)
+    return None
 
 
 def check_spec(spec_path: Path) -> list[str]:
@@ -65,23 +115,34 @@ def check_spec(spec_path: Path) -> list[str]:
 
     # 2. Required field markers (`**FieldName**` markdown bold OR `### <FieldName>` /
     #    `## <FieldName>` heading possibly followed by other text on same line).
+    #    BR-596: после имени поля в заголовке допустим разделитель «:», «-», «—»
+    #    (например `### Issue ID: 402`) — иначе поле в формате заголовка
+    #    сначала считалось бы «отсутствующим».
     for field in REQUIRED_FIELDS:
         pattern = (
             rf"(\*\*\s*{re.escape(field)}\s*\*\*"
-            rf"|^\#{{2,3}}\s+{re.escape(field)}(?=\s|$|\())"
+            rf"|^\#{{2,3}}\s+{re.escape(field)}(?=\s|$|\(|[:\-—]))"
         )
         if not re.search(pattern, section, re.MULTILINE):
             errors.append(f"missing required field: '{field}' (use `**{field}**` or `### {field}`)")
 
-    # 3. Issue ID — extract value. If `none`, skip command validation.
-    #    Robust against various markup formats (`#NN`, `#NN.`, `**NN**:`).
-    issue_match = re.search(
-        r"\*\*Issue ID\*\*\s*:\s*[`']?(?:#?)([A-Za-z0-9_-]+)\b",
-        section,
-    )
-    issue_id = issue_match.group(1) if issue_match else None
+    # 3. Issue ID — извлекаем значение В ОБОИХ поддерживаемых форматах
+    #    (BR-596): жирный `**Issue ID**: NNN` и заголовок `### Issue ID`.
+    #    Раньше извлекался только жирный формат, поэтому спека с заголовком
+    #    молча проходила проверку Workflow-команд.
+    issue_id = extract_issue_id(section)
 
-    has_issue = bool(issue_id) and issue_id.lower() != "none"
+    if issue_id is None:
+        # Поле присутствует (оно проверено выше), но значение не извлеклось —
+        # это не «нет issue», а неполная секция. Раньше это выглядело как
+        # «issue нет → Workflow не нужен».
+        errors.append(
+            "cannot extract Issue ID value (expected `**Issue ID**: <value>` "
+            "or `### Issue ID` + value)"
+        )
+        return errors
+
+    has_issue = issue_id.lower() != "none"
 
     if has_issue:
         for cmd in REQUIRED_COMMANDS:
@@ -91,7 +152,84 @@ def check_spec(spec_path: Path) -> list[str]:
     return errors
 
 
+def run_self_test() -> int:
+    """Фикстуры «до/после» (BR-596)."""
+    failures = 0
+
+    def expect(name: str, section: str, want_issue: str | None) -> None:
+        nonlocal failures
+        got = extract_issue_id(section)
+        if got != want_issue:
+            print(
+                f"  FAIL {name}: ожидали Issue ID {want_issue!r}, получено {got!r}",
+                file=sys.stderr,
+            )
+            failures += 1
+        else:
+            print(f"  ok   {name} → {got!r}")
+
+    nl = "\n"
+    expect("жирный формат", "**Issue ID**: 402" + nl, "402")
+    expect("жирный формат с решёткой", "**Issue ID**: `#402`" + nl, "402")
+    expect("жирный формат none", "**Issue ID**: `none`" + nl, "none")
+    expect(
+        "заголовок, значение в той же строке",
+        "### Issue ID: 402" + nl,
+        "402",
+    )
+    expect(
+        "заголовок, значение на следующей строке",
+        "### Issue ID" + nl + "402" + nl + nl + "**Title**: x" + nl,
+        "402",
+    )
+    expect(
+        "заголовок ##, значение с решёткой",
+        "## Issue ID" + nl + "`#77`" + nl,
+        "77",
+    )
+    expect("нет поля", "**Title**: x" + nl, None)
+
+    # Спека с заголовком должна реально проверять Workflow-команды (BR-596).
+    with tempfile.TemporaryDirectory() as tmp:
+        spec = Path(tmp) / "spec.md"
+        spec.write_text(
+            "## Knowledge References" + nl + nl
+            + "- knowledge/" + nl + nl
+            + "## OpenProject Tracking" + nl + nl
+            + "### Issue ID: 402" + nl + nl
+            + "**Title**: x" + nl + nl
+            + "### Workflow" + nl + nl
+            + "| Step | Command |" + nl + "|---|---|" + nl
+            + "| claim | `tracker.sh claim-issue 402` |" + nl,
+            encoding="utf-8",
+        )
+        errs = check_spec(spec)
+        # Спека объявляет Issue ID = 402, но содержит только команду claim.
+        # Если Workflow-команды реально проверяются — guard обязан сообщить
+        # про недостающие add-comment/mark-review. Если не сообщает — fail-open.
+        missing = [e for e in errs if "missing required command" in e]
+        if missing:
+            print(
+                "  ok   заголовок-формат: Workflow-команды проверяются "
+                f"({len(missing)} недостающих найдено)"
+            )
+        else:
+            print(
+                "  FAIL заголовок-формат: Workflow-команды не проверяются (fail-open)",
+                file=sys.stderr,
+            )
+            failures += 1
+
+    if failures:
+        print(f"SELFTEST FAIL: {failures} фикур не совпали", file=sys.stderr)
+        return 1
+    print("SELFTEST OK: 8/8 фикстур совпали")
+    return 0
+
+
 def main() -> int:
+    if "--self-test" in sys.argv:
+        return run_self_test()
     repo_root = Path(os.environ.get("REPO_ROOT", "."))
     specs_dir = repo_root / "specs"
     if not specs_dir.exists():

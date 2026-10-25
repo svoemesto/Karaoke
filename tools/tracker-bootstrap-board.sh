@@ -8,6 +8,19 @@
 #
 # Использование:
 #   bash tools/tracker-bootstrap-board.sh
+#
+# BR-607 (аудит #336, пакет PKG-S3-30): `OUT=$(docker exec … 2>&1 | tail -1)`
+# под `set -euo pipefail` при падении rails-runner УБИВАЛ скрипт прямо на
+# этой строке — объявленная диагностика «Не удалось создать/обновить доску: …»
+# не печаталась никогда. Теперь код возврата docker exec проверяется, а
+# в сообщение идёт ПОЛНЫЙ вывод (раньше `tail -1` отрезал причину ошибки).
+#
+# BR-608 (аудит #336, пакет PKG-S3-30): ID статусов в правилах переходов были
+# ЗАШИТЫ ЧИСЛАМИ ([[1, 9], [7, 9], …]). Эти числа — дефолтные ID статусов
+# OpenProject, они зависят от порядка статусов в конкретном экземпляре.
+# Теперь статусы резолвятся по ИМЕНИ (`Status.find_by(name: …)`), а переходы,
+# для которых нужного статуса нет, пропускаются и ПЕРЕЧИСЛЯЮТСЯ в выводе.
+# Шаг «workflow-transitions» больше не рапортует успех при неудаче.
 # =====================================================================
 
 set -euo pipefail
@@ -139,13 +152,44 @@ unless review_status
   exit 1
 end
 
-rules = [[1, 9], [7, 9], [3, 9], [9, 7], [9, 12], [12, 9]]
+# BR-608: переходы задаются ИМЕНАМИ статусов, а не числами. Числовые ID
+# (1 = New, 9 = In review, …) — это дефолт OpenProject, они зависят от
+# порядка статусов в конкретном экземпляре и в другой инсталляции указывают
+# на другие статусы.
+TRANSITIONS = [
+  ["New", "In review"],
+  ["In progress", "In review"],
+  ["Specified", "In review"],
+  ["In review", "In progress"],
+  ["In review", "Closed"],
+  ["Closed", "In review"]
+].freeze
+
+# Роли: сначала по имени (переносимо), числовые ID — только как запасной
+# вариант, если имена в этом экземпляре другие.
+ROLE_NAMES = ["Work package editor", "Member", "Project admin"].freeze
+roles = Role.where(name: ROLE_NAMES)
+roles = Role.where(id: [1, 6, 8]) if roles.empty?
+
 added = 0
 skipped = 0
+missing_statuses = []
+
+resolved = TRANSITIONS.map do |(old_name, new_name)|
+  old_status = Status.find_by(name: old_name)
+  new_status = Status.find_by(name: new_name)
+  if old_status.nil? || new_status.nil?
+    missing_statuses << "#{old_name} -> #{new_name}"
+    nil
+  else
+    [old_status.id, new_status.id]
+  end
+end
+resolved = resolved.compact
 
 Type.find_each do |type|
-  Role.where(id: [1, 6, 8]).each do |role|
-    rules.each do |(old_id, new_id)|
+  roles.each do |role|
+    resolved.each do |(old_id, new_id)|
       next unless [old_id, new_id].include?(review_status.id)
       next if Workflow.where(type_id: type.id, role_id: role.id,
                               old_status_id: old_id, new_status_id: new_id).exists?
@@ -160,26 +204,51 @@ Type.find_each do |type|
   end
 end
 
-puts JSON.dump(status: :ok, added: added, skipped: skipped)
+puts JSON.dump(status: :ok, added: added, skipped: skipped,
+               roles: roles.map(&:name),
+               missing_statuses: missing_statuses)
 '
 
 info "Шаг 1/2: создание/обновление доски 'AI Pipeline'..."
-OUT=$(docker exec openproject bash -lc "cd /app && bundle exec rails runner -e production '$RUBY_BOARD_SCRIPT'" 2>&1 | tail -1)
-BOARD_ID=$(echo "$OUT" | jq -r '.board_id // empty' 2>/dev/null)
-BOARD_URL=$(echo "$OUT" | jq -r '.board_url // empty' 2>/dev/null)
+# BR-607: код возврата docker exec проверяется — при падении rails-runner
+# печатается диагностика с ПОЛНЫМ выводом, а не тихий выход по errexit.
+OUT=""
+if ! OUT=$(docker exec openproject bash -lc "cd /app && bundle exec rails runner -e production '$RUBY_BOARD_SCRIPT'" 2>&1); then
+    err "Не удалось создать/обновить доску (rails runner упал):"
+    printf '%s\n' "$OUT" | tail -20 >&2
+    exit 1
+fi
+OUT_LAST="$(printf '%s\n' "$OUT" | tail -1)"
+BOARD_ID=$(printf '%s\n' "$OUT_LAST" | jq -r '.board_id // empty' 2>/dev/null)
+BOARD_URL=$(printf '%s\n' "$OUT_LAST" | jq -r '.board_url // empty' 2>/dev/null)
 
 if [ -z "$BOARD_ID" ]; then
     err "Не удалось создать/обновить доску:"
-    err "  $OUT"
+    printf '%s\n' "$OUT" | tail -20 >&2
     exit 1
 fi
 
 info "  ✓ Доска ##${BOARD_ID} готова (URL: ${BOARD_URL})"
 
 info "Шаг 2/2: добавление workflow-transitions для статуса 'In review'..."
-OUT2=$(docker exec openproject bash -lc "cd /app && bundle exec rails runner -e production '$RUBY_WORKFLOW_SCRIPT'" 2>&1 | tail -1)
-ADDED=$(echo "$OUT2" | jq -r '.added // 0' 2>/dev/null)
-info "  ✓ Workflow transitions добавлено: ${ADDED} (или уже существовали)"
+# BR-608/BR-607: тот же принцип — падение rails-runner больше не превращается
+# в «✓ Workflow transitions добавлено: 0 (или уже существовали)».
+OUT2=""
+if ! OUT2=$(docker exec openproject bash -lc "cd /app && bundle exec rails runner -e production '$RUBY_WORKFLOW_SCRIPT'" 2>&1); then
+    err "Не удалось добавить workflow-transitions (rails runner упал):"
+    printf '%s\n' "$OUT2" | tail -20 >&2
+    exit 1
+fi
+OUT2_LAST="$(printf '%s\n' "$OUT2" | tail -1)"
+ADDED=$(printf '%s\n' "$OUT2_LAST" | jq -r '.added // 0' 2>/dev/null)
+SKIPPED=$(printf '%s\n' "$OUT2_LAST" | jq -r '.skipped // 0' 2>/dev/null)
+MISSING=$(printf '%s\n' "$OUT2_LAST" | jq -r '(.missing_statuses // []) | join(", ")' 2>/dev/null)
+ROLES_USED=$(printf '%s\n' "$OUT2_LAST" | jq -r '(.roles // []) | join(", ")' 2>/dev/null)
+info "  ✓ Workflow transitions добавлено: ${ADDED} (уже существовали: ${SKIPPED})"
+[ -n "${ROLES_USED}" ] && info "    роли: ${ROLES_USED}"
+if [ -n "${MISSING}" ]; then
+    warn "  ⚠ Не найдены статусы для переходов: ${MISSING}"
+fi
 
 echo ""
 echo "${C_GREEN}═══════════════════════════════════════════════════════════════════${C_RESET}"

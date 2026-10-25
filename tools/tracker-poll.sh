@@ -17,6 +17,13 @@
 #   1 — есть задачи, но всё ОК (нет открытых)
 #   2 — OpenProject недоступен
 #   3 — token истёк
+#
+# BR-603 (аудит #336, пакет PKG-S3-30): значение по умолчанию для `--assignee`
+# вычислялось ДО `tracker_load_env` (строка 33 против строки 68). В этот момент
+# `.env.local-tracker` ещё не был прочитан, поэтому `TRACKER_AGENT_USER` не
+# был задан и скрипт молча опрашивал «ai-agent» вместо пользователя из env
+# (например «admin»). Теперь значение вычисляется ПОСЛЕ загрузки окружения;
+# явный флаг `--assignee` по-прежнему имеет приоритет.
 # =====================================================================
 
 set -euo pipefail
@@ -30,14 +37,14 @@ source "${SCRIPT_DIR}/tracker-lib.sh"
 # Парсинг аргументов
 MODE="human"   # human | json | quiet
 LIMIT=20
-ASSIGNEE="${TRACKER_AGENT_USER:-ai-agent}"
+ASSIGNEE_OVERRIDE=""   # BR-603: значение по умолчанию — после tracker_load_env
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --json) MODE="json"; shift ;;
         --quiet) MODE="quiet"; shift ;;
         --limit) LIMIT="$2"; shift 2 ;;
-        --assignee) ASSIGNEE="$2"; shift 2 ;;
+        --assignee) ASSIGNEE_OVERRIDE="$2"; shift 2 ;;
         -h|--help)
             cat <<EOF
 tools/tracker-poll.sh — polling-сводка задач OpenProject для AI-агента
@@ -67,6 +74,11 @@ done
 
 tracker_load_env
 tracker_require_tools
+
+# BR-603: значение по умолчанию вычисляется ПОСЛЕ tracker_load_env, чтобы
+# учитывался TRACKER_AGENT_USER из .env.local-tracker. Явный --assignee
+# имеет приоритет над значением по умолчанию.
+ASSIGNEE="${ASSIGNEE_OVERRIDE:-${TRACKER_AGENT_USER:-ai-agent}}"
 
 # Цвета для human-mode
 if [ -t 1 ]; then

@@ -362,23 +362,41 @@
 
         }
 
+        // BR-203 (аудит #336, пакет `PKG-S3-24`): экранирование пользовательского текста
+        // перед вставкой в DOM. Метки маркеров и текст песни приходят из БД (их можно
+        // записать через `POST /song/{id}/{voice}/savesourcemarkers`), а `innerHTML`
+        // трактовал `<`/`&` как разметку — метка вида `<img src=x onerror=…>` исполнялась
+        // в браузере админа. `innerHTML` остаётся только для СОБСТВЕННЫХ `<span>`/`<br>`,
+        // а пользовательский текст вставляется уже экранированным.
+        function escapeHtmlText(text) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(text == null ? '' : String(text)));
+            return div.innerHTML;
+        }
+
+        // BR-204 (аудит #336, пакет `PKG-S3-24`): значение скорости бралось из
+        // несуществующего свойства `checked` у `<button>`, а `return` внутри forEach
+        // возвращался из колбэка, а не из функции. В итоге всегда возвращалось 1.0 —
+        // редактор субтитров стартовал на неверной скорости. Признак выбора — класс `active`.
         function getSpeedPlay() {
             const buttons = document.getElementsByName('btn_speed_play');
-            buttons.forEach(function(button) {
-                if (button.checked) {
-                    return button.value;
+            for (let i = 0; i < buttons.length; i++) {
+                if (buttons[i].classList.contains('active')) {
+                    return buttons[i].value;
                 }
-            });
+            }
             return 1.0;
         }
 
+        // BR-204 (аудит #336, пакет `PKG-S3-24`): см. getSpeedPlay — признак выбора —
+        // класс `active`, значение берётся из кнопки (раньше всегда возвращалось 1.0).
         function getSpeedEdit() {
             const buttons = document.getElementsByName('btn_speed_edit');
-            buttons.forEach(function(button) {
-                if (button.checked) {
-                    return button.value;
+            for (let i = 0; i < buttons.length; i++) {
+                if (buttons[i].classList.contains('active')) {
+                    return buttons[i].value;
                 }
-            });
+            }
             return 1.0;
         }
 
@@ -431,7 +449,8 @@
                 } else if (currMarker.markertype === 'newline') {
                     textToAdd = '<br>';
                 } else if (currMarker.markertype === 'syllables') {
-                    textToAdd = spanStyle + currMarker.label.replaceAll("_", " ") + '</span>';
+                    // BR-203: label — пользовательские данные, экранируем перед вставкой.
+                    textToAdd = spanStyle + escapeHtmlText(currMarker.label.replaceAll("_", " ")) + '</span>';
                 }
 
                 textTemplate = textTemplate + textToAdd;
@@ -442,7 +461,8 @@
             textElement.style.backgroundColor = "black";
             textElement.innerHTML = textTemplate;
 
-            document.getElementById("next_syllable_text").innerHTML = getTailText();
+            // BR-203: хвост текста — пользовательские данные → экранируем.
+            document.getElementById("next_syllable_text").innerHTML = escapeHtmlText(getTailText());
 
         }
 
@@ -685,7 +705,8 @@
                             requestSyllables.send();
                             if (requestSyllables.status === 200) {
                                 dataSyllables = JSON.parse(requestSyllables.responseText);
-                                document.getElementById("next_syllable_text").innerHTML = getTailText();
+                                // BR-203: хвост текста — пользовательские данные → экранируем.
+                                document.getElementById("next_syllable_text").innerHTML = escapeHtmlText(getTailText());
                             }
 
                         }
@@ -833,7 +854,9 @@
             const sourceTextElement = document.getElementById("source_text");
             const sourceTextValue = document.querySelector('[data-text]').getAttribute('data-text');
             console.log(sourceTextValue);
-            sourceTextElement.innerHTML = sourceTextValue;
+            // BR-203: в `<textarea>` текст ставится через `.value` — `innerHTML` декодировал
+            // HTML-сущности и искажал текст песни при сохранении.
+            sourceTextElement.value = sourceTextValue;
 
         });
 

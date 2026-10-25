@@ -355,6 +355,14 @@ class MainController(
         return 0
     }
 
+    /**
+     * Удаление песни (legacy GET-эндпоинт страницы `/songs`).
+     *
+     * BR-208 (аудит #336, пакет `PKG-S3-24`): возвращается ЧИСЛО удалённых строк
+     * (`1` — удалено, `0` — песня не найдена). Раньше эндпоинт всегда отдавал `0`, и
+     * клиент (удалявший строку из DOM на любой `200`) показывал «Удалено» даже когда
+     * песня не существовала — таблица расходилась с БД.
+     */
     @GetMapping("/song/{id}/delete")
     @ResponseBody
     fun doDeleteSong(
@@ -367,8 +375,9 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        song?.deleteFromDb()
-        return 0
+        if (song == null) return 0
+        song.deleteFromDb()
+        return 1
     }
 
     @GetMapping("/song/{id}/setpublishdatetimetoauthor")

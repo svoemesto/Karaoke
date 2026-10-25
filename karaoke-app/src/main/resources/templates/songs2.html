@@ -595,6 +595,10 @@
             var filter_flag_vkl = encodeURIComponent(document.getElementById("filter_flag_vkl").value);
             var filter_flag_vkk = encodeURIComponent(document.getElementById("filter_flag_vkk").value);
             var filter_flag_vkc = encodeURIComponent(document.getElementById("filter_flag_vkc").value);
+            // BR-215 (аудит #336, пакет `PKG-S3-24`): Telegram-фильтры (TL/TK/TC) — в URL.
+            var filter_flag_tl = encodeURIComponent(document.getElementById("filter_flag_tl").value);
+            var filter_flag_tk = encodeURIComponent(document.getElementById("filter_flag_tk").value);
+            var filter_flag_tc = encodeURIComponent(document.getElementById("filter_flag_tc").value);
             var url = "/songs2?filter_id=" + filter_id +
                 "&filter_songName=" + filter_songName +
                 "&filter_author=" + filter_author +
@@ -613,6 +617,11 @@
                 "&flag_vk_lyrics=" + filter_flag_vkl +
                 "&flag_vk_karaoke=" + filter_flag_vkk +
                 "&flag_vk_chords=" + filter_flag_vkc +
+                // BR-215 (аудит #336, пакет `PKG-S3-24`): Telegram-фильтры (TL/TK/TC)
+                // были в форме, но не попадали в URL — фильтр молча не применялся.
+                "&flag_telegram_lyrics=" + filter_flag_tl +
+                "&flag_telegram_karaoke=" + filter_flag_tk +
+                "&flag_telegram_chords=" + filter_flag_tc +
                 "&filter_page=" + document.getElementById("filter_page").value;
             window.location.href = url;
 

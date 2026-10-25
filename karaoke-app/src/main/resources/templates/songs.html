@@ -85,18 +85,39 @@
 
     <script type="text/javascript">
 
-        var stompClient = null;
+        var sseSource = null;
 
+        // BR-211 (аудит #336, пакет `PKG-S3-24`): страница подписывалась на STOMP-эндпоинт
+        // `/api/message`, которого в `karaoke-app` НЕТ (конфиг брокера удалён в 2024-08-15,
+        // остался только в `karaoke-web`) — подписка молча не устанавливалась, live-обновлений
+        // не было с 2024 года. Теперь используется актуальный канал SSE — тот же, что и в
+        // webvue3: `GET /api/subscribe` (SseNotificationService), payload — обёртка
+        // `{type, data}`, где `type = "recordChange"`, `data = RecordChangeMessage`
+        // (`recordId`/`tableName`/`diffs`).
         function connect() {
-            var socket = new SockJS('/api/message');
-            stompClient = Stomp.over(socket);
-            stompClient.connect({}, function(frame) {
-                console.log('Connected: ' + frame);
-                stompClient.subscribe('/api/messages/recordchange', function(recordchange){
+            if (typeof EventSource === 'undefined') {
+                console.warn('SSE не поддерживается браузером — live-обновления отключены');
+                return;
+            }
+            var tabId = 'songs-' + Math.random().toString(36).substring(2);
+            sseSource = new EventSource('/api/subscribe?tabId=' + encodeURIComponent(tabId));
+            sseSource.onmessage = function (event) {
+                var payload = null;
+                try {
+                    payload = JSON.parse(event.data);
+                } catch (e) {
+                    console.warn('SSE: не удалось разобрать сообщение', e);
+                    return;
+                }
+                if (payload && payload.type === 'recordChange' && payload.data) {
                     console.log("Получено сообщение...");
-                    updateSettingsFromMessage(JSON.parse(recordchange.body));
-                });
-            });
+                    updateSettingsFromMessage(payload.data);
+                }
+            };
+            sseSource.onerror = function () {
+                // BR-211: обрыв соединения больше не молчит — браузер переподключится сам.
+                console.warn('SSE: соединение потеряно, идёт переподключение');
+            };
         }
 
         var currentTimeStamp = new Date().getTime();
@@ -374,6 +395,8 @@
         }
 
         function updateTableRowFromFormElements() {
+            // BR-207 (аудит #336): без выбранной строки обновлять нечего (раньше — TypeError).
+            if (!currentRow) return;
             var cells = currentRow.cells;
             if (cells[indCell_id].innerText === el_id.value) {
 
@@ -494,6 +517,8 @@
 
 
         function updateTableRowFromFormElements() {
+            // BR-207 (аудит #336): без выбранной строки обновлять нечего (раньше — TypeError).
+            if (!currentRow) return;
             var cells = currentRow.cells;
             if (cells[indCell_id].innerText === el_id.value) {
 
@@ -672,20 +697,32 @@
 
         function doPostForm() {
 
-            var dataString = $('#myForm').serialize();
             var id = el_id.value;
+            // BR-207 (аудит #336, пакет `PKG-S3-24`): до любых действий проверяем, что
+            // строка выбрана. Раньше клик по «Сохранить» без выбранной строки давал
+            // `TypeError` на `currentRow.cells`, и запрос уходил «в никуда» без сообщения.
+            if (!id || !currentRow) {
+                alert("Сначала выберите строку");
+                return false;
+            }
 
-            // doRowColor();
-            updateTableRowFromFormElements();
-            updateButtonsLinks();
+            var dataString = $('#myForm').serialize();
 
+            // BR-207: DOM строки меняется ТОЛЬКО после подтверждения 2xx — раньше строка
+            // перекрашивалась до запроса, и при ошибке (500 из-за отсутствующих полей формы)
+            // экран показывал «сохранённые» значения, которых в БД нет.
             $.ajax({
                 type: "POST",
                 url: "/songs_update",
                 data: dataString,
                 success: function() {
-
-                    // updateSettings(id)
+                    // doRowColor();
+                    updateTableRowFromFormElements();
+                    updateButtonsLinks();
+                },
+                error: function (xhr) {
+                    var reason = (xhr && xhr.status) ? ("HTTP " + xhr.status) : "нет связи с сервером";
+                    alert("Не удалось сохранить: " + reason);
                 }
             });
             return false;
@@ -710,6 +747,10 @@
             var filter_flag_vkl = encodeURIComponent(document.getElementById("filter_flag_vkl").value);
             var filter_flag_vkk = encodeURIComponent(document.getElementById("filter_flag_vkk").value);
             var filter_flag_vkc = encodeURIComponent(document.getElementById("filter_flag_vkc").value);
+            // BR-210 (аудит #336, пакет `PKG-S3-24`): Telegram-фильтры (TL/TK/TC) — в URL.
+            var filter_flag_tl = encodeURIComponent(document.getElementById("filter_flag_tl").value);
+            var filter_flag_tk = encodeURIComponent(document.getElementById("filter_flag_tk").value);
+            var filter_flag_tc = encodeURIComponent(document.getElementById("filter_flag_tc").value);
             var url = "/songs?filter_id=" + filter_id +
                 "&filter_songName=" + filter_songName +
                 "&filter_author=" + filter_author +
@@ -728,6 +769,11 @@
                 "&flag_vk_lyrics=" + filter_flag_vkl +
                 "&flag_vk_karaoke=" + filter_flag_vkk +
                 "&flag_vk_chords=" + filter_flag_vkc +
+                // BR-210 (аудит #336, пакет `PKG-S3-24`): Telegram-фильтры (TL/TK/TC)
+                // были в форме, но не попадали в URL — фильтр молча не применялся.
+                "&flag_telegram_lyrics=" + filter_flag_tl +
+                "&flag_telegram_karaoke=" + filter_flag_tk +
+                "&flag_telegram_chords=" + filter_flag_tc +
                 "&filter_page=" + document.getElementById("filter_page").value;
             window.location.href = url;
 
@@ -741,8 +787,23 @@
             doFilterForm();
         }
 
+        // BR-212 (аудит #336, пакет `PKG-S3-24`): Clipboard API доступен только в
+        // secure-контексте (https или localhost). Админка `karaoke-app` слушается по HTTP
+        // (`http://<host>:8898`), поэтому `navigator.clipboard` там — `undefined`, и каждый
+        // клик копирования бросал TypeError. Используем существующий `copyToClipboard`
+        // (execCommand) как fallback и сообщаем об отказе.
+        function copyToClipboardSafely(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).catch(function (e) {
+                    console.warn('clipboard.writeText не удался, пробуем execCommand', e);
+                    return copyToClipboard(text);
+                });
+            }
+            return Promise.resolve(copyToClipboard(text));
+        }
+
         function copySongName() {
-            navigator.clipboard.writeText(el_songName.value);
+            copyToClipboardSafely(el_songName.value);
         }
 
         function doRowColor() {
@@ -764,7 +825,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
@@ -776,7 +837,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
@@ -788,7 +849,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
@@ -801,7 +862,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
@@ -813,7 +874,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
@@ -825,7 +886,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
@@ -836,7 +897,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -848,7 +909,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -861,7 +922,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -875,7 +936,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -889,7 +950,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -902,7 +963,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -918,7 +979,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -931,7 +992,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -944,7 +1005,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -958,7 +1019,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -971,7 +1032,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -984,7 +1045,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -1001,7 +1062,7 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
@@ -1013,14 +1074,14 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
                 // alert(result);
             }
         }
 
         function doBoostyLink() {
             var link = "https://boosty.to/svoemesto/posts/" + document.getElementById("song_idBoosty").value
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function doTextVKBody() {
@@ -1030,12 +1091,12 @@
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
-                navigator.clipboard.writeText(result);
+                copyToClipboardSafely(result);
             }
         }
 
         function doVKLink() {
-            navigator.clipboard.writeText(document.getElementById("button_link_vk").href);
+            copyToClipboardSafely(document.getElementById("button_link_vk").href);
         }
 
         function doCreateKaraoke() {
@@ -1092,17 +1153,33 @@
 
         function doDelete() {
 
+            // BR-208 (аудит #336, пакет `PKG-S3-24`): строка запоминается ДО запроса.
+            // Раньше в `success` удалялся ГЛОБАЛЬНЫЙ `currentRow`, который меняется при
+            // каждом клике по строке: если во время запроса выбрать другую песню, из DOM
+            // исчезала она, а удалённая оставалась на экране (таблица не соответствовала БД).
+            var row = currentRow;
+            var id = el_id.value;
+            if (!row || !id) {
+                alert("Сначала выберите строку");
+                return;
+            }
             if (confirm("Удалить?")) {
-                var id = el_id.value;
                 $.ajax({
                     type: "GET",
                     url: "/song/" + id + "/delete",
                     data: "",
                     success: function(data) {
-
-                        currentRow.remove();
-
-                        alert("Удалено");
+                        // Сервер возвращает число удалённых строк (0 — песня не найдена).
+                        if (Number(data) > 0) {
+                            row.remove();
+                            alert("Удалено");
+                        } else {
+                            alert("Не удалось удалить: песня не найдена");
+                        }
+                    },
+                    error: function (xhr) {
+                        var reason = (xhr && xhr.status) ? ("HTTP " + xhr.status) : "нет связи с сервером";
+                        alert("Не удалось удалить: " + reason);
                     }
                 });
             }
@@ -1429,7 +1506,7 @@
 
         function doDzenKaraokeLink() {
             var link = prefix_link_dzen_play + el_idDzenKaraoke.value
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function openLinkDzenPlayLyrics() {
@@ -1440,12 +1517,12 @@
 
         function doDzenLyricsLink() {
             var link = prefix_link_dzen_play + el_idDzenLyrics.value
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function doDzenLyricsBtLink() {
             var link = prefix_link_dzen_play + el_idDzenLyricsBt.value
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function openLinkDzenPlayChords() {
@@ -1455,7 +1532,7 @@
 
         function doDzenChordsLink() {
             var link = prefix_link_dzen_play + el_idDzenChords.value
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function openLinkVkEditKaraoke() {
@@ -1475,7 +1552,7 @@
 
         function doVkKaraokeLink() {
             var link = prefix_link_vk_play + el_idVkKaraoke.value;
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function openLinkVkEditLyrics() {
@@ -1495,7 +1572,7 @@
 
         function doVkLyricsLink() {
             var link = prefix_link_vk_play + el_idVkLyrics.value;
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function openLinkVkEditChords() {
@@ -1515,7 +1592,7 @@
 
         function doVkChordsLink() {
             var link = prefix_link_vk_play + el_idVkChords.value;
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
         function openLinkVkPlayKaraoke() {
@@ -1579,7 +1656,7 @@
 
         function doTelegramKaraokeLink() {
             var link = prefix_link_telegram_play + el_idTelegramKaraoke.value;
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
 
@@ -1600,7 +1677,7 @@
 
         function doTelegramLyricsLink() {
             var link = prefix_link_telegram_play + el_idTelegramLyrics.value;
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
 
@@ -1621,7 +1698,7 @@
 
         function doTelegramChordsLink() {
             var link = prefix_link_telegram_play + el_idTelegramChords.value;
-            navigator.clipboard.writeText(link);
+            copyToClipboardSafely(link);
         }
 
 
@@ -1730,10 +1807,13 @@
         }
 
         function updateSettingsFromMessage(recordchange) {
-            var id = recordchange.recordChangeId;
-            var table = recordchange.recordChangeTableName;
-            var diffs = recordchange.recordChangeDiffs;
-            if (table === 'tbl_settings') {
+            // BR-211 (аудит #336, пакет `PKG-S3-24`): ключи payload — `recordId`/`tableName`/
+            // `diffs` (RecordChangeMessage), а не `recordChange*`; имя таблицы песен —
+            // `tbl_songs` (переименование `tbl_settings` → `tbl_songs`).
+            var id = recordchange.recordId;
+            var table = recordchange.tableName;
+            var diffs = recordchange.diffs;
+            if (table === 'tbl_songs') {
 
                 var idRow = `row${id}`;
                 var elementRow = document.getElementById(idRow);
@@ -2184,10 +2264,13 @@
             <button name="button_doFilter" id="button_doFilter" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doFilterForm()">FILTER</button>
             <table>
                 <datalist id="list_authors">
-                    <option th:each="author:${songAuthors}" th:value="${author}">
+                    <!-- BR-209 (аудит #336, пакет `PKG-S3-24`): контроллер кладёт `authors`
+                         и `albums` (`MainController.songs()`), а шаблон читал `songAuthors`/
+                         `songAlbums` — оба `<datalist>` были пусты. -->
+                    <option th:each="author:${authors}" th:value="${author}">
                 </datalist>
                 <datalist id="list_albums">
-                    <option th:each="album:${songAlbums}" th:value="${album}">
+                    <option th:each="album:${albums}" th:value="${album}">
                 </datalist>
                 <thead>
                     <tr>

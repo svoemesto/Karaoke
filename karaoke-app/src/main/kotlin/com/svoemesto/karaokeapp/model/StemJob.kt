@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.sql.SQLException
 import java.sql.Timestamp
+import org.slf4j.LoggerFactory
 
 /**
  * Singleton-объект Stem Job Status.
@@ -175,6 +176,18 @@ class StemJob(
         // (WAITING/WORKING) заданий.
         const val MAX_ACTIVE_JOBS_PER_USER = 5
 
+        /**
+         * BR-198 (аудит #336, пакет `PKG-S3-24`): признак «счётчик активных заданий не
+         * удалось получить» (сбой БД). Обычные значения — неотрицательные, поэтому `-1`
+         * читается однозначно и не может быть принят за «активных заданий нет».
+         */
+        const val COUNT_ERROR = -1
+
+        /**
+         * BR-198 (аудит #336, пакет `PKG-S3-24`): категория логов заданий стемов.
+         */
+        private val stemJobLog = LoggerFactory.getLogger("infra.stemjobs")
+
         // Ограничения на загружаемый файл (для начала) — см. PublicStemJobController.
         const val MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024
         const val MAX_DURATION_SECONDS = 60L * 60
@@ -328,11 +341,20 @@ class StemJob(
         }
 
         // Число активных (WAITING/WORKING) заданий пользователя — гейт лимита очереди при создании.
+
+        /**
+         * Число активных заданий пользователя.
+         *
+         * BR-198 (аудит #336, пакет `PKG-S3-24`): при сбое БД возвращается признак
+         * ошибки [COUNT_ERROR], а не `0`. Раньше недоступность БД ПОЛНОСТЬЮ отключала
+         * проверку лимита (`0 < 5` → пропускаем) — пользователь мог создать сколько
+         * угодно заданий, и очередь demucs разрасталась.
+         */
         fun countActiveByUser(
             siteUserId: Long,
             database: KaraokeConnection,
         ): Int {
-            val connection = database.getConnection() ?: return 0
+            val connection = database.getConnection() ?: return COUNT_ERROR
             val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE site_user_id = ? AND status IN ('${StemJobStatus.WAITING}', '${StemJobStatus.WORKING}')"
             return try {
                 connection.prepareStatement(sql).use { ps ->
@@ -340,8 +362,85 @@ class StemJob(
                     ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
                 }
             } catch (e: SQLException) {
-                println("StemJob.countActiveByUser SQLException: ${e.message}")
-                0
+                stemJobLog.warn("StemJob.countActiveByUser: SQL-ошибка (sqlState={}, siteUserId={})", e.sqlState, siteUserId, e)
+                COUNT_ERROR
+            }
+        }
+
+        /**
+         * Создать задание, если у пользователя меньше [MAX_ACTIVE_JOBS_PER_USER] активных.
+         *
+         * BR-198: лимит очереди раньше был check-then-act — контроллер считал активные
+         * задания, затем отдельным вызовом создавал новое (без транзакции и без блокировки),
+         * поэтому ДВА параллельных `POST /create` одного пользователя оба видели
+         * `activeCount = 4` и создавали по заданию (6+ активных).
+         *
+         * Теперь проверка и вставка идут в одной транзакции под advisory-блокировкой
+         * `pg_advisory_xact_lock` по `site_user_id`: второй запрос ждёт завершения первого
+         * и видит уже обновлённый счётчик.
+         *
+         * @return созданное задание; `null` — лимит исчерпан.
+         * @throws SQLException если БД недоступна или счётчик не удалось получить
+         *   (fail-closed: при неизвестном счётчике задание НЕ создаётся).
+         */
+        fun createIfUnderLimit(
+            siteUserId: Long,
+            mode: String,
+            originalFileName: String,
+            originalExt: String,
+            fileSizeBytes: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): StemJob? {
+            val connection = database.getConnection() ?: throw SQLException("stemjob.count.unavailable: нет соединения с БД")
+            val wasAutoCommit = connection.autoCommit
+            connection.autoCommit = false
+            try {
+                // Advisory-блокировка на транзакцию: сериализует параллельные создания
+                // заданий одного пользователя (PostgreSQL, блокировка освобождается
+                // вместе с транзакцией).
+                connection.createStatement().use { st ->
+                    st.execute("SELECT pg_advisory_xact_lock($siteUserId)")
+                }
+                val activeCount = countActiveByUser(siteUserId, database)
+                if (activeCount == COUNT_ERROR) {
+                    throw SQLException("stemjob.count.unavailable: не удалось посчитать активные задания")
+                }
+                if (activeCount >= MAX_ACTIVE_JOBS_PER_USER) {
+                    connection.rollback()
+                    return null
+                }
+                val created =
+                    createNew(
+                        siteUserId = siteUserId,
+                        mode = mode,
+                        originalFileName = originalFileName,
+                        originalExt = originalExt,
+                        fileSizeBytes = fileSizeBytes,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                if (created == null) {
+                    connection.rollback()
+                    return null
+                }
+                connection.commit()
+                return created
+            } catch (e: SQLException) {
+                try {
+                    connection.rollback()
+                } catch (rollbackError: SQLException) {
+                    stemJobLog.warn("StemJob.createIfUnderLimit: не удалось откатить транзакцию: {}", rollbackError.message)
+                }
+                throw e
+            } finally {
+                try {
+                    connection.autoCommit = wasAutoCommit
+                } catch (e: SQLException) {
+                    stemJobLog.warn("StemJob.createIfUnderLimit: не удалось восстановить autoCommit: {}", e.message)
+                }
             }
         }
 

@@ -257,7 +257,7 @@ data class MkoSplashStart(
                                     ),
                                 body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")),
                             ),
-                            songnameTextFontMlt.mltNode(multiLine.text.replace("&", "&amp;")),
+                            songnameTextFontMlt.mltNode(multiLine.text),
                         ),
                 ),
             )

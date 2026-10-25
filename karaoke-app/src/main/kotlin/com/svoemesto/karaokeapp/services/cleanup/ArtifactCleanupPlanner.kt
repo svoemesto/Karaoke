@@ -96,9 +96,19 @@ class ArtifactCleanupPlanner(
     /**
      * Построить отчёт сухого прогона по классу.
      *
+     * BR-174 (аудит #336, пакет `PKG-S3-24`): обход трёх корней (183k+ файлов на
+     * машине владельца) занимает десятки секунд, поэтому вызов выполняется ВНЕ
+     * HTTP-потока (см. [ArtifactCleanupService.planAsync]) — здесь только сам обход.
+     *
+     * @param classId класс реестра.
+     * @param planId идентификатор отчёта (выдаётся сервисом ДО обхода — чтобы
+     *   клиент мог опрашивать статус построения).
      * @throws IllegalArgumentException если класс защищён или не участвует в разовой чистке.
      */
-    fun plan(classId: ArtifactCleanupClass): CleanupPlan {
+    fun plan(
+        classId: ArtifactCleanupClass,
+        planId: String = UUID.randomUUID().toString(),
+    ): CleanupPlan {
         if (classId.isProtected) {
             throw CleanupException(
                 400,
@@ -121,7 +131,7 @@ class ArtifactCleanupPlanner(
 
         val warnings = (volumeWarnings(classId, entries) + walkWarnings).distinct()
         return CleanupPlan(
-            planId = UUID.randomUUID().toString(),
+            planId = planId,
             classId = classId.name,
             generatedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
             entries = entries.sortedBy { it.path },
@@ -139,11 +149,15 @@ class ArtifactCleanupPlanner(
         try {
             Files.walk(rootPath).use { stream ->
                 stream.asSequence().forEach { path ->
-                    if (matches(path, classId)) {
+                    // BR-174: размер файла считается ОДИН раз — раньше `matches()`
+                    // считал его для подбора класса, а `collect` считал ещё раз для
+                    // записи в отчёт (двойной `stat` на каждый файл).
+                    val size = matchSize(path, classId)
+                    if (size != null) {
                         into.add(
                             CleanupPlanEntry(
                                 path = path.toString(),
-                                sizeBytes = sizeOf(path),
+                                sizeBytes = size,
                                 reason = classId.note,
                             ),
                         )
@@ -164,23 +178,31 @@ class ArtifactCleanupPlanner(
         }
     }
 
-    private fun matches(
+    /**
+     * Размер файла, если он подходит под класс; `null` — файл не входит в класс.
+     *
+     * BR-174: возвращает размер, чтобы не считать `sizeOf` дважды на файл.
+     */
+    private fun matchSize(
         path: Path,
         classId: ArtifactCleanupClass,
-    ): Boolean {
-        val fileName = path.fileName?.toString() ?: return false
-        val parentName = path.parent?.fileName?.toString() ?: return false
+    ): Long? {
+        val fileName = path.fileName?.toString() ?: return null
+        val parentName = path.parent?.fileName?.toString() ?: return null
         val isLink = Files.isSymbolicLink(path)
         val exists = Files.exists(path)
         // Битая символическая ссылка не является regular file — обрабатывается отдельно (FR-015)
         if (isLink && !exists) {
-            return ArtifactCleanupClass.SYMLINK_FOLDERS.contains(parentName) && classId == ArtifactCleanupClass.HYGIENE_JUNK
+            return if (ArtifactCleanupClass.SYMLINK_FOLDERS.contains(parentName) && classId == ArtifactCleanupClass.HYGIENE_JUNK) 0L else null
         }
-        if (!Files.isRegularFile(path)) return false
+        if (!Files.isRegularFile(path)) return null
 
-        return classId.matchers.any { matcher ->
-            matcher.matchesPath(fileName = fileName, parentFolderName = parentName, sizeBytes = sizeOf(path))
-        }
+        val size = sizeOf(path)
+        val matched =
+            classId.matchers.any { matcher ->
+                matcher.matchesPath(fileName = fileName, parentFolderName = parentName, sizeBytes = size)
+            }
+        return if (matched) size else null
     }
 
     private fun sizeOf(path: Path): Long =

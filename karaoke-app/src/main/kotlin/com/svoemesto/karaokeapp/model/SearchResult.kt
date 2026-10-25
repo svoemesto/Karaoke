@@ -236,6 +236,12 @@ class SearchResult(
             return result
         }
 
+        /**
+         * BR-192 (аудит #336): логгер результатов поиска — расхождение при
+         * батч-удалении должно быть видно, а не теряться.
+         */
+        private val searchLog = org.slf4j.LoggerFactory.getLogger("infra.search")
+
         const val TABLE_NAME = "tbl_search_results"
 
         @Suppress("unused")
@@ -349,14 +355,37 @@ class SearchResult(
          *
          * @see archive/docs/features/llm-lyrics-search.md
          */
+
+        /**
+         * Удалить результаты поиска по песне — ОДНИМ запросом (BR-192, аудит #336).
+         *
+         * Раньше строки удалялись по одной в цикле (N+1 DELETE на каждую ссылку),
+         * результат каждого `delete` отбрасывался, а сбой на середине оставлял часть
+         * результатов навсегда привязанной к песне — и вызывающий всё равно отвечал
+         * «успех». Теперь это один `DELETE … WHERE id = ANY(?)`
+         * ([KaraokeDbTable.deleteIn]), а расхождение «хотели удалить N, удалили M»
+         * попадает в журнал.
+         *
+         * @return число фактически удалённых строк.
+         */
         fun deleteBySongId(
             songId: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ) {
-            getSearchResultListBySongId(songId, database, storageService, storageApiClient)
-                .forEach { delete(it.id, database) }
+        ): Int {
+            val ids = getSearchResultListBySongId(songId, database, storageService, storageApiClient).map { it.id }
+            if (ids.isEmpty()) return 0
+            val deleted = KaraokeDbTable.deleteIn(TABLE_NAME, ids, database)
+            if (deleted != ids.size) {
+                searchLog.warn(
+                    "SearchResult.deleteBySongId: удалено {} из {} записей (songId={})",
+                    deleted,
+                    ids.size,
+                    songId,
+                )
+            }
+            return deleted
         }
 
         fun getSearchResultListBySearchAsyncId(

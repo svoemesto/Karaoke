@@ -14,7 +14,6 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
 import java.sql.Types
-import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
@@ -131,7 +130,8 @@ interface KaraokeDbTable {
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187 (аудит #336): SLF4J вместо println — по конвенции ADR local-0005.
+                log.error("Невозможно установить соединение с базой данных {} (сохранение {})", database.name, getTableName())
                 return
             }
             val ps = connection.prepareStatement(sql)
@@ -145,7 +145,8 @@ interface KaraokeDbTable {
                         "Не удалось сохранить запись в БД. Поле «${it.recordDiffName}» имеет значение " +
                             "«${it.recordDiffValueNew}», несовместимое с форматом данных этого поля в БД. " +
                             "Оригинальный текст ошибки: «${e.message}»"
-                    println(errorMessage)
+                    // BR-187: SLF4J вместо println (ADR local-0005) — с объектом исключения.
+                    log.error("Не удалось сохранить запись в БД: {}", errorMessage, e)
                 }
                 index++
             }
@@ -198,7 +199,8 @@ interface KaraokeDbTable {
                 try {
                     SNS.send(messageRecordChangeNew)
                 } catch (e: Exception) {
-                    println(e.message)
+                    // BR-187: SLF4J вместо println (ADR local-0005).
+                    log.warn("Не удалось разослать SSE recordChange для {}: {}", getTableName(), e.message, e)
                 }
             }
         }
@@ -229,6 +231,14 @@ interface KaraokeDbTable {
     companion object {
         /** Логгер по конвенции ADR local-0005 (SLF4J, не println). */
         private val log = LoggerFactory.getLogger(KaraokeDbTable::class.java)
+
+        /**
+         * SQLState нарушения уникальности (`unique_violation`) — PostgreSQL.
+         *
+         * BR-181 (аудит #336): по нему [createDbInstance] отличает ожидаемую гонку
+         * (запись уже создана другим потоком) от прочих ошибок вставки.
+         */
+        const val UNIQUE_VIOLATION_SQL_STATE = "23505"
 
         /**
          * Запись in-memory кеша для результата SQL к `information_schema.columns`.
@@ -294,7 +304,7 @@ interface KaraokeDbTable {
          * кеширования живёт в [columns], эта функция отвечает только за SQL и обработку ошибок.
          *
          * Возвращает `emptyList()` если соединение с БД отсутствует или SQL бросил
-         * `SQLException` (с `printStackTrace` для диагностики). Пустой результат НЕ
+         * `SQLException` (ошибка логируется через SLF4J — BR-187). Пустой результат НЕ
          * считается валидным для кеширования (FR-003 — этим занимается вызывающий код).
          *
          * @param tableName имя таблицы в `public`-схеме (например, `"tbl_songs"`).
@@ -310,7 +320,8 @@ interface KaraokeDbTable {
             val sql = "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '$tableName'"
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (схема {})", database.name, tableName)
                 return emptyList()
             }
             var statement: Statement? = null
@@ -326,13 +337,14 @@ interface KaraokeDbTable {
                 }
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                // BR-187: SLF4J + объект исключения (ADR local-0005) — стек больше не теряется.
+                log.warn("Не удалось прочитать список колонок таблицы {} (sqlState={})", tableName, e.sqlState, e)
             } finally {
                 try {
                     rs?.close()
                     statement?.close()
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    log.warn("Не удалось закрыть ресурсы чтения схемы таблицы {}: {}", tableName, e.message, e)
                 }
             }
             return emptyList()
@@ -453,6 +465,12 @@ interface KaraokeDbTable {
          * Исторический путь со списком готовых строк ([whereList]) оставлен для
          * вызывающих, которые ещё не переведены на [SqlWhere].
          *
+         * @param throwOnError `true` — SQL-ошибка (или отсутствие соединения) ПРОБРАСЫВАЕТСЯ
+         *   как [SQLException] вместо пустого списка (BR-184). Нужен в путях
+         *   «create-or-get»: пустой список при сбое БД неотличим от «строк нет»,
+         *   и вызывающий создал бы дубликат сущности. По умолчанию `false` —
+         *   историческое «мягкое» поведение для остальных вызывающих.
+         *
          * @see SqlWhere
          * @see SqlWhereBuilder
          */
@@ -467,6 +485,7 @@ interface KaraokeDbTable {
             storageApiClient: StorageApiClient,
             sync: Boolean = false,
             ignoreUseInList: Boolean = false,
+            throwOnError: Boolean = false,
         ): List<KaraokeDbTable> =
             loadListInternal(
                 clazz = clazz,
@@ -479,6 +498,7 @@ interface KaraokeDbTable {
                 storageApiClient = storageApiClient,
                 sync = sync,
                 ignoreUseInList = ignoreUseInList,
+                throwOnError = throwOnError,
             )
 
         fun loadList(
@@ -492,6 +512,7 @@ interface KaraokeDbTable {
             storageApiClient: StorageApiClient,
             sync: Boolean = false,
             ignoreUseInList: Boolean = false,
+            throwOnError: Boolean = false,
         ): List<KaraokeDbTable> =
             loadListInternal(
                 clazz = clazz,
@@ -504,6 +525,7 @@ interface KaraokeDbTable {
                 storageApiClient = storageApiClient,
                 sync = sync,
                 ignoreUseInList = ignoreUseInList,
+                throwOnError = throwOnError,
             )
 
         @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -518,10 +540,15 @@ interface KaraokeDbTable {
             storageApiClient: StorageApiClient,
             sync: Boolean,
             ignoreUseInList: Boolean,
+            throwOnError: Boolean = false,
         ): List<KaraokeDbTable> {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (загрузка {})", database.name, tableName)
+                // BR-184: «нет соединения» — это ошибка, а не «строк нет». В строгих
+                // вызывающих пустой список приводил к созданию дубликата сущности.
+                if (throwOnError) throw SQLException("db.unavailable: нет соединения с БД (${database.name})")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -640,14 +667,18 @@ interface KaraokeDbTable {
 
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                // BR-187: SLF4J + объект исключения (ADR local-0005).
+                log.warn("Не удалось загрузить записи таблицы {} (sqlState={})", tableName, e.sqlState, e)
+                // BR-184: в строгом режиме сбой чтения НЕ выглядит как «строк нет».
+                if (throwOnError) throw e
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                     preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    // BR-187: SLF4J вместо printStackTrace (ADR local-0005).
+                    log.warn("Не удалось закрыть ресурсы чтения таблицы {}: {}", tableName, e.message, e)
                 }
             }
             return emptyList()
@@ -704,14 +735,33 @@ interface KaraokeDbTable {
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (вставка {})", database.name, entity.getTableName())
                 return null
             }
             val ps = connection.prepareStatement(sql)
             try {
                 ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             } catch (e: Exception) {
-                println("[${Timestamp.from(Instant.now())}] createDbInstance: сбой вставки в ${entity.getTableName()}: ${e.message}")
+                // BR-181 (аудит #336): SQLState теперь в журнале — «тихий null» из-за
+                // нарушения UNIQUE больше не выглядит как штатный результат. Для
+                // нарушения уникальности (23505) это ожидаемая гонка (проигравший
+                // INSERT), для остальных — ошибка, и она видна в логе.
+                val sqlState = (e as? SQLException)?.sqlState
+                if (sqlState == UNIQUE_VIOLATION_SQL_STATE) {
+                    log.info(
+                        "createDbInstance: запись в {} уже существует (UNIQUE-нарушение) — ожидаемая гонка",
+                        entity.getTableName(),
+                    )
+                } else {
+                    log.error(
+                        "createDbInstance: сбой вставки в {} (sqlState={}): {}",
+                        entity.getTableName(),
+                        sqlState,
+                        e.message,
+                        e,
+                    )
+                }
                 // Проверяем последнее значение сиквенса и айдишника таблицы. Важно: каждый executeQuery —
                 // на СВОЁМ Statement, иначе второй executeQuery на том же Statement закрывает ResultSet
                 // первого (по контракту JDBC) и lastId всегда читался бы как 0 — самолечение дрейфа
@@ -772,7 +822,8 @@ interface KaraokeDbTable {
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (хеши {})", database.name, tableName)
                 return null
             }
             var statement: Statement? = null
@@ -781,23 +832,25 @@ interface KaraokeDbTable {
             try {
                 statement = connection.createStatement()
 
-                println("[${Timestamp.from(Instant.now())}] Запрос хешей для таблицы $tableName...")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.debug("Запрос хешей для таблицы {}", tableName)
                 rs = statement.executeQuery(sql)
                 var cnt = 0
                 while (rs.next()) {
                     cnt++
                     result!!.add(RecordHash(id = rs.getLong("id"), recordhash = rs.getString("recordhash")))
                 }
-                println("[${Timestamp.from(Instant.now())}] Получено хешей для таблицы $tableName: $cnt")
+                log.debug("Получено хешей для таблицы {}: {}", tableName, cnt)
             } catch (e: SQLException) {
-                e.printStackTrace()
+                // BR-187: SLF4J + объект исключения (ADR local-0005).
+                log.warn("Не удалось получить хеши таблицы {} (sqlState={})", tableName, e.sqlState, e)
                 result = null
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    log.warn("Не удалось закрыть ресурсы чтения хешей таблицы {}: {}", tableName, e.message, e)
                 }
             }
             return result
@@ -811,7 +864,8 @@ interface KaraokeDbTable {
             val sql = "SELECT COUNT(*) AS total_count FROM $tableName;"
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (счётчик {})", database.name, tableName)
                 return -1
             }
             var statement: Statement? = null
@@ -824,13 +878,14 @@ interface KaraokeDbTable {
                     return rs.getInt("total_count")
                 }
             } catch (e: SQLException) {
-                e.printStackTrace()
+                // BR-187: SLF4J + объект исключения (ADR local-0005).
+                log.warn("Не удалось получить счётчик таблицы {} (sqlState={})", tableName, e.sqlState, e)
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    log.warn("Не удалось закрыть ресурсы чтения счётчика таблицы {}: {}", tableName, e.message, e)
                 }
             }
             return -1
@@ -875,7 +930,8 @@ interface KaraokeDbTable {
         ): Boolean {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (удаление {})", database.name, tableName)
                 return false
             }
             try {
@@ -886,7 +942,8 @@ interface KaraokeDbTable {
                 ps.close()
                 return true
             } catch (e: Exception) {
-                println(e.message)
+                // BR-187: SLF4J + объект исключения (ADR local-0005).
+                log.warn("Не удалось удалить запись id={} из таблицы {}: {}", id, tableName, e.message, e)
             }
             return false
         }
@@ -905,7 +962,12 @@ interface KaraokeDbTable {
             sync: Boolean = false,
         ): Int {
             if (ids.isEmpty()) return 0
-            val connection = database.getConnection() ?: return 0
+            val connection = database.getConnection()
+            if (connection == null) {
+                // BR-187: SLF4J вместо println (ADR local-0005).
+                log.error("Невозможно установить соединение с базой данных {} (батч-удаление {})", database.name, tableName)
+                return 0
+            }
             return try {
                 val sql = "DELETE FROM $tableName${if (sync) "_sync" else ""} WHERE id = ANY(?)"
                 val ps = connection.prepareStatement(sql)
@@ -914,7 +976,8 @@ interface KaraokeDbTable {
                 ps.close()
                 n
             } catch (e: Exception) {
-                println(e.message)
+                // BR-187: SLF4J + объект исключения (ADR local-0005).
+                log.warn("Не удалось батч-удалить {} записей из таблицы {}: {}", ids.size, tableName, e.message, e)
                 0
             }
         }

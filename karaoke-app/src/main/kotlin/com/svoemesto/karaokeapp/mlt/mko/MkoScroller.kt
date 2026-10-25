@@ -166,9 +166,9 @@ data class MkoScroller(
                                 ).node(
                                     subtitle.mltText
                                         .copy(
-                                            subtitle.mltText.text.replace("&", "&amp;amp;"),
+                                            subtitle.mltText.text,
                                             Font(MAIN_FONT_NAME, initFont.style, fontSize),
-                                        ).mltNode(subtitle.mltText.text.replace("&", "&amp;amp;")),
+                                        ).mltNode(subtitle.mltText.text),
                                 ).build(),
                     ).build()
 

@@ -106,16 +106,43 @@ class SiteUser(
     fun sendWelcomePremiumMessageIfNeeded() {
         if (welcomeMessageSent) return
         if (!isEffectivePremium) return
-        SiteChatMessage.createNew(
-            siteUserId = id,
-            isFromAuthor = true,
-            body = WELCOME_PREMIUM_MESSAGE,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        )
+        // BR-194 (аудит #336, пакет `PKG-S3-24`): флаг ставится ТОЛЬКО после успешного
+        // создания сообщения и успешного сохранения флага.
+        //
+        // Раньше `createNew(...)` возвращал `null` при неудачной вставке (createDbInstance
+        // глотал исключение), а `welcomeMessageSent = true` и `save()` выполнялись
+        // НЕЗАВИСИМО от результата: при сбое БД пользователь не получал приветствия,
+        // но флаг оставался `true` — повторной попытки не было бы никогда.
+        val created =
+            SiteChatMessage.createNew(
+                siteUserId = id,
+                isFromAuthor = true,
+                body = WELCOME_PREMIUM_MESSAGE,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        if (created == null) {
+            siteUserLog.error(
+                "SiteUser.sendWelcomePremiumMessageIfNeeded: не удалось создать приветственное сообщение (userId={}) — флаг не выставлен",
+                id,
+            )
+            return
+        }
         welcomeMessageSent = true
-        save()
+        try {
+            save()
+        } catch (e: Exception) {
+            // Флаг не сохранён — возвращаем его в памяти, чтобы повторная попытка была возможна.
+            welcomeMessageSent = false
+            siteUserLog.error(
+                "SiteUser.sendWelcomePremiumMessageIfNeeded: не удалось сохранить флаг для userId={}: {}",
+                id,
+                e.message,
+                e,
+            )
+            throw e
+        }
     }
 
     // Персональные лимиты (0 = использовать дефолт в PublicPlaylistController). Int безопасен для
@@ -206,6 +233,11 @@ class SiteUser(
         )
 
     companion object {
+        /**
+         * BR-194 (аудит #336, пакет `PKG-S3-24`): категория логов пользователей сайта.
+         */
+        private val siteUserLog = org.slf4j.LoggerFactory.getLogger("infra.siteuser")
+
         const val TABLE_NAME = "tbl_site_users"
 
         const val WELCOME_PREMIUM_MESSAGE =

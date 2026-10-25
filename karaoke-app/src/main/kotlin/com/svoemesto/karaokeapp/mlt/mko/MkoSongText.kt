@@ -91,7 +91,7 @@ data class MkoSongText(
                             getTransposingChord(mltText.text, capo)
                         }
                     } else {
-                        mltText.text.replace("&", "&amp;amp;")
+                        mltText.text
                     }
 
                 val x = lineSymbol.xStartPx + Karaoke.songtextStartPositionXpx // (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()

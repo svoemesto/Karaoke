@@ -147,3 +147,11 @@ error codes) — см. [dictionaries](components/dictionaries.md).
 - SQL: `deploy/karaoke-db/10_song_assignments.sql`
 - Frontend: `karaoke-public/src/views/SongView.vue` (кнопка «Взять в работу»)
 - Frontend: `webvue3/src/components/SongEditor/ReviewModal.vue` (radio + watch)
+
+## Инварианты пакета `PKG-S3-24` (аудит #336, OpenProject #396)
+
+- **Фильтр даты публикаций** читается по обоим ключам (`filter_date_from` и
+  `publish_date_from`) — нижняя граница фильтра больше не игнорируется молча.
+  BR-190.
+- **Счётчики статистики** нормализованы: `limit ∈ [1, 1000]`, `offset ≥ 0`
+  (`StatsByEvents.normalizeStatsPaging`). BR-196.

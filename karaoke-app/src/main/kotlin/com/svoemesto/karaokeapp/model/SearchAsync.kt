@@ -79,6 +79,11 @@ class SearchAsync(
         )
 
     companion object {
+        /**
+         * BR-192 (аудит #336): логгер async-записей поиска.
+         */
+        private val searchAsyncLog = org.slf4j.LoggerFactory.getLogger("infra.search")
+
         const val TABLE_NAME = "tbl_search_async"
 
         @Suppress("unused")
@@ -194,14 +199,34 @@ class SearchAsync(
          *
          * @see archive/docs/features/llm-lyrics-search.md
          */
+
+        /**
+         * Удалить async-записи поиска по песне — ОДНИМ запросом (BR-192, аудит #336).
+         *
+         * Зеркало [SearchResult.deleteBySongId]: вместо N+1 DELETE — один
+         * `DELETE … WHERE id = ANY(?)` ([KaraokeDbTable.deleteIn]); расхождение
+         * «хотели удалить N, удалили M» попадает в журнал.
+         *
+         * @return число фактически удалённых строк.
+         */
         fun deleteBySongId(
             songId: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ) {
-            getSearchAsyncListBySongId(songId, database, storageService, storageApiClient)
-                .forEach { delete(it.id, database) }
+        ): Int {
+            val ids = getSearchAsyncListBySongId(songId, database, storageService, storageApiClient).map { it.id }
+            if (ids.isEmpty()) return 0
+            val deleted = KaraokeDbTable.deleteIn(TABLE_NAME, ids, database)
+            if (deleted != ids.size) {
+                searchAsyncLog.warn(
+                    "SearchAsync.deleteBySongId: удалено {} из {} записей (songId={})",
+                    deleted,
+                    ids.size,
+                    songId,
+                )
+            }
+            return deleted
         }
 
         fun getSearchAsyncListNotDone(

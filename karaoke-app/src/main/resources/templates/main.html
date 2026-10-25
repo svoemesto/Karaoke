@@ -294,7 +294,10 @@
     </div>
     <div id="areaBody">
         <datalist id="list_authors">
-            <option th:each="author:${songAuthors}" th:value="${author}">
+            <!-- BR-202 (аудит #336, пакет `PKG-S3-24`): контроллер кладёт в модель
+                 `authors` (`MainController.main()`), а шаблон читал `songAuthors` —
+                 `<datalist>` был пуст, автодополнение автора не работало. -->
+            <option th:each="author:${authors}" th:value="${author}">
         </datalist>
         <datalist id="list_dicts">
             <option th:each="dict:${dicts}" th:value="${dict}">

@@ -257,6 +257,9 @@ object StatsByEvents {
         storageApiClient: StorageApiClient = SAC_APP,
     ): List<WebEventDto> {
         val result: MutableList<WebEventDto> = mutableListOf()
+        // BR-196: limit/offset нормализуются (иначе `pageSize=2000000000` вычитывал всю
+        // tbl_events в heap, а отрицательный offset давал SQL-ошибку «съеденную» методом).
+        val (safeLimit, safeOffset) = normalizeStatsPaging(limit, offset)
         val sql =
             """
             select * from tbl_events where ${buildEventsWhere(
@@ -265,7 +268,7 @@ object StatsByEvents {
                 siteUserId,
                 anonId,
                 songId,
-            )} order by last_update desc, id desc limit $limit offset $offset
+            )} order by last_update desc, id desc limit $safeLimit offset $safeOffset
             """.trimIndent()
 
         val connection = database.getConnection()
@@ -455,6 +458,25 @@ object StatsByEvents {
     private const val MIN_STAT_BY_SONG_LIMIT = 1
 
     /**
+     * BR-196 (аудит #336, пакет `PKG-S3-24`): единая нормализация пагинации статистики.
+     *
+     * Раньше `limit`/`offset` подставлялись в SQL «как есть» (кроме одного метода, где
+     * нормализовался только `limit`): `?pageSize=2000000000` заставлял прочитать в heap
+     * всю `tbl_events` (250k+ строк), а `offset = (page - 1) * pageSize` переполнялся в
+     * отрицательный Int → SQL-ошибка, которую метод проглатывал (клиент получал `200`
+     * с пустой страницей).
+     *
+     * @param limit запрошенный размер страницы.
+     * @param offset запрошенное смещение.
+     * @return пара (limit, offset) в безопасных пределах.
+     */
+    internal fun normalizeStatsPaging(
+        limit: Int,
+        offset: Int,
+    ): Pair<Int, Int> =
+        limit.coerceIn(MIN_STAT_BY_SONG_LIMIT, MAX_STAT_BY_SONG_LIMIT) to offset.coerceAtLeast(0)
+
+    /**
      * Топ песен по числу событий в `tbl_events` с 17 условными счётчиками по типам событий
      * (player shown/opened/play/pause/seek/export/progress/ended, vk/dzen/tg karaoke+lyrics,
      * max/sponsr клики). Одна группировка по song_id + условные `count(*) filter (...)` вместо
@@ -484,7 +506,7 @@ object StatsByEvents {
         // безопасного диапазона [MIN_STAT_BY_SONG_LIMIT, MAX_STAT_BY_SONG_LIMIT] = [1, 1000].
         // Защищает от copy-paste ошибок (был hardcoded 100_000, теперь автоматически clamp'ится)
         // и DoS через REST query params (`StatsController?pageSize=100000`).
-        val safeLimit = limit.coerceIn(MIN_STAT_BY_SONG_LIMIT, MAX_STAT_BY_SONG_LIMIT)
+        val (safeLimit, safeOffset) = normalizeStatsPaging(limit, offset)
         // Одна группировка по song_id + условные count(*) filter вместо 8 LEFT JOIN-подзапросов.
         // total = ВСЕ события песни (не только показанные каналы). Boosty убран как неактуальный,
         // добавлена колонка «Плеер» (event_type='player') — новый значимый сигнал вовлечённости.
@@ -519,7 +541,7 @@ object StatsByEvents {
             where e.song_id is not null and e.song_id > 0
             group by e.song_id, song.song_author, song.song_album, song.song_name
             order by total desc, e.song_id asc
-            limit $safeLimit offset $offset
+            limit $safeLimit offset $safeOffset
             ;
             """.trimIndent()
 
@@ -613,6 +635,8 @@ object StatsByEvents {
         offset: Int = 0,
     ): List<TopListenedSongDto> {
         val result: MutableList<TopListenedSongDto> = mutableListOf()
+        // BR-196: единая нормализация пагинации (limit + offset).
+        val (safeLimit, safeOffset) = normalizeStatsPaging(limit, offset)
         // Базовый набор строк — это события «прослушали ≥75%» (progress='75' или ended).
         // count/filter по нему дают listened и ended. Для контекстных полей (play/song/max/sponsr)
         // используем scalar-подзапросы в SELECT — иначе фильтр listened-events их обнулит:
@@ -653,7 +677,7 @@ object StatsByEvents {
             ) s on s.id = e.id
             group by s.song_id, song.song_author, song.song_album, song.song_name
             order by p_listened desc, s.song_id asc
-            limit $limit offset $offset
+            limit $safeLimit offset $safeOffset
             """.trimIndent()
         val connection = database.getConnection()
         if (connection == null) {
@@ -1180,6 +1204,8 @@ object StatsByEvents {
         offset: Int = 0,
     ): List<TopUserDto> {
         val result = mutableListOf<TopUserDto>()
+        // BR-196: единая нормализация пагинации (limit + offset).
+        val (safeLimit, safeOffset) = normalizeStatsPaging(limit, offset)
         val sql =
             """
             select case when e.site_user_id > 0 then 0 else 1 end as kind,
@@ -1193,7 +1219,7 @@ object StatsByEvents {
             where e.site_user_id > 0 or (e.anon_id is not null and e.anon_id <> '')
             group by kind, e.site_user_id, anon_key, u.display_name, u.email, u.is_premium, u.is_permanent_premium
             order by kind asc, cnt desc, e.site_user_id asc, anon_key asc
-            limit $limit offset $offset
+            limit $safeLimit offset $safeOffset
             """.trimIndent()
         val connection = database.getConnection() ?: return emptyList()
         var statement: Statement? = null

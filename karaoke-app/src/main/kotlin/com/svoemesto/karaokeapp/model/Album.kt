@@ -15,6 +15,7 @@ import java.io.File
 import java.io.Serializable
 import java.sql.SQLException
 import javax.imageio.ImageIO
+import org.slf4j.LoggerFactory
 
 /**
  * Сущность «Альбом» — отдельная таблица `tbl_albums` (один автор — много альбомов,
@@ -144,6 +145,14 @@ class Album(
 
     companion object {
         const val TABLE_NAME = "tbl_albums"
+
+        /**
+         * Логгер по конвенции ADR local-0005 (SLF4J, не println).
+         *
+         * BR-184 (аудит #336): нужен для create-or-get путей — сбой чтения справочника
+         * авторов теперь логируется и НЕ приводит к созданию дубликата автора.
+         */
+        private val log = LoggerFactory.getLogger(Album::class.java)
 
         /**
          * Облегчённая версия [Album.toDTO] для потребителей, которым НЕ нужны денормализованные
@@ -630,13 +639,22 @@ class Album(
             storageApiClient: StorageApiClient,
         ): Album? {
             if (albumName.isBlank()) return null
+            // BR-184 (аудит #336): сбой чтения справочника авторов НЕ приводит к
+            // созданию второго автора с тем же именем — вызывающий получает `null`,
+            // и импорт повторится после восстановления БД.
             val author =
-                Author.getAuthorByName(
-                    author = authorName,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                ) ?: Author
+                try {
+                    Author.getAuthorByName(
+                        author = authorName,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        throwOnError = true,
+                    )
+                } catch (e: SQLException) {
+                    log.error("Не удалось прочитать автора '{}' из БД — альбом не создаётся: {}", authorName, e.message, e)
+                    return null
+                } ?: Author
                     .createNewAuthor(
                         newAuthor =
                             Author(database = database, storageService = storageService, storageApiClient = storageApiClient).apply {
@@ -689,13 +707,21 @@ class Album(
             storageApiClient: StorageApiClient,
         ): Pair<Album?, Boolean> {
             if (albumName.isBlank()) return Pair(null, false)
+            // BR-184 (аудит #336): сбой чтения справочника авторов НЕ приводит к
+            // созданию второго автора с тем же именем (см. findOrCreateForSongImport).
             val author =
-                Author.getAuthorByName(
-                    author = authorName,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                ) ?: Author
+                try {
+                    Author.getAuthorByName(
+                        author = authorName,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        throwOnError = true,
+                    )
+                } catch (e: SQLException) {
+                    log.error("Не удалось прочитать автора '{}' из БД — альбом не создаётся: {}", authorName, e.message, e)
+                    return Pair(null, false)
+                } ?: Author
                     .createNewAuthor(
                         newAuthor =
                             Author(database = database, storageService = storageService, storageApiClient = storageApiClient).apply {

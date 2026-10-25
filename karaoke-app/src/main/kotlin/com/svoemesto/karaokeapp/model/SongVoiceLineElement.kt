@@ -97,7 +97,7 @@ data class SongVoiceLineElement(
         return Karaoke.voices[0]
             .groups[groupId]
             .mltText
-            .copy(text().replace("&", "&amp;amp;"), fontSizeWithCoeff)
+            .copy(text(), fontSizeWithCoeff)
     }
 
     fun listOfMltText(): List<MltText> = getSyllables().map { it.mltText() }

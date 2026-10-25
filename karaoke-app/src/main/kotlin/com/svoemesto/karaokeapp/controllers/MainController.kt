@@ -355,6 +355,14 @@ class MainController(
         return 0
     }
 
+    /**
+     * Удаление песни (legacy GET-эндпоинт страницы `/songs`).
+     *
+     * BR-208 (аудит #336, пакет `PKG-S3-24`): возвращается ЧИСЛО удалённых строк
+     * (`1` — удалено, `0` — песня не найдена). Раньше эндпоинт всегда отдавал `0`, и
+     * клиент (удалявший строку из DOM на любой `200`) показывал «Удалено» даже когда
+     * песня не существовала — таблица расходилась с БД.
+     */
     @GetMapping("/song/{id}/delete")
     @ResponseBody
     fun doDeleteSong(
@@ -367,8 +375,9 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        song?.deleteFromDb()
-        return 0
+        if (song == null) return 0
+        song.deleteFromDb()
+        return 1
     }
 
     @GetMapping("/song/{id}/setpublishdatetimetoauthor")
@@ -1843,6 +1852,14 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-191 (аудит #336, пакет `PKG-S3-24`): дата/время публикации проверяются
+        // ДО сохранения — неверный формат больше не попадает в БД (и не роняет потом
+        // страницу публикаций целиком).
+        try {
+            Publication.validatePublishDateTime(song_date, song_time)
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message ?: "неверный формат даты/времени публикации")
+        }
         song?.let { songValue ->
             songValue.fileName = song_fileName
             songValue.rootFolder = song_rootFolder
@@ -2050,6 +2067,14 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-191 (аудит #336, пакет `PKG-S3-24`): дата/время публикации проверяются
+        // ДО сохранения — неверный формат больше не попадает в БД (и не роняет потом
+        // страницу публикаций целиком).
+        try {
+            Publication.validatePublishDateTime(song_date, song_time)
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message ?: "неверный формат даты/времени публикации")
+        }
         song?.let { songValue ->
             songValue.fileName = song_fileName
             songValue.rootFolder = song_rootFolder

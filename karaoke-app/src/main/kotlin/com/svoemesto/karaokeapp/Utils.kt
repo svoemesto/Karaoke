@@ -67,6 +67,15 @@ import kotlin.concurrent.withLock
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
+import org.slf4j.LoggerFactory
+
+/**
+ * Логгер по конвенции ADR local-0005 (SLF4J, не println).
+ *
+ * BR-184 (аудит #336, пакет `PKG-S3-24`): нужен для путей create-or-get —
+ * сбой чтения справочника авторов логируется и НЕ приводит к созданию дубликата.
+ */
+private val log = LoggerFactory.getLogger("karaoke.utils")
 
 // Повторный поиск родителей и аудио-родителей: для КАЖДОЙ песни с root_id = 0 И id_status < 6
 // (ещё не привязана ни к куратору-родителю, ни к автоматическому, и ещё не полностью готова —
@@ -3629,13 +3638,21 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
 
     // BR-266: один проход по списку вместо неограниченной рекурсии; список авторов читается один раз.
     for (authorForRequest in authorRequestOrder(listSongAuthors, requestNewSongLastSuccessAuthor)) {
+        // BR-184 (аудит #336): сбой чтения справочника авторов НЕ приводит к созданию
+        // второго автора с тем же именем — при сбое БД автор пропускается, а не «создаётся».
         var author =
-            Author.getAuthorByName(
-                author = authorForRequest,
-                database = WORKING_DATABASE,
-                storageService = KSS_APP,
-                storageApiClient = SAC_APP,
-            )
+            try {
+                Author.getAuthorByName(
+                    author = authorForRequest,
+                    database = WORKING_DATABASE,
+                    storageService = KSS_APP,
+                    storageApiClient = SAC_APP,
+                    throwOnError = true,
+                )
+            } catch (e: SQLException) {
+                log.error("Не удалось прочитать автора '{}' из БД — запись не создаётся: {}", authorForRequest, e.message, e)
+                continue
+            }
 
         if (author == null) {
             val newAuthor = Author()

@@ -39,6 +39,14 @@ object UnreadChatMessagesCheck : MonitorCheck {
                 }
             }
 
+        // BR-193 (аудит #336, пакет `PKG-S3-24`): -1 = счётчик не удалось получить
+        // (сбой БД). Раньше такой случай выглядел как «непрочитанных нет» — проверка
+        // молчала, и оператор не видел, что чат недоступен.
+        if (unread == SiteChatMessage.COUNT_ERROR) {
+            val error = IllegalStateException("chat.unread.count.unavailable: не удалось посчитать непрочитанные сообщения")
+            monitorCheckLog.error("UnreadChatMessagesCheck: {}", error.message)
+            throw error
+        }
         if (unread <= 0) return emptyList()
 
         return listOf(

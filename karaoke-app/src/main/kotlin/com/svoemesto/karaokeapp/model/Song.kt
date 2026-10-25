@@ -3417,7 +3417,7 @@ class Song(
 //        val yOffset = 0 //-5
 
         // setSongName - название песни
-        mltProp.setSongName(songName.replace("&", "&amp;"))
+        mltProp.setSongName(songName)
 
         // setSongTone - тональность песни
         mltProp.setSongTone(this.key.replace(" minor", "m").replace(" major", ""))
@@ -3458,7 +3458,7 @@ class Song(
         }
 
         // setFileName - имя файла в зависимости от SongOutputFile
-        mltProp.setFileName(getOutputFilename(SongOutputFile.VIDEO, songVersion).replace("&", "&amp;"), SongOutputFile.VIDEO)
+        mltProp.setFileName(getOutputFilename(SongOutputFile.VIDEO, songVersion), SongOutputFile.VIDEO)
 
         // setTone - тональность песни (для HEADER)
         mltProp.setTone(key, ProducerType.HEADER)
@@ -3470,19 +3470,19 @@ class Song(
         mltProp.setYear(year, ProducerType.HEADER)
 
         // setAuthor - Author песни (для HEADER)
-        mltProp.setAuthor(author.replace("&", "&amp;amp;"), ProducerType.HEADER)
+        mltProp.setAuthor(author, ProducerType.HEADER)
 
         // setAlbum - Album песни (для HEADER)
-        mltProp.setAlbum(album.replace("&", "&amp;amp;"), ProducerType.HEADER)
+        mltProp.setAlbum(album, ProducerType.HEADER)
 
         // setSongName - Название песни (для HEADER)
-        mltProp.setSongName(songName.replace("&", "&amp;amp;"), ProducerType.HEADER)
+        mltProp.setSongName(songName, ProducerType.HEADER)
 
         // setPath - путь к файлу логотипа автора для песни
-        mltProp.setPath(pathToFileLogoAuthor.replace("&", "&amp;amp;"), "LogoAuthor")
+        mltProp.setPath(pathToFileLogoAuthor, "LogoAuthor")
 
         // setPath - путь к файлу логотипа альбома для песни
-        mltProp.setPath(pathToFileLogoAlbum.replace("&", "&amp;amp;"), "LogoAlbum")
+        mltProp.setPath(pathToFileLogoAlbum, "LogoAlbum")
 
         // setBase64 - base64 файла логотипа автора для песни
         mltProp.setBase64(pathToFileLogoAuthor.base64ifFileExists(), "LogoAuthor")
@@ -3506,7 +3506,7 @@ class Song(
                 .toMutableList()
         mltProp.setChords(chords)
 
-        mltProp.setRootFolder(rootFolder.replace("&", "&amp;"), "Song")
+        mltProp.setRootFolder(rootFolder, "Song")
         mltProp.setLengthMs(songLengthMs, "Song")
 //        mltProp.setLengthFr(songLengthFr, "Song")
 //        mltProp.setLengthFr(convertMillisecondsToFrames(timelineLengthMs, Karaoke.frameFps), "Total")
@@ -3590,11 +3590,11 @@ class Song(
             }
         }
 
-        mltProp.setPath(audioSongFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOSONG))
-        mltProp.setPath(audioMusicFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOMUSIC))
-        mltProp.setPath(audioVocalFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOVOCAL))
-        mltProp.setPath(audioBassFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOBASS))
-        mltProp.setPath(audioDrumsFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIODRUMS))
+        mltProp.setPath(audioSongFileName, listOf(ProducerType.AUDIOSONG))
+        mltProp.setPath(audioMusicFileName, listOf(ProducerType.AUDIOMUSIC))
+        mltProp.setPath(audioVocalFileName, listOf(ProducerType.AUDIOVOCAL))
+        mltProp.setPath(audioBassFileName, listOf(ProducerType.AUDIOBASS))
+        mltProp.setPath(audioDrumsFileName, listOf(ProducerType.AUDIODRUMS))
 
         mltProp.setEnabled(Karaoke.createAudioVocal, listOf(ProducerType.AUDIOVOCAL))
         mltProp.setEnabled(Karaoke.createAudioMusic, listOf(ProducerType.AUDIOMUSIC))

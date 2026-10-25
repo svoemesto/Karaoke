@@ -5,6 +5,7 @@ import java.io.File
 import java.nio.file.Files
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
 
@@ -37,6 +38,38 @@ enum class CleanupRunState {
     PARTIAL,
     FAILED,
 }
+
+/**
+ * Состояние подготовки отчёта (BR-174, аудит #336, пакет `PKG-S3-24`).
+ *
+ * Построение отчёта — обход трёх корней (183k+ файлов) — вынесено из HTTP-потока,
+ * поэтому клиенту нужен идентификатор задания и его состояние.
+ */
+enum class CleanupPlanState {
+    /** Отчёт строится в фоновом потоке. */
+    PLANNING,
+
+    /** Отчёт готов, его можно получить по `planId`. */
+    READY,
+
+    /** Построение отчёта завершилось ошибкой — детали в [CleanupPlanJob.error]. */
+    FAILED,
+}
+
+/**
+ * Задание подготовки отчёта (BR-174).
+ *
+ * @param planId идентификатор отчёта (тот же, что у готового [CleanupPlan]).
+ * @param classId класс реестра.
+ * @param state состояние построения.
+ * @param error текст ошибки (только для [CleanupPlanState.FAILED]).
+ */
+data class CleanupPlanJob(
+    val planId: String,
+    val classId: String,
+    val state: CleanupPlanState,
+    val error: String? = null,
+)
 
 /** Ошибка чистки с кодом HTTP, который должен вернуть контроллер. */
 class CleanupException(
@@ -86,6 +119,7 @@ class ArtifactCleanupService(
      */
     private val plans = LinkedHashMap<String, CleanupPlan>()
     private val runs = LinkedHashMap<String, CleanupRunStatus>()
+    private val planJobs = LinkedHashMap<String, CleanupPlanJob>()
     private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "artifact-cleanup") }
 
     private fun putPlan(plan: CleanupPlan) {
@@ -131,6 +165,20 @@ class ArtifactCleanupService(
 
     private fun getRun(runId: String): CleanupRunStatus? = synchronized(runs) { runs[runId] }
 
+    private fun putPlanJob(job: CleanupPlanJob) {
+        synchronized(planJobs) {
+            planJobs[job.planId] = job
+            while (planJobs.size > MAX_RETAINED_PLANS) {
+                val eldest = planJobs.entries.iterator()
+                if (!eldest.hasNext()) break
+                eldest.next()
+                eldest.remove()
+            }
+        }
+    }
+
+    private fun getPlanJob(planId: String): CleanupPlanJob? = synchronized(planJobs) { planJobs[planId] }
+
     private fun removePlan(planId: String) {
         synchronized(plans) { plans.remove(planId) }
     }
@@ -139,7 +187,11 @@ class ArtifactCleanupService(
     fun classes(): List<ArtifactCleanupClass> = ArtifactCleanupClass.entries.toList()
 
     /**
-     * Сухой прогон по классу: строит и запоминает отчёт.
+     * Сухой прогон по классу — БЛОКИРУЮЩИЙ вариант.
+     *
+     * HTTP-поверхность использует [planAsync] (BR-174): обход трёх корней занимает
+     * десятки секунд и не должен выполняться в потоке HTTP-запроса. Этот метод
+     * оставлен для тестов и внутренних вызовов, где блокировка уместна.
      *
      * @throws CleanupException `404` — неизвестный класс; `400` — класс защищён;
      *   `503` — недоступен каталог журнала (без журнала чистка невозможна, FR-012).
@@ -155,6 +207,71 @@ class ArtifactCleanupService(
         val plan = planner.plan(classId)
         putPlan(plan)
         return plan
+    }
+
+    /**
+     * Сухой прогон по классу: ставит построение отчёта в фоновый поток.
+     *
+     * BR-174 (аудит #336, пакет `PKG-S3-24`): построение отчёта — синхронный обход
+     * трёх корней (183k+ файлов, десятки секунд) — раньше выполнялось прямо в потоке
+     * HTTP-запроса и держало один из 50 потоков Tomcat. Теперь обход идёт в
+     * executor'е «artifact-cleanup», а клиент опрашивает состояние по `planId`
+     * (как это уже сделано для удаления — Constitution IV).
+     *
+     * @throws CleanupException `404` — неизвестный класс; `400` — класс защищён;
+     *   `503` — недоступен каталог журнала (без журнала чистка невозможна, FR-012).
+     */
+    fun planAsync(classIdRaw: String): CleanupPlanJob {
+        val classId = ArtifactCleanupClass.byId(classIdRaw) ?: throw unknownClass(classIdRaw)
+        if (classId.isProtected) {
+            throw CleanupException(400, "protected_class", "класс ${classId.name} защищён и не может быть удалён (FR-010)")
+        }
+        if (!journal.journalDirWritable()) {
+            throw CleanupException(503, "journal_unavailable", "каталог журнала '${journal.journalDir}' недоступен для записи")
+        }
+        val planId = UUID.randomUUID().toString()
+        putPlanJob(CleanupPlanJob(planId = planId, classId = classId.name, state = CleanupPlanState.PLANNING))
+        executor.submit {
+            try {
+                val plan = planner.plan(classId, planId)
+                putPlan(plan)
+                putPlanJob(CleanupPlanJob(planId = planId, classId = classId.name, state = CleanupPlanState.READY))
+            } catch (e: Exception) {
+                cleanupLog.error("cleanup: не удалось построить отчёт по классу {}: {}", classId.name, e.message, e)
+                putPlanJob(
+                    CleanupPlanJob(
+                        planId = planId,
+                        classId = classId.name,
+                        state = CleanupPlanState.FAILED,
+                        error = e.message ?: e.javaClass.simpleName,
+                    ),
+                )
+            }
+        }
+        return planJob(planId)
+    }
+
+    /**
+     * Состояние подготовки отчёта (BR-174).
+     *
+     * @throws CleanupException `404` — неизвестное задание.
+     */
+    fun planJob(planId: String): CleanupPlanJob = getPlanJob(planId) ?: throw CleanupException(404, "unknown_plan", "задание '$planId' не найдено")
+
+    /**
+     * Ожидание готовности отчёта — для тестов и сценариев, где блокировка уместна.
+     */
+    internal fun awaitPlan(
+        planId: String,
+        timeoutMs: Long = 30_000,
+    ): CleanupPlanJob {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val job = getPlanJob(planId) ?: throw CleanupException(404, "unknown_plan", "задание '$planId' не найдено")
+            if (job.state != CleanupPlanState.PLANNING) return job
+            Thread.sleep(20)
+        }
+        return planJob(planId)
     }
 
     /** Найти ранее построенный отчёт. */
@@ -209,14 +326,10 @@ class ArtifactCleanupService(
             )
         }
         // Отпечаток — «печать» утверждённого набора: состав не должен измениться.
-        val current = planner.plan(classId)
-        if (current.fingerprint != plan.fingerprint) {
-            throw CleanupException(
-                409,
-                "fingerprint_mismatch",
-                "состав файлов класса изменился с момента отчёта (${plan.fileCount} → ${current.fileCount}); требуется новый plan",
-            )
-        }
+        // BR-174: полный пересчёт состава (обход каталогов) перенесён в фоновый поток
+        // (см. [run]) — раньше он выполнялся в HTTP-потоке, и один щелчок «применить»
+        // стоил ДВА полных обхода (plan + сверка). Здесь проверяется только отпечаток,
+        // присланный клиентом, — это дешёвая операция.
         if (fingerprint != plan.fingerprint) {
             throw CleanupException(409, "fingerprint_mismatch", "отпечаток не совпадает с отчётом; требуется новый plan")
         }
@@ -260,6 +373,45 @@ class ArtifactCleanupService(
         approvedBy: String,
     ) {
         putRun(approved.copy(state = CleanupRunState.RUNNING))
+
+        // BR-174 (аудит #336, пакет `PKG-S3-24`): сверка состава выполняется ЗДЕСЬ,
+        // в фоновом потоке, а не в HTTP-потоке. Если состав изменился — прогон
+        // завершается FAILED и НИЧЕГО не удаляется (fail-closed): отпечаток
+        // утверждённого набора больше не действителен, нужен новый `plan`.
+        val current =
+            try {
+                planner.plan(classId)
+            } catch (e: Exception) {
+                cleanupLog.error("cleanup: не удалось пересчитать состав класса {}: {}", classId.name, e.message, e)
+                putRun(
+                    approved.copy(
+                        state = CleanupRunState.FAILED,
+                        errors = listOf("plan_recheck_failed: ${e.message ?: e.javaClass.simpleName}"),
+                    ),
+                )
+                return
+            }
+        if (current.fingerprint != plan.fingerprint) {
+            cleanupLog.warn(
+                "cleanup: состав класса {} изменился с момента отчёта ({} → {}) — прогон {} прерван, ничего не удалено",
+                classId.name,
+                plan.fileCount,
+                current.fileCount,
+                approved.runId,
+            )
+            putRun(
+                approved.copy(
+                    state = CleanupRunState.FAILED,
+                    errors =
+                        listOf(
+                            "fingerprint_mismatch: состав файлов класса изменился с момента отчёта " +
+                                "(${plan.fileCount} → ${current.fileCount}); требуется новый plan",
+                        ),
+                ),
+            )
+            return
+        }
+
         var deleted = 0L
         var failed = 0L
         var freed = 0L

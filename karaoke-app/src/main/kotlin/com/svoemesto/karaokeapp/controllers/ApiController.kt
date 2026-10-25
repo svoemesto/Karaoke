@@ -6641,8 +6641,17 @@ class ApiController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                     ignoreUseInList = true,
-                ).map { it.toDTO() }
-                .sorted()
+                ).let { authors ->
+                    // BR-186 (аудит #336, пакет `PKG-S3-24`): картинки всех авторов
+                    // читаются ОДНИМ запросом (`WHERE picture_name IN (…)`), а не
+                    // отдельным SELECT'ом на каждого автора (был N+1).
+                    Author.toDTOsWithPictures(
+                        authors = authors,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                }.sorted()
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,

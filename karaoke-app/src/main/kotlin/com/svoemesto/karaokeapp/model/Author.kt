@@ -115,17 +115,33 @@ class Author(
 
     override fun compareTo(other: Author): Int = author.compareTo(other.author)
 
-    override fun toDTO(): AuthorDTO {
+    /**
+     * DTO автора с картинкой.
+     *
+     * BR-186 (аудит #336, пакет `PKG-S3-24`): прежний [toDTO] читал картинку автора
+     * отдельным SELECT'ом на КАЖДОГО автора — список авторов давал N+1 (число
+     * запросов = числу авторов). Теперь картинка берётся из подготовленной карты
+     * «имя автора → картинка», которую [toDTOsWithPictures] наполняет ОДНИМ
+     * запросом `WHERE picture_name IN (…)`.
+     *
+     * @param picturesByName карта «имя автора → картинка»; `null` — картинка читается
+     *   отдельным запросом (legacy-путь для одиночного автора).
+     */
+    fun toDTOWithPictures(picturesByName: Map<String, Pictures>?): AuthorDTO {
         val picture =
-            Pictures
-                .loadList(
-                    whereArgs = mapOf("name" to author),
-                    limit = 1,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    ignoreUseInList = true,
-                ).firstOrNull()
+            if (picturesByName == null) {
+                Pictures
+                    .loadList(
+                        whereArgs = mapOf("name" to author),
+                        limit = 1,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        ignoreUseInList = true,
+                    ).firstOrNull()
+            } else {
+                picturesByName[author]
+            }
         val (pictureId, picturePreviewUrl) =
             picture?.let {
                 Pair(
@@ -158,6 +174,8 @@ class Author(
             picturePreviewUrl = picturePreviewUrl,
         )
     }
+
+    override fun toDTO(): AuthorDTO = toDTOWithPictures(picturesByName = null)
 
     companion object {
         const val TABLE_NAME = "tbl_authors"
@@ -233,6 +251,7 @@ class Author(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
             ignoreUseInList: Boolean,
+            throwOnError: Boolean = false,
         ): List<Author> =
             KaraokeDbTable
                 .loadList(
@@ -245,7 +264,37 @@ class Author(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                     ignoreUseInList = ignoreUseInList,
+                    throwOnError = throwOnError,
                 ).map { it as Author }
+
+        /**
+         * DTO-ы авторов без N+1 (BR-186, аудит #336, пакет `PKG-S3-24`).
+         *
+         * Картинки всех авторов читаются ОДНИМ запросом
+         * (`WHERE picture_name IN (…)` — [Pictures.getPicturesByNames]) и раздаются
+         * авторам из карты. Прежний путь (`authors.map { it.toDTO() }`) делал
+         * отдельный SELECT на каждого автора.
+         *
+         * @param authors авторы, для которых нужны DTO.
+         * @return список DTO в том же порядке, что и [authors].
+         */
+        fun toDTOsWithPictures(
+            authors: List<Author>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<AuthorDTO> {
+            if (authors.isEmpty()) return emptyList()
+            val picturesByName =
+                Pictures.getPicturesByNames(
+                    names = authors.map { it.author },
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                )
+            return authors.map { it.toDTOWithPictures(picturesByName) }
+        }
 
         fun delete(
             id: Long,
@@ -304,11 +353,24 @@ class Author(
                 ).filterIsInstance<Author>()
                 .associateBy { it.id }
 
+        /**
+         * Найти автора по имени.
+         *
+         * BR-184 (аудит #336, пакет `PKG-S3-24`): параметр [throwOnError] разделяет
+         * «автора нет» и «чтение не удалось». Раньше оба случая выглядели как пустой
+         * список, и пути create-or-get (импорт песни, [Utils.getAuthorForRequest])
+         * создавали ВТОРОГО автора с тем же именем — справочник авторов тихо
+         * размножался. В строгом режиме сбой чтения пробрасывается как [SQLException],
+         * и вызывающий НЕ создаёт сущность.
+         *
+         * @param throwOnError `true` — SQL-ошибка пробрасывается (для create-or-get).
+         */
         fun getAuthorByName(
             author: String,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
+            throwOnError: Boolean = false,
         ): Author? =
             loadList(
                 whereArgs = mapOf(Pair("author", author)),
@@ -316,6 +378,7 @@ class Author(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
                 ignoreUseInList = true,
+                throwOnError = throwOnError,
             ).firstOrNull()
 
         /**

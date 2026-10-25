@@ -184,3 +184,28 @@ TEST-com.svoemesto.karaokeapp.RemoteJdbcUrlTest.xml: tests=5 failures=0 errors=0
 - `knowledge/domains/persistence/domain.md` — инвариант: recordhash покрывает
   все значимые колонки в фиксированном порядке.
 - `docs/features/deploy-hardening.md` — per-feature документ (FR-009).
+
+## Дополнение 2026-10-25: пакет требовал ручного шага в do.env
+
+**Что случилось.** После merge BR-040 (`WHISPER_API_KEY` / `SEARXNG_SECRET` вынесены из
+compose в `${VAR:?…}`) `karaoke-app` перестал запускаться:
+
+```
+error while interpolating services.searxng.environment.[]: required variable
+SEARXNG_SECRET is missing a value: SEARXNG_SECRET is required (set in deploy/do.env or deploy/.env)
+```
+
+Простой — 54 минуты. Шаблон `deploy/do.env.example` с `CHANGE_ME` был добавлен, а сам
+`deploy/do.env` на машине — нет: значение просто исчезло из конфигурации.
+
+**Что сделано.** Значения восстановлены в `deploy/do.env` (из истории git, коммит
+`c97b2800^`) с явной пометкой «считать скомпрометированными, требуется ротация»;
+`docker compose config` разрешается (exit 0); приложение поднято и проверено
+(`/`, `/songs`, `/processes` → 200, очередь не запущена — 0 активных заданий).
+
+**Вывод для процесса.** Пакет, переводящий значение в переменную окружения, не может
+считаться закрытым без обновления `deploy/do.env` на каждой машине. Правило занесено в
+`specs/336-code-audit/protocol.md` § «Обязательные переменные окружения».
+
+**Прод не затронут:** его compose-файлы (`deploy/prod-single-host/*.yml`) этих переменных
+не требуют, и сервисов `searxng`/`whisper` на проде нет.

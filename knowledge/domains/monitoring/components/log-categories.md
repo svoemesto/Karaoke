@@ -147,3 +147,18 @@ fun refreshCache() {
 ## Связанные ADR | Related ADRs
 
 - ADR по logging conventions (TODO).
+
+### Категории пакета `PKG-S3-24` (аудит #336, OpenProject #396)
+
+| Категория | Где | Что логируется | Уровень по умолчанию |
+| --- | --- | --- | --- |
+| `infra.chat` | `karaoke-app/.../model/SiteChatMessage.kt` | SQL-сбои чтения/пометки сообщений; счётчики при сбое возвращают `-1` (`COUNT_ERROR`) | WARN |
+| `infra.search` | `karaoke-app/.../model/SearchResult.kt`, `SearchAsync.kt` | Расхождение при батч-удалении результатов поиска («удалено M из N») | WARN |
+| `infra.stemjobs` | `karaoke-app/.../model/StemJob.kt` | Сбой подсчёта активных заданий (лимит очереди), ошибки транзакции `createIfUnderLimit` | WARN |
+| `infra.siteuser` | `karaoke-app/.../model/SiteUser.kt` | Не удалось создать приветственное сообщение / сохранить флаг | ERROR |
+| `infra.uuids` | `karaoke-app/.../model/Uuids.kt` | Ошибки чтения/записи/вставки uuid (в т.ч. конфликт по PK) | WARN, ERROR |
+| `infra.editor.publication` | `karaoke-app/.../model/Publication.kt` | Неразбираемая дата публикации, конфликт слота `(publish_date, publish_time)`, время вне сетки 10:00-23:00 | WARN |
+
+**[WARN]** Счётчики, которые могут не получить значение, возвращают
+явный признак ошибки (`-1`), а не `0`: «непрочитанных нет» и «не удалось
+посчитать» должны различаться (см. `infra.chat`, `infra.stemjobs`).

@@ -433,3 +433,17 @@ L3-компонентов у домена пока нет: контекст оп
 обнуления `News.publish_at`; без `setNull` он «успешно» не сохранял ни
 `publish_at`, ни остальные поля запроса. Регрессия:
 `KaraokeDbTableNullBindingTest`.
+
+## Инварианты пакета `PKG-S3-24` (аудит #336, OpenProject #396)
+
+- **Сбой чтения ≠ «строк нет».** `KaraokeDbTable.loadList(throwOnError = true)`
+  пробрасывает `SQLException` (в т.ч. при отсутствии соединения) — для путей
+  create-or-get, где пустой список приводил к созданию дубликата. BR-184.
+- **Create-or-get не создаёт сущность при сбое чтения** — `Album.findOrCreateForSongImport`,
+  `Album.findOrCreateForSongImportRaw`, `Utils.getAuthorForRequest`. BR-184.
+- **Базовый слой логирует через SLF4J** (ADR `local-0005`): `printStackTrace()` и
+  `println()` в `KaraokeDbTable` заменены на `log.error` / `log.warn` с объектом
+  исключения. BR-187.
+- **Ошибка вставки различается с гонкой**: `createDbInstance` логирует `SQLState`;
+  `23505` (unique violation) — ожидаемая гонка (INFO), остальное — ошибка (ERROR).
+  BR-181.

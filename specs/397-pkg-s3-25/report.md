@@ -129,28 +129,207 @@
 
 ---
 
+## «До/после» — 5 представительных примеров
+
+### 1. BR-231: пустое поле «New prior» больше не 500 на КАЖДУЮ строку
+
+**Было** (`MainController.kt`, `progressUpdate`):
+
+```kotlin
+if (process_order != null) {
+    processOrder = process_order.toInt()   // "" → NumberFormatException → 500
+}
+```
+
+**Стало**:
+
+```kotlin
+val processOrder = parseOptionalInt(process_order, "bad_process_order")
+// "" / null → null («не менять»); "abc" → 400 с причиной bad_process_order
+```
+
+Кнопка «применить ко всем» с пустым полем больше не бьёт по каждой строке
+(было N запросов, все 500), и приоритет в БД не пишется пустой строкой.
+
+### 2. BR-239: один битый `stringLad` больше не роняет генерацию `.mlt` всей песни
+
+**Было** (`MkoMelodyTabs.kt`):
+
+```kotlin
+val stringLad = stringLadText.split("|")
+val stringIndex = stringLad[0].toInt()   // "undefined" → NumberFormatException
+```
+
+**Стало**:
+
+```kotlin
+val (stringIndex, lad) = parseStringLad(stringLadText)
+    ?: run {
+        log.warn("MkoMelodyTabs: некорректный stringLad '$stringLadText' — таб пропущен")
+        return@forEach
+    }
+```
+
+Неверный маркер (`undefined|undefined`) → таб пропущен, рендер продолжается.
+
+### 3. BR-242: битых ссылок `producer_linetrack_*` больше нет
+
+**Было** (`MkoMainBin.kt`, `main_bin`):
+
+```kotlin
+"producer" to MltGenerator.nameProducer(type, …)   // для LINETRACK узла <producer> НЕ существует
+```
+
+**Стало**:
+
+```kotlin
+"producer" to if (type in PRODUCER_TYPES_WITHOUT_PRODUCER) {
+    MltGenerator.nameTractor(type, …)    // ссылка на существующий трактор
+} else {
+    MltGenerator.nameProducer(type, …)
+}
+```
+
+Эмпирика аудита: 182 битые ссылки на 12 свежих `.mlt`; после правки — 0.
+
+### 4. BR-274: `isValid(3)` убран из горячего пути
+
+**Было** (`KaraokeConnection.kt`):
+
+```kotlin
+if (conn == null || conn.isClosed || !conn.isValid(3)) { … }   // round-trip на КАЖДЫЙ вызов
+```
+
+**Стало**:
+
+```kotlin
+if (needsValidation(conn)) { … }   // при открытии, после SQLException и после простоя > 5 мин
+```
+
+`isValid(3)` в pgjdbc — это запрос к серверу (пустой query), то есть лишний
+round-trip на каждое обращение к БД; для `Connection.remote()` — через интернет.
+
+### 5. BR-249: `/api/properties/setproperty` больше не отвечает 200, если файл не записан
+
+**Было**:
+
+```kotlin
+fun savePropertiesMap() {
+    try { … } catch (e: Exception) { println("… не удалось сохранить файл …") }
+}
+```
+
+**Стало**:
+
+```kotlin
+fun savePropertiesMap(): Boolean = … catch (e: Exception) { log.error("…", e); false }
+fun set(key: String, value: Any): Boolean = … // откат значения в карте при неудаче
+```
+
+Контроллер: `saved == false` → 500 (было 200 + SSE «Свойство установлено» при
+незаписанном файле — значение жило только в памяти и исчезало при рестарте).
+
+---
+
 ## Уже закрытые другими пакетами — регрессионные проверки
 
-| BR | Где закрыто | Что подтверждает регрессия |
-|---|---|---|
-| BR-234 | `PKG-S3-23` (#375) | … |
-| BR-235 | `PKG-S3-23` (#375) | … |
-| BR-237 | `PKG-S3-23` (#383) | … |
-| BR-244 | `PKG-S3-23` (#375) | … |
-| BR-247 | `PKG-S3-23` (#407) | … |
-| BR-249 | `PKG-S3-23` (#375) | … |
-| BR-251 | `PKG-S3-23` (#375) | … |
-| BR-258 | `PKG-S3-23` (#361) | … |
-| BR-266 | `PKG-S3-23` (#375) | … |
+| BR | Где закрыто (реестр) | Что подтверждает регрессия | Правка в этом пакете |
+|---|---|---|---|
+| BR-234 | #375, `collectstore-noop:main` | `MainController.kt` — сбор хранилища не отвечает безусловным `true` | не трогали |
+| BR-235 | #375, `voice-index-oom:main` | `MainController.kt` — индекс голоса проверяется через `isValidVoiceIndex` | не трогали |
+| BR-237 | #383, `sql-injection-albums:albums` | `Album.kt` — `author_id` передаётся параметром (`ps.setLong`), не склейкой | не трогали |
+| BR-244 | #375, `properties-write-race:properties` | `KaraokeProperties.kt` — запись под `ReentrantLock`, атомарная запись файла | не трогали |
+| BR-247 | #407, `chmod666-secrets:properties` | `Extentions.kt` — `SECRET_FILE_PERMISSIONS` = 600 (владелец), `setSecretFilePermissions` | не трогали |
+| BR-249 | **TODO, 397** (см. примечание) | `KaraokeProperties.kt` — `savePropertiesMap(): Boolean` + права 600 на файл | **исправлено** в партии 2 |
+| BR-251 | #375, `sync-result-ignored:utils` | `Utils.kt` — `postChunksConfirming` прерывает отправку при отказе цели | не трогали |
+| BR-258 | #361, `public-bucket-stems:storage` | `StemJob.kt` — приватный бакет `stemjobs` вместо публичного `karaoke` | не трогали |
+| BR-266 | #375, `recursion-stackoverflow:utils` | `Utils.kt` — `authorRequestOrder` (один проход по кругу), без рекурсии | не трогали |
+
+> **Примечание про BR-249.** В ТЗ задания BR-249 упоминался среди «уже закрытых
+> другими пакетами». Фактическое состояние кода и `registry.csv` показали
+> обратное: `savePropertiesMap()` глотал исключение и `set()` возвращал `Unit`
+> (то есть HTTP отвечал 200 при незаписанном файле) — дефект был жив. Поэтому
+> BR-249 **исправлен** в этом пакете (партия 2), а не оставлен как «закрытый
+> ранее». Регрессия фиксирует и результат записи, и права файла (BR-247).
 
 ---
 
 ## Проверки
 
-_(заполняется по ходу)_
+Все проверки — ровно тот набор, что в CI (`.github/workflows/lint.yml`).
+
+| Проверка | Результат |
+|---|---|
+| `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true :karaoke-app:test :karaoke-web:test` | ✅ BUILD SUCCESSFUL, **773 теста** в `karaoke-app` + `karaoke-web` — все зелёные |
+| `ktlintCheck` | ✅ BUILD SUCCESSFUL (0 нарушений) |
+| `bash tools/check-knowledge-structure.sh` | ✅ OK: knowledge/ structure valid (9/9 checks passed) |
+| `python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt` | ✅ All documentation passes architectural style and structural checks |
+| `python3 tools/check-doc-references.py` | ✅ OK: битых ссылок, несуществующих путей и эндпоинтов нет (4347 ссылок, 2571 путей, 352 эндпоинта) |
+| `python3 tools/check-recordhash-consistency.py` | ✅ OK recordhash-контракт |
+| `bash tools/check-no-mp4-mentions.sh` | ✅ OK: all 139 MP4 mentions are in baseline (grandfathered) |
+| `bash tools/check-feature-doc.sh docs/features/*.md` | ✅ Все документы валидны |
+| `bash tools/check-subagent-isolation.sh` | ✅ Все commits в ветке `624-pkg-s3-25` уникальны |
+| `bash tools/check-file-permissions.sh` | ✅ OK: chmod с правом записи для всех нет |
+| Фронтенд (`webvue3/`, `karaoke-public/`) | ⏭ **не запускался** — в этом пакете НЕ трогались JS/TS-файлы (все правки — Kotlin + docs). Сборка фронтенда не требуется. |
+
+### Регрессионные проверки пакета
+
+| Файл | Тестов | Что покрывает |
+|---|---:|---|
+| `PkgS325Batch1SourceContractsTest.kt` | 20 | BR-228…BR-243 (партия 1) |
+| `PkgS325Batch1BehaviorTest.kt` | 4 | BR-230 (`UuidCache`), BR-241, BR-246 (дефолты ключей) |
+| `PkgS325Batch2SourceContractsTest.kt` | 31 | BR-245…BR-275 (партии 2–3) |
+| `PkgS325Batch2BehaviorTest.kt` | 10 | BR-257 (HTML→текст), BR-271 (экранирование/скрипт), BR-259 (jobId), BR-270/BR-274 (константы), BR-250 (построчный разбор) |
+| `PkgS325AlreadyClosedRegressionTest.kt` | 9 | BR-234, BR-235, BR-237, BR-244, BR-247, BR-249, BR-251, BR-258, BR-266 — закрыты ранее, добавлены «якоря» |
+| **Итого** | **74** | |
+
+**«До/после»:** контрактные тесты читают исходники (комментарии вырезаются
+конечным автоматом) и проверяют, что СТАРАЯ конструкция УБРАНА, а новая
+присутствует. На коде «до» правки каждый такой тест падает; поведенческие
+тесты ссылаются на функции, которых до правки не существовало (`UuidCache`,
+`parseStringLad`, `parseOptionalInt`, `emptyKdenliveTitle`, `shellEscape`,
+`buildHostScript`, `htmlToPlainTextWithNewlines`, `isStemJobDescription`,
+`readPropertiesFileTolerant`, `CONNECTION_VALIDATION_IDLE_MS`) — то есть на
+старом коде тестовый модуль даже не компилируется.
 
 ---
 
 ## Осталось за владельцем
 
-_(заполняется по ходу)_
+1. **Каталог `/sm-karaoke/system/scriptsFromDocker` — общий с четырьмя
+   контейнерами** (P-72-03, `BR-271` — тот же корень, но другой эффект:
+   watcher исполняет ЛЮБОЙ `.sh`, появившийся в каталоге, а каталог
+   bind-mount'ится в `karaoke-app`, `karaoke-webvue`, `karaoke-webvue3`, `mlt`).
+   BR-271 закрыл неэкранированную конкакатенацию и права `777 → 700`, но
+   **архитектурное решение остаётся за владельцем**: отдельный сервисный
+   пользователь для watcher'а + удаление bind-mount `/sm-karaoke/system` из
+   контейнеров, которым он не нужен, либо отказ от исполнения файлов на хосте.
+   Тот же вопрос закрыт в `specs/371-pkg-s2-08/report.md` — здесь только
+   отмечено, что он не закрыт.
+2. **Права на скрипт `700` vs доступ контейнера.** `karaoke-app` пишет файл в
+   общий каталог; после смены прав на `700` файл сможет прочитать/исполнить
+   только владелец. Если watcher на хосте работает не от того пользователя,
+   который владеет каталогом, скрипт перестанет исполняться. Требует проверки
+   на целевой машине (эмпирика с продом не проводилась — согласия нет).
+3. **Единый источник свойств для `karaoke-app` и `karaoke-web`.** Файл
+   `Karaoke.properties` читается один раз за жизнь JVM; `karaoke-web` читает
+   тот же абсолютный путь, но в локальном compose монтирование
+   `/sm-karaoke/system` закомментировано (веб живёт на дефолтах), а в проде
+   монтируется `${WEB_FOLDER_HOST}`. Если два процесса пишут в один файл, они
+   затирают правки друг друга (пишется карта целиком), а инвалидации нет.
+   Решение (общий файл + инвалидация либо настройки веба из БД/API) —
+   за владельцем; BR-246 закрыл только НЕЗАРЕГИСТРИРОВАННЫЕ ключи.
+4. **Прод-эмпирика не проводилась.** Ни один фикс не проверялся на живой
+   прод-БД/прод-хранилище (согласия на обращение к прод-данным не было).
+   Особенно требуют проверки на целевой машине: BR-274 (валидация соединения
+   по таймеру вместо `isValid` на каждый вызов — поведение при обрыве сети
+   меняется), BR-270 (таймаут `runCommand` в 2 часа — для `docker run` с demucs
+   на CPU этого достаточно, но замер не делался), BR-271 (права `700`).
+5. **`BR-271` и формат скрипта.** Скрипты для хоста теперь используют
+   `set -- …` + `exec … "$@"`. Старые скрипты, оставшиеся в каталоге от прежних
+   версий, исполняются как раньше (watcher не различает формат) — при
+   перезапуске контейнера они просто удаляются.
+6. **`BR-264` — формат ответа `syncAll`.** Теперь при сбое выборки возвращается
+   строка `"ERROR: …"` вместо `"OK"`. Вызывающий (`ApiController`) отдаёт её
+   как есть; если фронтенд ждёт строго `"OK"`, это надо учесть (фронтенд в
+   этом пакете не трогался).

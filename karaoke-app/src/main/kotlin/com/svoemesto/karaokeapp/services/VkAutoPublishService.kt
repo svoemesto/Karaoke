@@ -16,7 +16,6 @@ import java.sql.SQLException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Выполняет полный цикл автопубликации песни в группу ВКонтакте (specs/121-vk-news-auto-publish).
@@ -51,12 +50,28 @@ object VkAutoPublishService {
     private val client = VkApiClient()
     private val warmupClient = VkPreviewWarmupClient()
     private val photoClient = VkPhotoUploadClient()
-    private val songLocks = ConcurrentHashMap<Long, Any>()
+
+    /**
+     * BR-155 (аудит #336, пакет `PKG-S3-23`): striped-локи фиксированного размера.
+     *
+     * Раньше был `ConcurrentHashMap<Long, Any>` с per-song локами, из которого записи
+     * НИКОГДА не удалялись: каждая песня, для которой вызывалась публикация, оставляла
+     * объект-лок до конца жизни процесса, и карта росла с числом песен (десятки тысяч).
+     *
+     * Полосы фиксированного размера решают это без ref-count: локов всегда ровно
+     * [SONG_LOCK_STRIPES], память не растёт. Коллизия двух песен в одну полосу лишь
+     * немного сериализует публикации — корректность не нарушается (локи независимы,
+     * вложенных захватов нет).
+     */
+    private val songLocks: Array<Any> = Array(SONG_LOCK_STRIPES) { Any() }
+
+    private const val SONG_LOCK_STRIPES = 256
+
     private const val PREWARM_FAILURE_PREFIX = "preview prewarm failed:"
     private const val PHOTO_UPLOAD_FAILURE_PREFIX = "photo upload failed:"
     private const val PHOTO_ATTACH_FAILURE_PREFIX = "photo attach failed:"
 
-    private fun lockFor(songId: Long): Any = songLocks.computeIfAbsent(songId) { Any() }
+    private fun lockFor(songId: Long): Any = songLocks[Math.floorMod(songId, SONG_LOCK_STRIPES.toLong()).toInt()]
 
 /**
      * Выполняет полный цикл публикации [song] в группу ВК типа [type] (FR-001, FR-008,

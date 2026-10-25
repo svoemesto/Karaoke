@@ -15,7 +15,7 @@
 |---|---|---|
 | 1 | BR-117…BR-122, BR-129…BR-131, BR-134…BR-137 (13) | ✅ исправлены |
 | 2 | BR-144…BR-153 (10) | ✅ исправлены |
-| 3 | BR-155…BR-160, BR-163…BR-166 (10) | ⏳ в работе |
+| 3 | BR-155…BR-160, BR-163…BR-166 (10) | ✅ исправлены |
 | 4 | BR-167…BR-173 (6) | ⏳ в работе |
 
 ---
@@ -171,9 +171,56 @@ $ ... :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323Batch2*"
   различать и «поставлено в очередь мной» vs «поставлено ранее», нужен отдельный
   идентификатор задания.
 
-## Партия 3 — BR-155…BR-160, BR-163…BR-166
+## Партия 3 — BR-155…BR-160, BR-163…BR-166 (10 записей)
 
-_в работе_
+### По записям
+
+| BR | Файл:строка (было) | Класс | Что не так | Как правильно | Проверка |
+|---|---|---|---|---|---|
+| BR-155 | `karaoke-app/.../services/VkAutoPublishService.kt:40` | LEAK | `songLocks: ConcurrentHashMap<Long, Any>` — per-song локи никогда не удалялись, карта росла с числом песен | striped-локи фиксированного размера (`SONG_LOCK_STRIPES = 256`), индекс через `Math.floorMod` — память не растёт | контрактная (1) |
+| BR-156 | `karaoke-app/.../services/VkAutoPublishScheduler.kt:187-219` | PERF | `loadNewsCandidates` читал ВСЮ историю air-новостей (без LIMIT), и для каждой — полная `Song.loadFromDbById`; уже опубликованные песни отсекались ПОСЛЕ загрузки | один SQL с `LEFT JOIN tbl_songs` (подтягивает `id_vk`, в т.ч. по ссылке `/song?id=<id>`), `LIMIT` (`newsCandidateLimit = 200`); опубликованные отсекаются ещё в SQL | контрактная (1) |
+| BR-157 | `karaoke-app/.../services/VkAutoPublishScheduler.kt:43-44` | ERR | слот rate-limit занимался ДО попытки; `SCHEDULED`/`RENDERING` израсходовали лимит без поста — после трёх тиков бот замолкал до конца часа | `reserveRateLimitSlot()` резервирует, `releaseRateLimitSlot()` возвращает слот, если поста не было (`PUBLISHED` — единственное состояние, где слот остаётся израсходованным) | контрактная (1) |
+| BR-158 | `karaoke-app/.../services/TelegramUpdatesConsumer.kt:64-67` (+ `:50-57`) | ERR | `deleteWebhook()` вне `try` — сетевая ошибка убивала поток, а `isWork` оставался `true` (повторный `start()` молча ничего не делал до рестарта); `start()` — check-then-act без синхронизации | `deleteWebhook` в `try/catch` с логом; `finally { isWork = false; started.set(false) }`; `start()` — атомарный `AtomicBoolean.compareAndSet` | контрактная (1) |
+| BR-159 | `karaoke-app/.../services/WhisperAsrService.kt:113-121` | ERR | любой сбой ASR (HTTP-код, пустое тело, битый JSON, таймаут) → `null` → `whisper_unavailable`, неотличимо от «сервис не настроен»; `InterruptedException` глушился | `transcribeDetailed(): Outcome` (`Transcribed`/`Failed` с причиной `asr.not_configured`/`asr.http_500`/`asr.empty_body`/`asr.invalid_response`/`asr.interrupted`); `SongEditorController` возвращает `reason` | контрактная (1) |
+| BR-160 | `karaoke-app/.../services/VkIdTokenRefreshScheduler.kt:44` | ERR | cron раз в час + порог 30 мин → OAuth в 31–59-ю минуту давал «пропуск» до следующего тика, токен успевал истечь | тик каждые 10 минут (`0 */10 * * * *`) при пороге 30 мин — «проскочить» токен не может | контрактная (1) |
+| BR-163 | `karaoke-app/.../services/KaraokeStorageService.kt:347-363` | LEAK | `file.inputStream()` не закрывался НИКОГДА (minio-java переданный поток не закрывает) — дескрипторы копились в массовых загрузках | `file.inputStream().use { … }` — закрытие гарантировано на любой ветке | контрактная (1) |
+| BR-164 | `karaoke-app/.../services/KaraokeStorageService.kt:499-529` (+ `getFileStat`) | ERR | любой `ErrorResponseException` (403/500/…) трактовался как «объекта нет»; `getFileStat` глотал любой `MinioException` → `exists=false` в кеше | «нет объекта» — только `NoSuchKey`/`NoSuchBucket`/`ResourceNotFound`; остальные коды и сбои MinIO → исключение + WARN `infra.cache.storage.local` (и breaker их видит) | контрактная (1) |
+| BR-165 | `karaoke-app/.../services/PremiumAutoPublishScheduler.kt:397-398` (+ `:435-436`, `:462-463`) | ERR | три SQL-выборки глотали `SQLException` пустым блоком; `printStackTrace()` уходил в stderr | загрузчики возвращают `null` при сбое, фазы тика прерываются; SLF4J `infra.premium.publish` (SQLState + Throwable) | контрактная (1) |
+| BR-166 | `karaoke-app/.../services/PremiumAutoPublishScheduler.kt:231-233` | ERR | тик реагировал только на `send_failed`; `SCHEDULED` («контент не готов») игнорировался → песня НАВСЕГДА в очереди: каждые 30 с полная загрузка песни, без лога и без терминального FAILED | `handleChannelOutcome()` разбирает код явно: `send_failed` и `scheduled` → `handleFailure` (счётчик + причина), остальное → WARN без расхода попытки | контрактная (1) |
+
+### «До / после»: команда и вывод
+
+```bash
+# ДО: главные исходники откачены (git stash), тесты — новые
+$ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+    -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+    :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323Batch3SourceContractsTest"
+# было: 10 tests completed, 10 failed  (BR-155…BR-166 — все десять)
+
+# ПОСЛЕ
+$ ... :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323*"
+# стало: BUILD SUCCESSFUL (42 теста: 16 + 5 + 11 + 10)
+```
+
+### Изменённые файлы (партия 3)
+
+`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/`: `controllers/SongEditorController.kt`,
+`services/{KaraokeStorageService,PremiumAutoPublishScheduler,TelegramUpdatesConsumer,VkAutoPublishScheduler,VkAutoPublishService,VkIdTokenRefreshScheduler,WhisperAsrService}.kt`.
+
+Тесты: `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS323Batch3SourceContractsTest.kt`.
+
+### Решения за владельцем
+
+- **BR-156**: `LIMIT` = 200 кандидатов за тик (тик раз в 60 с). Если у оператора
+  больше 200 неопубликованных air-новостей подряд, хвост очереди уйдёт на следующие
+  тики — это осознанный размен (стоимость тика ограничена). Значение — константа
+  `newsCandidateLimit`.
+- **BR-160**: тик обновления VK ID-токена стал чаще (каждые 10 минут вместо часа).
+  Частота refresh'а VK ID ограничена самим VK; при 6 попытках в час риск не выше, чем
+  был (до правки тик всё равно не срабатывал в «окне»).
+- **BR-163**: поток в `uploadFile(path)` теперь закрывается. Владелец потоком на
+  стороне вызывающего (перегрузка `uploadFile(InputStream)`) остаётся прежним — её
+  закрывают вызывающие (`Pictures.kt`, `Utils.kt`, `StorageController.kt`).
 
 ## Партия 4 — BR-167…BR-173
 

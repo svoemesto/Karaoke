@@ -43,6 +43,14 @@ class VkAutoPublishScheduler {
     // без-song_id случая это приемлемый компромисс без миграции News).
     private val publishedNewsIdsWithoutSong = ConcurrentHashMap.newKeySet<Long>()
 
+    /**
+     * BR-156: верхняя граница числа кандидатов-новостей за один тик.
+     *
+     * Раньше выборка была без LIMIT и читала всю историю air-новостей; теперь за тик
+     * обрабатывается не больше этого числа кандидатов (остальные — на следующих тиках).
+     */
+    private val newsCandidateLimit = 200
+
     // In-memory rate-limit счётчик: timestamp'ы успешных постов за последний час (FR-006).
     private val postTimestamps = mutableListOf<Long>()
 
@@ -112,23 +120,37 @@ class VkAutoPublishScheduler {
                         storageApiClient = SAC_APP,
                     ) ?: continue
                 if (song.idVk.isNotEmpty()) continue // FR-008
-                if (!acquireRateLimitSlot()) continue // FR-006
+                // BR-157 (аудит #336, пакет `PKG-S3-23`): слот rate-limit РЕЗЕРВИРУЕТСЯ,
+                // но расходуется только при фактическом посте. Раньше слот занимался ДО
+                // попытки, и результат `SCHEDULED` (контент не готов) / `RENDERING`
+                // (только поставили рендер) израсходовал лимит без единого поста: после
+                // трёх таких тиков бот замолкал до конца часа.
+                val reservedAt = reserveRateLimitSlot() ?: continue // FR-006
                 // BR-151: сбой обработки ОДНОЙ новости не должен обрывать цикл —
                 // остальные новости тика публикуются как обычно.
-                runCatching {
-                    VkAutoPublishService.publishToVk(song, PublicationType.AIR)
-                }.onFailure { e ->
-                    vkLog.warn("VkAutoPublishScheduler: не удалось опубликовать песню {} (songId={})", song.songName, song.id, e)
+                val publishResult =
+                    runCatching {
+                        VkAutoPublishService.publishToVk(song, PublicationType.AIR)
+                    }.onFailure { e ->
+                        vkLog.warn("VkAutoPublishScheduler: не удалось опубликовать песню {} (songId={})", song.songName, song.id, e)
+                    }.getOrNull()
+                if (publishResult?.state != VkAutoPublishState.PUBLISHED) {
+                    releaseRateLimitSlot(reservedAt)
                 }
             } else {
                 // FR-021 редкий: ручная air-новость без song_id → пост без видео.
                 if (publishedNewsIdsWithoutSong.contains(news.id)) continue // FR-004a
-                if (!acquireRateLimitSlot()) continue
+                // BR-157: слот возвращается, если поста фактически не было.
+                val reservedAt = reserveRateLimitSlot() ?: continue
                 // BR-151: изоляция сбоя одной новости.
-                runCatching {
-                    publishNewsWithoutVideo(news)
-                }.onFailure { e ->
-                    vkLog.warn("VkAutoPublishScheduler: не удалось опубликовать новость без видео (newsId={})", news.id, e)
+                val published =
+                    runCatching {
+                        publishNewsWithoutVideo(news)
+                    }.onFailure { e ->
+                        vkLog.warn("VkAutoPublishScheduler: не удалось опубликовать новость без видео (newsId={})", news.id, e)
+                    }.getOrDefault(false)
+                if (!published) {
+                    releaseRateLimitSlot(reservedAt)
                 }
             }
         }
@@ -136,7 +158,7 @@ class VkAutoPublishScheduler {
     }
 
     /** FR-021 редкий: публикация ручной air-новости без song_id (только текст). */
-    private fun publishNewsWithoutVideo(news: News) {
+    private fun publishNewsWithoutVideo(news: News): Boolean {
         val groupId = KaraokeProperties.getString("vkGroupId")
         val message =
             buildString {
@@ -157,27 +179,53 @@ class VkAutoPublishScheduler {
             try {
                 client.wallPost(groupId, message, attachments = null)
             } catch (e: Exception) {
-                println("VkAutoPublishScheduler.publishNewsWithoutVideo: wallPost exception for news ${news.id}: ${e.message ?: e.javaClass.simpleName}")
-                return
+                vkLog.warn(
+                    "VkAutoPublishScheduler.publishNewsWithoutVideo: wallPost exception for news {} ({})",
+                    news.id,
+                    e.message ?: e.javaClass.simpleName,
+                    e,
+                )
+                return false
             }
         if (result.state == VkAutoPublishState.PUBLISHED) {
             publishedNewsIdsWithoutSong.add(news.id)
-        } else {
-            println("VkAutoPublishScheduler.publishNewsWithoutVideo: news ${news.id} not published: ${result.error}")
+            return true
         }
+        vkLog.warn(
+            "VkAutoPublishScheduler.publishNewsWithoutVideo: news {} not published: {}",
+            news.id,
+            result.error,
+        )
+        return false
     }
 
-    /** FR-006: проверяет, не превышен ли лимит постов в час. Если нет — занимает слот. */
-    private fun acquireRateLimitSlot(): Boolean {
+    /**
+     * FR-006: резервирует слот rate-limit (постов в час).
+     *
+     * BR-157 (аудит #336, пакет `PKG-S3-23`): резервирует, а не «тратит». Если поста
+     * фактически не вышло (`SCHEDULED`/`RENDERING`/`SEND_FAILED`), слот возвращается
+     * через [releaseRateLimitSlot] — иначе лимит расходовался бы на публикации, которых
+     * не было, и бот замолкал до конца часа.
+     *
+     * @return timestamp резервирования или `null`, если лимит исчерпан.
+     */
+    private fun reserveRateLimitSlot(): Long? {
         val now = System.currentTimeMillis()
         val oneHourAgo = now - 3_600_000L
         synchronized(postTimestamps) {
             postTimestamps.removeAll { it < oneHourAgo }
             val limit = KaraokeProperties.getLong("vkAutoPublishRateLimitPerHour").let { if (it <= 0) 3L else it }
-            if (postTimestamps.size >= limit) return false
+            if (postTimestamps.size >= limit) return null
             postTimestamps.add(now)
+            return now
         }
-        return true
+    }
+
+    /** BR-157: возвращает слот rate-limit, если пост фактически не состоялся. */
+    private fun releaseRateLimitSlot(reservedAt: Long) {
+        synchronized(postTimestamps) {
+            postTimestamps.remove(reservedAt)
+        }
     }
 
     /** Cheap SELECT id песен в состоянии RENDERING (из player_readiness_flags JSON) с пустым id_vk. */
@@ -231,19 +279,41 @@ class VkAutoPublishScheduler {
                 }
         val result = mutableListOf<News>()
         try {
-            connection.createStatement().use { st ->
-                val rs =
-                    st.executeQuery(
-                        """
-                        SELECT id, title, body, link, song_id, category, publish_at
-                        FROM tbl_news
-                        WHERE category = 'air'
-                          AND publish_at IS NOT NULL AND publish_at <= now()
-                        ORDER BY publish_at ASC, id ASC
-                        """.trimIndent(),
-                    )
-                rs.use {
+            // BR-156 (аудит #336, пакет `PKG-S3-23`): кандидаты отбираются ОДНИМ SQL
+            // с JOIN на tbl_songs и LIMIT.
+            //
+            // Раньше SELECT читал ВСЕ air-новости за всю историю (без LIMIT), и для
+            // каждой в цикле грузилась полная песня (`Song.loadFromDbById` — тяжёлый
+            // `SELECT *`), а уже потом проверялось `song.idVk.isNotEmpty()`. Стоимость
+            // тика росла линейно с историей новостей и повторялась каждые 60 с.
+            //
+            // Теперь: LEFT JOIN подтягивает `id_vk` связанной песни (в т.ч. по ссылке
+            // вида `/song?id=<id>`), уже опубликованные песни отсекаются ещё в SQL, а
+            // выборка ограничена `LIMIT` — за тик грузится не больше `newsCandidateLimit`
+            // песен вместо всей истории.
+            val sql =
+                """
+                SELECT n.id, n.title, n.body, n.link, n.song_id, n.category, n.publish_at, s.id_vk AS song_id_vk
+                FROM tbl_news n
+                LEFT JOIN tbl_songs s
+                       ON s.id = COALESCE(
+                              n.song_id,
+                              NULLIF(substring(n.link FROM 'song.id=([0-9]+)'), '')::bigint,
+                          )
+                WHERE n.category = 'air'
+                  AND n.publish_at IS NOT NULL AND n.publish_at <= now()
+                ORDER BY n.publish_at ASC, n.id ASC
+                LIMIT ?
+                """.trimIndent()
+            val ps = connection.prepareStatement(sql)
+            ps.use {
+                it.setInt(1, newsCandidateLimit)
+                it.executeQuery().use { rs ->
                     while (rs.next()) {
+                        val songIdVk = rs.getString("song_id_vk")
+                        // BR-156: песня уже опубликована — кандидат не нужен, полную песню
+                        // не грузим.
+                        if (!songIdVk.isNullOrEmpty()) continue
                         val news = News(database = WORKING_DATABASE)
                         news.id = rs.getLong("id")
                         news.title = rs.getString("title") ?: ""

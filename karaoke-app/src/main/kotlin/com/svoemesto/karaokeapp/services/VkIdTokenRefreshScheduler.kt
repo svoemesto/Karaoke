@@ -34,14 +34,27 @@ import java.time.Instant
 class VkIdTokenRefreshScheduler {
     private val log = LoggerFactory.getLogger(VkIdTokenRefreshScheduler::class.java)
 
-    /** За сколько минут до истечения access_token делать refresh. */
+    /**
+     * За сколько минут до истечения access_token делать refresh.
+     *
+     * BR-160 (аудит #336, пакет `PKG-S3-23`): порог должен быть НЕ МЕНЬШЕ интервала
+     * тика. Раньше тик был раз в час (`0 0 * * * *`), а порог — 30 минут: если OAuth
+     * прошёл в 31–59-ю минуту часа, на ближайшем тике остаток был больше 30 минут →
+     * `skip`, и до следующего тика (через 60 минут) токен успевал ИСТЕЧЬ. В это окно
+     * `video.save`/`photos.*` уходили с просроченным токеном и получали `SEND_FAILED`.
+     *
+     * Теперь тик раз в 10 минут, а порог — 30 минут: окно «пропуска» невозможно.
+     */
     private val refreshThresholdMinutes = 30L
 
     /**
-     * Cron `0 0 * * * *` — в 0 минут каждого часа. Выполняется в потоке
-     * `karaoke-scheduler` (см. `KaraokeAppApplication.taskScheduler`).
+     * Cron: 0-я минута каждого 10-минутного интервала (минуты 0, 10, 20, 30, 40, 50).
+     * Выполняется в потоке `karaoke-scheduler` (см. `KaraokeAppApplication.taskScheduler`).
+     *
+     * BR-160: интервал тика (10 мин) меньше порога обновления (30 мин) — значит, токен
+     * не может «проскочить» между тиками и истечь.
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 */10 * * * *")
     fun refreshIfNeeded() {
         // Защита от параллельного выполнения (если scheduler тикает чаще,
         // или два инстанса — упрощённая защита для одного инстанса).

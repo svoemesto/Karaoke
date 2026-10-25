@@ -13,6 +13,13 @@
 #   6. add-comment
 #   7. close-issue
 #   8. final healthcheck
+#
+# BR-606 (аудит #336, пакет PKG-S3-30): под `set -euo pipefail` присваивание
+# `PROJECTS_LINES=$(… | grep -v … | grep -v … | wc -l)` при пустом выводе
+# УБИВАЛО скрипт: grep возвращает 1, когда ничего не напечатал, pipefail
+# propagates код в пайп, errexit — в скрипт. Вместо диагностики
+# «list-projects (нет проектов)» пользователь видел тихий выход с кодом 1.
+# Теперь пустой результат — это диагностируемое состояние.
 # =====================================================================
 
 set -euo pipefail
@@ -72,12 +79,16 @@ fi
 
 # --- Шаг 2: list-projects ---
 PROJECTS=$("$TRACKER_SH" list-projects 2>/dev/null || echo "")
-PROJECTS_LINES=$(echo "$PROJECTS" | grep -v "^ID" | grep -v "^$" | wc -l)
+# BR-606: `grep` без совпадений возвращает 1 → под pipefail это убивало
+# скрипт без диагностики. `|| true` + пустой результат = «проектов нет».
+PROJECTS_LINES=$(printf '%s\n' "${PROJECTS}" | grep -vE "^ID$|^$" | wc -l || true)
 
-if [ "$PROJECTS_LINES" -gt 0 ]; then
+if [ "${PROJECTS_LINES}" -gt 0 ]; then
     step_pass 2 "list-projects (найдено проектов: $PROJECTS_LINES)"
-    # Берём первый project ID (число в начале строки после ID-заголовка)
-    FIRST_PROJECT_ID=$(echo "$PROJECTS" | tail -n +2 | head -1 | awk '{print $1}')
+    # Берём первый project ID (число в начале строки после ID-заголовка).
+    # `head -1` закрывает пайп раньше, чем `tail` допишет всё → SIGPIPE
+    # (код 141) ломал бы пайп под pipefail, поэтому `|| true`.
+    FIRST_PROJECT_ID=$(printf '%s\n' "${PROJECTS}" | tail -n +2 | head -1 | awk '{print $1}' || true)
 else
     step_fail 2 "list-projects (нет проектов)" "Создайте хотя бы один проект в OpenProject UI"
     exit 1
@@ -114,8 +125,8 @@ CREATE_OUTPUT=$("$TRACKER_SH" create-issue \
     --subject "$SUBJECT" \
     --description "$DESCRIPTION" 2>&1 || echo "")
 
-if echo "$CREATE_OUTPUT" | grep -qE "OK: work package #[0-9]+ created"; then
-    CREATED_ID=$(echo "$CREATE_OUTPUT" | grep -oE "#[0-9]+" | head -1 | tr -d '#')
+if grep -qE "OK: work package #[0-9]+ created" <<< "$CREATE_OUTPUT"; then
+    CREATED_ID=$(grep -oE "#[0-9]+" <<< "$CREATE_OUTPUT" | head -1 | tr -d '#' || true)
     step_pass 3 "create-issue (#${CREATED_ID})"
 else
     step_fail 3 "create-issue" "$CREATE_OUTPUT"
@@ -125,7 +136,7 @@ fi
 # --- Шаг 4: get-issue ---
 GET_OUTPUT=$("$TRACKER_SH" get-issue "$CREATED_ID" 2>&1 || echo "")
 
-if echo "$GET_OUTPUT" | grep -q "\"id\": ${CREATED_ID}"; then
+if grep -q "\"id\": ${CREATED_ID}" <<< "$GET_OUTPUT"; then
     step_pass 4 "get-issue #${CREATED_ID}"
 else
     step_fail 4 "get-issue #${CREATED_ID}" "$GET_OUTPUT"
@@ -134,7 +145,7 @@ fi
 # --- Шаг 5: claim-issue ---
 CLAIM_OUTPUT=$("$TRACKER_SH" claim-issue "$CREATED_ID" 2>&1 || echo "")
 
-if echo "$CLAIM_OUTPUT" | grep -qE "OK: #${CREATED_ID} claimed"; then
+if grep -qE "OK: #${CREATED_ID} claimed" <<< "$CLAIM_OUTPUT"; then
     step_pass 5 "claim-issue #${CREATED_ID}"
 else
     step_fail 5 "claim-issue #${CREATED_ID}" "$CLAIM_OUTPUT"
@@ -162,7 +173,7 @@ EOF
 
 COMMENT_OUTPUT=$("$TRACKER_SH" add-comment "$CREATED_ID" --file "$TMP_REPORT" 2>&1 || echo "")
 
-if echo "$COMMENT_OUTPUT" | grep -qE "OK: comment added to #${CREATED_ID}"; then
+if grep -qE "OK: comment added to #${CREATED_ID}" <<< "$COMMENT_OUTPUT"; then
     step_pass 6 "add-comment #${CREATED_ID}"
 else
     step_fail 6 "add-comment #${CREATED_ID}" "$COMMENT_OUTPUT"
@@ -173,7 +184,7 @@ rm -f "$TMP_REPORT"
 # --- Шаг 7: close-issue ---
 CLOSE_OUTPUT=$("$TRACKER_SH" close-issue "$CREATED_ID" 2>&1 || echo "")
 
-if echo "$CLOSE_OUTPUT" | grep -qE "OK: #${CREATED_ID} closed"; then
+if grep -qE "OK: #${CREATED_ID} closed" <<< "$CLOSE_OUTPUT"; then
     step_pass 7 "close-issue #${CREATED_ID}"
 else
     step_fail 7 "close-issue #${CREATED_ID}" "$CLOSE_OUTPUT"

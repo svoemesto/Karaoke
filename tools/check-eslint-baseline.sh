@@ -9,7 +9,7 @@
 #   ./tools/check-eslint-baseline.sh karaoke-public
 #
 # Логика:
-#   1. Запустить eslint, получить текущие нарушения в /tmp/eslint-current.json
+#   1. Запустить eslint, получить текущие нарушения во ВРЕМЕННЫЙ каталог
 #   2. Прочитать baseline из .eslint-baseline.json
 #   3. Найти записи, которых нет в baseline → это "новые нарушения"
 #   4. Если новых нарушений > 0 → exit 1 (блокер)
@@ -21,8 +21,25 @@
 # «выглядеть как новое». Путь нормализуется (абсолютный путь ESLint →
 # относительный от корня репозитория), поэтому baseline, созданный на
 # другой машине или в другом worktree, совпадает.
+#
+# BR-579 (аудит #336, пакет PKG-S3-30): код возврата eslint ТЕРЯЛСЯ
+# (`set +e` … `set -e` вокруг npx eslint), а stderr уходил в /dev/null.
+# Guard не мог отличить «eslint нашёл нарушения» (exit 1) от «eslint упал»
+# (exit >= 2: битый конфиг, нет node_modules) — в обоих случаях проверка
+# молча превращалась в «нарушений нет». Теперь код возврата сохраняется,
+# stderr пишется в лог и показывается при падении, а падение eslint даёт
+# отдельный код возврата (2), а не «успех».
+#
+# BR-582 (аудит #336, пакет PKG-S3-30): промежуточные файлы писались в
+# ПРЕДСКАЗУЕМЫЕ пути /tmp/eslint-current.json и т.п. — другой пользователь
+# машины мог подменить их (symlink-атака) или испортить результат.
+# Теперь — mktemp -d с trap-очисткой.
 
 set -uo pipefail
+
+# Временный каталог вместо предсказуемых путей в /tmp (BR-582).
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "${TMP_DIR}"' EXIT
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <webvue3|karaoke-public>"
@@ -53,7 +70,11 @@ fi
 
 if [ ! -d "$MODULE/node_modules" ]; then
   echo "INFO: $MODULE/node_modules не существует, запускаю npm install..."
-  (cd "$MODULE" && npm install --no-audit --no-fund)
+  # BR-579: падение npm install — это ошибка установки, а не «нарушений нет».
+  if ! (cd "$MODULE" && npm install --no-audit --no-fund); then
+    echo "ERROR: npm install в $MODULE завершился с ошибкой — проверку выполнить нельзя" >&2
+    exit 2
+  fi
 fi
 
 # --- Нормализация путей (BR-578) -------------------------------------------
@@ -71,10 +92,41 @@ echo "==> Проверка $MODULE..."
 
 cd "$MODULE"
 
-# Получаем текущие нарушения
-set +e
-npx eslint . --ext .vue,.js,.ts --format json --max-warnings 99999 > /tmp/eslint-current.json 2>/dev/null
-set -e
+# Получаем текущие нарушения.
+# BR-579: код возврата сохраняем, stderr НЕ глушим — пишем в лог и
+# показываем, если eslint упал.
+ESLINT_JSON="${TMP_DIR}/eslint-current.json"
+ESLINT_STDERR="${TMP_DIR}/eslint-stderr.log"
+ESLINT_EXIT=0
+npx eslint . --ext .vue,.js,.ts --format json --max-warnings 99999 \
+  > "${ESLINT_JSON}" 2>"${ESLINT_STDERR}" || ESLINT_EXIT=$?
+
+if [ "${ESLINT_EXIT}" -ge 2 ]; then
+  echo "ERROR: eslint завершился с кодом ${ESLINT_EXIT} — это сбой самого линтера" >&2
+  echo "       (не «найдены нарушения»): результат проверки недостоверен." >&2
+  if [ -s "${ESLINT_STDERR}" ]; then
+    echo "--- stderr eslint ---" >&2
+    head -20 "${ESLINT_STDERR}" >&2
+    echo "----------------------" >&2
+  fi
+  exit 2
+fi
+
+if [ ! -s "${ESLINT_JSON}" ]; then
+  echo "ERROR: eslint не выдал JSON-отчёт (пустой файл) — проверку выполнить нельзя" >&2
+  if [ -s "${ESLINT_STDERR}" ]; then
+    echo "--- stderr eslint ---" >&2
+    head -20 "${ESLINT_STDERR}" >&2
+    echo "----------------------" >&2
+  fi
+  exit 2
+fi
+
+if ! jq -e 'type == "array"' "${ESLINT_JSON}" >/dev/null 2>&1; then
+  echo "ERROR: JSON-отчёт eslint невалиден — проверку выполнить нельзя" >&2
+  head -5 "${ESLINT_JSON}" >&2
+  exit 2
+fi
 
 # Нормализация путей: абсолютный путь ESLint → путь относительно корня
 # репозитория. Применяется и к текущим нарушениям, и к baseline (старый
@@ -104,15 +156,15 @@ jq "${NORMALIZE_ARGS[@]}" "${NORM_DEF}
   column: .column,
   message: .message,
   severity: .severity
-}]" /tmp/eslint-current.json > /tmp/eslint-current-flat.json
+}]" "${ESLINT_JSON}" > "${TMP_DIR}/eslint-current-flat.json"
 
 # Baseline приводим к тому же виду (старый baseline мог быть записан
 # абсолютными путями или путями от другой машины).
 jq "${NORMALIZE_ARGS[@]}" "${NORM_DEF}
-  map(.file = ((.file // \"\") | norm))" ".eslint-baseline.json" > /tmp/eslint-baseline-flat.json
+  map(.file = ((.file // \"\") | norm))" ".eslint-baseline.json" > "${TMP_DIR}/eslint-baseline-flat.json"
 
-current_count=$(jq 'length' /tmp/eslint-current-flat.json)
-baseline_count=$(jq 'length' /tmp/eslint-baseline-flat.json)
+current_count=$(jq 'length' "${TMP_DIR}/eslint-current-flat.json")
+baseline_count=$(jq 'length' "${TMP_DIR}/eslint-baseline-flat.json")
 
 echo "Текущих нарушений: $current_count"
 echo "В baseline:        $baseline_count"
@@ -123,7 +175,7 @@ echo "В baseline:        $baseline_count"
 # Сопоставление мультимножественное: каждая запись baseline используется
 # не более одного раза, поэтому N одинаковых нарушений требуют N записей
 # в baseline.
-new_violations=$(jq --slurpfile baseline "/tmp/eslint-baseline-flat.json" '
+new_violations=$(jq --slurpfile baseline "${TMP_DIR}/eslint-baseline-flat.json" '
   def key: [.ruleId, .file, .message] | tojson;
   . as $current
   | ($baseline[0]
@@ -139,7 +191,7 @@ new_violations=$(jq --slurpfile baseline "/tmp/eslint-baseline-flat.json" '
          else .new += [$c]
          end)
   | .new
-' /tmp/eslint-current-flat.json)
+' "${TMP_DIR}/eslint-current-flat.json")
 
 new_count=$(echo "$new_violations" | jq 'length')
 
@@ -161,5 +213,4 @@ if [ "$current_count" -lt "$baseline_count" ]; then
 fi
 
 echo "OK: новых нарушений нет"
-rm -f /tmp/eslint-current.json /tmp/eslint-current-flat.json /tmp/eslint-baseline-flat.json
 exit 0

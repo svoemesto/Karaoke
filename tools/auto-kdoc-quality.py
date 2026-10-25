@@ -54,6 +54,25 @@ CLASS_DESCRIPTIONS = {
 }
 
 
+# BR-583: @see-цель хранится ВМЕСТЕ с описанием класса, а не единым
+# шаблоном для всех классов. Ключи — те же, что в CLASS_DESCRIPTIONS.
+CLASS_SEE = {
+    'StorageApiClient': 'archive/docs/features/async-process-queue.md',
+    'SearchTool': 'archive/docs/features/llm-lyrics-search.md',
+    'Tools': 'archive/docs/features/llm-lyrics-search.md',
+}
+
+# Значение по умолчанию — для Mko*-классов (визуальные слои karaoke-видео).
+DEFAULT_SEE = 'archive/docs/features/mlt-generator.md'
+
+
+def validate_slugs():
+    """Проверить, что все @see-цели существуют (BR-583)."""
+    root = Path(__file__).resolve().parent.parent
+    slugs = set(CLASS_SEE.values()) | {DEFAULT_SEE}
+    return [s for s in sorted(slugs) if not (root / s).exists()]
+
+
 def find_file_for_class(class_name, root='karaoke-app/src/main/kotlin'):
     """Находит файл, содержащий объявление класса class_name."""
     for r, _, files in os.walk(root):
@@ -103,12 +122,17 @@ def replace_kdoc(path, class_name, description):
             # Достигли не-KDoc строки — выходим
             break
 
-    # Генерируем новый KDoc
+    # Генерируем новый KDoc.
+    # BR-583 (аудит #336, пакет PKG-S3-30): `@see` больше не ЕДИНЫЙ шаблон
+    # для всех классов — он хранится ВМЕСТЕ с описанием класса
+    # (CLASS_SEE), иначе, например, SearchTool получал ссылку на
+    # mlt-generator.md. Плюс правильный префикс archive/docs/features/.
+    see = CLASS_SEE.get(class_name, DEFAULT_SEE)
     new_kdoc_lines = [
         '/**',
         f' * {description}',
         ' *',
-        ' * @see docs/features/mlt-generator.md',
+        f' * @see {see}',
         ' */',
     ]
 
@@ -130,6 +154,13 @@ def replace_kdoc(path, class_name, description):
 
 
 def main():
+    missing = validate_slugs()
+    if missing:
+        print('ERROR: несуществующие @see-цели:', file=sys.stderr)
+        for slug in missing:
+            print(f'  {slug}', file=sys.stderr)
+        sys.exit(1)
+
     for class_name, description in CLASS_DESCRIPTIONS.items():
         path = find_file_for_class(class_name)
         if not path:
@@ -141,5 +172,33 @@ def main():
             print(f"  FAIL: {class_name} ({path})")
 
 
+def run_self_test():
+    """Самопроверка: @see-цели существуют и @see не единый шаблон (BR-583)."""
+    failures = 0
+    missing = validate_slugs()
+    if missing:
+        print('SELFTEST FAIL: несуществующие @see-цели:', file=sys.stderr)
+        for slug in missing:
+            print(f'  {slug}', file=sys.stderr)
+        failures += 1
+    else:
+        print('SELFTEST OK: все @see-цели существуют')
+
+    # @see не должен быть одинаковым для всех классов.
+    if len(set(CLASS_SEE.values())) < 2:
+        print('SELFTEST FAIL: @see одинаков для всех классов (единый шаблон)', file=sys.stderr)
+        failures += 1
+    else:
+        print('SELFTEST OK: @see задаётся вместе с описанием класса')
+
+    if failures:
+        print(f'SELFTEST FAIL: {failures} проверок не прошли', file=sys.stderr)
+        return 1
+    print('SELFTEST OK: 2/2 проверок прошли')
+    return 0
+
+
 if __name__ == '__main__':
+    if '--self-test' in sys.argv:
+        sys.exit(run_self_test())
     main()

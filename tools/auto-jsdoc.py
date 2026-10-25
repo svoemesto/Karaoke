@@ -18,7 +18,7 @@ JSDoc вставляется:
 - Краткое описание (на основе имени файла + содержимого)
 - `@prop` для каждого prop (тип определяется из Vue/Pinia)
 - `@emits` для каждого emit
-- `@see docs/features/<slug>.md` (из CLASS_SLUG_OVERRIDE или AGENTS.md)
+- `@see archive/docs/features/<slug>.md` (из NAME_SLUG_OVERRIDE или AGENTS.md)
 """
 import os
 import re
@@ -32,62 +32,62 @@ SCRIPT_OPEN_RE = re.compile(r'<script(\s+setup)?\s*>')
 
 # Маппинг "имя → slug"
 NAME_SLUG_OVERRIDE = {
-    'SongsTable': 'docs/features/dual-db-sync.md',
-    'SongsTable2': 'docs/features/dual-db-sync.md',
-    'SyncTable': 'docs/features/dual-db-sync.md',
-    'AuthorsTable': 'docs/features/dual-db-sync.md',
-    'PicturesTable': 'docs/features/dual-db-sync.md',
-    'ProcessesTable': 'docs/features/async-process-queue.md',
-    'SiteUsersTable': 'docs/features/dual-db-sync.md',
-    'SitePlaylistsTable': 'docs/features/dual-db-sync.md',
-    'DictionariesTable': 'docs/features/dual-db-sync.md',
-    'PropertiesTable': 'docs/features/mlt-generator.md',
-    'HealthReportTable': 'docs/features/monitoring.md',
-    'HealthReportTableBody': 'docs/features/monitoring.md',
-    'StatsView': 'docs/features/monitoring.md',
-    'PublishView': 'docs/features/telegram-auto-publish.md',
-    'NewsView': 'docs/features/dual-db-sync.md',
+    'SongsTable': 'archive/docs/features/dual-db-sync.md',
+    'SongsTable2': 'archive/docs/features/dual-db-sync.md',
+    'SyncTable': 'archive/docs/features/dual-db-sync.md',
+    'AuthorsTable': 'archive/docs/features/dual-db-sync.md',
+    'PicturesTable': 'archive/docs/features/dual-db-sync.md',
+    'ProcessesTable': 'archive/docs/features/async-process-queue.md',
+    'SiteUsersTable': 'archive/docs/features/dual-db-sync.md',
+    'SitePlaylistsTable': 'archive/docs/features/dual-db-sync.md',
+    'DictionariesTable': 'archive/docs/features/dual-db-sync.md',
+    'PropertiesTable': 'archive/docs/features/mlt-generator.md',
+    'HealthReportTable': 'archive/docs/features/monitoring.md',
+    'HealthReportTableBody': 'archive/docs/features/monitoring.md',
+    'StatsView': 'archive/docs/features/monitoring.md',
+    'PublishView': 'archive/docs/features/telegram-auto-publish.md',
+    'NewsView': 'archive/docs/features/dual-db-sync.md',
     'HomeView': 'AGENTS.md',
-    'SongEdit': 'docs/features/mlt-generator.md',
-    'SongEditorView': 'docs/features/mlt-generator.md',
-    'SongEditModal': 'docs/features/mlt-generator.md',
-    'SongKaraokeEditorView': 'docs/features/mlt-generator.md',
-    'SongKaraokeEditorModal': 'docs/features/mlt-generator.md',
-    'SiteUserEdit': 'docs/features/dual-db-sync.md',
-    'SiteUserEditModal': 'docs/features/dual-db-sync.md',
-    'SearchText': 'docs/features/llm-lyrics-search.md',
-    'SubsEdit': 'docs/features/mlt-generator.md',
-    'PictureEdit': 'docs/features/dual-db-sync.md',
-    'PictureEditModal': 'docs/features/dual-db-sync.md',
-    'FamilySongsModal': 'docs/features/dual-db-sync.md',
-    'AuthorAliasesModal': 'docs/features/dual-db-sync.md',
-    'SiteUsersFilterModal': 'docs/features/dual-db-sync.md',
-    'SiteUsersEditModal': 'docs/features/dual-db-sync.md',
-    'PicturesFilterModal': 'docs/features/dual-db-sync.md',
-    'SongsFilterModal': 'docs/features/dual-db-sync.md',
-    'ProcessesFilterModal': 'docs/features/async-process-queue.md',
-    'PropertiesFilterModal': 'docs/features/mlt-generator.md',
-    'DictionariesFilterModal': 'docs/features/dual-db-sync.md',
-    'PicturesEditModal': 'docs/features/dual-db-sync.md',
-    'SongsEditModal': 'docs/features/dual-db-sync.md',
-    'MonitorModal': 'docs/features/monitoring.md',
+    'SongEdit': 'archive/docs/features/mlt-generator.md',
+    'SongEditorView': 'archive/docs/features/mlt-generator.md',
+    'SongEditModal': 'archive/docs/features/mlt-generator.md',
+    'SongKaraokeEditorView': 'archive/docs/features/mlt-generator.md',
+    'SongKaraokeEditorModal': 'archive/docs/features/mlt-generator.md',
+    'SiteUserEdit': 'archive/docs/features/dual-db-sync.md',
+    'SiteUserEditModal': 'archive/docs/features/dual-db-sync.md',
+    'SearchText': 'archive/docs/features/llm-lyrics-search.md',
+    'SubsEdit': 'archive/docs/features/mlt-generator.md',
+    'PictureEdit': 'archive/docs/features/dual-db-sync.md',
+    'PictureEditModal': 'archive/docs/features/dual-db-sync.md',
+    'FamilySongsModal': 'archive/docs/features/dual-db-sync.md',
+    'AuthorAliasesModal': 'archive/docs/features/dual-db-sync.md',
+    'SiteUsersFilterModal': 'archive/docs/features/dual-db-sync.md',
+    'SiteUsersEditModal': 'archive/docs/features/dual-db-sync.md',
+    'PicturesFilterModal': 'archive/docs/features/dual-db-sync.md',
+    'SongsFilterModal': 'archive/docs/features/dual-db-sync.md',
+    'ProcessesFilterModal': 'archive/docs/features/async-process-queue.md',
+    'PropertiesFilterModal': 'archive/docs/features/mlt-generator.md',
+    'DictionariesFilterModal': 'archive/docs/features/dual-db-sync.md',
+    'PicturesEditModal': 'archive/docs/features/dual-db-sync.md',
+    'SongsEditModal': 'archive/docs/features/dual-db-sync.md',
+    'MonitorModal': 'archive/docs/features/monitoring.md',
     'CustomConfirm': 'AGENTS.md',
-    'ProcessWorker': 'docs/features/async-process-queue.md',
-    'PublicSettings': 'docs/features/telegram-auto-publish.md',
-    'SyncTable2': 'docs/features/dual-db-sync.md',
-    'KaraokePlayer': 'docs/features/mp4-render.md',
+    'ProcessWorker': 'archive/docs/features/async-process-queue.md',
+    'PublicSettings': 'archive/docs/features/telegram-auto-publish.md',
+    'SyncTable2': 'archive/docs/features/dual-db-sync.md',
+    'KaraokePlayer': 'archive/docs/features/mp4-render.md',
     'SiteAuth': 'AGENTS.md',
-    'SiteCart': 'docs/features/telegram-auto-publish.md',
+    'SiteCart': 'archive/docs/features/telegram-auto-publish.md',
     'SitePlaylist': 'AGENTS.md',
     'SiteFavorites': 'AGENTS.md',
     'SiteUser': 'AGENTS.md',
     'SitePayment': 'AGENTS.md',
-    'Player': 'docs/features/mp4-render.md',
-    'PlayerControls': 'docs/features/mp4-render.md',
+    'Player': 'archive/docs/features/mp4-render.md',
+    'PlayerControls': 'archive/docs/features/mp4-render.md',
     'EditorWorkView': 'AGENTS.md',
     'SitePlaylistEditView': 'AGENTS.md',
     'HomeView': 'AGENTS.md',
-    'SongView': 'docs/features/mlt-generator.md',
+    'SongView': 'archive/docs/features/mlt-generator.md',
     'AccountView': 'AGENTS.md',
     'SitePlaylistView': 'AGENTS.md',
     'SiteFavoritesView': 'AGENTS.md',
@@ -99,6 +99,30 @@ NAME_SLUG_OVERRIDE = {
     'NotFoundView': 'AGENTS.md',
     'App': 'AGENTS.md',
 }
+
+
+def repo_root():
+    """Корень репозитория (для проверки существования @see-целей)."""
+    return Path(__file__).resolve().parent.parent
+
+
+def validate_slugs():
+    """Проверить, что все @see-цели существуют.
+
+    BR-583 (аудит #336, пакет PKG-S3-30): генераторы писали в исходники
+    `@see docs/features/<slug>.md`, но живые per-feature документы лежат в
+    `archive/docs/features/` — ссылки в исходниках были битыми. Теперь
+    префикс правильный, а существование цели ПРОВЕРЯЕТСЯ: битая ссылка
+    больше не может уйти в код молча.
+    """
+    root = repo_root()
+    missing = []
+    for name, slug in sorted(NAME_SLUG_OVERRIDE.items()):
+        if slug == 'AGENTS.md':
+            continue
+        if not (root / slug).exists():
+            missing.append(f'{name} → {slug}')
+    return missing
 
 
 def split_camel(name):
@@ -290,6 +314,15 @@ def process_file(filepath, dry_run=False):
 def main():
     dry_run = '--dry-run' in sys.argv
     roots = [a for a in sys.argv[1:] if not a.startswith('--')]
+
+    # BR-583: битые @see-ссылки не должны уходить в исходники молча.
+    missing = validate_slugs()
+    if missing:
+        print('ERROR: несуществующие @see-цели в NAME_SLUG_OVERRIDE:', file=sys.stderr)
+        for item in missing:
+            print(f'  {item}', file=sys.stderr)
+        sys.exit(1)
+
     total = 0
     for root in roots:
         for r, _, files in os.walk(root):
@@ -304,5 +337,19 @@ def main():
     print(f'\nTotal: {total} JSDoc blocks {"would be" if dry_run else ""} added')
 
 
+def run_self_test():
+    """Самопроверка: все @see-цели существуют (BR-583)."""
+    missing = validate_slugs()
+    if missing:
+        print('SELFTEST FAIL: несуществующие @see-цели:', file=sys.stderr)
+        for item in missing:
+            print(f'  {item}', file=sys.stderr)
+        return 1
+    print(f'SELFTEST OK: все {len(NAME_SLUG_OVERRIDE)} @see-целей существуют')
+    return 0
+
+
 if __name__ == '__main__':
+    if '--self-test' in sys.argv:
+        sys.exit(run_self_test())
     main()

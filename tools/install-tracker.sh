@@ -144,10 +144,27 @@ info "Шаг 4/6: запуск OpenProject + Postgres..."
 cd "${REPO_ROOT}/deploy"
 # Переменные окружения из shell в compose не пробрасываются — поэтому
 # явно передаём --env-file (там лежат и креды, и выбранный порт).
-docker compose \
+#
+# BR-600 (аудит #336, пакет PKG-S3-30): код возврата `docker compose up -d`
+# ПРОГЛАТЫВАЛСЯ (`… | tail -10 || true`) — при падении compose скрипт всё
+# равно печатал «✓ Контейнеры запущены» и уходил дальше. Теперь вывод
+# compose сохраняется отдельно, его код возврата проверяется, а падение
+# останавливает установку.
+COMPOSE_OUTPUT=""
+COMPOSE_RC=0
+COMPOSE_OUTPUT="$(docker compose \
     --env-file "${ENV_FILE}" \
     -f tracker-docker-compose.yml \
-    up -d 2>&1 | grep -vE "^\s*$|level=warning msg=\"Found orphan" | tail -10 || true
+    up -d 2>&1)" || COMPOSE_RC=$?
+
+printf '%s\n' "${COMPOSE_OUTPUT}" \
+    | grep -vE "^\s*$|level=warning msg=\"Found orphan" | tail -10 || true
+
+if [ "${COMPOSE_RC}" -ne 0 ]; then
+    err "ERROR: docker compose up завершился с кодом ${COMPOSE_RC} — контейнеры НЕ запущены."
+    printf '%s\n' "${COMPOSE_OUTPUT}" | tail -20 >&2
+    exit 1
+fi
 
 info "  ✓ Контейнеры запущены"
 

@@ -25,12 +25,24 @@
 #
 # При срабатывании: выводит список «файл:строка» и завершается с кодом 1.
 #
-# Версия: 1.0.0 (Pass 369).
+# Версия: 1.1.0 (Pass 369 + BR-582).
+#
+# BR-582 (аудит #336, пакет PKG-S3-30): промежуточные файлы писались в
+# ПРЕДСКАЗУЕМЫЕ пути /tmp/_nocomm.txt и /tmp/_sql.txt. Любой пользователь
+# машины мог заранее создать такой файл (или symlink на свой) и получить
+# подмену проверяемых данных. Теперь — приватный mktemp -d с trap-очисткой
+# (как в check-endpoint-field-coverage.sh).
 
 set -u
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT" || exit 2
+
+# Приватный временный каталог вместо предсказуемых путей в /tmp (BR-582).
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "${TMP_DIR}"' EXIT
+NOCOMM_FILE="${TMP_DIR}/nocomm.txt"
+SQL_BLOCK_FILE="${TMP_DIR}/sql_blocks.txt"
 
 if [ -t 1 ]; then
     RED='\033[0;31m'
@@ -68,14 +80,13 @@ for f in deploy/karaoke-db/*.sql; do
         BEGIN{}
         /^--/ { next }
         { line=$0; sub(/--.*$/, "", line); print NR": "line }
-    ' "$f" > /tmp/_nocomm.txt
-    if grep -nE "${SQL_TABLE_USE}" /tmp/_nocomm.txt > /dev/null 2>&1; then
+    ' "$f" > "${NOCOMM_FILE}"
+    if grep -nE "${SQL_TABLE_USE}" "${NOCOMM_FILE}" > /dev/null 2>&1; then
         echo -e "  ${RED}✗${NC} $f содержит tbl_settings (вне комментария):"
-        grep -nE "${SQL_TABLE_USE}" /tmp/_nocomm.txt | head -5 | sed 's/^/    /'
+        grep -nE "${SQL_TABLE_USE}" "${NOCOMM_FILE}" | head -5 | sed 's/^/    /'
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
 done
-rm -f /tmp/_nocomm.txt
 
 # 2. Recordhash-файлы: deploy/recordhash_*.sql
 echo "[2/5] Проверка recordhash-файлов deploy/recordhash_*.sql..."
@@ -86,14 +97,13 @@ for f in deploy/recordhash_*.sql; do
         BEGIN{}
         /^--/ { next }
         { line=$0; sub(/--.*$/, "", line); print NR": "line }
-    ' "$f" > /tmp/_nocomm.txt
-    if grep -nE "${SQL_TABLE_USE}" /tmp/_nocomm.txt > /dev/null 2>&1; then
+    ' "$f" > "${NOCOMM_FILE}"
+    if grep -nE "${SQL_TABLE_USE}" "${NOCOMM_FILE}" > /dev/null 2>&1; then
         echo -e "  ${RED}✗${NC} $f содержит tbl_settings (вне комментария):"
-        grep -nE "${SQL_TABLE_USE}" /tmp/_nocomm.txt | head -5 | sed 's/^/    /'
+        grep -nE "${SQL_TABLE_USE}" "${NOCOMM_FILE}" | head -5 | sed 's/^/    /'
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
 done
-rm -f /tmp/_nocomm.txt
 
 # 3. Kotlin: ищем tbl_settings во всех .kt файлах в karaoke-app/, karaoke-web/
 echo "[3/5] Проверка Kotlin-файлов..."
@@ -146,14 +156,13 @@ for f in specs/*/spec.md specs/*/plan.md specs/*/research.md \
         /^```sql/ { in_block=1; next }
         /^```/ && in_block { in_block=0; next }
         in_block { print NR": "$0 }
-    ' "$f" > /tmp/_sql.txt
-    if grep -nE '\btbl_settings\b' /tmp/_sql.txt > /dev/null 2>&1; then
+    ' "$f" > "${SQL_BLOCK_FILE}"
+    if grep -nE '\btbl_settings\b' "${SQL_BLOCK_FILE}" > /dev/null 2>&1; then
         echo -e "  ${RED}✗${NC} $f содержит tbl_settings в SQL code-block:"
-        grep -nE '\btbl_settings\b' /tmp/_sql.txt | head -5 | sed 's/^/    /'
+        grep -nE '\btbl_settings\b' "${SQL_BLOCK_FILE}" | head -5 | sed 's/^/    /'
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
 done
-rm -f /tmp/_sql.txt
 
 # 5. Per-feature документы: docs/features/<slug>.md
 echo "[5/5] Проверка code-blockов SQL в docs/features/*.md..."
@@ -164,14 +173,13 @@ for f in docs/features/*.md; do
         /^```sql/ { in_block=1; next }
         /^```/ && in_block { in_block=0; next }
         in_block { print NR": "$0 }
-    ' "$f" > /tmp/_sql.txt
-    if grep -nE '\btbl_settings\b' /tmp/_sql.txt > /dev/null 2>&1; then
+    ' "$f" > "${SQL_BLOCK_FILE}"
+    if grep -nE '\btbl_settings\b' "${SQL_BLOCK_FILE}" > /dev/null 2>&1; then
         echo -e "  ${RED}✗${NC} $f содержит tbl_settings в SQL code-block:"
-        grep -nE '\btbl_settings\b' /tmp/_sql.txt | head -5 | sed 's/^/    /'
+        grep -nE '\btbl_settings\b' "${SQL_BLOCK_FILE}" | head -5 | sed 's/^/    /'
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
 done
-rm -f /tmp/_sql.txt
 
 echo ""
 if [ $VIOLATIONS -gt 0 ]; then

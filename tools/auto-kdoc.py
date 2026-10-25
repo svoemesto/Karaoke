@@ -48,16 +48,16 @@ def assert_no_forbidden(text, where):
             )
 
 DIR_TO_SLUG = {
-    'model': 'docs/features/dual-db-sync.md',
-    'services': 'docs/features/async-process-queue.md',
+    'model': 'archive/docs/features/dual-db-sync.md',
+    'services': 'archive/docs/features/async-process-queue.md',
     'controllers': 'AGENTS.md',
-    'mlt': 'docs/features/mlt-generator.md',
-    'mlt/mko': 'docs/features/mlt-generator.md',
-    'mlt/mko2': 'docs/features/mlt-generator.md',
-    'monitor': 'docs/features/monitoring.md',
-    'monitor/checks': 'docs/features/monitoring.md',
-    'llm': 'docs/features/llm-lyrics-search.md',
-    'sync': 'docs/features/dual-db-sync.md',
+    'mlt': 'archive/docs/features/mlt-generator.md',
+    'mlt/mko': 'archive/docs/features/mlt-generator.md',
+    'mlt/mko2': 'archive/docs/features/mlt-generator.md',
+    'monitor': 'archive/docs/features/monitoring.md',
+    'monitor/checks': 'archive/docs/features/monitoring.md',
+    'llm': 'archive/docs/features/llm-lyrics-search.md',
+    'sync': 'archive/docs/features/dual-db-sync.md',
     'textfiledictionary': 'AGENTS.md',
     'textfilehistory': 'AGENTS.md',
     'propertiesfiledictionary': 'AGENTS.md',
@@ -67,72 +67,72 @@ DIR_TO_SLUG = {
 }
 
 CLASS_SLUG_OVERRIDE = {
-    'SseNotification': 'docs/features/sse-notifications.md',
-    'SseNotificationType': 'docs/features/sse-notifications.md',
-    'MonitorAlert': 'docs/features/monitoring.md',
-    'HealthReportDTO': 'docs/features/monitoring.md',
-    'LyricsFinder': 'docs/features/llm-lyrics-search.md',
-    'ScraperAgent': 'docs/features/llm-lyrics-search.md',
-    'Mp4Render': 'docs/features/mp4-render.md',
-    'Mlt': 'docs/features/mlt-generator.md',
-    'MltNode': 'docs/features/mlt-generator.md',
-    'MltNodeBuilder': 'docs/features/mlt-generator.md',
-    'PropertiesMltNodeBuilder': 'docs/features/mlt-generator.md',
-    'ProducerType': 'docs/features/mlt-generator.md',
-    'SettingField': 'docs/features/mlt-generator.md',
-    'SettingVoiceLine': 'docs/features/mlt-generator.md',
-    'SettingVoiceLineElement': 'docs/features/mlt-generator.md',
-    'SettingVoiceLineElementTypes': 'docs/features/mlt-generator.md',
-    'Settings': 'docs/features/mlt-generator.md',
-    'SettingsDTO': 'docs/features/mlt-generator.md',
-    'SettingsDTOdigest': 'docs/features/mlt-generator.md',
-    'SettingsDTOupdate': 'docs/features/mlt-generator.md',
-    'SongType': 'docs/features/mlt-generator.md',
-    'Song2': 'docs/features/mlt-generator.md',
-    'SongOutputFile': 'docs/features/mlt-generator.md',
-    'Marker': 'docs/features/mlt-generator.md',
-    'Markertype': 'docs/features/mlt-generator.md',
-    'SourceMarker': 'docs/features/mlt-generator.md',
-    'TelegramAutoPublish': 'docs/features/telegram-auto-publish.md',
-    'TelegramUpdates': 'docs/features/telegram-auto-publish.md',
-    'SyncTarget': 'docs/features/dual-db-sync.md',
-    'KaraokeDbTable': 'docs/features/dual-db-sync.md',
-    'KaraokeDbTableDto': 'docs/features/dual-db-sync.md',
-    'KaraokeDbTableField': 'docs/features/dual-db-sync.md',
-    'RecordHash': 'docs/features/dual-db-sync.md',
-    'RecordDiff': 'docs/features/dual-db-sync.md',
-    'ApplicationContextProvider': 'docs/features/async-process-queue.md',
-    'KaraokeProcessWorker': 'docs/features/async-process-queue.md',
-    'KaraokeProcessThread': 'docs/features/async-process-queue.md',
-    'MonitoringService': 'docs/features/monitoring.md',
-    'HealthReport': 'docs/features/monitoring.md',
-    'AudioAnalysisResult': 'docs/features/llm-lyrics-search.md',
-    'AudioCompareHistoryEntry': 'docs/features/monitoring.md',
-    'SearchResponseFormat': 'docs/features/llm-lyrics-search.md',
-    'SearchResult': 'docs/features/llm-lyrics-search.md',
-    'SearchAsync': 'docs/features/llm-lyrics-search.md',
-    'SearchResultDTO': 'docs/features/llm-lyrics-search.md',
-    'SearchAsyncDTO': 'docs/features/llm-lyrics-search.md',
-    'MltProp': 'docs/features/mlt-generator.md',
-    'MltKaraokeObject': 'docs/features/mlt-generator.md',
-    'KaraokeConnection': 'docs/features/dual-db-sync.md',
-    'KaraokeProperties': 'docs/features/async-process-queue.md',
-    'KaraokeProcess': 'docs/features/async-process-queue.md',
-    'KaraokeAppService': 'docs/features/async-process-queue.md',
-    'KaraokeWebService': 'docs/features/async-process-queue.md',
-    'KaraokeStorageService': 'docs/features/premium-stems.md',
-    'WebKaraokeStorageServiceImpl': 'docs/features/premium-stems.md',
-    'SseNotificationService': 'docs/features/sse-notifications.md',
-    'RecordChangeMessage': 'docs/features/dual-db-sync.md',
-    'RecordAddMessage': 'docs/features/dual-db-sync.md',
-    'RecordDeleteMessage': 'docs/features/dual-db-sync.md',
-    'ProcessWorkerStateMessage': 'docs/features/async-process-queue.md',
-    'ProcessCountWaitingMessage': 'docs/features/async-process-queue.md',
-    'MessageMessage': 'docs/features/sse-notifications.md',
-    'ErrorMessage': 'docs/features/sse-notifications.md',
-    'LogMessage': 'docs/features/sse-notifications.md',
-    'CrudMessage': 'docs/features/dual-db-sync.md',
-    'SyncMessage': 'docs/features/dual-db-sync.md',
+    'SseNotification': 'archive/docs/features/sse-notifications.md',
+    'SseNotificationType': 'archive/docs/features/sse-notifications.md',
+    'MonitorAlert': 'archive/docs/features/monitoring.md',
+    'HealthReportDTO': 'archive/docs/features/monitoring.md',
+    'LyricsFinder': 'archive/docs/features/llm-lyrics-search.md',
+    'ScraperAgent': 'archive/docs/features/llm-lyrics-search.md',
+    'Mp4Render': 'archive/docs/features/mp4-render.md',
+    'Mlt': 'archive/docs/features/mlt-generator.md',
+    'MltNode': 'archive/docs/features/mlt-generator.md',
+    'MltNodeBuilder': 'archive/docs/features/mlt-generator.md',
+    'PropertiesMltNodeBuilder': 'archive/docs/features/mlt-generator.md',
+    'ProducerType': 'archive/docs/features/mlt-generator.md',
+    'SettingField': 'archive/docs/features/mlt-generator.md',
+    'SettingVoiceLine': 'archive/docs/features/mlt-generator.md',
+    'SettingVoiceLineElement': 'archive/docs/features/mlt-generator.md',
+    'SettingVoiceLineElementTypes': 'archive/docs/features/mlt-generator.md',
+    'Settings': 'archive/docs/features/mlt-generator.md',
+    'SettingsDTO': 'archive/docs/features/mlt-generator.md',
+    'SettingsDTOdigest': 'archive/docs/features/mlt-generator.md',
+    'SettingsDTOupdate': 'archive/docs/features/mlt-generator.md',
+    'SongType': 'archive/docs/features/mlt-generator.md',
+    'Song2': 'archive/docs/features/mlt-generator.md',
+    'SongOutputFile': 'archive/docs/features/mlt-generator.md',
+    'Marker': 'archive/docs/features/mlt-generator.md',
+    'Markertype': 'archive/docs/features/mlt-generator.md',
+    'SourceMarker': 'archive/docs/features/mlt-generator.md',
+    'TelegramAutoPublish': 'archive/docs/features/telegram-auto-publish.md',
+    'TelegramUpdates': 'archive/docs/features/telegram-auto-publish.md',
+    'SyncTarget': 'archive/docs/features/dual-db-sync.md',
+    'KaraokeDbTable': 'archive/docs/features/dual-db-sync.md',
+    'KaraokeDbTableDto': 'archive/docs/features/dual-db-sync.md',
+    'KaraokeDbTableField': 'archive/docs/features/dual-db-sync.md',
+    'RecordHash': 'archive/docs/features/dual-db-sync.md',
+    'RecordDiff': 'archive/docs/features/dual-db-sync.md',
+    'ApplicationContextProvider': 'archive/docs/features/async-process-queue.md',
+    'KaraokeProcessWorker': 'archive/docs/features/async-process-queue.md',
+    'KaraokeProcessThread': 'archive/docs/features/async-process-queue.md',
+    'MonitoringService': 'archive/docs/features/monitoring.md',
+    'HealthReport': 'archive/docs/features/monitoring.md',
+    'AudioAnalysisResult': 'archive/docs/features/llm-lyrics-search.md',
+    'AudioCompareHistoryEntry': 'archive/docs/features/monitoring.md',
+    'SearchResponseFormat': 'archive/docs/features/llm-lyrics-search.md',
+    'SearchResult': 'archive/docs/features/llm-lyrics-search.md',
+    'SearchAsync': 'archive/docs/features/llm-lyrics-search.md',
+    'SearchResultDTO': 'archive/docs/features/llm-lyrics-search.md',
+    'SearchAsyncDTO': 'archive/docs/features/llm-lyrics-search.md',
+    'MltProp': 'archive/docs/features/mlt-generator.md',
+    'MltKaraokeObject': 'archive/docs/features/mlt-generator.md',
+    'KaraokeConnection': 'archive/docs/features/dual-db-sync.md',
+    'KaraokeProperties': 'archive/docs/features/async-process-queue.md',
+    'KaraokeProcess': 'archive/docs/features/async-process-queue.md',
+    'KaraokeAppService': 'archive/docs/features/async-process-queue.md',
+    'KaraokeWebService': 'archive/docs/features/async-process-queue.md',
+    'KaraokeStorageService': 'archive/docs/features/premium-stems.md',
+    'WebKaraokeStorageServiceImpl': 'archive/docs/features/premium-stems.md',
+    'SseNotificationService': 'archive/docs/features/sse-notifications.md',
+    'RecordChangeMessage': 'archive/docs/features/dual-db-sync.md',
+    'RecordAddMessage': 'archive/docs/features/dual-db-sync.md',
+    'RecordDeleteMessage': 'archive/docs/features/dual-db-sync.md',
+    'ProcessWorkerStateMessage': 'archive/docs/features/async-process-queue.md',
+    'ProcessCountWaitingMessage': 'archive/docs/features/async-process-queue.md',
+    'MessageMessage': 'archive/docs/features/sse-notifications.md',
+    'ErrorMessage': 'archive/docs/features/sse-notifications.md',
+    'LogMessage': 'archive/docs/features/sse-notifications.md',
+    'CrudMessage': 'archive/docs/features/dual-db-sync.md',
+    'SyncMessage': 'archive/docs/features/dual-db-sync.md',
 }
 
 
@@ -192,6 +192,32 @@ def kdoc_block(name, kind, slug):
     ]
 
 
+def has_existing_kdoc(lines, decl_line):
+    """Есть ли KDoc непосредственно над декларацией.
+
+    BR-585 (аудит #336, пакет PKG-S3-30): раньше KDoc искался в фиксированном
+    окне в 8 строк (`range(max(0, decl_line - 8), decl_line)`). Если KDoc был
+    длиннее 8 строк (например, описание с @param/@return/@throws), он не
+    попадал в окно → генератор вставлял ВТОРОЙ KDoc прямо над существующим
+    (клонирование KDoc). Теперь ищем закрывающий `*/` и сканируем вверх до
+    `/**` — как это уже сделано в tools/auto-kdoc-quality.py.
+    """
+    for j in range(decl_line - 1, max(-1, decl_line - 500), -1):
+        stripped = lines[j].strip()
+        if stripped.endswith('*/'):
+            # Нашли закрывающий `*/` — ищем `/**` выше.
+            for k in range(j, max(-1, j - 500), -1):
+                if lines[k].lstrip().startswith('/**'):
+                    return True
+                if lines[k].strip() and not lines[k].strip().startswith('*'):
+                    break
+            return False
+        if stripped and not stripped.startswith('//') and not stripped.startswith('*'):
+            # Дошли до обычной строки кода — KDoc выше не начинается.
+            return False
+    return False
+
+
 def process(filepath, dry_run=False):
     with open(filepath) as f:
         content = f.read()
@@ -219,20 +245,14 @@ def process(filepath, dry_run=False):
             rel_path = rel_path.split(prefix, 1)[1]
             break
     parts = Path(rel_path).parts
-    dir_slug = DIR_TO_SLUG.get(parts[0] if parts else '', 'docs/features/dual-db-sync.md')
+    dir_slug = DIR_TO_SLUG.get(parts[0] if parts else '', 'archive/docs/features/dual-db-sync.md')
 
     # 2) Собираем план вставок: (insert_at_line, kdoc_lines, original_idx)
     # insert_at_line — куда вставить (перед какой строкой)
     insertions = []
     for decl_line, kind, name in candidates:
-        # Проверяем KDoc выше
-        has_kdoc = False
-        for j in range(max(0, decl_line - 8), decl_line):
-            l = lines[j].lstrip()
-            if l.startswith('/**') and not l.startswith('//'):
-                has_kdoc = True
-                break
-        if has_kdoc:
+        # Проверяем KDoc выше (BR-585: поиск по `*/` → `/**`, а не окно в 8 строк).
+        if has_existing_kdoc(lines, decl_line):
             continue
         # Определяем insert_at: KDoc должен быть ВЫШЕ всех аннотаций
         # Поднимаемся вверх от decl_line, пропуская аннотации
@@ -278,6 +298,25 @@ def process(filepath, dry_run=False):
     return len(insertions)
 
 
+def validate_slugs():
+    """Проверить, что все @see-цели существуют.
+
+    BR-583 (аудит #336, пакет PKG-S3-30): генератор писал в исходники
+    `@see docs/features/<slug>.md`, но живые per-feature документы лежат в
+    `archive/docs/features/` — ссылки были битыми. Теперь префикс правильный,
+    а существование цели ПРОВЕРЯЕТСЯ: битая ссылка не уходит в код молча.
+    """
+    root = Path(__file__).resolve().parent.parent
+    slugs = set(DIR_TO_SLUG.values()) | set(CLASS_SLUG_OVERRIDE.values())
+    missing = []
+    for slug in sorted(slugs):
+        if slug == 'AGENTS.md':
+            continue
+        if not (root / slug).exists():
+            missing.append(slug)
+    return missing
+
+
 def verify_with_jpa_guard():
     """BR-584: проверяет результат генерации guard'ом check-no-jpa-imports.sh.
 
@@ -307,6 +346,15 @@ def verify_with_jpa_guard():
 def main():
     dry_run = '--dry-run' in sys.argv
     roots = [a for a in sys.argv[1:] if not a.startswith('--')]
+
+    # BR-583: битые @see-ссылки не должны уходить в исходники молча.
+    missing = validate_slugs()
+    if missing:
+        print('ERROR: несуществующие @see-цели:', file=sys.stderr)
+        for slug in missing:
+            print(f'  {slug}', file=sys.stderr)
+        sys.exit(1)
+
     total = 0
     for root in roots:
         for r, _, files in os.walk(root):
@@ -329,5 +377,63 @@ def main():
         sys.exit(rc)
 
 
+def run_self_test():
+    """Самопроверка: @see-цели существуют + KDoc-детектор не клонирует (BR-583/BR-585)."""
+    failures = 0
+
+    missing = validate_slugs()
+    if missing:
+        print('SELFTEST FAIL: несуществующие @see-цели:', file=sys.stderr)
+        for slug in missing:
+            print(f'  {slug}', file=sys.stderr)
+        failures += 1
+    else:
+        print('SELFTEST OK: все @see-цели существуют')
+
+    # BR-585: длинный KDoc (>8 строк) должен быть найден, второй KDoc — не вставлен.
+    long_kdoc = [
+        '/**',
+        ' * Описание класса.',
+        ' *',
+        ' * @param a первый параметр',
+        ' * @param b второй параметр',
+        ' * @param c третий параметр',
+        ' * @param d четвёртый параметр',
+        ' * @param e пятый параметр',
+        ' * @return результат',
+        ' */',
+        'class Example',
+    ]
+    if not has_existing_kdoc(long_kdoc, len(long_kdoc) - 1):
+        print('SELFTEST FAIL: длинный KDoc не распознан (BR-585)', file=sys.stderr)
+        failures += 1
+    else:
+        print('SELFTEST OK: длинный KDoc (>8 строк) распознан — второй KDoc не вставляется')
+
+    # Короткий KDoc — тоже распознаётся.
+    short_kdoc = ['/**', ' * Класс.', ' */', 'class Example']
+    if not has_existing_kdoc(short_kdoc, len(short_kdoc) - 1):
+        print('SELFTEST FAIL: короткий KDoc не распознан', file=sys.stderr)
+        failures += 1
+    else:
+        print('SELFTEST OK: короткий KDoc распознан')
+
+    # Без KDoc — вставка нужна.
+    no_kdoc = ['class Example', '    val x = 1']
+    if has_existing_kdoc(no_kdoc, 0):
+        print('SELFTEST FAIL: KDoc отсутствует, но найден', file=sys.stderr)
+        failures += 1
+    else:
+        print('SELFTEST OK: без KDoc — вставка требуется')
+
+    if failures:
+        print(f'SELFTEST FAIL: {failures} проверок не прошли', file=sys.stderr)
+        return 1
+    print('SELFTEST OK: 4/4 проверок прошли')
+    return 0
+
+
 if __name__ == '__main__':
+    if '--self-test' in sys.argv:
+        sys.exit(run_self_test())
     main()

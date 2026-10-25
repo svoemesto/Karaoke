@@ -3858,7 +3858,9 @@ class Song(
     fun playLyrics() {
         if (File(pathToFileLyrics).exists()) {
             if (APP_WORK_IN_CONTAINER) {
-                val args = listOf("smplayer", pathToFileLyrics.wrapInApostraf())
+                // BR-271: значение НЕ оборачивается в апострофы вручную — createScriptForHost
+                // экранирует его сам (shellEscape) и передаёт позиционным параметром.
+                val args = listOf("smplayer", pathToFileLyrics)
                 createScriptForHost(args = args)
             } else {
                 val args = listOf("smplayer", pathToFileLyrics)
@@ -3872,7 +3874,7 @@ class Song(
     fun playKaraoke() {
         if (File(pathToFileKaraoke).exists()) {
             if (APP_WORK_IN_CONTAINER) {
-                val args = listOf("smplayer", pathToFileKaraoke.wrapInApostraf())
+                val args = listOf("smplayer", pathToFileKaraoke)
                 createScriptForHost(args = args)
             } else {
                 val args = listOf("smplayer", pathToFileKaraoke)
@@ -3886,7 +3888,7 @@ class Song(
     fun playRenderMp4() {
         if (File(pathToFileRenderMp4).exists()) {
             if (APP_WORK_IN_CONTAINER) {
-                val args = listOf("smplayer", pathToFileRenderMp4.wrapInApostraf())
+                val args = listOf("smplayer", pathToFileRenderMp4)
                 createScriptForHost(args = args)
             } else {
                 val args = listOf("smplayer", pathToFileRenderMp4)
@@ -3901,7 +3903,7 @@ class Song(
         val path = pathToFileRenderMp4ForVersion(version)
         if (File(path).exists()) {
             if (APP_WORK_IN_CONTAINER) {
-                val args = listOf("smplayer", path.wrapInApostraf())
+                val args = listOf("smplayer", path)
                 createScriptForHost(args = args)
             } else {
                 val args = listOf("smplayer", path)
@@ -3915,7 +3917,7 @@ class Song(
     fun playChords() {
         if (File(pathToFileChords).exists()) {
             if (APP_WORK_IN_CONTAINER) {
-                val args = listOf("smplayer", pathToFileChords.wrapInApostraf())
+                val args = listOf("smplayer", pathToFileChords)
                 createScriptForHost(args = args)
             } else {
                 val args = listOf("smplayer", pathToFileChords)
@@ -3929,7 +3931,7 @@ class Song(
     fun playTabs() {
         if (File(pathToFileMelody).exists()) {
             if (APP_WORK_IN_CONTAINER) {
-                val args = listOf("smplayer", pathToFileMelody.wrapInApostraf())
+                val args = listOf("smplayer", pathToFileMelody)
                 createScriptForHost(args = args)
             } else {
                 val args = listOf("smplayer", pathToFileMelody)

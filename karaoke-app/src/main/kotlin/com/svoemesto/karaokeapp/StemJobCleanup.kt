@@ -101,9 +101,15 @@ object StemJobCleanup {
     fun stopRunningWork(jobId: Long) {
         runCommand(listOf("docker", "kill", "stemjob-$jobId"), ignoreErrors = true)
 
-        val description = "Демукс премиум-задания #$jobId"
+        // BR-259: сопоставление по ТОЧНОЙ строке описания не видело цепочку
+        // CPU-повтора — у неё описание «Демукс премиум-задания #<id> (повтор без
+        // GPU)». В итоге `destroyForcibly`/`interrupt` не вызывались, строки
+        // `tbl_processes` повтора оставались, и повтор продолжал работать после
+        // «Стоп»/«Удалить» (а его финализация перезаписывала статус задания).
+        // Теперь — по ПРЕФИКСУ с id задания.
+        val descriptionPrefix = stemJobDescriptionPrefix(jobId)
         val thread = KaraokeProcessWorker.threadsMap[KaraokeProcess.THREAD_LANE_STEM_JOBS]
-        if (thread != null && thread.isAlive && thread.karaokeProcess?.description == description) {
+        if (thread != null && thread.isAlive && isStemJobDescription(thread.karaokeProcess?.description, jobId)) {
             runCatching { thread.osProcess?.destroyForcibly() }
             runCatching { thread.interrupt() }
         }
@@ -113,13 +119,47 @@ object StemJobCleanup {
         // не имеют смысла: строка удаляется, а авторитетный статус задания правит executeFinalizeStemJob
         // проставлять уже некуда, т.к. вызывающая сторона (adminStop/adminDeleteNow) сама пишет
         // финальный статус в tbl_stem_jobs.
+        //
+        // BR-259: LIKE-фильтр по префиксу (ловит и основной шаг, и CPU-повтор),
+        // а точная проверка — в Kotlin (чтобы не задеть задание с «другим» id,
+        // например #42 vs #420).
         KaraokeProcess
             .loadList(
-                mapOf("process_description" to description, "thread_id" to KaraokeProcess.THREAD_LANE_STEM_JOBS.toString()),
+                mapOf(
+                    "process_description" to descriptionPrefix,
+                    "thread_id" to KaraokeProcess.THREAD_LANE_STEM_JOBS.toString(),
+                ),
                 Connection.local(),
-            ).forEach { runCatching { KaraokeProcess.delete(it.id, Connection.local()) } }
+            ).filter { isStemJobDescription(it.description, jobId) }
+            .forEach { runCatching { KaraokeProcess.delete(it.id, Connection.local()) } }
 
         File("$PATH_TO_TEMP_STEMJOB_FOLDER/$jobId").deleteRecursively()
+    }
+
+    /**
+     * BR-259: префикс описания шага премиум-задания по его id.
+     *
+     * Основной шаг: «Демукс премиум-задания #42»; CPU-повтор:
+     * «Демукс премиум-задания #42 (повтор без GPU)». Префикс «Демукс премиум-задания #42»
+     * покрывает оба — и не задевает чужие задания (у другого id другой префикс).
+     */
+    internal fun stemJobDescriptionPrefix(jobId: Long): String = "Демукс премиум-задания #$jobId"
+
+    /**
+     * BR-259: принадлежит ли описание шага именно этому заданию.
+     *
+     * Совпадение по префиксу + границе: описание должно либо РОВНО совпадать с
+     * префиксом, либо начинаться с него и продолжаться пробелом (суффикс «(повтор
+     * без GPU)»). Без границы задание #42 совпало бы с #420.
+     */
+    internal fun isStemJobDescription(
+        description: String?,
+        jobId: Long,
+    ): Boolean {
+        if (description == null) return false
+        val prefix = stemJobDescriptionPrefix(jobId)
+        if (description == prefix) return true
+        return description.startsWith("$prefix ")
     }
 
     /** Останавливает задание (если ещё выполняется) и помечает его ERROR — файлы НЕ удаляются, пользователь/админ может решить удалить отдельно. */

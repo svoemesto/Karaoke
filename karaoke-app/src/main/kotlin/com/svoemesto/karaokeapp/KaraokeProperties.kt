@@ -40,20 +40,41 @@ class KaraokeProperties {
          */
         private val propertiesWriteLock = ReentrantLock()
 
+        /**
+         * BR-249: категория для ошибок записи файла настроек. Зарегистрирована в
+         * `knowledge/domains/monitoring/components/log-categories.md`
+         * (`infra.config.properties`).
+         */
+        private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.config.properties")
+
         fun pathToFile(): String = PATH_TO_KARAOKE_PROPERTIES_FILE
 
         /**
-         * Предпринята ли попытка загрузки карты. Нужна, чтобы при НЕудачной загрузке
-         * (битый файл) `get()` не перечитывал файл на каждое обращение к любому
-         * свойству: раньше исключение разбора молча проглатывалось, карта оставалась
-         * пустой, и `get()` (`if (karaokePropertiesMap.isEmpty())`) запускал загрузку
-         * заново при каждом чтении — то есть на битом файле каждое чтение свойства
-         * тянуло чтение файла с диска.
+         * BR-248: «предпринята ли попытка загрузки» — флаг, который читается и пишется
+         * из разных потоков. Без `volatile` компилятор и JVM имели право не увидеть
+         * запись `true` в одном потоке и выполнить загрузку повторно в другом.
+         *
+         * Флаг ставится ПОСЛЕ наполнения карты. Запись в `volatile`-поле после
+         * заполнения карты работает как «release barrier»: читатель, увидевший
+         * `true` (volatile-чтение = «acquire barrier»), гарантированно увидит и
+         * полностью заполненную карту. Раньше флаг ставился ДО наполнения, и
+         * читатель мог увидеть «загрузка выполнена» при полупустой карте.
+         *
+         * Нужна, чтобы при НЕудачной загрузке (битый файл) `get()` не перечитывал
+         * файл на каждое обращение к любому свойству: раньше исключение разбора
+         * молча проглатывалось, карта оставалась пустой, и `get()`
+         * (`if (karaokePropertiesMap.isEmpty())`) запускал загрузку заново при
+         * каждом чтении — то есть на битом файле каждое чтение свойства тянуло
+         * чтение файла с диска.
          */
+        @Volatile
         private var propertiesLoadAttempted = false
 
         @OptIn(ExperimentalSerializationApi::class)
         fun loadPropertiesMap() {
+            // BR-248: двойная проверка — быстрый путь (volatile-чтение без
+            // блокировки) и медленный путь (под блокировкой — повторная проверка).
+            if (propertiesLoadAttempted) return
             propertiesWriteLock.withLock {
                 loadPropertiesMapLocked()
             }
@@ -61,18 +82,23 @@ class KaraokeProperties {
 
         private fun loadPropertiesMapLocked() {
             if (propertiesLoadAttempted) return
-            propertiesLoadAttempted = true
 
             val file = File(pathToFile())
             if (!file.exists()) {
                 listKaraokeProperties.forEach { karaokePropertiesMap[it.key] = it.defaultValue }
+                propertiesLoadAttempted = true
                 savePropertiesMap()
                 return
             }
 
+            // BR-250: разбор — ПОСТРОЧНО. Одна битая строка не должна отбрасывать
+            // весь файл (остальные ~150 настроек терялись бы молча). Битые строки
+            // пропускаются с предупреждением (ключ/номер строки), рабочие — грузятся.
+            val parsed = readPropertiesFileTolerant(file)
             val loaded =
-                readPropertiesFile(file)
-                    ?: readPropertiesFile(backupFileFor(file))?.also {
+                parsed.values.ifEmpty {
+                    // Ни одной рабочей строки — пробуем резервную копию (как раньше).
+                    readPropertiesFile(backupFileFor(file))?.also {
                         // Основной файл не разобрался, а резервная копия — да. Работаем на копии,
                         // но говорим об этом громко: молчаливый откат к дефолтам (как было раньше)
                         // означает тихую потерю ВСЕХ настроек, включая выставленные оператором.
@@ -81,29 +107,51 @@ class KaraokeProperties {
                                 "копии ${backupFileFor(file).name}. Проверьте основной файл.",
                         )
                     }
+                }
 
             if (loaded == null) {
                 println(
                     "KaraokeProperties: не удалось прочитать ни ${file.name}, ни его резервную копию — работаем " +
                         "на дефолтах. Файл будет перезаписан только при следующем изменении настройки.",
                 )
+                // BR-250: дефолты всех зарегистрированных ключей заполняются ДО
+                // первой записи — иначе первая же запись свойства создавала бы файл
+                // только из одного изменённого ключа, а остальные настройки (в т.ч.
+                // заданные оператором вручную) были бы стёрты навсегда.
+                listKaraokeProperties.forEach { karaokePropertiesMap[it.key] = it.defaultValue }
+                propertiesLoadAttempted = true
                 return
             }
             loaded.forEach { (key, value) -> karaokePropertiesMap[key] = value }
+            propertiesLoadAttempted = true
         }
 
-        fun savePropertiesMap() {
+        /**
+         * BR-249: результат записи файла должен быть НАБЛЮДАЕМ.
+         *
+         * Раньше `savePropertiesMap()` ловил `Exception` и печатал одну строку в
+         * stdout, а `set()` возвращал `Unit`. Поэтому `POST /api/properties/setproperty`
+         * отвечал `200 OK` и рассылал SSE «Свойство установлено», даже если файл
+         * НЕ записан (нет каталога, read-only ФС, нет места, ошибка `Files.move`).
+         * Значение оставалось только в памяти и исчезало при рестарте — причём без
+         * единого признака в ответе.
+         *
+         * Теперь метод возвращает `Boolean`: `false` — файл не записан. Ошибка
+         * пишется в SLF4J **со стеком** (категория `infra.config.properties`).
+         */
+        fun savePropertiesMap(): Boolean =
             propertiesWriteLock.withLock {
                 try {
                     // BR-247: права 600 выставляются внутри writePropertiesFileAtomic — на
                     // временный файл ДО атомарного move, чтобы файл с секретами ни мгновения
                     // не был доступен на чтение всем. Внешний `chmod 666` после записи убран.
                     writePropertiesFileAtomic(File(pathToFile()), encodePropertiesMap(karaokePropertiesMap))
+                    true
                 } catch (e: Exception) {
-                    println("KaraokeProperties: не удалось сохранить файл ${pathToFile()}: ${e.message}")
+                    log.error("KaraokeProperties: не удалось сохранить файл ${pathToFile()}", e)
+                    false
                 }
             }
-        }
 
         fun getString(key: String): String = get(key)?.let { it as String } ?: ""
 
@@ -165,36 +213,90 @@ class KaraokeProperties {
             return lst
         }
 
+        /**
+         * BR-249: `set()` теперь возвращает признак успеха ЗАПИСИ на диск.
+         *
+         * `false` — значение не сохранено (ошибка ФС/каталога/`Files.move`).
+         * В этом случае значение откатывается в карте: иначе карта в памяти и файл
+         * на диске разошлись бы, и после рестарта настройка «откатилась» бы
+         * молча.
+         */
         fun set(
             key: String,
             value: Any,
-        ) {
+        ): Boolean =
             propertiesWriteLock.withLock {
                 val valueInMap = get(key)
-                if (valueInMap !== null && valueInMap !== value) {
-                    karaokePropertiesMap[key] = value
-                    savePropertiesMap()
+                if (valueInMap == null || valueInMap == value) {
+                    return@withLock true
                 }
+                val previousValue = valueInMap
+                karaokePropertiesMap[key] = value
+                val saved = savePropertiesMap()
+                if (!saved) {
+                    // Откат: в памяти значение не должно пережить неудачную запись.
+                    karaokePropertiesMap[key] = previousValue
+                    log.error(
+                        "KaraokeProperties: свойство «$key» не сохранено — значение в памяти откачено",
+                    )
+                }
+                saved
             }
-        }
 
+        /**
+         * BR-245: разбор строкового значения по ТИПУ свойства.
+         *
+         * Раньше `stringValue.toLong()`/`toInt()`/`toDouble()` бросали
+         * `NumberFormatException` (→ 500 на `/api/properties/setproperty`), а
+         * `toBoolean()` тихо превращал ЛЮБУЮ строку в `false` (кроме «true») —
+         * опечатка в значении молча выключала фичу.
+         *
+         * Теперь: число разбирается через `toXxxOrNull()` (нечисло → 400 с
+         * причиной), boolean — явным списком `true/false/1/0/yes/no/on/off`
+         * (иначе → 400 с причиной), неизвестный ключ → 404.
+         *
+         * @throws KaraokePropertyValueException значение не соответствует типу.
+         * @throws KaraokePropertyUnknownKeyException ключ не зарегистрирован.
+         */
         fun setFromString(
             key: String,
             stringValue: String,
-        ) {
-            val defaultValue = listKaraokeProperties.firstOrNull { it.key == key }?.defaultValue
-            if (defaultValue !== null) {
-                val value: Any =
-                    when (defaultValue) {
-                        is Long -> stringValue.toLong()
-                        is Int -> stringValue.toInt()
-                        is Double -> stringValue.toDouble()
-                        is Boolean -> stringValue.toBoolean()
-                        else -> stringValue
-                    }
-                set(key, value)
-            }
+        ): Boolean {
+            val property =
+                listKaraokeProperties.firstOrNull { it.key == key }
+                    ?: throw KaraokePropertyUnknownKeyException(key)
+            val defaultValue = property.defaultValue
+            val value: Any =
+                when (defaultValue) {
+                    is Long ->
+                        stringValue.trim().toLongOrNull()
+                            ?: throw KaraokePropertyValueException(key, stringValue, "Long")
+                    is Int ->
+                        stringValue.trim().toIntOrNull()
+                            ?: throw KaraokePropertyValueException(key, stringValue, "Int")
+                    is Double ->
+                        stringValue.trim().toDoubleOrNull()
+                            ?: throw KaraokePropertyValueException(key, stringValue, "Double")
+                    is Boolean -> parseBooleanStrict(key, stringValue)
+                    else -> stringValue
+                }
+            return set(key, value)
         }
+
+        /**
+         * BR-245: явный разбор boolean. `String.toBoolean()` возвращает `true`
+         * только для строки «true» (регистр-зависимо), а всё остальное — `false`.
+         * Опечатка («tru», «да», «1») молча выключала фичу.
+         */
+        private fun parseBooleanStrict(
+            key: String,
+            stringValue: String,
+        ): Boolean =
+            when (stringValue.trim().lowercase()) {
+                "true", "1", "yes", "on" -> true
+                "false", "0", "no", "off" -> false
+                else -> throw KaraokePropertyValueException(key, stringValue, "Boolean")
+            }
 
         fun setDefault(key: String) {
             val defaultValue = listKaraokeProperties.firstOrNull { it.key == key }?.defaultValue
@@ -255,6 +357,62 @@ internal fun readPropertiesFile(file: File): Map<String, Any>? =
             null
         }
     }
+
+/**
+ * BR-250: построчный разбор файла свойств.
+ *
+ * Раньше `decodePropertiesMap` использовал `associate { … }` — ОДНА битая строка
+ * (не Base64, не JSON, обрезанная при аварийной записи) отбрасывала ВЕСЬ файл:
+ * все ~150 настроек, включая выставленные оператором, молча откатывались к
+ * дефолтам, а первая же последующая запись затирала их дефолтами.
+ *
+ * Теперь битые строки пропускаются по одной, с предупреждением (номер строки и
+ * причина), рабочие строки грузятся. Результат: одна испорченная строка стоит
+ * одного параметра, а не всех.
+ *
+ * @return карта разобранных значений (может быть пустой, если биты ВСЕ строки).
+ */
+@OptIn(ExperimentalSerializationApi::class)
+internal fun readPropertiesFileTolerant(file: File): TolerantParseResult {
+    if (!file.exists()) return TolerantParseResult(emptyMap(), 0, emptyList())
+    val lines =
+        try {
+            file.readText().split("\n")
+        } catch (e: Exception) {
+            return TolerantParseResult(emptyMap(), 0, listOf("файл не прочитан: ${e.message}"))
+        }
+    val values = mutableMapOf<String, Any>()
+    val problems = mutableListOf<String>()
+    var broken = 0
+    lines.forEachIndexed { index, line ->
+        if (line.isBlank()) return@forEachIndexed
+        try {
+            val kps =
+                Json.decodeFromStream(
+                    KaraokePropertySerializable.serializer(),
+                    ByteArrayInputStream(Base64.getDecoder().decode(line.trim())),
+                )
+            values[kps.key] = kps.value()
+        } catch (e: Exception) {
+            broken++
+            problems.add("строка ${index + 1}: ${e::class.simpleName}: ${e.message}")
+        }
+    }
+    return TolerantParseResult(values, broken, problems)
+}
+
+/**
+ * BR-250: результат построчного разбора файла свойств.
+ *
+ * @property values разобранные значения (пропущены битые строки).
+ * @property brokenCount сколько строк не разобралось.
+ * @property problems список причин (номер строки + сообщение) — для лога.
+ */
+internal data class TolerantParseResult(
+    val values: Map<String, Any>,
+    val brokenCount: Int,
+    val problems: List<String>,
+)
 
 /**
  * Пишет [content] в [target] АТОМАРНО и со снятием копии предыдущей версии.
@@ -330,6 +488,44 @@ private fun writePropertiesFileAtomicLocked(
 }
 
 val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()
+
+/**
+ * BR-245: значение свойства не соответствует его типу.
+ *
+ * Раньше `stringValue.toLong()` бросал `NumberFormatException` → 500 на
+ * `/api/properties/setproperty`, а `toBoolean()` тихо превращал опечатку в
+ * `false`. Теперь — типизированное исключение, из которого контроллер делает
+ * 400 с причиной.
+ */
+class KaraokePropertyValueException(
+    val key: String,
+    val value: String,
+    val expectedType: String,
+) : RuntimeException(
+        "Свойство «$key» ожидает значение типа $expectedType, получено «$value»",
+    )
+
+/**
+ * BR-245: ключ свойства не зарегистрирован в `listKaraokeProperties`.
+ *
+ * Раньше `setFromString` для неизвестного ключа делал `if (defaultValue !== null)`
+ * → тихий no-op: HTTP отвечал 200, SSE рассылал «Свойство установлено», а
+ * ничего не менялось. Теперь — 404 с явной причиной.
+ */
+class KaraokePropertyUnknownKeyException(
+    val key: String,
+) : RuntimeException("Свойство «$key» не зарегистрировано")
+
+/**
+ * BR-249: запись файла настроек не удалась.
+ *
+ * Значение осталось только в памяти и исчезло бы при рестарте. Контроллер
+ * отвечает 5xx, а не 200.
+ */
+class KaraokePropertySaveFailedException(
+    val key: String,
+    cause: Throwable? = null,
+) : RuntimeException("Не удалось сохранить свойство «$key»", cause)
 
 val listKaraokeProperties =
     listOf(
@@ -519,6 +715,33 @@ val listKaraokeProperties =
             key = "karaoke.public.authors-tiles-cache.enabled",
             defaultValue = true,
             description = "Кеш для /api/public/authors-tiles (TTL=30 мин). false = каждый запрос идёт в БД (отладка данных плашек).",
+        ),
+        // BR-246: три ключа, которые читает `karaoke-web`, но которые НЕ были
+        // зарегистрированы в `listKaraokeProperties`. Для незарегистрированного
+        // ключа `get()` возвращает `null`, и типизированные геттеры отдавали
+        // НУЛЕВОЕ значение языка вместо документированного дефолта:
+        //   - `karaoke.public.public-settings-cache.enabled` → getBoolean → false
+        //     (кеш публичных настроек выключен ВСЕГДА, каждый публичный запрос
+        //     идёт в БД, хотя дефолт по specs/249 FR-003 — true);
+        //   - `karaoke.web.events.batch-max-buffer-size` → getInt → 0 →
+        //     coerceAtLeast(1) → размер буфера 1 вместо дефолта 500 (specs/274);
+        //   - `karaoke.web.events.batch-enabled` → getBoolean → false, и его нельзя
+        //     было включить ни через админку, ни через `/api/properties/setproperty`
+        //     (setFromString для неизвестного ключа был тихим no-op).
+        KaraokeProperty(
+            key = "karaoke.public.public-settings-cache.enabled",
+            defaultValue = true,
+            description = "Кеш публичных настроек (PublicSettingsWebController). Дефолт true (specs/249 FR-003). false = каждый публичный запрос идёт в БД.",
+        ),
+        KaraokeProperty(
+            key = "karaoke.web.events.batch-enabled",
+            defaultValue = false,
+            description = "Батчинг вставки событий в tbl_site_events (specs/274 FR-002). Дефолт false — opt-in: sync INSERT как раньше.",
+        ),
+        KaraokeProperty(
+            key = "karaoke.web.events.batch-max-buffer-size",
+            defaultValue = 500,
+            description = "Максимальный размер буфера батчинга событий (specs/274). Дефолт 500, минимум 1.",
         ),
         KaraokeProperty(
             key = "editorAssignmentDefaultTarget",

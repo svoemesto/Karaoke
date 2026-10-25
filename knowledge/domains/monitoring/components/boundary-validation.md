@@ -7,7 +7,7 @@
 ## Ответственность | Responsibility
 
 Компонент фиксирует **сквозной инвариант**, проверенный аудитом #336 (волна E,
-пакет `PKG-S3-25`):
+пакет `PKG-S3-25`, 40 записей BR-228…BR-275):
 
 > **Данные, пришедшие извне (HTTP-запрос, страница в интернете, свойство из
 > админки, значение из БД), не должны использоваться без проверки.** Проверка
@@ -46,6 +46,23 @@
 | Строка из свойства | сравнение ПО ЗНАЧЕНИЮ (`isNotBlank`), не по ссылке (`!==`) | `MkoSplashStart.chordDescriptionText` (BR-238) |
 | Ссылка в `main_bin` | цель ссылки обязана существовать | `PRODUCER_TYPES_WITHOUT_PRODUCER` → `nameTractor` (BR-242) |
 | Узел MLT | у узла есть ИМЯ (`kdenlivetitle`), а не пустое | `emptyKdenliveTitle()` (BR-241) |
+| Значение свойства | разбор ПО ТИПУ: `toXxxOrNull()`, boolean — явный список | `parseBooleanStrict` (BR-245) |
+| Ключ свойства | должен быть зарегистрирован | `KaraokePropertyUnknownKeyException` (BR-245) |
+| Файл свойств | разбор ПОСТРОЧНО, битая строка — не весь файл | `readPropertiesFileTolerant` (BR-250) |
+| Фоновый поток | захват флага атомарный, снятие — в `finally` | `AtomicBoolean.compareAndSet` (BR-253, BR-254) |
+| `tbl_songs_sync` | DELETE+INSERT — в одной транзакции | `autoCommit=false` + `commit`/`rollback` (BR-252) |
+| CSV-строка | число/колонки проверяются, иначе — пропуск | `toLongOrNull()` + WARN (BR-256) |
+| Строка табулятуры | формат проверяется | `parseStringLad` (BR-239) |
+| Текст песни из HTML | только текст, без разметки | `htmlToPlainTextWithNewlines` (BR-257) |
+| Задание премиум-минусовки | шаги сопоставляются по `jobId`, а не по точному описанию | `isStemJobDescription` (BR-259) |
+| Статус задания | `WORKING` — только после успешной вставки шага | `createDbInstance` → проверка результата (BR-260) |
+| IAM-токен | метка времени — сразу после обновления; ошибка — отдельный тип | `IamTokenUnavailableException` (BR-261) |
+| Тело JSON-запроса | собирается Jackson'ом, не интерполяцией | `buildYandexSearchRequestBody` (BR-262) |
+| Загрузка HTML | сеть / не-2xx / пусто — разные исходы | `HtmlFetchResult` (BR-265) |
+| Выборка в sync-синхронизации | сбой ≠ «пусто» | `SyncAudioSelectionException` (BR-264) |
+| Внешний процесс | таймаут + `destroyForcibly()` + лимит вывода | `runCommand(timeoutMs)` (BR-270) |
+| Скрипт для хоста | значения — позиционные параметры, экранирование | `buildHostScript` + `shellEscape` (BR-271) |
+| Соединение с БД | валидация не в горячем пути | `CONNECTION_VALIDATION_IDLE_MS` (BR-274) |
 
 ### Механизмы в коде
 

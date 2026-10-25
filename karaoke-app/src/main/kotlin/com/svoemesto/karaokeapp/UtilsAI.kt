@@ -118,6 +118,59 @@ fun getIamToken(): String {
 }
 
 /**
+ * BR-261: обновление IAM-токена.
+ *
+ * Что было не так. `createNewIamToken()` запускал внешний скрипт (`yc iam
+ * create-token`) и читал файл токена, но НЕ обновлял
+ * `Karaoke.requestIamTokenLastTimeMs`. Время последнего получения токена
+ * обновлялось только в ДРУГОМ месте (поиск по HTTP, `UtilsAI.kt:766`).
+ * Следствия:
+ *  - если токен обновлял только HTTP-поиск, то `getIamToken()` видел «старое»
+ *    время и перезапрашивал токен при КАЖДОМ вызове — внешний процесс
+ *    запускался на каждый запрос;
+ *  - если токен обновлял только `getIamToken()`, то время обновлялось в
+ *    соседней ветке, и при ошибке HTTP-поиска «свежесть» токена терялась.
+ *
+ * Теперь: метка времени обновляется СРАЗУ ПОСЛЕ успешного обновления токена, в
+ * обоих местах. Ошибка получения токена отделена от ошибки HTTP-поиска: она
+ * бросается как [IamTokenUnavailableException] со своим сообщением, а не
+ * молча возвращает пустой токен.
+ */
+fun createNewIamToken() {
+    createScriptForHost(
+        args = listOf("~/yandex-cloud/bin/yc iam create-token > /sm-karaoke/system/yandex/iam_token.txt"),
+        waitToDone = true,
+    )
+    val token =
+        try {
+            Files.readString(Paths.get(Karaoke.iamTokenFilePath)).trim()
+        } catch (e: Exception) {
+            // BR-261: ошибка чтения токена — ОТДЕЛЬНЫЙ исход (не «поиск не нашёл»).
+            throw IamTokenUnavailableException(
+                "Не удалось прочитать IAM-токен из ${Karaoke.iamTokenFilePath}: ${e.message}",
+                e,
+            )
+        }
+    if (token.isBlank()) {
+        throw IamTokenUnavailableException("IAM-токен пуст (файл ${Karaoke.iamTokenFilePath})")
+    }
+    Karaoke.requestIamToken = token
+    // BR-261: метка времени — сразу после успешного обновления токена.
+    Karaoke.requestIamTokenLastTimeMs = LocalDateTime.now().toEpochMillis()
+}
+
+/**
+ * BR-261: не удалось получить IAM-токен.
+ *
+ * Отдельный тип, чтобы отличать «нет токена» от «HTTP-поиск ничего не нашёл»
+ * (BR-265) — иначе обе ошибки выглядели как «пустой результат».
+ */
+class IamTokenUnavailableException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
  * Единая точка автоподстановки найденного текста песни (specs/020-fix-search-lyrics-autofill).
  * Вызывается из всех точек завершения поиска текста (YANDEX_SYNC, YANDEX_ASYNC, SEARXNG,
  * FOURGET), чтобы поведение не расходилось между движками. Использует [Song.haveSourceText]
@@ -342,32 +395,12 @@ fun getYandexSearch(
             readTimeout = 30000
         }
 
-        val body =
-            """
-            {
-                "query": {
-                  "searchType": "SEARCH_TYPE_RU",
-                  "queryText": "$queryText",
-                  "familyMode": "FAMILY_MODE_NONE",
-                  "page": "0",
-                  "fixTypoMode": "FIX_TYPO_MODE_OFF"
-                },
-                "sortSpec": {
-                  "sortMode": "SORT_MODE_BY_RELEVANCE",
-                  "sortOrder": "SORT_ORDER_DESC"
-                },
-                "groupSpec": {
-                  "groupMode": "GROUP_MODE_FLAT",
-                  "groupsOnPage": "$countInPage",
-                  "docsInGroup": "1"
-                },
-                "maxPassages": "4",
-                "region": "RU",
-                "l10N": "LOCALIZATION_RU",
-                "folderId": "$folderId",
-                "responseFormat": "$responseFormat"
-            }
-            """.trimIndent()
+        // BR-262: тело запроса собирается ЧЕРЕЗ Jackson, а не строковой интерполяцией.
+        // Раньше `"queryText": "$queryText"` подставлял текст песни в JSON «как есть»:
+        // кавычка или обратный слэш в названии (а в названии песни встречаются
+        // «"» — например «AC/DC» не ломает, но `"Рок'n'Roll"` ломает) делали JSON
+        // невалидным, и Yandex отвечал 400 — поиск молча не работал для части песен.
+        val body = buildYandexSearchRequestBody(queryText = queryText, countInPage = countInPage, folderId = folderId, responseFormat = responseFormat)
 
         connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
@@ -790,32 +823,17 @@ fun searchSongInYandex(
             readTimeout = 30000
         }
 
+        // BR-262: тело запроса собирается через Jackson — строковая интерполяция
+        // ломала JSON, если в названии песни/автора встречались `"` или `\`
+        // (например «Rock'n'Roll»), и Yandex отвечал 400.
         val body =
-            """
-            {
-                "query": {
-                  "searchType": "SEARCH_TYPE_RU",
-                  "queryText": "$queryText",
-                  "familyMode": "FAMILY_MODE_NONE",
-                  "page": "$page",
-                  "fixTypoMode": "FIX_TYPO_MODE_OFF"
-                },
-                "sortSpec": {
-                  "sortMode": "SORT_MODE_BY_RELEVANCE",
-                  "sortOrder": "SORT_ORDER_DESC"
-                },
-                "groupSpec": {
-                  "groupMode": "GROUP_MODE_FLAT",
-                  "groupsOnPage": "$countInPage",
-                  "docsInGroup": "1"
-                },
-                "maxPassages": "4",
-                "region": "RU",
-                "l10N": "LOCALIZATION_RU",
-                "folderId": "$folderId",
-                "responseFormat": "FORMAT_XML"
-            }
-            """.trimIndent()
+            buildYandexSearchRequestBody(
+                queryText = queryText,
+                countInPage = countInPage,
+                folderId = folderId,
+                responseFormat = SearchResponseFormat.FORMAT_XML,
+                page = page.toString(),
+            )
 
         connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
@@ -854,26 +872,71 @@ fun searchSongInYandex(
     }
 }
 
-fun createNewIamToken() {
-    createScriptForHost(
-        args = listOf("~/yandex-cloud/bin/yc iam create-token > /sm-karaoke/system/yandex/iam_token.txt"),
-        waitToDone = true,
-    )
-    Karaoke.requestIamToken = Files.readString(Paths.get(Karaoke.iamTokenFilePath)).trim()
-}
-
-fun getHtml(link: String): String {
+/**
+ * BR-265: получение HTML страницы.
+ *
+ * Раньше `catch (e: Exception) { return "" }` глушил ЛЮБУЮ ошибку без стека и
+ * без различения причин: сетевой сбой, HTTP-404, HTTP-500 и «страница есть,
+ * но пустая» выглядели одинаково — пустой строкой. Вызывающий код не мог
+ * отличить «сайт недоступен» от «на сайте ничего нет» и молча продолжал поиск.
+ *
+ * Теперь: причина логируется (тип + сообщение + стек), а вызывающий может
+ * узнать, ЧТО именно произошло, через [HtmlFetchResult]:
+ *  - [HtmlFetchResult.Ok] — страница получена;
+ *  - [HtmlFetchResult.NetworkError] — сеть/таймаут/DNS;
+ *  - [HtmlFetchResult.HttpError] — не-2xx код ответа;
+ *  - [HtmlFetchResult.EmptyDocument] — ответ получен, но документ пуст.
+ */
+fun getHtmlDetailed(link: String): HtmlFetchResult {
     val document =
         try {
             Jsoup
                 .connect(link)
                 .timeout(5000) // 5 секунд таймаут
+                .ignoreHttpErrors(false)
                 .get()
+        } catch (e: org.springframework.web.client.HttpClientErrorException) {
+            // BR-265: не-2xx — отдельный исход.
+            aiLog.warn("getHtml: $link вернул HTTP ${e.statusCode.value()}", e)
+            return HtmlFetchResult.HttpError(e.statusCode.value(), e.message ?: "")
+        } catch (e: org.springframework.web.client.HttpServerErrorException) {
+            aiLog.warn("getHtml: $link вернул HTTP ${e.statusCode.value()}", e)
+            return HtmlFetchResult.HttpError(e.statusCode.value(), e.message ?: "")
         } catch (e: Exception) {
-            return ""
+            // BR-265: сетевой сбой — отдельный исход, с причиной в логе.
+            aiLog.warn("getHtml: не удалось загрузить $link (${e::class.simpleName}: ${e.message})", e)
+            return HtmlFetchResult.NetworkError("${e::class.simpleName}: ${e.message}")
         }
-    return document.html()
+    val html = document.html()
+    if (html.isBlank()) return HtmlFetchResult.EmptyDocument
+    return HtmlFetchResult.Ok(html)
 }
+
+/**
+ * BR-265: исход получения HTML — «получено» / «сеть» / «HTTP-код» / «пусто».
+ */
+sealed class HtmlFetchResult {
+    data class Ok(
+        val html: String,
+    ) : HtmlFetchResult()
+
+    data class NetworkError(
+        val reason: String,
+    ) : HtmlFetchResult()
+
+    data class HttpError(
+        val statusCode: Int,
+        val reason: String,
+    ) : HtmlFetchResult()
+
+    data object EmptyDocument : HtmlFetchResult()
+
+    /** HTML страницы; при ошибке — пустая строка (как раньше). */
+    val htmlOrEmpty: String
+        get() = (this as? Ok)?.html ?: ""
+}
+
+fun getHtml(link: String): String = getHtmlDetailed(link).htmlOrEmpty
 
 fun findElementByText(
     html: String,
@@ -917,3 +980,62 @@ fun String.cleanAndNormalizeNewlines(): String =
         .map { it.trim() }
         .filter { it.isNotEmpty() }
         .joinToString("\n")
+
+/**
+ * BR-262: тело POST-запроса к Yandex Cloud Search API.
+ *
+ * Собирается через Jackson (`ObjectMapper.writeValueAsString`) — все строковые
+ * значения экранируются автоматически. Строковая интерполяция (как была раньше)
+ * ломала JSON, если в названии песни или автора встречались `"` или `\`
+ * (например «AC/DC» или «Rock'n'Roll»), и Yandex отвечал 400 — поиск молча
+ * не работал для части песен.
+ *
+ * @param queryText поисковая строка.
+ * @param countInPage размер группы на странице.
+ * @param folderId каталог Yandex Cloud.
+ * @param responseFormat формат ответа.
+ * @return валидный JSON-текст тела запроса.
+ */
+internal fun buildYandexSearchRequestBody(
+    queryText: String,
+    countInPage: Int,
+    folderId: String,
+    responseFormat: SearchResponseFormat,
+    page: String = "0",
+): String =
+    ObjectMapper().writeValueAsString(
+        mapOf(
+            "query" to
+                mapOf(
+                    "searchType" to "SEARCH_TYPE_RU",
+                    "queryText" to queryText,
+                    "familyMode" to "FAMILY_MODE_NONE",
+                    "page" to page,
+                    "fixTypoMode" to "FIX_TYPO_MODE_OFF",
+                ),
+            "sortSpec" to
+                mapOf(
+                    "sortMode" to "SORT_MODE_BY_RELEVANCE",
+                    "sortOrder" to "SORT_ORDER_DESC",
+                ),
+            "groupSpec" to
+                mapOf(
+                    "groupMode" to "GROUP_MODE_FLAT",
+                    "groupsOnPage" to countInPage.toString(),
+                    "docsInGroup" to "1",
+                ),
+            "maxPassages" to "4",
+            "region" to "RU",
+            "l10N" to "LOCALIZATION_RU",
+            "folderId" to folderId,
+            "responseFormat" to responseFormat.toString(),
+        ),
+    )
+
+/**
+ * BR-265: логгер для сетевых сбоев AI-поиска.
+ *
+ * Категория `infra.ai.search` зарегистрирована в
+ * `knowledge/domains/monitoring/components/log-categories.md`.
+ */
+private val aiLog: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.ai.search")

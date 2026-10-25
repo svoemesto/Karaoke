@@ -58,3 +58,6 @@ CONTRIBUTING.md	path	FilterModal.vue	illustrative
 CONTRIBUTING.md	path	SettingVoiceLine.kt	illustrative
 CONTRIBUTING.md	path	deploy/karaoke-db/42.sql	illustrative
 CONTRIBUTING.md	path	deploy/karaoke-db/42_add_song_metadata.sql	illustrative
+docs/features/pkg-s3-26.md	path	karaoke-app/src/main/resources/test.xml	honest-gap
+docs/features/pkg-s3-26.md	path	2.xml	honest-gap
+knowledge/guidelines/architecture-conventions.md	path	karaoke-app/src/main/resources/test.xml	honest-gap

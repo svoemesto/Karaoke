@@ -185,6 +185,29 @@ NB: `recordhash` — md5 от канонизированной строки та
 - `[AutoOneClickSyncScheduler] tick=<ISO> RUNNING/SUCCESS/FAILED totals=…`.
 - `[AutoOneClickSyncScheduler] target=<key> failed: <message>`.
 
+### Конфигурация AES проверяется явно (BR-291, #398)
+
+`Crypto.encrypt`/`Crypto.decrypt` раньше ловили любое исключение и делали
+`ex.printStackTrace()` в stdout, возвращая `null`. Вызывающий отправлял в удалённую БД
+пустую строку вместо шифротекста (`Crypto.encrypt(...) ?: ""` в `Utils.kt`).
+
+Правила:
+
+- длина ключа (16/24/32 байта) и IV (16 байт) проверяется явно —
+  `Crypto.validateKeyMaterial(key, iv)` бросает `CryptoConfigurationException`;
+- проверка выполняется при старте приложения (`KaraokeAppService.init` →
+  `Crypto.validateCurrentKeyMaterial()`): при ошибке пишется `ERROR` в категорию
+  `infra.crypto.config`, а сами операции шифрования **отказываются** работать
+  (fail-closed) — «тихого» `null` больше нет;
+- ошибки шифрования/расшифрования логируются через SLF4J (`crypto: encrypt failed
+  op=encrypt` / `crypto: decrypt failed op=decrypt`) с throwable; значения и ключи
+  в запись НЕ попадают.
+
+**Оговорка**: полный отказ приложения на старте при неверном `CRYPTO_AES_KEY`
+(«fail-fast») сознательно НЕ сделан — опечатка в env превратилась бы в
+неподнимающийся контейнер. Вместо этого операции синхронизации падают явно.
+Решение за владельцем (см. `specs/398-pkg-s3-26/report.md`).
+
 ## Domain Invariants
 
 1. **Все таблицы в `SyncRegistry.all` MUST иметь `recordhash`-триггер**

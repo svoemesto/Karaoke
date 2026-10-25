@@ -4,8 +4,15 @@ import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.mlt.MltShape
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.setting
+import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.awt.Font
+
+/**
+ * BR-292 (аудит #336, пакет PKG-S3-26): разбор настроек голосов/цветов не должен
+ * ронять рендер из-за усечённой или испорченной строки настройки (файл свойств).
+ */
+private val converterLog = LoggerFactory.getLogger("infra.converter")
 
 /**
  * Класс Converter.
@@ -28,8 +35,18 @@ class Converter {
             val partsVoices = settingString.split(DELIMITER_VOICES)
             partsVoices.forEach { partVoice ->
                 val partsVoiceFields = partVoice.split(DELIMITER_VOICE_FIELDS)
-                val partVoiceFieldGroups = partsVoiceFields[0]
-                val partVoiceFieldFill = partsVoiceFields[1]
+                // BR-292 (#398): индексы брались без проверки — усечённая настройка
+                // (пустая строка настройки) давала IndexOutOfBoundsException из
+                // парсера (500 на admin-эндпоинте, ERROR в очереди рендера).
+                val partVoiceFieldGroups = partsVoiceFields.getOrNull(0) ?: ""
+                val partVoiceFieldFill = partsVoiceFields.getOrNull(1)
+                if (partVoiceFieldFill == null) {
+                    converterLog.warn(
+                        "converter: в настройке голосов нет блока заливки — блок пропущен (fields={})",
+                        partsVoiceFields.size,
+                    )
+                    return@forEach
+                }
 
                 val partsFills = partVoiceFieldFill.split(DELIMITER_FIELDS)
                 var evenColor: Color? = null
@@ -38,8 +55,13 @@ class Converter {
                 var oddOpacity: Double? = null
                 partsFills.forEach { partFill ->
                     val parts = partFill.split(DELIMITER_NAMES)
-                    val partName = parts[0]
-                    val partValue = parts[1]
+                    // BR-292 (#398): проверка размера после split (см. выше).
+                    val partName = parts.getOrNull(0)
+                    val partValue = parts.getOrNull(1)
+                    if (partName == null || partValue == null) {
+                        converterLog.warn("converter: поле заливки без значения — пропущено")
+                        return@forEach
+                    }
                     try {
                         when (partName) {
                             "evenColor" -> evenColor = getColorFromString(partValue)
@@ -67,8 +89,13 @@ class Converter {
 //                    val songtextBeatMltText: MltText? = null
                     partsFields.forEach { partField ->
                         val parts = partField.split(DELIMITER_NAMES)
-                        val partName = parts[0]
-                        val partValue = parts[1]
+                        // BR-292 (#398): проверка размера после split (см. выше).
+                        val partName = parts.getOrNull(0)
+                        val partValue = parts.getOrNull(1)
+                        if (partName == null || partValue == null) {
+                            converterLog.warn("converter: поле группы голосов без значения — пропущено")
+                            return@forEach
+                        }
                         try {
                             when (partName) {
                                 "songtextTextMltFont" -> songtextTextMltText = getMltFontFromString(partValue)
@@ -168,10 +195,19 @@ class Converter {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации шрифта: $settingString")
             }
 
+            // BR-292 (#398): Font/Color строятся ВНУТРИ try — значение из БД вида
+            // «r=300» давало IllegalArgumentException мимо catch-а и роняло рендер.
+            val font =
+                try {
+                    Font(fname, fstyle, fsize)
+                } catch (e: Exception) {
+                    converterLog.warn("converter: некорректный шрифт '{}' — взят дефолт", fname, e)
+                    Font("Tahoma", fstyle, fsize)
+                }
             return MltText(
-                font = Font(fname, fstyle, fsize),
-                shapeColor = Color(fcr, fcg, fcb, fca),
-                shapeOutlineColor = Color(ocr, ocg, ocb, oca),
+                font = font,
+                shapeColor = safeColor(fcr, fcg, fcb, fca),
+                shapeOutlineColor = safeColor(ocr, ocg, ocb, oca),
                 fontUnderline = underline,
                 shapeOutline = outline,
             )
@@ -223,8 +259,8 @@ class Converter {
 
             return MltShape(
                 type = type,
-                shapeColor = Color(fcr, fcg, fcb, fca),
-                shapeOutlineColor = Color(ocr, ocg, ocb, oca),
+                shapeColor = safeColor(fcr, fcg, fcb, fca),
+                shapeOutlineColor = safeColor(ocr, ocg, ocb, oca),
                 shapeOutline = outline,
             )
         }
@@ -290,7 +326,32 @@ class Converter {
             } else {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации цвета: $settingString")
             }
-            return Color(colorR, colorG, colorB, colorA)
+            // BR-292 (#398): Color(...) — вне try, значение «r=300» из БД роняло парсер.
+            return safeColor(colorR, colorG, colorB, colorA)
         }
+
+        /**
+         * BR-292 (#398): безопасное построение цвета — значение вне 0..255 даёт
+         * `IllegalArgumentException`, поэтому подменяем дефолтом и пишем в лог.
+         */
+        private fun safeColor(
+            r: Int,
+            g: Int,
+            b: Int,
+            a: Int,
+        ): Color =
+            try {
+                Color(r, g, b, a)
+            } catch (e: Exception) {
+                converterLog.warn(
+                    "converter: некорректный цвет ({}, {}, {}, {}) — взят дефолт",
+                    r,
+                    g,
+                    b,
+                    a,
+                    e,
+                )
+                Color(255, 255, 255, 255)
+            }
     }
 }

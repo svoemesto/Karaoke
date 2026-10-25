@@ -61,6 +61,14 @@
 | `infra.settings.write` | `karaoke-app/.../KaraokeProperties.kt` (аудит #336, BR-249) | Не удалось записать файл настроек на диск (нет каталога, read-only ФС, ошибка `Files.move`) — значение изменено только в памяти и будет потеряно при рестарте | ERROR |
 | `infra.ai.search` | `karaoke-app/.../UtilsAI.kt` (аудит #336, BR-265) | Сбои загрузки HTML в AI-поиске: сетевой сбой, не-2xx код ответа, пустой документ (`url=`, причина) | WARN |
 
+### Категории пакета `PKG-S3-26` (OpenProject #398, аудит #336)
+
+| Категория | Где | Что логируется | Уровень по умолчанию |
+|---|---|---|---|
+| `infra.health.report` | `karaoke-app/.../HealthReport.kt` (healthLog) | События отчёта о здоровье: непрочитанный каталог ссылок (`symlinkFolderReports`, BR-286), провал действия ремонта (`repair: действие отчёта завершилось ошибкой`, BR-284), провал каскада (`repair: каскадное исправление прервано`, BR-284), ошибка пересчёта готовности (`recalcPlayerReadiness`, BR-287) | WARN (пропуск проверки), ERROR (провал действия/каскада) |
+| `infra.converter` | `karaoke-app/.../Converter.kt` (converterLog) | Разбор настроек голосов/цветов/шрифтов: усечённая строка настройки, поле без значения, некорректный цвет/шрифт (BR-292) | WARN |
+| `infra.crypto.config` | `karaoke-app/.../services/KaraokeAppService.kt` (cryptoLog) | Проверка конфигурации AES при старте: неверная длина `CRYPTO_AES_KEY`/`CRYPTO_AES_IV` (BR-291). Значения ключа и IV в запись НЕ пишутся | ERROR |
+
 ### Конвенция имён
 
 - `infra.<subsystem>.<feature>` — где:

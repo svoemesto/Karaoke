@@ -239,11 +239,17 @@ fun getVoices(
         // На данный момент у нас заполнен список tmpLines
         // Надо найти время самой долгой строки и навставлять пустых строк если надо
         if (tmpLines.isNotEmpty()) {
-            // Время самой "длинной" строки
-            val maxDuration = tmpLines.maxOf { it.lineDurationMs() }
+            // Время самой "длинной" строки.
+            // BR-290 (аудит #336, пакет PKG-S3-26): нулевая длительность — штатное
+            // состояние (`newLine`/`emptyLine` и комментарии дают lineStartMs == lineEndMs),
+            // и голос без единой непустой по времени линии давал maxDuration = 0 →
+            // ArithmeticException «/ by zero» (создание проекта падало). Максимум считаем
+            // только по строкам с ПОЛОЖИТЕЛЬНОЙ длительностью; если таких нет — пустые
+            // строки не вставляем (делить не на что).
+            val maxDuration = tmpLines.map { it.lineDurationMs() }.filter { it > 0 }.maxOrNull() ?: 0L
 
             // Кол-во пустых строк с начала = начало старта первой строки / время длинной строки
-            val countStartEmptyLines = (tmpLines.first().lineStartMs / maxDuration)
+            val countStartEmptyLines = if (maxDuration > 0) (tmpLines.first().lineStartMs / maxDuration) else 0
 
             // В любом случае добавляем пустую строку в самое начало
             lines.add(SongVoiceLine.emptyLine(song.id, 0, groupId))
@@ -281,7 +287,7 @@ fun getVoices(
                             // Конец "пустого" интервала - с начала следующей линии
                             val endTimeMs = nextLine.lineStartMs
                             // Количество пустых линий, которые должны быть в этом интервале
-                            val countNeededEmptyLines = (endTimeMs - startTimeMs) / maxDuration
+                            val countNeededEmptyLines = if (maxDuration > 0) (endTimeMs - startTimeMs) / maxDuration else 0
 
                             // Вычислим реальное кол-во пустых строк, которые должны быть в этом интервале
                             val countEmptyLinesToAdd =
@@ -313,7 +319,7 @@ fun getVoices(
 
             if (endTime > startTime) {
                 // Кол-во пустых строк с начала = начало старта первой строки / время длинной строки
-                val countEndEmptyLines = (endTime - startTime) / maxDuration
+                val countEndEmptyLines = if (maxDuration > 0) (endTime - startTime) / maxDuration else 0
 
                 // Если кол-во пустых строк которые нужно вставить в начало > 0
                 if (countEndEmptyLines > 0) {

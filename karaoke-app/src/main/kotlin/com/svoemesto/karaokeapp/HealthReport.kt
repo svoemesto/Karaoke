@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.HealthReportStatus.*
 import com.svoemesto.karaokeapp.HealthReportType.CONSISTENCY_VIOLATION
 import com.svoemesto.karaokeapp.HealthReportType.FILE_VIOLATION
 import com.svoemesto.karaokeapp.KaraokeFileTypeLocations.*
+import com.svoemesto.karaokeapp.model.Message
 import com.svoemesto.karaokeapp.model.SearchAsync
 import com.svoemesto.karaokeapp.model.SearchResult
 import com.svoemesto.karaokeapp.model.Song
@@ -111,6 +112,14 @@ data class HealthReport(
         val circuitLog: Logger = LoggerFactory.getLogger("infra.health.circuit")
 
         /**
+         * BR-286 (аудит #336, пакет PKG-S3-26): SLF4J logger событий отчёта о здоровье —
+         * `infra.health.report`. Раньше пропуск проверки (каталог ссылок не прочитан)
+         * уходил в `println` и был неотличим от «проблем нет».
+         */
+        @JvmStatic
+        val healthLog: Logger = LoggerFactory.getLogger("infra.health.report")
+
+        /**
          * Dedicated thread pool for repair actions (US3, spec #364).
          * Prevents repair I/O (file uploads, MinIO calls) from competing with HTTP request threads.
          * Size: 4 threads — enough for concurrent repairs of several songs without overload.
@@ -184,7 +193,12 @@ data class HealthReport(
         /**
          * Pass 434 (#158): кешированный `StorageFileInfo` (etag/size). На hit — без
          * MinIO-вызова; на miss — `loader` (реальный `getFileInfo`) + запись в кеш.
-         * `null` — если строки нет/неполная (см. `StorageMetadataCache.selectFileInfo`).
+         *
+         * BR-281 (аудит #336, пакет PKG-S3-26): возвращается **типизированный** результат
+         * [StorageFileInfoProbe], а не `null`. Раньше `null` означал сразу три разных
+         * состояния — «нет строки в кеше», «объекта нет» (`size < 0`) и «вызов не удался»
+         * (circuit breaker / исключение) — и вызывающий трактовал `null` как «файл
+         * актуален», т.е. отчёт был зелёным при недоступном MinIO.
          *
          * @param breaker circuit breaker этого бэкенда: при OPEN (до cooldown) в MinIO
          *   не ходим — info неизвестен. После cooldown `isFastFail()`=false, и вызов
@@ -199,15 +213,30 @@ data class HealthReport(
             fileName: String,
             breaker: StorageCircuitBreaker?,
             loader: () -> StorageFileInfo,
-        ): StorageFileInfo? {
-            if (breaker != null && breaker.isFastFail()) return null
+        ): StorageFileInfoProbe {
+            if (breaker != null && breaker.isFastFail()) {
+                return StorageFileInfoProbe.Unknown("circuit breaker open")
+            }
             val guarded: () -> StorageFileInfo = {
-                loader().takeIf { it.size >= 0 } ?: error("file info unavailable (not found / failed)")
+                loader().takeIf { it.size >= 0 } ?: throw StorageFileMissingException()
             }
             return try {
-                storageMetadataCache?.getFileInfo(source, bucket, fileName, guarded) ?: guarded()
+                val info = storageMetadataCache?.getFileInfo(source, bucket, fileName, guarded) ?: guarded()
+                StorageFileInfoProbe.Known(info)
+            } catch (e: StorageFileMissingException) {
+                // Объекта нет в хранилище (BR-164 различает «нет объекта» и «сбой S3»).
+                StorageFileInfoProbe.Missing
             } catch (e: Exception) {
-                null
+                // BR-281: причина сбоя больше не теряется — WARN с throwable.
+                circuitLog.warn(
+                    "probe=fileInfo source={} bucket={} fileName={} error={}",
+                    source,
+                    bucket,
+                    fileName,
+                    "${e::class.simpleName}: ${e.message}",
+                    e,
+                )
+                StorageFileInfoProbe.Unknown("${e::class.simpleName}: ${e.message}")
             }
         }
 
@@ -242,6 +271,7 @@ data class HealthReport(
             location: KaraokeFileTypeLocations,
             inProgressOwnArgs: Map<String, String>,
             inProgressParentArgs: Map<String, String>,
+            songProcesses: List<KaraokeProcess>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
@@ -270,6 +300,7 @@ data class HealthReport(
                         storageFileName = storageFileName,
                         inProgressOwnArgs = inProgressOwnArgs,
                         inProgressParentArgs = inProgressParentArgs,
+                        songProcesses = songProcesses,
                         database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
@@ -293,6 +324,7 @@ data class HealthReport(
                         storageFileName = storageFileName,
                         inProgressOwnArgs = inProgressOwnArgs,
                         inProgressParentArgs = inProgressParentArgs,
+                        songProcesses = songProcesses,
                         database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
@@ -316,6 +348,7 @@ data class HealthReport(
                         storageFileName = storageFileName,
                         inProgressOwnArgs = inProgressOwnArgs,
                         inProgressParentArgs = inProgressParentArgs,
+                        songProcesses = songProcesses,
                         database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
@@ -341,6 +374,7 @@ data class HealthReport(
             storageFileName: String,
             inProgressOwnArgs: Map<String, String>,
             inProgressParentArgs: Map<String, String>,
+            songProcesses: List<KaraokeProcess>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
@@ -486,9 +520,11 @@ data class HealthReport(
                     var tryRestoreFromStorage = false
                     if (canResolve) { // Если возможно решить проблему (canResolve)
 
+                        // BR-280 (#398): без отдельного SQL-запроса — фильтр по уже
+                        // загруженному списку заданий песни.
                         val inProgressOwn =
                             inProgressOwnArgs.isNotEmpty() &&
-                                KaraokeProcess.loadList(args = inProgressOwnArgs, database = database).isNotEmpty()
+                                filterSongProcesses(processes = songProcesses, args = inProgressOwnArgs).isNotEmpty()
                         if (inProgressOwn) { // Есть задача в процессах (inProgressOwn)
 
                             healthReportStatus = IN_PROGRESS
@@ -503,7 +539,8 @@ data class HealthReport(
                             if (!canCreate) { // Невозможно создать файл (!canCreate)
                                 val inProgressParentProcess =
                                     if (inProgressParentArgs.isNotEmpty()) {
-                                        KaraokeProcess.loadList(args = inProgressParentArgs, database = database)
+                                        // BR-280 (#398): фильтр по уже загруженному списку.
+                                        filterSongProcesses(processes = songProcesses, args = inProgressParentArgs)
                                     } else {
                                         emptyList()
                                     }
@@ -689,6 +726,7 @@ data class HealthReport(
             storageFileName: String,
             inProgressOwnArgs: Map<String, String>,
             inProgressParentArgs: Map<String, String>,
+            songProcesses: List<KaraokeProcess>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
@@ -756,6 +794,9 @@ data class HealthReport(
             lateinit var solutionText: String
             lateinit var healthReportStatus: HealthReportStatus
             var canBeResolved by Delegates.notNull<Boolean>()
+            // BR-281 (#398): «состояние хранилища неизвестно» — отчёт не может быть зелёным,
+            // и reconcilePlayerReadinessFlags не должен сбрасывать флаги готовности.
+            var storageStateUnknown = false
 
             healthReportStatus = OK
             problemText = "Проблем нет"
@@ -767,18 +808,20 @@ data class HealthReport(
                 storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
             }
             val existsInLocalStore = cachedFileExists("LOCAL", storageBucketName, storageFileName, localFileExistsLoader)
+            // BR-280 (#398): задания песни загружены ОДНИМ запросом (см. getHealthReportList) —
+            // раньше на каждую пару «тип файла × локация» шёл свой SQL-запрос
+            // (≈18 запросов на песню, тысячи на страницу «Песни»).
             val uploadInProgress =
-                KaraokeProcess
-                    .loadList(
-                        args =
-                            mapOf(
-                                "song_id" to song.id.toString(),
-                                "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
-                                "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
-                                "process_args" to "karaokeFileType=${karaokeFileType.name}",
-                            ),
-                        database = database,
-                    ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
+                filterSongProcesses(
+                    processes = songProcesses,
+                    args =
+                        mapOf(
+                            "song_id" to song.id.toString(),
+                            "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
+                            "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
+                            "process_args" to "karaokeFileType=${karaokeFileType.name}",
+                        ),
+                ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
 
             if (canBe) { // Файл должен быть
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
@@ -797,13 +840,10 @@ data class HealthReport(
                         // исчезнувшего файла = 0, поэтому старая формула давала «неактуально»
                         // и удаляла валидный объект хранилища. `null` = диск исчез → отдельная
                         // ветка WARNING без удаления объекта.
-                        val fileIsActual =
-                            if (localInfo == null) {
-                                true
-                            } else {
-                                diskFileMatchesStoredSize(pathToFile, localInfo.size)
-                            }
-                        if (fileIsActual == false) { // Файл не актуальный
+                        // BR-281 (#398): `localInfo == null` больше не значит «файл актуален» —
+                        // типизированный результат различает «объекта нет» и «не удалось узнать».
+                        val fileIsActual = fileActualityVerdict(localInfo, pathToFile)
+                        if (fileIsActual == FileActualityVerdict.NOT_ACTUAL) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
                             healthReportStatus = ERROR
@@ -850,7 +890,7 @@ data class HealthReport(
                                 }
                                 actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
                             }
-                        } else if (fileIsActual == null) {
+                        } else if (fileIsActual == FileActualityVerdict.DISK_VANISHED) {
                             // BR-278 (#376): файл исчез с диска между первичной проверкой и
                             // сравнением. Это не «неактуально»: объект в хранилище не удаляем
                             // и ничего не загружаем — иначе repair уничтожил бы валидную копию.
@@ -858,6 +898,15 @@ data class HealthReport(
                             canBeResolved = false
                             problemText = DISK_FILE_VANISHED_PROBLEM_TEXT
                             solutionText = DISK_FILE_VANISHED_SOLUTION_TEXT
+                        } else if (fileIsActual == FileActualityVerdict.UNKNOWN) {
+                            // BR-281 (#398): состояние хранилища неизвестно (circuit breaker
+                            // открыт / сбой MinIO). Актуальность НЕ доказана — отчёт не может
+                            // быть зелёным, но и удалять/загружать объект нельзя.
+                            healthReportStatus = WARNING
+                            canBeResolved = false
+                            storageStateUnknown = true
+                            problemText = STORAGE_STATE_UNKNOWN_PROBLEM_TEXT
+                            solutionText = STORAGE_STATE_UNKNOWN_SOLUTION_TEXT
                         }
                     } else if (existsInLocalFileSystem) {
                         // wayfinder #330: для storage-only типов дисковая копия — побочный продукт
@@ -871,7 +920,7 @@ data class HealthReport(
                                 storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
                                     ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                             }
-                        if (storageActuality(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                        if (storageActualityOf(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = STORAGE_MISMATCH_PROBLEM_TEXT
@@ -896,7 +945,7 @@ data class HealthReport(
                                     storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
                                         ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                                 }
-                            val fileIsActual = storageActuality(storageFileInfo, remoteFileInfo) == StorageActuality.OK
+                            val fileIsActual = storageActualityOf(storageFileInfo, remoteFileInfo) == StorageActuality.OK
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
@@ -1052,6 +1101,7 @@ data class HealthReport(
                     problemText = problemText,
                     solutionText = solutionText,
                     solutionActions = actions,
+                    storageStateUnknown = storageStateUnknown,
                 )
             result.add(healthReport)
 
@@ -1076,6 +1126,7 @@ data class HealthReport(
             storageFileName: String,
             inProgressOwnArgs: Map<String, String>,
             inProgressParentArgs: Map<String, String>,
+            songProcesses: List<KaraokeProcess>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
@@ -1140,6 +1191,9 @@ data class HealthReport(
             lateinit var solutionText: String
             lateinit var healthReportStatus: HealthReportStatus
             var canBeResolved by Delegates.notNull<Boolean>()
+            // BR-281 (#398): «состояние хранилища неизвестно» — отчёт не может быть зелёным,
+            // и reconcilePlayerReadinessFlags не должен сбрасывать флаги готовности.
+            var storageStateUnknown = false
 
             healthReportStatus = OK
             problemText = "Проблем нет"
@@ -1179,18 +1233,18 @@ data class HealthReport(
                     ),
                 )
             }
+            // BR-280 (#398): см. LOCAL-ветку — задания песни уже загружены одним запросом.
             val uploadInProgress =
-                KaraokeProcess
-                    .loadList(
-                        args =
-                            mapOf(
-                                "song_id" to song.id.toString(),
-                                "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
-                                "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
-                                "process_args" to "karaokeFileType=${karaokeFileType.name}",
-                            ),
-                        database = database,
-                    ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
+                filterSongProcesses(
+                    processes = songProcesses,
+                    args =
+                        mapOf(
+                            "song_id" to song.id.toString(),
+                            "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
+                            "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
+                            "process_args" to "karaokeFileType=${karaokeFileType.name}",
+                        ),
+                ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
 
             if (canBe) { // Файл должен быть
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInRemoteStore)
@@ -1204,13 +1258,9 @@ data class HealthReport(
                         // BR-278 (#376): зеркало LOCAL-ветки — повторная проверка существования
                         // файла перед сравнением, чтобы исчезнувший файл (переименование/удаление)
                         // не приводил к удалению валидного объекта удалённого хранилища.
-                        val fileIsActual =
-                            if (remoteInfo == null) {
-                                true
-                            } else {
-                                diskFileMatchesStoredSize(pathToFile, remoteInfo.size)
-                            }
-                        if (fileIsActual == false) { // Файл не актуальный
+                        // BR-281 (#398): `remoteInfo == null` больше не значит «файл актуален».
+                        val fileIsActual = fileActualityVerdict(remoteInfo, pathToFile)
+                        if (fileIsActual == FileActualityVerdict.NOT_ACTUAL) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
                             healthReportStatus = ERROR
@@ -1226,15 +1276,11 @@ data class HealthReport(
 
                                 actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] >>>") }
                                 actions.add {
-                                    try {
-                                        storageApiClient
-                                            .deleteFile(
-                                                bucketName = storageBucketName,
-                                                fileName = storageFileName,
-                                            ).block()
-                                    } catch (e: Exception) {
-                                        println("Ошибка при удалении неактуального файла из удалённого хранилища: ${e.message}")
-                                    }
+                                    deleteRemoteFileOrThrow(
+                                        storageApiClient = storageApiClient,
+                                        bucketName = storageBucketName,
+                                        fileName = storageFileName,
+                                    )
                                 }
                                 actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] <<<") }
 
@@ -1261,13 +1307,21 @@ data class HealthReport(
                                 }
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
-                        } else if (fileIsActual == null) {
+                        } else if (fileIsActual == FileActualityVerdict.DISK_VANISHED) {
                             // BR-278 (#376): файл исчез с диска между проверкой и сравнением.
                             // Объект удалённого хранилища не удаляем и не перезагружаем.
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = DISK_FILE_VANISHED_PROBLEM_TEXT
                             solutionText = DISK_FILE_VANISHED_SOLUTION_TEXT
+                        } else if (fileIsActual == FileActualityVerdict.UNKNOWN) {
+                            // BR-281 (#398): состояние удалённого хранилища неизвестно —
+                            // актуальность не доказана, но и удалять/загружать нельзя.
+                            healthReportStatus = WARNING
+                            canBeResolved = false
+                            storageStateUnknown = true
+                            problemText = STORAGE_STATE_UNKNOWN_PROBLEM_TEXT
+                            solutionText = STORAGE_STATE_UNKNOWN_SOLUTION_TEXT
                         }
                     } else if (existsInLocalFileSystem) {
                         // wayfinder #330: для storage-only типов дисковая копия не эталон —
@@ -1281,7 +1335,7 @@ data class HealthReport(
                             cachedFileInfo("LOCAL", storageBucketName, storageFileName, localStorageCircuitBreaker) {
                                 storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
                             }
-                        if (storageActuality(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                        if (storageActualityOf(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = STORAGE_MISMATCH_PROBLEM_TEXT
@@ -1304,7 +1358,7 @@ data class HealthReport(
                                     storageApiClient.getFileInfo(bucketName = storageBucketName, fileName = storageFileName).block()
                                         ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                                 }
-                            val fileIsActual = storageActuality(storageFileInfo, remoteFileInfo) == StorageActuality.OK
+                            val fileIsActual = storageActualityOf(storageFileInfo, remoteFileInfo) == StorageActuality.OK
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
@@ -1440,15 +1494,11 @@ data class HealthReport(
 
                     actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
                     actions.add {
-                        try {
-                            storageApiClient
-                                .deleteFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                ).block()
-                        } catch (e: Exception) {
-                            println("Ошибка при удалении файла из удалённого хранилища: ${e.message}")
-                        }
+                        deleteRemoteFileOrThrow(
+                            storageApiClient = storageApiClient,
+                            bucketName = storageBucketName,
+                            fileName = storageFileName,
+                        )
                     }
                     actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
                 }
@@ -1464,6 +1514,7 @@ data class HealthReport(
                     problemText = problemText,
                     solutionText = solutionText,
                     solutionActions = actions,
+                    storageStateUnknown = storageStateUnknown,
                 )
             result.add(healthReport)
 
@@ -1508,6 +1559,11 @@ data class HealthReport(
             val storageService = song.storageService
             val storageApiClient = song.storageApiClient
 
+            // BR-280 (#398): задания песни читаются ОДНИМ запросом и раздаются в
+            // actions* через фильтр в памяти. Раньше на каждую пару «тип файла ×
+            // локация» шёл свой `KaraokeProcess.loadList` (≈18 запросов на песню).
+            val songProcesses = KaraokeProcess.loadList(args = mapOf("song_id" to song.id.toString()), database = database)
+
             // BR-073 (аудит #336, пакет PKG-S3-22): починка root_folder — явная операция с
             // проверкой однозначности кандидата. Раньше она была ПОБОЧНЫМ ЭФФЕКТОМ чтения геттера
             // rootFolder (запись в БД из read-пути + совпадение хвоста могло указать на чужой
@@ -1529,7 +1585,8 @@ data class HealthReport(
                             "process_status" to KaraokeProcessStatuses.WAITING.name,
                             "process_type" to KaraokeProcessTypes.KEY_BPM_FROM_FILE.name,
                         )
-                    val inProgress = KaraokeProcess.loadList(args = processArgs, database = database).isNotEmpty()
+                    // BR-280 (#398): задания песни уже загружены одним запросом выше.
+                    val inProgress = filterSongProcesses(processes = songProcesses, args = processArgs).isNotEmpty()
                     if (inProgress) {
                         result.add(
                             HealthReport(
@@ -1693,6 +1750,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -1800,6 +1858,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -1902,6 +1961,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -1954,6 +2014,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2006,6 +2067,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2058,6 +2120,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2110,6 +2173,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2162,6 +2226,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2214,6 +2279,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2266,6 +2332,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2318,6 +2385,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2356,6 +2424,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2401,6 +2470,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2438,6 +2508,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2482,6 +2553,7 @@ data class HealthReport(
                                     storageFileName = storageFileName,
                                     inProgressOwnArgs = inProgressOwnArgs,
                                     inProgressParentArgs = inProgressParentArgs,
+                                    songProcesses = songProcesses,
                                     database = database,
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
@@ -2530,7 +2602,27 @@ data class HealthReport(
                     try {
                         Files.list(folderFile.toPath()).use { it.toList() }
                     } catch (e: Exception) {
-                        println("symlinkFolderReports: не удалось прочитать '$folder': ${e.message}")
+                        // BR-286 (#398): пропуск проверки больше не выглядит как «проблем нет».
+                        // Каталог выпадает из аудита — показываем WARNING без действия и
+                        // логируем исключение целиком через SLF4J.
+                        healthLog.warn(
+                            "symlinkFolderReports: не удалось прочитать каталог ссылок folder={} error={}",
+                            folder,
+                            "${e::class.simpleName}: ${e.message}",
+                            e,
+                        )
+                        reports.add(
+                            HealthReport(
+                                healthReportType = FILE_VIOLATION,
+                                song = song,
+                                description = "${File(folder).name}/",
+                                healthReportStatus = WARNING,
+                                canResolve = false,
+                                problemText = "Каталог ссылок не прочитан: ${e.message}",
+                                solutionText = "Проверьте доступность каталога ссылок и пересчитайте отчёт",
+                                storageStateUnknown = true,
+                            ),
+                        )
                         return@forEach
                     }
                 entries.forEach { entry ->
@@ -2729,14 +2821,16 @@ data class HealthReport(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Int {
+        ): ReadinessRecalcResult {
             // Лёгкий запрос id вместо полного List<Song> — recomputeAndBroadcast сам перезагружает
             // каждую запись целиком по id, так что грузить их дважды (Song.loadListFromDb, потом
             // ещё раз внутри recomputeAndBroadcast) незачем. Song.listHashes — тот же метод, что
             // использует SettingsSyncTarget для sync, читает только (id, recordhash) парами.
             val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
             val whereText = authorFilter?.let { "WHERE LOWER(song_author) = '${it.rightFileName().lowercase()}'" } ?: ""
-            val ids = Song.listHashes(database = database, whereText = whereText)?.map { it.id } ?: return 0
+            val ids =
+                Song.listHashes(database = database, whereText = whereText)?.map { it.id }
+                    ?: return ReadinessRecalcResult(processed = 0, failed = 0)
             val total = ids.size
             val startedAt = System.currentTimeMillis()
             var failed = 0
@@ -2748,6 +2842,14 @@ data class HealthReport(
                     // Одна проблемная песня (например, сбой при проверке файла в MinIO) не должна
                     // обрывать весь прогон — пропускаем её и продолжаем с остальными.
                     failed++
+                    // BR-287 (#398): причина ошибки больше не теряется — SLF4J с throwable,
+                    // а не только `e.message` в stdout.
+                    healthLog.error(
+                        "recalcPlayerReadiness: песня {} пропущена из-за ошибки: {}",
+                        id,
+                        "${e::class.simpleName}: ${e.message}",
+                        e,
+                    )
                     println("[recalcPlayerReadiness/progress] песня $id: ошибка при пересчёте, пропущена: ${e.message}")
                 }
                 val done = index + 1
@@ -2761,7 +2863,10 @@ data class HealthReport(
                     )
                 }
             }
-            return total
+            // BR-287 (#398): возвращаем и число успешно обработанных, и число ошибок.
+            // Раньше возвращался `total` — при сотнях упавших песен админ видел отчёт
+            // об успешной обработке всего каталога.
+            return ReadinessRecalcResult(processed = total - failed, failed = failed)
         }
 
         /**
@@ -2785,13 +2890,71 @@ data class HealthReport(
             return ids.size
         }
 
-        // Выполнить все прямо сейчас решаемые (canResolve && ERROR) действия отчётов. Каждое действие
-        // либо чинит проблему синхронно, либо ставит задачу в очередь KaraokeProcess (дедуп внутри
-        // createProcess не даёт задвоить уже WORKING-задачу).
-        private fun executeResolvable(reports: List<HealthReport>) {
+        /**
+         * BR-283 (аудит #336, пакет PKG-S3-26): удаление объекта из удалённого хранилища.
+         *
+         * Раньше ошибка гасилась `println` внутри лямбды: действие завершалось «нормально»,
+         * остальные действия выполнялись, эндпоинт/UI показывали «исправлено», а объект
+         * оставался в MinIO и отчёт снова становился `ERROR`.
+         *
+         * Теперь ошибка логируется через SLF4J с throwable и **пробрасывается** в
+         * repair-цикл ([executeResolvable]), где она помечается как неуспешное действие.
+         */
+        internal fun deleteRemoteFileOrThrow(
+            storageApiClient: StorageApiClient,
+            bucketName: String,
+            fileName: String,
+        ) {
+            try {
+                storageApiClient
+                    .deleteFile(
+                        bucketName = bucketName,
+                        fileName = fileName,
+                    ).block()
+            } catch (e: Exception) {
+                healthLog.error(
+                    "repair: не удалось удалить объект из удалённого хранилища bucket={} fileName={} error={}",
+                    bucketName,
+                    fileName,
+                    "${e::class.simpleName}: ${e.message}",
+                    e,
+                )
+                throw e
+            }
+        }
+
+        /**
+         * Выполнить все прямо сейчас решаемые (canResolve && ERROR) действия отчётов. Каждое действие
+         * либо чинит проблему синхронно, либо ставит задачу в очередь KaraokeProcess (дедуп внутри
+         * createProcess не даёт задвоить уже WORKING-задачу).
+         *
+         * BR-284 (аудит #336, пакет PKG-S3-26): каждое действие выполняется в своём
+         * `try/catch` — исключение одного действия больше не обрывает весь каскад
+         * (оставшиеся действия не выполнялись, финальный пересчёт и SSE не уходили,
+         * пользователь не получал ни ошибки, ни обновления). Ошибка логируется с
+         * throwable, действие помечается неуспешным, счётчик возвращается вызывающему.
+         *
+         * @return число действий, завершившихся ошибкой.
+         */
+        internal fun executeResolvable(reports: List<HealthReport>): Int {
+            var failed = 0
             reports
                 .filter { it.canResolve && it.healthReportStatus == ERROR }
-                .forEach { it.executeSolutionActions() }
+                .forEach { report ->
+                    try {
+                        report.executeSolutionActions()
+                    } catch (e: Exception) {
+                        failed++
+                        healthLog.error(
+                            "repair: действие отчёта завершилось ошибкой description={} status={} error={}",
+                            report.description,
+                            report.healthReportStatus.name,
+                            "${e::class.simpleName}: ${e.message}",
+                            e,
+                        )
+                    }
+                }
+            return failed
         }
 
         // Старт каскадного «Исправить всё» по песне: пометить песню и выполнить всё решаемое сейчас.
@@ -2812,20 +2975,123 @@ data class HealthReport(
             // HTTP thread отправляет initial SSE и сразу возвращает ответ.
             // Repair выполняется асинхронно в фоне.
             if (!attemptEnterRepair(song.id)) return // другой поток уже чинит — skip
-            autoRepairSongIds.add(song.id)
-            recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
-
-            // US3: executeResolvable асинхронно — не блокирует HTTP
             val songId = song.id // capture primitive to avoid garbage collection
+            // BR-282 (#398): guard снимается в finally вокруг ВСЕГО тела. Раньше
+            // синхронный `recomputeAndBroadcast` стоял ДО `submit` и вне try: его
+            // исключение (сбой БД в saveToDbLocked, ошибка SNS.send) оставляло
+            // `repairInFlight[songId] = true` навсегда — «Исправить всё» и каскад
+            // для этой песни молча переставали работать до перезапуска приложения.
+            try {
+                autoRepairSongIds.add(songId)
+                recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+
+                // US3: executeResolvable асинхронно — не блокирует HTTP
+                repairExecutor.submit {
+                    try {
+                        // Повторный пересчёт перед repair (actions могли изменить файлы на диске)
+                        val reportsBefore = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+                        val failed = executeResolvable(reportsBefore)
+                        // Финальный пересчёт после repair — отразить в UI
+                        recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+                        if (failed > 0) {
+                            reportRepairFailure(songId, failed)
+                        }
+                    } catch (e: Exception) {
+                        // BR-284 (#398): сбой внутри задачи пула больше не теряется —
+                        // ошибка уходит в лог и в SSE, а не «в никуда» (uncaught handler).
+                        healthLog.error(
+                            "repair: каскадное исправление прервано songId={} error={}",
+                            songId,
+                            "${e::class.simpleName}: ${e.message}",
+                            e,
+                        )
+                        reportRepairFailure(songId, 1)
+                    } finally {
+                        exitRepair(songId)
+                    }
+                }
+            } catch (e: Exception) {
+                exitRepair(songId)
+                throw e
+            }
+        }
+
+        /**
+         * BR-284 (#398): сообщить о неуспешных действиях ремонта — в лог и в SSE.
+         * Раньше частично применённый каскад был неотличим от полностью успешного.
+         */
+        private fun reportRepairFailure(
+            songId: Long,
+            failed: Int,
+        ) {
+            val body = "Действий исправления выполнено с ошибкой: $failed. Отчёт пересчитывается, часть действий могла не примениться."
+            healthLog.error("repair: songId={} failedActions={}", songId, failed)
+            try {
+                SNS.send(
+                    SseNotification.error(
+                        Message(
+                            type = "error",
+                            head = "Исправление песни выполнено с ошибками",
+                            body = body,
+                        ),
+                    ),
+                )
+            } catch (e: Exception) {
+                healthLog.error("repair: не удалось отправить SSE об ошибке ремонта songId={}", songId, e)
+            }
+        }
+
+        /**
+         * BR-285 (аудит #336, пакет PKG-S3-26): одиночное «выполнить действие» отчёта.
+         *
+         * `solutionActions` могут содержать блокирующие операции MinIO
+         * (`downloadFile` — десятки МБ в потоке HTTP-запроса Tomcat). Раньше
+         * `executeHealthReportActions` выполнял их синхронно в потоке запроса —
+         * это нарушало инвариант storage-домена № 4 («MinIO-операции НЕ выполняются
+         * в HTTP-handler-треде»). Теперь действие выполняется в `repairExecutor`,
+         * эндпоинт отвечает `202 Accepted`, результат приходит по SSE.
+         */
+        fun executeHealthReportActionsAsync(
+            song: Song,
+            dto: HealthReportDTO,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ) {
+            val songId = song.id
             repairExecutor.submit {
                 try {
-                    // Повторный пересчёт перед repair (actions могли изменить файлы на диске)
-                    val reportsBefore = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
-                    executeResolvable(reportsBefore)
-                    // Финальный пересчёт после repair — отразить в UI
+                    val report = getHealthReport(song = song, dto = dto)
+                    if (report == null) {
+                        healthLog.warn(
+                            "repair: одиночное действие не найдено songId={} description={}",
+                            songId,
+                            dto.description,
+                        )
+                    } else {
+                        try {
+                            report.executeSolutionActions()
+                        } catch (e: Exception) {
+                            healthLog.error(
+                                "repair: одиночное действие завершилось ошибкой songId={} description={} error={}",
+                                songId,
+                                dto.description,
+                                "${e::class.simpleName}: ${e.message}",
+                                e,
+                            )
+                            reportRepairFailure(songId, 1)
+                        }
+                    }
+                    // Пересчёт и SSE — чтобы UI увидел фактическое состояние.
                     recomputeAndBroadcast(songId, database, storageService, storageApiClient)
-                } finally {
-                    exitRepair(songId)
+                } catch (e: Exception) {
+                    healthLog.error(
+                        "repair: одиночное действие прервано songId={} error={}",
+                        songId,
+                        "${e::class.simpleName}: ${e.message}",
+                        e,
+                    )
+                    reportRepairFailure(songId, 1)
                 }
             }
         }
@@ -2955,3 +3221,163 @@ internal const val DISK_FILE_VANISHED_PROBLEM_TEXT =
 /** Текст решения BR-278: пересчитать отчёт (файл мог быть переименован параллельно). */
 internal const val DISK_FILE_VANISHED_SOLUTION_TEXT =
     "Пересчитайте отчёт: файл мог быть переименован или удалён параллельно"
+
+/** Текст проблемы BR-281: состояние хранилища неизвестно — актуальность не доказана. */
+internal const val STORAGE_STATE_UNKNOWN_PROBLEM_TEXT =
+    "Состояние хранилища неизвестно (сбой или circuit breaker): актуальность объекта не проверена"
+
+/** Текст решения BR-281: дождаться доступности хранилища и пересчитать отчёт. */
+internal const val STORAGE_STATE_UNKNOWN_SOLUTION_TEXT =
+    "Дождитесь доступности хранилища и пересчитайте отчёт — объект не изменялся"
+
+/**
+ * BR-280 (аудит #336, пакет PKG-S3-26): фильтр заданий по тем же правилам, что и
+ * `KaraokeProcess.loadList(args = ...)`, но по **уже загруженному** списку.
+ *
+ * Раньше `HealthReport` для каждой пары «тип файла × локация» делал свой
+ * `SELECT tbl_processes.*` — около 18 запросов на песню и тысячи на страницу «Песни»
+ * (ADR-0001 запрещает пакетные операции «по одной записи в цикле»).
+ *
+ * Поддерживаются те же ключи, что использует health-report:
+ * `song_id`, `process_status`, `process_type`, `thread_id`, `process_args`.
+ */
+internal fun filterSongProcesses(
+    processes: List<KaraokeProcess>,
+    args: Map<String, String>,
+): List<KaraokeProcess> =
+    processes.filter { process ->
+        matchesNumericArg(process.songId.toLong(), args["song_id"]) &&
+            matchesNumericArg(process.threadId.toLong(), args["thread_id"]) &&
+            (args["process_status"] == null || args["process_status"] == process.status) &&
+            (args["process_type"] == null || args["process_type"] == process.type) &&
+            matchesProcessArgs(process, args["process_args"])
+    }
+
+/**
+ * BR-280: числовой аргумент фильтра. Нечисловое значение в `loadList` приводило к
+ * `where.none()` — то есть фильтр не применялся вовсе; здесь тот же смысл.
+ */
+private fun matchesNumericArg(
+    value: Long,
+    raw: String?,
+): Boolean {
+    if (raw == null) return true
+    val expected = raw.trim().toLongOrNull() ?: return true
+    return value == expected
+}
+
+/**
+ * BR-280: `process_args LIKE '%value%'` — в БД args лежат JSON-списком пар
+ * («ключ=значение»), поэтому подстрока ищется в самих аргументах.
+ */
+private fun matchesProcessArgs(
+    process: KaraokeProcess,
+    raw: String?,
+): Boolean {
+    if (raw == null) return true
+    return process.args.any { arg -> arg.any { it.contains(raw) } }
+}
+
+/**
+ * BR-287 (аудит #336, пакет PKG-S3-26): итог массового пересчёта готовности плеера.
+ *
+ * `processed` — песни, пересчёт которых прошёл; `failed` — песни, пропущенные из-за
+ * ошибки. Раньше функция возвращала только общее число песен, и ошибки были не видны.
+ */
+data class ReadinessRecalcResult(
+    val processed: Int,
+    val failed: Int,
+)
+
+/**
+ * BR-281 (аудит #336, пакет PKG-S3-26): результат проверки метаданных объекта хранилища.
+ *
+ * `null` больше не используется как «неизвестно»: неизвестное состояние — это
+ * [Unknown], а «объекта нет» — это [Missing]. Различие принципиально: по [Missing]
+ * объект действительно отсутствует (BR-164 в слое хранилища уже отличает «нет
+ * объекта» от «сбой S3»), а [Unknown] означает «узнать не удалось» — в этом случае
+ * актуальность объекта **не доказывается**, и отчёт не может быть зелёным.
+ */
+sealed interface StorageFileInfoProbe {
+    /** Размер объекта известен. */
+    data class Known(
+        val info: StorageFileInfo,
+    ) : StorageFileInfoProbe
+
+    /** Объекта нет в хранилище (`size < 0`). */
+    data object Missing : StorageFileInfoProbe
+
+    /** Узнать не удалось: circuit breaker открыт, исключение, неполная строка кеша. */
+    data class Unknown(
+        val reason: String,
+    ) : StorageFileInfoProbe
+}
+
+/**
+ * BR-281: «объекта нет» — отдельный сигнал, чтобы не смешивать с «вызов не удался».
+ * Внутри `cachedFileInfo` бросается вместо общего `error(...)`.
+ */
+class StorageFileMissingException : RuntimeException("file info unavailable (not found)")
+
+/**
+ * BR-281: вердикт актуальности объекта хранилища относительно файла на диске.
+ */
+internal enum class FileActualityVerdict {
+    /** Файл на диске есть, размер совпадает с объектом в хранилище. */
+    ACTUAL,
+
+    /** Файл на диске есть, но объект в хранилище другой (или объекта нет). */
+    NOT_ACTUAL,
+
+    /** Файл исчез с диска между проверкой существования и сравнением (BR-278). */
+    DISK_VANISHED,
+
+    /** Состояние хранилища неизвестно — вердикт выносить нельзя (BR-281). */
+    UNKNOWN,
+}
+
+/**
+ * BR-281: вердикт актуальности по типизированному результату проверки метаданных.
+ *
+ * Раньше здесь было `localInfo == null || File(path).length() == localInfo.size`:
+ * `null` (сбой/circuit breaker) трактовался как «файл актуален» → отчёт `OK` при
+ * недоступном хранилище. Теперь «не удалось узнать» — это [FileActualityVerdict.UNKNOWN],
+ * и вызывающий обязан показать `WARNING`, а не `OK`.
+ */
+internal fun fileActualityVerdict(
+    probe: StorageFileInfoProbe,
+    pathToFile: String,
+): FileActualityVerdict =
+    when (probe) {
+        is StorageFileInfoProbe.Unknown -> FileActualityVerdict.UNKNOWN
+        // Объекта нет (size = -1): размер дискового файла ему не равен никогда —
+        // но если файл исчез с диска, вердикт «неактуально» выносить нельзя (BR-278).
+        is StorageFileInfoProbe.Missing ->
+            when (diskFileMatchesStoredSize(pathToFile, -1L)) {
+                true -> FileActualityVerdict.ACTUAL
+                false -> FileActualityVerdict.NOT_ACTUAL
+                null -> FileActualityVerdict.DISK_VANISHED
+            }
+        is StorageFileInfoProbe.Known ->
+            when (diskFileMatchesStoredSize(pathToFile, probe.info.size)) {
+                true -> FileActualityVerdict.ACTUAL
+                false -> FileActualityVerdict.NOT_ACTUAL
+                null -> FileActualityVerdict.DISK_VANISHED
+            }
+    }
+
+/**
+ * BR-281: согласованность объектов двух хранилищ по типизированным проверкам.
+ *
+ * Сохраняет прежнюю семантику [storageActuality]: «размер неизвестен» (нет объекта /
+ * не удалось узнать) — это НЕ расхождение, иначе неполный кеш давал бы ложные
+ * предупреждения (wayfinder #333).
+ */
+internal fun storageActualityOf(
+    local: StorageFileInfoProbe?,
+    remote: StorageFileInfoProbe?,
+): StorageActuality =
+    storageActuality(
+        (local as? StorageFileInfoProbe.Known)?.info,
+        (remote as? StorageFileInfoProbe.Known)?.info,
+    )

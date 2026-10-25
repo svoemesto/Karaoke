@@ -12,9 +12,40 @@ export function getTabId() {
   return tabId
 }
 
+// BR-395 (аудит #336, пакет PKG-S3-32, OpenProject #404): поддержка отмены запроса.
+//
+// ДО ПРАВКИ транспорт не умел отменяться: `promisedXMLHttpRequest` возвращал промис,
+// который нельзя было прервать. Компонент, ушедший со страницы, оставался с «висящим»
+// запросом — его ответ применялся к уже другой записи (см. Pictures/store.js, автосейв).
+//
+// Теперь можно передать `obj.signal` (стандартный `AbortSignal`): при `abort()` запрос
+// прерывается, а промис отклоняется с ошибкой `AbortError` (не «зависает»).
+// Обратная совместимость сохранена: без `signal` поведение прежнее.
+// BR-395: ошибка отменённого запроса. Имя `AbortError` — стандартный признак отмены,
+// её не надо показывать пользователю как «ошибку сохранения».
+export function createAbortError() {
+  const error = new Error('Запрос отменён')
+  error.name = 'AbortError'
+  return error
+}
+
 export function promisedXMLHttpRequest(obj) {
   return new Promise((resolve, reject) => {
     let xhr = new XMLHttpRequest()
+    if (obj.signal) {
+      if (obj.signal.aborted) {
+        reject(createAbortError())
+        return
+      }
+      obj.signal.addEventListener(
+        'abort',
+        () => {
+          xhr.abort()
+          reject(createAbortError())
+        },
+        { once: true },
+      )
+    }
     xhr.open(obj.method || 'GET', obj.url, true)
     if (obj.headers === undefined)
       obj.headers = { 'Content-type': 'application/x-www-form-urlencoded' }

@@ -1,5 +1,5 @@
 <template>
-  <div class="se-overlay" @click.self="$emit('close')">
+  <div class="se-overlay" @click.self="closeModal">
     <div class="se-modal">
       <h3 class="se-modal-title">Назначить песню на разметку</h3>
 
@@ -114,6 +114,7 @@
         <div v-else-if="!searched" class="se-search-message">
           Введите критерии и нажмите «Найти»
         </div>
+        <div v-else-if="searchError" class="se-search-message se-msg-err" v-text="searchError" />
         <div v-else-if="results.length === 0" class="se-search-message">Ничего не найдено</div>
         <template v-else>
           <button type="button" class="se-btn se-btn-select-all" @click="selectAllResults">
@@ -150,7 +151,7 @@
       <p v-if="message" class="se-msg" :class="{ 'se-msg-err': isError }">{{ message }}</p>
 
       <div class="se-modal-btns">
-        <button class="se-btn" @click="$emit('close')">Отмена</button>
+        <button class="se-btn" @click="closeModal">Отмена</button>
         <button class="se-btn se-btn-primary" :disabled="!canSubmit || busy" @click="doAssign">
           {{
             busy
@@ -201,6 +202,15 @@ export default {
       onlyStatus1: true,
       selectedSongs: [],
       hrSongId: null,
+      // BR-422: текст ошибки поиска кандидатов. Раньше любой сбой превращался в пустой
+      // список, а шаблон показывал «Ничего не найдено» — админ не мог отличить сбой
+      // от честного пустого результата.
+      searchError: '',
+      // BR-421: фактически назначенные песни + признак, что родитель уже уведомлён.
+      assignedSongIds: [],
+      assignedNotified: false,
+      // BR-421: модалка размонтирована (цикл назначения обязан остановиться).
+      unmounted: false,
     }
   },
   computed: {
@@ -219,10 +229,44 @@ export default {
       })
       .catch(() => {})
   },
+  /**
+   * BR-421: размонтирование останавливает цикл назначения и уведомляет родителя
+   * о фактически назначенных песнях (эмит `assigned` ДО unmount) — иначе операцию
+   * «отменили», а задания всё равно создавались, а таблица не обновлялась.
+   */
+  beforeUnmount() {
+    this.unmounted = true
+    this.notifyAssigned()
+  },
   methods: {
+    /**
+     * BR-421: закрытие модалки. Пока идёт назначение (`busy`), закрытие запрещено:
+     * цикл продолжил бы слать запросы уже для размонтированного компонента, а
+     * `assigned` никому не адресовался — задания создавались, а таблица не
+     * перезагружалась.
+     */
+    closeModal() {
+      if (this.busy) {
+        this.isError = true
+        this.message = 'Дождитесь окончания назначения — закрыть нельзя.'
+        return
+      }
+      this.notifyAssigned()
+      this.$emit('close')
+    },
+    /**
+     * BR-421: уведомить родителя о фактически назначенных песнях (ровно один раз).
+     */
+    notifyAssigned() {
+      if (this.assignedNotified) return
+      if (this.assignedSongIds.length === 0) return
+      this.assignedNotified = true
+      this.$emit('assigned')
+    },
     async doSearch() {
       this.searching = true
       this.searched = true
+      this.searchError = ''
       try {
         this.results = await this.$store.dispatch('searchCandidateSongs', {
           query: this.searchQuery.trim(),
@@ -233,7 +277,12 @@ export default {
           onlyStatus1: this.onlyStatus1,
         })
       } catch (e) {
+        // BR-422: сбой поиска — это не «ничего не найдено»: отдельный текст ошибки,
+        // а пустой результат больше не выдаётся за честный результат поиска.
         this.results = []
+        this.searchError = `Не удалось выполнить поиск: ${
+          e && e.message ? e.message : 'ошибка запроса'
+        }`
       } finally {
         this.searching = false
       }
@@ -276,13 +325,19 @@ export default {
       const pendingConfirm = []
 
       for (const s of toAssign) {
+        // BR-421: размонтированная модалка не продолжает назначение.
+        if (this.unmounted) break
         try {
           const res = await this.$store.dispatch('assignSong', {
             songId: s.id,
             assigneeId: this.assigneeId,
           })
-          if (res && res.ok) succeeded.push(s)
-          else if (res && res.error === 'markers_exist') pendingConfirm.push(s)
+          if (res && res.ok) {
+            succeeded.push(s)
+            // BR-421: фактически назначенные песни запоминаются — по ним родитель
+            // узнает, что обновить таблицу.
+            this.assignedSongIds.push(s.id)
+          } else if (res && res.error === 'markers_exist') pendingConfirm.push(s)
           else failed.push({ song: s, error: res && res.error })
         } catch (e) {
           failed.push({ song: s, error: 'request_failed' })
@@ -294,14 +349,18 @@ export default {
           'В песне уже есть маркеры. Удалить их при назначении задания?',
         )
         for (const s of pendingConfirm) {
+          // BR-421: размонтированная модалка не продолжает назначение.
+          if (this.unmounted) break
           try {
             const res = await this.$store.dispatch('assignSong', {
               songId: s.id,
               assigneeId: this.assigneeId,
               clearMarkers,
             })
-            if (res && res.ok) succeeded.push(s)
-            else failed.push({ song: s, error: res && res.error })
+            if (res && res.ok) {
+              succeeded.push(s)
+              this.assignedSongIds.push(s.id)
+            } else failed.push({ song: s, error: res && res.error })
           } catch (e) {
             failed.push({ song: s, error: 'request_failed' })
           }
@@ -312,7 +371,8 @@ export default {
       this.selectedSongs = this.selectedSongs.filter((s) => !succeededIds.has(s.id))
       this.busy = false
       if (failed.length === 0) {
-        this.$emit('assigned')
+        // BR-421: родитель уведомляется о фактически назначенных песнях.
+        this.notifyAssigned()
       } else {
         this.isError = succeeded.length === 0
         this.message =

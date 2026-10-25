@@ -170,6 +170,9 @@ export default {
     lastPriorCodeLyrics: '',
     lastPriorCodeKaraoke: '',
     lastPriorDemucs: '',
+    // BR-442: отдельный ключ приоритета для SHEETSAGE (раньше использовался
+    // lastPriorDemucs — значение демоков перетирало приоритет SHEETSAGE).
+    lastPriorSheetsage: '',
     lastPriorForcedAlign: '',
     lastPriorSymlinks: '',
     lastPriorSmartCopy: '',
@@ -418,6 +421,10 @@ export default {
     },
     getLastPriorDemucs(state) {
       return state.lastPriorDemucs
+    },
+    // BR-442: отдельный приоритет SHEETSAGE.
+    getLastPriorSheetsage(state) {
+      return state.lastPriorSheetsage
     },
     getLastPriorForcedAlign(state) {
       return state.lastPriorForcedAlign
@@ -1165,6 +1172,10 @@ export default {
     setLastPriorDemucs(state, value) {
       state.lastPriorDemucs = value
     },
+    // BR-442: отдельный ключ приоритета SHEETSAGE.
+    setLastPriorSheetsage(state, value) {
+      state.lastPriorSheetsage = value
+    },
     // BR-097: мутация только присваивает state; запись на сервер — в action
     // `setLastPriorForcedAlign` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorForcedAlign(state, value) {
@@ -1196,6 +1207,7 @@ export default {
         'lastPriorCodeLyrics',
         'lastPriorCodeKaraoke',
         'lastPriorDemucs',
+        'lastPriorSheetsage',
         'lastPriorForcedAlign',
         'lastPriorSymlinks',
         'lastPriorSmartCopy',
@@ -2063,6 +2075,11 @@ export default {
     async setLastPriorDemucs(ctx, payload) {
       ctx.commit('setLastPriorDemucs', payload.value)
       await persistWebvueProp('lastPriorDemucs', payload.value)
+    },
+    // BR-097 / BR-442: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorSheetsage(ctx, payload) {
+      ctx.commit('setLastPriorSheetsage', payload.value)
+      await persistWebvueProp('lastPriorSheetsage', payload.value)
     },
     // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
     async setLastPriorForcedAlign(ctx, payload) {

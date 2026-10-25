@@ -3931,9 +3931,12 @@ export default {
     reloadAssignmentStatus() {
       if (!this.song) return
       const target = this.$store.getters.getEditorDefaultTarget
+      const songId = this.song.id
       return this.$store.dispatch('loadAssignmentStatusBySongIds', {
-        songIds: [this.song.id],
+        songIds: [songId],
         target,
+        // BR-437: ответ применяется, только если карточка всё ещё показывает эту песню.
+        isCurrent: () => !!this.song && this.song.id === songId,
       })
     },
     assignStatusLabel(s) {

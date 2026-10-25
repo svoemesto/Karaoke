@@ -37,6 +37,8 @@
         <div>ID = {{ siteUserCurrent.id }}</div>
         <div>{{ siteUserCurrent.email }}</div>
       </div>
+      <!-- BR-420: ошибка операции видна в форме (отказ больше не теряется). -->
+      <div v-if="actionError" class="sue-error" v-text="actionError" />
       <div class="sue-body">
         <div class="label-and-input">
           <div class="label">Имя:</div>
@@ -252,6 +254,9 @@ export default {
       isEventsVisible: false,
       isPlaylistsVisible: false,
       isSubscriptionsVisible: false,
+      // BR-420: текст ошибки операции (сохранение/бан/разбан/удаление). Раньше
+      // отказ уходил в unhandled rejection, а форма не показывала ничего.
+      actionError: '',
     }
   },
   computed: {
@@ -366,10 +371,25 @@ export default {
     notChanged() {
       return this.siteUserDiff.length === 0
     },
+    /**
+     * BR-420: сохранение проверяет исход операции.
+     *
+     * Раньше `saveSiteUser` не имел `.catch`: отклонённый XHR (5xx/сеть) давал
+     * unhandled rejection, форма оставалась «грязной», сообщения не было. Бэкенд
+     * сообщает об отказе телом (`0L` — пользователь не найден), и это тоже больше
+     * не выдаётся за успех.
+     */
     async save() {
       let diffs = {}
       for (let diff of this.siteUserDiff) diffs[diff.name] = diff.new
-      await this.$store.dispatch('saveSiteUser', diffs)
+      this.actionError = ''
+      try {
+        await this.$store.dispatch('saveSiteUser', diffs)
+      } catch (error) {
+        this.actionError = `Не удалось сохранить пользователя: ${
+          error && error.message ? error.message : 'ошибка запроса'
+        }`
+      }
     },
     async refreshCurrentFromDigest() {
       const id = this.siteUserCurrent.id
@@ -398,8 +418,20 @@ export default {
       }
       this.isCustomConfirmVisible = true
     },
+    /**
+     * BR-420: бан ждёт подтверждённого успеха. Отказ (`false` от сервера или
+     * реджект) показывается в форме, и подтверждение не «закрывается как успех».
+     */
     async doBan(item) {
-      await this.$store.dispatch('banSiteUserCurrent', item.reason)
+      this.actionError = ''
+      try {
+        await this.$store.dispatch('banSiteUserCurrent', item.reason)
+      } catch (error) {
+        this.actionError = `Не удалось забанить пользователя: ${
+          error && error.message ? error.message : 'ошибка запроса'
+        }`
+        return
+      }
       await this.refreshCurrentFromDigest()
       this.isCustomConfirmVisible = false
     },
@@ -412,8 +444,19 @@ export default {
       }
       this.isCustomConfirmVisible = true
     },
+    /**
+     * BR-420: разбан ждёт подтверждённого успеха (см. doBan).
+     */
     async doUnban() {
-      await this.$store.dispatch('unbanSiteUserCurrent')
+      this.actionError = ''
+      try {
+        await this.$store.dispatch('unbanSiteUserCurrent')
+      } catch (error) {
+        this.actionError = `Не удалось снять бан: ${
+          error && error.message ? error.message : 'ошибка запроса'
+        }`
+        return
+      }
       await this.refreshCurrentFromDigest()
       this.isCustomConfirmVisible = false
     },
@@ -427,8 +470,21 @@ export default {
       }
       this.isCustomConfirmVisible = true
     },
+    /**
+     * BR-420: удаление закрывает панель ТОЛЬКО после подтверждённого успеха.
+     * Раньше панель закрывалась независимо от исхода, и админ видел «всё закрылось»
+     * при неудачном удалении.
+     */
     async doDeleteUser() {
-      await this.$store.dispatch('deleteSiteUserCurrent')
+      this.actionError = ''
+      try {
+        await this.$store.dispatch('deleteSiteUserCurrent')
+      } catch (error) {
+        this.actionError = `Не удалось удалить пользователя: ${
+          error && error.message ? error.message : 'ошибка запроса'
+        }`
+        return
+      }
       this.$emit('close')
     },
   },
@@ -453,6 +509,16 @@ export default {
   margin: 10px 0;
   display: flex;
   flex-direction: column;
+}
+/* BR-420: ошибка операции (сохранение/бан/разбан/удаление). */
+.sue-error {
+  color: darkred;
+  font-size: small;
+  border: 1px solid darkred;
+  border-radius: 6px;
+  background: #fff0f0;
+  padding: 6px 10px;
+  margin: 6px 0;
 }
 .label-and-input {
   display: flex;

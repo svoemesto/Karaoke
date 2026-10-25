@@ -1,4 +1,4 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
 
 // Таймер debounce для тихой перезагрузки дайджеста публикаций (см. schedulePublishReload ниже).
 let publishReloadTimer = null
@@ -48,6 +48,11 @@ export default {
   state: {
     publishDigest: [],
     publishDigestIsLoading: false,
+    // BR-412: активный cond-вид ('unpublish' | 'undone' | 'skiped' | ...).
+    // Тихая SSE-перезагрузка обязана запрашивать ТОТ ЖЕ набор, что и обычная
+    // загрузка, — иначе фоновое событие по tbl_songs подменяло cond-выборку
+    // обычной сеткой публикаций.
+    publishFilterCond: null,
   },
   getters: {
     getPublishDigest(state) {
@@ -57,6 +62,10 @@ export default {
     getPublishDigestIsLoading(state) {
       return state.publishDigestIsLoading
     },
+    // BR-412: активный cond-вид (null — обычная сетка публикаций).
+    getPublishFilterCond(state) {
+      return state.publishFilterCond
+    },
   },
   mutations: {
     updatePublishDigest(state, result) {
@@ -64,6 +73,10 @@ export default {
     },
     setPublishDigestIsLoading(state, isLoading) {
       state.publishDigestIsLoading = isLoading
+    },
+    // BR-412: активный cond-вид хранится вместе с дайджестом.
+    setPublishFilterCond(state, cond) {
+      state.publishFilterCond = cond || null
     },
     updatePublishDigestByIds(state, songsAndIndexesForUpdate) {
       // console.log('songsAndIndexesForUpdate', songsAndIndexesForUpdate)
@@ -165,6 +178,9 @@ export default {
       return await promisedXMLHttpRequest(request)
     },
     loadPublishDigest(ctx, params) {
+      // BR-412: активный cond-вид запоминается вместе с дайджестом — тихая
+      // перезагрузка должна запрашивать тот же набор.
+      ctx.commit('setPublishFilterCond', (params && params.filterCond) || null)
       ctx.commit('setPublishDigestIsLoading', true)
       fetchPublishDigest(params)
         .then((digest) => {
@@ -185,11 +201,19 @@ export default {
     },
     // Тот же запрос, что loadPublishDigest, но без setPublishDigestIsLoading - без мигания
     // спиннера песня просто "сама" встаёт на нужное место.
+    //
+    // BR-412: запрос повторяет условия ТЕКУЩЕГО вида — в том числе cond-вид
+    // ('unpublish'/'undone'/'skiped'). Раньше тихий reload запрашивал только диапазон
+    // дат, и фоновое событие по tbl_songs подменяло cond-выборку обычной сеткой
+    // публикаций: админ видел не те строки, на которые опирался.
     reloadPublishDigestSilently(ctx) {
       const filterDateFrom = ctx.getters.getPublishFilterDateFrom
       const filterDateTo = ctx.getters.getPublishFilterDateTo
+      const filterCond = ctx.getters.getPublishFilterCond
       if (!filterDateFrom || !filterDateTo) return
-      fetchPublishDigest({ filterDateFrom, filterDateTo })
+      const params = { filterDateFrom, filterDateTo }
+      if (filterCond) params.filterCond = filterCond
+      fetchPublishDigest(params)
         .then((digest) => {
           ctx.commit('updatePublishDigest', digest)
         })

@@ -1,4 +1,12 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
+import { createRequestGeneration } from '../../lib/target-request-guard.js'
+import { loadListWith } from '../../lib/list-loader.js'
+
+// BR-433 (аудит #336, пакет PKG-S3-32, OpenProject #404): поколение запросов дайджеста
+// заданий. Ответ применяет только владелец последнего запроса — при смене фильтра
+// («Статус»/«Исполнитель»/«БД») побеждал последний ПРИШЕДШИЙ ответ, а не последний
+// запрошенный: таблица показывала строки прежнего фильтра, а тулбар — новый.
+const assignmentsDigestGeneration = createRequestGeneration()
 
 // Задания онлайн-редактора караоке-разметки (tbl_song_assignments + tbl_song_assignment_drafts).
 // target ('local'|'remote') — в запросах просмотра (digest/byId), в assign (где создать — обычно
@@ -16,6 +24,10 @@ export default {
   state: {
     assignmentsDigest: [],
     assignmentsIsLoading: false,
+    // BR-433: текст ошибки загрузки дайджеста заданий. Раньше отказ ловился только
+    // `console.log`: список оставался прежним (или пустым) и выглядел как актуальный —
+    // а по нему принимаются решения approve/reject/delete.
+    assignmentsDigestError: '',
     assignmentsTarget: 'local',
     // Пользователи сайта для выпадающего списка при назначении (только редакторы — filterIsEditor).
     editorSiteUsers: [],
@@ -38,6 +50,10 @@ export default {
     },
     getAssignmentsIsLoading(state) {
       return state.assignmentsIsLoading
+    },
+    // BR-433: текст ошибки загрузки дайджеста заданий.
+    getAssignmentsDigestError(state) {
+      return state.assignmentsDigestError
     },
     getAssignmentsTarget(state) {
       return state.assignmentsTarget
@@ -62,8 +78,17 @@ export default {
     setAssignmentsDigest(state, result) {
       state.assignmentsDigest = result
     },
+    // BR-433: применение ответа дайджеста (`{songAssignmentsDigest: [...]}`) — общий
+    // помощник `loadListWith` коммитит РАЗБОРЕННЫЙ ответ, а не поле.
+    setAssignmentsDigestFromResponse(state, result) {
+      state.assignmentsDigest = (result && result.songAssignmentsDigest) || []
+    },
     setAssignmentsIsLoading(state, v) {
       state.assignmentsIsLoading = v
+    },
+    // BR-433: текст ошибки загрузки дайджеста заданий.
+    setAssignmentsDigestError(state, message) {
+      state.assignmentsDigestError = message || ''
     },
     setAssignmentsTarget(state, t) {
       state.assignmentsTarget = t
@@ -85,27 +110,41 @@ export default {
     },
   },
   actions: {
+    /**
+     * BR-433: загрузка дайджеста заданий.
+     *
+     * ДЕФЕКТ. У загрузки не было ни поколения запроса, ни отмены: два быстрых `reload()`
+     * (смена «Статус» → «Исполнитель» или «БД») давали два POST, и ответ, пришедший
+     * последним, перезаписывал список независимо от того, какой фильтр актуален.
+     * Ошибка загрузки проглатывалась `console.log`, флаг загрузки снимался, и таблица
+     * молча оставалась со старыми строками — неудачное обновление было неотличимо от
+     * успешного.
+     *
+     * РЕШЕНИЕ. Общий помощник `loadListWith` (аудит #336, пакет PKG-S3-31, OpenProject
+     * #403): поколение запроса, `finally` снимает флаг при любом исходе, текст ошибки
+     * кладётся в state и показывается в таблице.
+     */
     loadAssignmentsDigest(ctx, params) {
       const fullParams = Object.assign({}, params, { target: ctx.state.assignmentsTarget })
-      ctx.commit('setAssignmentsIsLoading', true)
-      return promisedXMLHttpRequest({
-        method: 'POST',
-        url: '/api/songeditor/digest',
-        params: fullParams,
+      return loadListWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: assignmentsDigestGeneration,
+        requestOptions: { method: 'POST', url: '/api/songeditor/digest', params: fullParams },
+        loadingCommit: 'setAssignmentsIsLoading',
+        errorCommit: 'setAssignmentsDigestError',
+        applyCommit: 'setAssignmentsDigestFromResponse',
+        errorMessage: 'Не удалось загрузить список заданий редактора',
       })
-        .then((data) => {
-          const result = JSON.parse(data)
-          ctx.commit('setAssignmentsDigest', result.songAssignmentsDigest || [])
-          ctx.commit('setAssignmentsIsLoading', false)
-        })
-        .catch((error) => {
-          ctx.commit('setAssignmentsIsLoading', false)
-          console.log(error)
-        })
     },
     // Принимает как голый id (существующий вызов из SongEditorTable), так и {id, target}
     // (кнопка «Назначить» в таблице/карточке песни — там задание может лежать в defaultTarget,
     // отличном от assignmentsTarget «Задания редактора»).
+    //
+    // BR-419: результат различает «найдено» и «не найдено»: для задания, отсутствующего в
+    // выбранной БД, бэкенд отдаёт JSON `null`. Раньше вызывающий открывал модалку ревью
+    // в любом случае, а `assignmentCurrent = null` рендерил только «Загрузка…» — модалка
+    // становилась ловушкой (кнопки, включая «Закрыть», были внутри `v-if="a"`).
     loadAssignmentById(ctx, payload) {
       const isObj = payload !== null && typeof payload === 'object'
       const id = isObj ? payload.id : payload
@@ -117,7 +156,7 @@ export default {
       }).then((data) => {
         const result = data ? JSON.parse(data) : null
         ctx.commit('setAssignmentCurrent', result)
-        return result
+        return { found: !!result, assignment: result }
       })
     },
     // target — необязательное переопределение (используется кнопкой «Назначить» в таблице/карточке
@@ -137,17 +176,33 @@ export default {
     setAssignmentsTarget(ctx, target) {
       ctx.commit('setAssignmentsTarget', target)
     },
-    // Читает KaraokeProperty editorAssignmentDefaultTarget и сеет им и defaultTarget (для кнопки
-    // «Назначить» в таблице/карточке песни), и текущий assignmentsTarget («Задание редактора»,
-    // пока пользователь не переключил вручную).
+    /**
+     * BR-427: чтение KaraokeProperty editorAssignmentDefaultTarget.
+     *
+     * ДЕФЕКТ. `getPropertyValuePromise` возвращает DTO (`JSON.parse(data).property`),
+     * а сравнение шло с САМИМ объектом: `prop === 'local'` всегда было ложно. Поэтому
+     * `defaultTarget` и `assignmentsTarget` всегда становились 'remote', независимо от
+     * настройки `editorAssignmentDefaultTarget` — задания открывались не в той БД.
+     *
+     * РЕШЕНИЕ. Читается `prop.value` (строка) — как это делают другие потребители
+     * (`ResourceLimitToggle.vue`, `SubsEdit.vue`). Пустое/отсутствующее значение → 'remote'.
+     */
     async loadEditorDefaultTarget(ctx) {
       const prop = await ctx.dispatch('getPropertyValuePromise', 'editorAssignmentDefaultTarget')
-      const v = prop === 'local' ? 'local' : 'remote'
+      const raw = prop && typeof prop === 'object' ? prop.value : prop
+      const text = String(raw === undefined || raw === null ? '' : raw).trim()
+      const v = text === 'local' ? 'local' : 'remote'
       ctx.commit('setEditorDefaultTarget', v)
       ctx.commit('setAssignmentsTarget', v)
     },
     // Батч-статус назначений для видимых songId (таблица/карточка песни) — без N+1.
-    loadAssignmentStatusBySongIds(ctx, { songIds, target } = {}) {
+    //
+    // BR-437 (аудит #336, пакет PKG-S3-32, OpenProject #404): ответ ЗАМЕНЯЛ всю карту
+    // статусов без проверки актуальности. При быстром переключении страниц ответ
+    // предыдущей страницы, пришедший позже, затирал статусы текущей — бейджи
+    // «Назначено/В работе» пропадали, и админ мог назначить второго редактора.
+    // `isCurrent` — проверка вызывающего: ответ применяется только если он ещё актуален.
+    loadAssignmentStatusBySongIds(ctx, { songIds, target, isCurrent } = {}) {
       if (!songIds || !songIds.length) {
         ctx.commit('setAssignmentStatusBySongId', {})
         return Promise.resolve({})
@@ -161,6 +216,8 @@ export default {
         .then((data) => {
           const result = JSON.parse(data)
           const statuses = result.statuses || {}
+          // BR-437: устаревший ответ не применяется.
+          if (typeof isCurrent === 'function' && !isCurrent()) return statuses
           ctx.commit('setAssignmentStatusBySongId', statuses)
           return statuses
         })

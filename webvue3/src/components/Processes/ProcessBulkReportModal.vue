@@ -46,6 +46,8 @@
 </template>
 
 <script>
+import { buildCsv } from '../../lib/csv-export.js'
+
 /**
  * Модалка отчёта о bulk-операции (specs/319-process-bulk-actions-v2, US3).
  *
@@ -86,7 +88,7 @@ export default {
           rows.push([err.processId, err.reason, err.errorCode || ''])
         }
       }
-      const csv = rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n')
+      const csv = buildCsv(rows)
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const filename = `process-bulk-${this.report.action}-${this.report.batchId}.csv`
@@ -101,14 +103,8 @@ export default {
   },
 }
 
-function escapeCsvCell(value) {
-  if (value === null || value === undefined) return ''
-  const s = String(value)
-  if (/[",\n]/.test(s)) {
-    return '"' + s.replace(/"/g, '""') + '"'
-  }
-  return s
-}
+// BR-398: экранирование ячейки вынесено в webvue3/src/lib/csv-export.js
+// (формулы + quoting). Локальная копия удалена.
 </script>
 
 <style scoped>

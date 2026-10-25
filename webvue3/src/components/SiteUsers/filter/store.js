@@ -1,4 +1,43 @@
-import { setWebvueProp } from '../../../lib/utils'
+import { setWebvueProp } from '../../../lib/utils.js'
+
+// BR-424 (аудит #336, пакет PKG-S3-32, OpenProject #404).
+//
+// ДЕФЕКТ. Server-side persistence фильтра пользователей был реализован в мутациях:
+// каждая мутация вызывала `setWebvueProp` и сразу отправляла `POST /api/setwebvueprop`.
+// Мутации вызываются из `v-model`-сеттеров модалки на КАЖДОЕ нажатие клавиши —
+// ввод 30 символов давал 30 POST'ов подряд. `hydrateSiteUsersFilter` при каждом
+// открытии таблицы/модалки последовательно ждал 9 запросов `/api/getwebvueprop`
+// (waterfall) и каждым коммитом СНОВА писал то же значение на сервер: до 9 лишних
+// POST'ов на один проход гидратации.
+//
+// РЕШЕНИЕ (тот же паттерн, что в Albums/filter/store.js, BR-366 — аудит #336,
+// пакет PKG-S3-31, OpenProject #403). Мутации стали чистыми (только state).
+// Запись на сервер — по действию пользователя («Применить»), в action
+// `persistSiteUsersFilter` (с обработкой отказа). Гидратация — `Promise.allSettled`
+// (без waterfall) и БЕЗ записи обратно, в action `restoreSiteUsersFilter`.
+
+/**
+ * Ключи настроек фильтра пользователей сайта (совпадают с именами полей в state).
+ *
+ * @type {Array<{stateKey: string, mutation: string}>}
+ */
+const SITE_USERS_FILTER_KEYS = [
+  { stateKey: 'siteUsersFilterId', mutation: 'setSiteUsersFilterId' },
+  { stateKey: 'siteUsersFilterEmail', mutation: 'setSiteUsersFilterEmail' },
+  { stateKey: 'siteUsersFilterDisplayName', mutation: 'setSiteUsersFilterDisplayName' },
+  { stateKey: 'siteUsersFilterSponsrUid', mutation: 'setSiteUsersFilterSponsrUid' },
+  { stateKey: 'siteUsersFilterIsPremium', mutation: 'setSiteUsersFilterIsPremium' },
+  {
+    stateKey: 'siteUsersFilterIsPermanentPremium',
+    mutation: 'setSiteUsersFilterIsPermanentPremium',
+  },
+  {
+    stateKey: 'siteUsersFilterIsEffectivePremium',
+    mutation: 'setSiteUsersFilterIsEffectivePremium',
+  },
+  { stateKey: 'siteUsersFilterIsEditor', mutation: 'setSiteUsersFilterIsEditor' },
+  { stateKey: 'siteUsersFilterIsBanned', mutation: 'setSiteUsersFilterIsBanned' },
+]
 
 /**
  * Компонент «Store».
@@ -112,47 +151,30 @@ export default {
 
   mutations: {
     setSiteUsersFilterId(state, value) {
-      setWebvueProp(state.siteUsersFilterId, 'siteUsersFilterId', value)
       state.siteUsersFilterId = value
     },
     setSiteUsersFilterEmail(state, value) {
-      setWebvueProp(state.siteUsersFilterEmail, 'siteUsersFilterEmail', value)
       state.siteUsersFilterEmail = value
     },
     setSiteUsersFilterDisplayName(state, value) {
-      setWebvueProp(state.siteUsersFilterDisplayName, 'siteUsersFilterDisplayName', value)
       state.siteUsersFilterDisplayName = value
     },
     setSiteUsersFilterSponsrUid(state, value) {
-      setWebvueProp(state.siteUsersFilterSponsrUid, 'siteUsersFilterSponsrUid', value)
       state.siteUsersFilterSponsrUid = value
     },
     setSiteUsersFilterIsPremium(state, value) {
-      setWebvueProp(state.siteUsersFilterIsPremium, 'siteUsersFilterIsPremium', value)
       state.siteUsersFilterIsPremium = value
     },
     setSiteUsersFilterIsPermanentPremium(state, value) {
-      setWebvueProp(
-        state.siteUsersFilterIsPermanentPremium,
-        'siteUsersFilterIsPermanentPremium',
-        value,
-      )
       state.siteUsersFilterIsPermanentPremium = value
     },
     setSiteUsersFilterIsEffectivePremium(state, value) {
-      setWebvueProp(
-        state.siteUsersFilterIsEffectivePremium,
-        'siteUsersFilterIsEffectivePremium',
-        value,
-      )
       state.siteUsersFilterIsEffectivePremium = value
     },
     setSiteUsersFilterIsEditor(state, value) {
-      setWebvueProp(state.siteUsersFilterIsEditor, 'siteUsersFilterIsEditor', value)
       state.siteUsersFilterIsEditor = value
     },
     setSiteUsersFilterIsBanned(state, value) {
-      setWebvueProp(state.siteUsersFilterIsBanned, 'siteUsersFilterIsBanned', value)
       state.siteUsersFilterIsBanned = value
     },
   },
@@ -184,24 +206,48 @@ export default {
     setSiteUsersFilterIsBanned(ctx, payload) {
       ctx.commit('setSiteUsersFilterIsBanned', payload.value)
     },
+    /**
+     * BR-424: восстановление фильтра с сервера — ЧТЕНИЕ без записи.
+     *
+     * Запросы идут ПАРАЛЛЕЛЬНО (`Promise.allSettled`), а не последовательно:
+     * прежний цикл `for … await` ждал 9 запросов подряд. Значения больше не
+     * записываются обратно на сервер (прежняя «восстанавливающая» запись тех же
+     * значений давала до 9 лишних POST'ов на каждое открытие таблицы/модалки).
+     * Отказ отдельного чтения не роняет остальные.
+     *
+     * @returns {Promise<void>}
+     */
+    async restoreSiteUsersFilter(ctx) {
+      const results = await Promise.allSettled(
+        SITE_USERS_FILTER_KEYS.map(({ stateKey }) => ctx.rootGetters.getWebvueProp(stateKey, '')),
+      )
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          ctx.commit(SITE_USERS_FILTER_KEYS[index].mutation, result.value)
+        }
+      })
+    },
+    /**
+     * BR-424: сохранение фильтра на сервере — по кнопке «Применить», а не на каждый
+     * `input`. Отказ обрабатывается (`setWebvueProp` не бросает), промис возвращается.
+     *
+     * @returns {Promise<boolean>} true — все значения сохранены.
+     */
+    async persistSiteUsersFilter(ctx) {
+      const results = await Promise.all(
+        SITE_USERS_FILTER_KEYS.map(({ stateKey }) =>
+          setWebvueProp(ctx.state[stateKey], stateKey, ctx.state[stateKey]),
+        ),
+      )
+      return results.every((ok) => ok !== false)
+    },
     // Подтягивает персистентные значения (setWebvueProp) до первой загрузки таблицы, чтобы
     // фильтр применялся сразу при заходе в раздел, а не только после открытия модалки.
+    //
+    // BR-424: прежнее имя сохранено как синоним (вызывается из SiteUsersTable и
+    // SiteUsersFilterModal) — чтение без записи и без waterfall.
     async hydrateSiteUsersFilter(ctx) {
-      const keys = [
-        ['siteUsersFilterId', 'setSiteUsersFilterId'],
-        ['siteUsersFilterEmail', 'setSiteUsersFilterEmail'],
-        ['siteUsersFilterDisplayName', 'setSiteUsersFilterDisplayName'],
-        ['siteUsersFilterSponsrUid', 'setSiteUsersFilterSponsrUid'],
-        ['siteUsersFilterIsPremium', 'setSiteUsersFilterIsPremium'],
-        ['siteUsersFilterIsPermanentPremium', 'setSiteUsersFilterIsPermanentPremium'],
-        ['siteUsersFilterIsEffectivePremium', 'setSiteUsersFilterIsEffectivePremium'],
-        ['siteUsersFilterIsEditor', 'setSiteUsersFilterIsEditor'],
-        ['siteUsersFilterIsBanned', 'setSiteUsersFilterIsBanned'],
-      ]
-      for (const [propKey, mutation] of keys) {
-        const value = await ctx.rootGetters.getWebvueProp(propKey, '')
-        ctx.commit(mutation, value)
-      }
+      return ctx.dispatch('restoreSiteUsersFilter')
     },
   },
 }

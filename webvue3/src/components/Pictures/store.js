@@ -1,10 +1,22 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
 import { createRequestGeneration } from '../../lib/target-request-guard.js'
 import { loadListWith } from '../../lib/list-loader.js'
 
 // BR-391 (аудит #336, пакет PKG-S3-31, OpenProject #403): загрузка дайджеста картинок —
 // с поколением запроса, `finally` и текстом ошибки в state.
 const picturesDigestGeneration = createRequestGeneration()
+
+// BR-395 (аудит #336, пакет PKG-S3-32, OpenProject #404): поколение автосейва картинки.
+//
+// ДЕФЕКТ. Снимок (`pictureSnapshot`) фиксировался ПОСЛЕ ответа сервера, но брался из
+// ЖИВОГО `pictureCurrent`, а не из отправленного набора. Правки, сделанные пока запрос
+// в полёте (при загрузке base64 `full` запрос идёт секунды), попадали в снимок как
+// «сохранённые»: diff обнулялся, повторный автосейв не срабатывал — изменения молча
+// терялись при закрытии модалки.
+//
+// РЕШЕНИЕ. Снимок собирается из ОТПРАВЛЕННОГО payload (`Object.assign({}, snapshot, sent)`),
+// а поколение гарантирует, что пришедший позже ответ уже не «съест» снимок.
+const pictureSaveGeneration = createRequestGeneration()
 
 /**
  * Компонент «Store».
@@ -111,29 +123,24 @@ export default {
     setPictureCurrentField(state, payload) {
       state.pictureCurrent[payload.name] = payload.value
     },
-    savePicture(state) {
-      state.pictureSnapshot = !state.pictureCurrent
-        ? undefined
-        : Object.assign({}, state.pictureCurrent)
+    // BR-395: снимок собирается из ОТПРАВЛЕННЫХ полей, а не из живого `pictureCurrent`.
+    // Иначе правки, сделанные во время запроса, помечались бы как сохранённые.
+    savePicture(state, sentDiffs) {
+      state.pictureSnapshot = Object.assign({}, state.pictureSnapshot, sentDiffs || {})
+    },
+    // BR-396: после удаления картинки её строка убирается из дайджеста сразу —
+    // иначе таблица показывала удалённую строку до применения фильтра/F5.
+    removePictureFromDigest(state, id) {
+      state.picturesDigest = state.picturesDigest.filter((picture) => picture.id !== id)
+    },
+    // BR-396: очистка текущей картинки — чтобы повторное открытие не показывало
+    // уже удалённую запись.
+    clearPictureCurrent(state) {
+      state.pictureCurrent = undefined
+      state.pictureSnapshot = undefined
     },
     setPicturesTableCurrentPage(state, page) {
       state.picturesTableCurrentPage = page
-    },
-    async deletePictureCurrent(state) {
-      let request = {
-        method: 'POST',
-        url: '/api/picture/delete',
-        params: { id: state.pictureCurrentId },
-      }
-      await promisedXMLHttpRequest(request)
-    },
-    async savePictureCurrentToDisk(state) {
-      let request = {
-        method: 'POST',
-        url: '/api/picture/savetodisk',
-        params: { id: state.pictureCurrentId },
-      }
-      await promisedXMLHttpRequest(request)
     },
   },
   actions: {
@@ -179,18 +186,65 @@ export default {
     setPictureCurrentField(ctx, payload) {
       ctx.commit('setPictureCurrentField', payload)
     },
-    savePicture(ctx, diffs) {
+    // BR-395 / BR-396: payload — `{diffs, signal}` (сигнал отменяет запрос при уходе
+    // со страницы). Для обратной совместимости принимается и «плоский» объект diff'ов.
+    savePicture(ctx, payload) {
+      const diffs = (payload && payload.diffs) || payload || {}
+      const signal = payload ? payload.signal : undefined
+      const ticket = pictureSaveGeneration.next()
       let params = { id: ctx.state.pictureCurrentId }
-      if (diffs.name) params.name = diffs.name
-      if (diffs.full) params.full = diffs.full
+      // В снимок попадают только те поля, которые УШЛИ на сервер: иначе снимок
+      // врал бы, что сохранено то, что не отправлялось.
+      const sent = {}
+      if (diffs.name) {
+        params.name = diffs.name
+        sent.name = diffs.name
+      }
+      if (diffs.full) {
+        params.full = diffs.full
+        sent.full = diffs.full
+      }
       let request = { method: 'POST', url: '/api/pictures/updatepicture', params: params }
-      promisedXMLHttpRequest(request)
+      if (signal) request.signal = signal
+      return promisedXMLHttpRequest(request)
         .then(() => {
-          ctx.commit('savePicture')
+          // Ответ устаревшего запроса снимок не трогает.
+          if (!pictureSaveGeneration.isCurrent(ticket)) return { applied: false, stale: true }
+          ctx.commit('savePicture', sent)
+          return { applied: true, stale: false }
         })
         .catch((error) => {
+          // Ошибка видна вызывающему: он показывает её пользователю.
           console.log(error)
+          throw error
         })
+    },
+    // BR-396: HTTP-запрос переехал из мутации в экшен (в мутации сетевых вызовов быть
+    // не должно — см. knowledge/system/frontend/webvue3-audit-invariants.md, § 3).
+    // Промис возвращается и отклоняется при ошибке: вызывающий ждёт результат и
+    // закрывает модалку только после подтверждённого успеха.
+    deletePictureCurrent(ctx) {
+      const id = ctx.state.pictureCurrentId
+      let request = {
+        method: 'POST',
+        url: '/api/picture/delete',
+        params: { id: id },
+      }
+      return promisedXMLHttpRequest(request).then(() => {
+        ctx.commit('removePictureFromDigest', id)
+        ctx.commit('clearPictureCurrent')
+        return true
+      })
+    },
+    // BR-396: то же для сохранения картинки на диске — промис возвращается, отказ
+    // доходит до вызывающего (иначе кнопка «молча» ничего не делала).
+    savePictureCurrentToDisk(ctx) {
+      let request = {
+        method: 'POST',
+        url: '/api/picture/savetodisk',
+        params: { id: ctx.state.pictureCurrentId },
+      }
+      return promisedXMLHttpRequest(request).then(() => true)
     },
   },
 }

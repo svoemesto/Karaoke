@@ -58,6 +58,11 @@ function buildProcessQuery(filters) {
 // (`src/components/Processes/__tests__/bulk-selection-generation.test.js`).
 const bulkSelectionGeneration = createRequestGeneration()
 
+// BR-403 (аудит #336, пакет PKG-S3-32, OpenProject #404): поколение запросов audit-лога.
+// Ответ применяет только владелец последнего запроса — «побеждает последний запрос»,
+// а не последний пришедший ответ.
+const processAuditGeneration = createRequestGeneration()
+
 /**
  * Загружает snapshot id массовой выборки, отбрасывая результаты устаревших запросов.
  *
@@ -131,9 +136,15 @@ export default {
     childrenLoading: {},
     currentProcessForEdit: null,
     currentProcessAudit: [],
+    // BR-403: id процесса, к которому относится `currentProcessAudit`. Ответ с
+    // чужим id отбрасывается — иначе в модалке audit процесса B видны записи A.
+    currentProcessAuditId: null,
+    // BR-403: явное состояние загрузки audit-лога (иначе «Нет записей за выбранный
+    // период» отображалось и во время загрузки, и после отказа).
+    currentProcessAuditIsLoading: false,
+    currentProcessAuditError: '',
     // --- specs/319-process-bulk-actions-v2: bulk state (FR-002, FR-007, US3) ---
-    bulkSelectionIds: [], // Array<Number> — snapshot id по текущему фильтру (≤ 10000)
-    bulkSelectionTotal: 0, // Number — total в БД по фильтру (может > ids.length из-за cap)
+    bulkSelectionIds: [], // Array<Number> — snapshot id по текущему фильтру (≤ 10000)    bulkSelectionTotal: 0, // Number — total в БД по фильтру (может > ids.length из-за cap)
     bulkSelectionTimestamp: null, // ISO String — когда сделан snapshot
     // BR-388: snapshot готов для ТЕКУЩЕГО фильтра. Пока false — массовые операции запрещены
     // (fail-closed): иначе смена фильтра оставляла в state id прошлой выборки.
@@ -141,6 +152,9 @@ export default {
     bulkOperationInProgress: false, // Boolean — флаг «операция идёт»
     bulkOperationReport: null, // Object | null — последний BulkOperationReport
     bulkTaskStatus: null, // Object | null — для async: { taskId, status, processedCount, ... }
+    // BR-402: последние применённые фильтры списка. Нужны, чтобы перезагрузить
+    // `items` по завершении массовой операции (значения полей изменились на сервере).
+    processesFilters: null,
   },
   getters: {
     getWorkingProcessForThreads: (state) => (includedThreadId, excludedThreadId) => {
@@ -207,6 +221,18 @@ export default {
     },
     getCurrentProcessAudit(state) {
       return state.currentProcessAudit
+    },
+    // BR-403: id процесса, которому принадлежит audit-лог.
+    getCurrentProcessAuditId(state) {
+      return state.currentProcessAuditId
+    },
+    // BR-403: audit грузится — показываем индикатор, а не «нет записей».
+    getCurrentProcessAuditIsLoading(state) {
+      return state.currentProcessAuditIsLoading
+    },
+    // BR-403: текст ошибки загрузки audit-лога.
+    getCurrentProcessAuditError(state) {
+      return state.currentProcessAuditError
     },
     // --- specs/319-process-bulk-actions-v2: bulk getters (FR-001, FR-002) ---
     getBulkSelectionIds: (state) => state.bulkSelectionIds,
@@ -344,6 +370,26 @@ export default {
     setCurrentProcessAudit(state, items) {
       state.currentProcessAudit = items
     },
+    // BR-403: снимок audit-лога чистится перед запросом — иначе в модалке видны
+    // записи ПРЕДЫДУЩЕГО процесса (в том числе после неудачного запроса).
+    clearCurrentProcessAudit(state) {
+      state.currentProcessAudit = []
+    },
+    // BR-403: привязка audit-лога к процессу.
+    setCurrentProcessAuditId(state, id) {
+      state.currentProcessAuditId = id
+    },
+    setCurrentProcessAuditIsLoading(state, isLoading) {
+      state.currentProcessAuditIsLoading = !!isLoading
+    },
+    setCurrentProcessAuditError(state, message) {
+      state.currentProcessAuditError = message || ''
+    },
+    // BR-402: последние применённые фильтры — для перезагрузки списка после
+    // завершения массовой операции.
+    setProcessesFilters(state, filters) {
+      state.processesFilters = filters
+    },
     // --- specs/319-process-bulk-actions-v2: bulk mutations (T008) ---
     setBulkSelection(state, { ids, total, timestamp }) {
       state.bulkSelectionIds = ids || []
@@ -459,6 +505,9 @@ export default {
     loadProcesses(ctx, filters = {}) {
       ctx.commit('setProcessesLoading', true)
       ctx.commit('setProcessesError', null)
+      // BR-402: запоминаем фильтры — по ним список перезагружается после
+      // завершения массовой операции.
+      ctx.commit('setProcessesFilters', filters)
       const query = buildProcessQuery(filters)
       const url = `/api/admin/processes${query ? `?${query}` : ''}`
       return getJson(url)
@@ -554,14 +603,41 @@ export default {
         })
     },
     // GET /api/admin/processes/{id}/audit?days=30 — audit-лог (US5, T037).
+    /**
+     * BR-403: загрузка audit-лога процесса.
+     *
+     * ДЕФЕКТ. Ответ коммитился в общий `currentProcessAudit` без сверки с id процесса:
+     * открыв audit процесса A, закрыв и открыв audit процесса B, админ видел записи A
+     * под заголовком B, пока не приходил ответ; при отказе B записи A оставались в
+     * таблице и читались как лог B. Два быстрых «Обновить» с разными `days` могли
+     * прийти не по порядку — побеждал последний ПРИШЕДШИЙ ответ.
+     *
+     * РЕШЕНИЕ. Снимок чистится ДО запроса; ответ применяется только владельцем текущего
+     * поколения И только если id совпадает с текущим; есть явное состояние загрузки.
+     */
     loadAudit(ctx, { id, days = 30 }) {
+      const ticket = processAuditGeneration.next()
+      ctx.commit('clearCurrentProcessAudit')
+      ctx.commit('setCurrentProcessAuditId', id)
+      ctx.commit('setCurrentProcessAuditIsLoading', true)
+      ctx.commit('setCurrentProcessAuditError', '')
       return getJson(`/api/admin/processes/${id}/audit?days=${days}`)
         .then((result) => {
+          if (!processAuditGeneration.isCurrent(ticket)) return { applied: false, stale: true }
+          if (ctx.state.currentProcessAuditId !== id) return { applied: false, stale: true }
           ctx.commit('setCurrentProcessAudit', result.items || [])
-          return result
+          return { applied: true, stale: false, result }
         })
         .catch((error) => {
+          if (processAuditGeneration.isCurrent(ticket)) {
+            ctx.commit('setCurrentProcessAuditError', error.message || 'Ошибка загрузки audit-лога')
+          }
           throw error
+        })
+        .finally(() => {
+          if (processAuditGeneration.isCurrent(ticket)) {
+            ctx.commit('setCurrentProcessAuditIsLoading', false)
+          }
         })
     },
     // --- specs/319-process-bulk-actions-v2: bulk actions ---
@@ -647,6 +723,9 @@ export default {
           const deletedIds = ids.filter((id) => !failedIds.has(id))
           const items = ctx.state.items.filter((item) => !deletedIds.includes(item.id))
           ctx.commit('setProcessesItems', items)
+          // BR-402: список перезагружается по последним фильтрам — страница
+          // наполняется заново (иначе после удаления всех строк остаётся пустая).
+          ctx.dispatch('reloadProcessesItems')
           return report
         })
         .catch((error) => {
@@ -691,10 +770,44 @@ export default {
             totalCount: ids.length,
             processedCount: 0,
           })
-          ctx.dispatch('pollBulkTask', { taskId, statusUrl })
+          // BR-402: в опрос уходят id, с которыми операция ЗАПУЩЕНА. Раньше в
+          // терминальной ветке брались текущие `bulkSelectionIds` — за время ожидания
+          // админ мог сменить фильтр, и из таблицы вычитались бы ЧУЖИЕ id.
+          ctx.dispatch('pollBulkTask', {
+            taskId,
+            statusUrl,
+            ids: ids.slice(),
+            action: 'bulk_update_field',
+          })
           return { taskId, statusUrl }
         })
         .catch((error) => {
+          // BR-401: терминальное состояние фиксируется в state — админ видит отказ,
+          // а не «бесконечный RUNNING».
+          ctx.commit('setBulkTaskStatus', {
+            status: 'FAILED',
+            action: 'bulk_update_field',
+            totalCount: ids.length,
+            processedCount: 0,
+            error: error.message || 'Ошибка запуска массового обновления',
+          })
+          ctx.commit('setBulkOperationReport', {
+            batchId: null,
+            action: 'bulk_update_field',
+            requested: ids.length,
+            succeeded: 0,
+            failed: ids.length,
+            status: 'FAILED',
+            error: error.message || 'Ошибка запуска массового обновления',
+            errors: [
+              {
+                processId: null,
+                reason: error.message || 'Ошибка запуска массового обновления',
+                errorCode: 'START_FAILED',
+              },
+            ],
+            durationMs: 0,
+          })
           ctx.commit('setBulkOperationInProgress', false)
           throw error
         })
@@ -723,10 +836,41 @@ export default {
             totalCount: ids.length,
             processedCount: 0,
           })
-          ctx.dispatch('pollBulkTask', { taskId, statusUrl })
+          // BR-402: id операции фиксируются при запуске.
+          ctx.dispatch('pollBulkTask', {
+            taskId,
+            statusUrl,
+            ids: ids.slice(),
+            action: 'bulk_delete',
+          })
           return { taskId, statusUrl }
         })
         .catch((error) => {
+          // BR-401: терминальное состояние фиксируется в state (см. bulkUpdateProcessesAsync).
+          ctx.commit('setBulkTaskStatus', {
+            status: 'FAILED',
+            action: 'bulk_delete',
+            totalCount: ids.length,
+            processedCount: 0,
+            error: error.message || 'Ошибка запуска массового удаления',
+          })
+          ctx.commit('setBulkOperationReport', {
+            batchId: null,
+            action: 'bulk_delete',
+            requested: ids.length,
+            succeeded: 0,
+            failed: ids.length,
+            status: 'FAILED',
+            error: error.message || 'Ошибка запуска массового удаления',
+            errors: [
+              {
+                processId: null,
+                reason: error.message || 'Ошибка запуска массового удаления',
+                errorCode: 'START_FAILED',
+              },
+            ],
+            durationMs: 0,
+          })
           ctx.commit('setBulkOperationInProgress', false)
           throw error
         })
@@ -737,8 +881,26 @@ export default {
      *
      * Опрос каждые 2 сек через `setTimeout` (не setInterval — переживает ручную отмену).
      * На terminal status — коммитит `SET_BULK_OPERATION_REPORT` для показа в UI.
+     *
+     * BR-401: при отказе опроса фиксируется ТЕРМИНАЛЬНОЕ состояние (`status: 'FAILED'`
+     * в `bulkTaskStatus` и отчёт в `bulkOperationReport`). Раньше `catch` сбрасывал
+     * только флаг «операция идёт», а `bulkTaskStatus` навсегда оставался `RUNNING`,
+     * отчёта не было, а исключение перебрасывалось из промиса без потребителя
+     * (unhandled rejection). Из таймерного цикла исключение не перебрасывается.
+     *
+     * BR-402: `ids` — id, с которыми операция ЗАПУЩЕНА. Из `items` вычитаются только
+     * они (раньше брались текущие `bulkSelectionIds` — за время ожидания админ мог
+     * сменить фильтр, и из таблицы вычитались бы чужие id). Для `bulk_update` список
+     * перезагружается: значения полей изменились на сервере.
+     *
+     * @param {Object} payload
+     * @param {string} payload.taskId
+     * @param {string} payload.statusUrl
+     * @param {Array<Number>} payload.ids — id операции.
+     * @param {string} payload.action — 'bulk_delete' | 'bulk_update_field'.
      */
-    pollBulkTask(ctx, { taskId, statusUrl }) {
+    pollBulkTask(ctx, { taskId, statusUrl, ids = [], action = null }) {
+      const operationIds = Array.isArray(ids) ? ids.slice() : []
       const poll = () => {
         return getJson(statusUrl || `/api/admin/tasks/${taskId}`)
           .then((status) => {
@@ -749,32 +911,71 @@ export default {
               // Terminal: строим BulkOperationReport для UI
               ctx.commit('setBulkOperationReport', {
                 batchId: taskId,
-                action: status.action,
-                requested: status.totalCount,
+                action: status.action || action,
+                requested:
+                  status.totalCount !== undefined ? status.totalCount : operationIds.length,
                 succeeded: status.succeededCount,
                 failed: status.failedCount,
+                status: status.status,
                 errors: status.errors || [],
                 durationMs:
                   status.finishedAt && status.startedAt ? status.finishedAt - status.startedAt : 0,
               })
               ctx.commit('setBulkOperationInProgress', false)
-              // Удалить удалённые id из items (bulk_delete terminal).
-              if (status.action === 'bulk_delete') {
+              // BR-402: удаляются только id ЭТОЙ операции.
+              if (status.action === 'bulk_delete' || action === 'bulk_delete') {
                 const failedIds = new Set((status.errors || []).map((e) => e.processId))
-                const deletedIds = (ctx.state.bulkSelectionIds || []).filter(
-                  (id) => !failedIds.has(id),
-                )
+                const deletedIds = operationIds.filter((id) => !failedIds.has(id))
                 const items = ctx.state.items.filter((item) => !deletedIds.includes(item.id))
                 ctx.commit('setProcessesItems', items)
+              }
+              // BR-402: после bulk_update список перезагружается — иначе в таблице
+              // остались бы прежние значения изменённых полей.
+              if (status.action === 'bulk_update_field' || action === 'bulk_update_field') {
+                ctx.dispatch('reloadProcessesItems')
               }
             }
           })
           .catch((error) => {
+            // BR-401: терминальное состояние — админ видит отказ, а не вечный RUNNING.
+            const reason = error.message || 'Ошибка опроса задачи'
+            ctx.commit('setBulkTaskStatus', {
+              taskId,
+              statusUrl,
+              status: 'FAILED',
+              action: action,
+              totalCount: operationIds.length,
+              processedCount: 0,
+              error: reason,
+            })
+            ctx.commit('setBulkOperationReport', {
+              batchId: taskId,
+              action: action || 'unknown',
+              requested: operationIds.length,
+              succeeded: 0,
+              failed: operationIds.length,
+              status: 'FAILED',
+              error: reason,
+              errors: [{ processId: null, reason: reason, errorCode: 'POLL_FAILED' }],
+              durationMs: 0,
+            })
             ctx.commit('setBulkOperationInProgress', false)
-            throw error
+            // Исключение НЕ перебрасывается: из таймерного цикла оно ушло бы в
+            // unhandled rejection, а состояние уже зафиксировано выше.
           })
       }
-      poll()
+      return poll()
+    },
+
+    /**
+     * BR-402: перезагрузка списка процессов по последним применённым фильтрам.
+     * Нужна после массового обновления: значения полей изменились на сервере, а
+     * локальный `items` — устаревший снимок.
+     */
+    reloadProcessesItems(ctx) {
+      const filters = ctx.state.processesFilters
+      if (!filters) return Promise.resolve(null)
+      return ctx.dispatch('loadProcesses', filters)
     },
   },
 }

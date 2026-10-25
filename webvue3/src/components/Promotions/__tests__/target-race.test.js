@@ -104,7 +104,9 @@ describe('BR-407: гонка цели (target) в списке акций', () =
     )
     assert.equal(state.promoRulesTarget, 'remote', 'селект при этом остаётся на выбранной БД')
 
-    saveRequest.respond(200, {})
+    // BR-406: бэкенд `POST /api/promorules/update` возвращает id акции (`Long`).
+    // Ответ '7' — успех; '0' означал бы «правило не найдено» (отказ).
+    saveRequest.respond(200, '7')
     await new Promise((resolve) => setImmediate(resolve))
     FakeXhr.last(byTarget('remote')).respond(200, { promoRules: [] })
     await save
@@ -124,7 +126,9 @@ describe('BR-407: гонка цели (target) в списке акций', () =
     assert.equal(deleteRequest.params.target, 'local')
     assert.equal(deleteRequest.params.id, '9')
 
-    deleteRequest.respond(200, {})
+    // BR-406: бэкенд `POST /api/promorules/delete` возвращает `Boolean`.
+    // 'true' — удалено; 'false' означало бы отказ.
+    deleteRequest.respond(200, 'true')
     await new Promise((resolve) => setImmediate(resolve))
     FakeXhr.last(byTarget('remote')).respond(200, { promoRules: [] })
     await remove

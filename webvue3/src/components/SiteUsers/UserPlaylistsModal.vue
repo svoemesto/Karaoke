@@ -7,7 +7,8 @@
         <button class="upm-close" @click="close">×</button>
       </div>
 
-      <div v-if="isLoading" class="upm-loading">Загрузка...</div>
+      <div v-if="error" class="upm-error" v-text="error" />
+      <div v-else-if="isLoading" class="upm-loading">Загрузка...</div>
       <template v-else>
         <table class="upm-table">
           <thead>
@@ -55,15 +56,38 @@ export default {
     return { isDetailVisible: false }
   },
   computed: {
+    /**
+     * BR-415: показываются только плейлисты ЭТОГО пользователя.
+     *
+     * Дайджест плейлистов общий для таблицы и для модалки. Раньше модалка рендерила
+     * его как есть: если запрос упал (или не успел прийти), под именем текущего
+     * пользователя оказывались плейлисты предыдущего пользователя (или весь список
+     * из таблицы). Теперь данные показываются, только если они загружены именно для
+     * `siteUserId` (в сторе хранится владелец дайджеста).
+     */
     playlists() {
+      if (this.$store.getters.getSitePlaylistsDigestOwnerId !== this.siteUserId) return []
       return this.$store.getters.getSitePlaylistsDigest
     },
     isLoading() {
-      return this.$store.getters.getSitePlaylistsDigestIsLoading
+      if (this.$store.getters.getSitePlaylistsDigestOwnerId === this.siteUserId) {
+        return this.$store.getters.getSitePlaylistsDigestIsLoading
+      }
+      // Данные в сторе относятся к другому субъекту (или ещё не загружены) —
+      // показываем «Загрузка...», а не чужие строки.
+      return !this.error
+    },
+    // BR-415: ошибка загрузки видна пользователю.
+    error() {
+      if (this.$store.getters.getSitePlaylistsDigestOwnerId !== this.siteUserId) return ''
+      return this.$store.getters.getSitePlaylistsDigestError
     },
   },
   async mounted() {
     await this.$store.dispatch('setSitePlaylistsTarget', this.target)
+    // BR-415: загрузка идёт по id ЭТОГО пользователя — дайджест в сторе получает
+    // владельца (`sitePlaylistsDigestOwnerId`), и чужие строки под его именем
+    // больше не показываются.
     this.$store.dispatch('loadSitePlaylistsDigest', { filterOwnerId: this.siteUserId })
   },
   methods: {
@@ -123,6 +147,12 @@ export default {
 .upm-empty {
   text-align: center;
   color: gray;
+  padding: 20px;
+}
+/* BR-415: ошибка загрузки плейлистов пользователя. */
+.upm-error {
+  text-align: center;
+  color: darkred;
   padding: 20px;
 }
 .upm-table {

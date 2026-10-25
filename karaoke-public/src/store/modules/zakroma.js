@@ -1,6 +1,12 @@
 import { apiGet } from '../../services/api'
 import { useZakromaStreamProgress } from '../../composables/useZakromaStreamProgress'
 import { releaseStream, shouldReplaceActiveStream } from '../../utils/streamLifecycle.js'
+import {
+  createGenerationCounter,
+  invalidateGeneration,
+  isCurrentGeneration,
+  nextGeneration,
+} from '../../utils/streamGeneration.js'
 
 // Локальный кеш AlbumType-метаданных (mirror из
 // karaoke-app/src/main/kotlin/.../AlbumType.kt). Нужен для построения
@@ -63,6 +69,19 @@ function buildAlbumTypeCounts(albums) {
 // иначе они копятся по одной тройке на каждую загрузку автора и удерживают полный
 // список песен автора в своём замыкании.
 let activeStream = null
+
+// BR-356 (аудит #336, PKG-S3-28): поколение стрима.
+//
+// Раньше store коммитил результат того стрима, который завершился последним, без
+// проверки «а тот ли это автор». Сценарий: открыт автор A (стрим идёт), пользователь
+// уходит на сетку и открывает автора B — стрим B стартует, а стрим A, завершившись
+// позже, делал `setZakroma([A])`: страница `/zakroma/B` показывала песни автора A,
+// а его `finally` гасил `isStreaming` (прогресс-бар B исчезал) и показывал ошибку A.
+//
+// Теперь у каждого стрима есть номер поколения: коммитить данные/ошибку/флаг
+// стриминга может ТОЛЬКО текущее поколение. Устаревшее поколение молча уходит,
+// освобождая свои ресурсы (cleanup/cancel) в finally.
+const streamGeneration = createGenerationCounter()
 
 export default {
   namespaced: true,
@@ -222,6 +241,11 @@ export default {
         return
       }
 
+      // BR-356 (аудит #336, PKG-S3-28): это поколение стрима. Только оно вправе
+      // коммитить данные/ошибку/флаг стриминга — устаревший (перебитый новым) стрим
+      // молча уходит, не подменяя данные чужого автора.
+      const generation = nextGeneration(streamGeneration)
+
       // US1: очистка СИНХРОННО (FR-FE-004). UI сразу видит пустоту.
       commit('setZakroma', [])
       commit('setStreaming', true)
@@ -252,6 +276,10 @@ export default {
         // Pass 359: передаём albumId в стрим-эндпоинт, чтобы бэк фильтровал
         // песни по `tbl_songs.album_id` и не гонял все 388 песен автора.
         const result = await composable.start(author, expectedCount, albumId)
+        // BR-356: пока шёл стрим, его мог перебить более новый (другой автор/альбом).
+        // Устаревшее поколение НЕ коммитит ничего — иначе на странице `/zakroma/B`
+        // появлялись песни автора A.
+        if (!isCurrentGeneration(streamGeneration, generation)) return
         // FR-BE-008: actualCount должен совпадать с expectedCount (если фильтр
         // не удалил). UI ничего не показывает, но sanity-check логируем.
         if (result && result.albums) {
@@ -260,10 +288,18 @@ export default {
           // если нету (или взять из кэша?). Для MVP — оставляем пустым.
           // albumTypeCounts — собираем на фронте из полученных albums
           // (mirror backend `ZakromaPublicDto.fromZakroma()`).
+          //
+          // BR-354 (аудит #336, PKG-S3-28): авторские поля (описание/предупреждение/
+          // SKIP) приходят в NDJSON-сообщении `meta` — раньше они терялись при переходе
+          // на стрим, и блок автора на странице показывал пустые значения.
           commit('setZakroma', [
             {
               author,
               authorPictureUrl: '',
+              authorDescription: result.authorDescription || '',
+              authorShortDescription: result.authorShortDescription || '',
+              authorWarning: result.authorWarning || '',
+              authorSkip: result.authorSkip === true,
               albums: result.albums,
               albumTypeCounts: buildAlbumTypeCounts(result.albums),
             },
@@ -272,6 +308,9 @@ export default {
           commit('setLastLoadedTimestamp', { author: cacheKey, ts: Date.now() })
         }
       } catch (err) {
+        // BR-356: ошибка устаревшего стрима — не наша (страница уже показывает другой
+        // автор). Молча уходим, не показывая чужую ошибку.
+        if (!isCurrentGeneration(streamGeneration, generation)) return
         // Любая ошибка стрима (network/error/abort) — фиксируем в state.
         // UI использует streamError для retry-кнопки (FR-FE-001 сценарий 4).
         if (err && err.code === 'aborted') {
@@ -293,7 +332,11 @@ export default {
         // пользователя со страницы.
         releaseStream(composable)
         if (activeStream === composable) activeStream = null
-        commit('setStreaming', false)
+        // BR-356: флаг стриминга гасит только ТЕКУЩЕЕ поколение — иначе завершившийся
+        // старый стрим прятал прогресс-бар нового.
+        if (isCurrentGeneration(streamGeneration, generation)) {
+          commit('setStreaming', false)
+        }
       }
     },
     /**
@@ -309,6 +352,9 @@ export default {
         releaseStream(activeStream)
         activeStream = null
       }
+      // BR-356: отмена инвалидирует текущее поколение — висящий стрим не сможет
+      // принести данные/ошибку после отмены.
+      invalidateGeneration(streamGeneration)
       commit('setZakroma', [])
       commit('setStreaming', false)
       commit('setStreamProgress', { receivedCount: 0, expectedCount: 0 })

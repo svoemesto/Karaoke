@@ -11,6 +11,13 @@
         Подписок пока нет. <RouterLink to="/premium">Оформить подписку →</RouterLink>
       </div>
       <div v-else class="km-sub-list">
+        <!--
+          BR-352 (аудит #336, PKG-S3-28): отмена автопродления проверяет ответ сервера.
+          Раньше статус ответа игнорировался — при 401/404/500 интерфейс молча
+          перезагружал список, и пользователь не узнавал, что карта не отвязана.
+        -->
+        <p v-if="cancelError" class="km-error" role="alert">{{ cancelError }}</p>
+        <p v-if="cancelMessage" class="km-ok">{{ cancelMessage }}</p>
         <div v-for="s in subscriptions" :key="s.id" class="km-sub-card">
           <div class="km-sub-main">
             <div class="km-sub-title">
@@ -60,7 +67,13 @@ export default {
     return { token }
   },
   data() {
-    return { loading: true, subscriptions: [] }
+    return {
+      loading: true,
+      subscriptions: [],
+      // BR-352 (аудит #336, PKG-S3-28): результат отмены автопродления — видимый.
+      cancelError: '',
+      cancelMessage: '',
+    }
   },
   async mounted() {
     if (!this.token) {
@@ -106,8 +119,30 @@ export default {
         )
       )
         return
-      await authPost('/api/public/account/subscription/cancel', { id }, this.token)
-      await this.load()
+      // BR-352 (аудит #336, PKG-S3-28): результат запроса разбирается явно.
+      // Раньше `await authPost(...)` — без проверки статуса и без catch: при 401/404/500
+      // (или обрыве сети) список молча перезагружался, и пользователь видел тот же экран
+      // без единого слова — отвязка карты не выполнена, а выглядело как «всё ок».
+      this.cancelError = ''
+      this.cancelMessage = ''
+      try {
+        const { status } = await authPost(
+          '/api/public/account/subscription/cancel',
+          { id },
+          this.token,
+        )
+        if (status !== 200) {
+          this.cancelError =
+            status === 401 || status === 403
+              ? 'Сессия истекла — войдите заново, чтобы отключить автопродление.'
+              : 'Не удалось отключить автопродление. Попробуйте ещё раз.'
+          return
+        }
+        this.cancelMessage = 'Автопродление отключено.'
+        await this.load()
+      } catch (e) {
+        this.cancelError = 'Не удалось связаться с сервером — автопродление не отключено.'
+      }
     },
   },
 }
@@ -132,6 +167,17 @@ export default {
 .km-empty {
   font-size: 0.9rem;
   color: var(--km-text2);
+}
+/* BR-352: видимый результат отмены автопродления (ошибка / успех). */
+.km-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+.km-ok {
+  color: #1e7e34;
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
 }
 .km-sub-list {
   display: flex;

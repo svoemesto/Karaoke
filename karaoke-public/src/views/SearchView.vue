@@ -75,7 +75,13 @@
         счётчик был виден.
       -->
       <div v-if="!searchIsLoading && searchResults.length" class="km-song-list">
-        <div v-for="song in searchResults" :key="song.id" class="km-song-row">
+        <!--
+          BR-347 (аудит #336, PKG-S3-28): `searchRows` — те же результаты, но с уже
+          resolved `authorId` (см. computed ниже). Раньше id автора искался в шаблоне
+          ДВАЖДЫ на строку (`v-if` + `params`) линейным `find` по каталогу авторов —
+          O(строк × тайлов) на КАЖДЫЙ рендер списка.
+        -->
+        <div v-for="song in searchRows" :key="song.id" class="km-song-row">
           <!--
             Spec 261 (FR-005/FR-006): чёрная плашка с двумя превью. Альбом — квадрат 48×48,
             автор — горизонтальная карточка 120×48 (аспект 5:2). Если URL пуст или картинка
@@ -120,8 +126,8 @@
             <div class="km-song-sub">
               <template v-if="song.author || song.album">
                 <router-link
-                  v-if="song.author && authorIdFor(song.author)"
-                  :to="{ name: 'zakroma-author', params: { authorId: authorIdFor(song.author) } }"
+                  v-if="song.author && song.authorId"
+                  :to="{ name: 'zakroma-author', params: { authorId: song.authorId } }"
                   class="km-song-author-link"
                   >{{ song.author
                   }}<span v-if="song.authorAlias" class="km-alias">
@@ -262,6 +268,7 @@ import {
   searchErrorText,
   urlPage,
 } from '../utils/searchPagination.js'
+import { authorIdFromIndex, buildAuthorIndex } from '../utils/authorIndex.js'
 
 /**
  * View-страница «Search» — основной layout и data-fetching.
@@ -308,15 +315,20 @@ export default {
      */
     const authorTiles = computed(() => store.state.zakroma?.authorTiles || [])
     /**
+     * BR-347 (аудит #336, PKG-S3-28): индекс `Map<authorName, authorId>` по каталогу
+     * тайлов. Пересобирается ТОЛЬКО при смене `authorTiles`; поиск по имени — O(1).
+     * Раньше был линейный `find` по всему каталогу, вызываемый дважды на строку
+     * выдачи (см. computed `searchRows`).
+     */
+    const authorIndex = computed(() => buildAuthorIndex(authorTiles.value))
+    /**
      * Резолв имени автора в числовой authorId (строка — для path-параметра роута).
      * Возвращает `null` если автор отсутствует в кэше (Edge Case: удалён из `tbl_authors`).
      * @param {string} name имя автора (`song.author`)
      * @returns {string|null} authorId как строка или null
      */
     function authorIdFor(name) {
-      if (!name) return null
-      const tile = authorTiles.value.find((t) => t && t.author === name)
-      return tile && tile.id != null ? String(tile.id) : null
+      return authorIdFromIndex(authorIndex.value, name)
     }
     return {
       // Pass 239: readiness больше НЕ догружается per-row; передача через props идёт напрямую.
@@ -325,6 +337,7 @@ export default {
       cart,
       user,
       authorTiles,
+      authorIndex,
       authorIdFor,
     }
   },
@@ -372,6 +385,22 @@ export default {
     pageSizeFromUrl() {
       const ps = Number(this.$route.query.pageSize)
       return Number.isFinite(ps) && ps >= 1 ? ps : 35
+    },
+    /**
+     * BR-347 (аудит #336, PKG-S3-28): строки выдачи с уже resolved `authorId`.
+     *
+     * Раньше id автора искался прямо в шаблоне — дважды на строку (`v-if` + `params`)
+     * линейным `find` по каталогу тайлов авторов. Теперь резолв делается ОДИН раз на
+     * строку (O(1) по `Map`), а в шаблоне используется готовое поле `song.authorId`.
+     */
+    searchRows() {
+      const results = this.searchResults || []
+      if (!results.length) return results
+      const index = this.authorIndex
+      return results.map((song) => {
+        const authorId = authorIdFromIndex(index, song && song.author)
+        return authorId ? { ...song, authorId } : song
+      })
     },
   },
   watch: {

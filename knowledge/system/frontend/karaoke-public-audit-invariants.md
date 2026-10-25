@@ -2,7 +2,7 @@
 
 > **Домен**: system (cross-cutting)
 > **Компонента**: инварианты `karaoke-public`, зафиксированные аудитом #336
-> (волна E, пакет `PKG-S3-27`, OpenProject #399).
+> (волна E, пакеты `PKG-S3-27` — OpenProject #399, `PKG-S3-28` — OpenProject #400).
 
 ## Назначение
 
@@ -39,6 +39,13 @@
 | `searchPagination.js` | `urlPage(query)`, `needsSliceRestore`, `restorePlan`, `searchErrorScope`, `searchErrorText` |
 | `notify.js` | `notify(vm, message, kind)` — единый тост ошибки |
 | `player/playerGuards.js` | `classifyInitError`, `prerollDisplayTime`, `createSeekTracker`, `isStaleGeneration`, `transposeYieldDue`, `shouldGenerateStarfield`, `readStoredNumber`, `createBackgroundCanvas`, `roundRectPath` |
+| `authorIndex.js` (PKG-S3-28) | `buildAuthorIndex(tiles)` -> `Map<name, id>`; `authorIdFromIndex(index, name)` -> `string|null` |
+| `messageOrigin.js` (PKG-S3-28) | `isTrustedParentMessage(event, {origin, source})` -> `boolean`; `currentOrigin()` -> `string` |
+| `tokenTimers.js` (PKG-S3-28) | `clearTokenTimers(timers, pendingToken)` -> `number`; `pendingTokenCount(pendingToken)` |
+| `streamGeneration.js` (PKG-S3-28) | `createGenerationCounter()`, `nextGeneration(counter)`, `isCurrentGeneration(counter, gen)`, `invalidateGeneration(counter)` |
+| `shareClaim.js` (PKG-S3-28) | `shareClaimState(status, body)` -> `SHARE_STATE`; `shareErrorText(state)`; `shareLeaseState(expiresAt, now)`; `needsReclaim(expiresAt, now, marginMs)` |
+| `zakromaRoute.js` (PKG-S3-28) | `isAuthorRoute(params)`, `isSpecialBucketPath(path)`, `authorChosenForRoute(path, params)`, `zakromaBackTarget(state)`, `zakromaStreamParams(tile, albumId)`, `isAuthorMissing(tile, tilesLoaded)` |
+| `stemJobs.js` (PKG-S3-28) | `visibleJobs(jobs)` (без `deleteRequested`), `hasActiveJobs(jobs)` |
 
 ## Логика и Алгоритмы
 
@@ -126,6 +133,97 @@ URL вида `/share/{linkId}/{secret}` — bearer-capability (даёт полн
 - NDJSON-стрим «Закромы» можно прервать по-настоящему: store держит активный
   composable и отдаёт `cancelZakromaStream`; новый стрим всегда заменяет текущий.
 
+### 9. Поколение стрима: коммитит только последний (PKG-S3-28)
+
+У NDJSON-стрима «Закромы» есть **номер поколения** (`streamGeneration.js`).
+Коммитить данные (`setZakroma`), ошибку (`setStreamError`) и флаг
+`setStreaming` вправе **только текущее** поколение. Устаревшее поколение
+(перебитое новым стримом, снятым явной отменой) молча уходит, освобождая
+свои ресурсы.
+
+Проверка обязательна в трёх точках `store/modules/zakroma.js`: после `await`
+успеха, в `catch` и в `finally` (`setStreaming(false)`). Иначе стрим автора A,
+завершившийся после старта стрима автора B, показывал песни A на странице B
+и гасил прогресс-бар B.
+
+### 10. Ресурсы, живущие после ухода со страницы (PKG-S3-28)
+
+Любой ресурс, созданный компонентом, обязан сниматься в `beforeUnmount`:
+
+- таймеры ожидания токена в плеере плейлиста (`tokenTimers.js`) — хэндл
+  сохраняется, при размонтировании таймер снимается, а ожидающие промисы
+  резолвятся `null`;
+- таймер опроса заданий стемов (`StemJobsView`) — ручка живёт **на инстансе**
+  (не на уровне модуля), интервал создаётся **синхронно** (до `await`), а
+  колбэк проверяет флаг размонтирования;
+- таймер опроса статуса оплаты (`SubscriptionReturnView`) — id таймера
+  сохраняется и снимается при размонтировании; авто-переход (`$router.replace`)
+  выполняется только если компонент ещё смонтирован и маршрут всё ещё
+  `/subscription/return`.
+
+### 11. Доверие к postMessage (PKG-S3-28)
+
+Сообщение `postMessage` принимается только если совпадают **origin** (свой
+сайт) **и** источник (`window.parent`). Строковый маркер в `e.data` — третий
+фильтр, а не барьер: константа из бандла не защищает от фрейминга. Обёртка —
+`isTrustedParentMessage` (`karaoke-public/src/utils/messageOrigin.js`).
+
+### 12. Состояние страницы выводится из маршрута (PKG-S3-28)
+
+Для `ZakromaView` (`/zakroma`, `/zakroma/{id}`, `/zakroma/{id}/albums`,
+`/zakroma/special-bucket`) состояние (`authorChosen`, `specialBucketShown`,
+`selectedAuthorId`) вычисляется **из маршрута**, а не из обработчика клика:
+один и тот же URL обязан вести себя одинаково при прямом заходе, F5 и переходе
+изнутри SPA. Back-link строится чистой функцией `zakromaBackTarget`
+(спец-корзина проверяется первой; пустой `authorId` в ссылку не попадает).
+
+### 13. «Повторить» повторяет операцию, а не меняет страницу (PKG-S3-28)
+
+Кнопка «Повторить» повторяет ровно ту операцию, которая упала, с теми же
+параметрами. Для стрима «Закромов» это `zakromaStreamParams(tile, albumId)`
+(автор, expectedCount, albumId, `force: true`) — **без навигации**. Раньше
+«Повторить» вызывал `onAuthorSelect` и уводил на страницу альбомов: упавший
+стрим так и не перезапускался.
+
+### 14. Авторские поля не теряются при переходе на поток (PKG-S3-28)
+
+NDJSON-сообщение `meta` несёт авторские поля страницы песен автора
+(`authorDescription`, `authorShortDescription`, `authorWarning`, `authorSkip`) —
+те же, что отдаёт REST-версия (`ZakromaPublicDto`). Поля **необязательны**:
+старый бэкенд их просто не присылает, и фронт остаётся рабочим. Флаг
+`authorSkip` отдаётся только тем, кто имеет право видеть SKIP-контент.
+
+### 15. Короткоживущая сессия проверяется перед использованием (PKG-S3-28)
+
+Lease сессии share-ссылки живёт 90 секунд и продлевается heartbeat'ом плеера;
+лендинг heartbeat не шлёт. Поэтому перед переходом в плеер lease проверяется
+(`needsReclaim`), а истёкший (или неизвестный) lease продлевается повторным
+claim. Иначе пользователь получал «Ошибка: HTTP 404» вместо плеера.
+
+### 16. Ответ сервера разбирается по кодам, а не по «всё остальное — 404» (PKG-S3-28)
+
+Доменные коды ошибок разводятся по состояниям: `share.notFound` /
+`share.tokenMissing` — «ссылка недоступна» (без retry), `share.internal` и любой
+5xx/сетевой сбой — «сервис недоступен» **с кнопкой «Повторить»**. Общая
+классификация ответов — `classifyLoad`
+(`karaoke-public/src/utils/loadState.js`); для share-claim —
+`shareClaimState` (`karaoke-public/src/utils/shareClaim.js`).
+
+### 17. Флаг из DTO, а не из несуществующего поля (PKG-S3-28)
+
+Флаги берутся из того поля, которое реально присылает сервер. Пример: признак
+SKIP-песни — это `SongPublicDto.contentRemoved` (сервер считает его из `tags`
+точным сравнением токена), а НЕ `currentSong.tags` (такого поля в DTO нет —
+геттер был всегда `false`). Проверка «а поле вообще есть в DTO?» — обязательный
+шаг при чтении флагов из ответа.
+
+### 18. Каталоги — один раз в индекс (PKG-S3-28)
+
+Линейный поиск по каталогу (`Array.find` по тысячам тайлов) в шаблоне — не
+допускается: каталог разворачивается в `Map` (`authorIndex.js`), пересборка —
+только при смене источника, а резолв выполняется один раз на строку
+(в `computed`, а не в шаблоне).
+
 ## Зависимости
 
 - -> [`karaoke-public-composables.md`](karaoke-public-composables.md) —
@@ -135,7 +233,11 @@ URL вида `/share/{linkId}/{secret}` — bearer-capability (даёт полн
 - -> [`composable-use-cart.md`](composable-use-cart.md),
   [`composable-news-unread.md`](composable-news-unread.md) — детальные
   документы изменённых composables.
+- -> [`composable-zakroma-stream.md`](composable-zakroma-stream.md) —
+  жизненный цикл NDJSON-стрима «Закромы» (поколение стрима, `meta`).
 - -> [`store-songs.md`](store-songs.md), [`store-stats.md`](store-stats.md) —
   store-модули публичного SPA.
 - -> `knowledge/domains/monetization/domain.md` — тарифы, корзина, подписки
   (домен, к которому относятся инварианты 1–3).
+- -> `knowledge/domains/karaoke-web/domain.md` — публичный API и share-ссылки
+  (домен, к которому относятся инварианты 14–16).

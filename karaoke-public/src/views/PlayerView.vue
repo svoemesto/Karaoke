@@ -46,6 +46,8 @@ import KaraokePlayer from '../player/KaraokePlayer.js'
 import { useAuth } from '../composables/useAuth'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
+import { clearTokenTimers } from '../utils/tokenTimers.js'
+import { currentOrigin, isTrustedParentMessage } from '../utils/messageOrigin.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -70,6 +72,13 @@ let pos = 0
 let modes = { continuous: true, repeatMode: 'none' }
 const tokenCache = {} // songId -> token
 const pendingToken = {} // songId -> [resolve...]
+// BR-348 (аудит #336, PKG-S3-28): хэндлы таймеров ожидания токена. Раньше `setTimeout`
+// создавался без сохранения хэндла — снять его при размонтировании было нечем, промисы
+// висели, а цепочка `advanceAfterEnd()` продолжалась после ухода со страницы.
+const tokenTimers = {} // songId -> timerId
+// BR-348: флаг размонтирования — после ухода со страницы НИЧЕГО не продолжаем
+// (ни запросы, ни playSong на размонтированном плеере).
+let destroyed = false
 
 function postToParent(msg) {
   try {
@@ -79,38 +88,63 @@ function postToParent(msg) {
   }
 }
 
+/**
+ * BR-348: разбудить ожидающих токен и снять таймер ожидания.
+ *
+ * @param {string|number} songId — id песни
+ * @param {string|null} token — токен (null — «не дождались»)
+ */
+function resolvePendingToken(songId, token) {
+  const timerId = tokenTimers[songId]
+  if (timerId != null) {
+    clearTimeout(timerId)
+    delete tokenTimers[songId]
+  }
+  const arr = pendingToken[songId]
+  if (arr) {
+    delete pendingToken[songId]
+    arr.forEach((r) => r(token || null))
+  }
+}
+
 function requestToken(songId) {
   if (tokenCache[songId]) return Promise.resolve(tokenCache[songId])
   return new Promise((resolve) => {
     ;(pendingToken[songId] = pendingToken[songId] || []).push(resolve)
     postToParent({ type: 'need-token', songId })
-    setTimeout(() => {
-      const arr = pendingToken[songId]
-      if (arr) {
-        delete pendingToken[songId]
-        arr.forEach((r) => r(null))
-      }
+    tokenTimers[songId] = setTimeout(() => {
+      delete tokenTimers[songId]
+      resolvePendingToken(songId, null)
     }, 8000)
   })
 }
 
 async function playPos(p) {
+  // BR-348: после размонтирования очередь не двигаем.
+  if (destroyed) return
   if (p < 0 || p >= queue.length) return
   pos = p
   const songId = queue[pos]
   currentSongId.value = songId
   playlistMembership.load([songId])
   const token = await requestToken(songId)
+  // BR-348: пока ждали токен, пользователь мог уйти со страницы — тогда НИЧЕГО не делаем
+  // (иначе цепочка продолжила бы играть очередь уже после закрытия плеера).
+  if (destroyed) return
   if (!token) {
     advanceAfterEnd()
     return
   } // недоступна (истёк токен и т.п.) — дальше
+  if (!player) return
   await player.playSong(songId, token, authToken.value, true)
+  if (destroyed) return
   postToParent({ type: 'track', songId })
   postToParent({ type: 'state', playing: true })
 }
 
 function advanceAfterEnd() {
+  // BR-348: размонтированный плеер не продолжает очередь.
+  if (destroyed) return
   if (modes.repeatMode === 'one') {
     playPos(pos)
     return
@@ -127,15 +161,18 @@ function advanceAfterEnd() {
 }
 
 function onParentMessage(e) {
+  // BR-349 (аудит #336, PKG-S3-28): доверяем ТОЛЬКО сообщениям своего origin, пришедшим
+  // от родительского окна. Раньше единственным барьером был строковый маркер
+  // `d.source === 'kp-playlist'` — константа из бандла: сторонняя страница, встроившая
+  // плеер, могла управлять сессией (setqueue/playid/token).
+  if (destroyed) return
+  if (!isTrustedParentMessage(e, { origin: currentOrigin(), source: window.parent })) return
   const d = e.data
   if (!d || d.source !== 'kp-playlist') return
   if (d.type === 'token') {
     if (d.token) tokenCache[d.songId] = d.token
-    const arr = pendingToken[d.songId]
-    if (arr) {
-      delete pendingToken[d.songId]
-      arr.forEach((r) => r(d.token || null))
-    }
+    // BR-348: токен пришёл — таймер ожидания снимаем.
+    resolvePendingToken(d.songId, d.token || null)
   } else if (d.type === 'playid') {
     const p = queue.findIndex((sid) => String(sid) === String(d.songId))
     if (p >= 0) playPos(p)
@@ -232,7 +269,13 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  // BR-348 (аудит #336, PKG-S3-28): размонтирование останавливает цепочку очереди.
+  // Раньше таймер ожидания токена жил 8 секунд ПОСЛЕ ухода со страницы, резолвил `null`
+  // и запускал следующий трек (новый таймер, запросы к membership, postMessage) — до
+  // конца очереди (до 500 песен).
+  destroyed = true
   if (isPlaylist) window.removeEventListener('message', onParentMessage)
+  clearTokenTimers(tokenTimers, pendingToken)
   player?.destroy()
 })
 </script>

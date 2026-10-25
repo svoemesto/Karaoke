@@ -530,6 +530,51 @@ class Author(
         }
 
         /**
+         * BR-354 (аудит #336, пакет PKG-S3-28): публичные метаданные автора по имени —
+         * для NDJSON-сообщения `meta` в `/api/public/zakroma/stream`.
+         *
+         * Лёгкий raw-SELECT по `tbl_authors` (без создания сущности `Author` и без
+         * обращений к storage) — тем же приёмом, что [loadIdsByNames].
+         *
+         * Ошибка чтения НЕ роняет публичный стрим: возвращаем пустые метаданные —
+         * блок автора останется без описания (как раньше), но страница покажет песни.
+         *
+         * @param name имя автора (`?author=` в стриме).
+         * @param database подключение к БД.
+         * @return метаданные автора (пустые — если автора нет или чтение не удалось).
+         */
+        fun loadPublicMetaByName(
+            name: String,
+            database: KaraokeConnection,
+        ): AuthorPublicMeta {
+            if (name.isEmpty()) return AuthorPublicMeta()
+            val connection = database.getConnection() ?: return AuthorPublicMeta()
+            val sql = "SELECT description, short_description, warning, skip FROM $TABLE_NAME WHERE author = ?"
+            return try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setString(1, name)
+                    ps.executeQuery().use { rs ->
+                        if (!rs.next()) {
+                            AuthorPublicMeta()
+                        } else {
+                            AuthorPublicMeta(
+                                description = rs.getString("description") ?: "",
+                                shortDescription = rs.getString("short_description") ?: "",
+                                warning = rs.getString("warning") ?: "",
+                                skip = rs.getBoolean("skip"),
+                            )
+                        }
+                    }
+                }
+            } catch (e: SQLException) {
+                println(
+                    "[${Timestamp.from(Instant.now())}] Author.loadPublicMetaByName SQLException: ${e.message}",
+                )
+                AuthorPublicMeta()
+            }
+        }
+
+        /**
          * Ищет авторов, у которых term совпадает с реальным именем ЛИБО с одним из алиасов
          * (солист/участник группы). Лёгкий raw-SELECT только по tbl_authors — безопасно
          * вызывать и из karaoke-web (не создаёт полноценных сущностей Author, не трогает storage).
@@ -644,4 +689,27 @@ data class AuthorTileRow(
      * Явный порядок автора в сетке «Закромов» (`tbl_authors.sort_order`). См. spec 307.
      */
     val sortOrder: Int = 0,
+)
+
+/**
+ * Публичные метаданные автора для страницы песен автора (`/zakroma/{id}`).
+ *
+ * BR-354 (аудит #336, пакет PKG-S3-28): NDJSON-стрим `/api/public/zakroma/stream` отдаёт
+ * песни и альбомы, но НЕ авторские поля (описание/короткое описание/предупреждение/флаг
+ * SKIP) — из-за этого блок автора на странице показывал пустые значения (в REST-версии
+ * `/api/public/zakroma` они есть — `ZakromaPublicDto`).
+ *
+ * Метаданные читаются ОДНИМ лёгким raw-SELECT'ом по имени автора (без создания сущности
+ * `Author` и без обращений к storage) и кладутся в первое NDJSON-сообщение `meta`.
+ *
+ * @property description описание автора (тултип у имени).
+ * @property shortDescription короткая пометка после имени автора.
+ * @property warning предупреждение (показывается красным над именем автора).
+ * @property skip `tbl_authors.skip` — автор скрыт от публики (SKIP).
+ */
+data class AuthorPublicMeta(
+    val description: String = "",
+    val shortDescription: String = "",
+    val warning: String = "",
+    val skip: Boolean = false,
 )

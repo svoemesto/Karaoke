@@ -14,10 +14,18 @@
 --
 -- ВАЖНО: применять вручную на КАЖДОЙ БД отдельно (LOCAL — для локальной отладки — и PROD
 -- 79.174.95.69:8832) — миграция сама на сервер не попадает.
+--
+-- BR-537 (аудит #336 / P-71-05, OpenProject #393): FK был ON DELETE CASCADE. Удаление
+-- пользователя сайта уносило строки его заданий, а объекты MinIO (`karaoke/stemjobs/<id>/…`)
+-- удаляет только код (`StemJobCleanup.cleanupJob`) по строкам tbl_stem_jobs — после каскада
+-- уборщик задание уже не находит, и исходник + стемы остаются в бакете навсегда. Пользователь
+-- при этом терял доступ к уже оплаченным результатам. Теперь ON DELETE RESTRICT: удаление
+-- пользователя с заданиями отклоняется БД (админ видит false вместо молчаливого «удалено»),
+-- а объекты и строки уходят штатной уборкой по истечении expires_at.
 
 CREATE TABLE public.tbl_stem_jobs (
     id integer NOT NULL,
-    site_user_id integer NOT NULL REFERENCES public.tbl_site_users(id) ON DELETE CASCADE,
+    site_user_id integer NOT NULL REFERENCES public.tbl_site_users(id) ON DELETE RESTRICT,
     mode character varying(16) NOT NULL,                       -- DEMUCS2 / DEMUCS5
     status character varying(16) DEFAULT 'WAITING' NOT NULL,   -- WAITING / WORKING / DONE / ERROR
     original_file_name text DEFAULT '' NOT NULL,

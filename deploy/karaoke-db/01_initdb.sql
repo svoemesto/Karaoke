@@ -179,6 +179,9 @@ CREATE INDEX tbl_settings_status_process_karaoke_bt_index ON public.tbl_settings
 CREATE INDEX tbl_settings_status_process_karaoke_index ON public.tbl_settings USING btree (status_process_karaoke);
 CREATE INDEX tbl_settings_status_process_lyrics_bt_index ON public.tbl_settings USING btree (status_process_lyrics_bt);
 CREATE INDEX tbl_settings_status_process_lyrics_index ON public.tbl_settings USING btree (status_process_lyrics);
-CREATE INDEX idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('russian'::regconfig, 'result_text'));
+-- BR-045 (аудит #336 / P-70-07, OpenProject #393): индекс строится по КОЛОНКЕ result_text,
+-- а не по строковому литералу 'result_text' (второй аргумент раньше был в кавычках, выражение
+-- одинаково для всех строк — индекс бесполезен, а имя idx_gin_result_text занято).
+CREATE INDEX idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('russian'::regconfig, result_text));
 CREATE TRIGGER update_last_updated_process_trigger BEFORE UPDATE ON public.tbl_processes FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
 CREATE TRIGGER update_last_updated_trigger BEFORE UPDATE ON public.tbl_settings FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();

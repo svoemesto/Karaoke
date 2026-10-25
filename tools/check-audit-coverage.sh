@@ -59,7 +59,10 @@ for service_file in "$SERVICES_DIR"/*.kt; do
   [ -f "$service_file" ] || continue
   filename=$(basename "$service_file" .kt)
 
-  scheduled_in_file=$(grep -cE "@Scheduled" "$service_file" 2>/dev/null | head -1)
+  # Считаем ТОЛЬКО аннотации, а не упоминания в комментариях/KDoc:
+  # `grep -cE "@Scheduled"` считал и текст в комментариях (в EventsBuffer.kt
+  # одно объявление + три упоминания в KDoc → «4 @Scheduled» в отчёте).
+  scheduled_in_file=$(grep -cE "^[[:space:]]*@Scheduled" "$service_file" 2>/dev/null | head -1)
   scheduled_in_file=${scheduled_in_file:-0}
   if [ -z "$scheduled_in_file" ] || [ "$scheduled_in_file" -eq 0 ]; then
     continue

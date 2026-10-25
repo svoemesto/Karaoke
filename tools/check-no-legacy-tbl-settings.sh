@@ -97,11 +97,39 @@ rm -f /tmp/_nocomm.txt
 
 # 3. Kotlin: ищем tbl_settings во всех .kt файлах в karaoke-app/, karaoke-web/
 echo "[3/5] Проверка Kotlin-файлов..."
+# Baseline: допустимые вхождения (как в check-file-permissions.baseline).
+# Нужны для тестов, которые УТВЕРЖДАЮТ отсутствие старого имени: литерал
+# «tbl_settings» в таком тесте — это проверка, а не использование.
+# Формат строки: <путь к файлу>:<строка>  # <причина>
+BASELINE_FILE="$REPO_ROOT/tools/check-no-legacy-tbl-settings.baseline"
+declare -A ALLOWED=()
+if [ -f "$BASELINE_FILE" ]; then
+    while IFS= read -r line; do
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+        key="$(echo "$line" | sed -E 's/[[:space:]]*#.*$//' | sed -E 's/[[:space:]]+$//')"
+        [ -n "$key" ] && ALLOWED["$key"]=1
+    done < "$BASELINE_FILE"
+fi
+
 for f in $(find karaoke-app karaoke-web -name "*.kt" -not -path "*/build/*" 2>/dev/null); do
     CHECKED=$((CHECKED + 1))
-    if grep -nE "${KOTLIN_USE}" "$f" > /dev/null 2>&1; then
+    hits="$(grep -nE "${KOTLIN_USE}" "$f" 2>/dev/null || true)"
+    [ -z "$hits" ] && continue
+    # Оставляем только те вхождения, которых нет в baseline.
+    remaining=""
+    while IFS= read -r h; do
+        [ -z "$h" ] && continue
+        ln="${h%%:*}"
+        key="$(echo "$f" | sed -E "s|^${REPO_ROOT}/||"):${ln}"
+        if [ -z "${ALLOWED[$key]:-}" ]; then
+            remaining="${remaining}${h}"$'\n'
+        fi
+    done <<< "$hits"
+    if [ -n "$remaining" ]; then
         echo -e "  ${RED}✗${NC} $f содержит tbl_settings:"
-        grep -nE "${KOTLIN_USE}" "$f" | head -3 | sed 's/^/    /'
+        echo "$remaining" | head -3 | sed 's/^/    /'
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
 done

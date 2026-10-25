@@ -293,6 +293,15 @@ BUILD SUCCESSFUL in 30s     # 33 теста, 0 падений (17 поведен
 | `karaoke-app/src/test/.../audit/PkgS326SourceContractsTest.kt` | `57fa456a80c10949602a9ea96e579673cb0672f86a72e10a9426caf4da5d2151` |
 | `docs/features/pkg-s3-26.md` | `22568c0702b739848da24f760d127b352abfbc371a126309046cda877568e0fa` |
 
-Коммит пакета: `7cefdd40` («PKG-S3-26 (OpenProject #398): 19 записей аудита #336 в karaoke-app»),
-ветка `626-pkg-s3-26` от `origin/master` `d5fbab3f`. Push и PR **не** выполнялись
-(по условию задачи).
+Коммиты пакета (ветка `626-pkg-s3-26`):
+
+- `7cefdd40` — «PKG-S3-26 (OpenProject #398): 19 записей аудита #336 в karaoke-app» (правка кода, тесты, knowledge, per-feature документ);
+- `431a6821` — «PKG-S3-26: отчёт пакета + whitelist для удалённых файлов»;
+- `e5597b7b` — merge `origin/master` (`d5fbab3f`) в ветку: master успел обновить
+  `specs/336-code-audit/registry.csv` (реестр пакета #396, PR #722) уже после создания
+  ветки. Merge не меняет реестр «моими» правками — после merge файл **побайтово
+  совпадает** с master (`git diff origin/master..HEAD -- specs/336-code-audit/registry.csv` — пусто).
+
+Push и PR **не** выполнялись (по условию задачи). `specs/336-code-audit/registry.csv`
+не менялся: 19 записей пакета остались со статусом `TODO` — их статус обновляет лид
+после ревью (это его зона, не пакетный исполнитель).

@@ -6,7 +6,10 @@ import com.svoemesto.karaokeweb.services.SiteUserResolver
 
 import com.svoemesto.karaokeapp.model.News
 import jakarta.servlet.http.HttpServletRequest
+import java.sql.SQLException
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -55,7 +58,7 @@ class PublicNewsController(
     fun list(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
-    ): Map<String, Any> {
+    ): ResponseEntity<Map<String, Any>> {
         val (safePage, safeSize) = normalizePaging(page, size)
         if (safeSize != size || safePage != page) {
             log.warn(
@@ -67,13 +70,24 @@ class PublicNewsController(
             )
         }
         val offset = (safePage.toLong() * safeSize.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        val items = News.loadPublished(WORKING_DATABASE, limit = safeSize, offset = offset)
-        val total = News.countPublished(WORKING_DATABASE)
-        return mapOf(
-            "items" to items,
-            "total" to total,
-            "hasMore" to (offset + items.size < total),
-        )
+        // BR-178 (аудит #336, пакет `PKG-S3-24`): сбой БД — это 503, а не «новостей нет».
+        // Раньше модель глотала SQLException и отдавала 200 с пустой лентой и total=0.
+        return try {
+            val items = News.loadPublished(WORKING_DATABASE, limit = safeSize, offset = offset)
+            val total = News.countPublished(WORKING_DATABASE)
+            ResponseEntity.ok(
+                mapOf(
+                    "items" to items,
+                    "total" to total,
+                    "hasMore" to (offset + items.size < total),
+                ),
+            )
+        } catch (e: SQLException) {
+            log.error("news:list: БД недоступна (sqlState={}): {}", e.sqlState, e.message, e)
+            ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("error" to "news.list.unavailable", "message" to "лента новостей временно недоступна"))
+        }
     }
 
     // Бейдж/тост «новое сообщение» — `lastSeenId` из localStorage анонима, для залогиненного —
@@ -86,7 +100,7 @@ class PublicNewsController(
     fun since(
         @RequestParam(defaultValue = "0") id: Long,
         request: HttpServletRequest,
-    ): Map<String, Any> {
+    ): ResponseEntity<Map<String, Any>> {
         // Cache-key: для анонимов всегда один (count=0 не меняется), для залогиненных —
         // привязан к `id` (lastSeenId из localStorage) — разные lastSeenId дают разные ключи.
         val siteUser = siteUserResolver.resolve(request)
@@ -96,17 +110,31 @@ class PublicNewsController(
             } else {
                 "news_since:user:${siteUser.id}:since:$id"
             }
-        return sincePollingCache.getOrCompute(key = cacheKey, ttlSeconds = 60) {
-            if (siteUser == null) {
-                // Аноним — пустой ответ (бейдж не показывается, см. NewsBell.vue: unread=0, visible=false).
-                mapOf("count" to 0, "items" to emptyList<Any>())
-            } else {
-                // Залогиненный: ограничиваем верх LIMIT-ом как страховку (если кто-то залогинился
-                // впервые за 2 года, не отдадим весь архив разом — UI рассчитан на свежие уведомления,
-                // остальное подтянется через /news при необходимости).
-                val items = News.loadPublishedSince(WORKING_DATABASE, id, limit = 50)
-                mapOf("count" to items.size, "items" to items)
-            }
+        // BR-178 (аудит #336, пакет `PKG-S3-24`): сбой БД — 503, а не «новых новостей нет».
+        return try {
+            val body =
+                sincePollingCache.getOrCompute(key = cacheKey, ttlSeconds = 60) {
+                    if (siteUser == null) {
+                        // Аноним — пустой ответ (бейдж не показывается, см. NewsBell.vue: unread=0, visible=false).
+                        mapOf("count" to 0, "items" to emptyList<Any>())
+                    } else {
+                        // Залогиненный: ограничиваем верх LIMIT-ом как страховку (если кто-то залогинился
+                        // впервые за 2 года, не отдадим весь архив разом — UI рассчитан на свежие уведомления,
+                        // остальное подтянется через /news при необходимости).
+                        //
+                        // BR-177: порядок выдачи — по `id` (курсор клиента — тоже `id`), поэтому
+                        // `max(id)` выданного набора равен последней выданной строке и ни одна
+                        // непрочитанная новость не теряется при LIMIT.
+                        val items = News.loadPublishedSince(WORKING_DATABASE, id, limit = 50)
+                        mapOf("count" to items.size, "items" to items)
+                    }
+                }
+            ResponseEntity.ok(body)
+        } catch (e: SQLException) {
+            log.error("news:since: БД недоступна (sqlState={}, id={}): {}", e.sqlState, id, e.message, e)
+            ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("error" to "news.since.unavailable", "message" to "новости временно недоступны"))
         }
     }
 

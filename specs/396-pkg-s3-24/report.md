@@ -1,0 +1,157 @@
+# PKG-S3-24 (OpenProject #396) — karaoke-app: COMPAT, DATA, ERR, PERF, RACE, SEC — 40 BR
+
+- **Аудит**: #336, волна E, пакет `PKG-S3-24` (`specs/336-code-audit/backlog.md`, блок `### PKG-S3-24`).
+- **Ветка**: `623-pkg-s3-24` от `origin/master` `b2c4b06f` (merge PR #717, `PKG-S3-23`).
+- **Worktree**: `/home/nsa/Karaoke/.worktrees/waveE-s3-24`.
+- **Источник правды**: карточки `specs/336-code-audit/findings/P-15.md`, `P-16.md`, `P-17.md`,
+  `P-20.md`, `P-25.md`, `P-26.md`, `P-27.md`, `P-28.md`; порции определены по `registry.csv`.
+- **Что НЕ делалось**: миграции не применялись ни к LOCAL, ни к PROD; контейнеры, прод, БД и
+  `specs/336-code-audit/registry.csv` не трогались; деплоя не было; push/PR не делались.
+- **Работа партиями**: по 10 записей, коммит после каждой партии.
+
+## Сводка
+
+| Партия | BR | Статус |
+|---|---|---|
+| 1 | BR-174, BR-177…BR-181, BR-183, BR-184, BR-186, BR-187 (10) | ✅ исправлены |
+| 2 | BR-189…BR-194, BR-196…BR-199 (10) | ⏳ в работе |
+| 3 | BR-202…BR-204, BR-207…BR-212, BR-215 (10) | ⏳ не начата |
+| — | BR-182, BR-185, BR-188, BR-195, BR-200, BR-201, BR-205, BR-206, BR-213, BR-214 (10) | ✅ закрыты волнами A–D (см. «Уже исправленные волнами A–D») |
+
+---
+
+## Партия 1 — BR-174, BR-177…BR-181, BR-183, BR-184, BR-186, BR-187 (10 записей)
+
+### По записям
+
+| BR | Файл:строка (было) | Класс | Что не так | Как правильно | Проверка |
+|---|---|---|---|---|---|
+| BR-174 | `services/cleanup/ArtifactCleanupPlanner.kt:132-133` + `ArtifactCleanupService.kt:126` + `CleanupController.kt:52` | PERF | построение отчёта сухого прогона — синхронный обход трёх корней (183 448 файлов на машине владельца) прямо в потоке HTTP-запроса; `apply` перед постановкой удаления в executor повторял весь обход ради отпечатка → один щелчок «применить» = **два** полных обхода; на каждый файл — 3–4 stat-вызова, для совпавших — второй `sizeOf` | `POST /api/cleanup/plan` → `202` + `planId`, обход идёт в executor'е `artifact-cleanup` (`ArtifactCleanupService.planAsync`), отчёт забирается `GET /api/cleanup/plan/{planId}` (`READY`/`PLANNING`/`FAILED`); сверка состава в `apply` перенесена в фоновый прогон — при несовпадении прогон → `FAILED`, **ничего не удаляется** (fail-closed); `sizeOf` на файл считается один раз (`matchSize`) | контрактная (2) + поведенческая (1) |
+| BR-177 | `model/News.kt:283-290` | COMPAT | `loadPublishedSince` — курсор по `id` (`id > ?`), а порядок и отсечение по `publish_at` (`ORDER BY publish_at DESC LIMIT 50`); клиент (`karaoke-public/src/composables/useNewsUnreadCount.js:144-151`) пишет в `localStorage` **максимум `id`** из выданного → при >50 новых строк отрезанные новости терялись навсегда (бедж недосчитывал) | сортировка согласована с курсором: `ORDER BY id ASC` — выдаётся непрерывный префикс непрочитанных строк, `max(id)` клиента = последняя выданная строка | контрактная (1) |
+| BR-178 | `model/News.kt:249-252, 265-268, 311-314, 441-443` | ERR | четыре метода публичного чтения гасили `SQLException` в `println` по `e.message` и возвращали «пустой успех»: пустая лента, `total=0`, пустой бейдж, `existsAnnouncement=false`; публичный endpoint отдавал `200` при живой БД, причина не попадала ни в логи, ни в ответ | SLF4J (`infra.admin.news`) с объектом исключения + `throw e` (как уже сделано для `loadAll`/`countAll` в BR-119); нет соединения — тоже `SQLException` (`news.*.unavailable`); контроллер `karaoke-web/.../PublicNewsController.kt` → `503` + `{"error":"news.list.unavailable"}` | контрактная (1) |
+| BR-179 | `model/Picture.kt:311` | ERR | `ImageIO.read(File(params.pathToFile))` без проверок: путь по умолчанию `""` → `IIOException("Can't read input file!")`, отсутствующий файл → `IIOException`, неподдерживаемый формат → `ImageIO.read` возвращает `null` → NPE в `resizeBufferedImage`; исключение глотал вызывающий `catch` — картинка просто не создавалась | `readImageOrThrow()`: пустой путь → `picture.image_path_blank`, нет файла → `picture.image_file_missing`, нечитаемый формат → `picture.image_unreadable` (явная ошибка вместо NPE/IIOException) | контрактная (1) + поведенческая (2) |
+| BR-180 | `model/Picture.kt:453-467` (+ `132-135`) | PERF | `getVariantsOfLines` рекурсивно перечислял **все** разбиения текста (`2^(n-1)` вариантов для `n` слов), и каждый полностью измерялся (подбор кегля с шагом 1 px на каждой строке) → 15 слов = 16 384 варианта, 20 слов = 524 288 (минуты CPU в потоке рендера, риск OOM всего `karaoke-app`); `multiLines()` не вызывал `dispose()` у `Graphics2D` | динамика по позициям разрыва: `selectBestSplit()` — для каждого числа строк `k` считается лучшее разбиение (максимальный минимальный кегль, затем минимальная ширина самой широкой строки с этим кеглем), `O(n²·maxLines)` замеров; кегль по-прежнему считается по `h / k`, правило выбора то же; замеры идут на одном переиспользуемом `Graphics2D` (1×1) вместо `BufferedImage(w,h)` на каждый замер; пределы `MAX_SPLIT_LINES=10`, `MAX_SPLIT_WORDS=24`; `Graphics2D` освобождается в `finally` | контрактная (1) + поведенческая (1, таймаут) |
+| BR-181 | `model/Pictures.kt:272-289` + `model/KaraokeDbTable.kt:642-643` | ERR | заявленная защита от гонки в `createNewPicture` не срабатывала: `createDbInstance` ловит `Exception` **внутри себя** и не пробрасывает его → ветка `catch` не выполнялась никогда, метод уходил в `return null` (у проигравшей песни не появлялась обложка, в MinIO оставался осиротевший объект); «тихий null» неотличим от штатного результата | `null` из `createDbInstance` — тоже «возможно, запись создана соседним потоком»: перечитывание по имени; если и там пусто — `ERROR` в журнал `infra.pictures`; `createDbInstance` логирует `SQLState` и различает гонку (`23505`, `INFO`) и прочие ошибки (`ERROR`) | контрактная (2) |
+| BR-183 | `model/MltNode.kt:35-50` (+ `mlt/mko/MkoScroller.kt:169,171`, `MkoSplashStart.kt:260`, `MkoSongText.kt:94`, `model/SongVoiceLineElement*.kt:100,172`, `model/Song.kt:3420…3597`, `Extentions.kt:170`) | DATA | `toString()` собирал XML **без экранирования** (KDoc обещал экранирование, кода не было) → `&` в названии песни/автора/альбома (564 записи в каталоге) давал невалидный `.mlt`; ручные подмены в вызывающих (`replace("&", "&amp;")` / `"&amp;amp;"`) были разными и в разных местах, часть — с двойным экранированием (в интерфейсе показывалось «&amp;») | единое место экранирования — `MltNode.toString()`: значения атрибутов и текстовое содержимое экранируются `escapeXml()` (`&`, `<`, `>`, `"`, `'`); ручные `replace` из вызывающих убраны (20 мест); `xmldata()` больше не экранирует `<` вручную — это делает сериализация | контрактная (2) + поведенческая (2) |
+| BR-184 | `model/KaraokeDbTable.kt:459-463` + `model/Author.kt:307-319` + `model/Album.kt:633-646, 692-705` + `Utils.kt:3631-3646` | ERR | `loadList` превращал любой сбой БД в `emptyList()`, неотличимый от «строк нет»; пути create-or-get (`Album.findOrCreateForSongImport`, `Album.findOrCreateForSongImportRaw`, `Utils.getAuthorForRequest`) на такой «пустой» выборке **создавали второго автора** с тем же именем — справочник авторов тихо размножался | `loadList(..., throwOnError = true)` — SQL-ошибка/отсутствие соединения пробрасываются как `SQLException`; `Author.getAuthorByName(..., throwOnError = true)`; в create-or-get сбой чтения → `ERROR` в журнал и `null` (сущность **не** создаётся). UNIQUE-индекс на `tbl_authors.author` — **за владельцем** (нужна миграция + дедупликация, см. «За владельцем») | контрактная (1) |
+| BR-186 | `model/Author.kt:118-160` + `controllers/ApiController.kt:6636-6645` | PERF | `Author.toDTO()` на каждого автора делал отдельный `Pictures.loadList(..., LIMIT 1)` — N+1 (число SELECT'ов = числу авторов: 126 авторов → ~126 запросов) | `Author.toDTOsWithPictures()` — картинки всех авторов читаются **одним** запросом `WHERE picture_name IN (…)` (`Pictures.getPicturesByNames`) и раздаются из карты; `toDTO()` (legacy, одиночный автор) сохранён | контрактная (1) |
+| BR-187 | `model/KaraokeDbTable.kt:305-338` (и ещё 20 мест) | ERR | ошибки SQL в базовом слое логировались `printStackTrace()`/`println()` в stdout — без уровня, логгера, MDC и стека (ADR `local-0005` требует SLF4J) | все `printStackTrace()`/`println()` в `KaraokeDbTable.kt` заменены на SLF4J: `log.error` (недоступность БД, сбой вставки), `log.warn` (сбой чтения/закрытия ресурсов), `log.debug` (рутинные сообщения); stack trace сохраняется (объект исключения передаётся в логгер) | контрактная (1) |
+
+### «До / после»: команда и вывод
+
+Проверка «до» — регрессионные тесты на **старом** коде: изменённые исходники откачены через
+`git stash push -- karaoke-app/src/main karaoke-web/src/main` (тесты оставлены), после чего тесты
+прогнаны. Класс компилируется и на старом коде — падают **все 19** утверждений, то есть каждая
+запись партии имеет наблюдаемый «до».
+
+```bash
+git stash push -m "s3-24-batch1-before-check" -- karaoke-app/src/main karaoke-web/src/main
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+  -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+  :karaoke-app:test --tests 'com.svoemesto.karaokeapp.audit.PkgS324Batch1*'
+git stash pop
+```
+
+Вывод «до» (19 тестов, 19 упали):
+
+```
+PkgS324Batch1BehaviorTest > BR-174 отчёт чистки строится в фоновом потоке() FAILED
+PkgS324Batch1BehaviorTest > BR-180 длинное название разбивается на строки быстро() FAILED
+PkgS324Batch1BehaviorTest > BR-183 XML с амперсандом в атрибуте и тексте остаётся валидным() FAILED
+PkgS324Batch1BehaviorTest > BR-183 вложенный xmldata не ломает документ() FAILED
+PkgS324Batch1BehaviorTest > BR-179 отсутствующий файл картинки даёт понятную ошибку() FAILED
+PkgS324Batch1BehaviorTest > BR-179 пустой путь к картинке даёт понятную ошибку() FAILED
+PkgS324Batch1SourceContractsTest > BR-184 сбой чтения отличается от отсутствия данных() FAILED
+PkgS324Batch1SourceContractsTest > BR-174 размер файла в отчёте считается один раз() FAILED
+PkgS324Batch1SourceContractsTest > BR-177 курсор новостей согласован с сортировкой() FAILED
+PkgS324Batch1SourceContractsTest > BR-181 createDbInstance различает гонку и ошибку() FAILED
+PkgS324Batch1SourceContractsTest > BR-181 проигравший гонку за картинкой перечитывает запись по имени() FAILED
+PkgS324Batch1SourceContractsTest > BR-174 отчёт чистки строится вне HTTP-потока() FAILED
+PkgS324Batch1SourceContractsTest > BR-178 сбой чтения новостей не выглядит как пустая лента() FAILED
+PkgS324Batch1SourceContractsTest > BR-183 ручные замены амперсанда убраны из вызывающих() FAILED
+PkgS324Batch1SourceContractsTest > BR-183 XML экранируется в одном месте() FAILED
+PkgS324Batch1SourceContractsTest > BR-180 перебор разбиений заменён динамикой() FAILED
+PkgS324Batch1SourceContractsTest > BR-179 путь к картинке проверяется явно() FAILED
+PkgS324Batch1SourceContractsTest > BR-187 базовый слой БД логирует через SLF4J() FAILED
+PkgS324Batch1SourceContractsTest > BR-186 картинки авторов грузятся одним запросом() FAILED
+19 tests completed, 19 failed
+```
+
+Показательные сообщения «до»:
+
+```
+BR-183: амперсанд должен быть экранирован: <producer id="p0" title="Sex & Violence <live>">Глеб
+BR-183 (xmldata): org.xml.sax.SAXParseException; lineNumber: 1; columnNumber: 31;
+          The processing instruction target matching "[xX][mM][lL]" is not allowed.
+BR-180: java.util.concurrent.TimeoutException: BR-180 длинное название разбивается на строки быстро() timed out after 60 seconds
+BR-179: Unexpected exception type thrown, expected: <java.lang.IllegalStateException> but was: <javax.imageio.IIOException>
+BR-187: printStackTrace заменён на SLF4J (BR-187) ==> expected: <false> but was: <true>
+```
+
+Вывод «после» (тот же запуск на исправленном коде):
+
+```
+BUILD SUCCESSFUL
+```
+
+Регрессионные тесты партии 1:
+
+- `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS324Batch1SourceContractsTest.kt` — 13 контрактных тестов (по 1–2 на запись);
+- `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS324Batch1BehaviorTest.kt` — 6 поведенческих тестов (BR-174, BR-179 ×2, BR-180, BR-183 ×2).
+
+**Почему для BR-177/BR-178 нет поведенческого теста**: обе записи — SQL-путь к живой БД
+(`tbl_news`), а пакет запрещает запись в БД и поднятие контейнеров. Доказательство «до/после»
+даёт контрактный тест по тексту исходника (SQL-конструкция `ORDER BY id ASC`, отсутствие
+`println`, наличие `throw e` в каждом из четырёх методов) — он падает на старом коде и проходит
+после. Для BR-184/BR-186/BR-187/BR-181 поведенческий тест без БД невозможен по той же причине
+( JDBC-путь), кроме BR-181, где проверяется ветвление «null → перечитывание» (контрактный тест).
+
+### Побочные эффекты правок (важно для ревью)
+
+1. **BR-183 меняет вид текста в MLT.** Раньше значения подставлялись «как есть» (XML невалиден),
+   а часть вызывающих подменяла `&` на `&amp;amp;` — в интерфейсе это показывалось как «&amp;».
+   Теперь экранирование одно и правильное: «Sex & Violence» отображается как «Sex & Violence».
+   Ручные `.replace` в `model/Song.kt:2669, 2676, 2690, 2753, 2810` **оставлены** — это сырые
+   XML-строки (не `MltNode`), там экранирование по-прежнему нужно.
+2. **BR-178 меняет код ответа публичной ленты**: `200` → `503` при сбое БД. Клиент
+   (`karaoke-public`) уже умеет обрабатывать сетевую ошибку (`catch` в `pollOnce` оставляет
+   бейдж как есть) — «новостей нет» больше не показывается.
+3. **BR-177 меняет порядок выдачи `/api/public/news/since`**: строки идут по возрастанию `id`
+   (непрерывный префикс непрочитанных). Для бейджа/тоста порядок не важен — важен `count`.
+4. **BR-174 меняет контракт `POST /api/cleanup/plan`**: `200` (отчёт) → `202` (`planId`), плюс
+   новый `GET /api/cleanup/plan/{planId}`. Фронтендов/скриптов, вызывающих этот эндпоинт, в
+   репозитории нет; контрактный документ `specs/544-song-artifact-cleanup/contracts/cleanup-api.md`
+   **не редактировался** (чужой issue) — синхронизация контракта — за владельцем (см. ниже).
+   Кроме того, `apply` при несовпадении состава теперь сообщает `FAILED` прогоном
+   (`errors[0] = "fingerprint_mismatch: …"`), а не HTTP `409`; проверка присланного клиентом
+   отпечатка осталась синхронной (`409`).
+5. **BR-186** меняет только порядок/состав запросов; формат ответа дайджеста авторов прежний.
+
+### За владельцем
+
+| Вопрос | Почему за владельцем | Что сделано в коде meanwhile |
+|---|---|---|
+| UNIQUE-индекс на `tbl_authors.author` (BR-184) | требует миграции + дедупликации существующих дублей (запись в БД запрещена пакетом, объём дублей не измерен) | на уровне кода запрещено создавать дубль при сбое чтения (`throwOnError`) |
+| Синхронизация контракта чистки `specs/544-song-artifact-cleanup/contracts/cleanup-api.md` под `202 + planId` (BR-174) | контракт принадлежит другому issue (#321), править его в этом пакете нельзя | контракт описан в `docs/features/pkg-s3-24.md` § «Известные ловушки» |
+| Точность переноса проверки состава из `apply` (HTTP `409` → `FAILED` прогон) | меняется наблюдаемое поведение админ-эндпоинта | поведение fail-closed: при несовпадении **ничего не удаляется** |
+| `MAX_SPLIT_WORDS = 24` / `MAX_SPLIT_LINES = 10` (BR-180) | границы влияют на вид длинных названий (нужен взгляд владельца на реальные названия) | разбиение не выполняется сверх 24 слов (однострочная раскладка) — вместо минут CPU |
+
+---
+
+## Уже исправленные волнами A–D (входят в 40 записей пакета, но закрыты ранее)
+
+| BR | Где исправлено | Проверка |
+|---|---|---|
+| BR-182 | `specs/383-pkg-sec-sqli/report.md` (SQL-инъекция в `Author.getWhereList`) | контрактная в пакете #383 |
+| BR-185 | `specs/385-pkg-err-stats-zero/report.md` (`MonetizationStats` не отдаёт нули при сбое БД) | поведенческая в пакете #385 |
+| BR-188 | `specs/375-pkg-s2-12/report.md` (`Publication.getUnPublicationList` — вечный цикл) | контрактная в пакете #375 |
+| BR-195 | `specs/375-pkg-s2-12/report.md` (`StatsCacheKey.params` — параметры в ключ кеша) | контрактная в пакете #375 |
+| BR-200 | `specs/375-pkg-s2-12/report.md` (пагинация публикаций) | контрактная в пакете #375 |
+| BR-201 | `specs/375-pkg-s2-12/report.md` (`processes.html` — STOMP-брокер) | контрактная в пакете #375 |
+| BR-205 | `specs/375-pkg-s2-12/report.md` (`songs.html` — поля формы vs параметры контроллера) | контрактная в пакете #375 |
+| BR-206 | `specs/375-pkg-s2-12/report.md` (`songs.html` — рендер всего списка) | контрактная в пакете #375 |
+| BR-213 | `specs/375-pkg-s2-12/report.md` (`songs2.html` — `song_resultVersion`) | контрактная в пакете #375 |
+| BR-214 | `specs/375-pkg-s2-12/report.md` (`songs2.html` — пагинация) | контрактная в пакете #375 |
+
+Правки этих записей в этом пакете **не дублируются** — заново закрывать их нельзя, реестр
+(`registry.csv`) их не меняет (вне правки пакета).

@@ -167,7 +167,36 @@ fun String.getWords(): List<String> {
 
 fun String.nullIfEmpty(): String? = if (this.trim() == "" || this == "null") null else this
 
-fun String.xmldata(): String = "<?xml version=\"1.0\"?>$this".replace("<", "&lt;")
+/**
+ * Обёртка XML-данных для свойства MLT (`xmldata`).
+ *
+ * BR-183 (аудит #336, пакет `PKG-S3-24`): раньше здесь вручную экранировался
+ * только `<` (`.replace("<", "&lt;")`), а `&` оставался — вложенный XML с `&`
+ * (например, `&amp;` из имени песни «Sex & Violence») давал невалидный XML.
+ * Теперь экранирование делается ОДНО место — при сериализации узла
+ * ([com.svoemesto.karaokeapp.model.MltNode.toString]), поэтому здесь остаётся
+ * только префикс XML-документа.
+ */
+fun String.xmldata(): String = "<?xml version=\"1.0\"?>$this"
+
+/**
+ * Экранирование для вставки текста в XML — атрибут или содержимое элемента.
+ *
+ * BR-183 (аудит #336, пакет `PKG-S3-24`): XML собирается в одном месте
+ * ([com.svoemesto.karaokeapp.model.MltNode.toString]), поэтому и экранирование
+ * должно быть там же. Набор символов тот же, что и в [escapeHtml]
+ * (`&`, `<`, `>`, `"`, `'`), но назначение другое: XML, а не HTML.
+ *
+ * Порядок замен важен: сначала `&`, иначе амперсанд из вставленных сущностей
+ * (`&lt;`) экранировался бы повторно и получилось бы `&amp;lt;`.
+ */
+fun String.escapeXml(): String =
+    this
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;")
 
 /**
  * Экранирование для вставки пользовательского текста в HTML.

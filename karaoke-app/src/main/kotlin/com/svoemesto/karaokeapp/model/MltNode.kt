@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.escapeXml
 import java.io.Serializable
 
 /**
@@ -16,7 +17,15 @@ import java.io.Serializable
  * - [comment] — комментарий для отладки (попадает в выходной XML).
  *
  * Сборка в строку — `toString()` рекурсивно обходит [body] и
- * формирует корректный XML с экранированием `&`/`<`/`>` в атрибутах.
+ * формирует корректный XML: значения атрибутов и текстовое содержимое
+ * экранируются в ОДНОМ месте ([escapeXml]) — `&`/`<`/`>`/`"`/`'`.
+ *
+ * BR-183 (аудит #336, пакет `PKG-S3-24`): раньше экранирования не было вовсе
+ * (KDoc обещал его, но код подставлял значения «как есть»), а вызывающие
+ * компенсировали это вручную (`replace("&", "&amp;")` / `"&amp;amp;"`) — в
+ * разных местах по-разному, из-за чего `.mlt` для песен с `&` в названии
+ * получался невалидным XML, а текст в интерфейсе показывался как «&amp;».
+ * Ручные замены убраны — экранирование теперь одно и централизованное.
  *
  * @property name имя XML-тега.
  * @property fields атрибуты тега (порядок сохраняется — `LinkedHashMap`).
@@ -32,22 +41,35 @@ data class MltNode(
     var type: ProducerType? = null,
     var comment: String = "",
 ) : Serializable {
-    override fun toString(): String =
-        "${if (comment == "") "" else "<!-- $comment -->\n"}<$name ${fields.map { "${it.key}=\"${it.value}\"" }.joinToString(
+    override fun toString(): String {
+        // Локальная копия — свойство `body` изменяемое, smart-cast по нему невозможен.
+        val bodyValue = body
+        return "${if (comment == "") "" else "<!-- $comment -->\n"}<$name ${fields.map { "${it.key}=\"${it.value.escapeXml()}\"" }.joinToString(
             " ",
-        )}${if (body == null) {
+        )}${if (bodyValue == null) {
             "/>"
         } else {
-            ">${if (body is List<*>) {
+            ">${bodyToXml(bodyValue)}</$name>"
+        }}"
+    }
+
+    /**
+     * Содержимое узла → XML (BR-183).
+     *
+     * Текст экранируется; числа и вложенные узлы — как есть (вложенный узел
+     * экранирует себя сам рекурсивно).
+     */
+    private fun bodyToXml(body: Any): String =
+        when (body) {
+            is String -> body.escapeXml()
+            is List<*> ->
                 "\n  ${
-                    (body as List<*>).joinToString(
+                    body.joinToString(
                         "\n  ",
                     ) { it.toString() }
                 }\n"
-            } else {
-                "$body"
-            }}</$name>"
-        }}"
+            else -> body.toString()
+        }
 }
 
 /**

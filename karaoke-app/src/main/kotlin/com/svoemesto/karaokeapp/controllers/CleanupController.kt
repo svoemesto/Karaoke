@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.services.cleanup.ArtifactCleanupClass
 import com.svoemesto.karaokeapp.services.cleanup.ArtifactCleanupService
 import com.svoemesto.karaokeapp.services.cleanup.CleanupException
 import com.svoemesto.karaokeapp.services.cleanup.CleanupPlan
+import com.svoemesto.karaokeapp.services.cleanup.CleanupPlanState
 import com.svoemesto.karaokeapp.services.cleanup.CleanupRunStatus
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -43,7 +44,11 @@ class CleanupController {
         ResponseEntity.ok(mapOf("classes" to service.classes().map { it.toDto() }))
 
     /**
-     * Сухой прогон по классу: отчёт «что будет удалено» + отпечаток утверждаемого набора.
+     * Сухой прогон по классу: ставит построение отчёта в фоновый поток.
+     *
+     * BR-174 (аудит #336, пакет `PKG-S3-24`): обход трёх корней (183k+ файлов)
+     * занимает десятки секунд, поэтому он вынесен из HTTP-потока — ответ `202`
+     * с `planId`, отчёт забирается через `GET /api/cleanup/plan/{planId}`.
      *
      * Тело: `{"classId": "DEMO_MP4"}`.
      *
@@ -54,8 +59,46 @@ class CleanupController {
         @RequestBody body: Map<String, String>,
     ): ResponseEntity<Map<String, Any>> =
         handle {
-            val plan = service.plan(body["classId"].orEmpty())
-            ResponseEntity.ok(plan.toDto())
+            val job = service.planAsync(body["classId"].orEmpty())
+            ResponseEntity
+                .accepted()
+                .body(
+                    mapOf(
+                        "planId" to job.planId,
+                        "classId" to job.classId,
+                        "state" to job.state.name,
+                    ),
+                )
+        }
+
+    /**
+     * Отчёт по `planId`: `200` — готов, `202` — ещё строится, `503` — ошибка построения.
+     *
+     * @see specs/544-song-artifact-cleanup/contracts/cleanup-api.md
+     */
+    @GetMapping("/plan/{planId}")
+    fun planById(
+        @PathVariable planId: String,
+    ): ResponseEntity<Map<String, Any>> =
+        handle {
+            val job = service.planJob(planId)
+            when (job.state) {
+                CleanupPlanState.READY -> ResponseEntity.ok(service.planById(planId).toDto())
+                CleanupPlanState.PLANNING ->
+                    ResponseEntity
+                        .status(HttpStatus.ACCEPTED)
+                        .body(mapOf("planId" to job.planId, "classId" to job.classId, "state" to job.state.name))
+                CleanupPlanState.FAILED ->
+                    ResponseEntity
+                        .status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(
+                            mapOf(
+                                "error" to "plan_failed",
+                                "message" to (job.error ?: "не удалось построить отчёт"),
+                                "planId" to job.planId,
+                            ),
+                        )
+            }
         }
 
     /**

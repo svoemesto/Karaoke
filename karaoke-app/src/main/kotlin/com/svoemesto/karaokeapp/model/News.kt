@@ -233,7 +233,12 @@ class News(
             offset: Int,
         ): List<NewsDto> {
             val result: MutableList<NewsDto> = mutableListOf()
-            val connection = database.getConnection() ?: return result
+            // BR-178 (аудит #336, пакет `PKG-S3-24`): нет соединения — это ошибка,
+            // а не «новостей нет». Раньше возвращался пустой список, и публичная
+            // лента отдавала 200 с пустым списком при живой БД.
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("news.list.unavailable: нет соединения с БД")
             val sql =
                 """
                 SELECT id, title, body, category, link, publish_at, created_at, source
@@ -265,14 +270,20 @@ class News(
                     }
                 }
             } catch (e: SQLException) {
-                println("News.loadPublished SQLException: ${e.message}")
+                // BR-178: SQL-ошибка доходит до контроллера (503), а не прячется
+                // за «пустой лентой».
+                newsLog.error("News.loadPublished: SQL-ошибка (sqlState={}, limit={}, offset={})", e.sqlState, limit, offset, e)
+                throw e
             }
             return result
         }
 
         // Общее число опубликованных новостей — для пагинации публичной ленты (specs/090-news-pagination).
         fun countPublished(database: KaraokeConnection): Long {
-            val connection = database.getConnection() ?: return 0L
+            // BR-178: сбой БД/нет соединения — ошибка, а не «0 новостей».
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("news.count.unavailable: нет соединения с БД")
             val sql = "SELECT COUNT(*) FROM $TABLE_NAME WHERE publish_at IS NOT NULL AND publish_at <= now()"
             try {
                 connection.prepareStatement(sql).use { ps ->
@@ -281,7 +292,8 @@ class News(
                     }
                 }
             } catch (e: SQLException) {
-                println("News.countPublished SQLException: ${e.message}")
+                newsLog.error("News.countPublished: SQL-ошибка (sqlState={})", e.sqlState, e)
+                throw e
             }
             return 0L
         }
@@ -291,20 +303,33 @@ class News(
         // случайного полного дампа при очень старом/нулевом lastSeenId (Pass 52: анонимный
         // опрос `/since?id=0` возвращал ~3.5 MB JSON при 19k+ строках в tbl_news и при пиках
         // исчерпывал HikariCP pool — см. PublicNewsController.since()).
+        //
+        // BR-177 (аудит #336, пакет `PKG-S3-24`): КУРСОР И СОРТИРОВКА РАЗВЕДЕНЫ.
+        // Раньше курсор был по `id` (`id > ?`), а порядок и отсечение — по `publish_at`
+        // (`ORDER BY publish_at DESC LIMIT 50`). При >50 новых строк сервер отдавал 50
+        // самых свежих по `publish_at`, а клиент записывал в `localStorage` МАКСИМУМ `id`
+        // из выданного — то есть перескакивал через отрезанные строки, и они больше
+        // никогда не попадали в выборку (бедж недосчитывал новости).
+        // Теперь сортировка согласована с курсором: `ORDER BY id` (по возрастанию id) —
+        // выдаётся НЕПРЕРЫВНЫЙ префикс непрочитанных строк, и `max(id)` клиента
+        // равен последней выданной строке, т.е. ни одна новость не теряется.
         fun loadPublishedSince(
             database: KaraokeConnection,
             lastSeenId: Long,
             limit: Int? = null,
         ): List<NewsDto> {
             val result: MutableList<NewsDto> = mutableListOf()
-            val connection = database.getConnection() ?: return result
+            // BR-178: сбой БД/нет соединения — ошибка, а не «новых новостей нет».
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("news.since.unavailable: нет соединения с БД")
             val limitClause = if (limit != null && limit > 0) " LIMIT $limit" else ""
             val sql =
                 """
                 SELECT id, title, body, category, link, publish_at, created_at
                 FROM $TABLE_NAME
                 WHERE publish_at IS NOT NULL AND publish_at <= now() AND id > ?
-                ORDER BY publish_at DESC$limitClause
+                ORDER BY id ASC$limitClause
                 """.trimIndent()
             try {
                 connection.prepareStatement(sql).use { ps ->
@@ -327,7 +352,10 @@ class News(
                     }
                 }
             } catch (e: SQLException) {
-                println("News.loadPublishedSince SQLException: ${e.message}")
+                // BR-178: SQL-ошибка доходит до контроллера (503), а не прячется
+                // за «новых новостей нет».
+                newsLog.error("News.loadPublishedSince: SQL-ошибка (sqlState={}, lastSeenId={})", e.sqlState, lastSeenId, e)
+                throw e
             }
             return result
         }
@@ -425,7 +453,8 @@ class News(
                         }
                     }
             } catch (e: Exception) {
-                println("News.isNewsAutoPublishKillSwitchActive error: ${e.message}")
+                // BR-178 (аудит #336): SLF4J вместо println — по конвенции ADR local-0005.
+                newsLog.warn("News.isNewsAutoPublishKillSwitchActive: ошибка чтения kill-switch: {}", e.message, e)
                 false
             }
         }
@@ -445,7 +474,12 @@ class News(
             category: String,
             database: KaraokeConnection,
         ): Boolean {
-            val connection = database.getConnection() ?: return false
+            // BR-178 (аудит #336): сбой чтения — ошибка, а не «анонса нет».
+            // Раньше `false` на сбое БД приводил к повторному авто-созданию новости
+            // (SongReleaseAnnouncementService) и к «нет новости» в публичной ленте.
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("news.announcement.unavailable: нет соединения с БД")
             return try {
                 connection
                     .prepareStatement(
@@ -457,8 +491,8 @@ class News(
                         ps.executeQuery().use { rs -> rs.next() }
                     }
             } catch (e: SQLException) {
-                println("News.existsAnnouncement SQLException: ${e.message}")
-                false
+                newsLog.error("News.existsAnnouncement: SQL-ошибка (sqlState={}, songId={})", e.sqlState, songId, e)
+                throw e
             }
         }
     }

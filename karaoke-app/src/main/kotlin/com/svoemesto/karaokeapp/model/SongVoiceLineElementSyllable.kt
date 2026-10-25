@@ -169,7 +169,7 @@ data class SongVoiceLineElementSyllable(
             Karaoke.voices[0]
                 .groups[groupId]
                 .mltText
-                .copy(text.replace("&", "&amp;amp;"), fontSize)
+                .copy(text, fontSize)
         mltText.x = previous?.let {
             val prevMltText = it.mltText()
             prevMltText.x + prevMltText.w()

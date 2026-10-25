@@ -16,6 +16,15 @@ import java.io.File
 import java.io.Serializable
 import java.util.*
 import javax.imageio.ImageIO
+import org.slf4j.LoggerFactory
+
+/**
+ * Логгер по конвенции ADR local-0005 (SLF4J, не println).
+ *
+ * BR-181 (аудит #336): нужен, чтобы «картинка не создана» больше не выглядело
+ * как штатный результат (тихий `null` из `createDbInstance`).
+ */
+private val picturesLog = LoggerFactory.getLogger("infra.pictures")
 
 /**
  * Менеджер картинок альбома/трека: обложка, баннер, превью для соцсетей.
@@ -285,17 +294,30 @@ class Pictures(
                         entity = newPicture,
                         database = database,
                     ) as? Pictures?
-                } catch (e: Exception) {
-                    return getPictureByName(
-                        name = newPicture.name,
-                        database = database,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
+                } catch (_: Exception) {
+                    null
                 }
-            newPictureInDb?.let {
-                return it
-            }
+            if (newPictureInDb != null) return newPictureInDb
+            // BR-181 (аудит #336, пакет `PKG-S3-24`): `createDbInstance` НЕ пробрасывает
+            // нарушение UNIQUE — он ловит исключение внутри себя и возвращает `null`
+            // (сиквенс к тому моменту уже сдвинут победителем, generatedKeys пуст).
+            // Поэтому ветка `catch` выше НИКОГДА не выполнялась, и метод уходил в `return null`:
+            // у проигравшей песни не появлялась обложка, а в MinIO оставался осиротевший объект.
+            // Теперь `null` — это тоже «возможно, запись уже создана соседним потоком»:
+            // перечитываем по имени. Если и там пусто — пишем ошибку в журнал (fail-closed:
+            // вызывающий получит `null` и не сочтёт обложку созданной).
+            val reread =
+                getPictureByName(
+                    name = newPicture.name,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            if (reread != null) return reread
+            picturesLog.error(
+                "Pictures.createNewPicture: не удалось создать картинку '{}' и не найти её по имени — возможна гонка или сбой БД",
+                newPicture.name,
+            )
             return null
         }
 

@@ -99,8 +99,10 @@ class PublicAuthControllerCaptchaTest {
                     request = request(),
                 )
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        assertEquals("captcha", response.body?.get("error"))
+        // BR-522 (аудит #336, OpenProject #401): «сервис проверки недоступен» — это 503
+        // с кодом `captcha_unavailable`, а НЕ 400 с кодом `captcha` («вы не робот»).
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.statusCode)
+        assertEquals("captcha_unavailable", response.body?.get("error"))
     }
 
     @Test

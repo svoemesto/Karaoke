@@ -5,7 +5,10 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestParam
@@ -70,13 +73,24 @@ class PublicOgSongController(
 ) {
     private val log = LoggerFactory.getLogger(PublicOgSongController::class.java)
 
+    /**
+     * BR-025 (аудит #336, OpenProject #401): страница ошибки отдаётся с ПРАВИЛЬНЫМ
+     * HTTP-статусом и помечается `noindex`.
+     *
+     * Раньше и «не указан id», и «песня не найдена» возвращали **200 OK** с HTML-страницей
+     * «Ошибка». Для краулера это означало «страница существует» — страницы ошибок попадали
+     * в индекс, а настоящая 404 (несуществующая песня) выглядела как успех. Теперь:
+     *  - нет/некорректный id → **400**;
+     *  - песня не найдена → **404**;
+     *  - в обоих случаях — `Cache-Control: noindex, nofollow` и `<meta name="robots" ...>`.
+     */
     @GetMapping("/api/public/og/song", produces = [MediaType.TEXT_HTML_VALUE + "; charset=UTF-8"])
     fun ogSongHtml(
         @RequestParam(required = false) id: Long?,
         @RequestHeader(value = "User-Agent", required = false) userAgent: String?,
-    ): String {
+    ): ResponseEntity<String> {
         if (id == null || id <= 0) {
-            return htmlWithError("Не указан id песни (добавьте ?id=NNN)")
+            return errorResponse(HttpStatus.BAD_REQUEST, "Не указан id песни (добавьте ?id=NNN)")
         }
         log.info("OG render for song id={}, User-Agent={}", id, userAgent)
 
@@ -86,13 +100,25 @@ class PublicOgSongController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            ) ?: return htmlWithError("Песня не найдена: id=$id")
+            ) ?: return errorResponse(HttpStatus.NOT_FOUND, "Песня не найдена: id=$id")
 
-        return buildSeoHtmlForBots(song)
+        return ResponseEntity.ok().body(buildSeoHtmlForBots(song))
     }
 
+    /** Страница ошибки: правильный статус + запрет индексации. */
+    private fun errorResponse(
+        status: HttpStatus,
+        message: String,
+    ): ResponseEntity<String> =
+        ResponseEntity
+            .status(status)
+            .header(HttpHeaders.CACHE_CONTROL, "noindex, nofollow")
+            .body(htmlWithError(message))
+
     private fun htmlWithError(message: String): String =
-        "<!DOCTYPE html><html lang=\"ru\"><head><meta charset=\"utf-8\"><title>OG error</title></head>" +
+        "<!DOCTYPE html><html lang=\"ru\"><head><meta charset=\"utf-8\">" +
+            "<meta name=\"robots\" content=\"noindex, nofollow\">" +
+            "<title>OG error</title></head>" +
             "<body style=\"font-family:sans-serif;padding:40px\">" +
             "<h1>❌ Ошибка</h1><p>${escape(message)}</p>" +
             "</body></html>"

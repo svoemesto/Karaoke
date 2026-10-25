@@ -285,9 +285,16 @@
 
 </div>
 
-<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${song.getTextFormatted()}">
-
-</div>
+<!--
+    BR-506 (аудит #336, OpenProject #401): носитель разметки — ИНЕРТНЫЙ textarea.
+    Содержимое textarea (RCDATA) не разбирается браузером как HTML: там лежит
+    «сырая» разметка, которую сервер собрал (Song.getTextFormatted), а пользовательский
+    текст в ней уже экранирован на сервере. Разбор делает клиент — с allow-list тегов
+    и CSS-свойств; пользовательский текст вставляется только как текстовый узел.
+    Раньше разметка попадала в страницу через `element.innerHTML = carrier.innerText` —
+    безопасность держалась только на серверном escapeHtml() в каждой ветке.
+-->
+<textarea hidden="hidden" id="text_formatted_html" th:text="${song != null ? song.getTextFormatted() : ''}"></textarea>
 
 <div id="areaScreen">
     <div id="areaBody">
@@ -541,12 +548,64 @@
 </div>
 
 <script type="text/javascript">
-    $(function() {
-        let textFormattedHtml = document.getElementById("text_formatted_html");
-        let textFormatted = document.getElementById("text_formatted");
-        textFormatted.innerHTML = textFormattedHtml.innerText
+    // BR-006 → BR-506 (аудит #336, OpenProject #401): безопасный разбор форматированного текста.
+    //
+    // Раньше: `textFormatted.innerHTML = textFormattedHtml.innerText` — разметка из сервера
+    // попадала в DOM как HTML. Спасало только то, что Song.getTextFormatted() экранирует
+    // пользовательский текст в КАЖДОЙ ветке; новая ветка без escapeHtml() = XSS.
+    //
+    // Теперь разбор идёт в инертном документе DOMParser, в результат попадают только
+    // разрешённые теги со разрешёнными CSS-свойствами, а пользовательский текст
+    // вставляется исключительно как текстовый узел (createTextNode) — разметка из
+    // данных не исполняется в любом случае.
+    const ALLOWED_TAGS = {SPAN: true, BR: true, HR: true};
+    const ALLOWED_CSS_PROPERTIES = ['color', 'font-size', 'font-style', 'font-weight', 'border'];
+
+    function renderFormattedText(target, html) {
+        const parsed = new DOMParser().parseFromString(html, 'text/html');
+
+        function copyNode(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                // Пользовательский текст — только текстом.
+                return document.createTextNode(node.textContent);
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return document.createDocumentFragment();
+            }
+            const tag = node.tagName.toUpperCase();
+            if (!ALLOWED_TAGS[tag]) {
+                // Тег не разрешён — выбрасываем сам тег, содержимое сохраняем.
+                const fragment = document.createDocumentFragment();
+                node.childNodes.forEach(function(child) { fragment.appendChild(copyNode(child)); });
+                return fragment;
+            }
+            const element = document.createElement(tag.toLowerCase());
+            if (tag === 'SPAN') {
+                const style = (node.getAttribute('style') || '')
+                    .split(';')
+                    .map(function(part) { return part.trim(); })
+                    .filter(function(part) {
+                        if (!part) return false;
+                        const property = part.split(':')[0].trim().toLowerCase();
+                        return ALLOWED_CSS_PROPERTIES.indexOf(property) !== -1;
+                    })
+                    .join('; ');
+                if (style) element.setAttribute('style', style);
+            }
+            node.childNodes.forEach(function(child) { element.appendChild(copyNode(child)); });
+            return element;
         }
-    );
+
+        target.replaceChildren(copyNode(parsed.body));
+    }
+
+    $(function() {
+        const carrier = document.getElementById("text_formatted_html");
+        const target = document.getElementById("text_formatted");
+        if (carrier && target) {
+            renderFormattedText(target, carrier.value);
+        }
+    });
 
     const linkElements = document.getElementsByName('link');
     for (let i = 0; i < linkElements.length; i++) {

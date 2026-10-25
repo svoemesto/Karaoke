@@ -3,7 +3,9 @@ package com.svoemesto.karaokeweb.services
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.model.Subscription
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -32,12 +34,27 @@ import java.util.UUID
 @Service
 class PaymentService(
     @Qualifier("yookassaWebClient") private val webClient: WebClient,
+    // BR-009 (аудит #336, OpenProject #401): те же ключи, что инжектятся в WebClientConfig
+    // (`@Value("${'$'}{yookassa.shop-id}")` / `${'$'}{yookassa.secret-key}`).
+    // Раньше проверка читала `System.getenv("YOOKASSA_SHOP_ID")` и
+    // `System.getProperty("yookassa.shop-id")` — то есть ОБХОДИЛА Spring-конфиг:
+    //  - ключ, заданный в application.yml или через --spring.config, не считался;
+    //  - проверялся только shop-id: при заданном shop-id и пустом secret-key
+    //    hasCredentials() отвечал «ключи есть», а WebClient слал Basic auth с пустым
+    //    секретом — платёж падал уже в ЮKassa (401), и по логам это выглядело как
+    //    «юкасса не работает», а не как «не заданы ключи».
+    @Value("\${yookassa.shop-id}") private val shopId: String,
+    @Value("\${yookassa.secret-key}") private val secretKey: String,
 ) {
     private val objectMapper = ObjectMapper()
 
-    fun hasCredentials(): Boolean =
-        System.getenv("YOOKASSA_SHOP_ID")?.isNotBlank() == true ||
-            System.getProperty("yookassa.shop-id")?.isNotBlank() == true
+    private val log = LoggerFactory.getLogger(PaymentService::class.java)
+
+    /**
+     * Ключи заданы? Проверяются ОБА: без secret-key Basic-auth уходит с пустым
+     * секретом, и внешний сервис отвечает 401 — «платёж не создан» без объяснения.
+     */
+    fun hasCredentials(): Boolean = shopId.isNotBlank() && secretKey.isNotBlank()
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class Amount(
@@ -126,7 +143,7 @@ class PaymentService(
         saveMethod: Boolean,
     ): PaymentResponse? {
         if (!hasCredentials()) {
-            println("PaymentService: YOOKASSA_SHOP_ID/SECRET_KEY не заданы — платёж не создан (sub=${sub.id})")
+            log.warn("payment:create:no_credentials sub={} — YOOKASSA_SHOP_ID/SECRET_KEY не заданы, платёж не создан", sub.id)
             return null
         }
         val body =
@@ -147,23 +164,25 @@ class PaymentService(
             postPayment(idempotenceKey, body)
         } catch (e: WebClientResponseException) {
             if (saveMethod && e.statusCode.is4xxClientError) {
-                println(
-                    "PaymentService.createPayment: save_payment_method отклонён ЮKassa (${e.statusCode}) для sub=${sub.id} " +
-                        "— повтор без сохранения способа оплаты (проверьте, включены ли рекуррентные платежи в кабинете ЮKassa)",
+                log.warn(
+                    "payment:create:save_payment_method_rejected sub={} status={} — повтор без сохранения способа оплаты " +
+                        "(проверьте, включены ли рекуррентные платежи в кабинете ЮKassa)",
+                    sub.id,
+                    e.statusCode,
                 )
                 body.remove("save_payment_method")
                 try {
                     postPayment("$idempotenceKey-nosave", body)
                 } catch (e2: Exception) {
-                    println("PaymentService.createPayment: повтор без save_payment_method тоже не удался для sub=${sub.id}: ${e2.message}")
+                    log.warn("payment:create:retry_without_save_method_failed sub={}", sub.id, e2)
                     null
                 }
             } else {
-                println("PaymentService.createPayment: ошибка создания платежа для sub=${sub.id}: ${e.message}")
+                log.warn("payment:create:failed sub={} status={}", sub.id, e.statusCode, e)
                 null
             }
         } catch (e: Exception) {
-            println("PaymentService.createPayment: ошибка создания платежа для sub=${sub.id}: ${e.message}")
+            log.warn("payment:create:failed sub={}", sub.id, e)
             null
         }
     }
@@ -182,7 +201,7 @@ class PaymentService(
         returnUrl: String,
     ): PaymentResponse? {
         if (!hasCredentials()) {
-            println("PaymentService: YOOKASSA_SHOP_ID/SECRET_KEY не заданы — платёж для заказа $orderId не создан")
+            log.warn("payment:cart:no_credentials order={} — YOOKASSA_SHOP_ID/SECRET_KEY не заданы, платёж не создан", orderId)
             return null
         }
         val description = "Подписка на ${items.size} " + pluralSongsRu(items.size) + " (заказ корзины)"
@@ -212,7 +231,7 @@ class PaymentService(
                 .bodyToMono<PaymentResponse>()
                 .block()
         } catch (e: Exception) {
-            println("PaymentService.createCartPayment: ошибка создания платежа для заказа $orderId: ${e.message}")
+            log.warn("payment:cart:failed order={}", orderId, e)
             null
         }
     }
@@ -263,10 +282,17 @@ class PaymentService(
                 .bodyToMono<PaymentResponse>()
                 .block()
         } catch (e: WebClientResponseException) {
-            println("PaymentService.chargeRecurring: ошибка автосписания для sub=${sub.id} (pm=${sub.yookassaPaymentMethodId}): statusCode=${e.statusCode} body=${e.responseBodyAsString?.take(500)}")
+            log.warn(
+                "payment:recurring:failed sub={} pm={} status={} body={}",
+                sub.id,
+                sub.yookassaPaymentMethodId,
+                e.statusCode,
+                e.responseBodyAsString?.take(500),
+                e,
+            )
             null
         } catch (e: Exception) {
-            println("PaymentService.chargeRecurring: ошибка автосписания для sub=${sub.id}: ${e.message}")
+            log.warn("payment:recurring:failed sub={}", sub.id, e)
             null
         }
     }
@@ -285,7 +311,7 @@ class PaymentService(
                 .bodyToMono<PaymentResponse>()
                 .block()
         } catch (e: Exception) {
-            println("PaymentService.verifyAndFetch: ошибка проверки статуса платежа $paymentId: ${e.message}")
+            log.warn("payment:verify:failed paymentId={}", paymentId, e)
             null
         }
     }

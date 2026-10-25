@@ -89,7 +89,11 @@ class YandexCaptchaValidationService(
             }
         } catch (e: Exception) {
             // Внешний сервис недоступен — fail-closed (FR-010). Значение ключа не логируется.
-            log.warn("captcha:validation:unavailable error={}", e.message)
+            //
+            // BR-522 (аудит #336, OpenProject #401): логируем ИСКЛЮЧЕНИЕ целиком, а не
+            // только e.message — без стека причина сбоя (таймаут? DNS? 500 валидатора?)
+            // терялась, и «капча недоступна» выглядела одинаково при любой поломке.
+            log.warn("captcha:validation:unavailable", e)
             CaptchaValidationResult.UNAVAILABLE
         }
     }

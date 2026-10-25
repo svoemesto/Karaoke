@@ -2,7 +2,6 @@ package com.svoemesto.karaokeweb.services
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
-import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
@@ -86,27 +85,57 @@ class EventsBuffer {
         private const val KARAOKE_PROPERTY_MAX_BUFFER_SIZE = "karaoke.web.events.batch-max-buffer-size"
 
         /**
-         * SQL-формирование идентично [com.svoemesto.karaokeweb.controllers.MainController.doRegisterEvent.insertEvent].
-         * Каждое событие escape'ится индивидуально ПЕРЕД добавлением в SQL — это per-event
-         * семантика, не зависит от flush.
+         * Имена колонок INSERT'а: только `[a-z_]+`.
+         *
+         * Значения приходят от клиента, а ИМЕНА колонок — литералы из кода контроллера
+         * (`MainController.doRegisterEvent`). Проверка имени — страховка от будущего
+         * изменения: имя колонки попадает в SQL как есть, подставить его в параметр JDBC
+         * нельзя.
+         */
+        private val COLUMN_NAME_PATTERN = Regex("^[a-z_]+$")
+
+        /**
+         * BR-010 (аудит #336, OpenProject #401): INSERT собирается **параметризованно**.
+         *
+         * Раньше SQL строился конкатенацией, а значение прогонялось через
+         * `rightFileName()` — санитайзер ИМЁН ФАЙЛОВ. Последствия:
+         *  - безопасность запроса держалась на том, что `sanitizePathSegment()` заменяет
+         *    одинарную кавычку на backtick, а спецсимволы (`/`, `:`, `$`, `*`) — на
+         *    безобидные буквы; любой новый вызов `buildInsertSql` без этого санитайзера
+         *    давал бы инъекцию;
+         *  - данные ИСКАЖАЛИСЬ: `referer` (`https://…`) превращался в `https-//…`
+         *    (':' → '-'), `AC/DC` → `AC_DC`, `'` → backtick. Агрегация источников
+         *    трафика и разбор User-Agent теряли смысл;
+         *  - любое значение с `&` (например, URL с query-параметрами) ломало SQL.
+         *
+         * Теперь значения биндятся параметрами JDBC — искажений нет, инъекции нет.
          *
          * @param fieldsValues пары (column, value), включая client_ip/user_agent/anon_id/site_user_id.
-         * @return готовый SQL string для `executeUpdate()` / `executeBatch()`.
+         * @return SQL с плейсхолдерами `?` и список значений для биндинга.
+         * @throws IllegalArgumentException если имя колонки не соответствует `[a-z_]+`.
          */
-        internal fun buildInsertSql(fieldsValues: List<Pair<String, Any>>): String =
-            "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                fieldsValues.joinToString(", ") { (field, value) ->
-                    when {
-                        value is Long -> "$value"
-                        // referer — это URL (document.referrer). rightFileName() искажает его (заменяет
-                        // ':' на '-' → 'https-//...'), ломая ссылку и агрегацию источников. Санируем только
-                        // SQL-кавычку (значение недоверенное — приходит с клиента), не искажая содержимое.
-                        field == "referer" -> "'${value.toString().replace("'", "''")}'"
-                        else -> "'${value.toString().rightFileName()}'"
-                    }
-                }
-            })"
+        internal fun buildInsert(fieldsValues: List<Pair<String, Any>>): InsertStatement {
+            require(fieldsValues.isNotEmpty()) { "INSERT без полей" }
+            fieldsValues.forEach { (column, _) ->
+                require(COLUMN_NAME_PATTERN.matches(column)) { "недопустимое имя колонки: $column" }
+            }
+            val sql =
+                "INSERT INTO tbl_events (" +
+                    fieldsValues.joinToString(", ") { it.first } +
+                    ") OVERRIDING SYSTEM VALUE VALUES(" +
+                    fieldsValues.joinToString(", ") { "?" } +
+                    ")"
+            return InsertStatement(sql, fieldsValues.map { it.second })
+        }
     }
+
+    /**
+     * Подготовленный INSERT: SQL с плейсхолдерами и значения для биндинга.
+     */
+    internal data class InsertStatement(
+        val sql: String,
+        val values: List<Any>,
+    )
 
     private val buffer = ConcurrentLinkedQueue<EventRecord>()
     private val flushing = AtomicBoolean(false)
@@ -176,7 +205,10 @@ class EventsBuffer {
     /**
      * Выполняет batch INSERT для списка записей. Каждая запись INSERT'ится через
      * `prepareStatement + executeUpdate` (не `addBatch` на уровне PreparedStatement,
-     * т.к. SQL у разных eventType разный — `rightFileName()` escape зависит от `field`).
+     * т.к. набор колонок у разных eventType разный).
+     *
+     * BR-010: значения биндятся параметрами JDBC (см. [buildInsert]) — SQL собирается
+     * из имён колонок и плейсхолдеров `?`, пользовательские значения в него не попадают.
      *
      * **Соединение НЕ закрывается** (аудит #336, BR-006): [KaraokeConnection.getConnection]
      * возвращает физическое соединение, закэшированное в `ThreadLocal` потока. И
@@ -203,8 +235,9 @@ class EventsBuffer {
             }
         for (record in batch) {
             val fields = buildFieldsList(record)
-            val sql = buildInsertSql(fields)
-            connection.prepareStatement(sql).use { ps ->
+            val insert = buildInsert(fields)
+            connection.prepareStatement(insert.sql).use { ps ->
+                bindValues(ps, insert.values)
                 ps.executeUpdate()
             }
         }
@@ -227,8 +260,9 @@ class EventsBuffer {
         val connection = database.getConnection() ?: return false
         return try {
             val fields = buildFieldsList(record)
-            val sql = buildInsertSql(fields)
-            connection.prepareStatement(sql).use { ps ->
+            val insert = buildInsert(fields)
+            connection.prepareStatement(insert.sql).use { ps ->
+                bindValues(ps, insert.values)
                 ps.executeUpdate()
             }
             true
@@ -241,6 +275,37 @@ class EventsBuffer {
                 e,
             )
             false
+        } catch (e: IllegalArgumentException) {
+            // Недопустимое имя колонки — это ошибка РАЗРАБОТЧИКА, а не клиента.
+            // Событие теряется (fail-open), но лог должен быть заметным.
+            log.error(
+                "[EventsBuffer] rejected event with invalid column name (eventType={}): {}",
+                record.eventType,
+                e.message,
+                e,
+            )
+            false
+        }
+    }
+
+    /**
+     * Биндит значения в подготовленный запрос.
+     *
+     * BR-010: значения биндятся ТИПАМИ, а не через `toString()` для всего подряд:
+     * `site_user_id` — число (BIGINT), остальное — текст.
+     */
+    private fun bindValues(
+        ps: java.sql.PreparedStatement,
+        values: List<Any>,
+    ) {
+        values.forEachIndexed { index, value ->
+            val position = index + 1
+            when (value) {
+                is Long -> ps.setLong(position, value)
+                is Int -> ps.setInt(position, value)
+                is Boolean -> ps.setBoolean(position, value)
+                else -> ps.setString(position, value.toString())
+            }
         }
     }
 

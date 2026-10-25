@@ -763,6 +763,20 @@ jobs:
         # «доступ только онлайн». Baseline: tools/check-no-mp4-mentions.baseline.
         run: bash tools/check-no-mp4-mentions.sh --quiet
 
+  # === personal-fixtures guard (2026-10-25, BR-526/BR-531, аудит #336, #398) ===
+  # Не даёт вернуться бытовым файлам, один раз уже попавшим в боевой jar:
+  # PII-подобный образец запроса ЕГРН в каталогах ресурсов и MLT-фикстуры
+  # с абсолютными личными путями. Baseline: tools/check-no-personal-fixtures.baseline.
+  personal-fixtures-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: no-personal-fixtures guard (BR-526/BR-531)
+        run: bash tools/check-no-personal-fixtures.sh --quiet
+
   # === security-headers guard (2026-10-24, BR-558, аудит #336, OpenProject #372) ===
   # Прод-nginx публичного сайта (sm-karaoke.ru) обязан отдавать заголовки
   # безопасности. Guard статически разбирает deploy/prod-single-host/80to8897 и

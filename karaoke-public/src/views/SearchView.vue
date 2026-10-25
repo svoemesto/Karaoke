@@ -180,8 +180,20 @@
         (`isLoadingMore=false`). Inline-спиннер во время загрузки. На мобильных —
         полная ширина (CSS @media).
       -->
+      <!--
+        BR-345 (аудит #336, PKG-S3-27): ошибки первичного поиска и подгрузки — РАЗНЫЕ
+        состояния. Раньше один и тот же флаг `searchPaginationError` использовался для обоих:
+        ошибка первичного поиска показывала «Не удалось загрузить ещё», а «Повторить» вызывал
+        onLoadMore(), который упирался в guard `hasMore=false` и НИЧЕГО не запрашивал — после
+        клика блок исчезал и страница показывала ложное «Ничего не найдено».
+      -->
+      <div v-if="searchError" class="km-load-more-error km-search-error" role="alert">
+        {{ searchErrorText }}
+        <button class="km-load-more-retry" @click="retrySearch">Повторить</button>
+      </div>
+
       <div
-        v-if="searchHasMore || searchIsLoadingMore || searchPaginationError"
+        v-else-if="searchHasMore || searchIsLoadingMore || searchPaginationError"
         class="km-load-more"
       >
         <button
@@ -243,6 +255,13 @@ import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
+import {
+  SEARCH_ERROR_SCOPE,
+  needsSliceRestore,
+  restorePlan,
+  searchErrorText,
+  urlPage,
+} from '../utils/searchPagination.js'
 
 /**
  * View-страница «Search» — основной layout и data-fetching.
@@ -335,9 +354,15 @@ export default {
       'searchIsLoadingMore',
       'searchTotalCount',
       'searchPaginationError',
+      // BR-345: ошибка первичного поиска — отдельный getter.
+      'searchError',
     ]),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    // BR-345: текст ошибки первичного поиска (не ошибки подгрузки).
+    searchErrorText() {
+      return searchErrorText(SEARCH_ERROR_SCOPE.PRIMARY)
     },
     // Spec 262-search-pagination (T014): URL-state — извлекаем page/pageSize из query.
     pageFromUrl() {
@@ -376,8 +401,15 @@ export default {
     '$route.query.page': {
       immediate: false,
       handler() {
-        const urlPage = this.pageFromUrl
-        if (urlPage !== this.searchPagination.page) {
+        // BR-344 (аудит #336, PKG-S3-27): восстановление среза вызывается и когда целевая
+        // страница = 1 (переход «назад» с ?page=2 на ?page=1). Раньше `restoreFromUrl()`
+        // для targetPage <= 1 выходил сразу, ничего не сбрасывая — state оставался на
+        // странице 2, а URL говорил про страницу 1.
+        if (needsSliceRestore(this.pageFromUrl, this.searchPagination.page)) {
+          this.restoreFromUrl()
+          return
+        }
+        if (this.pageFromUrl <= 1 && this.searchPagination.page !== 1) {
           this.restoreFromUrl()
         }
       },
@@ -390,8 +422,10 @@ export default {
       this.form.author = q.author || ''
       this.form.songName = q.songName || ''
       this.form.text = q.text || ''
-      // Spec 262-search-pagination: если URL содержит page>1, запускаем
-      // restoreFromUrl — последовательно подгружаем страницы 1..N.
+      // BR-344: если URL содержит page>1 — восстанавливаем срез (страницы 1..N), иначе
+      // обычный поиск с первой страницы. Раньше здесь грузилась ТОЛЬКО первая страница, а
+      // комментарий ссылался на несуществующий watch 'searchPagination.page' — при F5 на
+      // ?page=3 загружалась страница 1, а в URL оставалось page=3.
       this.onSearch()
     }
     // Спека 259 (FR-006): гарантируем наличие кэша `authorTiles` к моменту рендера строк —
@@ -487,13 +521,13 @@ export default {
         text: this.form.text,
       }
       const hasFilters = filters.songName || filters.author || filters.text
-      const urlPage = this.pageFromUrl
-      // Если URL содержит page>1 И есть фильтры — восстанавливаем срез (после перезагрузки F5).
-      // Иначе — обычный новый поиск с page=1.
-      if (hasFilters && urlPage > 1) {
-        this.search({ ...filters, page: 1, pageSize: this.pageSizeFromUrl })
-        // После успешной первой порции дозагружаем страницы 2..N последовательно.
-        // Делается через watch 'searchPagination.page' — он сработает при изменении.
+      const targetPage = urlPage(this.$route.query)
+      // BR-344 (аудит #336, PKG-S3-27): если URL содержит page>1 И есть фильтры —
+      // восстанавливаем срез ПОСЛЕДОВАТЕЛЬНОЙ загрузкой страниц 1..N (раньше грузилась
+      // только первая страница, а комментарий ссылался на несуществующий watch
+      // 'searchPagination.page' — при F5 на ?page=3 URL врал о позиции).
+      if (hasFilters && targetPage > 1) {
+        this.restoreFromUrl()
       } else {
         // Удаляем ?page из URL, чтобы не было разночтений.
         if (this.$route.query.page) {
@@ -503,6 +537,12 @@ export default {
         }
         this.search({ ...filters, page: 1, pageSize: this.pageSizeFromUrl })
       }
+    },
+    // BR-345: «Повторить» для ошибки ПЕРВИЧНОГО поиска повторяет именно поиск (а не
+    // подгрузку, которая упиралась в guard `hasMore=false` и ничего не делала).
+    retrySearch() {
+      this.$store.commit('songs/setSearchError', false)
+      this.onSearch()
     },
     // Spec 262-search-pagination (FR-010, T013): подгрузка следующей порции по клику.
     onLoadMore() {
@@ -544,21 +584,23 @@ export default {
     // Spec 262-search-pagination (T014, Story 1 acceptance 4): восстановление с F5
     // при наличии ?page=N — последовательно подгружаем страницы 2..N.
     async restoreFromUrl() {
-      const targetPage = this.pageFromUrl
-      if (targetPage <= 1) return
+      const targetPage = urlPage(this.$route.query)
       const currentFilters = {
         songName: this.$route.query.songName || this.form.songName || '',
         author: this.$route.query.author || this.form.author || '',
         text: this.$route.query.text || this.form.text || '',
         album: this.$route.query.album || '',
       }
-      // Перезапускаем поиск с page=1 (сброс) и затем подгружаем targetPage-1 порций.
+      const plan = restorePlan(targetPage)
+      // BR-344 (аудит #336, PKG-S3-27): для targetPage <= 1 срез СБРАСЫВАЕТСЯ (поиск с
+      // первой страницы). Раньше здесь был ранний `return` — переход «назад» с ?page=2 на
+      // ?page=1 оставлял state на странице 2 (URL и состояние расходились).
       this.search({
         ...currentFilters,
-        page: 1,
+        page: plan.firstPage,
         pageSize: this.pageSizeFromUrl,
       }).then(() => {
-        let remaining = targetPage - 1
+        let remaining = plan.extraPages
         const loadNext = () => {
           if (remaining <= 0) return
           remaining -= 1

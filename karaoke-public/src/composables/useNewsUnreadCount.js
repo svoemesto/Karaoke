@@ -1,6 +1,8 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchNews, fetchNewsSince } from '../services/newsApi'
+import { shouldPollNews } from '../utils/routeGuard.js'
+import { useAuth } from './useAuth'
 
 /**
  * Module-level singleton для inline-бейджа непрочитанных новостей в шапке сайта.
@@ -181,6 +183,17 @@ function applyRouteState(route) {
 
   pollingPaused.value = hidden
 
+  // BR-317 (аудит #336, PKG-S3-27): `isAuthenticated()` проверялся ТОЛЬКО в момент создания
+  // интервала, а `stopPolling()` вызывался исключительно при переходе на скрытый маршрут.
+  // После выхода из аккаунта на обычном маршруте интервал продолжал тикать каждые 45 секунд
+  // и запрашивать `/api/public/news/since` уже без токена — вопреки инварианту файла
+  // («для анонимов polling НЕ запускается — defense in depth»).
+  if (!shouldPollNews(isAuthenticated(), hidden)) {
+    stopPolling()
+    cancelAutoRead()
+    return
+  }
+
   if (hidden) {
     stopPolling()
     if (route && route.name === 'news') {
@@ -191,10 +204,8 @@ function applyRouteState(route) {
       cancelAutoRead()
     }
   } else {
-    if (isAuthenticated()) {
-      pollOnce()
-      startPolling()
-    }
+    pollOnce()
+    startPolling()
     // US4 / FR-016: auto-read только на страницах с видимыми новостями.
     if (newsShown && count.value > 0) {
       startAutoRead()
@@ -240,6 +251,22 @@ function init(route) {
       () => applyRouteState(currentRoute),
     )
   }
+
+  // BR-317 (аудит #336, PKG-S3-27): вход/выход из аккаунта — polling новостей должен
+  // останавливаться/возобновляться. Раньше единственным поводом остановить его был переход
+  // на скрытый маршрут, поэтому после выхода на обычной странице интервал продолжал тикать
+  // и дёргать `/api/public/news/since` без токена.
+  const { token } = useAuth()
+  watch(token, () => {
+    if (currentRoute) {
+      applyRouteState(currentRoute)
+      return
+    }
+    if (!isAuthenticated()) {
+      stopPolling()
+      cancelAutoRead()
+    }
+  })
 
   // US4 / FR-016: watch на count для триггера auto-read при появлении новых новостей.
   // Guard `oldCount === undefined` — игнорируем initial trigger (Vue watch по умолчанию не

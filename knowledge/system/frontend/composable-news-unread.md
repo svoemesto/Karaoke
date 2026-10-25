@@ -76,6 +76,20 @@ const NEWS_SHOWN_ROUTES = new Set(['/'])    // R-009
 — иначе 3.5 MB ответа `/since?id=0` каждые 45 сек × N вкладок (см.
 `PublicNewsController.kt:60-66`).
 
+## Инварианты (BR-317, аудит #336, OpenProject #399)
+
+1. Проверка `isAuthenticated()` выполняется **не только** в момент создания
+   интервала: `applyRouteState` останавливает polling, если пользователь вышел
+   из аккаунта (`shouldPollNews` в `karaoke-public/src/utils/routeGuard.js`). Раньше
+   `stopPolling()` вызывался только при переходе на скрытый маршрут, поэтому
+   после выхода на обычной странице интервал продолжал тикать каждые 45 секунд
+   и запрашивать `/api/public/news/since` уже без токена.
+2. На токен есть `watch`: при следующем входе polling запускается заново.
+3. `markAllSeen()` в `views/NewsView.vue` вызывается **только** после успешной
+   загрузки ленты: при ошибке бейдж непрочитанного не сбрасывается, а сама
+   страница показывает «Не удалось загрузить новости» + «Повторить», а не
+   «Пока новостей нет».
+
 ## Связь
 
 - **News** ([entities-catalog.md#news](../../domains/catalog/components/entities-catalog.md#news)) — entity.
@@ -83,6 +97,14 @@ const NEWS_SHOWN_ROUTES = new Set(['/'])    // R-009
 - **PollingCache** ([web-caches.md](../../domains/caching/components/web-caches.md)) — TTL=60s для `/since`.
 - **useAuth** ([composable-use-auth.md](composable-use-auth.md)) — токен.
 
+## Связанные документы
+
+- [karaoke-public-audit-invariants.md](karaoke-public-audit-invariants.md) —
+  сквозные инварианты публичного SPA (аудит #336, `PKG-S3-27`).
+
 ## Changelog
 
+- **OpenProject #399** (2026-10-25, аудит #336, `PKG-S3-27`): BR-317 —
+  polling останавливается при выходе из аккаунта, а не только на скрытых
+  маршрутах; добавлен `watch` на токен.
 - **Pass 387** (2026-09-09): Initial. Автор: agent (Karaoke).

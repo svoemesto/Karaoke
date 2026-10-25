@@ -1,5 +1,6 @@
 <template>
   <a
+    v-if="!hidden"
     href="#"
     class="cart-icon"
     :class="{ 'cart-icon-on': inCart }"
@@ -10,10 +11,12 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, getCurrentInstance, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
+import { CART_TOGGLE_RESULT, classifyCartToggle } from '../utils/cartToggle.js'
+import { notify } from '../utils/notify.js'
 
 /**
  * Компонент «Cart Icon».
@@ -29,9 +32,13 @@ export default {
   setup(props) {
     const router = useRouter()
     const route = useRoute()
+    const instance = getCurrentInstance()
     const { token } = useAuth()
     const { isInCart, toggle } = useCart()
     const busy = ref(false)
+    // BR-297: подписка уже оформлена (409 already_subscribed) — иконку корзины убираем,
+    // иначе пользователь снова кликает по ней и снова получает отказ.
+    const hidden = ref(false)
 
     const inCart = computed(() => isInCart(props.songId))
 
@@ -44,13 +51,28 @@ export default {
       if (busy.value) return
       busy.value = true
       try {
-        await toggle(props.songId)
+        // BR-297 (аудит #336, PKG-S3-27): результат toggle РАЗБИРАЕТСЯ. Раньше
+        // `await toggle(...)` шёл в try/finally без catch и без ветки на status — 409
+        // already_subscribed / 400 song_not_for_subscription / 401 / 5xx оставляли иконку
+        // в прежнем состоянии, и кнопка молча «не работала».
+        const { status, body } = await toggle(props.songId)
+        const outcome = classifyCartToggle(status, body)
+        if (outcome.result !== CART_TOGGLE_RESULT.OK) {
+          if (outcome.hideIcon) hidden.value = true
+          notify(instance && instance.proxy, outcome.message, 'warning')
+        }
+      } catch (e) {
+        notify(
+          instance && instance.proxy,
+          'Нет связи с сервером — корзина не изменена. Попробуйте ещё раз.',
+          'error',
+        )
       } finally {
         busy.value = false
       }
     }
 
-    return { inCart, onClick }
+    return { inCart, onClick, hidden }
   },
 }
 </script>

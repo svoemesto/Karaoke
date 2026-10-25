@@ -160,9 +160,13 @@
           </RouterLink>
         </div>
         <p class="km-hint-text" style="margin-top: 1.5rem">
+          <!-- BR-326 (аудит #336, PKG-S3-27): цены больше не зашиты в текст страницы.
+               Реальные тарифы живут в БД и правятся админом — страница тянет их из
+               публичного API /api/public/account/subscription/tariffs. -->
           Если хотите <strong>всю коллекцию без ограничений</strong> — оформите
-          <RouterLink to="/premium">премиум-подписку</RouterLink> (449 ₽/мес). Одна песня навсегда —
-          49 ₽.
+          <RouterLink to="/premium">премиум-подписку</RouterLink
+          ><template v-if="sitePriceText"> ({{ sitePriceText }})</template>. Одна песня навсегда —
+          <template v-if="songPriceText">{{ songPriceText }}.</template>
         </p>
         <div class="km-share-wrap">
           <ShareButton />
@@ -180,6 +184,7 @@ import { trackUi } from '../services/tracking'
 import SocialLinks from '../components/SocialLinks.vue'
 import ShareButton from '../components/ShareButton.vue'
 import AppHeader from '../components/AppHeader.vue'
+import { priceTexts } from '../utils/pricing.js'
 
 // Топ-15 авторов с полной дискографией — список согласован с владельцем проекта.
 // Эти 15 исполнителей представлены в коллекции максимально полно: официальные релизы +
@@ -225,6 +230,9 @@ export default {
       allAuthors: [],
       stats: null,
       loading: false,
+      // BR-326: тарифы из публичного API (цены не зашиты в текст страницы).
+      siteTariffs: [],
+      songTariffs: [],
     }
   },
   computed: {
@@ -235,14 +243,35 @@ export default {
         .filter((name) => !topNames.has(name.toLowerCase()))
         .sort((a, b) => a.localeCompare(b, 'ru'))
     },
+    priceBlock() {
+      return priceTexts(this.siteTariffs, this.songTariffs)
+    },
+    sitePriceText() {
+      return this.priceBlock.site
+    },
+    songPriceText() {
+      return this.priceBlock.song
+    },
   },
   async mounted() {
     document.title = 'О проекте — Караоке на «Своём Месте»'
     await this.load()
+    await this.loadTariffs()
   },
   methods: {
     formatNum(n) {
       return n != null ? Number(n).toLocaleString('ru-RU') : ''
+    },
+    // BR-326 (аудит #336, PKG-S3-27): реальные цены — из API. Раньше в тексте страницы были
+    // зашиты «449 ₽/мес» и «49 ₽», и после правки тарифа админом страница показывала
+    // устаревшую цену (на одном сайте — два разных числа о деньгах).
+    async loadTariffs() {
+      const [site, song] = await Promise.all([
+        apiGet('/api/public/account/subscription/tariffs', { scope: 'SITE' }).catch(() => null),
+        apiGet('/api/public/account/subscription/tariffs', { scope: 'SONG' }).catch(() => null),
+      ])
+      this.siteTariffs = Array.isArray(site) ? site : []
+      this.songTariffs = Array.isArray(song) ? song : []
     },
     async load() {
       this.loading = true

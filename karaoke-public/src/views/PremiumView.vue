@@ -92,6 +92,15 @@
 
           <template v-if="selectedTariffId">
             <div v-if="loadingPrice" class="km-hint">Расчёт цены...</div>
+            <!-- BR-346 (аудит #336, PKG-S3-27): ошибка расчёта цены больше не «прячется».
+                 Раньше шаблон показывал блок только при непустом `priceInfo`, а `error` из
+                 composable выводился лишь через `submitError` (который ставится только в
+                 onSubscribe) — после выбора тарифа checkout молча исчезал: нет цены, нет
+                 кнопки, нет сообщения, нет повтора. -->
+            <div v-else-if="priceError" class="km-error">
+              {{ priceErrorText }}
+              <button class="km-btn km-btn-secondary" @click="retryPrice">Повторить</button>
+            </div>
             <template v-else-if="priceInfo">
               <div class="km-price-row">
                 <span v-if="priceInfo.discount > 0" class="km-price-old"
@@ -272,6 +281,18 @@ export default {
         return 'Оплата временно недоступна, попробуйте позже.'
       return 'Не удалось оформить подписку. Попробуйте ещё раз.'
     },
+    // BR-346 (аудит #336, PKG-S3-27): ошибка расчёта цены (отдельный канал от ошибок
+    // оформления). `error` из composable заполняется в loadPrice(), а не в subscribe().
+    priceError() {
+      if (this.priceInfo || this.loadingPrice) return ''
+      return this.error || ''
+    },
+    priceErrorText() {
+      if (this.error === 'no_tariff')
+        return 'Этот тариф больше недоступен — обновите список тарифов и выберите другой.'
+      if (this.error === 'network_error') return 'Нет связи с сервером — цена недоступна.'
+      return 'Не удалось рассчитать цену — попробуйте ещё раз.'
+    },
     // Тот же паттерн, что в SearchView.vue/ZakromaView.vue/PlaylistsView.vue и др.
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
@@ -310,6 +331,11 @@ export default {
       this.disclaimerAccepted = false
       this.submitError = false
       this.loadPrice(id)
+    },
+    // BR-346: повтор расчёта цены для ВЫБРАННОГО тарифа (тот же сценарий, что и ошибка).
+    retryPrice() {
+      if (!this.selectedTariffId) return
+      this.loadPrice(this.selectedTariffId)
     },
     async onSubscribe() {
       this.submitError = false

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { authGet } from '../services/authApi'
+import { clearAllShareUrls, resolveSecretStorage } from '../utils/shareSecret.js'
 
 // Module-level singleton (паттерн useDesign.js) — одно состояние на всё приложение.
 // localStorage, не sessionStorage: в отличие от одноразового токена плеера (kp_token),
@@ -15,6 +16,12 @@ const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000
 let autoRefreshStarted = false
 
 function setSession(newToken, newUser) {
+  // BR-299 (аудит #336, PKG-S3-27): при смене пользователя capability-URL прежнего
+  // владельца (bearer-ссылка на премиум-плеер без авторизации) не должны переживать
+  // переключение аккаунта — чистим хранилище секретов.
+  if (token.value && token.value !== newToken) {
+    clearAllShareUrls(resolveSecretStorage())
+  }
   token.value = newToken
   user.value = newUser
   localStorage.setItem('km_auth_token', newToken)
@@ -22,6 +29,9 @@ function setSession(newToken, newUser) {
 }
 
 function clearSession() {
+  // BR-299: выход из аккаунта — capability-URL прежнего владельца стираются, иначе на
+  // общем устройстве следующий пользователь профиля браузера получит действующую ссылку.
+  clearAllShareUrls(resolveSecretStorage())
   token.value = ''
   user.value = null
   localStorage.removeItem('km_auth_token')

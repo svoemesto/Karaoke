@@ -343,6 +343,10 @@
       <p v-if="saveError" class="ke-save-error">{{ saveError }}</p>
       <p v-if="submitError" class="ke-save-error">{{ submitError }}</p>
       <p v-if="recallError" class="ke-save-error">{{ recallError }}</p>
+      <!-- BR-336: ошибка переключения стема (голос ↔ музыка). -->
+      <p v-if="soundError" class="ke-save-error">{{ soundError }}</p>
+      <!-- BR-338: расхождение длин текста и разметки — предупреждаем до потери текста голоса. -->
+      <p v-if="lengthMismatchWarning" class="ke-save-warn">{{ lengthMismatchWarning }}</p>
     </footer>
   </div>
 </template>
@@ -356,6 +360,18 @@ import { promisedXMLHttpRequest } from '../lib/utils'
 import { autosaveFlushPlan } from '../utils/autosave.js'
 import { classifyAuthOutcome, describeAuthOutcome } from '../utils/xhrOutcome.js'
 import { destroyWaveform, beginWaveformLoad, endWaveformLoad } from '../utils/wavesurferTeardown.js'
+import {
+  SOUND_SWITCH,
+  isSaveSuccessful,
+  mergeSaveStatus,
+  releaseAllScrubTimers,
+  shouldRefreshPreview,
+  soundSwitchOutcome,
+  trimTrailingEmptyVoices,
+  voiceLabelPlan,
+  voiceLengthMismatchWarning,
+} from '../utils/editorGuards.js'
+import { notify } from '../utils/notify.js'
 import {
   splitSyllables,
   syncMarkersFromSpecTags,
@@ -471,6 +487,9 @@ export default {
       minusUrl: '',
       currentTime: 0,
       duration: 0,
+      // BR-335: индекс маркера, для которого собрано превью разметки. Обновляется только
+      // при смене индекса (не на каждом тике timeupdate).
+      previewMarkerIndex: -1,
       isPlaying: false,
       playbackRate: 0.75,
       zoom: 100,
@@ -491,6 +510,10 @@ export default {
       // BR-330: текст ошибки для пользователя (сеть/таймаут/HTTP) — прежний код показывал только
       // «Ошибка сохранения» и не различал причины; при сетевом reject состояния зависали.
       saveError: '',
+      // BR-336: ошибка переключения стема (не удалось загрузить голос/музыку).
+      soundError: '',
+      // BR-338: предупреждение о расхождении длин текста и разметки по голосам.
+      lengthMismatchWarning: '',
       saveTimer: null,
       submitting: false,
       submitError: '',
@@ -561,7 +584,10 @@ export default {
       return currentMarkerIndex(this.markers, this.currentTime)
     },
     formattedTextHtml() {
-      return formatText(this.markers, this.curMarkerIndex)
+      // BR-335 (аудит #336, PKG-S3-27): превью разметки собирается из индекса маркера,
+      // который меняется только при ПЕРЕХОДЕ к следующему маркеру (а не на каждом тике
+      // timeupdate — 60 раз в секунду).
+      return formatText(this.markers, this.previewMarkerIndex)
     },
     tail() {
       return buildTail(this.syllables, this.curSyllableIndex)
@@ -646,6 +672,12 @@ export default {
     },
   },
   watch: {
+    // BR-335 (аудит #336, PKG-S3-27): индекс маркера для превью обновляется только при его
+    // СМЕНЕ — HTML-разметка «Разметки» не пересобирается на каждом тике timeupdate.
+    curMarkerIndex(v) {
+      if (!shouldRefreshPreview(this.previewMarkerIndex, v)) return
+      this.previewMarkerIndex = v
+    },
     // Каждое изменение ползунка / настройки — сразу сохраняем в localStorage, чтобы при
     // следующем открытии редактора значения подхватились (см. loadEditorSettings в data()).
     textFontSize(v) {
@@ -684,9 +716,26 @@ export default {
     // BR-329: нереактивная защита load() от повторного входа (recall() → load() при не-200).
     // Не в data(): имя с '_' зарезервировано vue/no-reserved-keys и не должно быть реактивным.
     this._loadingTask = false
+    // BR-333 (аудит #336, PKG-S3-27): флаг размонтирования. Раньше mounted() навешивал
+    // keydown/keyup/resize ПОСЛЕ двух await — если пользователь уходил со страницы во время
+    // загрузки, beforeUnmount уже отработал, а листенеры добавлялись после него и оставались
+    // на window до конца жизни вкладки.
+    this._unmounted = false
+    // BR-335: rAF-троттлинг обновления currentTime (timeupdate приходит каждые 16 мс).
+    this._rafPending = false
+    this._pendingTime = 0
   },
   async mounted() {
+    // BR-333: листенеры вешаем ДО асинхронной загрузки — тогда они гарантированно будут
+    // сняты в beforeUnmount (раньше они добавлялись после него и «залипали»).
+    window.addEventListener('keydown', this.onKeyDown)
+    window.addEventListener('keyup', this.onKeyUp)
+    window.addEventListener('resize', this.fitPlayerTo16x9)
+    // BR-337: потеря фокуса окна / скрытие вкладки останавливает перемотку по хоткеям.
+    window.addEventListener('blur', this.onWindowBlur)
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
     await this.fetchMe()
+    if (this._unmounted) return
     if (!this.token) {
       this.$router.push({
         path: '/login',
@@ -699,15 +748,20 @@ export default {
       return
     }
     await this.load()
-    window.addEventListener('keydown', this.onKeyDown)
-    window.addEventListener('keyup', this.onKeyUp)
-    window.addEventListener('resize', this.fitPlayerTo16x9)
+    // BR-333 (аудит #336, PKG-S3-27): после await проверяем флаг размонтирования — иначе
+    // продолжение работы писало в уже размонтированный компонент.
+    if (this._unmounted) return
     if (this.showPlayer) this.$nextTick(() => this.observeWrapAndFit())
   },
   beforeUnmount() {
+    // BR-333: флаг размонтирования — все продолжения после await обязаны его проверять.
+    this._unmounted = true
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('resize', this.fitPlayerTo16x9)
+    // BR-337: потеря фокуса/скрытие вкладки — снимаем перемотку (см. onWindowBlur).
+    window.removeEventListener('blur', this.onWindowBlur)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
     if (this._resizeObserver) {
       this._resizeObserver.disconnect()
       this._resizeObserver = null
@@ -745,10 +799,23 @@ export default {
     async _loadTask() {
       this.loading = true
       this.loadError = ''
-      const { status, body } = await fetchTask(this.$route.params.id)
+      // BR-334 (аудит #336, PKG-S3-27): `fetchTask` реджектит промис на сетевой ошибке.
+      // Без try/catch/finally исключение уходило наружу, `loading` оставался true навсегда
+      // («Загрузка задания…» до перезагрузки страницы), а кнопки повтора не было.
+      let status = 0
+      let body = null
+      try {
+        const res = await fetchTask(this.$route.params.id)
+        status = res.status
+        body = res.body
+      } catch (e) {
+        this.loadError = 'Нет связи с сервером — не удалось загрузить задание.'
+        return
+      } finally {
+        this.loading = false
+      }
       if (status !== 200 || !body) {
         this.loadError = 'Задание не найдено или недоступно.'
-        this.loading = false
         return
       }
       this.task = body
@@ -764,12 +831,25 @@ export default {
       const rawMarkersPerVoice =
         body.markersPerVoice && body.markersPerVoice.length ? body.markersPerVoice : [[]]
       const voiceCount = Math.max(rawTexts.length, rawMarkersPerVoice.length)
+      // BR-338 (аудит #336, PKG-S3-27): расхождение длин видно пользователю.
+      this.lengthMismatchWarning = voiceLengthMismatchWarning(
+        rawTexts.length,
+        rawMarkersPerVoice.length,
+      )
       this.voices = []
       for (let i = 0; i < voiceCount; i++) {
         const text = rawTexts[i] || ''
         const markers = markersFromServer(rawMarkersPerVoice[i] || [])
-        const syllables = splitSyllables(text)
-        relabelSyllables(markers, syllables)
+        // BR-338: если у голоса НЕТ текста — маркеры НЕ переразмечаются. Раньше
+        // `relabelSyllables(markers, [])` обнулял `label` ВСЕХ слоговых маркеров, а
+        // следующий автосейв закреплял пустые метки в черновике; после апрува текст голоса
+        // (он хранится только в метках) терялся безвозвратно.
+        const plan = voiceLabelPlan({ sourceText: text, markers })
+        let syllables = []
+        if (plan.relabel) {
+          syllables = splitSyllables(text)
+          relabelSyllables(markers, syllables)
+        }
         syncMarkersFromSpecTags(markers, text)
         this.voices.push({ sourceText: text, markers, syllables })
       }
@@ -779,6 +859,8 @@ export default {
       this.minusUrl = body.audioAccompanimentUrl
       this.loading = false
       await this.$nextTick()
+      // BR-333: не продолжаем работу на размонтированном компоненте.
+      if (this._unmounted) return
       await this.initWaveSurfer()
     },
     async initWaveSurfer() {
@@ -849,7 +931,22 @@ export default {
         this.redrawRegions()
       })
       this.ws.on('timeupdate', (t) => {
-        this.currentTime = t
+        // BR-335 (аудит #336, PKG-S3-27): `timeupdate` приходит каждые 16 мс (~60/с), и каждый
+        // тик перерисовывал компонент целиком. Текущее время обновляется не чаще одного раза
+        // за кадр (rAF), а HTML-превью разметки пересобирается только при смене индекса
+        // маркера (см. computed formattedTextHtml).
+        this._pendingTime = t
+        if (this._rafPending) return
+        this._rafPending = true
+        const schedule =
+          typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (cb) => setTimeout(cb, 16)
+        schedule(() => {
+          this._rafPending = false
+          if (this._unmounted) return
+          this.currentTime = this._pendingTime
+        })
       })
       this.ws.on('play', () => {
         this.isPlaying = true
@@ -988,16 +1085,32 @@ export default {
     // SubsEdit.vue), сохраняя текущую позицию/состояние воспроизведения; регионы (маркеры)
     // перерисуются сами по событию 'decode' после загрузки нового файла.
     async setActiveSound(sound) {
-      if (this.activeSound === sound || !this.ws) {
-        this.activeSound = sound
-        return
-      }
+      // BR-336 (аудит #336, PKG-S3-27): стем сначала ЗАГРУЖАЕТСЯ, и только потом
+      // фиксируется `activeSound`. Раньше флаг выставлялся ДО загрузки и reject от
+      // `ws.load()` (403 после истечения токена стемов, 404, обрыв) оставлял UI в состоянии
+      // «выбран музыка», а звук — старым; повторный клик по той же кнопке выходил по раннему
+      // `if (this.activeSound === sound)` и не повторял загрузку.
+      if (!this.ws) return
+      if (this.activeSound === sound) return
       const wasPlaying = this.ws.isPlaying()
       const t = this.ws.getCurrentTime()
-      this.activeSound = sound
       const url = sound === 'voice' ? this.voiceUrl : this.minusUrl
-      if (!url) return
-      await this.ws.load(url)
+      const noUrl = soundSwitchOutcome(sound, url, null)
+      if (noUrl.result === SOUND_SWITCH.NO_URL) {
+        this.soundError = noUrl.message
+        notify(this, noUrl.message, 'warning')
+        return
+      }
+      try {
+        await this.ws.load(url)
+      } catch (e) {
+        const failed = soundSwitchOutcome(sound, url, e)
+        this.soundError = failed.message
+        notify(this, failed.message, 'error')
+        return
+      }
+      this.activeSound = sound
+      this.soundError = ''
       this.ws.setTime(t)
       if (wasPlaying) this.ws.play()
     },
@@ -1136,7 +1249,10 @@ export default {
       this.saveTimer = setTimeout(() => this.saveNow(), 3000)
     },
     async saveNow() {
-      if (!this.canEdit) return
+      // BR-331 (аудит #336, PKG-S3-27): saveNow() возвращает признак успеха — submit()
+      // обязан знать, сохранился ли черновик. Раньше результат игнорировался, и задание
+      // уходило на проверку со СТАРЫМ черновиком (последние правки терялись).
+      if (!this.canEdit) return false
       if (this.saveTimer) {
         clearTimeout(this.saveTimer)
         this.saveTimer = null
@@ -1144,8 +1260,12 @@ export default {
       this.saveState = 'saving'
       this.saveError = ''
       // Сохраняем ВСЕ голоса разом (не только текущий) — задание покрывает всю песню.
-      const sourceTexts = JSON.stringify(this.voices.map((v) => v.sourceText))
-      const markersPerVoice = JSON.stringify(this.voices.map((v) => markersToSave(v.markers)))
+      // BR-338: «синтезированные» пустые голоса (без текста и без маркеров) в хвосте списка
+      // не сохраняем — они не несут данных. Голоса в середине НЕ трогаем: индекс голоса на
+      // сервере соответствует позиции в массиве.
+      const voicesToSave = trimTrailingEmptyVoices(this.voices)
+      const sourceTexts = JSON.stringify(voicesToSave.map((v) => v.sourceText))
+      const markersPerVoice = JSON.stringify(voicesToSave.map((v) => markersToSave(v.markers)))
       // BR-330 (аудит #336, PKG-S2-14): authPost реджектит промис на сетевой ошибке, а прежний
       // код обрабатывал только HTTP-статус. При reject `saveState` навсегда оставался 'saving'
       // (кнопка «Сохранить» disabled), исключение уходило в unhandled rejection без сообщения.
@@ -1154,14 +1274,21 @@ export default {
         const outcome = classifyAuthOutcome(null, status)
         if (outcome === 'ok') {
           this.saveState = 'saved'
-          if (body && body.status) this.status = body.status
-        } else {
-          this.saveState = 'error'
-          this.saveError = describeAuthOutcome(outcome)
+          // BR-332 (аудит #336, PKG-S3-27): сервер `save` ВСЕГДА отвечает status='in_progress',
+          // хотя композитный статус при adminStatus=rejected — 'rejected'. Слепое присваивание
+          // скрывало баннер «Возвращено на доработку» ровно тогда, когда редактор исправляет
+          // замечания. Статус из ответа save применяется только если он не «сбрасывает»
+          // композитное состояние.
+          this.status = mergeSaveStatus(this.status, body && body.status)
+          return true
         }
+        this.saveState = 'error'
+        this.saveError = describeAuthOutcome(outcome)
+        return false
       } catch (e) {
         this.saveState = 'error'
         this.saveError = describeAuthOutcome(classifyAuthOutcome(e, 0))
+        return false
       }
     },
     // --- Превью в плеере ---
@@ -1241,9 +1368,10 @@ export default {
         for (const v of this.voices) ensureEndMarker(v.markers, this.duration)
         this.redrawRegions()
         await this.saveNow()
-        // BR-330: если черновик не сохранился, отправлять нельзя — на проверку ушла бы
-        // предыдущая версия разметки (fail-closed: сначала успешное сохранение).
-        if (this.saveState === 'error') {
+        // BR-330 / BR-331 (аудит #336): если черновик не сохранился, отправлять нельзя —
+        // на проверку ушла бы предыдущая версия разметки (fail-closed: сначала успешное
+        // сохранение).
+        if (!isSaveSuccessful(this.saveState)) {
           this.submitError =
             'Черновик не сохранён — отправка отменена. ' +
             (this.saveError || 'Повторите сохранение.')
@@ -1312,6 +1440,27 @@ export default {
     onKeyUp(e) {
       if (!WIRED_KEYS.has(e.code)) return
       this.releaseKey(e.code)
+    },
+    // BR-337 (аудит #336, PKG-S3-27): интервалы перемотки/навигации останавливались только по
+    // keyup/mouseup/mouseleave. При потере фокуса окна (Alt-Tab, блокировка экрана) keyup не
+    // приходит — интервал продолжал работать бесконечно (KeyD каждые 16 мс запускал
+    // воспроизведение, KeyA/KeyZ/KeyC продолжали перематывать).
+    onWindowBlur() {
+      this.releaseAllScrubs()
+    },
+    onVisibilityChange() {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        this.releaseAllScrubs()
+      }
+    },
+    releaseAllScrubs() {
+      const released = releaseAllScrubTimers(this.scrubTimers, this.heldKeys)
+      if (!released.length) return
+      // Восстанавливаем скорость и останавливаем воспроизведение — как в stopScrub().
+      if (this.ws) {
+        this.ws.setPlaybackRate(this.playbackRate)
+        if (this.ws.isPlaying()) this.ws.pause()
+      }
     },
     // Общая точка входа и для клавиатуры, и для клика по нарисованной клавише — оба пути ведут
     // к одному и тому же состоянию heldKeys (подсветка) и одному и тому же действию.
@@ -2027,6 +2176,13 @@ export default {
   color: #d64545;
   /* BR-328/BR-330: сообщения об ошибках — отдельной строкой под кнопками, а не
      ещё одним flex-элементом в один ряд с ними. */
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.82rem;
+}
+/* BR-338: предупреждение (не ошибка) о расхождении длин текста и разметки. */
+.ke-save-warn {
+  color: #b5730b;
   flex-basis: 100%;
   margin: 0;
   font-size: 0.82rem;

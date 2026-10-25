@@ -96,6 +96,14 @@ import {
 } from '../composables/useShareLink'
 import { isRevokeConfirmed } from '../utils/shareRevoke.js'
 import { formatDate } from '../utils/dateFormat.js'
+import { copyTextToClipboard } from '../utils/clipboard.js'
+import {
+  clearShareUrl,
+  readShareUrl,
+  reconcileCreatedLink,
+  resolveSecretStorage,
+  saveShareUrl,
+} from '../utils/shareSecret.js'
 
 const props = defineProps({
   visible: Boolean,
@@ -105,36 +113,25 @@ const emit = defineEmits(['close'])
 
 const { token } = useAuth()
 
-// Секрет share-ссылки бэкенд отдаёт ровно один раз — при создании. Поэтому после рестарта
-// браузера или новой сессии владельца у нас нет URL без перевыпуска. Сохраняем URL в
-// localStorage сразу после успешного createLink/reissue, чтобы при следующем заходе
-// можно было снова скопировать или переслать.
-function storageKey(linkId) {
-  return `karaoke-share-url:${linkId}`
-}
+// BR-299 (аудит #336, PKG-S3-27): секрет share-ссылки — bearer-capability
+// (`/share/{linkId}/{secret}` даёт полный доступ к премиум-плееру без авторизации, на сервере
+// хранится только SHA-256). Раньше URL лежал в `localStorage` и НЕ удалялся ни при выходе из
+// аккаунта, ни по истечении ссылки — на общем устройстве профиль браузера сохранял
+// действующие capability-URL прежнего владельца (до 7 дней).
+// Теперь — `sessionStorage`: секрет живёт только во вкладке и исчезает вместе с ней.
+// Если sessionStorage недоступен — URL держится только в памяти этой модалки.
+const secretStorage = resolveSecretStorage(typeof window !== 'undefined' ? window : null)
 
 function readSavedUrl(linkId) {
-  try {
-    return localStorage.getItem(storageKey(linkId)) || ''
-  } catch (e) {
-    return ''
-  }
+  return readShareUrl(secretStorage, linkId)
 }
 
 function saveUrl(linkId, url) {
-  try {
-    localStorage.setItem(storageKey(linkId), url)
-  } catch (e) {
-    /* ignore quota */
-  }
+  return saveShareUrl(secretStorage, linkId, url)
 }
 
 function clearSavedUrl(linkId) {
-  try {
-    localStorage.removeItem(storageKey(linkId))
-  } catch (e) {
-    /* ignore */
-  }
+  clearShareUrl(secretStorage, linkId)
 }
 
 const ttlOptions = SHARE_TTL_OPTIONS
@@ -152,6 +149,8 @@ const copied = ref(false)
 const errorMessage = ref('')
 const shareUrl = ref('')
 const currentLink = ref(null)
+// BR-301: id ссылки, созданной в ЭТОЙ сессии модалки — по нему сверяемся с ответом polling.
+const createdLinkId = ref(null)
 
 const expiresLabel = computed(() => {
   const link = currentLink.value
@@ -187,8 +186,26 @@ async function loadCurrent() {
       const linkId = body.link.linkId
       const savedUrl = readSavedUrl(linkId)
       currentLink.value = { ...body.link, url: savedUrl }
+      // BR-301 (аудит #336, PKG-S3-27): polling обновляет ТОЛЬКО `currentLink`, а блок
+      // `created` рендерил статический `shareUrl`. Если ссылку перевыпустили или отозвали с
+      // другого устройства, модалка продолжала показывать мёртвый URL как активный (дата — из
+      // свежего `currentLink`, URL — старый). Теперь состояние сверяется с сервером.
+      const reconciled = reconcileCreatedLink(created.value, createdLinkId.value, currentLink.value)
+      if (!reconciled.created && reconciled.stale) {
+        created.value = false
+        shareUrl.value = ''
+        createdLinkId.value = null
+      }
     } else {
       currentLink.value = null
+      // BR-301: сервер не отдал ссылку — её отозвали или она истекла. Показывать старый URL
+      // как активный нельзя.
+      const reconciled = reconcileCreatedLink(created.value, createdLinkId.value, null)
+      if (!reconciled.created && reconciled.stale) {
+        created.value = false
+        shareUrl.value = ''
+        createdLinkId.value = null
+      }
       // Pass 54: показываем пользователю ЧТО вернул бэкенд — раньше ошибка терялась.
       // Типичные причины link: null:
       //   - активной ссылки действительно нет (норма)
@@ -223,9 +240,11 @@ async function createLink() {
         active: true,
       }
       created.value = true
+      createdLinkId.value = body.linkId
       copied.value = false
-      await copyToClipboard(body.url)
-      copied.value = true
+      // BR-296 (зеркало): «Скопировано» показываем ТОЛЬКО при реальном успехе копирования.
+      const copiedOk = await copyToClipboard(body.url)
+      copied.value = copiedOk
     } else {
       handleError(status, body)
     }
@@ -270,6 +289,7 @@ async function revoke() {
     if (linkId) clearSavedUrl(linkId)
     currentLink.value = null
     created.value = false
+    createdLinkId.value = null
     shareUrl.value = ''
   } catch (e) {
     errorMessage.value = 'Нет связи с сервером — отзыв не подтверждён, ссылка пока активна'
@@ -279,33 +299,21 @@ async function revoke() {
 async function copyUrl() {
   const url = shareUrl.value || currentLink.value?.url
   if (!url) return
-  await copyToClipboard(url)
-  copied.value = true
+  // BR-296 (зеркало): результат копирования проверяется — `copied` выставляется только
+  // при успехе, иначе пользователь видит «Ссылка скопирована» при пустом буфере.
+  const ok = await copyToClipboard(url)
+  copied.value = ok
+  if (!ok) {
+    errorMessage.value = 'Не удалось скопировать автоматически — скопируйте ссылку вручную.'
+    return
+  }
   setTimeout(() => {
     copied.value = false
   }, 2000)
 }
 
 async function copyToClipboard(text) {
-  try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text)
-      return
-    }
-  } catch (e) {
-    /* fall through */
-  }
-  // fallback
-  const ta = document.createElement('textarea')
-  ta.value = text
-  document.body.appendChild(ta)
-  ta.select()
-  try {
-    document.execCommand('copy')
-  } catch (e) {
-    /* ignore */
-  }
-  document.body.removeChild(ta)
+  return copyTextToClipboard(text)
 }
 
 function handleError(status, body) {
@@ -362,6 +370,7 @@ watch(
   (v) => {
     if (v) {
       created.value = false
+      createdLinkId.value = null
       shareUrl.value = ''
       errorMessage.value = ''
       // При повторном открытии (если компонент остался жить через v-show) —

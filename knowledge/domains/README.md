@@ -87,6 +87,10 @@ knowledge/domains/<name>/
   - `karaoke-public-tests.md` — тестовая инфраструктура публичного SPA:
     юнит-тесты (`node --test`), e2e Playwright, CI-джобы, guard
     экранирования метки (OpenProject #387, аудит #336 BR-523/524/525).
+  - `karaoke-public-audit-invariants.md` — инварианты публичного SPA из
+    аудита #336 (волна E, `PKG-S3-27`, OpenProject #399): «пусто» ≠ «ошибка»,
+    поколения запросов, подтверждение мутаций, секрет capability-ссылки,
+    жизненный цикл плеера и редактора заданий.
 - `infra/`:
   - `ci-tools.md` — tools/ (Pass 353).
   - `deploy-overview.md` — deploy/ (Pass 354).

@@ -120,6 +120,45 @@ cd karaoke-public && npm run test:e2e
 4. гоняет блокирующие тесты (`--grep-invert @smoke`) и отдельно дымовые
    (`--grep @smoke`, `continue-on-error: true`).
 
+## Контрактные тесты «до/после» (пакет PKG-S3-27)
+
+Аудит #336 (`PKG-S3-27`, OpenProject #399) добавил в публичный SPA 16 файлов
+тестов и 279 кейсов. Ключевая особенность — **два уровня проверки**:
+
+1. **Поведенческий** — чистые функции из `karaoke-public/src/utils/` и `karaoke-public/src/player/playerGuards.js`
+   проверяются напрямую (с депленными `navigator`/`document`/`Storage`).
+2. **Контрактный по исходнику** — тест читает текст `.vue`/`.js`-файла
+   (`karaoke-public/src/utils/__tests__/sourceContract.js` -> `readSource`, `readCode`) и
+   проверяет, что в нём есть новая конструкция и **нет** старой (buggy-паттерна).
+
+Второй уровень нужен потому, что правка живёт в компоненте, а не в чистой
+функции: такой тест компилируется и на **старом** коде и падает на нём
+(assertion failed), а не «не находит модуль». Это настоящее доказательство
+«до/после».
+
+Проверка «до» выполняется так: изменённые исходники откатываются через
+`git stash push -- <файлы>` (тесты и новые модули остаются), после чего
+прогоняется `npm run test:unit`. Для `PKG-S3-27` на старом коде падают 57
+проверок, после правок — 0 (279/279).
+
+Новые файлы тестов (16):
+
+| Файл | Что фиксирует |
+| --- | --- |
+| `karaoke-public/src/utils/__tests__/clipboard.test.js` | BR-296: результат копирования проверяется |
+| `karaoke-public/src/utils/__tests__/cartToggle.test.js` | BR-297, BR-314: ответ toggle и привязка корзины к токену |
+| `karaoke-public/src/utils/__tests__/shareSecret.test.js` | BR-299, BR-301: секрет capability-ссылки и сверка с polling |
+| `karaoke-public/src/utils/__tests__/requestGuard.test.js` | BR-300, BR-315, BR-321: поколения запросов |
+| `karaoke-public/src/utils/__tests__/loadState.test.js` | BR-318, BR-322, BR-323, BR-334, BR-341, BR-343, BR-346: «пусто» ≠ «ошибка» |
+| `karaoke-public/src/utils/__tests__/editorGuards.test.js` | BR-331…BR-338: инварианты редактора заданий |
+| `karaoke-public/src/utils/__tests__/routeGuard.test.js` | BR-316, BR-317: guard маршрута и polling новостей |
+| `karaoke-public/src/utils/__tests__/streamLifecycle.test.js` | BR-320: жизненный цикл NDJSON-стрима |
+| `karaoke-public/src/utils/__tests__/statusMap.test.js` | BR-298, BR-325: гейт премиума и карта статусов |
+| `karaoke-public/src/utils/__tests__/pricing.test.js` | BR-326: цены из API, а не из текста страницы |
+| `karaoke-public/src/utils/__tests__/searchPagination.test.js` | BR-344, BR-345: восстановление среза и разные флаги ошибок |
+| `karaoke-public/src/player/__tests__/playerGuards.test.js` | BR-304…BR-311: инварианты плеера |
+| `karaoke-public/src/utils/__tests__/sourceContract.js` | хелпер чтения исходников (не тест) |
+
 ## Ограничения и известные TODO
 
 - [ ] Тест экранирования ждёт фикса BR-312 (OpenProject #377, волна D) —
@@ -137,11 +176,16 @@ cd karaoke-public && npm run test:e2e
   локальные хуки и джобы CI.
 - **karaoke-public composables** ([karaoke-public-composables.md](karaoke-public-composables.md)) —
   `formatText` и остальные composables публичного SPA.
+- **Инварианты публичного SPA** ([karaoke-public-audit-invariants.md](karaoke-public-audit-invariants.md)) —
+  правила, которые фиксируют новые тесты.
 - **Админский редактор** ([subs-edit-admin-editor.md](subs-edit-admin-editor.md)) —
   вторая копия `formatText` (ReviewModal).
 
 ## Changelog
 
+- **OpenProject #399** (2026-10-25, аудит #336, `PKG-S3-27`): добавлены 16
+  файлов тестов (279 кейсов) и двухуровневая схема проверки — поведенческая
+  (чистые функции) + контрактная по исходнику (падает на старом коде).
 - **OpenProject #387** (2026-10-24, аудит #336, BR-523/524/525): юнит-тесты
   публичного SPA получили скрипт `npm run test:unit` и CI-джоб; e2e получили
   CI-джоб с контейнером; проверка контракта бандла стала дымовой; проверка

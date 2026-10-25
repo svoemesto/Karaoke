@@ -7,6 +7,13 @@
       <h1 class="km-title">📰 Новости проекта</h1>
 
       <div v-if="loading" class="km-loading">Загрузка...</div>
+      <!-- BR-343 (аудит #336, PKG-S3-27): «пусто» и «ошибка» — разные состояния. Раньше
+           пустой catch превращал 500/503/офлайн в «Пока новостей нет» (заведомо неверно для
+           19000+ строк в tbl_news), а счётчик непрочитанного не сбрасывался. -->
+      <div v-else-if="loadError" class="km-empty">
+        {{ loadError }}
+        <button class="km-retry-btn" @click="reload">Повторить</button>
+      </div>
       <p v-else-if="!news.length" class="km-empty">Пока новостей нет — загляните позже.</p>
 
       <div v-else class="km-news-list">
@@ -61,22 +68,40 @@ export default {
   name: 'NewsView',
   components: { AppHeader },
   data() {
-    return { news: [], loading: true, page: 0, total: 0, hasMore: false, loadingMore: false }
+    return {
+      news: [],
+      loading: true,
+      // BR-343: отдельный флаг ошибки загрузки (не «пусто»).
+      loadError: '',
+      page: 0,
+      total: 0,
+      hasMore: false,
+      loadingMore: false,
+    }
   },
   async mounted() {
-    // apiGet (services/api.js) резолвит уже распарсенным телом ответа, БЕЗ обёртки {status, body}
-    // (в отличие от authGet/authPost из authApi.js, который использует chatApi.js) — новости
-    // публичны и не требуют авторизованного клиента.
-    try {
-      const data = await fetchNews(0, PAGE_SIZE)
-      this.applyPage(data, true)
-      this.markAllSeen()
-    } catch (e) {
-      /* пустая лента при сетевой ошибке */
-    }
-    this.loading = false
+    await this.reload()
   },
   methods: {
+    // BR-343 (аудит #336, PKG-S3-27): первичная загрузка — с явной ошибкой и повтором.
+    // `markAllSeen()` вызывается ТОЛЬКО после успешной загрузки: раньше бейдж
+    // непрочитанного в шапке не сбрасывался при ошибке, а 500/503 показывались как
+    // «Пока новостей нет».
+    async reload() {
+      this.loading = true
+      this.loadError = ''
+      try {
+        // apiGet (services/api.js) резолвит уже распарсенным телом ответа, БЕЗ обёртки
+        // {status, body} (в отличие от authGet/authPost из authApi.js) — новости
+        // публичны и не требуют авторизованного клиента.
+        const data = await fetchNews(0, PAGE_SIZE)
+        this.applyPage(data, true)
+        this.markAllSeen()
+      } catch (e) {
+        this.loadError = 'Не удалось загрузить новости — попробуйте ещё раз'
+      }
+      this.loading = false
+    },
     // Ответ {items, total, hasMore} (specs/090-news-pagination) — append=true при первой загрузке
     // (замена пустого списка), append=false невозможен здесь, "Показать ещё" всегда дозагружает.
     applyPage(data, append) {
@@ -94,7 +119,9 @@ export default {
         this.applyPage(data, true)
         this.page = nextPage
       } catch (e) {
-        /* оставляем уже показанные карточки при сетевой ошибке */
+        // BR-343: ошибка подгрузки — с сообщением, а не молча («оставляем уже показанные
+        // карточки» без объяснения).
+        this.loadError = 'Не удалось загрузить следующие новости — попробуйте ещё раз'
       }
       this.loadingMore = false
     },
@@ -161,6 +188,16 @@ export default {
   color: var(--km-text2);
   text-align: center;
   padding: 2rem 0;
+}
+/* BR-343: кнопка повтора при сбое загрузки новостей. */
+.km-retry-btn {
+  margin-left: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--km-accent);
+  color: var(--km-accent);
+  border-radius: 8px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
 }
 
 .km-news-list {

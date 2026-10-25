@@ -2,6 +2,7 @@ import { watch } from 'vue'
 import { useAuth } from './useAuth'
 import { usePlaylistMembership } from './usePlaylistMembership'
 import { useSongSubscriptions } from './useSongSubscriptions'
+import { useCart } from './useCart'
 
 /**
  * Auth bootstrap (Pass 239, specs/239-zakroma-author-songs-batch-render).
@@ -29,6 +30,9 @@ export function useAuthBootstrap() {
   const { token } = useAuth()
   const { loadFavoritesIds, loadPlaylists, reset: resetPlaylists } = usePlaylistMembership()
   const { loadOnce, reset: resetSubscriptions } = useSongSubscriptions()
+  // BR-314 (аудит #336, PKG-S3-27): корзина тоже должна сбрасываться при выходе — иначе
+  // позиции прежнего пользователя остаются видны следующему в том же браузере.
+  const { reset: resetCart } = useCart()
 
   function onLogin() {
     // Параллельно: избранное + подписки + список плейлистов. membership per-song —
@@ -39,6 +43,7 @@ export function useAuthBootstrap() {
   function onLogout() {
     resetPlaylists()
     resetSubscriptions()
+    resetCart()
   }
 
   // Стартуем сразу (если уже залогинен при загрузке страницы — token может быть в localStorage)

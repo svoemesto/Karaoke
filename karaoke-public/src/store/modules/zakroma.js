@@ -1,5 +1,6 @@
 import { apiGet } from '../../services/api'
 import { useZakromaStreamProgress } from '../../composables/useZakromaStreamProgress'
+import { releaseStream, shouldReplaceActiveStream } from '../../utils/streamLifecycle.js'
 
 // Локальный кеш AlbumType-метаданных (mirror из
 // karaoke-app/src/main/kotlin/.../AlbumType.kt). Нужен для построения
@@ -229,7 +230,10 @@ export default {
 
       // Создаём composable (FR-FE-001) и запускаем стрим. Предыдущий экземпляр (если был)
       // сначала освобождает подписки — см. activeStream выше.
-      if (activeStream) activeStream.cleanup()
+      // BR-320 (аудит #336, PKG-S3-27): новый стим ВСЕГДА заменяет текущий (cancel-and-restart) —
+      // два одновременных NDJSON-потока на один публичный hot-path эндпоинт это ровно та
+      // двойная нагрузка, которую фиксирует аудит.
+      if (shouldReplaceActiveStream(activeStream)) releaseStream(activeStream)
       const composable = useZakromaStreamProgress()
       activeStream = composable
       // Передаём прогресс в state.streamProgress через watcher на composable refs.
@@ -284,9 +288,35 @@ export default {
         stopProgress()
         // Стрим завершён (успех/ошибка/abort) — снимаем подписки и отложенный таймер
         // индикатора; refs после завершения больше не меняются.
-        composable.cleanup()
+        // BR-320: cleanup() обязателен в finally — иначе AbortController и подписки жили
+        // до конца вкладки, а первый стрим продолжал коммитить setZakroma после ухода
+        // пользователя со страницы.
+        releaseStream(composable)
         if (activeStream === composable) activeStream = null
         commit('setStreaming', false)
+      }
+    },
+    /**
+     * BR-320 (аудит #336, PKG-S3-27): НАСТОЯЩАЯ отмена активного NDJSON-стрима.
+     *
+     * Раньше кнопка «Отмена» на странице лишь ПОВТОРНО диспатчила тот же action без `force`:
+     * на первом заходе (дедуп ещё не сработал) это запускало ВТОРОЙ стрим поверх живого
+     * первого, а при повторном заходе (< 30 с) не делало вообще ничего. Теперь поток
+     * действительно прерывается (AbortController) и состояние сбрасывается.
+     */
+    cancelZakromaStream({ commit, state }) {
+      if (activeStream) {
+        releaseStream(activeStream)
+        activeStream = null
+      }
+      commit('setZakroma', [])
+      commit('setStreaming', false)
+      commit('setStreamProgress', { receivedCount: 0, expectedCount: 0 })
+      commit('setStreamError', null)
+      // Сбрасываем метку дедупа для ВСЕХ авторов: после отмены следующий заход должен
+      // действительно загрузить данные, а не получить no-op по устаревшей метке.
+      for (const key of Object.keys(state.lastLoadedTimestampByAuthor || {})) {
+        commit('setLastLoadedTimestamp', { author: key, ts: 0 })
       }
     },
     /**

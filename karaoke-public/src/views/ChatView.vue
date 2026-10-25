@@ -55,6 +55,8 @@
 
         <template v-else>
           <div ref="listEl" class="km-chat-messages">
+            <!-- BR-324: ошибка поллинга видна пользователю (раньше был тишина). -->
+            <p v-if="pollError" class="km-chat-poll-error" role="alert">{{ pollError }}</p>
             <p v-if="!messages.length" class="km-empty">Сообщений пока нет. Напишите первым!</p>
             <div v-if="hasMoreHistory" class="km-chat-history-row">
               <button
@@ -149,6 +151,8 @@ export default {
       draft: '',
       sending: false,
       error: '',
+      // BR-324: состояние ошибки поллинга (показывается, а не молчит).
+      pollError: '',
       pollTimer: null,
       pageSize: PAGE_SIZE,
     }
@@ -260,17 +264,33 @@ export default {
     // треда заново. Автоскролл вниз — только если пользователь и так был у низа ленты (не выдёргиваем
     // его вниз, если он в этот момент читает историю выше).
     async poll() {
-      if (!this.messages.length) return
+      // BR-324 (аудит #336, PKG-S3-27): ранний `return` по пустому списку УБРАН. Для треда без
+      // сообщений поллинг не выполнялся вообще: первое сообщение автора (в т.ч. приветственное
+      // при выдаче премиума) не появлялось на открытой странице до перезагрузки. Теперь при пустом
+      // окне запрашивается свежая страница (без afterId).
       const el = this.$refs.listEl
       const wasNearBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight < 40 : true
-      const afterId = this.messages[this.messages.length - 1].id
-      const { status, body } = await fetchMessages({ afterId, limit: POLL_BATCH_LIMIT })
-      if (status === 200 && body) {
-        if (body.messages && body.messages.length) {
-          this.messages = this.messages.concat(body.messages)
+      const hasMessages = this.messages.length > 0
+      const afterId = hasMessages ? this.messages[this.messages.length - 1].id : undefined
+      try {
+        const query = { limit: hasMessages ? POLL_BATCH_LIMIT : PAGE_SIZE }
+        if (afterId !== undefined) query.afterId = afterId
+        const { status, body } = await fetchMessages(query)
+        if (status !== 200 || !body) {
+          this.pollError = 'Не удалось обновить сообщения — попробуйте ещё раз.'
+          return
+        }
+        this.pollError = ''
+        const incoming = body.messages || []
+        if (incoming.length) {
+          this.messages = hasMessages ? this.messages.concat(incoming) : incoming
           if (wasNearBottom) this.$nextTick(this.scrollToBottom)
         }
         this.total = body.total || this.total
+      } catch (e) {
+        // Сетевой сбой: без catch каждый тик (7 с) давал необработанный reject, а в UI была
+        // тишина — сообщения просто переставали приходить.
+        this.pollError = 'Нет связи с сервером — сообщения не обновляются.'
       }
     },
     scrollToBottom() {
@@ -432,6 +452,13 @@ export default {
   color: var(--km-text2);
   font-size: 0.9rem;
   padding: 1rem 0;
+  text-align: center;
+}
+/* BR-324: ошибка поллинга чата. */
+.km-chat-poll-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
   text-align: center;
 }
 

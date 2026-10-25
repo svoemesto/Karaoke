@@ -663,6 +663,12 @@ export default {
     // specs/258 — обновляем заголовок вкладки после async-резолвинга ID → имя.
     this.updateDocumentTitle()
   },
+  // BR-320 (аудит #336, PKG-S3-27): уход со страницы прерывает активный NDJSON-стрим.
+  // Раньше первый стрим продолжал читать тело и коммитить `setZakroma` уже после ухода
+  // пользователя — фоновая работа на публичном hot-path эндпоинте.
+  beforeUnmount() {
+    this.cancelZakromaStreamAction()
+  },
   /**
    * Pass 359: запускает поток песен автора, если ещё не запущен. Использует
    * `this.authorTiles` для маппинга ID→name. Вызывается из mounted и из
@@ -706,7 +712,14 @@ export default {
         }
       }
     },
-    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
+    // BR-320: store-экшен отмены мапим под другим именем — локальный метод
+    // `cancelZakromaStream` (он же вешается в шаблоне) вызывает его.
+    ...mapActions('zakroma', {
+      loadAuthorTiles: 'loadAuthorTiles',
+      loadZakromaStream: 'loadZakromaStream',
+      loadSpecialBucket: 'loadSpecialBucket',
+      cancelZakromaStreamAction: 'cancelZakromaStream',
+    }),
     /**
      * specs/258 — динамический заголовок вкладки браузера по текущему режиму ZakromaView:
      * - /zakroma                              → «Закрома — Караоке на «Своём Месте»»
@@ -913,21 +926,13 @@ export default {
       // успеет сработать + state.zakroma будет сбрасываться уже после
       // смены маршрута (давая посетителю увидеть «зависший» список).
       //
-      // На текущей фазе (v1) мы НЕ держим ссылку на composable в data()
-      // (она создаётся внутри store action). Поэтому используем обходной
-      // путь: force-refresh стрима с тем же автором → store создаст новый
-      // composable, сразу вызовет controller.abort() через dedup-bypass
-      // (lastTs=0 → force), catch обрабатывает 'aborted' → state
-      // сбрасывается → backToAuthors().
-      //
-      // Это работает, но требует рефакторинга в Phase 6+: держать composable
-      // в data(), expose cancel() через setup() return.
-      // expectedCount = undefined: backend fallback'ит на DB-запрос.
-      this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: undefined }).catch(
-        () => {
-          // ignore — abort обработан внутри
-        },
-      )
+      // BR-320 (аудит #336, PKG-S3-27): Раньше здесь был обходной путь — повторный
+      // диспатч того же action без `force`. Он НЕ прерывал поток: на первом заходе
+      // (дедуп ещё не сработал) запускал ВТОРОЙ NDJSON-стрим поверх живого первого
+      // (двойная нагрузка на публичный hot-path эндпоинт), а при повторном заходе
+      // (< 30 с) не делал вообще ничего. Теперь store держит активный composable и
+      // прерывает его по-настоящему (AbortController + сброс состояния).
+      this.cancelZakromaStreamAction()
       this.backToAuthors()
     },
     /** Открыть табличное отображение «Отдельные песни разных авторов» как обычного автора. */

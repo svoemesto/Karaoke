@@ -17,6 +17,7 @@
 // Скрывается, когда пользователь уже на странице чата (там и так видно новое сообщение).
 import { useAuth } from '../composables/useAuth'
 import { fetchUnreadCount } from '../services/chatApi'
+import { CHAT_POLL_DECISION, chatPollDecision } from '../utils/statusMap.js'
 
 const POLL_INTERVAL_MS = 20000
 
@@ -51,10 +52,16 @@ export default {
     },
   },
   watch: {
-    isLoggedIn: {
+    // BR-298 (аудит #336, PKG-S3-27): наблюдаем за ПРЕМИУМ-СТАТУСОМ, а не только за
+    // `isLoggedIn`. Премиум читается из `user.effectivePremium`, который обновляется
+    // фоновым `fetchMe()` (раз в 5 минут и при входе в /account) — `isLoggedIn` при этом
+    // не меняется. Раньше пользователь, ставший премиумом в открытой вкладке, не получал
+    // бейдж до полной перезагрузки, а при истечении подписки polling продолжался впустую.
+    isPremium: {
       immediate: true,
-      handler(loggedIn) {
-        loggedIn && this.isPremium ? this.startPolling() : this.stopPolling()
+      handler(premium) {
+        if (chatPollDecision(premium) === CHAT_POLL_DECISION.START) this.startPolling()
+        else this.stopPolling()
       },
     },
   },
@@ -75,8 +82,13 @@ export default {
       this.unread = 0
     },
     async poll() {
-      const { status, body } = await fetchUnreadCount()
-      if (status === 200 && body) this.unread = body.count || 0
+      // Сетевой сбой не должен ронять polling и оставлять unhandled rejection.
+      try {
+        const { status, body } = await fetchUnreadCount()
+        if (status === 200 && body) this.unread = body.count || 0
+      } catch (e) {
+        /* следующий тик попробует ещё раз */
+      }
     },
     goToChat() {
       this.$router.push('/account/chat')

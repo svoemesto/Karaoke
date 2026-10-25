@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
+import org.slf4j.LoggerFactory
 
 /**
  * Состояние прогона чистки (`data-model.md` §5).
@@ -60,6 +61,9 @@ class ArtifactCleanupService(
     private val planner: ArtifactCleanupPlanner = ArtifactCleanupPlanner(),
     private val journal: CleanupJournal = CleanupJournal(),
 ) {
+    // BR-170 (аудит #336, пакет `PKG-S3-23`): категория логов уборки артефактов.
+    private val cleanupLog = LoggerFactory.getLogger("infra.cleanup")
+
     companion object {
         /** BR-111: сколько отчётов держим в heap (каждый — до десятков тысяч путей). */
         internal const val MAX_RETAINED_PLANS = 32
@@ -184,6 +188,18 @@ class ArtifactCleanupService(
         if (plan.fileCount == 0L) {
             throw CleanupException(400, "empty_plan", "в отчёте нет ни одного файла — удаление не имеет смысла")
         }
+        // BR-169: отчёт, построенный по прерванному обходу, применять НЕЛЬЗЯ — он
+        // неполон (обход оборвался на недоступном каталоге), и удаление по нему дало бы
+        // «DONE» по части класса. Требуется новый plan.
+        plan.warnings
+            .firstOrNull { it.startsWith(ArtifactCleanupPlanner.WALK_INTERRUPTED_MARKER) }
+            ?.let { warning ->
+                throw CleanupException(
+                    409,
+                    "incomplete_plan",
+                    "отчёт построен по прерванному обходу ($warning) — состав неполон, требуется новый plan",
+                )
+            }
         if (classId == ArtifactCleanupClass.STEMS_MP3_LOCAL && KaraokeFileType.MP3_ACCOMPANIMENT.willBeInFileSystem) {
             throw CleanupException(
                 409,
@@ -208,7 +224,15 @@ class ArtifactCleanupService(
             throw CleanupException(503, "journal_unavailable", "каталог журнала '${journal.journalDir}' недоступен для записи")
         }
 
-        val runId = CleanupJournal.newRunId(classId.name)
+        // BR-171 (аудит #336, пакет `PKG-S3-23`): runId уникален на ПРОГОН.
+        //
+        // Раньше `newRunId(classId)` давал `r-<дата>-<classId>` — у всех прогонов одного
+        // класса в один день идентификатор совпадал. Два `apply` одного класса за день
+        // писали в одну запись `runs[runId]`: второй перезаписывал состояние первого, и
+        // `GET /api/cleanup/status?runId=…` отдавал счётчики последнего, а не запрошенного.
+        val runUuid = java.util.UUID.randomUUID()
+        val runSuffix = runUuid.toString().substring(0, 8)
+        val runId = "${CleanupJournal.newRunId(classId.name)}-$runSuffix"
         val journalPath = journal.journalPath(classId.name).toString()
         val approved =
             CleanupRunStatus(
@@ -241,7 +265,17 @@ class ArtifactCleanupService(
         var freed = 0L
         val errors = mutableListOf<String>()
 
-        plan.entries.forEach { entry ->
+        // BR-170 (аудит #336, пакет `PKG-S3-23`): `append == false` означает «след удаления
+        // не записан» — прогон прерывается и переводится в FAILED.
+        //
+        // Раньше результат `journal.appendDeleted`/`appendFailed` игнорировался: сбой записи
+        // в журнал (диск заполнен, каталог стал недоступен) НЕ прерывал удаление — файл
+        // удалялся, счётчик `deleted` рос, прогон завершался DONE. Это противоречило
+        // обещанию автоматизации («если журнал недоступен — удаление НЕ выполняется») и
+        // FR-012 (журнал фиксирует и удаления, и неудачи).
+        var journalBroken = false
+        for (entry in plan.entries) {
+            if (journalBroken) break
             val size = entry.sizeBytes
             val ok =
                 try {
@@ -253,10 +287,29 @@ class ArtifactCleanupService(
             if (ok) {
                 deleted++
                 freed += size
-                journal.appendDeleted(entry.path, size, classId.name, approvedBy, approved.runId)
+                if (!journal.appendDeleted(entry.path, size, classId.name, approvedBy, approved.runId)) {
+                    // BR-170: файл удалён, но след не записан — прогон не может считаться
+                    // успешным. Останавливаемся и переводим прогон в FAILED.
+                    journalBroken = true
+                    failed++
+                    errors.add("${entry.path}: удалено, но запись в журнал не выполнена — прогон прерван (FR-012)")
+                    cleanupLog.error(
+                        "cleanup: не удалось записать в журнал после удаления '{}' — прогон {} прерван",
+                        entry.path,
+                        approved.runId,
+                    )
+                }
             } else {
                 failed++
-                journal.appendFailed(entry.path, size, classId.name, approvedBy, approved.runId, "delete failed")
+                if (!journal.appendFailed(entry.path, size, classId.name, approvedBy, approved.runId, "delete failed")) {
+                    journalBroken = true
+                    errors.add("${entry.path}: не удалось записать неудачу в журнал — прогон прерван (FR-012)")
+                    cleanupLog.error(
+                        "cleanup: не удалось записать в журнал неудачу по '{}' — прогон {} прерван",
+                        entry.path,
+                        approved.runId,
+                    )
+                }
             }
             val current = getRun(approved.runId) ?: approved
             putRun(
@@ -272,6 +325,8 @@ class ArtifactCleanupService(
 
         val finalState =
             when {
+                // BR-170: прогон без записи в журнал — это FAILED, а не DONE/PARTIAL.
+                journalBroken -> CleanupRunState.FAILED
                 deleted == 0L && failed > 0L -> CleanupRunState.FAILED
                 failed > 0L -> CleanupRunState.PARTIAL
                 else -> CleanupRunState.DONE

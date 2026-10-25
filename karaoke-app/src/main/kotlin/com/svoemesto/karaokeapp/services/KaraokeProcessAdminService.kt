@@ -345,22 +345,32 @@ class KaraokeProcessAdminService(
                     "Cannot connect to database ${database.name}",
                 )
         val sql = "UPDATE tbl_processes SET ${sets.joinToString(", ")} WHERE id = ?"
-        connection.prepareStatement(sql).use { ps ->
-            var index = 1
-            for (value in values) {
-                setParam(ps, index, value)
-                index++
-            }
-            ps.setInt(index, id)
-            ps.executeUpdate()
-        }
 
-        // Audit EDIT (FR-016, T025): old/new diff раздельно
-        val oldMap = currentValue(current)
-        val newMap = buildNewMap(current, changes)
-        val oldDiff = oldMap.filter { (k, v) -> newMap[k] != v }
-        val newDiff = newMap.filter { (k, v) -> oldMap[k] != v }
-        insertAudit(connection, id, actor, "EDIT", oldDiff, newDiff)
+        // BR-168 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): UPDATE и audit-запись
+        // выполняются в ОДНОЙ транзакции.
+        //
+        // Раньше это были две независимые autocommit-транзакции: сначала UPDATE (зафиксирован),
+        // потом INSERT в tbl_processes_audit. Падение второго (обрыв соединения, неприменённая
+        // миграция 48, сбой сериализации jsonb) давало 500 при УЖЕ применённой правке —
+        // и история правки терялась безвозвратно.
+        inTransaction(connection) {
+            connection.prepareStatement(sql).use { ps ->
+                var index = 1
+                for (value in values) {
+                    setParam(ps, index, value)
+                    index++
+                }
+                ps.setInt(index, id)
+                ps.executeUpdate()
+            }
+
+            // Audit EDIT (FR-016, T025): old/new diff раздельно
+            val oldMap = currentValue(current)
+            val newMap = buildNewMap(current, changes)
+            val oldDiff = oldMap.filter { (k, v) -> newMap[k] != v }
+            val newDiff = newMap.filter { (k, v) -> oldMap[k] != v }
+            insertAudit(connection, id, actor, "EDIT", oldDiff, newDiff)
+        }
 
         return loadProcess(id, database) ?: current
     }
@@ -418,25 +428,28 @@ class KaraokeProcessAdminService(
             }
         }
 
-        // targeted soft-delete (FR-010), НЕ через save()
-        val sql = "UPDATE tbl_processes SET process_deleted_at = NOW() WHERE id = ? AND process_deleted_at IS NULL"
-        connection.prepareStatement(sql).use { ps ->
-            ps.setInt(1, id)
-            ps.executeUpdate()
-        }
+        // BR-168: soft-delete и его audit-запись — в одной транзакции.
+        inTransaction(connection) {
+            // targeted soft-delete (FR-010), НЕ через save()
+            val sql = "UPDATE tbl_processes SET process_deleted_at = NOW() WHERE id = ? AND process_deleted_at IS NULL"
+            connection.prepareStatement(sql).use { ps ->
+                ps.setInt(1, id)
+                ps.executeUpdate()
+            }
 
-        // Audit DELETE (FR-016, T030): oldValue.status + флаги, newValue.process_deleted_at
-        val oldValue =
-            mutableMapOf<String, Any?>(
-                "status" to current.status,
-                "processDeletedAt" to current.processDeletedAt,
-            )
-        if (timeout) oldValue["timeout"] = true
-        val newValue =
-            mutableMapOf<String, Any?>(
-                "process_deleted_at" to Timestamp.from(Instant.now()),
-            )
-        insertAudit(connection, id, actor, "DELETE", oldValue, newValue)
+            // Audit DELETE (FR-016, T030): oldValue.status + флаги, newValue.process_deleted_at
+            val oldValue =
+                mutableMapOf<String, Any?>(
+                    "status" to current.status,
+                    "processDeletedAt" to current.processDeletedAt,
+                )
+            if (timeout) oldValue["timeout"] = true
+            val newValue =
+                mutableMapOf<String, Any?>(
+                    "process_deleted_at" to Timestamp.from(Instant.now()),
+                )
+            insertAudit(connection, id, actor, "DELETE", oldValue, newValue)
+        }
     }
 
     /**
@@ -636,19 +649,25 @@ class KaraokeProcessAdminService(
         }
 
         // Один UPDATE на все валидные id (Constitution II: batch, не N+1).
+        //
+        // BR-168: UPDATE и N audit-INSERT'ов — в одной транзакции. Раньше падение на
+        // k-й audit-записи оставляло N−k строк изменёнными без аудита, а ответ был 500
+        // (UI считал операцию неуспешной, а данные уже изменились).
         if (succeeded.isNotEmpty()) {
             val sql =
                 "UPDATE tbl_processes SET $column = ? WHERE id IN (${succeeded.joinToString(",")})"
-            connection.prepareStatement(sql).use { ps ->
-                setParam(ps, 1, coercedValue)
-                ps.executeUpdate()
-            }
-            // Per-row audit с одинаковым batch_id (FR-005, FR-006).
-            for (id in succeeded) {
-                val current = currentById.getValue(id)
-                val oldMap = mapOf(field to currentValue(current)[field])
-                val newMap = mapOf(field to coercedValue)
-                insertAudit(connection, id, actor, "bulk_update_field", oldMap, newMap, effectiveBatchId)
+            inTransaction(connection) {
+                connection.prepareStatement(sql).use { ps ->
+                    setParam(ps, 1, coercedValue)
+                    ps.executeUpdate()
+                }
+                // Per-row audit с одинаковым batch_id (FR-005, FR-006).
+                for (id in succeeded) {
+                    val current = currentById.getValue(id)
+                    val oldMap = mapOf(field to currentValue(current)[field])
+                    val newMap = mapOf(field to coercedValue)
+                    insertAudit(connection, id, actor, "bulk_update_field", oldMap, newMap, effectiveBatchId)
+                }
             }
         }
 
@@ -1052,6 +1071,31 @@ class KaraokeProcessAdminService(
             }
         }
         return result
+    }
+
+    /**
+     * BR-168 (аудит #336, пакет `PKG-S3-23`): выполнить блок в одной транзакции.
+     *
+     * `autoCommit` выключается на время блока и возвращается к прежнему значению в
+     * `finally` — соединение кэшируется в потоке (KaraokeConnection), и оставить его в
+     * режиме `autoCommit=false` значило бы сломать все последующие операции потока.
+     */
+    private fun <T> inTransaction(
+        connection: Connection,
+        block: () -> T,
+    ): T {
+        val previousAutoCommit = connection.autoCommit
+        connection.autoCommit = false
+        return try {
+            val result = block()
+            connection.commit()
+            result
+        } catch (e: Exception) {
+            runCatching { connection.rollback() }
+            throw e
+        } finally {
+            runCatching { connection.autoCommit = previousAutoCommit }
+        }
     }
 
     /**

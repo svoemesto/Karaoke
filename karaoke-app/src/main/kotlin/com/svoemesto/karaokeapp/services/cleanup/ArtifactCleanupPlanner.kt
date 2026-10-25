@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.streams.asSequence
+import org.slf4j.LoggerFactory
 
 /**
  * Одна запись отчёта сухого прогона.
@@ -81,6 +82,9 @@ data class CleanupPlan(
 class ArtifactCleanupPlanner(
     private val roots: List<String>? = null,
 ) {
+    // BR-169 (аудит #336, пакет `PKG-S3-23`): категория логов планировщика уборки.
+    private val cleanupLog = LoggerFactory.getLogger("infra.cleanup")
+
     /**
      * Корни обхода, вычисляемые **при первом обращении**, а не в конструкторе.
      *
@@ -107,12 +111,15 @@ class ArtifactCleanupPlanner(
         }
 
         val entries = mutableListOf<CleanupPlanEntry>()
+        // BR-169: предупреждения о прерванном обходе попадают в тот же список, что и
+        // объёмные предупреждения, — и `apply` их учитывает.
+        val walkWarnings = mutableListOf<String>()
         effectiveRoots()
             .map { File(it) }
             .filter { it.isDirectory }
-            .forEach { root -> collect(root, classId, entries) }
+            .forEach { root -> collect(root, classId, entries, walkWarnings) }
 
-        val warnings = volumeWarnings(classId, entries)
+        val warnings = (volumeWarnings(classId, entries) + walkWarnings).distinct()
         return CleanupPlan(
             planId = UUID.randomUUID().toString(),
             classId = classId.name,
@@ -126,6 +133,7 @@ class ArtifactCleanupPlanner(
         root: File,
         classId: ArtifactCleanupClass,
         into: MutableList<CleanupPlanEntry>,
+        warnings: MutableList<String>,
     ) {
         val rootPath = root.toPath()
         try {
@@ -143,7 +151,16 @@ class ArtifactCleanupPlanner(
                 }
             }
         } catch (e: Exception) {
-            println("[cleanup] план ${classId.name}: обход '$root' прерван: ${e.message}")
+            // BR-169 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): факт прерывания
+            // обхода попадает В ОТЧЁТ (`warnings`), а не только в stdout.
+            //
+            // Раньше сбой (переименованный/удалённый каталог песни во время обхода) тихо
+            // обрывал остаток корня: отчёт содержал лишь часть файлов, а `apply` удалял эту
+            // часть и завершался состоянием DONE — владелец получал «успех» по неполному
+            // набору. Теперь отчёт помечен, и `apply` такой отчёт отклоняет.
+            val warning = "$WALK_INTERRUPTED_MARKER: '$root' — ${e.message ?: e.javaClass.simpleName}"
+            warnings.add(warning)
+            cleanupLog.warn("ArtifactCleanupPlanner: план {}: {}", classId.name, warning, e)
         }
     }
 
@@ -222,5 +239,14 @@ class ArtifactCleanupPlanner(
 
     companion object {
         const val DEFAULT_TOLERANCE_PERCENT = 10
+
+        /**
+         * BR-169 (аудит #336, пакет `PKG-S3-23`): маркер предупреждения «обход прерван».
+         *
+         * Отчёт с таким предупреждением НЕЛЬЗЯ применять: он построен по неполному
+         * набору файлов (обход оборвался на недоступном каталоге), и `apply` удалил бы
+         * лишь часть класса, а владелец получил бы «DONE».
+         */
+        const val WALK_INTERRUPTED_MARKER = "обход прерван"
     }
 }

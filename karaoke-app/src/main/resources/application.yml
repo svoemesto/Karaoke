@@ -64,9 +64,13 @@ db-remote-postgres-password: ${DB_SERVER_POSTGRES_PASSWORD}
 db-remote-host: ${DB_REMOTE_HOST:188.127.240.124}
 db-remote-port: ${DB_REMOTE_PORT:5433}
 
-app:
-  max-file-size: 100MB
-  max-request-size: 100MB
+# BR-173 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): блок `app:` удалён.
+#
+# `app.max-file-size` / `app.max-request-size` НЕ ЧИТАЛИСЬ ни одним классом — это был
+# тот же класс лжи, что с удалённым 2026-09-30 `APP_MAX_FILE_SIZE` в compose: файл с
+# настройками утверждал лимит загрузки, которого не было. Настоящий лимит запроса задаёт
+# `spring.servlet.multipart` (max-file-size: 100MB / max-request-size: 110MB выше).
+# В файле остался один источник истины.
 
 storage:
   key: ${STORAGE_KEY}

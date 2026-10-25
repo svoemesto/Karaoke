@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.SPONSR_AUTH_STATE_PATH
 import com.svoemesto.karaokeapp.model.SiteUser
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Path
 import java.sql.Timestamp
@@ -47,6 +48,9 @@ data class SponsrSyncResult(
  * @see archive/docs/features/async-process-queue.md
  */
 object SponsrSyncService {
+    // BR-167 (аудит #336, пакет `PKG-S3-23`): категория логов синка Sponsr.
+    private val sponsrLog = LoggerFactory.getLogger("infra.sponsr.sync")
+
     private val EMAIL_REGEX = Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")
 
     fun importFromList(
@@ -139,6 +143,11 @@ object SponsrSyncService {
         val lowerIdentifiers = identifiers.map { it.lowercase() }.toSet()
         var matched = 0
         val messages = mutableListOf<String>()
+        // BR-167 (аудит #336, пакет `PKG-S3-23`): список НЕУДАЧНЫХ пользователей.
+        // Раньше исключение на одном пользователе обрывало весь цикл: все последующие
+        // подписчики не получали `sponsr_premium_until`, а уже обработанные оставались
+        // обновлёнными (частичный батч без транзакции и без следа в логах).
+        val failed = mutableListOf<String>()
 
         // N+1 по всем site-users неизбежен без сырого SQL "IN (...)" по двум разным колонкам сразу —
         // при разумном числе пользователей сайта (десятки-сотни) это не проблема; синк не горячий путь.
@@ -153,13 +162,25 @@ object SponsrSyncService {
             val emailMatch = user.email.isNotBlank() && user.email.lowercase() in lowerIdentifiers
             val uidMatch = user.sponsrUid.isNotBlank() && user.sponsrUid.lowercase() in lowerIdentifiers
             if (emailMatch || uidMatch) {
-                user.sponsrPremiumUntil = until
-                user.save()
-                user.sendWelcomePremiumMessageIfNeeded()
-                matched++
+                // BR-167: обработка ОДНОГО пользователя изолирована — сбой не обрывает батч.
+                try {
+                    user.sponsrPremiumUntil = until
+                    user.save()
+                    user.sendWelcomePremiumMessageIfNeeded()
+                    matched++
+                } catch (e: Exception) {
+                    val reason = "siteUserId=${user.id}: ${e.message ?: e.javaClass.simpleName}"
+                    failed.add(reason)
+                    sponsrLog.warn("applyToUsers: не удалось продлить премиум Sponsr ({})", reason, e)
+                }
             }
         }
         messages.add("Найдено идентификаторов: ${identifiers.size}, сопоставлено пользователей сайта: $matched.")
-        return SponsrSyncResult(true, identifiers.size, matched, messages)
+        if (failed.isNotEmpty()) {
+            // BR-167: неудачи видны в результате — иначе «успешный» отчёт скрывал бы
+            // половину батча.
+            messages.add("Не удалось продлить премиум для ${failed.size} пользователей: ${failed.joinToString("; ")}")
+        }
+        return SponsrSyncResult(failed.isEmpty(), identifiers.size, matched, messages)
     }
 }

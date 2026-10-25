@@ -16,7 +16,9 @@
 | 1 | BR-117…BR-122, BR-129…BR-131, BR-134…BR-137 (13) | ✅ исправлены |
 | 2 | BR-144…BR-153 (10) | ✅ исправлены |
 | 3 | BR-155…BR-160, BR-163…BR-166 (10) | ✅ исправлены |
-| 4 | BR-167…BR-173 (6) | ⏳ в работе |
+| 4 | BR-167…BR-173 (6) | ✅ исправлены |
+
+**Итог партий:** 39/39 записей исправлены, 4 коммита.
 
 ---
 
@@ -222,6 +224,50 @@ $ ... :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323*"
   стороне вызывающего (перегрузка `uploadFile(InputStream)`) остаётся прежним — её
   закрывают вызывающие (`Pictures.kt`, `Utils.kt`, `StorageController.kt`).
 
-## Партия 4 — BR-167…BR-173
+## Партия 4 — BR-167…BR-173 (6 записей)
 
-_в работе_
+### По записям
+
+| BR | Файл:строка (было) | Класс | Что не так | Как правильно | Проверка |
+|---|---|---|---|---|---|
+| BR-167 | `karaoke-app/.../services/SponsrSyncService.kt:152-161` | DATA | цикл продления премиума без изоляции: исключение на одном подписчике обрывало батч — остальные не получали `sponsr_premium_until` (частичный батч, без транзакции и без следа в логах) | обработка одного пользователя в `try/catch` с логом (`siteUserId`, причина); список неудачных возвращается в результате и в `messages`; `success = failed.isEmpty()` | контрактная (1) |
+| BR-168 | `karaoke-app/.../services/KaraokeProcessAdminService.kt:347-363` (+ bulk `:639-652`, delete) | DATA | UPDATE процесса и его audit-запись — две независимые autocommit-транзакции: падение INSERT'а в `tbl_processes_audit` давало 500 при УЖЕ применённой правке, и история правки терялась | хелпер `inTransaction()` (`autoCommit=false` → `commit`/`rollback`, `autoCommit` возвращается в `finally`, т.к. соединение кэшируется в потоке); edit/delete/bulk — в одной транзакции | контрактная (1) |
+| BR-169 | `karaoke-app/.../services/cleanup/ArtifactCleanupPlanner.kt:145-147` | ERR | сбой обхода дерева ловился широким `catch` и печатался в stdout: отчёт содержал лишь часть файлов, а `apply` удалял эту часть и завершался `DONE` | факт прерывания попадает в `CleanupPlan.warnings` с маркером `WALK_INTERRUPTED_MARKER`; `apply` отклоняет такой отчёт (`409 incomplete_plan`) | контрактная (1) |
+| BR-170 | `karaoke-app/.../services/cleanup/ArtifactCleanupService.kt:186-189` | ERR | результат `journal.appendDeleted`/`appendFailed` игнорировался: сбой записи в журнал не прерывал удаление — файл удалялся, счётчик рос, прогон завершался `DONE` (вопреки FR-012) | `append == false` → флаг `journalBroken`, прогон прерывается и переводится в `FAILED`; ошибка пишется в `errors` и в лог `infra.cleanup` | контрактная (1) |
+| BR-171 | `karaoke-app/.../services/cleanup/ArtifactCleanupService.kt:141-142` | RACE | `runId = r-<дата>-<classId>` — у всех прогонов одного класса за день идентификатор совпадал; два `apply` писали в одну запись `runs[runId]`, и `status?runId=` отдавал счётчики последнего | к `runId` добавляется короткий UUID прогона (`r-<дата>-<class>-<8 hex>`) | контрактная (1) |
+| BR-172 | `karaoke-app/.../textfiledictionary/TextFileDictionary.kt:24-25` | ERR | действие выбиралось reflection'ом по имени метода и всегда вызывалось с одним аргументом: любой метод другой арности → `IllegalArgumentException` → 500; через запрос был доступен вызов любого публичного метода | явный `when (dictAction)` по фиксированному набору `ALLOWED_ACTIONS` (`add`, `remove`); неизвестное действие → `false` (контроллер уже сообщает «не выполнено») | контрактная (1) |
+| BR-173 | `karaoke-app/src/main/resources/application.yml:67-69` | BUILD | блок `app.max-file-size`/`max-request-size` не читался ни одним классом, но выглядел как настройка лимита загрузки и расходился с настоящим (`spring.servlet.multipart`) | блок `app:` удалён — в файле один источник истины; в комментарии зафиксировано, где настоящий лимит | контрактная (1) |
+
+### «До / после»: команда и вывод
+
+```bash
+# ДО: главные исходники откачены (git stash), тесты — новые
+$ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+    -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+    :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323Batch4SourceContractsTest"
+# было: 7 tests completed, 7 failed  (BR-167…BR-173 — все семь)
+
+# ПОСЛЕ
+$ ... :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323*"
+# стало: BUILD SUCCESSFUL (49 тестов: 16 + 5 + 11 + 10 + 7)
+```
+
+### Изменённые файлы (партия 4)
+
+`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/`: `services/SponsrSyncService.kt`,
+`services/KaraokeProcessAdminService.kt`, `services/cleanup/{ArtifactCleanupPlanner,ArtifactCleanupService}.kt`,
+`textfiledictionary/TextFileDictionary.kt`; `karaoke-app/src/main/resources/application.yml`.
+
+Тесты: `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS323Batch4SourceContractsTest.kt`.
+
+### Решения за владельцем
+
+- **BR-168**: транзакция использует кэшированное в потоке соединение (`KaraokeConnection`),
+  поэтому `autoCommit` включается обратно в `finally`. Если владелец хочет отдельное
+  соединение на транзакцию — это правка `KaraokeConnection`, а не сервиса.
+- **BR-170**: после сбоя записи в журнал файл УЖЕ удалён (удаление необратимо), поэтому
+  прогон помечается `FAILED`, а не откатывается. Альтернатива «писать в журнал ДО
+  удаления» меняет порядок операций и контракт FR-012 — решение за владельцем.
+- **BR-173**: в `karaoke-web/src/main/resources/application.yml` остались те же мёртвые
+  ключи `app.max-file-size`/`app.max-request-size` (рядом с живым `app.public-site-url`).
+  Они не входят ни в одну запись реестра — фикс оставлен «за владельцем».

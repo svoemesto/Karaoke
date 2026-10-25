@@ -45,6 +45,28 @@ P-04, P-08, P-09, P-18): очередь заданий и `mediainfo` (поте�
 - **BR-037** — `loadList` добавляет `process_deleted_at IS NULL` по умолчанию
   (escape hatch — `include_deleted`); `KaraokeProcessDTO.processDeletedAt`
   отдаёт признак наружу.
+- **BR-051** — `ApiController.sheetsageString/StringList/DoubleList`: безопасное чтение
+  `Song.sheetsageInfo` (пустая map → пустые значения, а не NPE → 500).
+- **BR-052** — `/songs/changed`, `/processes/changed`: `ERROR` в лог + 5xx вместо
+  `printStackTrace` + пустого списка.
+- **BR-053/055/059** — batch-эндпоинты: `loadSongsBatch`, `distinct()`, «успех = есть
+  поставленные процессы», порог пропуска из `FORCED_ALIGN_MAX_ID_STATUS`.
+- **BR-054** — семь chords-эндпоинтов формируют текст версии `SongVersion.CHORDS`.
+- **BR-056** — `TextFileHistory`: `ReentrantLock` на путь, атомарная запись, копия
+  повреждённого файла вместо «пустой истории».
+- **BR-057** — `/publications/date`: `Song.loadPublicationDateCandidates` (4 колонки)
+  вместо полной загрузки таблицы.
+- **BR-058** — `notifyStatsDirty`: проверка `200..299`, `WARN` с хостом и кодом.
+- **BR-061** — `runBackgroundReported`: фоновые потоки ловят `Throwable`, пишут стек и
+  отправляют SSE-ошибку.
+- **BR-065** — `smartcopyperodbyday`: 400 на невалидную дату/`start > end`/период > 31 дня.
+- **BR-066** — `playerfile`: ZIP стримится в ответ, `finish()`/`close()` в `finally`.
+- **BR-067** — `convertFlacToMp3`: вывод ffmpeg в файл, таймаут + `destroyForcibly`,
+  лок по пути файла.
+- **BR-068** — массовый поиск текста: причина неудачи в лог и в SSE-сводку
+  (`failedCount`, `failedReason`).
+- **BR-069** — `extractlyricsbysearchresultid`: `ResponseEntity` + явный 404.
+- **BR-070** — `/api/files`: 404 «путь не найден» / 400 «не каталог» вместо подмены на `/`.
 - **BR-114** — `AdminApiTokenFilter`: при заданном `karaoke.security.admin-token`
   admin-префиксы требуют заголовок `X-Admin-Token` (иначе 401); без токена
   поведение прежнее, но в лог уходит `WARN`. Механизм аутентификации —
@@ -63,6 +85,14 @@ P-04, P-08, P-09, P-18): очередь заданий и `mediainfo` (поте�
   (`false`) и в SSE; причина `ERROR` сохраняется в `process_description`.
 - `AdminApiTokenFilter` при заданном `karaoke.security.admin-token` отвечает 401
   на admin-префиксы без заголовка `X-Admin-Token` и не трогает публичные пути.
+- Polling `/api/songs/changed` и `/api/processes/changed` при сбое БД отвечают 5xx,
+  а не 200 с пустым списком.
+- Batch-эндпоинты постановки в очередь грузят песни пакетно и рапортуют успех
+  только при реально поставленных процессах.
+- Файл истории фильтров пишется атомарно и только под общим локом; повреждённый
+  файл сохраняется копией.
+- `/api/song/{id}/playerfile` не собирает архив в памяти (стрим в ответ), а
+  ffmpeg-конвертация стема не может висеть бесконечно.
 
 ## Ссылки
 

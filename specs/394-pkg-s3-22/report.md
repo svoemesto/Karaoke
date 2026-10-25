@@ -150,6 +150,43 @@ bash tools/check-subagent-isolation.sh           → см. «Оговорки»
 
 ---
 
+## Партия 2 (P-09a + P-09b): BR-051…BR-070 — закрыто (16 записей)
+
+Все правки — в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`,
+кроме BR-056 (`textfilehistory/TextFileHistory.kt`) и BR-057 (`model/Song.kt` + `ApiController`).
+
+| BR | Было | Стало |
+|---|---|---|
+| BR-051 | `song.sheetsageInfo["tempo"] as String` → NPE → 500 на песне без Sheetsage | `sheetsageString`/`sheetsageStringList`/`sheetsageDoubleList`: пустая строка/список, чужая структура не валит запрос |
+| BR-052 | `/songs/changed`, `/processes/changed`: `printStackTrace` + `return emptyList()` → 200 «изменений нет» | `log.error` с контекстом + `ResponseStatusException(500)`; закрытие JDBC — `log.warn` вместо `printStackTrace` |
+| BR-053 | `result = true` вне `song?.let` — «прошло успешно» при пустой очереди | счётчик `queued`/`created`, успех = `> 0`, в сообщении — сколько поставлено/пропущено |
+| BR-054 | семь chords-эндпоинтов формировали текст версии **LYRICS** | `SongVersion.CHORDS` в семи местах; лимит `textplchordsheader` выровнен (140 → 100) |
+| BR-055 | 4 batch-эндпоинта грузили песни по одной (`loadFromDbById` в цикле) | `loadSongsBatch` (`WHERE id IN`, пачки по 25) + `distinct()` |
+| BR-056 | история фильтров: read-modify-write без лока, `writeText`, повреждённый файл → «пустая история» | `ReentrantLock` на путь, `load-modify-save` под локом, атомарная запись (`ATOMIC_MOVE`), копия `*.corrupt-*` + `WARN` |
+| BR-057 | `/publications/date` грузил всю таблицу песен (полная материализация) | `Song.loadPublicationDateCandidates` — проекция 4 колонок + тот же `SongStateResolver` |
+| BR-058 | `notifyStatsDirty`: код ответа не проверялся, любое исключение → `println` | проверка `responseCode in 200..299`, `WARN` с хостом/кодом; исключение — `WARN` с причиной |
+| BR-059 | текст «Пропущено (статус >= 3)» при условии `< 4` | константа `FORCED_ALIGN_MAX_ID_STATUS` + `forcedAlignSummary` — текст и условие из одного источника |
+| BR-061 | тела части фоновых потоков без `catch`, часть ловила только `Exception` | `runBackgroundReported` (`Throwable` + `log.error` + SSE), upgrade `catch (Exception)` → `catch (Throwable)` в трёх backfill-потоках |
+| BR-065 | `smartcopyperodbyday`: цикл по дням без предела и без `start <= end`, невалидная дата → 500 | невалидный формат/`start > end`/период > `SMART_COPY_MAX_PERIOD_DAYS` (31) → 400 с текстом |
+| BR-066 | `playerfile`: ZIP в `ByteArrayOutputStream` + `toByteArray()` (2× архив в heap), `zip` не в `finally` | ZIP пишется сразу в `response.outputStream`, заголовки до тела, `zip.finish()`/`close()` в `finally`, сбой логируется |
+| BR-067 | `convertFlacToMp3`: `waitFor()` без таймаута и без чтения stdout (pipe-буфер), два ffmpeg в один файл | вывод в временный файл (`redirectOutput`), `awaitProcessExit` (таймаут + `destroyForcibly`), лок по пути файла, `-loglevel error` |
+| BR-068 | путь A массового поиска текста: **пустой** `catch` | `log.warn` с songId/движком + причины в SSE-сводку (`failedCount`, `failedReason`); подсчёт `minIntervalMs` не изменён |
+| BR-069 | `extractlyricsbysearchresultid`: nullable → 200 с пустым телом (клиент падал на `JSON.parse('')`) | `ResponseEntity<SearchResultDTO>` + явный 404 |
+| BR-070 | `/api/files`: несуществующий путь молча подменялся на `/` | 404 «путь не найден» / 400 «не каталог»; листинг корня — только при пустом `path` |
+
+Тесты — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS322ApiControllerTest.kt` (20 тестов).
+Поведенческие: BR-051 (пустая/чужая map, старое поведение — `assertThrows<NullPointerException>`),
+BR-056 (5 потоков × 5 записей, все 25 строк после гонки; повреждённый файл → копия),
+BR-057 (SQL-форма проекции + совпадение `stateAt` с `SongStateResolver`), BR-059 (текст из константы),
+BR-065 (`parsePeriodDate` → `null`, старый `LocalDate.parse` → `DateTimeParseException`).
+Статические guard'ы (у эндпоинтов нет тестового шва: глобальный `WORKING_DATABASE`, очередь
+процессов, `HttpServletResponse`): BR-052, BR-053/055, BR-054, BR-066, BR-067, BR-068, BR-069, BR-070.
+Для S3-мелочей это допустимо; каждая проверка падает на старом коде (в отчёте — пара «было/стало»).
+
+Отдельно: первый вариант BR-067 использовал поток-читатель (`Thread { … }`), но это нарушает
+`OneShotThreadWiringTest` (сырые одноразовые потоки запрещены — утечка thread-local соединения);
+итог — вывод ffmpeg в временный файл, без потока.
+
 ## Оговорки
 
 - **`check-subagent-isolation.sh` падает на общих предках веток.** Скрипт считает
@@ -162,5 +199,4 @@ bash tools/check-subagent-isolation.sh           → см. «Оговорки»
 
 ## Остаток
 
-Партии 2–4 (ApiController: BR-051…BR-070; Song.kt: BR-072…BR-086, BR-103, BR-105,
-BR-106, BR-107) — в работе.
+Партии 3–4 (Song.kt: BR-072…BR-086, BR-103, BR-105, BR-106, BR-107) — в работе.

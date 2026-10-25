@@ -378,6 +378,35 @@ Per-process force-stop в коде нет: остановка адресуетс
   числа строк — `IndexOutOfBoundsException`; оба не ловились (`catch` только
   `SQLException`) и превращались в HTTP 500.
 
+### Batch-эндпоинты постановки в очередь (BR-053/055/059, PKG-S3-22)
+
+Четыре «…all»-эндпоинта (`createdemucs2all`, `createdemucs5all`, `sheetsageall`,
+`createforcedalignmarkersall`) и `createkaraokeall` подчиняются одному контракту:
+
+- **Песни грузятся пакетно** — `loadSongsBatch` (`WHERE id IN`, пачки по 25), а не
+  `Song.loadFromDbById` в цикле: строка `tbl_songs` тяжёлая (`source_text`,
+  `result_text`, `source_markers`). Дубликаты `ids` отсекаются `distinct()`.
+- **«Успех» = хотя бы один реально поставленный процесс.** Несуществующий id не
+  должен давать SSE «прошло успешно» при пустой очереди. В сообщении — сколько
+  поставлено и сколько пропущено (и почему: песня не найдена / MIDI уже есть /
+  статус выше порога).
+- **Порог пропуска — константа.** Для «Точных маркеров» это
+  `FORCED_ALIGN_MAX_ID_STATUS = 4`: условие (`idStatus < 4`) и текст сообщения
+  строятся из одной константы (`ApiController.forcedAlignSummary`). Раньше в
+  тексте стояло «>= 3», и оператор получал неверное объяснение пропуска.
+
+### Фоновые операции контроллера (BR-061, PKG-S3-22)
+
+- Тело каждого фонового потока (`startOneShotThread`) обязано быть обёрнуто в
+  `runBackgroundReported(head) { … }`: ловит `Throwable` (не только `Exception`),
+  пишет `ERROR` со стеком и отправляет SSE-уведомление. Иначе `Error`
+  (OOM, `NoClassDefFoundError`) убивает поток молча: кнопка отработала, тоста нет,
+  оператор не знает, что операция не выполнена.
+- Сырые `Thread { … }` в `ApiController` запрещены (`OneShotThreadWiringTest`):
+  одноразовые потоки идут через `startOneShotThread` (закрытие thread-local
+  соединения). Для чтения вывода внешнего процесса используйте
+  `redirectOutput(файл)` + `awaitProcessExit` — это не поток жизненного цикла.
+
 ## Связанные ADR
 
 - [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md) —
@@ -394,6 +423,10 @@ Per-process force-stop в коде нет: остановка адресуетс
 
 ## Changelog
 
+- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-053/055/059/061)**:
+  зафиксированы контракты batch-эндпоинтов (пакетная загрузка, «успех = есть
+  процессы», порог пропуска из одной константы) и фоновых операций контроллера
+  (`runBackgroundReported`, запрет сырых `Thread`). См. `specs/394-pkg-s3-22/report.md`.
 - **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-034/036/037)**:
   зафиксированы контракты `loadList` (фильтр `process_deleted_at IS NULL` +
   `include_deleted`), видимого сбоя восстановления при старте воркера

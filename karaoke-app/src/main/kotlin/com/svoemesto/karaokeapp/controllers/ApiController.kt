@@ -31,8 +31,10 @@ import kotlinx.serialization.json.Json
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
@@ -47,6 +49,7 @@ import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.locks.ReentrantLock
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.cert.Certificate
@@ -58,6 +61,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -212,6 +216,15 @@ class ApiController(
 
     /** Pass 431 (#155): лог сбоев ручной синхронизации (категория `infra.sync.remote`). */
     private val syncLog: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger("infra.sync.remote")
+
+    /**
+     * Лок на путь mp3-файла: один ffmpeg на файл, иначе два параллельных запроса писали
+     * в один `.mp3` с `-y` и второй обрезал вывод первого (BR-067).
+     */
+    private val mp3ConversionLocks = java.util.concurrent.ConcurrentHashMap<String, ReentrantLock>()
+
+    /** Логгер контроллера: polling-эндпоинты и фоновые операции (BR-052/058/061…, PKG-S3-22). */
+    private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(ApiController::class.java)
 
     // specs/082-fix-import-folder-oom: ограничивает конкурентность фонового поиска текста песни
     // (SearXNG) при массовом импорте из папки — без лимита doCreateFromFolder создавал бы
@@ -556,16 +569,19 @@ class ApiController(
 
             return result
         } catch (e: SQLException) {
-            e.printStackTrace()
+            // BR-052 (аудит #336, пакет PKG-S3-22): раньше исключение глушилось
+            // (`printStackTrace` + пустой список), и polling-клиент получал 200 «изменений нет»,
+            // молча пропуская правки. Теперь — лог через SLF4J с контекстом и 5xx.
+            log.error("songs/changed: ошибка выборки изменённых песен (time={})", time, e)
+            throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Не удалось получить изменения песен", e)
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                log.warn("songs/changed: ошибка закрытия JDBC-ресурсов", e)
             }
         }
-        return emptyList()
     }
 
     // Получение списка id процессов, изменившихся с указанного момента
@@ -596,16 +612,17 @@ class ApiController(
 
             return result
         } catch (e: SQLException) {
-            e.printStackTrace()
+            // BR-052: см. getChangedSongsIds — молчаливая «пустота» теряла изменения.
+            log.error("processes/changed: ошибка выборки изменённых заданий (time={})", time, e)
+            throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Не удалось получить изменения заданий", e)
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                log.warn("processes/changed: ошибка закрытия JDBC-ресурсов", e)
             }
         }
-        return emptyList()
     }
 
     // Копирование полей
@@ -968,11 +985,10 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        val sheetsageinfotempo =
-            song?.let {
-                song.sheetsageInfo["tempo"] as String
-            } ?: ""
-        return sheetsageinfotempo
+        // BR-051 (аудит #336, пакет PKG-S3-22): `sheetsageInfo` — пустая map у песни без
+        // файлов Sheetsage, поэтому `null as String` давал NPE → HTTP 500. Контракт API —
+        // пустая строка (UI проверяет `if (bpm !== '')`), поэтому читаем безопасно.
+        return sheetsageString(song?.sheetsageInfo, "tempo")
     }
 
     // Получение sheetsageinfo - key
@@ -988,11 +1004,8 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        val sheetsageinfokey =
-            song?.let {
-                song.sheetsageInfo["key"] as String
-            } ?: ""
-        return sheetsageinfokey
+        // BR-051: см. getSheetsageinfoBpm — безопасное чтение вместо `as String`.
+        return sheetsageString(song?.sheetsageInfo, "key")
     }
 
     // Получение sheetsageinfo - chords
@@ -1008,12 +1021,8 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        val sheetsageinfochords =
-            song?.let {
-                @Suppress("UNCHECKED_CAST")
-                song.sheetsageInfo["chords"] as List<String>
-            } ?: emptyList()
-        return sheetsageinfochords
+        // BR-051: `as List<String>` на пустой/чужой структуре давал ClassCastException/NPE.
+        return sheetsageStringList(song?.sheetsageInfo, "chords")
     }
 
     // Получение sheetsageinfo - beattimes
@@ -1029,12 +1038,8 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        val sheetsageinfobeattimes =
-            song?.let {
-                @Suppress("UNCHECKED_CAST")
-                song.sheetsageInfo["beattimes"] as List<Double>
-            } ?: emptyList()
-        return sheetsageinfobeattimes
+        // BR-051: `as List<Double>` на пустой/чужой структуре давал ClassCastException/NPE.
+        return sheetsageDoubleList(song?.sheetsageInfo, "beattimes")
     }
 
     // Получение слогов для голоса
@@ -1388,7 +1393,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+                val text = it.getDescriptionHeader(SongVersion.CHORDS, 140)
                 text
             } ?: ""
         return text
@@ -1430,7 +1435,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000)
                 text
             } ?: ""
         return text
@@ -1598,7 +1603,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+                val text = it.getDescriptionHeader(SongVersion.CHORDS, 100)
                 text
             } ?: ""
         return text
@@ -1640,7 +1645,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000, 100)
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000, 100)
                 text
             } ?: ""
         return text
@@ -1769,7 +1774,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+                val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
                 text
             } ?: ""
         return text
@@ -1811,7 +1816,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionVk(SongVersion.LYRICS)
+                val text = it.getDescriptionVk(SongVersion.CHORDS)
                 text
             } ?: ""
         return text
@@ -2042,7 +2047,7 @@ class ApiController(
             )
         val text =
             song?.let {
-                val text = it.getDescriptionMaxHeader(SongVersion.LYRICS)
+                val text = it.getDescriptionMaxHeader(SongVersion.CHORDS)
                 text
             } ?: ""
         return text
@@ -2965,6 +2970,52 @@ class ApiController(
     // на стороне karaoke-web в течение минуты (StatsCacheScheduler.refreshIfDirty). Best-effort по
     // образцу ackStemJobRawFileConsumed (StemJobProcessing.kt): если karaoke-web недоступен —
     // счётчик просто обновится по обычному часовому крону, как раньше.
+
+    /**
+     * Тело фонового потока с гарантированным репортом сбоя (BR-061, аудит #336, пакет PKG-S3-22).
+     *
+     * Раньше тела некоторых `startOneShotThread`-потоков не были обёрнуты вовсе (или ловили
+     * только `Exception`): `Throwable`/`Error` (OOM, `NoClassDefFoundError`) убивал поток молча —
+     * кнопка отрабатывала, SSE-тост не приходил, оператор не знал, что операция не выполнена.
+     */
+    private fun runBackgroundReported(
+        head: String,
+        block: () -> Unit,
+    ) {
+        try {
+            block()
+        } catch (t: Throwable) {
+            log.error("Фоновая операция '{}' прервана", head, t)
+            try {
+                SNS.send(
+                    SseNotification.error(
+                        Message(
+                            type = "error",
+                            head = head,
+                            body = "Прервано ошибкой: ${t::class.simpleName}: ${t.message}",
+                        ),
+                    ),
+                )
+            } catch (_: Throwable) {
+                // репорт — best-effort: падать во вторичном канале бессмысленно
+            }
+        }
+    }
+
+    /**
+     * Разбор даты периода `dd.MM.yy` с явной ошибкой клиента (BR-065, пакет PKG-S3-22):
+     * невалидная дата — 400 с пояснением, а не `DateTimeParseException` → 500.
+     */
+    private fun parsePeriodDateOr400(
+        value: String,
+        formatter: DateTimeFormatter,
+    ): LocalDate =
+        parsePeriodDate(value, formatter)
+            ?: throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Некорректная дата '$value': ожидается формат dd.MM.yy",
+            )
+
     private fun notifyStatsDirty() {
         val baseUrl = Karaoke.stemJobsWebInternalUrl.trim().trimEnd('/')
         if (baseUrl.isBlank()) return
@@ -2975,10 +3026,17 @@ class ApiController(
             connection.connectTimeout = 5_000
             connection.readTimeout = 5_000
             connection.doOutput = false
-            connection.responseCode // инициирует запрос
+            val responseCode = connection.responseCode // инициирует запрос
+            // BR-058 (аудит #336, пакет PKG-S3-22): раньше код ответа не проверялся, а любое
+            // исключение глушилось `println` — 500/401 от karaoke-web были неотличимы от
+            // успеха, счётчик «В открытом доступе» оставался устаревшим до часового крона.
+            // Теперь не-2xx виден в логе с кодом и хостом (штатный крон-фолбэк сохраняется).
+            if (responseCode !in 200..299) {
+                log.warn("notifyStatsDirty: {} ответил {} — инвалидация статистики не применена", baseUrl, responseCode)
+            }
             connection.disconnect()
         } catch (e: Exception) {
-            println("[notifyStatsDirty] ${e.message}")
+            log.warn("notifyStatsDirty: не удалось инвалидировать статистику на {}: {}", baseUrl, e.toString())
         }
     }
 
@@ -3333,26 +3391,28 @@ class ApiController(
         val formatter = SimpleDateFormat("dd/MM/yyyy")
         val currentDate = formatter.parse(formatter.format(currentDateTime))
 
-        val song =
-            Song.loadListFromDb(
-                emptyMap(),
+        // BR-057 (аудит #336, пакет PKG-S3-22): раньше ради одной даты грузилась ВСЯ таблица
+        // песен с маппингом ~100 полей на строку (`Song.loadListFromDb(emptyMap())`), а затем
+        // искался `firstOrNull { it.state == target }`. Теперь — лёгкая проекция из 4 колонок
+        // (`Song.loadPublicationDateCandidates`) с тем же `SongStateResolver`, что и `Song.state`.
+        val nowMoscow = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
+        val candidates =
+            Song.loadPublicationDateCandidates(
                 database = WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                withoutMarkersAndText = true,
+                inWork = target == SongState.IN_WORK,
             )
-        val byExactState =
-            song.firstOrNull { it.state == target }
-        if (byExactState != null) return byExactState.date
+        candidates
+            .firstOrNull { it.stateAt(nowMoscow) == target }
+            ?.let { return it.date }
         // Для состояний без жёсткой привязки к дате (EXCLUSIVE, IN_WORK) актуальная дата может
         // не существовать — возвращаем пустую строку, чтобы UI обработал «нет даты» без арифметики.
         return when (target) {
             SongState.EXCLUSIVE, SongState.IN_WORK -> ""
             else -> {
-                song
+                candidates
                     .firstOrNull {
-                        it.dateTimePublish != null &&
-                            formatter.parse(formatter.format(it.dateTimePublish)) == currentDate
+                        val dt = it.dateTimePublish
+                        dt != null && formatter.parse(formatter.format(dt)) == currentDate
                     }?.date ?: ""
             }
         }
@@ -3367,6 +3427,84 @@ class ApiController(
          * @see specs/244-songs-createkaraokeall-batch/spec.md FR-002
          */
         private const val SELECT_CHUNK_SIZE = 25
+
+        /**
+         * Порог `idStatus`, начиная с которого песня НЕ ставится в очередь «Точные маркеры»
+         * (`FORCED_ALIGN_MARKERS`): маркеры уже расставлены, фоновая разметка затёрла бы
+         * подтверждённую (см. `alignment-ml/README.md`, specs/022-song-status-lifecycle).
+         *
+         * BR-059 (аудит #336, пакет PKG-S3-22): условие и текст сообщения оператору обязаны
+         * браться из одной константы — раньше в тексте стояло «>= 3», а код проверял `< 4`.
+         */
+        internal const val FORCED_ALIGN_MAX_ID_STATUS = 4
+
+        /**
+         * Максимальная длина периода для `/api/songs/smartcopyperodbyday`, дней (BR-065).
+         * Один день периода — это отдельный `SELECT` + до пяти `createProcess`, поэтому
+         * «случайный» диапазон в годы превращался в десятки тысяч запросов в одном HTTP-вызове.
+         */
+        internal const val SMART_COPY_MAX_PERIOD_DAYS = 31
+
+        /** Таймаут ffmpeg-конвертации стема в MP3 по умолчанию, секунды (BR-067). */
+        internal const val DEFAULT_MP3_CONVERT_TIMEOUT_SECONDS = 120L
+
+        /**
+         * Безопасное чтение строкового значения из `Song.sheetsageInfo` (BR-051, пакет PKG-S3-22).
+         *
+         * `Song.sheetsageInfo` возвращает ПУСТУЮ map, если у песни нет файлов Sheetsage;
+         * `null as String` в этом случае давал `NullPointerException` → HTTP 500, хотя
+         * контракт API и UI (`if (bpm !== '')`) ждут пустую строку.
+         */
+        internal fun sheetsageString(
+            info: Map<String, Any>?,
+            key: String,
+        ): String = info?.get(key) as? String ?: ""
+
+        /** Список строк из `Song.sheetsageInfo`; неподходящее значение — пустой список (BR-051). */
+        internal fun sheetsageStringList(
+            info: Map<String, Any>?,
+            key: String,
+        ): List<String> = (info?.get(key) as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+
+        /** Список `Double` из `Song.sheetsageInfo`; числа принимаются как [Number] (BR-051). */
+        internal fun sheetsageDoubleList(
+            info: Map<String, Any>?,
+            key: String,
+        ): List<Double> =
+            (info?.get(key) as? List<*>)
+                ?.mapNotNull { (it as? Number)?.toDouble() }
+                ?: emptyList()
+
+        /**
+         * Текст SSE-сообщения для «Точных маркеров» (BR-059, пакет PKG-S3-22).
+         *
+         * Порог берётся из [FORCED_ALIGN_MAX_ID_STATUS] — той же константы, что и условие
+         * `song.idStatus < FORCED_ALIGN_MAX_ID_STATUS`, поэтому текст не может разойтись с кодом
+         * (раньше в сообщении стояло «>= 3», а пропускались песни со статусом 4+).
+         */
+        internal fun forcedAlignSummary(
+            queued: Int,
+            skipped: Int,
+        ): String =
+            if (queued > 0) {
+                "Поставлено в очередь: $queued. Пропущено (статус >= $FORCED_ALIGN_MAX_ID_STATUS): $skipped"
+            } else {
+                "Ни одна песня не подошла (статус >= $FORCED_ALIGN_MAX_ID_STATUS у всех выбранных)"
+            }
+
+        /**
+         * Разбор даты периода `dd.MM.yy`; `null` — некорректный формат (BR-065, пакет PKG-S3-22).
+         * Контроллер превращает `null` в 400 с пояснением (раньше `LocalDate.parse` давал 500).
+         */
+        internal fun parsePeriodDate(
+            value: String,
+            formatter: DateTimeFormatter,
+        ): LocalDate? =
+            try {
+                LocalDate.parse(value, formatter)
+            } catch (_: Exception) {
+                null
+            }
 
         /**
          * Маппинг токенов endpoint `/api/publications/date` → целевой [SongState]. Чистая
@@ -3652,6 +3790,7 @@ class ApiController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
+            var created = 0
             ids.forEach { id ->
                 val song = songsById[id]
                 song?.let {
@@ -3671,6 +3810,7 @@ class ApiController(
                                 threadId?.toInt() ?: 0,
                             context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.LYRICS.name),
                         )
+                        created++
                     }
                     if (createKaraoke) {
                         KaraokeProcess.createProcess(
@@ -3682,6 +3822,7 @@ class ApiController(
                                 threadId?.toInt() ?: 0,
                             context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE.name),
                         )
+                        created++
                     }
                     if (createChords) {
                         KaraokeProcess.createProcess(
@@ -3693,6 +3834,7 @@ class ApiController(
                                 threadId?.toInt() ?: 0,
                             context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.CHORDS.name),
                         )
+                        created++
                     }
                     if (createMelody) {
                         KaraokeProcess.createProcess(
@@ -3704,6 +3846,7 @@ class ApiController(
                                 threadId?.toInt() ?: 0,
                             context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.TABS.name),
                         )
+                        created++
                     }
                     if (createDemo) {
                         KaraokeProcess.createProcess(
@@ -3715,10 +3858,13 @@ class ApiController(
                                 threadId?.toInt() ?: 0,
                             context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.DEMO.name),
                         )
+                        created++
                     }
                 }
             }
-            result = ids.isNotEmpty()
+            // BR-053: «успех» — только если реально создан хотя бы один процесс
+            // (раньше хватало непустого списка id).
+            result = created > 0
         }
         if (result) {
             SNS.send(
@@ -3791,35 +3937,43 @@ class ApiController(
         @RequestParam(required = false) prior: Int = -1,
         @RequestParam(required = false) threadId: String? = "0",
     ) {
-        var result = false
-        songsIds.let {
-            val ids =
-                songsIds
-                    .split(";")
-                    .map { it }
-                    .filter { it != "" }
-                    .map { it.toLong() }
-            ids.forEach { id ->
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
-                song?.let {
-                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.DEMUCS2, true, prior, threadId = threadId?.toInt() ?: 0)
-                }
-                result = true
+        // BR-053/BR-055 (аудит #336, пакет PKG-S3-22): песни грузятся ОДНИМ батчем
+        // ([loadSongsBatch], `ceil(N/25)` SQL вместо N per-id `SELECT`), дубликаты ID
+        // отсекаются `distinct()`, а «успех» считается по фактически поставленным
+        // процессам (`queued`), а не по факту непустого списка id: раньше для
+        // несуществующих id уходило SSE «прошло успешно» при пустой очереди.
+        val ids =
+            songsIds
+                .split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
+                .distinct()
+        val songsById =
+            loadSongsBatch(
+                ids = ids,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        var queued = 0
+        ids.forEach { id ->
+            val song = songsById[id]
+            song?.let {
+                KaraokeProcess.createProcess(song, KaraokeProcessTypes.DEMUCS2, true, prior, threadId = threadId?.toInt() ?: 0)
+                queued++
             }
         }
+        val result = queued > 0
+        val skipped = ids.size - queued
         if (result) {
             SNS.send(
                 SseNotification.message(
                     Message(
                         type = "info",
                         head = "Создание DEMUCS2",
-                        body = "Создание DEMUCS2 прошло успешно",
+                        body =
+                            "Поставлено в очередь: $queued" +
+                                if (skipped > 0) ". Пропущено (песня не найдена): $skipped" else "",
                     ),
                 ),
             )
@@ -3912,15 +4066,17 @@ class ApiController(
                 .map { it }
                 .filter { it != "" }
                 .map { it.toLong() }
-        ids.forEach { id ->
-            val song =
-                Song.loadFromDbById(
-                    id = id,
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                )
-            if (song != null && song.idStatus < 4) {
+        // BR-055: одна батч-загрузка вместо N per-id `SELECT`.
+        val songsById =
+            loadSongsBatch(
+                ids = ids.distinct(),
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        ids.distinct().forEach { id ->
+            val song = songsById[id]
+            if (song != null && song.idStatus < FORCED_ALIGN_MAX_ID_STATUS) {
                 KaraokeProcess.createProcess(
                     song,
                     KaraokeProcessTypes.FORCED_ALIGN_MARKERS,
@@ -3940,7 +4096,9 @@ class ApiController(
                     Message(
                         type = "info",
                         head = "Точные маркеры",
-                        body = "Поставлено в очередь: $queued. Пропущено (статус >= 3): $skipped",
+                        // BR-059: текст строится из ТОЙ ЖЕ константы, что и условие выше
+                        // (`song.idStatus < FORCED_ALIGN_MAX_ID_STATUS`), а не из «>= 3».
+                        body = forcedAlignSummary(queued, skipped),
                     ),
                 ),
             )
@@ -3950,7 +4108,7 @@ class ApiController(
                     Message(
                         type = "warning",
                         head = "Точные маркеры",
-                        body = "Ни одна песня не подошла (статус >= 3 у всех выбранных)",
+                        body = forcedAlignSummary(queued, skipped),
                     ),
                 ),
             )
@@ -4005,36 +4163,41 @@ class ApiController(
         @RequestParam(required = false) prior: Int = -1,
         @RequestParam(required = false) threadId: String? = "0",
     ) {
-        var result = false
-        songsIds.let {
-            val ids =
-                songsIds
-                    .split(";")
-                    .map { it }
-                    .filter { it != "" }
-                    .map { it.toLong() }
-            ids.forEach { id ->
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
-                song?.let {
+        // BR-053/BR-055: батч-загрузка + счётчик фактически поставленных процессов
+        // (см. getSongsCreateDemucs2All — тот же контракт для всех batch-endpoint'ов).
+        val ids =
+            songsIds
+                .split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
+                .distinct()
+        val songsById =
+            loadSongsBatch(
+                ids = ids,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        var queued = 0
+        ids.forEach { id ->
+            val song = songsById[id]
+            song?.let {
 //                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(song, KaraokeProcessTypes.RECODE_48000, true, prior)
-                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.DEMUCS5, true, prior, threadId = threadId?.toInt() ?: 0)
-                }
-                result = true
+                KaraokeProcess.createProcess(song, KaraokeProcessTypes.DEMUCS5, true, prior, threadId = threadId?.toInt() ?: 0)
+                queued++
             }
         }
+        val result = queued > 0
+        val skipped = ids.size - queued
         if (result) {
             SNS.send(
                 SseNotification.message(
                     Message(
                         type = "info",
                         head = "Создание DEMUCS5",
-                        body = "Создание DEMUCS5 прошло успешно",
+                        body =
+                            "Поставлено в очередь: $queued" +
+                                if (skipped > 0) ". Пропущено (песня не найдена): $skipped" else "",
                     ),
                 ),
             )
@@ -4099,43 +4262,54 @@ class ApiController(
         @RequestParam(required = false) prior: Int = -1,
         @RequestParam(required = false) threadId: String? = "0",
     ) {
-        var result = false
-        songsIds.let {
-            val ids =
-                songsIds
-                    .split(";")
-                    .map { it }
-                    .filter { it != "" }
-                    .map { it.toLong() }
-            ids.forEach { id ->
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
+        // BR-053/BR-055: батч-загрузка + счётчик фактически поставленных процессов.
+        val ids =
+            songsIds
+                .split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
+                .distinct()
+        val songsById =
+            loadSongsBatch(
+                ids = ids,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        var queued = 0
+        var noMidi = 0
+        ids.forEach { id ->
+            val song = songsById[id]
+            song?.let {
+                if (File(it.pathToFileSheetsageMIDI).exists()) {
+                    noMidi++
+                } else {
+                    KaraokeProcess.createProcess(
+                        song,
+                        KaraokeProcessTypes.SHEETSAGE,
+                        true,
+                        prior,
+                        threadId = threadId?.toInt() ?: 0,
                     )
-                song?.let {
-                    if (!File(it.pathToFileSheetsageMIDI).exists()) {
-                        KaraokeProcess.createProcess(
-                            song,
-                            KaraokeProcessTypes.SHEETSAGE,
-                            true,
-                            prior,
-                            threadId = threadId?.toInt() ?: 0,
-                        )
-                    }
+                    queued++
                 }
-                result = true
             }
         }
+        val result = queued > 0
+        val skipped = ids.size - queued
         if (result) {
             SNS.send(
                 SseNotification.message(
                     Message(
                         type = "info",
                         head = "Создание SHEETSAGE",
-                        body = "Создание SHEETSAGE прошло успешно",
+                        body =
+                            "Поставлено в очередь: $queued" +
+                                if (skipped > 0) {
+                                    ". Пропущено: $skipped (нет песни или MIDI уже есть: $noMidi)"
+                                } else {
+                                    ""
+                                },
                     ),
                 ),
             )
@@ -4817,8 +4991,29 @@ class ApiController(
         val formatterDDMMYY = DateTimeFormatter.ofPattern("dd.MM.yy")
         val formatterYYYYDDMM = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-        val startDate = LocalDate.parse(periodStart, formatterDDMMYY)
-        val endDate = LocalDate.parse(periodEnd, formatterDDMMYY)
+        // BR-065 (аудит #336, пакет PKG-S3-22): диапазон дат больше не «бесконечный».
+        // Раньше цикл `while (!currentDate.isAfter(endDate))` крутился без проверки
+        // `start <= end` и без предела: опечатка в годе (`31.12.29` вместо `31.12.25`) давала
+        // ~1460 итераций с отдельным `Song.loadListFromDb` на день, `01.01.01–31.12.99` —
+        // ~36 000 запросов в одном HTTP-запросе (nginx-таймаут 600 с, поток Tomcat занят),
+        // а невалидная дата давала `DateTimeParseException` → 500 без пояснения.
+        // Теперь: невалидный формат — 400, `start > end` — 400, длиннее
+        // SMART_COPY_MAX_PERIOD_DAYS — 400 (длинные периоды — отдельной операцией).
+        val startDate = parsePeriodDateOr400(periodStart, formatterDDMMYY)
+        val endDate = parsePeriodDateOr400(periodEnd, formatterDDMMYY)
+        val periodDays = ChronoUnit.DAYS.between(startDate, endDate) + 1
+        if (periodDays < 1) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Начало периода ($periodStart) позже окончания ($periodEnd)",
+            )
+        }
+        if (periodDays > SMART_COPY_MAX_PERIOD_DAYS) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Период слишком длинный: $periodDays дн., максимум $SMART_COPY_MAX_PERIOD_DAYS",
+            )
+        }
 
         var currentDate = startDate
         while (!currentDate.isAfter(endDate)) {
@@ -4918,6 +5113,8 @@ class ApiController(
         var lastRequestTime: Long? = null
         var minIntervalMs: Long? = null
         var successfulCount = 0
+        // BR-068: причины неудачных поисков — в SSE-сводку (а не только в лог).
+        val failedReasons = mutableListOf<String>()
 
         var result = false
         val ids =
@@ -4962,6 +5159,17 @@ class ApiController(
                         songSearchSucceeded = true
                     } catch (e: Exception) {
                         // FR-009 (rev 3): упавший запрос — НЕ учитывается в minIntervalMs.
+                        // BR-068 (аудит #336, пакет PKG-S3-22): раньше здесь был ПУСТОЙ catch —
+                        // причина неудачи (Playwright/сеть/таймаут/4xx-5xx) не попадала никуда,
+                        // и оператор видел только `successfulCount < count` без объяснения.
+                        // Счётчик успехов/minIntervalMs не меняются — добавлена только диагностика.
+                        failedReasons.add("id=${song.id}: ${e::class.simpleName}: ${e.message}")
+                        log.warn(
+                            "searchsongtextall: поиск текста для песни id={} (движок {}) не удался: {}",
+                            song.id,
+                            resolvedEngine,
+                            e.toString(),
+                        )
                     }
                 }
             }
@@ -4981,6 +5189,13 @@ class ApiController(
         // specs/316-search-timeout-configurable (FR-010, rev 3): backend-лог + SSE notification.
         val totalDurationMs = System.currentTimeMillis() - cycleStart
         println("[lyrics-search-summary] path=A count=${ids.size} successful=$successfulCount minIntervalMs=${minIntervalMs ?: "null"} totalDurationMs=$totalDurationMs")
+        if (failedReasons.isNotEmpty()) {
+            log.warn(
+                "searchsongtextall: неудачных поисков {}: {}",
+                failedReasons.size,
+                failedReasons.take(10).joinToString("; "),
+            )
+        }
         sseNotificationService.send(
             SseNotification(
                 SseNotificationType.MASS_SEARCH_SUMMARY,
@@ -4990,6 +5205,10 @@ class ApiController(
                     "successfulCount" to successfulCount,
                     "minIntervalMs" to minIntervalMs,
                     "totalDurationMs" to totalDurationMs,
+                    // BR-068: явный признак неудач и первая причина — UI показывает
+                    // «поиск не удался: …» вместо молчаливого «successfulCount < count».
+                    "failedCount" to failedReasons.size,
+                    "failedReason" to failedReasons.firstOrNull(),
                 ),
             ),
         )
@@ -5024,63 +5243,65 @@ class ApiController(
     ): Boolean {
         val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
         startOneShotThread(database, "auto-assign-original-all") {
-            val ids = mutableListOf<Long>()
-            try {
-                val connection = database.getConnection()
-                if (connection != null) {
-                    // Колонка автора в tbl_songs — song_author (не author); сравнение регистронезависимо.
-                    val sql =
-                        "SELECT id FROM tbl_songs WHERE id_status = 1 AND root_id <> 0" +
-                            (if (authorFilter != null) " AND LOWER(song_author) = LOWER(?)" else "") +
-                            " ORDER BY id"
-                    connection.prepareStatement(sql).use { ps ->
-                        if (authorFilter != null) ps.setString(1, authorFilter)
-                        ps.executeQuery().use { rs ->
-                            while (rs.next()) ids.add(rs.getLong("id"))
+            runBackgroundReported("Автопривязка оригинала") {
+                val ids = mutableListOf<Long>()
+                try {
+                    val connection = database.getConnection()
+                    if (connection != null) {
+                        // Колонка автора в tbl_songs — song_author (не author); сравнение регистронезависимо.
+                        val sql =
+                            "SELECT id FROM tbl_songs WHERE id_status = 1 AND root_id <> 0" +
+                                (if (authorFilter != null) " AND LOWER(song_author) = LOWER(?)" else "") +
+                                " ORDER BY id"
+                        connection.prepareStatement(sql).use { ps ->
+                            if (authorFilter != null) ps.setString(1, authorFilter)
+                            ps.executeQuery().use { rs ->
+                                while (rs.next()) ids.add(rs.getLong("id"))
+                            }
                         }
                     }
-                }
-            } catch (e: Exception) {
-                println("Автопривязка оригинала: ошибка выборки песен — ${e.message}")
-            }
-
-            val scope = if (authorFilter != null) "автор «$authorFilter»" else "все авторы"
-            println("Автопривязка оригинала ($scope): найдено песен со статусом 1 и root_id<>0: ${ids.size} (порог $threshold%)")
-            var matched = 0
-            var skipped = 0
-            ids.forEachIndexed { index, id ->
-                try {
-                    val song =
-                        Song.loadFromDbById(
-                            id = id,
-                            database = database,
-                            storageService = storageService,
-                            storageApiClient = storageApiClient,
-                        )
-                    if (song == null) {
-                        skipped++
-                        println("  [${index + 1}/${ids.size}] id=$id — пропущено (не удалось загрузить)")
-                        return@forEachIndexed
-                    }
-                    val result = autoAssignOriginalByWaveform(song, database, storageService, storageApiClient, threshold)
-                    if (result.matched) matched++ else skipped++
-                    println("  [${index + 1}/${ids.size}] ${songLogLabel(song)} — ${result.reason}")
                 } catch (e: Exception) {
-                    skipped++
-                    println("  [${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                    println("Автопривязка оригинала: ошибка выборки песен — ${e.message}")
                 }
-            }
-            println("Автопривязка оригинала: завершено. Обработано ${ids.size}, привязано $matched, пропущено $skipped.")
 
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Автопривязка оригинала ($scope)",
-                        body = "Обработано ${ids.size}, привязано $matched, пропущено $skipped (порог $threshold%)",
+                val scope = if (authorFilter != null) "автор «$authorFilter»" else "все авторы"
+                println("Автопривязка оригинала ($scope): найдено песен со статусом 1 и root_id<>0: ${ids.size} (порог $threshold%)")
+                var matched = 0
+                var skipped = 0
+                ids.forEachIndexed { index, id ->
+                    try {
+                        val song =
+                            Song.loadFromDbById(
+                                id = id,
+                                database = database,
+                                storageService = storageService,
+                                storageApiClient = storageApiClient,
+                            )
+                        if (song == null) {
+                            skipped++
+                            println("  [${index + 1}/${ids.size}] id=$id — пропущено (не удалось загрузить)")
+                            return@forEachIndexed
+                        }
+                        val result = autoAssignOriginalByWaveform(song, database, storageService, storageApiClient, threshold)
+                        if (result.matched) matched++ else skipped++
+                        println("  [${index + 1}/${ids.size}] ${songLogLabel(song)} — ${result.reason}")
+                    } catch (e: Exception) {
+                        skipped++
+                        println("  [${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                    }
+                }
+                println("Автопривязка оригинала: завершено. Обработано ${ids.size}, привязано $matched, пропущено $skipped.")
+
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Автопривязка оригинала ($scope)",
+                            body = "Обработано ${ids.size}, привязано $matched, пропущено $skipped (порог $threshold%)",
+                        ),
                     ),
-                ),
-            )
+                )
+            }
         }
         return true
     }
@@ -5837,8 +6058,8 @@ class ApiController(
                         ),
                     ),
                 )
-            } catch (e: Exception) {
-                println("Пересчёт готовности плеера ($scope): аварийно прерван: ${e.message}")
+            } catch (e: Throwable) {
+                log.error("Пересчёт готовности плеера ($scope): аварийно прерван", e)
                 try {
                     SNS.send(
                         SseNotification.error(
@@ -5892,8 +6113,8 @@ class ApiController(
                         ),
                     ),
                 )
-            } catch (e: Exception) {
-                println("Backfill флага «доступна для новости» (${database.name}): аварийно прерван: ${e.message}")
+            } catch (e: Throwable) {
+                log.error("Backfill флага «доступна для новости» (${database.name}): аварийно прерван", e)
                 try {
                     SNS.send(
                         SseNotification.error(
@@ -5952,8 +6173,8 @@ class ApiController(
                         ),
                     ),
                 )
-            } catch (e: Exception) {
-                println("Backfill флагов публикации (${database.name}, dryRun=$dryRun): аварийно прерван: ${e.message}")
+            } catch (e: Throwable) {
+                log.error("Backfill флагов публикации (${database.name}, dryRun=$dryRun): аварийно прерван", e)
                 try {
                     SNS.send(
                         SseNotification.error(
@@ -5981,23 +6202,25 @@ class ApiController(
         // Одноразовый фоновый поток: соединение потока закрывается в `finally`
         // (BR-060, аудит #336).
         startOneShotThread(WORKING_DATABASE, "delete-search-results-ready-songs") {
-            println("Удаление результатов поиска готовых песен: начало")
-            val result =
-                HealthReport.deleteSearchResultsForReadySongs(
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                )
-            println("Удаление результатов поиска готовых песен: завершено, обработано песен: $result")
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Удаление результатов поиска готовых песен",
-                        body = "Обработано песен: $result",
+            runBackgroundReported("Удаление результатов поиска готовых песен") {
+                println("Удаление результатов поиска готовых песен: начало")
+                val result =
+                    HealthReport.deleteSearchResultsForReadySongs(
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                println("Удаление результатов поиска готовых песен: завершено, обработано песен: $result")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Удаление результатов поиска готовых песен",
+                            body = "Обработано песен: $result",
+                        ),
                     ),
-                ),
-            )
+                )
+            }
         }
         return true
     }
@@ -6698,20 +6921,22 @@ class ApiController(
         // Одноразовый фоновый поток: соединение потока закрывается в `finally`
         // (BR-060, аудит #336).
         startOneShotThread(WORKING_DATABASE, "backfill-albums-from-songs") {
-            println("Бэкфилл альбомов из песен: начало")
-            val result = AlbumBackfill.run(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-            println("Бэкфилл альбомов из песен: завершено — $result")
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Бэкфилл альбомов из песен",
-                        body =
-                            "Групп обработано: ${result.groupsProcessed}, альбомов создано: ${result.albumsCreated}, " +
-                                "переиспользовано: ${result.albumsReused}, песен привязано: ${result.songsLinked}",
+            runBackgroundReported("Бэкфилл альбомов из песен") {
+                println("Бэкфилл альбомов из песен: начало")
+                val result = AlbumBackfill.run(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                println("Бэкфилл альбомов из песен: завершено — $result")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Бэкфилл альбомов из песен",
+                            body =
+                                "Групп обработано: ${result.groupsProcessed}, альбомов создано: ${result.albumsCreated}, " +
+                                    "переиспользовано: ${result.albumsReused}, песен привязано: ${result.songsLinked}",
+                        ),
                     ),
-                ),
-            )
+                )
+            }
         }
         return true
     }
@@ -6724,18 +6949,20 @@ class ApiController(
         // Одноразовый фоновый поток: соединение потока закрывается в `finally`
         // (BR-060, аудит #336).
         startOneShotThread(WORKING_DATABASE, "normalize-album-sort-order") {
-            println("Нормализация sortOrder альбомов: начало")
-            val updated = Album.normalizeSortOrderAcrossYears(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-            println("Нормализация sortOrder альбомов: завершено — обновлено $updated")
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Нормализация порядка альбомов",
-                        body = "Обновлено записей: $updated",
+            runBackgroundReported("Нормализация порядка альбомов") {
+                println("Нормализация sortOrder альбомов: начало")
+                val updated = Album.normalizeSortOrderAcrossYears(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                println("Нормализация sortOrder альбомов: завершено — обновлено $updated")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Нормализация порядка альбомов",
+                            body = "Обновлено записей: $updated",
+                        ),
                     ),
-                ),
-            )
+                )
+            }
         }
         return true
     }
@@ -6763,35 +6990,42 @@ class ApiController(
     fun getFiles(
         @RequestParam path: String,
         @RequestParam(required = false) extensions: String?,
-    ): List<FileDTO> {
-        var directory = File(path)
-        if (!directory.exists() || !directory.isDirectory) {
-            directory = File("/")
-            if (!directory.exists() || !directory.isDirectory) {
-                throw IllegalArgumentException("Invalid directory path")
-            }
+    ): ResponseEntity<List<FileDTO>> {
+        // BR-070 (аудит #336, пакет PKG-S3-22): раньше несуществующий путь (опечатка в
+        // файловом диалоге) МОЛЧА подменялся на `/`, и админ видел листинг корня ФС как
+        // «содержимое папки» — и мог выбрать чужой каталог для импорта/копирования.
+        // Теперь явная ошибка клиента; листинг корня — только при пустом `path`.
+        val requested = path.trim()
+        val directory = if (requested.isEmpty()) File("/") else File(requested)
+        if (!directory.exists()) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Путь не найден: ${directory.path}")
+        }
+        if (!directory.isDirectory) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Это не каталог: ${directory.path}")
         }
 
-        return directory
-            .listFiles()
-            ?.mapNotNull { file ->
-                val needToAdd =
-                    file.isDirectory ||
-                        (extensions.isNullOrBlank() || file.extension.lowercase() in extensions.split(";").map { it.lowercase() })
-                if (needToAdd) {
-                    FileDTO(
-                        name = file.name,
-                        path = file.absolutePath,
-                        extension = file.extension,
-                        nameWithoutExtension = file.nameWithoutExtension,
-                        parent = file.parent,
-                        length = file.length(),
-                        isDirectory = file.isDirectory,
-                    )
-                } else {
-                    null
-                }
-            }?.sorted() ?: emptyList()
+        val files =
+            directory
+                .listFiles()
+                ?.mapNotNull { file ->
+                    val needToAdd =
+                        file.isDirectory ||
+                            (extensions.isNullOrBlank() || file.extension.lowercase() in extensions.split(";").map { it.lowercase() })
+                    if (needToAdd) {
+                        FileDTO(
+                            name = file.name,
+                            path = file.absolutePath,
+                            extension = file.extension,
+                            nameWithoutExtension = file.nameWithoutExtension,
+                            parent = file.parent,
+                            length = file.length(),
+                            isDirectory = file.isDirectory,
+                        )
+                    } else {
+                        null
+                    }
+                }?.sorted() ?: emptyList()
+        return ResponseEntity.ok(files)
     }
 
     @PostMapping("/pictures/updatepicture")
@@ -8193,7 +8427,7 @@ class ApiController(
     @ResponseBody
     fun extractLyricsBySearchResultId(
         @RequestParam searchResultId: Long,
-    ): SearchResultDTO? {
+    ): ResponseEntity<SearchResultDTO> {
         val updated =
             com.svoemesto.karaokeapp.extractLyricsBySearchResultId(
                 searchResultId = searchResultId,
@@ -8202,7 +8436,11 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        return updated?.toDTO()
+        // BR-069 (аудит #336, пакет PKG-S3-22): контракт обещает 404, если запись результата
+        // поиска не найдена, а nullable-тип давал 200 с ПУСТЫМ телом — клиент делал
+        // `JSON.parse('')` и показывал общую ошибку вместо «запись не найдена».
+        return updated?.toDTO()?.let { ResponseEntity.ok(it) }
+            ?: ResponseEntity.notFound().build()
     }
 
     @PostMapping("/authymstart")
@@ -8223,20 +8461,84 @@ class ApiController(
         completeAuth()
     }
 
+    /**
+     * Конвертация стема FLAC → MP3 (ленивая, при первом обращении к mp3-эндпоинту).
+     *
+     * BR-067 (аудит #336, пакет PKG-S3-22):
+     * - stdout/stderr (`redirectErrorStream(true)`) **вычитываются** до EOF — иначе ffmpeg
+     *   упирается в заполненный pipe-буфер (64 КБ) и `waitFor()` висит навсегда вместе с
+     *   HTTP-потоком Tomcat;
+     * - ожидание — `awaitProcessExit` (таймаут + `destroyForcibly()`), а не бесконечный `waitFor()`;
+     * - конвертация одного и того же файла сериализуется общим локом по пути, а результат
+     *   пишется во временный файл + `ATOMIC_MOVE`: два параллельных запроса больше не пишут
+     *   в один и тот же `.mp3` с `-y` (второй обрезал вывод первого);
+     * - ненулевой код возврата — `null` с `WARN` в лог (раньше причина пропадала).
+     */
     private fun convertFlacToMp3(flacPath: String): File? {
         val flacFile = File(flacPath)
         if (!flacFile.exists()) return null
         val mp3File = File(flacPath.removeSuffix(".flac") + ".mp3")
-        if (!mp3File.exists()) {
-            val process =
-                ProcessBuilder("ffmpeg", "-i", flacPath, "-codec:a", "libmp3lame", "-qscale:a", "2", "-y", mp3File.absolutePath)
-                    .redirectErrorStream(true)
-                    .start()
-            process.waitFor()
-            if (!mp3File.exists()) return null
+        if (mp3File.exists()) return mp3File
+        val lock = mp3ConversionLocks.computeIfAbsent(mp3File.absolutePath) { ReentrantLock() }
+        lock.lock()
+        try {
+            if (mp3File.exists()) return mp3File
+            val command =
+                listOf(
+                    "ffmpeg", "-loglevel", "error",
+                    "-i", flacPath,
+                    "-codec:a", "libmp3lame", "-qscale:a", "2", "-y",
+                    mp3File.absolutePath,
+                )
+            // Слитый stdout/stderr направляем в ВРЕМЕННЫЙ ФАЙЛ, а не в pipe: pipe-буфер
+            // (64 КБ) заполняется, ffmpeg блокируется на записи, а `waitFor()` — навсегда.
+            // Отдельный поток-читатель здесь не годится: в `ApiController` одноразовые потоки
+            // обязаны идти через `startOneShotThread` (иначе утечка thread-local соединения, см.
+            // `OneShotThreadWiringTest`), а этот поток — не жизненный цикл, а чтение вывода.
+            val logFile = Files.createTempFile("ffmpeg-mp3-", ".log").toFile()
+            val exitCode: Int
+            var logText = ""
+            try {
+                val process =
+                    ProcessBuilder(command)
+                        .redirectErrorStream(true)
+                        .redirectOutput(logFile)
+                        .start()
+                exitCode =
+                    try {
+                        awaitProcessExit(process, command, timeoutSeconds = mp3ConversionTimeoutSeconds())
+                    } catch (e: ProcessExitException) {
+                        log.warn("convertFlacToMp3: {} не сконвертирован: {}", flacPath, e.message)
+                        return null
+                    } finally {
+                        process.destroyForcibly()
+                    }
+            } finally {
+                logText = if (logFile.exists()) logFile.readText() else ""
+                logFile.delete()
+            }
+            if (exitCode != 0) {
+                log.warn(
+                    "convertFlacToMp3: ffmpeg вернул {} для '{}': {}",
+                    exitCode,
+                    flacPath,
+                    outputTail(logText),
+                )
+                return null
+            }
+            return mp3File.takeIf { it.exists() && it.length() > 0 }
+        } finally {
+            lock.unlock()
         }
-        return mp3File
     }
+
+    /** Таймаут конвертации одного стема, секунды (`KARAOKE_MP3_CONVERT_TIMEOUT_SECONDS`). */
+    private fun mp3ConversionTimeoutSeconds(): Long =
+        System
+            .getenv("KARAOKE_MP3_CONVERT_TIMEOUT_SECONDS")
+            ?.toLongOrNull()
+            ?.takeIf { it > 0 }
+            ?: DEFAULT_MP3_CONVERT_TIMEOUT_SECONDS
 
     // Lazily seeds MinIO with a copy of the stem mp3 (idempotent). karaoke-web (public site,
     // runs on a different host with no access to local disk / the Demucs pipeline) reads stems
@@ -8452,70 +8754,11 @@ class ApiController(
         val tracks = mutableMapOf<String, String>()
         val images = mutableMapOf<String, String>()
 
-        val bos = ByteArrayOutputStream()
-        val zip = ZipOutputStream(bos)
-
-        convertFlacToMp3(song.accompanimentNameFlac)?.let { mp3 ->
-            smkaraokeAddStored(zip, "audio/accompaniment.mp3", mp3.readBytes())
-            tracks["accompaniment"] = "audio/accompaniment.mp3"
-        }
-        convertFlacToMp3(song.vocalsNameFlac)?.let { mp3 ->
-            smkaraokeAddStored(zip, "audio/vocals.mp3", mp3.readBytes())
-            tracks["vocals"] = "audio/vocals.mp3"
-        }
-        convertFlacToMp3(song.bassNameFlac)?.let { mp3 ->
-            smkaraokeAddStored(zip, "audio/bass.mp3", mp3.readBytes())
-            tracks["bass"] = "audio/bass.mp3"
-        }
-        convertFlacToMp3(song.drumsNameFlac)?.let { mp3 ->
-            smkaraokeAddStored(zip, "audio/drums.mp3", mp3.readBytes())
-            tracks["drums"] = "audio/drums.mp3"
-        }
-        song.pictureAlbum?.let { pic ->
-            if (storageService.fileExists(bucket, pic.storageFileName)) {
-                val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
-                smkaraokeAddStored(zip, "images/album.png", bytes)
-                images["album"] = "images/album.png"
-            }
-        }
-        song.pictureAuthor?.let { pic ->
-            if (storageService.fileExists(bucket, pic.storageFileName)) {
-                val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
-                smkaraokeAddStored(zip, "images/artist.png", bytes)
-                images["artist"] = "images/artist.png"
-            }
-        }
-
-        // Embed app icon so OS file managers can associate a custom icon after type registration
-        val iconBytes = javaClass.classLoader?.getResourceAsStream("smkaraoke-icon.ico")?.readBytes()
-        if (iconBytes != null) smkaraokeAddStored(zip, "icon.ico", iconBytes)
-
-        val manifest =
-            mapOf(
-                "version" to 1,
-                "format" to "smkaraoke",
-                "id" to id,
-                "songName" to song.songName,
-                "author" to song.author,
-                "album" to song.album,
-                "year" to song.year.takeIf { it > 0 },
-                "track" to song.track.takeIf { it > 0 },
-                "key" to song.key.takeIf { it.isNotBlank() },
-                "bpm" to song.bpm,
-                "markers" to song.sourceMarkersList,
-                "tracks" to tracks,
-                "images" to images,
-                "icon" to if (iconBytes != null) "icon.ico" else null,
-                "exportBaseName" to "${song.fileName} [id-$id]".rightFileName(),
-            )
-        val manifestBytes = ObjectMapper().writeValueAsBytes(manifest)
-        val manifestEntry = ZipEntry("manifest.json").apply { method = ZipEntry.DEFLATED }
-        zip.putNextEntry(manifestEntry)
-        zip.write(manifestBytes)
-        zip.closeEntry()
-
-        zip.close()
-
+        // BR-066 (аудит #336, пакет PKG-S3-22): архив пишется СРАЗУ в ответ, а не собирается
+        // в `ByteArrayOutputStream` + `toByteArray()`. Раньше пик памяти был ≈ 2× размер
+        // архива на запрос (четыре стема целиком + картинки + сам архив + копия при отправке),
+        // а `zip` не закрывался в `finally`. Заголовки выставляются ДО записи тела — иначе
+        // после первого байта их уже не изменить.
         val downloadName = "${song.fileName} [id-$id].smkaraoke".rightFileName()
         // RFC 5987 encoding so browsers use the Cyrillic filename instead of the URL path ("playerfile")
         val encodedName =
@@ -8527,7 +8770,80 @@ class ApiController(
             HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=\"song-$id.smkaraoke\"; filename*=UTF-8''$encodedName",
         )
-        response.outputStream.write(bos.toByteArray())
+        val zip = ZipOutputStream(response.outputStream)
+        try {
+            convertFlacToMp3(song.accompanimentNameFlac)?.let { mp3 ->
+                smkaraokeAddStored(zip, "audio/accompaniment.mp3", mp3.readBytes())
+                tracks["accompaniment"] = "audio/accompaniment.mp3"
+            }
+            convertFlacToMp3(song.vocalsNameFlac)?.let { mp3 ->
+                smkaraokeAddStored(zip, "audio/vocals.mp3", mp3.readBytes())
+                tracks["vocals"] = "audio/vocals.mp3"
+            }
+            convertFlacToMp3(song.bassNameFlac)?.let { mp3 ->
+                smkaraokeAddStored(zip, "audio/bass.mp3", mp3.readBytes())
+                tracks["bass"] = "audio/bass.mp3"
+            }
+            convertFlacToMp3(song.drumsNameFlac)?.let { mp3 ->
+                smkaraokeAddStored(zip, "audio/drums.mp3", mp3.readBytes())
+                tracks["drums"] = "audio/drums.mp3"
+            }
+            song.pictureAlbum?.let { pic ->
+                if (storageService.fileExists(bucket, pic.storageFileName)) {
+                    val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
+                    smkaraokeAddStored(zip, "images/album.png", bytes)
+                    images["album"] = "images/album.png"
+                }
+            }
+            song.pictureAuthor?.let { pic ->
+                if (storageService.fileExists(bucket, pic.storageFileName)) {
+                    val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
+                    smkaraokeAddStored(zip, "images/artist.png", bytes)
+                    images["artist"] = "images/artist.png"
+                }
+            }
+
+            // Embed app icon so OS file managers can associate a custom icon after type registration
+            val iconBytes = javaClass.classLoader?.getResourceAsStream("smkaraoke-icon.ico")?.readBytes()
+            if (iconBytes != null) smkaraokeAddStored(zip, "icon.ico", iconBytes)
+
+            val manifest =
+                mapOf(
+                    "version" to 1,
+                    "format" to "smkaraoke",
+                    "id" to id,
+                    "songName" to song.songName,
+                    "author" to song.author,
+                    "album" to song.album,
+                    "year" to song.year.takeIf { it > 0 },
+                    "track" to song.track.takeIf { it > 0 },
+                    "key" to song.key.takeIf { it.isNotBlank() },
+                    "bpm" to song.bpm,
+                    "markers" to song.sourceMarkersList,
+                    "tracks" to tracks,
+                    "images" to images,
+                    "icon" to if (iconBytes != null) "icon.ico" else null,
+                    "exportBaseName" to "${song.fileName} [id-$id]".rightFileName(),
+                )
+            val manifestBytes = ObjectMapper().writeValueAsBytes(manifest)
+            val manifestEntry = ZipEntry("manifest.json").apply { method = ZipEntry.DEFLATED }
+            zip.putNextEntry(manifestEntry)
+            zip.write(manifestBytes)
+            zip.closeEntry()
+            zip.finish()
+            response.outputStream.flush()
+        } catch (e: Exception) {
+            // Ответ уже частично записан — код ответа изменить нельзя, но сбой не должен
+            // уходить в пустоту: логируем. `zip` закрывается в `finally`.
+            log.warn("playerfile: сборка контейнера для песни id={} прервана: {}", id, e.toString())
+            throw e
+        } finally {
+            try {
+                zip.close()
+            } catch (_: Exception) {
+                // поток ответа уже мог быть закрыт клиентом
+            }
+        }
     }
 
     private fun smkaraokeAddStored(

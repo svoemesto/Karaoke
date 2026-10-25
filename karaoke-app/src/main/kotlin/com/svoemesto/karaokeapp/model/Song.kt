@@ -642,24 +642,7 @@ class Song(
     val album: String get() = fields[SongField.ALBUM] ?: ""
     val date: String get() = fields[SongField.DATE] ?: ""
     val time: String get() = fields[SongField.TIME] ?: ""
-    val dateTimePublish: Date? get() {
-        return if (date == "" || time == "") {
-            null
-        } else {
-            try {
-                // Явная таймзона MSK: в контейнере karaoke-app JVM-локаль = UTC (TZ env не
-                // применяется к SimpleDateFormat), а publish_date/publish_time в БД
-                // интерпретируются как московское время. Без явной таймзоны парсинг
-                // даёт UTC-время, и сравнение с nowMoscow() (MSK) даёт ошибку в 3 часа.
-                SimpleDateFormat("dd.MM.yy HH:mm")
-                    .apply {
-                        timeZone = TimeZone.getTimeZone("Europe/Moscow")
-                    }.parse("$date $time")
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }
+    val dateTimePublish: Date? get() = parsePublishDateTime(date, time)
     val onAir: Boolean get() = (
         dateTimePublish != null &&
             dateTimePublish!! <= Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
@@ -6596,6 +6579,42 @@ class Song(
     companion object {
         const val TABLE_NAME = "tbl_songs"
 
+        /**
+         * Читает проекцию «id_status, free, publish_date, publish_time» без материализации
+         * объектов [Song].
+         *
+         * @param inWork `true` — только песни `id_status < 6` (состояние [SongState.IN_WORK]);
+         *   `false` — только опубликованные (`id_status >= 6`). Предикат тот же, что первый
+         *   шаг [SongStateResolver.resolve], поэтому отсечение по нему не меняет результат.
+         */
+        fun loadPublicationDateCandidates(
+            database: KaraokeConnection,
+            inWork: Boolean,
+        ): List<PublicationDateCandidate> {
+            val connection =
+                database.getConnection()
+                    ?: throw IllegalStateException("Невозможно установить соединение с базой данных ${database.name}")
+            val sql =
+                "SELECT id_status, free, publish_date, publish_time " +
+                    "FROM $TABLE_NAME WHERE id_status " + if (inWork) "< 6" else ">= 6"
+            val result = mutableListOf<PublicationDateCandidate>()
+            connection.prepareStatement(sql).use { ps ->
+                ps.executeQuery().use { rs ->
+                    while (rs.next()) {
+                        result.add(
+                            PublicationDateCandidate(
+                                idStatus = rs.getLong("id_status"),
+                                free = rs.getBoolean("free"),
+                                date = rs.getString("publish_date") ?: "",
+                                time = rs.getString("publish_time") ?: "",
+                            ),
+                        )
+                    }
+                }
+            }
+            return result
+        }
+
         // specs/126-key-from-file (#126, OpenProject): pure-parse helper.
         // Без side-effects (БД/log), тестируется в KeyBpmFromFileCacheTest без БД.
         // Возвращает AudioAnalysisResult только если файл существует, валиден
@@ -9145,5 +9164,57 @@ class Song(
             // защищает от перезатирания.
             if (wasChange) this.saveToDbLocked()
         }
+    }
+}
+
+/**
+ * Лёгкая проекция строки `tbl_songs` для вычисления состояния/даты публикации.
+ *
+ * BR-057 (аудит #336, пакет PKG-S3-22): `/api/publications/date` нужна ОДНА дата, а раньше
+ * под это грузилась вся таблица песен с маппингом ~100 полей на строку
+ * (`Song.loadListFromDb(emptyMap())`) и `firstOrNull` по вычисляемому `state`.
+ * Теперь читаются только 4 колонки, а состояние считается тем же
+ * [SongStateResolver.resolve], что и в `Song.state` (контракт один).
+ */
+class PublicationDateCandidate(
+    val idStatus: Long,
+    val free: Boolean,
+    val date: String,
+    val time: String,
+) {
+    val dateTimePublish: Date? get() = parsePublishDateTime(date, time)
+
+    fun stateAt(now: Date): SongState =
+        SongStateResolver.resolve(
+            idStatus = idStatus,
+            free = free,
+            dateTimePublish = dateTimePublish,
+            now = now,
+        )
+}
+
+/**
+ * Разбор `publish_date` + `publish_time` в момент эфира.
+ *
+ * Явная таймзона MSK: в контейнере karaoke-app JVM-локаль = UTC (TZ env не применяется к
+ * `SimpleDateFormat`), а `publish_date`/`publish_time` в БД интерпретируются как московское
+ * время. Без явной таймзоны парсинг даёт UTC-время, и сравнение с «сейчас по Москве» даёт
+ * ошибку в 3 часа.
+ *
+ * Вынесено из `Song.dateTimePublish` (BR-057, аудит #336, пакет PKG-S3-22), чтобы лёгкая
+ * проекция [Song.PublicationDateCandidate] считала состояние ровно так же, как `Song.state`.
+ */
+internal fun parsePublishDateTime(
+    date: String,
+    time: String,
+): Date? {
+    if (date == "" || time == "") return null
+    return try {
+        SimpleDateFormat("dd.MM.yy HH:mm")
+            .apply {
+                timeZone = TimeZone.getTimeZone("Europe/Moscow")
+            }.parse("$date $time")
+    } catch (_: Exception) {
+        null
     }
 }

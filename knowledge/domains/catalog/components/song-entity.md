@@ -192,6 +192,23 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 См. [dictionaries](dictionaries.md#пустой-голос-и-его-удаление-при-сохранении-specs547)
 и [specs/547](../../../../specs/547-drop-empty-song-voices/spec.md).
 
+### Лёгкая проекция для состояния/даты публикации (BR-057, PKG-S3-22)
+
+`/api/publications/date` нужна одна дата, а не песня целиком. Для этого в `Song.kt` есть
+`Song.loadPublicationDateCandidates(database, inWork)` → `List<PublicationDateCandidate>`
+(4 колонки: `id_status`, `free`, `publish_date`, `publish_time`).
+
+- `PublicationDateCandidate.stateAt(now)` считает состояние тем же
+  `SongStateResolver.resolve`, что и `Song.state` — контракт один, расхождение
+  «дата в UI не совпадает с фильтром» невозможно.
+- Предикат `id_status < 6` / `>= 6` — это первый шаг `SongStateResolver.resolve`
+  (`idStatus < 6 → IN_WORK`), поэтому отсечение в SQL не меняет результат.
+- `Song.dateTimePublish` и проекция используют один разбор
+  `parsePublishDateTime(date, time)` (таймзона MSK явно): иначе дата, разобранная
+  в UTC, даёт сдвиг на 3 часа при сравнении с «сейчас по Москве».
+- **Не заменяйте проекцию на `Song.loadListFromDb(emptyMap())`** ради «единообразия»:
+  это полная материализация ~100 полей на строку ради одной даты (было ровно так).
+
 ## Hot paths
 
 - **`POST /api/songs`** — на каждое изменение фильтра/страницы.
@@ -221,6 +238,10 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 
 ## Changelog
 
+- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-057)**: добавлена
+  лёгкая проекция `Song.loadPublicationDateCandidates` / `PublicationDateCandidate`
+  и общий разбор `parsePublishDateTime` для `Song.dateTimePublish`. См.
+  `specs/394-pkg-s3-22/report.md`.
 - **Pass 547** (2026-10-20, spec `547-drop-empty-song-voices`): добавлен раздел «Нормализация голосов при сохранении» — пустые голоса (кроме первого) удаляются в `saveToDb()`, новые методы `setSourceTextAndMarkers`/`setAllVoices`, чистая нормализация в `VoiceNormalization.kt`. Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 384** (2026-09-09): Initial. Автор: agent (Karaoke).

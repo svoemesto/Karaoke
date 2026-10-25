@@ -374,6 +374,28 @@ Apache POI wrapper для чтения/записи Excel.
 
 ---
 
+## История фильтров — `textfilehistory/TextFileHistory.kt`
+
+### Что
+
+Файловая история последних фильтров админских таблиц (`SongsHistory`, …): base64-строки
+с JSON `HistoryMap(args)`, не больше `COUNT_HISTORY_LINES` (30) записей.
+
+### Контракт (BR-056, аудит #336, пакет PKG-S3-22)
+
+- **Один лок на путь файла** (`TextFileHistory.withFileLock`): `add()` делает
+  `load → modify → save` ПОД локом, иначе два параллельных запроса (две вкладки,
+  автообновление таблицы) затирали записи друг друга.
+- **Атомарная запись**: временный файл в том же каталоге + `Files.move(ATOMIC_MOVE,
+  REPLACE_EXISTING)` (при `AtomicMoveNotSupportedException` — обычный `REPLACE_EXISTING`).
+  Прямой `writeText` позволял читателю увидеть обрезанный файл.
+- **Ошибка разбора не «обнуляет» историю**: файл копируется рядом как
+  `*.corrupt-<timestamp>`, в лог идёт `WARN`. Было: `catch { return mutableListOf() }`,
+  и следующее сохранение записывало историю из одной строки.
+- Тест — `PkgS322ApiControllerTest` (`BR-056 …`), поведенческий: 5 потоков × 5 записей,
+  все 25 строк после гонки на месте (меньше `COUNT_HISTORY_LINES`, иначе проверялась бы
+  обрезка, а не гонка).
+
 ## `SanitizePath.kt` (80 строк)
 
 ### Что

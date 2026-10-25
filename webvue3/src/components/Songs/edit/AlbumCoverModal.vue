@@ -16,6 +16,9 @@
                 alt="Текущая обложка альбома"
                 :src="currentImageUrl"
               />
+              <!-- BR-432: отказ запроса НЕ подменяется сообщением «Картинки альбома пока
+                   нет» — это ложное утверждение о данных песни. -->
+              <div v-else-if="currentError" class="acm-error">{{ currentError }}</div>
               <div v-else class="acm-message">Картинки альбома пока нет</div>
             </div>
             <div v-if="searchError" class="acm-error">{{ searchError }}</div>
@@ -186,6 +189,9 @@ export default {
       step: 'view', // 'view' | 'searching' | 'results' | 'cropping'
       loadingCurrent: true,
       currentImageUrl: '',
+      // BR-432: ошибка загрузки текущей обложки (отказ запроса не должен выглядеть
+      // как «картинки альбома пока нет»).
+      currentError: '',
       candidates: [],
       searchMessage: '',
       searchError: '',
@@ -231,10 +237,22 @@ export default {
     close() {
       this.$emit('close')
     },
+    /**
+     * BR-432: загрузка текущей обложки — с явным сообщением об отказе.
+     *
+     * ДО ПРАВКИ `try/finally` без `catch`: при отказе запроса `currentImageUrl`
+     * оставался пустым, и модалка показывала «Картинки альбома пока нет» — ложное
+     * утверждение о данных песни (обложка на диске есть, запрос упал).
+     */
     async loadCurrentPicture() {
       this.loadingCurrent = true
+      this.currentError = ''
       try {
         this.currentImageUrl = await this.$store.dispatch('getAlbumPictureBase64Promise')
+      } catch (e) {
+        this.currentError = `Не удалось получить текущую обложку: ${
+          e && e.message ? e.message : 'ошибка запроса'
+        }`
       } finally {
         this.loadingCurrent = false
       }
@@ -278,10 +296,26 @@ export default {
     closeFileExplorer() {
       this.isFileExplorerVisible = false
     },
+    /**
+     * BR-432: чтение файла с диска — с явным сообщением об отказе.
+     *
+     * ДО ПРАВКИ при отказе `/api/picture/loadfromdisk` сообщения не было вовсе:
+     * файловый менеджер закрывался, шаг не менялся, и пользователь не понимал,
+     * почему ничего не произошло.
+     */
     async onDiskFileSelected(path) {
       this.isFileExplorerVisible = false
       if (!path) return
-      const base64 = await this.$store.getters.loadPictureFromDiskBase64(path)
+      let base64 = ''
+      try {
+        base64 = await this.$store.getters.loadPictureFromDiskBase64(path)
+      } catch (e) {
+        this.searchError = `Не удалось прочитать файл: ${
+          e && e.message ? e.message : 'ошибка запроса'
+        }`
+        this.step = 'view'
+        return
+      }
       if (!base64) {
         this.searchError = 'Не удалось загрузить выбранный файл'
         this.step = 'view'

@@ -17,6 +17,14 @@
         </div>
         <div class="fsm-body">
           <div v-if="loading" class="fsm-message">Загрузка...</div>
+          <!-- BR-429: сбой загрузки/поиска — это НЕ «ничего не найдено»: отдельный
+               текст ошибки, а прежний список не выдаётся за результат нового запроса. -->
+          <div v-else-if="loadError" class="fsm-message fsm-message-error">
+            {{ loadError }}
+            <span v-if="songs.length > 0" class="fsm-stale-note">
+              (показан прежний список — результат не обновлён)
+            </span>
+          </div>
           <div v-else-if="songs.length === 0" class="fsm-message">
             {{ searched ? 'Ничего не найдено по запросу' : 'Похожих песен не найдено' }}
           </div>
@@ -123,12 +131,22 @@ export default {
       searched: false,
       compareResults: {}, // id -> {status:'idle'|'loading'|'done'|'error', similarityPercent, deltaMs, stemUsed, error}
       comparingAll: false,
+      // BR-429: текст ошибки загрузки/поиска. Раньше обе цепочки шли через
+      // `try/finally` без `catch`: reject уходил наружу, `loading` гас, а список
+      // оставался прежним (на старте — пустым), и модалка утверждала «Похожих песен
+      // не найдено».
+      loadError: '',
     }
   },
   async mounted() {
     try {
       const data = await this.$store.dispatch('getFamilySongsPromise')
       this.songs = JSON.parse(data)
+    } catch (e) {
+      // BR-429: отказ виден пользователю.
+      this.loadError = `Не удалось загрузить список похожих песен: ${
+        e && e.message ? e.message : 'ошибка запроса'
+      }`
     } finally {
       this.loading = false
     }
@@ -221,9 +239,17 @@ export default {
       if (!query) return
       this.loading = true
       this.searched = true
+      this.loadError = ''
       try {
         const data = await this.$store.dispatch('searchOriginalSongsPromise', { search: query })
         this.songs = JSON.parse(data)
+      } catch (e) {
+        // BR-429: при ошибке поиска прежний список сохраняется, но помечается явной
+        // пометкой «результат не обновлён» — он больше не выглядит как результат
+        // нового запроса.
+        this.loadError = `Не удалось выполнить поиск: ${
+          e && e.message ? e.message : 'ошибка запроса'
+        }`
       } finally {
         this.loading = false
       }
@@ -329,6 +355,16 @@ export default {
   padding: 20px;
   text-align: center;
   color: #555;
+}
+
+/* BR-429: сообщение об ошибке загрузки/поиска и пометка устаревшего списка. */
+.fsm-message-error {
+  color: darkred;
+}
+
+.fsm-stale-note {
+  color: #8a6d0a;
+  font-size: 0.9em;
 }
 
 .fsm-table {

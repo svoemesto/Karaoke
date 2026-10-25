@@ -29,6 +29,12 @@
         pills
       />
     </div>
+    <!-- BR-413: ошибка загрузки дайджеста видна пользователю (пустой список больше
+         не выглядит как «настроек нет»). -->
+    <div v-if="propertiesDigestsError" class="properties-error" v-text="propertiesDigestsError" />
+    <!-- BR-404: ошибка изменения значения настройки видна пользователю (раньше
+         отказ уходил только в консоль, а админ считал, что значение применено). -->
+    <div v-if="propertyError" class="properties-error" v-text="propertyError" />
     <div class="properties-bv-table-body">
       <b-table
         v-model:sort-by="sortBy"
@@ -121,6 +127,7 @@
 import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import PropertiesFilter from '../../components/Properties/filter/PropertiesFilterModal.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
+import { validatePropertyValue } from '../../lib/property-value.js'
 
 /**
  * Таблица со списком properties с пагинацией, фильтрами и сортировкой.
@@ -153,6 +160,8 @@ export default {
       isBusy: false,
       currentPropertyKey: '',
       currentProperty: undefined,
+      // BR-404: текст ошибки изменения значения настройки (показывается в таблице).
+      propertyError: '',
     }
   },
   computed: {
@@ -165,6 +174,10 @@ export default {
     },
     propertiesDigests() {
       return this.$store.getters.getPropertiesDigest
+    },
+    // BR-413: текст ошибки загрузки дайджеста настроек.
+    propertiesDigestsError() {
+      return this.$store.getters.getPropertiesDigestsError
     },
     countRows() {
       return this.propertiesDigests ? this.propertiesDigests.length : 0
@@ -248,7 +261,17 @@ export default {
     await this.$store.dispatch('loadTableSettings')
     this.perPage = this.$store.getters.getRowsPerPage('properties')
 
-    // this.$store.dispatch('loadPropertiesDigests', { filterAuthor: 'Павел Кашин'} )
+    // BR-405: дайджест настроек грузится при открытии раздела.
+    //
+    // ДО ПРАВКИ вызов `loadPropertiesDigests` был закомментирован, а `PropertiesView`
+    // данных тоже не грузил: единственные загрузчики — `PropertiesFilterModal.ok()`
+    // и `onPerPageChange`. На первом открытии (и после каждого F5, пока фильтр не
+    // применён) таблица была пуста — «No matching records», без спиннера и без
+    // подсказки «примените фильтр». Настроек ~150, сервер отдаёт их целиком без
+    // пагинации — «тяжёлый дайджест» здесь не оправдание.
+    await this.$store.dispatch('loadPropertiesDigests', {
+      ...this.$store.getters.getPropertiesFilter,
+    })
   },
   methods: {
     /**
@@ -288,6 +311,8 @@ export default {
       }
     },
     changeValue(item) {
+      this.propertyError = ''
+      this.currentProperty = item
       this.customConfirmParams = {
         allowHtml: true,
         header: 'Изменение значения настройки',
@@ -307,22 +332,50 @@ export default {
       this.isCustomConfirmVisible = true
     },
 
-    doChangeValue(result) {
-      this.$store
-        .dispatch('setPropertyValuePromise', {
+    /**
+     * BR-404: изменение значения настройки.
+     *
+     * ДО ПРАВКИ значение проверялось только на сервере (`setFromString` бросает
+     * `KaraokePropertyValueException` → HTTP 500), а отказ ловился одним
+     * `console.error`: диалог к этому моменту уже закрывался, в UI не было ни
+     * ошибки, ни возврата старого значения. Админ видел «Да» → диалог закрылся →
+     * считал, что значение применено, хотя в `Karaoke.properties` оно не записано.
+     *
+     * Теперь значение проверяется на клиенте по `item.type` ДО отправки, а отказ
+     * показывается в таблице и диалог переоткрывается с введённым значением.
+     */
+    async doChangeValue(result) {
+      const item = this.currentProperty
+      const type = item ? item.type : ''
+      const check = validatePropertyValue(type, result.propertyValue)
+      if (!check.valid) {
+        this.propertyError = `Значение настройки «${item ? item.key : ''}»: ${check.message}`
+        // `CustomConfirm.ok()` закрывает модалку после callback — переоткрываем её
+        // с сохранённым введённым значением.
+        if (this.customConfirmParams && this.customConfirmParams.fields) {
+          this.customConfirmParams.fields[0].fldValue = result.propertyValue
+        }
+        this.$nextTick(() => {
+          this.isCustomConfirmVisible = true
+        })
+        return
+      }
+      this.propertyError = ''
+      try {
+        const data = await this.$store.dispatch('setPropertyValuePromise', {
           propertyKey: this.currentProperty.key,
           propertyValue: result.propertyValue,
         })
-        .then((data) => {
-          // data - это объект, возвращаемый промисом
-          if (data) {
-            let result = JSON.parse(data)
-            this.$store.dispatch('updateOneProperty', result.property)
-          }
-        })
-        .catch((error) => {
-          console.error('Ошибка при выполнении setPropertyValuePromise:', error)
-        })
+        // data - это объект, возвращаемый промисом
+        if (data) {
+          let parsed = JSON.parse(data)
+          this.$store.dispatch('updateOneProperty', parsed.property)
+        }
+      } catch (error) {
+        this.propertyError = `Не удалось сохранить значение настройки «${
+          this.currentProperty ? this.currentProperty.key : ''
+        }»: ${error && error.message ? error.message : 'ошибка запроса'}`
+      }
     },
 
     closeCustomConfirm() {
@@ -370,6 +423,19 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* BR-404 / BR-413: баннер ошибки (загрузка дайджеста, изменение значения). */
+.properties-error {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0;
+  padding: 6px 10px;
+  border: 1px solid darkred;
+  border-radius: 6px;
+  background: #fff0f0;
+  color: darkred;
+  font-size: small;
 }
 
 .properties-bv-table-body {

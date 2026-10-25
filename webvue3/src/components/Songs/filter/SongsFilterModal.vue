@@ -892,54 +892,13 @@ export default {
       })
       this.$store.dispatch('setSongsFilterSongType', { value: this.songsFilterSongType })
 
-      let params = {}
-      if (this.songsFilterId) params.filterId = this.songsFilterId
-      if (this.songsFilterSongName) params.filterSongName = this.songsFilterSongName
-      if (this.songsFilterSongAuthor) params.filterAuthor = this.songsFilterSongAuthor
-      if (this.songsFilterSongAlbum) params.filterAlbum = this.songsFilterSongAlbum
-      if (this.songsFilterPublishDate) params.filterDate = this.songsFilterPublishDate
-      if (this.songsFilterPublishTime) params.filterTime = this.songsFilterPublishTime
-      if (this.songsFilterIdStatus) params.filterStatus = this.songsFilterIdStatus
-      if (this.songsFilterCountVoices) params.filterCountVoices = this.songsFilterCountVoices
-      if (this.songsFilterTags) params.filterTags = this.songsFilterTags
-      if (this.songsFilterResultVersion !== '')
-        params.filterResultVersion = this.songsFilterResultVersion
-      if (this.songsFilterVersionBoosty !== '')
-        params.filterVersionBoosty = this.songsFilterVersionBoosty
-      if (this.songsFilterVersionBoostyFiles !== '')
-        params.filterVersionBoostyFiles = this.songsFilterVersionBoostyFiles
-      if (this.songsFilterVersionSponsr !== '')
-        params.filterVersionSponsr = this.songsFilterVersionSponsr
-      if (this.songsFilterVersionDzenKaraoke !== '')
-        params.filterVersionDzenKaraoke = this.songsFilterVersionDzenKaraoke
-      if (this.songsFilterVersionVkKaraoke !== '')
-        params.filterVersionVkKaraoke = this.songsFilterVersionVkKaraoke
-      if (this.songsFilterVersionTelegramKaraoke !== '')
-        params.filterVersionTelegramKaraoke = this.songsFilterVersionTelegramKaraoke
-      if (this.songsFilterVersionPlKaraoke !== '')
-        params.filterVersionPlKaraoke = this.songsFilterVersionPlKaraoke
-      if (this.songsFilterVersionMaxKaraoke !== '')
-        params.filterVersionMaxKaraoke = this.songsFilterVersionMaxKaraoke
-      if (this.songsFilterRate !== '') params.filterRate = this.songsFilterRate
-      if (this.songsFilterIsSync !== '') params.filterIsSync = this.songsFilterIsSync
-      if (this.songsFilterStatusProcessLyrics !== '')
-        params.filterStatusProcessLyrics = this.songsFilterStatusProcessLyrics
-      if (this.songsFilterStatusProcessKaraoke !== '')
-        params.filterStatusProcessKaraoke = this.songsFilterStatusProcessKaraoke
-      if (this.songsFilterStatusProcessDemo !== '')
-        params.filterStatusProcessDemo = this.songsFilterStatusProcessDemo
-      if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId
-      if (this.songsFilterAudioParentId !== '')
-        params.filterAudioParentId = this.songsFilterAudioParentId
-      if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree
-      if (this.songsFilterSongType !== '') params.filterSongType = this.songsFilterSongType
-      // Задание редактора — БД для проверки назначений (KaraokeProperty editorAssignmentDefaultTarget),
-      // не связано с остальными filter*-параметрами (те идут в Song.loadListFromDb, эти — в
-      // отдельную проверку SongAssignment, см. ApiController.apisSongsDigests).
-      if (this.songsFilterAssignmentStatus !== '') {
-        params.filterAssignmentStatus = this.songsFilterAssignmentStatus
-        params.target = this.$store.getters.getEditorDefaultTarget
-      }
+      // BR-443: параметры фильтра собирает ЕДИНЫЙ builder — геттер `getSongsFilter`
+      // (он же используется при смене «строк на странице»). Раньше модалка собирала
+      // свой объект, и он расходился с геттером: фильтр «Free» уходил под ключом
+      // `flagFree` (в геттере был `filterFlagFree`, которого бэкенд не принимает), а
+      // `target` для фильтра «Задание редактора» не добавлялся вовсе — статусы
+      // назначений читались из не той БД.
+      const params = this.$store.getters.getSongsFilter
       this.$store.dispatch('loadSongsDigests', params)
       this.$store.dispatch('loadSongsHistory')
       this.$emit('close')

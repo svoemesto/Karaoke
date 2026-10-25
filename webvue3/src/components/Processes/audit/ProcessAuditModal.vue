@@ -10,7 +10,10 @@
             <button type="button" class="pam-btn-reload" @click="reload">Обновить</button>
           </div>
           <div v-if="error" class="pam-error" v-text="error" />
-          <table class="pam-table">
+          <!-- BR-403: пока идёт загрузка — индикатор, а не «Нет записей за выбранный
+               период» (иначе пустой результат выглядел как «записей нет»). -->
+          <div v-if="isLoading" class="pam-loading">Загрузка audit-лога...</div>
+          <table v-else class="pam-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -70,6 +73,10 @@ export default {
   computed: {
     auditItems() {
       return this.$store.getters.getCurrentProcessAudit
+    },
+    // BR-403: индикатор загрузки audit-лога.
+    isLoading() {
+      return this.$store.getters.getCurrentProcessAuditIsLoading
     },
   },
   async beforeMount() {
@@ -235,5 +242,11 @@ export default {
   color: red;
   font-size: small;
   margin-bottom: 6px;
+}
+/* BR-403: индикатор загрузки audit-лога. */
+.pam-loading {
+  font-size: small;
+  color: #666;
+  padding: 8px 0;
 }
 </style>

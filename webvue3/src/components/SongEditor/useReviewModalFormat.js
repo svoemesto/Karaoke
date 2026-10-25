@@ -8,8 +8,12 @@
 // функций, которые нужны ReviewModal.vue:
 //   - formatText(markers, curMarkerIndex) — генерирует HTML с классами ke-fx-* (karaoke-public
 //     палитра). Используется для блока «Разметка» в ReviewModal.vue.
-//   - loadEditorSettings() — возвращает {textFontSize, previewFontSize, ...} из localStorage;
-//     единственный источник правды для шрифта «Текст пользователя» и «Разметка».
+//   - loadEditorSettings() — возвращает ПОЛНЫЙ набор настроек редактора из
+//     localStorage ({textFontSize, previewFontSize, volume, playbackRate, zoom,
+//     activeSound, showKeyboard}); для ReviewModal.vue — источник правды для шрифта
+//     «Текст пользователя» и «Разметка». BR-428: набор ключей обязан совпадать с
+//     каноническим (karaoke-public), иначе запись из ReviewModal стирала настройки
+//     публичного редактора.
 //
 // @see karaoke-public/src/composables/useKaraokeEditor.js (источник)
 // @see karaoke-public/src/views/EditorWorkView.vue:1845-1888 (стили .ke-fx-…)
@@ -94,16 +98,39 @@ export function formatText(markers, curMarkerIndex) {
 
 const EDITOR_SETTINGS_LS_KEY = 'karaoke-editor-settings'
 
+// BR-428 (аудит #336, пакет PKG-S3-32, OpenProject #404): набор ключей настроек
+// редактора — ПОЛНЫЙ, как в karaoke-public/src/composables/useKaraokeEditor.js.
+//
+// ДЕФЕКТ. Локальная копия `loadEditorSettings`/`saveEditorSettings` знала только
+// `textFontSize`/`previewFontSize`. Ключ localStorage — тот же (`karaoke-editor-settings`),
+// что и у публичного редактора, поэтому `saveEditorSettings` (merge с урезанным
+// объектом) ЗАТИРАЛ `volume`, `playbackRate`, `zoom`, `activeSound`, `showKeyboard`.
+// Достаточно было открыть ReviewModal (в `mounted` размеры шрифтов присваиваются из
+// storage → срабатывает watcher) или подвигать слайдер шрифта.
+//
+// РЕШЕНИЕ. Копия приведена в соответствие с канонической (полный набор ключей и
+// clamp'ов), а `saveEditorSettings` мержит partial в ПОЛНЫЙ сохранённый объект —
+// чужие ключи не теряются.
+//
+// Почему не общий модуль: Docker-сборка webvue3 копирует только ./webvue3/, поэтому
+// прямой импорт из karaoke-public не резолвится (см. шапку файла). Общего модуля
+// «вне контейнеров» здесь нет — поэтому копия должна быть полной, а не урезанной.
 export const EDITOR_DEFAULTS = Object.freeze({
   textFontSize: 16,
   previewFontSize: 18,
+  volume: 1,
+  playbackRate: 0.75,
+  zoom: 100,
+  activeSound: 'voice',
+  showKeyboard: false,
 })
 
 /**
  * Загружает настройки редактора из localStorage. При недоступном localStorage или
  * невалидном JSON возвращает EDITOR_DEFAULTS (без падений — никаких throw наружу).
  * Значения clamp'ятся в допустимый диапазон [6, 36].
- * @returns {{textFontSize: number, previewFontSize: number, ...}}
+ * @returns {{textFontSize: number, previewFontSize: number, volume: number,
+ *   playbackRate: number, zoom: number, activeSound: string, showKeyboard: boolean}}
  */
 export function loadEditorSettings() {
   try {
@@ -115,6 +142,12 @@ export function loadEditorSettings() {
       ...EDITOR_DEFAULTS,
       textFontSize: clamp(s.textFontSize, 6, 36) ?? EDITOR_DEFAULTS.textFontSize,
       previewFontSize: clamp(s.previewFontSize, 6, 36) ?? EDITOR_DEFAULTS.previewFontSize,
+      volume: clamp(s.volume, 0, 1) ?? EDITOR_DEFAULTS.volume,
+      playbackRate: clamp(s.playbackRate, 0.3, 1) ?? EDITOR_DEFAULTS.playbackRate,
+      zoom: clamp(s.zoom, 20, 400) ?? EDITOR_DEFAULTS.zoom,
+      activeSound: s.activeSound === 'music' ? 'music' : EDITOR_DEFAULTS.activeSound,
+      showKeyboard:
+        typeof s.showKeyboard === 'boolean' ? s.showKeyboard : EDITOR_DEFAULTS.showKeyboard,
     }
   } catch (e) {
     return { ...EDITOR_DEFAULTS }
@@ -125,12 +158,21 @@ export function loadEditorSettings() {
  * Сохраняет настройки редактора в localStorage (merge с существующими ключами).
  * Безопасна при недоступном localStorage (приватный режим / квота) — тихий no-op.
  * Принимает partial: `{ textFontSize?: number, previewFontSize?: number, ... }`.
+ *
+ * BR-428: partial мержится в ПОЛНЫЙ сохранённый объект, а не в урезанный набор
+ * ключей — иначе запись из ReviewModal стирала настройки публичного редактора.
  * @see loadEditorSettings
  */
 export function saveEditorSettings(partial) {
   try {
-    const current = loadEditorSettings()
-    localStorage.setItem(EDITOR_SETTINGS_LS_KEY, JSON.stringify({ ...current, ...partial }))
+    let stored = {}
+    try {
+      const raw = localStorage.getItem(EDITOR_SETTINGS_LS_KEY)
+      if (raw) stored = JSON.parse(raw) || {}
+    } catch (e) {
+      stored = {}
+    }
+    localStorage.setItem(EDITOR_SETTINGS_LS_KEY, JSON.stringify({ ...stored, ...partial }))
   } catch (e) {
     /* no-op */
   }

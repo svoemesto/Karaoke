@@ -50,10 +50,24 @@
     <div v-if="songsDigestsError" class="songs-load-error" role="alert">
       {{ songsDigestsError }}
     </div>
+    <!-- BR-440: прогресс массового «Repair All» — раньше операция шла без прогресса
+         и без сводки ошибок (и без лимита параллелизма). -->
+    <div v-if="repairAllInProgress" class="songs-repair-progress" role="status">
+      Repair All: обработано {{ repairAllDone }} из {{ repairAllTotal }}…
+    </div>
+    <div v-else-if="repairAllErrors.length > 0" class="songs-load-error" role="alert">
+      Repair All: ошибок {{ repairAllErrors.length }} —
+      {{
+        repairAllErrors
+          .slice(0, 10)
+          .map((e) => `#${e.songId} — ${e.error}`)
+          .join('; ')
+      }}
+    </div>
     <div class="songs-bv-table-body">
       <b-table
         v-model:sort-by="sortBy"
-        :items="songsDigests"
+        :items="sortedSongsDigests"
         :busy="isBusy"
         :fields="songDigestFields"
         :per-page="perPage"
@@ -586,6 +600,8 @@ import CustomConfirm from '../../components/Common/CustomConfirm.vue'
 import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
 import ReviewModal from '../SongEditor/ReviewModal.vue'
 import { promisedXMLHttpRequest } from '../../lib/utils'
+import { buildSongById, buildSongIdAndPageId, sortTableItems } from '../../lib/table-sort.js'
+import { escapeHtml } from '../../utils/escapeHtml.js'
 import KaraokePlayer from '../../player/KaraokePlayer.js'
 
 const ASSIGN_STATUS_LABELS = {
@@ -595,6 +611,13 @@ const ASSIGN_STATUS_LABELS = {
   approved: 'Одобрено',
   rejected: 'Отклонено',
 }
+
+// BR-440 (аудит #336, пакет PKG-S3-32, OpenProject #404): лимит одновременных
+// запросов «Repair All» на странице. Каждый запрос — каскадный авторемонт (MinIO/ФС),
+// поэтому без лимита на бэкенд уходило до тысячи тяжёлых задач одновременно.
+// Тот же принцип, что у HR-запросов (knowledge/system/frontend/vuex-patterns.md,
+// § «HR-запросы — очередь с лимитом»).
+const REPAIR_ALL_CONCURRENCY = 3
 
 /**
  * Главная таблица песен в admin SPA `webvue3`.
@@ -690,6 +713,18 @@ export default {
       // Кэш короткой информации о песнях для тултипов root/A-root.
       // Ключ — id песни, значение — { author, year, album, songName }.
       songShortInfoCache: {},
+      // BR-437: id, для которых запрошены статусы назначений. Ответ применяется,
+      // только если он относится к текущему набору (иначе — устаревшая страница).
+      assignmentStatusRequestIds: [],
+      // BR-441: id таймеров — очищаются в beforeUnmount.
+      notifyBackendActivePageTimer: undefined,
+      mountedNotifyTimer: undefined,
+      // BR-440: прогресс массового «Repair All» по странице.
+      repairAllInProgress: false,
+      repairAllDone: 0,
+      repairAllTotal: 0,
+      repairAllErrors: [],
+      repairAllPromise: null,
     }
   },
   computed: {
@@ -708,13 +743,13 @@ export default {
       return caption
     },
     songIdAndPageId() {
-      const result = new Map()
-      for (let i = 0; i < this.songsIds.length; i++) {
-        const songId = this.songsIds[i]
-        const pageNumber = Math.floor(i / this.perPage) + 1
-        result.set(songId, pageNumber)
-      }
-      return result
+      // BR-435: страница считается по ТОМУ ЖЕ порядку, который отдан в `b-table`
+      // (после сортировки по заголовку). Раньше страница считалась по исходному
+      // порядку `songsIds`, а таблица сортировала строки сама: после клика по
+      // заголовку видимая страница и «страница» в логике компонента уезжали друг от
+      // друга — Repair All, сброс кеша, health-report и статусы назначений
+      // применялись к другому набору строк, чем видел пользователь.
+      return buildSongIdAndPageId(this.sortedSongsDigests, this.perPage)
     },
     currentSongId() {
       return this.$store.getters.getCurrentSongId
@@ -738,6 +773,27 @@ export default {
     },
     songsDigests() {
       return this.$store.getters.getSongsDigest
+    },
+    /**
+     * BR-435: строки таблицы в том же порядке, в котором они отданы в `b-table`.
+     *
+     * `b-table` сортирует элементы сам (по `v-model:sort-by`), поэтому порядок
+     * считается здесь — теми же правилами (`sortTableItems` повторяет компаратор
+     * `bootstrap-vue-next`). Один и тот же массив используется и таблицей, и счётом
+     * страниц, поэтому «страница» и «видимые строки» не могут разойтись.
+     */
+    sortedSongsDigests() {
+      return sortTableItems(this.songsDigests, this.sortBy, this.songDigestFields)
+    },
+    /**
+     * BR-438: карта «id песни → песня» строится ОДИН проход по каталогу.
+     *
+     * Раньше внутри цикла по всем песням выполнялся `filter`/`find` по всему массиву
+     * `songsDigests` — сложность O(|каталог| × perPage): при 18k песен и perPage=50
+     * около 0,9 млн сравнений на проход, при perPage=1000 — около 18 млн.
+     */
+    songById() {
+      return buildSongById(this.songsDigests)
     },
     songsHistory() {
       return this.$store.getters.getSongsHistory
@@ -1128,11 +1184,9 @@ export default {
         // становятся активными для LIFO/всплытия cache-fill задач.
         this.notifyBackendActivePage()
         this.updateHealthReportForCurrentPage()
-        // specs/128-async-health-report-list (#128): старый синхронный каскад
-        // hrQueue/hrRunning удалён — фронт больше не делает HTTP round-trip на
-        // каждую песню. Вместо этого отправляем ОДИН батч на бэк, бэк сам
-        // разрулит приоритет и SSE-push обновит state.
-        this._enqueueHrBatch(this._collectMissingHrSongIds(newPage))
+        // BR-438: второй вызов `_enqueueHrBatch` убран — `updateHealthReportForCurrentPage`
+        // уже отправляет батч (и раньше он уходил на сервер дважды на каждую смену
+        // страницы).
         this.reloadAssignmentStatus()
       },
     },
@@ -1151,7 +1205,27 @@ export default {
     // specs/118 #397: уведомить backend о песнях текущей страницы при монтировании
     // (debounce внутри notifyBackendActivePage). Вызываем после того, как songsIds
     // инициализируются через loadSongsDigests; если список ещё пуст — пропускаем.
-    setTimeout(() => this.notifyBackendActivePage(), 500)
+    //
+    // BR-441: id таймера сохраняется — иначе уход со страницы в первые ~750 мс
+    // приводил к отправке активного набора уже покинутой страницы.
+    this.mountedNotifyTimer = setTimeout(() => {
+      this.mountedNotifyTimer = undefined
+      this.notifyBackendActivePage()
+    }, 500)
+  },
+  // BR-441: таймеры очищаются при уходе со страницы — иначе отложенный колбэк
+  // исполнялся на уничтоженном компоненте и отправлял backend'у «активный набор»
+  // страницы, которую пользователь уже покинул (backend приоритизировал cache-fill
+  // для неё).
+  beforeUnmount() {
+    if (this.notifyBackendActivePageDebounce) {
+      clearTimeout(this.notifyBackendActivePageDebounce)
+      this.notifyBackendActivePageDebounce = undefined
+    }
+    if (this.mountedNotifyTimer) {
+      clearTimeout(this.mountedNotifyTimer)
+      this.mountedNotifyTimer = undefined
+    }
   },
   methods: {
     /**
@@ -1162,9 +1236,13 @@ export default {
     async loadData() {
       await this.$store.dispatch('loadTableSettings')
       this.perPage = this.$store.getters.getRowsPerPage('songs')
+      // BR-439: `page`/`perPage` в запрос НЕ отправляются — эндпоинт
+      // `POST /api/songsdigests` их не объявляет (среди его @RequestParam нет ни
+      // `page`, ни `perPage`, ни `limit`/`offset`) и всегда возвращает весь каталог.
+      // Мёртвые параметры создавали ложное впечатление серверной пагинации: смена
+      // «строк на странице» повторно скачивала весь каталог, а `countRows` равнялся
+      // всему фильтру. Пагинация — клиентская (срез делает `b-table`).
       await this.$store.dispatch('loadSongsDigests', {
-        page: this.currentPage,
-        perPage: this.perPage,
         ...this.$store.getters.getSongsFilter,
       })
       // specs/118 #397: после загрузки списка песен уведомляем backend о текущей странице.
@@ -1178,6 +1256,8 @@ export default {
       if (this.notifyBackendActivePageDebounce) {
         clearTimeout(this.notifyBackendActivePageDebounce)
       }
+      // BR-441: id таймера сохраняется в `data` — его можно очистить при уходе со
+      // страницы (раньше `clearTimeout` вызывался только при следующем вызове метода).
       this.notifyBackendActivePageDebounce = setTimeout(() => {
         this.notifyBackendActivePageDebounce = undefined
         const activeSongIds = this.currentPageSongIds
@@ -1227,9 +1307,10 @@ export default {
       })
       if (ok) {
         this.perPage = this.$store.getters.getRowsPerPage('songs')
+        // BR-439: `page`/`perPage` в запрос НЕ отправляются — эндпоинт
+        // `POST /api/songsdigests` их не объявляет и всегда возвращает весь каталог.
+        // Мёртвые параметры создавали ложное впечатление серверной пагинации.
         await this.$store.dispatch('loadSongsDigests', {
-          page: this.currentPage,
-          perPage: this.perPage,
           ...this.$store.getters.getSongsFilter,
         })
       }
@@ -1378,11 +1459,28 @@ export default {
       }
     },
     // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
+    /**
+     * BR-437: загрузка статусов назначений для видимой страницы.
+     *
+     * ДЕФЕКТ. Ответ ЗАМЕНЯЛ всю карту статусов (`setAssignmentStatusBySongId`) без токена
+     * запроса. При быстром переключении страниц ответ предыдущей страницы, пришедший
+     * позже, затирал статусы текущей: бейджи «Назначено / В работе / На проверке»
+     * пропадали, а на уже назначенных песнях появлялся `<select>` «Назначить…».
+     * Пользователь не видел, что назначение есть, и мог назначить второго редактора —
+     * задание создавалось повторно.
+     *
+     * РЕШЕНИЕ. Запрошенный набор id запоминается; ответ применяется, только если он
+     * относится к ТЕКУЩЕЙ странице (иначе — устаревший и отбрасывается).
+     */
     reloadAssignmentStatus() {
       const target = this.$store.getters.getEditorDefaultTarget
+      const songIds = [...this.currentPageSongIds]
+      this.assignmentStatusRequestIds = songIds
       return this.$store.dispatch('loadAssignmentStatusBySongIds', {
-        songIds: this.currentPageSongIds,
+        songIds,
         target,
+        // BR-437: ответ применяется, только если он относится к ТЕКУЩЕЙ странице.
+        isCurrent: () => this.assignmentStatusRequestIds === songIds,
       })
     },
     assignmentStatusFor(songId) {
@@ -1426,17 +1524,16 @@ export default {
       // specs/118 #397: один batch-запрос вместо HR_MAX_CONCURRENT=3 параллельных.
       // Backend через StorageMetadataCache.cacheFillerExecutor обрабатывает чанками
       // (corePoolSize=8, maxPoolSize=16) — самостоятельно управляет concurrency.
+      //
+      // BR-438: обход идёт только по ПЕСНЯМ ТЕКУЩЕЙ СТРАНИЦЫ, а песня берётся из карты
+      // `songById` (один проход по каталогу). Раньше цикл шёл по всем `songsIds`, а
+      // внутри выполнялся `filter` по всему `songsDigests` — O(|каталог| × perPage):
+      // при 18k песен и perPage=50 около 0,9 млн сравнений на проход.
       const idsToFetch = []
-      for (const songId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(songId)
-        if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter((song) => song.id === songId)
-          if (filteredSongs && filteredSongs.length > 0) {
-            const song = filteredSongs[0]
-            if (song.healthReportText === '-') {
-              idsToFetch.push(songId)
-            }
-          }
+      for (const songId of this.currentPageSongIds) {
+        const song = this.songById.get(songId)
+        if (song && song.healthReportText === '-') {
+          idsToFetch.push(songId)
         }
       }
       if (idsToFetch.length > 0) {
@@ -1447,19 +1544,24 @@ export default {
       // Оба endpoint'а работают параллельно (master endpoint + наш #128 endpoint),
       // результат через SSE одинаковый. Это дублирование намеренно — владелец решит,
       // какой из них оставить.
+      //
+      // BR-438: это ЕДИНСТВЕННЫЙ вызов батча на смену страницы. Раньше watcher
+      // `currentPage` вызывал `_enqueueHrBatch` ещё раз — тот же батч уходил на
+      // сервер дважды.
       this._enqueueHrBatch(this._collectMissingHrSongIds(this.currentPage))
     },
     _collectMissingHrSongIds(page) {
       // Возвращает массив songId песен на странице `page`, у которых ещё нет
       // подгруженного healthReport (healthReportText === '-' или '?').
+      //
+      // BR-438: обход только по песням страницы + карта `songById` вместо `find` по
+      // всему каталогу (было O(|каталог| × perPage) на каждый page-change).
       const ids = []
-      for (const songId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(songId)
-        if (songPageNumber === page) {
-          const song = this.songsDigests.find((s) => s.id === songId)
-          if (song && song.healthReportText === '-') {
-            ids.push(songId)
-          }
+      if (page !== this.currentPage) return ids
+      for (const songId of this.currentPageSongIds) {
+        const song = this.songById.get(songId)
+        if (song && song.healthReportText === '-') {
+          ids.push(songId)
         }
       }
       return ids
@@ -1484,24 +1586,55 @@ export default {
         console.warn('[SongsTable.sendBatchHealthReports] failed:', e?.message || e)
       })
     },
-    repairAllForCurrentPage() {
-      for (const songId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(songId)
-        if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter((song) => song.id === songId)
-          if (filteredSongs && filteredSongs.length > 0) {
-            const song = filteredSongs[0]
-            if (song.healthReportText !== '-' && song.healthReportText !== '0') {
-              const healthReportListCanRepair = song.healthReportList.filter(
-                (healthReport) => healthReport.canResolve,
-              )
-              if (healthReportListCanRepair.length > 0) {
-                this.$store.dispatch('repairAllPromise', song.id)
-              }
-            }
+    /**
+     * BR-440: «Repair All» для песен текущей страницы — с ОГРАНИЧЕННЫМ параллелизмом.
+     *
+     * ДЕФЕКТ. По одному `POST /api/song/repairAll` на каждую песню страницы уходило
+     * без ожидания и без лимита: 50 запросов по умолчанию и до 1000 при максимальном
+     * `perPage`. Каждый вызов — каскадный авторемонт (проверки MinIO/ФС, при
+     * необходимости восстановление/удаление файлов), то есть на бэкенд одновременно
+     * уходило до тысячи тяжёлых задач. Прогресса и сводки ошибок не было.
+     *
+     * РЕШЕНИЕ. Очередь с лимитом параллелизма (`REPAIR_ALL_CONCURRENCY`), как у
+     * HR-запросов; прогресс и ошибки видны в UI (баннер).
+     *
+     * @returns {Promise<{done: number, total: number, errors: Array}>} итог операции.
+     */
+    async repairAllForCurrentPage() {
+      const targets = []
+      for (const songId of this.currentPageSongIds) {
+        const song = this.songById.get(songId)
+        if (!song) continue
+        if (song.healthReportText === '-' || song.healthReportText === '0') continue
+        const canRepair = (song.healthReportList || []).some((hr) => hr.canResolve)
+        if (canRepair) targets.push(song.id)
+      }
+      this.repairAllTotal = targets.length
+      this.repairAllDone = 0
+      this.repairAllErrors = []
+      if (targets.length === 0) {
+        this.repairAllInProgress = false
+        return { done: 0, total: 0, errors: [] }
+      }
+      this.repairAllInProgress = true
+      const errors = []
+      let index = 0
+      const worker = async () => {
+        while (index < targets.length) {
+          const songId = targets[index++]
+          try {
+            await this.$store.dispatch('repairAllPromise', songId)
+            this.repairAllDone += 1
+          } catch (e) {
+            errors.push({ songId, error: e && e.message ? e.message : String(e) })
+            this.repairAllErrors = [...errors]
           }
         }
       }
+      const concurrency = Math.min(REPAIR_ALL_CONCURRENCY, targets.length)
+      await Promise.all(Array.from({ length: concurrency }, worker))
+      this.repairAllInProgress = false
+      return { done: this.repairAllDone, total: targets.length, errors }
     },
     async propAllowAddSync() {
       const propValue = await this.$store.getters.getPropValue('allowAddSync')
@@ -1646,17 +1779,21 @@ export default {
           priorDemo: result.priorDemo,
           threadId: result.threadId,
         })
-        .then((data) => {
-          let response = JSON.parse(data)
-          this.customConfirmParams = {
-            isAlert: true,
-            alertType: response ? 'info' : 'error',
-            header: 'Создание караоке',
-            body: `Создание караоке для всех песен прошло успешно.`,
-            timeout: 10,
-          }
-          this.isCustomConfirmVisible = true
-        })
+        // BR-436: эндпоинт ничего не возвращает (HTTP 200 с пустым телом) — успех
+        // определяется по факту 2xx, тело не разбирается.
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание караоке',
+            `Создание караоке для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание караоке',
+            `Создание караоке для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
     createDemucs2ForAll() {
       this.customConfirmParams = {
@@ -1688,17 +1825,21 @@ export default {
       this.$store.dispatch('setLastThreadId', { value: result.threadId })
       this.$store
         .dispatch('createDemucs2ForAllPromise', { prior: result.prior, threadId: result.threadId })
-        .then((data) => {
-          let response = JSON.parse(data)
-          this.customConfirmParams = {
-            isAlert: true,
-            alertType: response ? 'info' : 'error',
-            header: 'Создание DEMUCS2',
-            body: `Создание DEMUCS2 для всех песен прошло успешно.`,
-            timeout: 10,
-          }
-          this.isCustomConfirmVisible = true
-        })
+        // BR-436: эндпоинт ничего не возвращает (HTTP 200 с пустым телом) — успех
+        // определяется по факту 2xx, тело не разбирается.
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание DEMUCS2',
+            `Создание DEMUCS2 для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание DEMUCS2',
+            `Создание DEMUCS2 для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
     async createForcedAlignMarkersForAll() {
       let defaultUseFinetuned = 'false'
@@ -1757,17 +1898,21 @@ export default {
           threadId: result.threadId,
           useFinetunedModel,
         })
-        .then((data) => {
-          let response = JSON.parse(data)
-          this.customConfirmParams = {
-            isAlert: true,
-            alertType: response ? 'info' : 'error',
-            header: 'Точные маркеры',
-            body: `Создание процесса «Точные маркеры» для всех песен из выборки прошло успешно.`,
-            timeout: 10,
-          }
-          this.isCustomConfirmVisible = true
-        })
+        // BR-436: эндпоинт ничего не возвращает (HTTP 200 с пустым телом) — успех
+        // определяется по факту 2xx, тело не разбирается.
+        .then(() =>
+          this.reportBulkOperation(
+            'Точные маркеры',
+            `Создание процесса «Точные маркеры» для всех песен из выборки прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Точные маркеры',
+            `Создание процесса «Точные маркеры» для всех песен из выборки прошло успешно.`,
+            e,
+          ),
+        )
     },
     createDemucs5ForAll() {
       this.customConfirmParams = {
@@ -1797,17 +1942,26 @@ export default {
     doCreateDemucs5ForAll(result) {
       this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
       this.$store.dispatch('setLastThreadId', { value: result.threadId })
-      this.$store.dispatch('createDemucs5ForAllPromise', { prior: result.prior }).then((data) => {
-        let response = JSON.parse(data)
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание DEMUCS5',
-          body: `Создание DEMUCS5 для всех песен прошло успешно.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      // BR-442: `threadId` собирается диалогом и обязан уйти в action — иначе
+      // значение молча терялось, и задачи уходили в lane 0.
+      this.$store
+        .dispatch('createDemucs5ForAllPromise', {
+          prior: result.prior,
+          threadId: result.threadId,
+        })
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание DEMUCS5',
+            `Создание DEMUCS5 для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание DEMUCS5',
+            `Создание DEMUCS5 для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
     createSheetsageForAll() {
       this.customConfirmParams = {
@@ -1819,7 +1973,9 @@ export default {
           {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
-            fldValue: this.$store.getters.getLastPriorDemucs,
+            // BR-442: отдельный ключ приоритета SHEETSAGE (раньше использовался
+            // lastPriorDemucs — приоритет демоков перетирал приоритет SHEETSAGE).
+            fldValue: this.$store.getters.getLastPriorSheetsage,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
@@ -1835,18 +1991,28 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doCreateSheetsageForAll(result) {
-      this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
-      this.$store.dispatch('createSheetsageForAllPromise', { prior: result.prior }).then((data) => {
-        let response = JSON.parse(data)
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание SHEETSAGE',
-          body: `Создание SHEETSAGE для всех песен прошло успешно.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      // BR-442: отдельный ключ приоритета SHEETSAGE (не lastPriorDemucs).
+      this.$store.dispatch('setLastPriorSheetsage', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      // BR-442: `threadId` + отдельный ключ приоритета SHEETSAGE (не lastPriorDemucs).
+      this.$store
+        .dispatch('createSheetsageForAllPromise', {
+          prior: result.prior,
+          threadId: result.threadId,
+        })
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание SHEETSAGE',
+            `Создание SHEETSAGE для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание SHEETSAGE',
+            `Создание SHEETSAGE для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
     createMP3KaraokeForAll() {
       this.customConfirmParams = {
@@ -1877,18 +2043,26 @@ export default {
       this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
       this.$store.dispatch('setLastThreadId', { value: result.threadId })
       this.$store
-        .dispatch('createMP3KaraokeForAllPromise', { prior: result.prior })
-        .then((data) => {
-          let response = JSON.parse(data)
-          this.customConfirmParams = {
-            isAlert: true,
-            alertType: response ? 'info' : 'error',
-            header: 'Создание MP3 KARAOKE',
-            body: `Создание MP3 KARAOKE для всех песен прошло успешно.`,
-            timeout: 10,
-          }
-          this.isCustomConfirmVisible = true
+        .dispatch('createMP3KaraokeForAllPromise', {
+          prior: result.prior,
+          // BR-442: `threadId` собирается диалогом и обязан уйти в action.
+          threadId: result.threadId,
         })
+        // BR-436: эндпоинт ничего не возвращает (HTTP 200 с пустым телом) — успех
+        // определяется по факту 2xx, тело не разбирается.
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание MP3 KARAOKE',
+            `Создание MP3 KARAOKE для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание MP3 KARAOKE',
+            `Создание MP3 KARAOKE для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
     createMP3LyricsForAll() {
       this.customConfirmParams = {
@@ -1918,17 +2092,25 @@ export default {
     doCreateMP3LyricsForAll(result) {
       this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
       this.$store.dispatch('setLastThreadId', { value: result.threadId })
-      this.$store.dispatch('createMP3LyricsForAllPromise', { prior: result.prior }).then((data) => {
-        let response = JSON.parse(data)
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание MP3 LYRICS',
-          body: `Создание MP3 LYRICS для всех песен прошло успешно.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      // BR-442: `threadId` собирается диалогом и обязан уйти в action.
+      this.$store
+        .dispatch('createMP3LyricsForAllPromise', {
+          prior: result.prior,
+          threadId: result.threadId,
+        })
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание MP3 LYRICS',
+            `Создание MP3 LYRICS для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание MP3 LYRICS',
+            `Создание MP3 LYRICS для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
     repairAll() {
       this.customConfirmParams = {
@@ -1939,7 +2121,29 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doRepairAll() {
-      this.repairAllForCurrentPage()
+      // BR-440: итог операции показывается пользователю (прогресс/ошибки).
+      this.repairAllPromise = this.repairAllForCurrentPage()
+      this.repairAllPromise.then((result) => {
+        this.customConfirmParams = {
+          // BR-440: в body есть статичная разметка (<strong>, <br>) — значит нужен
+          // явный allowHtml: true (R2), а пользовательские значения обязаны быть
+          // экранированы на входе в HTML-буфер (R3, tools/check-confirm-escape.py).
+          allowHtml: true,
+          isAlert: true,
+          alertType: result.errors.length > 0 ? 'error' : 'info',
+          header: 'Repair All',
+          body:
+            `Обработано песен: <strong>${escapeHtml(result.done)}</strong> из <strong>${escapeHtml(result.total)}</strong>.` +
+            (result.errors.length > 0
+              ? `<br>Ошибок: ${result.errors.length} (${result.errors
+                  .slice(0, 10)
+                  .map((e) => `#${escapeHtml(e.songId)} — ${escapeHtml(e.error)}`)
+                  .join('; ')})`
+              : ''),
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
       this.isCustomConfirmVisible = false
     },
     // Спека #446: сброс persistent-кеша хранилища для песней текущей страницы.
@@ -2012,17 +2216,26 @@ export default {
     doCreateSymlinksForAll(result) {
       this.$store.dispatch('setLastPriorSymlinks', { value: result.prior })
       this.$store.dispatch('setLastThreadId', { value: result.threadId })
-      this.$store.dispatch('createSymlinksForAllPromise', { prior: result.prior }).then((data) => {
-        let response = JSON.parse(data)
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание SYMLINKs',
-          body: `Создание SYMLINKs для всех песен прошло успешно.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      // BR-442: `threadId` собирается диалогом и обязан уйти в action — иначе
+      // задачи уходили в lane 0, хотя UI показывал сохранённое значение.
+      this.$store
+        .dispatch('createSymlinksForAllPromise', {
+          prior: result.prior,
+          threadId: result.threadId,
+        })
+        .then(() =>
+          this.reportBulkOperation(
+            'Создание SYMLINKs',
+            `Создание SYMLINKs для всех песен прошло успешно.`,
+          ),
+        )
+        .catch((e) =>
+          this.reportBulkOperation(
+            'Создание SYMLINKs',
+            `Создание SYMLINKs для всех песен прошло успешно.`,
+            e,
+          ),
+        )
     },
 
     updateStoreForAll() {
@@ -2083,6 +2296,54 @@ export default {
           }
           this.isCustomConfirmVisible = true
         })
+        // BR-436: отказ показывается пользователю — раньше `.catch` не было, и
+        // unhandled rejection терялся: ни «Готово», ни сообщения об ошибке.
+        .catch((e) => {
+          this.customConfirmParams = {
+            // BR-436: в body нет статичной разметки → текстовый режим (R2).
+            // allowHtml: true здесь был лишней доверенной поверхностью.
+            isAlert: true,
+            alertType: 'error',
+            header: 'Обновление хранилища',
+            body: `Не удалось обновить хранилище: ${e && e.message ? e.message : e}`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+    },
+
+    /**
+     * BR-436: результат массовой операции.
+     *
+     * Эндпоинты массовых операций (`/api/songs/createkaraokeall`, `createdemucs2all`,
+     * `createdemucs5all`, `sheetsageall`, `createmp3karaokeall`, `createsymlinksall`,
+     * `createforcedalignmarkersforall`) объявлены в Kotlin без возвращаемого типа
+     * (`void`) и отвечают HTTP 200 с ПУСТЫМ телом. Раньше код делал
+     * `JSON.parse(data)` над пустой строкой → `SyntaxError` → `.then` отклонялся,
+     * `.catch` не было: диалог подтверждения не появлялся, ошибка была видна только
+     * в консоли. Вторая часть того же блока — `alertType: response ? 'info' : 'error'` —
+     * была мёртвой веткой (текст всегда «прошло успешно»), то есть при любом непустом
+     * теле пользователь получил бы «успех» даже при `false`.
+     *
+     * Теперь успех определяется по факту 2xx (тело не разбирается), а отказ показывается
+     * отдельным сообщением.
+     *
+     * @param {string} header — заголовок сообщения.
+     * @param {string} successBody — текст при успехе.
+     * @param {Error|null} [error] — ошибка (если есть).
+     */
+    reportBulkOperation(header, successBody, error) {
+      const failed = !!error
+      this.customConfirmParams = {
+        isAlert: true,
+        alertType: failed ? 'error' : 'info',
+        header,
+        body: failed
+          ? `Операция не выполнена: ${error && error.message ? error.message : error}`
+          : successBody,
+        timeout: 10,
+      }
+      this.isCustomConfirmVisible = true
     },
 
     closeCustomConfirm() {
@@ -2150,6 +2411,19 @@ export default {
   border-radius: 6px;
   color: indianred;
   background: #fff5f5;
+  font-size: small;
+}
+
+/* BR-440: прогресс массового «Repair All». */
+.songs-repair-progress {
+  width: fit-content;
+  max-width: 900px;
+  margin: 4px 0;
+  padding: 6px 12px;
+  border: 1px solid #d9b310;
+  border-radius: 6px;
+  color: #8a6d0a;
+  background: #fffbe6;
   font-size: small;
 }
 

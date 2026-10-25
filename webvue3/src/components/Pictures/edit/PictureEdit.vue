@@ -85,6 +85,9 @@
         </button>
       </div>
     </div>
+    <div v-else-if="loadError" class="picture-load-error">
+      Не удалось загрузить картинку: {{ loadError }}
+    </div>
     <div v-else>Не выбрана картинка</div>
   </div>
 </template>
@@ -117,6 +120,11 @@ export default {
       pictureSaveTimer: undefined,
       pictureFullBase64: '',
       createToast: () => {},
+      // BR-396: ошибка загрузки картинки. Раньше `.then` без `.catch` давал unhandled
+      // rejection, а форма оставалась пустой без объяснения.
+      loadError: '',
+      // BR-395: контроллер отмены автосейва — при уходе со страницы запрос прерывается.
+      saveAbortController: undefined,
     }
   },
   computed: {
@@ -155,14 +163,34 @@ export default {
   async mounted() {
     const { create } = useToast()
     this.createToast = create
-    this.$store.getters.getPictureValuePromise.then((data) => {
-      let image = JSON.parse(data)
-      this.$store.dispatch('setPictureCurrent', image)
-      this.$store.dispatch('setPictureSnapshot', image)
+    // BR-396: отказ загрузки картинки виден пользователю (раньше — unhandled rejection).
+    try {
+      const data = await this.$store.getters.getPictureValuePromise
+      const image = JSON.parse(data)
+      await this.$store.dispatch('setPictureCurrent', image)
+      await this.$store.dispatch('setPictureSnapshot', image)
       this.pictureFullBase64 = ''
-    })
-    this.pictureAutoSave = await this.propAutoSave()
-    this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs())
+    } catch (error) {
+      this.loadError = error && error.message ? error.message : 'ошибка запроса'
+    }
+    try {
+      this.pictureAutoSave = await this.propAutoSave()
+      this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs())
+    } catch (error) {
+      // Настройки автосейва не критичны: остаёмся на значениях по умолчанию.
+      this.pictureAutoSave = false
+    }
+  },
+  // BR-395: таймер автосейва и запрос в полёте отменяются при уходе со страницы.
+  // Иначе отложенный `save()` выполнялся уже после закрытия — и для ДРУГОЙ картинки
+  // (`pictureCurrentId` — глобальный state).
+  beforeUnmount() {
+    clearTimeout(this.pictureSaveTimer)
+    this.pictureSaveTimer = undefined
+    if (this.saveAbortController) {
+      this.saveAbortController.abort()
+      this.saveAbortController = undefined
+    }
   },
   methods: {
     async getPathToPictureFile(path) {
@@ -280,13 +308,26 @@ export default {
         return this.pictureDiff.length === 0
       }
     },
-    save() {
+    // BR-396: сохранение ждёт ответа; отказ показывается пользователю (тост),
+    // а не теряется в консоли.
+    async save() {
       clearTimeout(this.pictureSaveTimer)
+      this.pictureSaveTimer = undefined
       let diffs = {}
       for (let diff of this.pictureDiff) {
         diffs[diff.name] = diff.new
       }
-      return this.$store.dispatch('savePicture', diffs)
+      if (Object.keys(diffs).length === 0) return
+      const controller = new AbortController()
+      this.saveAbortController = controller
+      try {
+        await this.$store.dispatch('savePicture', { diffs, signal: controller.signal })
+      } catch (error) {
+        if (error && error.name === 'AbortError') return
+        this.showErrorToast('Не удалось сохранить картинку', error)
+      } finally {
+        if (this.saveAbortController === controller) this.saveAbortController = undefined
+      }
     },
     deletePicture() {
       this.customConfirmParams = {
@@ -298,9 +339,15 @@ export default {
       }
       this.isCustomConfirmVisible = true
     },
-    doDeletePicture() {
-      this.$store.commit('deletePictureCurrent')
-      this.$emit('close')
+    // BR-396: удаление ждёт ответа сервера. Модалка закрывается ТОЛЬКО после успеха;
+    // при отказе пользователь видит сообщение, а картинка остаётся в таблице.
+    async doDeletePicture() {
+      try {
+        await this.$store.dispatch('deletePictureCurrent')
+        this.$emit('close')
+      } catch (error) {
+        this.showErrorToast('Не удалось удалить картинку', error)
+      }
     },
     loadNewPicture() {
       this.isFileExplorerVisible = true
@@ -308,8 +355,26 @@ export default {
     savePictureToDB() {
       this.pictureCurrent.full = this.pictureFullBase64
     },
-    savePictureToDisk() {
-      this.$store.commit('savePictureCurrentToDisk')
+    // BR-396: сохранение на диске — с обработкой отказа (раньше кнопка «молчала»).
+    async savePictureToDisk() {
+      try {
+        await this.$store.dispatch('savePictureCurrentToDisk')
+      } catch (error) {
+        this.showErrorToast('Не удалось сохранить картинку на диске', error)
+      }
+    },
+    // BR-396: единый показ ошибки операции с картинкой.
+    showErrorToast(title, error) {
+      const detail = error && error.message ? error.message : 'ошибка запроса'
+      this.createToast({
+        slots: { default: () => [`${title}: ${detail}`] },
+        title: title,
+        autoHideDelay: 5000,
+        bodyClass: 'toast-body-copytoclipboard',
+        headerClass: 'toast-header-copytoclipboard',
+        appendToast: false,
+        position: 'top-start',
+      })
     },
   },
 }
@@ -367,6 +432,12 @@ export default {
   width: 110px;
   padding-right: 2px;
   padding-top: 2px;
+}
+
+.picture-load-error {
+  padding: 10px;
+  color: darkred;
+  font-size: small;
 }
 .input-field {
   display: block;

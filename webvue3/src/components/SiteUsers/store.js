@@ -1,4 +1,5 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
+import { parseServerFlag, parseServerId } from '../../lib/server-result.js'
 
 // Пользователи ПУБЛИЧНОГО САЙТА (tbl_site_users) — не путать с components/Users (tbl_users, админские
 // логины webvue3). siteUsersTarget ('local'|'remote') добавляется в каждый запрос к бэкенду и заставляет
@@ -172,7 +173,13 @@ export default {
       if (diffs.createdAt !== undefined) params.createdAt = diffs.createdAt
       if (diffs.lastLoginAt !== undefined) params.lastLoginAt = diffs.lastLoginAt
       let request = { method: 'POST', url: '/api/siteusers/update', params: params }
-      return promisedXMLHttpRequest(request).then(() => {
+      // BR-420: тело ответа проверяется. Бэкенд возвращает HTTP 200 с `0L`, если
+      // пользователь не найден (SiteUsersController.update) — раньше это выглядело
+      // как успешное сохранение, и снимок фиксировался как «сохранённый».
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parseServerId(data)) {
+          throw new Error('Пользователь не найден (сервер вернул id=0) — изменения не сохранены')
+        }
         ctx.commit('saveSiteUser')
         ctx.commit('updateSiteUsersDigest', ctx.state.siteUserCurrent)
       })
@@ -187,9 +194,13 @@ export default {
           reason: reason || '',
         },
       }
-      return promisedXMLHttpRequest(request).then(() =>
-        ctx.dispatch('loadOneSiteUserRecord', ctx.state.siteUserCurrentId),
-      )
+      // BR-420: `false` — пользователь не найден, бан не применён.
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parseServerFlag(data)) {
+          throw new Error('Пользователь не найден — бан не применён')
+        }
+        return ctx.dispatch('loadOneSiteUserRecord', ctx.state.siteUserCurrentId)
+      })
     },
     unbanSiteUserCurrent(ctx) {
       let request = {
@@ -197,9 +208,13 @@ export default {
         url: '/api/siteusers/unban',
         params: { id: ctx.state.siteUserCurrentId, target: ctx.state.siteUsersTarget },
       }
-      return promisedXMLHttpRequest(request).then(() =>
-        ctx.dispatch('loadOneSiteUserRecord', ctx.state.siteUserCurrentId),
-      )
+      // BR-420: `false` — пользователь не найден, разбан не применён.
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parseServerFlag(data)) {
+          throw new Error('Пользователь не найден — разбан не применён')
+        }
+        return ctx.dispatch('loadOneSiteUserRecord', ctx.state.siteUserCurrentId)
+      })
     },
     deleteSiteUserCurrent(ctx) {
       let request = {
@@ -207,7 +222,13 @@ export default {
         url: '/api/siteusers/delete',
         params: { id: ctx.state.siteUserCurrentId, target: ctx.state.siteUsersTarget },
       }
-      return promisedXMLHttpRequest(request)
+      // BR-420: `false` — удаление не выполнено.
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parseServerFlag(data)) {
+          throw new Error('Пользователь не удалён (сервер вернул false)')
+        }
+        return true
+      })
     },
     loadSiteUserSubscriptions(ctx, id) {
       const request = {

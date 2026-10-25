@@ -1,4 +1,4 @@
-import { promisedXMLHttpRequest, setWebvueProp } from '../../../lib/utils'
+import { promisedXMLHttpRequest, setWebvueProp } from '../../../lib/utils.js'
 
 /**
  * Компонент «Store».
@@ -135,8 +135,22 @@ export default {
      * в формате, который принимает `loadSongsDigests`. Используется в
      * `SongsTable.onPerPageChange` чтобы сохранить текущие фильтры при
      * изменении количества строк.
+     *
+     * BR-443 (аудит #336, пакет PKG-S3-32, OpenProject #404): геттер — ЕДИНЫЙ
+     * сборщик параметров фильтра (его использует и модалка, см. SongsFilterModal.ok()).
+     *
+     * ДО ПРАВКИ геттер расходился с модалкой в двух местах:
+     * (1) фильтр «Free» уходил под ключом `filterFlagFree`, которого бэкенд не
+     *     принимает (контракт `POST /api/songsdigests` — `flagFree`), поэтому при
+     *     смене «строк на странице» фильтр молча исчезал и в список попадали платные
+     *     песни;
+     * (2) к `filterAssignmentStatus` не добавлялся `target` (БД, где искать
+     *     назначения), хотя модалка его отправляла: при активном фильтре «Задание
+     *     редактора» перезапрос шёл без `target`, и статусы читались из
+     *     WORKING_DATABASE (local) — список становился пустым (или, наоборот, показывал
+     *     назначенные песни для фильтра «unassigned»).
      */
-    getSongsFilter(state) {
+    getSongsFilter(state, getters, rootState, rootGetters) {
       const params = {}
       if (state.songsFilterId) params.filterId = state.songsFilterId
       if (state.songsFilterSongName) params.filterSongName = state.songsFilterSongName
@@ -187,13 +201,21 @@ export default {
       if (state.songsFilterRootId) params.filterRootId = state.songsFilterRootId
       if (state.songsFilterAudioParentId)
         params.filterAudioParentId = state.songsFilterAudioParentId
+      // BR-443: ключ `flagFree` — как в контракте `POST /api/songsdigests`
+      // (`flagFree`), а не `filterFlagFree` (бэкенд его не принимает).
       if (state.songsFilterFlagFree !== undefined && state.songsFilterFlagFree !== '')
-        params.filterFlagFree = state.songsFilterFlagFree
+        params.flagFree = state.songsFilterFlagFree
       if (
         state.songsFilterAssignmentStatus !== undefined &&
         state.songsFilterAssignmentStatus !== ''
-      )
+      ) {
         params.filterAssignmentStatus = state.songsFilterAssignmentStatus
+        // BR-443: `target` — БД, где искать назначения (KaraokeProperty
+        // editorAssignmentDefaultTarget). Без него статусы читались из
+        // WORKING_DATABASE (local), а не из выбранной БД.
+        const target = rootGetters && rootGetters.getEditorDefaultTarget
+        if (target) params.target = target
+      }
       if (state.songsFilterSongType !== undefined && state.songsFilterSongType !== '')
         params.filterSongType = state.songsFilterSongType
       return params

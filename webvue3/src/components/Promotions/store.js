@@ -1,5 +1,6 @@
 import { promisedXMLHttpRequest } from '../../lib/utils.js'
 import { createRequestGeneration, isStaleTargetResponse } from '../../lib/target-request-guard.js'
+import { parseServerFlag, parseServerId } from '../../lib/server-result.js'
 
 // Акции (монетизация, tbl_promo_rules). promoRulesTarget ('local'|'remote') — тот же паттерн, что
 // tariffsTarget/siteUsersTarget.
@@ -21,6 +22,36 @@ import { createRequestGeneration, isStaleTargetResponse } from '../../lib/target
 // Почему не «уникальный ключ»/условный UPDATE: гонка здесь не в БД (запись атомарна), а в
 // клиентском состоянии; API менять нельзя, поэтому поколение запроса — минимальная правка.
 const listGeneration = createRequestGeneration()
+
+// BR-406 (аудит #336, пакет PKG-S3-32, OpenProject #404): разбор ответа мутации.
+//
+// Сервер сообщает об отказе ТЕЛОМ, а не кодом: `/api/promorules/create` и
+// `/api/promorules/update` возвращают `Long` (id акции) и `0L`, если акция не
+// найдена или не создана; `/api/promorules/delete` возвращает `Boolean` и `false`.
+// HTTP-код при этом 200 — то есть «правило не найдено» приходило как успешная
+// перезагрузка списка без изменений.
+//
+// Поэтому тело ответа проверяется: `0`/`false` — отказ, и он НЕ выдаётся за успех.
+// Правило разбора общее для всех таких эндпоинтов — webvue3/src/lib/server-result.js.
+/**
+ * Разбирает id акции из тела ответа.
+ *
+ * @param {*} raw — тело ответа (`xhr.response`).
+ * @returns {number} id акции либо 0 (отказ).
+ */
+export function parsePromoRuleId(raw) {
+  return parseServerId(raw)
+}
+
+/**
+ * Разбирает флаг из тела ответа.
+ *
+ * @param {*} raw — тело ответа (`xhr.response`).
+ * @returns {boolean} признак успеха.
+ */
+export function parsePromoRuleFlag(raw) {
+  return parseServerFlag(raw)
+}
 
 /**
  * Компонент «Store».
@@ -101,6 +132,10 @@ export default {
     },
     // Мутации адресуются БД, из которой получен показанный список. `null` — список ещё ни
     // разу не загружался (или загрузится позже): писать некуда, кнопки в UI заблокированы.
+    //
+    // BR-406: отказ сервера (`0L` для create/update, `false` для delete) больше не
+    // выдаётся за успех — action отклоняется с понятным сообщением, вызывающий
+    // показывает его пользователю.
     createPromoRule(ctx, payload) {
       const target = ctx.state.promoRulesListTarget
       if (!target) return Promise.resolve(false)
@@ -109,7 +144,12 @@ export default {
         url: '/api/promorules/create',
         params: Object.assign({ target }, payload),
       }
-      return promisedXMLHttpRequest(request).then(() => ctx.dispatch('loadPromoRulesList'))
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parsePromoRuleId(data)) {
+          throw new Error('Акция не создана (сервер вернул id=0)')
+        }
+        return ctx.dispatch('loadPromoRulesList')
+      })
     },
     savePromoRule(ctx, payload) {
       const target = ctx.state.promoRulesListTarget
@@ -119,7 +159,12 @@ export default {
         url: '/api/promorules/update',
         params: Object.assign({ target }, payload),
       }
-      return promisedXMLHttpRequest(request).then(() => ctx.dispatch('loadPromoRulesList'))
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parsePromoRuleId(data)) {
+          throw new Error('Акция не найдена (сервер вернул id=0) — изменения не сохранены')
+        }
+        return ctx.dispatch('loadPromoRulesList')
+      })
     },
     deletePromoRule(ctx, id) {
       const target = ctx.state.promoRulesListTarget
@@ -129,7 +174,12 @@ export default {
         url: '/api/promorules/delete',
         params: { id, target },
       }
-      return promisedXMLHttpRequest(request).then(() => ctx.dispatch('loadPromoRulesList'))
+      return promisedXMLHttpRequest(request).then((data) => {
+        if (!parsePromoRuleFlag(data)) {
+          throw new Error('Акция не удалена (сервер вернул false) — возможно, она уже удалена')
+        }
+        return ctx.dispatch('loadPromoRulesList')
+      })
     },
   },
 }

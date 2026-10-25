@@ -48,6 +48,10 @@
       <button class="prm-btn" :disabled="!canCreate" @click="create">Добавить</button>
     </div>
 
+    <!-- BR-406: отказ мутации виден пользователю (раньше он уходил в unhandled
+         rejection, UI не менялся, а «правило не найдено» выглядело как успех). -->
+    <div v-if="mutationError" class="prm-error" v-text="mutationError" />
+
     <div v-if="isLoading" class="prm-loading">Загрузка...</div>
     <div v-else-if="editable.length === 0" class="prm-empty">Акций пока нет</div>
     <table v-else class="prm-table">
@@ -111,6 +115,8 @@ export default {
       editable: [],
       original: {},
       newItem: { name: '', type: 'FLAT_PERCENT', appliesTo: 'BOTH', paramsJson: '{"percent":10}' },
+      // BR-406: текст ошибки мутации (сохранение/удаление/создание).
+      mutationError: '',
     }
   },
   computed: {
@@ -176,22 +182,44 @@ export default {
       if (!orig) return false
       return Object.keys(item).some((k) => item[k] !== orig[k])
     },
+    /**
+     * BR-406: мутации обёрнуты в try/catch, а отказ сервера (`0L`/`false`) больше
+     * не выдаётся за успех. Раньше `await dispatch(...)` шёл без обработки:
+     * реджект уходил в unhandled rejection, UI не менялся и никакого сообщения
+     * не появлялось.
+     */
     async save(item) {
       if (!this.canMutate) return
       if (!this.isValidJson(item.paramsJson)) {
-        alert('Некорректный JSON в параметрах')
+        this.mutationError = 'Некорректный JSON в параметрах'
         return
       }
-      await this.$store.dispatch('savePromoRule', item)
+      this.mutationError = ''
+      try {
+        await this.$store.dispatch('savePromoRule', item)
+      } catch (error) {
+        this.mutationError = error && error.message ? error.message : 'Не удалось сохранить акцию'
+      }
     },
     async remove(item) {
       if (!this.canMutate) return
       if (!confirm(`Удалить акцию «${item.name}»?`)) return
-      await this.$store.dispatch('deletePromoRule', item.id)
+      this.mutationError = ''
+      try {
+        await this.$store.dispatch('deletePromoRule', item.id)
+      } catch (error) {
+        this.mutationError = error && error.message ? error.message : 'Не удалось удалить акцию'
+      }
     },
     async create() {
       if (!this.canMutate) return
-      await this.$store.dispatch('createPromoRule', this.newItem)
+      this.mutationError = ''
+      try {
+        await this.$store.dispatch('createPromoRule', this.newItem)
+      } catch (error) {
+        this.mutationError = error && error.message ? error.message : 'Не удалось создать акцию'
+        return
+      }
       this.newItem = {
         name: '',
         type: 'FLAT_PERCENT',
@@ -265,6 +293,16 @@ export default {
   font-size: small;
   color: gray;
   padding: 10px 0;
+}
+/* BR-406: баннер ошибки мутации. */
+.prm-error {
+  font-size: small;
+  color: darkred;
+  border: 1px solid darkred;
+  border-radius: 6px;
+  background: #fff0f0;
+  padding: 6px 10px;
+  margin: 6px 0;
 }
 .prm-table {
   width: 100%;

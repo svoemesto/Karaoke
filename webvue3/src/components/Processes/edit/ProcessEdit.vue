@@ -1,12 +1,25 @@
 <template>
   <div class="pe-root">
+    <!-- BR-400: блок ошибки вынесен ИЗ-под `v-if="process"`. Раньше он был
+         вложен в блок формы, а при отказе загрузки `process` остаётся null —
+         сообщение об ошибке было недостижимо для пользователя. -->
+    <div v-if="error" class="pe-error-block">
+      <div class="pe-error" v-text="error" />
+      <div class="pe-error-actions">
+        <button type="button" class="btn-round" title="Повторить загрузку" @click="reload">
+          Повторить
+        </button>
+        <button type="button" class="btn-round" title="Закрыть" @click="$emit('close')">
+          Закрыть
+        </button>
+      </div>
+    </div>
     <div v-if="process">
       <custom-confirm
         v-if="isCustomConfirmVisible"
         :params="customConfirmParams"
         @close="closeCustomConfirm"
       />
-      <div v-if="error" class="pe-error" v-text="error" />
       <div class="pe-body">
         <div class="label-and-input">
           <div class="label">Имя:</div>
@@ -164,6 +177,8 @@
         <button class="pe-btn-save" :disabled="!hasChanges" @click="save">Сохранить</button>
       </div>
     </div>
+    <!-- BR-400: состояние загрузки — вместо вечной пустой формы. -->
+    <div v-else-if="loadState === 'loading'" class="pe-loading">Загрузка...</div>
   </div>
 </template>
 
@@ -260,6 +275,9 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       error: null,
+      // BR-400: явное состояние загрузки — 'loading' | 'loaded' | 'error'.
+      // Раньше отказ оставлял пустую форму без ошибки и без ретрая.
+      loadState: 'loading',
     }
   },
   computed: {
@@ -268,16 +286,27 @@ export default {
     },
   },
   async beforeMount() {
-    try {
-      const process = await this.$store.dispatch('loadProcessForEdit', this.processId)
-      this.process = process
-      this.form = this.toForm(process)
-      this.snapshot = Object.assign({}, this.form)
-    } catch (e) {
-      this.showError(e)
-    }
+    await this.reload()
   },
   methods: {
+    /**
+     * BR-400: загрузка процесса с явным состоянием. При отказе — сообщение с
+     * кнопками «Повторить»/«Закрыть», а не пустая форма.
+     */
+    async reload() {
+      this.loadState = 'loading'
+      this.error = null
+      try {
+        const process = await this.$store.dispatch('loadProcessForEdit', this.processId)
+        this.process = process
+        this.form = this.toForm(process)
+        this.snapshot = Object.assign({}, this.form)
+        this.loadState = 'loaded'
+      } catch (e) {
+        this.loadState = 'error'
+        this.showError(e)
+      }
+    },
     toForm(process) {
       return {
         name: process.name || '',
@@ -418,6 +447,20 @@ export default {
   color: red;
   font-size: small;
   margin-bottom: 6px;
+}
+/* BR-400: блок ошибки вынесен из-под `v-if="process"` — нужен отдельный контейнер
+   с кнопками «Повторить»/«Закрыть». */
+.pe-error-block {
+  margin-bottom: 8px;
+}
+.pe-error-actions {
+  display: flex;
+  gap: 8px;
+}
+.pe-loading {
+  color: gray;
+  font-size: small;
+  padding: 8px 0;
 }
 .label-and-input {
   display: flex;

@@ -4,6 +4,17 @@
       <div class="pdm-area">
         <div class="pdm-area-modal-header">Удаление процесса</div>
         <div class="pdm-area-modal-body">
+          <!-- BR-400: блок ошибки вынесен ИЗ-под `v-if="process"`. Раньше он был
+               вложен в блок формы, а при отказе загрузки `process` остаётся null —
+               модалка навсегда показывала «Загрузка...», а кнопка «Удалить» была
+               заблокирована. -->
+          <div v-if="error" class="pdm-error-block">
+            <div class="pdm-error" v-text="error" />
+            <div class="pdm-error-actions">
+              <button type="button" class="pdm-btn-close" @click="reload">Повторить</button>
+              <button type="button" class="pdm-btn-close" @click="close">Закрыть</button>
+            </div>
+          </div>
           <div v-if="process">
             <div class="pdm-info">
               Удалить процесс <b v-text="process.name" /> (id=<span v-text="process.id" />, статус:
@@ -19,9 +30,8 @@
             >
               Процесс в очереди (WAITING/CREATING) — будет отменён и soft-deleted.
             </div>
-            <div v-if="error" class="pdm-error" v-text="error" />
           </div>
-          <div v-else class="pdm-loading">Загрузка...</div>
+          <div v-else-if="loadState === 'loading'" class="pdm-loading">Загрузка...</div>
         </div>
         <div class="pdm-area-modal-footer">
           <button type="button" class="pdm-btn-danger" :disabled="!process" @click="confirmDelete">
@@ -55,16 +65,29 @@ export default {
     return {
       process: null,
       error: null,
+      // BR-400: явное состояние загрузки — 'loading' | 'loaded' | 'error'.
+      loadState: 'loading',
     }
   },
   async beforeMount() {
-    try {
-      this.process = await this.$store.dispatch('loadProcessForEdit', this.processId)
-    } catch (e) {
-      this.showError(e)
-    }
+    await this.reload()
   },
   methods: {
+    /**
+     * BR-400: загрузка процесса с явным состоянием — при отказе модалка показывает
+     * сообщение с кнопками «Повторить»/«Закрыть», а не вечное «Загрузка...».
+     */
+    async reload() {
+      this.loadState = 'loading'
+      this.error = null
+      try {
+        this.process = await this.$store.dispatch('loadProcessForEdit', this.processId)
+        this.loadState = 'loaded'
+      } catch (e) {
+        this.loadState = 'error'
+        this.showError(e)
+      }
+    },
     confirmDelete() {
       this.error = null
       this.$store
@@ -188,6 +211,14 @@ export default {
   color: red;
   font-size: small;
   margin-top: 6px;
+}
+/* BR-400: блок ошибки с кнопками «Повторить»/«Закрыть». */
+.pdm-error-block {
+  margin-bottom: 8px;
+}
+.pdm-error-actions {
+  display: flex;
+  gap: 8px;
 }
 .pdm-loading {
   font-size: small;

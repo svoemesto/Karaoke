@@ -29,6 +29,11 @@
           </div>
 
           <div v-if="errorMessage" class="ae-error">{{ errorMessage }}</div>
+          <!-- BR-434: честное сообщение о деградации — подсветка не вычислена. -->
+          <div v-if="diffTruncated" class="ae-warning">
+            Текст слишком длинный для подсветки правок — результат показан целиком, без выделения
+            изменений.
+          </div>
 
           <div class="ae-body">
             <div class="ae-column">
@@ -84,65 +89,7 @@
 </template>
 
 <script>
-// Токенизация текста для word-level diff: слова (кириллица/латиница/цифры), одиночный перевод
-// строки, пробельные "не-\n" последовательности и всё остальное (пунктуация) — отдельными
-// токенами. Такой гранулярности достаточно и для орфографии (меняются словесные токены), и для
-// пунктуации (меняются токены-символы), без разных путей кода под каждый режим.
-const TOKEN_RE = /[0-9A-Za-zА-Яа-яЁё]+|\n|[^\S\n]+|[^\s0-9A-Za-zА-Яа-яЁё]+/g
-
-function tokenize(text) {
-  return text.match(TOKEN_RE) || []
-}
-
-// Обычный LCS-diff по токенам. Токены исходного текста, отсутствующие в результате, просто
-// пропускаются (не подсвечиваются) — правая панель показывает ИТОГОВЫЙ текст, где отличия от
-// исходного помечены цветом, а не полный дифф с зачёркиваниями.
-function diffTokens(a, b) {
-  const n = a.length
-  const m = b.length
-  const dp = new Array(n + 1)
-  for (let i = 0; i <= n; i++) dp[i] = new Array(m + 1).fill(0)
-  for (let i = n - 1; i >= 0; i--) {
-    for (let j = m - 1; j >= 0; j--) {
-      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
-    }
-  }
-
-  const result = []
-  let i = 0
-  let j = 0
-  while (i < n && j < m) {
-    if (a[i] === b[j]) {
-      result.push({ type: 'equal', text: b[j] })
-      i++
-      j++
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      i++
-    } else {
-      result.push({ type: 'added', text: b[j] })
-      j++
-    }
-  }
-  while (j < m) {
-    result.push({ type: 'added', text: b[j] })
-    j++
-  }
-  return result
-}
-
-function escapeHtml(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-function buildDiffHtml(oldText, newText) {
-  const tokens = diffTokens(tokenize(oldText), tokenize(newText))
-  return tokens
-    .map((t) => {
-      const escaped = escapeHtml(t.text)
-      return t.type === 'added' ? `<span class="ae-mark ae-added">${escaped}</span>` : escaped
-    })
-    .join('')
-}
+import { buildDiffHtml } from '../../../lib/text-diff.js'
 
 /**
  * AI-редактор текста песни (кнопка в SubsEdit.vue): отправляет текст на коррекцию в LLM (LM
@@ -170,6 +117,8 @@ export default {
       isLoading: false,
       activeMode: '',
       errorMessage: '',
+      // BR-434: подсветка не вычислена (текст длиннее предела) — результат показан целиком.
+      diffTruncated: false,
     }
   },
   methods: {
@@ -206,7 +155,12 @@ export default {
     },
     renderResult() {
       if (!this.$refs.resultBox) return
-      this.$refs.resultBox.innerHTML = buildDiffHtml(this.originalSnapshot, this.correctedText)
+      // BR-434: diff считается с пределом длины (общий префикс/суффикс вырезаются,
+      // а сверх предела подсветка не вычисляется) — вкладка больше не зависает на
+      // длинном тексте. Если подсветка пропущена — показываем об этом сообщение.
+      const { html, truncated } = buildDiffHtml(this.originalSnapshot, this.correctedText)
+      this.$refs.resultBox.innerHTML = html
+      this.diffTruncated = truncated
     },
     onResultInput(event) {
       // Правая панель — contenteditable "неконтролируемый" компонент: innerHTML не биндится
@@ -296,6 +250,16 @@ export default {
   padding: 8px;
   margin-bottom: 10px;
   color: darkred;
+}
+
+/* BR-434: предупреждение о пропущенной подсветке. */
+.ae-warning {
+  background-color: #fff6dd;
+  border: solid 1px #d9b310;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 10px;
+  color: #8a6d0a;
 }
 
 .ae-body {

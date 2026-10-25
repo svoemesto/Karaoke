@@ -14,7 +14,10 @@
         <button class="spd-close" @click="$emit('close')">×</button>
       </div>
 
-      <div v-if="!detail" class="spd-loading">Загрузка...</div>
+      <!-- BR-414: явные состояния загрузки и ошибки. Раньше после отказа detail
+           оставался `undefined`, и модалка навсегда показывала «Загрузка...». -->
+      <div v-if="error" class="spd-error" v-text="error" />
+      <div v-else-if="isLoading || !detail" class="spd-loading">Загрузка...</div>
       <div v-else>
         <div class="spd-meta">
           Непрерывно: {{ detail.continuous ? 'да' : 'нет' }} · Повтор:
@@ -63,6 +66,14 @@ export default {
   computed: {
     detail() {
       return this.$store.getters.getSitePlaylistDetail
+    },
+    // BR-414: состояние загрузки detail.
+    isLoading() {
+      return this.$store.getters.getSitePlaylistDetailIsLoading
+    },
+    // BR-414: текст ошибки загрузки detail.
+    error() {
+      return this.$store.getters.getSitePlaylistDetailError
     },
   },
   methods: {
@@ -123,6 +134,12 @@ export default {
 .spd-empty {
   text-align: center;
   color: gray;
+  padding: 20px;
+}
+/* BR-414: ошибка загрузки detail. */
+.spd-error {
+  text-align: center;
+  color: darkred;
   padding: 20px;
 }
 .spd-meta {

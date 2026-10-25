@@ -68,6 +68,13 @@
       целиком на PROD). Изменение самой песни при апруве в любом случае применяется в локальной БД.
     </div>
 
+    <!-- BR-433: ошибка загрузки дайджеста видна пользователю. Раньше отказ ловился только
+         `console.log`, и таблица молча оставалась со старыми строками — а по этому списку
+         принимаются решения approve/reject/delete. -->
+    <div v-if="digestError" class="set-error" v-text="digestError" />
+    <!-- BR-419: ошибка открытия задания (не найдено / отказ запроса). -->
+    <div v-if="reviewError" class="set-error" v-text="reviewError" />
+
     <div class="set-table-body">
       <b-table
         v-model:sort-by="sortBy"
@@ -153,11 +160,17 @@ export default {
       isKaraokeEditorOpen: false,
       karaokeEditorAssignmentId: 0,
       karaokeEditorTarget: 'local',
+      // BR-419: сообщение об ошибке открытия задания (не найдено / отказ запроса).
+      reviewError: '',
     }
   },
   computed: {
     digest() {
       return this.$store.getters.getAssignmentsDigest || []
+    },
+    // BR-433: текст ошибки загрузки дайджеста заданий.
+    digestError() {
+      return this.$store.getters.getAssignmentsDigestError
     },
     sortedDigest() {
       return [...this.digest].sort(
@@ -270,9 +283,31 @@ export default {
         this.isBusy = false
       })
     },
+    /**
+     * BR-419: открытие задания проверяет результат загрузки.
+     *
+     * ДО ПРАВКИ модалка ревью открывалась ВСЕГДА, независимо от результата
+     * `loadAssignmentById`. Для задания, отсутствующего в выбранной БД, бэкенд отдаёт
+     * JSON `null` — `ReviewModal` рендерил только «Загрузка…», а его кнопки
+     * (включая «Закрыть») находились внутри `v-if="a"`: модалка становилась ловушкой,
+     * из которой нельзя было выйти до перезагрузки страницы. При HTTP-ошибке dispatch
+     * реджектился, `openReview` не ловил исключение — клик не давал ни модалки, ни
+     * сообщения.
+     */
     async openReview(id) {
-      await this.$store.dispatch('loadAssignmentById', id)
-      this.isReviewVisible = true
+      this.reviewError = ''
+      try {
+        const result = await this.$store.dispatch('loadAssignmentById', id)
+        if (!result || !result.found) {
+          this.reviewError = `Задание ${id} не найдено в выбранной БД.`
+          return
+        }
+        this.isReviewVisible = true
+      } catch (error) {
+        this.reviewError = `Не удалось загрузить задание ${id}: ${
+          error && error.message ? error.message : 'ошибка запроса'
+        }`
+      }
     },
     onRowClicked(item) {
       this.openReview(item.id)
@@ -394,6 +429,18 @@ export default {
 }
 .set-table-body {
   width: fit-content;
+}
+/* BR-419 / BR-433: баннер ошибки (загрузка дайджеста, открытие задания). */
+.set-error {
+  width: 100%;
+  max-width: 900px;
+  font-size: 0.8rem;
+  color: darkred;
+  background: #fff0f0;
+  border: 1px solid darkred;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 8px;
 }
 .set-table-body :deep(th) {
   position: relative;

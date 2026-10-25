@@ -249,6 +249,8 @@ export default {
       ['lastPriorCodeLyrics', '10'],
       ['lastPriorCodeKaraoke', '10'],
       ['lastPriorDemucs', '-1'],
+      // BR-442: отдельный ключ приоритета SHEETSAGE (не переиспользуется demucs).
+      ['lastPriorSheetsage', '-1'],
       ['lastPriorForcedAlign', '-1'],
       ['lastPriorSymlinks', '-1'],
       ['lastPriorSmartCopy', '-1'],

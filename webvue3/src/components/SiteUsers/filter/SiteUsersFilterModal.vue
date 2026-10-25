@@ -243,7 +243,10 @@ export default {
     await this.$store.dispatch('hydrateSiteUsersFilter')
   },
   methods: {
-    ok() {
+    async ok() {
+      // BR-424: фильтр сохраняется на сервер ЗДЕСЬ (по кнопке «Применить»), а не на
+      // каждый `input` — иначе ввод 30 символов давал 30 POST'ов подряд.
+      await this.$store.dispatch('persistSiteUsersFilter')
       let params = {}
       if (this.siteUsersFilterId) params.filterId = this.siteUsersFilterId
       if (this.siteUsersFilterEmail) params.filterEmail = this.siteUsersFilterEmail

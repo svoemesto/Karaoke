@@ -1,6 +1,10 @@
 <template>
   <div class="processes-bv-table">
-    <ProcessesFilterModal v-if="isProcessesFilterVisible" @close="closeProcessesFilter" />
+    <ProcessesFilterModal
+      v-if="isProcessesFilterVisible"
+      @close="closeProcessesFilter"
+      @applied="onFilterApplied"
+    />
     <ProcessEditModal
       v-if="isProcessEditVisible"
       :process-id="currentProcessForEditId"
@@ -441,9 +445,16 @@ export default {
      * BR-388: после завершения массовой операции (sync или async-поллинг) snapshot
      * пересчитывается. Раньше он оставался от прежнего набора, поэтому повторная
      * операция снова отправляла уже удалённые/изменённые id.
+     *
+     * BR-402: сам список процессов перезагружает стор (`reloadProcessesItems`) — и при
+     * `bulk_delete`, и при `bulk_update` (значения полей изменились на сервере).
+     * Здесь обновляется только snapshot массовой выборки — иначе страница грузилась
+     * бы дважды (стор + таблица).
      */
     bulkOperationInProgress(isInProgress) {
-      if (!isInProgress) this.loadPage()
+      if (!isInProgress) {
+        this.$store.dispatch('fetchBulkSelectionIds', this.buildFilters())
+      }
     },
   },
   async mounted() {
@@ -511,9 +522,30 @@ export default {
     },
     loadPage() {
       const filters = this.buildFilters()
-      this.$store.dispatch('loadProcesses', filters)
+      // BR-408: отказ загрузки больше не теряется — раньше оба диспатча шли без
+      // `catch`, и реджект превращался в unhandled rejection: таблица молча оставалась
+      // со старыми строками, а снимок массовой выборки — устаревшим.
+      this.$store.dispatch('loadProcesses', filters).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Не удалось загрузить список процессов:', error)
+      })
       // specs/319-process-bulk-actions-v2 (FR-002, FR-004): обновить snapshot для bulk-операций.
-      this.$store.dispatch('fetchBulkSelectionIds', filters)
+      this.$store.dispatch('fetchBulkSelectionIds', filters).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Не удалось обновить snapshot массовой выборки:', error)
+      })
+    },
+    /**
+     * BR-408: фильтр применён — страница сбрасывается на 1 (ADR-0004) и грузится
+     * один раз, с `limit`/`offset` из `perPage`/`currentPage`.
+     */
+    onFilterApplied() {
+      if (this.currentPage !== 1) {
+        // Флаг снимает лишнюю параллельную загрузку из watcher'а `currentPage`.
+        this.skipNextPageLoad = true
+        this.currentPage = 1
+      }
+      this.loadPage()
     },
     isExpanded(id) {
       return this.$store.getters.isProcessExpanded(id)

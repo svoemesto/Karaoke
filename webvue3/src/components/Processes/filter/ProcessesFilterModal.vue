@@ -250,10 +250,19 @@ export default {
       })
       this.$store.dispatch('setProcessesFilterName', { value: this.processesFilterName })
 
-      const filters = this.buildFilters()
-      this.$store.dispatch('loadProcesses', filters)
-      // specs/319-process-bulk-actions-v2 (FR-002, FR-004): обновить snapshot id для bulk-операций.
-      this.$store.dispatch('fetchBulkSelectionIds', filters)
+      // BR-408: список грузит ТАБЛИЦА, а не модалка.
+      //
+      // ДО ПРАВКИ модалка диспатчила `loadProcesses(buildFilters())`, где нет
+      // `limit`/`offset` — сервер отдавал первую сотню строк (дефолт `limit=100`),
+      // а таблица пагинируется серверно по `perPage`: у админа с perPage=50 после
+      // фильтра было 100 строк, а пагинатор считал страницы по 50; если он был на
+      // третьей странице — подсвечена 3-я, а показаны строки первой. Страница при
+      // смене фильтра тоже не сбрасывалась.
+      //
+      // Теперь таблица сбрасывает страницу на 1 и грузит её ОДИН раз — с
+      // `limit`/`offset` из своих `perPage`/`currentPage`. Оба диспатча в таблице
+      // теперь с `catch` (отказ больше не теряется).
+      this.$emit('applied')
       this.$emit('close')
     },
     cancel() {

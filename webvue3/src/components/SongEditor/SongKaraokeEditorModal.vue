@@ -75,6 +75,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // BR-416: payload маркеров собирается общим helper'ом (как в SongKaraokeEditorView и
 // karaoke-public), а не вручную — ручная сборка стирала note/chord/stringLad/lockLad.
 import { markersToSave } from '../../composables/useKaraokeEditor.js'
+import { describeSongEditorLoadError } from '../../lib/song-editor-errors.js'
 import SongKaraokeEditorView from './SongKaraokeEditorView.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
 
@@ -137,6 +138,12 @@ export default {
       hasUnsavedChanges: false,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      // BR-418: счётчик правок. Правка, пришедшая ВО ВРЕМЯ запроса, не должна
+      // помечаться как сохранённая по завершении этого запроса.
+      changeCounter: 0,
+      // BR-418: сохранение запрошено, пока шло предыдущее — после него нужен
+      // ещё один прогон (иначе правка молча терялась).
+      saveRequested: false,
     }
   },
   computed: {
@@ -192,7 +199,10 @@ export default {
         })
         const body = respText ? JSON.parse(respText) : null
         if (!body || !body.found) {
-          this.loadError = 'Не удалось загрузить данные для редактирования.'
+          // BR-425: отличимый код ошибки разбирается в понятный текст (например
+          // `song_not_found_in_local_db` — «песня не стянута в локальную БД, запустите
+          // sync»). Общий текст остаётся fallback'ом.
+          this.loadError = describeSongEditorLoadError(body)
           this.loading = false
           return
         }
@@ -227,13 +237,23 @@ export default {
       // karaoke-public). Сохраняем ВСЕ голоса разом.
       if (this.saveTimer) clearTimeout(this.saveTimer)
       this.saveState = 'idle'
-      // BR-417: правка сразу помечается несохранённой — иначе закрытие в течение 3 с
+      // BR-418: правка сразу помечается несохранённой — иначе закрытие в течение 3 с
       // молча теряло её (подтверждение показывалось только для saveState === 'error').
       this.hasUnsavedChanges = true
+      // BR-418: счётчик правок — по нему видно, что правка пришла ВО ВРЕМЯ запроса.
+      this.changeCounter += 1
       this.saveTimer = setTimeout(() => this.saveNow(), 3000)
     },
     async saveNow() {
-      if (this.saving) return
+      if (this.saving) {
+        // BR-418: сохранение уже идёт — второй запрос не запускаем, но ПОМЕЧАЕМ, что
+        // после него нужно сохранить ещё раз. Прежний early return терял правку:
+        // таймер, который вызвал `saveNow`, уже сработал и не перевзводился, а по
+        // завершении первого запроса `saveState` становился 'saved' — UI показывал
+        // «Сохранено ✓» для несохранённых правок.
+        this.saveRequested = true
+        return
+      }
       if (this.saveTimer) {
         clearTimeout(this.saveTimer)
         this.saveTimer = null
@@ -242,6 +262,8 @@ export default {
       if (!editor) return
       this.saving = true
       this.saveState = 'saving'
+      // BR-418: снимок счётчика правок на момент старта запроса.
+      const changesAtStart = this.changeCounter
       try {
         const sourceTexts = editor.voices.map((v) => v.sourceText)
         // BR-416: note/chord/stringLad/lockLad лёгкий редактор НЕ редактирует, но обязан
@@ -268,14 +290,25 @@ export default {
         // Раньше это тело ответа не проверялось вовсе, и backend-отказ молча показывался
         // пользователю как «Сохранено ✓» (см. research.md §1).
         const body = respText ? JSON.parse(respText) : null
-        this.saveState = body && body.ok === true ? 'saved' : 'error'
+        const ok = !!(body && body.ok === true)
+        // BR-418: «saved» ставится ТОЛЬКО если после старта запроса не было новых правок.
+        // Иначе правка, сделанная во время запроса, считалась бы сохранённой.
+        const hasNewChanges = this.changeCounter !== changesAtStart
+        this.saveState = ok ? (hasNewChanges ? 'idle' : 'saved') : 'error'
         // BR-417: правки считаются сохранёнными только после подтверждения сервера
         // (`editSave` умеет вернуть {ok:false} с кодом 200).
         this.hasUnsavedChanges = this.saveState !== 'saved'
       } catch (e) {
         this.saveState = 'error'
+        this.hasUnsavedChanges = true
       } finally {
         this.saving = false
+        // BR-418: правки, пришедшие во время запроса, сохраняются ещё раз.
+        if (this.saveRequested) {
+          this.saveRequested = false
+          this.hasUnsavedChanges = true
+          this.saveTimer = setTimeout(() => this.saveNow(), 0)
+        }
       }
     },
     // FR-004 (spec 163): если последнее сохранение завершилось ошибкой, закрытие редактора (крестик

@@ -618,11 +618,18 @@ export default {
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
     window.addEventListener('resize', this.onWindowResizePlayer)
+    // BR-430: потеря фокуса окна (переключение окна, блокировка экрана) останавливает
+    // удержание клавиш — иначе `keyup` не приходит и таймеры продолжают тикать.
+    window.addEventListener('blur', this.onWindowBlur)
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
   },
   beforeUnmount() {
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('resize', this.onWindowResizePlayer)
+    // BR-430: подписки на потерю фокуса снимаются.
+    window.removeEventListener('blur', this.onWindowBlur)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
     for (const code of Object.keys(this.scrubTimers)) clearInterval(this.scrubTimers[code])
     if (this.saveTimer) clearTimeout(this.saveTimer)
     try {
@@ -975,9 +982,27 @@ export default {
       const markersPerVoice = this.voices.map((v) => markersToSave(v.markers))
       return JSON.stringify({ sourceTexts, markersPerVoice })
     },
+    /**
+     * BR-431: уничтожение инстанса плеера (WebAudio/AudioContext/requestAnimationFrame).
+     * Вызывается при скрытии плеера, перед новым показом и при размонтировании.
+     */
+    destroyPlayer() {
+      if (!this.kpPlayer) return
+      try {
+        this.kpPlayer.destroy()
+      } catch (e) {
+        /* noop */
+      }
+      this.kpPlayer = null
+    },
     async togglePlayer() {
       if (this.showPlayer) {
         this.showPlayer = false
+        // BR-431: плеер уничтожается при СКРЫТИИ. Раньше `destroy()` вызывался только
+        // при повторном показе или в `beforeUnmount`, а `v-if` убирал контейнер из DOM:
+        // KaraokePlayer (WebAudio + AudioContext + requestAnimationFrame) продолжал
+        // работать без UI управления — звук и анимация шли дальше.
+        this.destroyPlayer()
         return
       }
       this.playerLoading = true
@@ -1013,12 +1038,9 @@ export default {
           artistImageUrl: this.artistImageUrl || null,
           exportBaseName: this.exportBaseName || '',
         })
-        if (this.kpPlayer) {
-          try {
-            this.kpPlayer.destroy()
-          } catch (e) {}
-          this.kpPlayer = null
-        }
+        // BR-431: инстанс плеера перед новым показом уничтожается (KaraokePlayer крепко
+        // привязывается к DOM-контейнеру при init()).
+        this.destroyPlayer()
         if (!this.$refs.playerContainer) return
         // Пропорции экрана плеера должны быть 16:9 — фактически canvas (kp-canvas-wrap), а не
         // весь root-div плеера. В KaraokePlayer root-div высотой X делит её между kp-canvas-wrap
@@ -1131,6 +1153,43 @@ export default {
     onKeyUp(e) {
       if (!WIRED_KEYS.has(e.code)) return
       this.releaseKey(e.code)
+    },
+    /**
+     * BR-430: окно потеряло фокус — удержание клавиш снимается.
+     *
+     * `keyup` при потере фокуса не приходит (переключение окна, блокировка экрана),
+     * поэтому `setInterval` удержания продолжал тикать: ветка `KeyD` каждые 16 мс
+     * вызывала `ws.play()` — звук продолжал играть, пока пользователь не нажмёт и не
+     * отпустит клавишу снова или не закроет редактор.
+     */
+    onWindowBlur() {
+      this.releaseAllHeldKeys()
+    },
+    /**
+     * BR-430: вкладка ушла в фон — то же, что и потеря фокуса окна.
+     */
+    onVisibilityChange() {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        this.releaseAllHeldKeys()
+      }
+    },
+    /**
+     * BR-430: останавливает ВСЕ таймеры удержания и восстанавливает playbackRate.
+     */
+    releaseAllHeldKeys() {
+      for (const code of Object.keys(this.scrubTimers)) {
+        this.stopScrub(code)
+      }
+      for (const code of Object.keys(this.heldKeys)) {
+        this.heldKeys[code] = false
+      }
+      if (this.ws) {
+        try {
+          this.ws.setPlaybackRate(this.playbackRate)
+        } catch (e) {
+          /* noop */
+        }
+      }
     },
     pressKey(code) {
       if (!code || this.heldKeys[code]) return

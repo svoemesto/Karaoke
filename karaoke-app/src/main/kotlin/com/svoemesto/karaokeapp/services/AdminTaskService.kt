@@ -1,11 +1,18 @@
 package com.svoemesto.karaokeapp.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.annotation.PreDestroy
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+
+/**
+ * BR-136 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): категория логов admin-задач.
+ */
+private val adminTaskLog = LoggerFactory.getLogger("infra.admin.tasks")
 
 /**
  * Простой in-memory admin-task subsystem (specs/319-process-bulk-actions-v2, US4).
@@ -16,6 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * **ВНИМАНИЕ**: задачи хранятся в памяти процесса karaoke-app. После рестарта —
  * теряются. Это нормально для v1 (US4 — расширение для bulk > 1000); для
  * персистентности в будущем — отдельный `tbl_admin_tasks` + cron cleanup.
+ *
+ * BR-136: реестр задач больше не растёт бесконечно — завершённые задачи вычищаются
+ * по TTL (см. [TASK_TTL_MS]), а пул потоков закрывается в [@PreDestroy].
  *
  * @see specs/319-process-bulk-actions-v2/spec.md (US4)
  * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-6)
@@ -46,6 +56,48 @@ class AdminTaskService {
         const val COMPLETED = "COMPLETED"
         const val PARTIAL = "PARTIAL"
         const val FAILED = "FAILED"
+
+        /**
+         * BR-136 (аудит #336, пакет `PKG-S3-23`): TTL завершённой задачи, мс.
+         *
+         * Раньше запись в `tasks` жила до конца жизни процесса, и каждая хранила
+         * `errors` (по элементу на каждую неудачную запись bulk'а). Теперь завершённая
+         * задача живёт ещё час (чтобы админ успел забрать итог по polling'у) и
+         * вычищается.
+         */
+        const val TASK_TTL_MS = 60L * 60L * 1000L
+    }
+
+    /**
+     * BR-136: вычистить завершённые задачи, у которых истёк TTL.
+     *
+     * Вызывается при старте новой задачи — реестр остаётся ограниченным по размеру
+     * без отдельного фонового планировщика.
+     */
+    internal fun purgeExpiredTasks(now: Long = System.currentTimeMillis()) {
+        val expired =
+            tasks
+                .filterValues { status ->
+                    status.status != RUNNING &&
+                        status.finishedAt != null &&
+                        now - status.finishedAt > TASK_TTL_MS
+                }.keys
+        expired.forEach { taskId ->
+            tasks.remove(taskId)
+            adminTaskLog.info("purgeExpiredTasks: удалена завершённая задача {} (TTL истёк)", taskId)
+        }
+    }
+
+    /**
+     * BR-136: пул потоков закрывается при остановке приложения.
+     *
+     * Раньше `Executors.newFixedThreadPool(2)` жил до самой JVM — его потоки блокировали
+     * завершение процесса.
+     */
+    @PreDestroy
+    fun shutdown() {
+        adminTaskLog.info("AdminTaskService: останавливаем пул фоновых задач")
+        executor.shutdown()
     }
 
     /**
@@ -64,6 +116,9 @@ class AdminTaskService {
         val taskId = UUID.randomUUID()
         val task = TaskStatus(taskId = taskId, action = action, totalCount = totalCount)
         tasks[taskId] = task
+        // BR-136: перед стартом новой задачи вычищаем истёкшие по TTL — иначе реестр
+        // задач рос монотонно весь аптайм процесса.
+        purgeExpiredTasks()
 
         executor.submit {
             val progress = Progress(taskId, totalCount)

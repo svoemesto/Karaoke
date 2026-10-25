@@ -623,7 +623,14 @@ class SongEditorController(
                     ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
             // Чистим черновик ДО удаления задания — на случай, если БД ловит FK наоборот
             // (на нашей схемы FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
-            SongAssignmentDraft.deleteByAssignment(id, db)
+            //
+            // BR-129 (аудит #336, пакет `PKG-S3-23`): если очистка черновика НЕ удалась,
+            // задание НЕ удаляем — иначе в tbl_song_assignment_drafts осталась бы ровно та
+            // осиротевшая строка, ради предотвращения которой метод и написан. Причина уже
+            // залогирована в SongAssignmentDraft.deleteByAssignment.
+            if (!SongAssignmentDraft.deleteByAssignment(id, db)) {
+                return@withDb mapOf("ok" to false, "error" to "draft_cleanup_failed")
+            }
             val ok = SongAssignment.delete(id, db)
             mapOf("ok" to ok)
         }

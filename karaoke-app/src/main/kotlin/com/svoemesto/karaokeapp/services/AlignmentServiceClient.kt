@@ -9,6 +9,7 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -33,25 +34,64 @@ data class AlignResponseDto(
 object AlignmentServiceClient {
     private val json = Json { ignoreUnknownKeys = true }
 
+    /**
+     * BR-137 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): категория логов клиента
+     * forced-alignment.
+     */
+    private val log = LoggerFactory.getLogger("infra.alignment")
+
+    /**
+     * BR-137: ОДИН `OkHttpClient` на сервис, а не новый на каждый вызов.
+     *
+     * Раньше клиент создавался внутри `align()` — со своим пулом соединений и dispatcher'ом.
+     * На серию вызовов (цикл по голосам в `Utils.executeForcedAlignMarkers`) это давало
+     * churn потоков и сокетов. Теперь клиент кэшируется; при смене `callTimeout` в
+     * настройках он пересоздаётся (таймаут задаётся конфигурацией, а не константой).
+     */
+    @Volatile private var cachedClient: OkHttpClient? = null
+
+    @Volatile private var cachedTimeoutMs: Long = -1L
+
+    private val clientLock = Any()
+
+    internal fun httpClient(timeoutMs: Long): OkHttpClient {
+        val existing = cachedClient
+        if (existing != null && cachedTimeoutMs == timeoutMs) return existing
+        synchronized(clientLock) {
+            val current = cachedClient
+            if (current != null && cachedTimeoutMs == timeoutMs) return current
+            val built =
+                OkHttpClient
+                    .Builder()
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .build()
+            cachedClient = built
+            cachedTimeoutMs = timeoutMs
+            return built
+        }
+    }
+
     fun align(
         audioFile: File,
         text: String,
         useFinetuned: Boolean = KaraokeProperties.getBoolean("alignmentUseFinetunedModel"),
     ): AlignResponseDto? {
         val url = KaraokeProperties.getString("alignmentServiceUrl")
-        if (url.isBlank()) return null
-        if (!audioFile.exists()) return null
+        if (url.isBlank()) {
+            log.warn("align: сервис forced-alignment не настроен (alignmentServiceUrl пуст) — выравнивание пропущено")
+            return null
+        }
+        if (!audioFile.exists()) {
+            log.warn("align: аудиофайл '{}' не найден — выравнивание пропущено", audioFile.name)
+            return null
+        }
 
         val timeoutMs = KaraokeProperties.getLong("alignmentServiceTimeoutMs").takeIf { it > 0 } ?: 300_000L
 
-        val client =
-            OkHttpClient
-                .Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .build()
+        val client = httpClient(timeoutMs)
 
         val mediaType = "audio/flac".toMediaTypeOrNull()
         val requestBody =
@@ -72,11 +112,19 @@ object AlignmentServiceClient {
 
         return try {
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return null
+                if (!response.isSuccessful) {
+                    // BR-137: неуспешный HTTP-ответ — это тоже диагностируемая причина,
+                    // раньше она молча превращалась в `null` → «alignment_service_unavailable».
+                    log.error("align: сервис forced-alignment ответил кодом {} (файл='{}')", response.code, audioFile.name)
+                    return null
+                }
                 val bodyString = response.body?.string() ?: return null
                 json.decodeFromString(AlignResponseDto.serializer(), bodyString)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            // BR-137: сбой (DNS, таймаут, HTTP 5xx, битый JSON) больше не глотается
+            // молча — причина попадает в лог (категория infra.alignment).
+            log.error("align: сбой обращения к сервису forced-alignment (файл='{}', тип={})", audioFile.name, e::class.java.simpleName, e)
             null
         }
     }

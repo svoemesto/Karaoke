@@ -5,14 +5,45 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.PromoRule
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.server.ResponseStatusException
 import java.sql.Timestamp
 
 // Админка акций (tbl_promo_rules). Target-aware, как TariffsController/SiteUsersController.
+
+/**
+ * BR-120 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): безопасный разбор границ
+ * акции.
+ *
+ * Раньше `Timestamp.valueOf(...)` вызывался без `try/catch`: любая строка не в формате
+ * `yyyy-MM-dd HH:mm:ss` роняла эндпоинт с 500 (страница ошибки Spring) и без внятного
+ * описания поля. Теперь негодное значение → 400 с указанием имени поля.
+ *
+ * Пустая строка — не ошибка: она означает «границу не трогать» (см. комментарий к
+ * параметрам `validFrom`/`validTo` в `update`).
+ */
+internal fun parsePromoBoundary(
+    value: String?,
+    field: String,
+): Timestamp? {
+    val raw = value?.trim().orEmpty()
+    if (raw.isEmpty()) return null
+    val normalized = raw.replace('T', ' ')
+    val withSeconds = if (normalized.length == 16) "$normalized:00" else normalized
+    return try {
+        Timestamp.valueOf(withSeconds)
+    } catch (_: Exception) {
+        throw ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Некорректное значение параметра '$field': '$raw' (ожидается 'yyyy-MM-dd' или 'yyyy-MM-dd HH:mm:ss')",
+        )
+    }
+}
 
 /**
  * Контроллер (HTTP/WebSocket endpoints) для promo .
@@ -87,8 +118,10 @@ class PromoController {
                 appliesTo?.let { rule.appliesTo = it }
                 isActive?.let { rule.isActive = it }
                 priority?.let { rule.priority = it }
-                validFrom?.takeIf { it.isNotBlank() }?.let { rule.validFrom = Timestamp.valueOf(it.replace("T", " ")) }
-                validTo?.takeIf { it.isNotBlank() }?.let { rule.validTo = Timestamp.valueOf(it.replace("T", " ")) }
+                // BR-120: безопасный разбор — негодная дата → 400 с указанием поля
+                // (раньше `Timestamp.valueOf` бросал IllegalArgumentException → 500).
+                parsePromoBoundary(validFrom, "validFrom")?.let { rule.validFrom = it }
+                parsePromoBoundary(validTo, "validTo")?.let { rule.validTo = it }
                 rule.save()
                 rule.id
             } ?: 0L

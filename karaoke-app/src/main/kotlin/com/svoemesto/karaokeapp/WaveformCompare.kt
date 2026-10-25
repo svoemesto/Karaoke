@@ -1,9 +1,11 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.Song
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.Collections
 import java.util.LinkedHashMap
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -50,6 +52,18 @@ object WaveformCompare {
     private const val MIN_OVERLAP_FRAMES = FRAME_RATE_HZ * 5 // минимум 5 с перекрытия
     private const val MAX_LAG_BASE_SEC = 45 // базовое окно поиска сдвига
     private const val MAX_LAG_MARGIN_SEC = 20 // запас поверх разницы длительностей
+
+    /**
+     * BR-122 (аудит #336, пакет `PKG-S3-23`): таймаут декодирования через ffmpeg, секунды.
+     *
+     * Раньше `process.waitFor()` ждал бесконечно, а `readBytes()` на stdout блокировался
+     * при зависшем вводе-выводе — поток Tomcat не возвращался, и осиротевший ffmpeg
+     * оставался в системе. 120 с — с запасом для длинной песни на медленном томе.
+     */
+    internal const val FFMPEG_TIMEOUT_SECONDS = 120L
+
+    /** BR-122: категория логов сверки огибающих. */
+    private val waveformLog = LoggerFactory.getLogger("infra.waveform.compare")
 
     /**
      * Верхняя граница кэша огибающих (BR-110, аудит #336).
@@ -133,6 +147,10 @@ object WaveformCompare {
 
     private fun computeEnvelope(audioPath: String): FloatArray? {
         val tmp = File.createTempFile("wfcmp_", ".raw")
+        // BR-122: отдельный файл под stderr/stdout ffmpeg. Раньше вывод читался из
+        // `process.inputStream.readBytes()` — на зависшем вводе-выводе этот read
+        // блокировался НАВСЕГДА, и таймаута не существовало вовсе.
+        val procLog = File.createTempFile("wfcmp_log_", ".txt")
         try {
             val cmd =
                 listOf(
@@ -150,10 +168,41 @@ object WaveformCompare {
                     "s16le",
                     tmp.absolutePath,
                 )
-            val process = ProcessBuilder(cmd).redirectErrorStream(true).start()
-            process.inputStream.readBytes() // осушаем вывод, чтобы процесс не завис на полном буфере
-            val exit = process.waitFor()
-            if (exit != 0 || !tmp.exists() || tmp.length() == 0L) return null
+            // Вывод уходит в файл: у процесса нет stdout-трубы, которую надо было бы
+            // «осужать» — значит, он не может зависнуть на полном буфере, и таймаут
+            // реально срабатывает.
+            val process =
+                ProcessBuilder(cmd)
+                    .redirectErrorStream(true)
+                    .redirectOutput(procLog)
+                    .start()
+            val exit =
+                try {
+                    if (!process.waitFor(FFMPEG_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                        // BR-122: ffmpeg не уложился в таймаут — убиваем и не оставляем
+                        // осиротевший процесс и поток Tomcat в ожидании.
+                        process.destroyForcibly()
+                        process.waitFor(5, TimeUnit.SECONDS)
+                        waveformLog.warn(
+                            "computeEnvelope: ffmpeg не завершился за {} с (файл='{}'), процесс принудительно остановлен",
+                            FFMPEG_TIMEOUT_SECONDS,
+                            audioPath,
+                        )
+                        return null
+                    }
+                    process.exitValue()
+                } finally {
+                    if (process.isAlive) process.destroyForcibly()
+                }
+            if (exit != 0 || !tmp.exists() || tmp.length() == 0L) {
+                waveformLog.warn(
+                    "computeEnvelope: ffmpeg завершился с кодом {} для '{}': {}",
+                    exit,
+                    audioPath,
+                    runCatching { procLog.readText().take(500) }.getOrDefault(""),
+                )
+                return null
+            }
 
             val bytes = tmp.readBytes()
             val nFrames = (bytes.size / 2) / SAMPLES_PER_FRAME
@@ -174,10 +223,14 @@ object WaveformCompare {
                 env[f] = sqrt(sumSq / SAMPLES_PER_FRAME).toFloat()
             }
             return env
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            waveformLog.warn("computeEnvelope: не удалось декодировать '{}': {}", audioPath, e.message)
             return null
         } finally {
+            // BR-122: временные файлы удаляются при ЛЮБОМ исходе (успех, ошибка,
+            // таймаут) — раньше осиротевший `.raw` оставался на диске.
             tmp.delete()
+            procLog.delete()
         }
     }
 

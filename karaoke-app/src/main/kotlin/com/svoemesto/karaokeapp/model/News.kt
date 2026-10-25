@@ -10,6 +10,13 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.sql.SQLException
 import java.sql.Timestamp
+import org.slf4j.LoggerFactory
+
+/**
+ * BR-119 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): SQL-ошибки админского
+ * списка новостей пишутся в SLF4J и пробрасываются наружу, а не глотаются `println`.
+ */
+private val newsLog = LoggerFactory.getLogger("infra.admin.news")
 
 // «Новости» проекта (новая песня в эфире/премиум-доступе, новый функционал сайта). Готовится заранее
 // на LOCAL из webvue3, синхронизируется на PROD штатным движком (LOCAL_TO_SERVER, SyncTarget "news",
@@ -132,7 +139,12 @@ class News(
             storageApiClient: StorageApiClient = SAC_APP,
         ): List<News> {
             val result: MutableList<News> = mutableListOf()
-            val connection = database.getConnection() ?: return result
+            // BR-119 (аудит #336, пакет `PKG-S3-23`): нет соединения — это ошибка,
+            // а не «новостей нет». Раньше возвращался пустой список, и админ видел
+            // «новостей нет» вместо «БД недоступна».
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("news.list.unavailable: нет соединения с БД")
             val sql =
                 """
                 SELECT id FROM $TABLE_NAME
@@ -149,8 +161,10 @@ class News(
                     }
                 }
             } catch (e: SQLException) {
-                println("News.loadAll SQLException: ${e.message}")
-                return result
+                // BR-119: SQL-ошибка больше не глотается — она доходит до контроллера
+                // и превращается в 503, а не в пустой «успешный» список.
+                newsLog.error("News.loadAll: SQL-ошибка (sqlState={}, limit={}, offset={})", e.sqlState, limit, offset, e)
+                throw e
             }
             val byId =
                 if (ids.isEmpty()) {
@@ -173,7 +187,10 @@ class News(
 
         // Общее число новостей — для пагинации админского списка (specs/090-news-pagination).
         fun countAll(database: KaraokeConnection): Long {
-            val connection = database.getConnection() ?: return 0L
+            // BR-119: сбой БД/нет соединения — ошибка, а не «0 новостей».
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("news.count.unavailable: нет соединения с БД")
             val sql = "SELECT COUNT(*) FROM $TABLE_NAME"
             try {
                 connection.prepareStatement(sql).use { ps ->
@@ -182,7 +199,8 @@ class News(
                     }
                 }
             } catch (e: SQLException) {
-                println("News.countAll SQLException: ${e.message}")
+                newsLog.error("News.countAll: SQL-ошибка (sqlState={})", e.sqlState, e)
+                throw e
             }
             return 0L
         }

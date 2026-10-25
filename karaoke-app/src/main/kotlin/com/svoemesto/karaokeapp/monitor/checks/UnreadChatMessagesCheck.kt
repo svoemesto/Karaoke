@@ -8,6 +8,12 @@ import com.svoemesto.karaokeapp.monitor.MonitorContext
 import com.svoemesto.karaokeapp.monitor.MonitorSeverity
 
 /**
+ * BR-134 (аудит #336, пакет `PKG-S3-23`): категория логов проверок мониторинга,
+ * читающих прод-БД.
+ */
+private val monitorCheckLog = org.slf4j.LoggerFactory.getLogger("infra.monitor.check")
+
+/**
  * Непрочитанные сообщения от пользователей в «Чате с автором проекта». Таблица
  * tbl_site_chat_messages живёт целиком на PROD-БД (см. SiteChatMessage) — MonitorContext даёт только
  * localDb, поэтому проверка сама открывает Connection.remote() и обязательно закрывает его (паттерн —
@@ -21,8 +27,11 @@ object UnreadChatMessagesCheck : MonitorCheck {
             try {
                 SiteChatMessage.countUnreadFromUsers(db)
             } catch (e: Exception) {
-                println("UnreadChatMessagesCheck: ${e.message}")
-                0
+                // BR-134 (аудит #336, пакет `PKG-S3-23`): зеркало StemJobsStuckCheck —
+                // ошибка не подменяется нулём «проблем нет», а пробрасывается:
+                // MonitoringService.tick() превратит её в WARNING `check.<Name>.failure`.
+                monitorCheckLog.error("UnreadChatMessagesCheck: не удалось посчитать непрочитанные сообщения", e)
+                throw e
             } finally {
                 try {
                     db.getConnection()?.close()

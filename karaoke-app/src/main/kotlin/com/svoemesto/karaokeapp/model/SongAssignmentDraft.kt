@@ -12,6 +12,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.Serializable
 import java.sql.Timestamp
+import org.slf4j.LoggerFactory
+
+/**
+ * BR-129 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): категория логов черновиков
+ * редакторских назначений.
+ */
+private val draftLog = LoggerFactory.getLogger("infra.editor.draft")
 
 // Рабочая копия пользователя для назначения (SongAssignment): отредактированный текст + маркеры
 // ВСЕЙ песни (все голоса, не один) + флаг отправки на проверку. Пишет ТОЛЬКО пользователь (SERVER),
@@ -154,19 +161,31 @@ class SongAssignmentDraft(
         // Удалить черновик, привязанный к заданию — нужно при revoke()/delete() назначения, чтобы в
         // tbl_song_assignment_drafts не оставалось orphan-записи на УЖЕ не существующее назначение.
         // UNIQUE INDEX на assignment_id гарантирует, что строка тут одна (или ни одной).
+        //
+        // BR-129 (аудит #336, пакет `PKG-S3-23`, OpenProject #395):
+        // - statement закрывается гарантированно (`use { }`) — раньше при исключении он оставался открытым;
+        // - ошибка пишется через SLF4J (категория + Throwable), а не `println` без категории;
+        // - результат РАЗЛИЧИМ: `false` означает «очистка не удалась», и вызывающий
+        //   НЕ удаляет назначение (иначе остаётся ровно тот осиротевший черновик,
+        //   ради предотвращения которого метод и написан).
         fun deleteByAssignment(
             assignmentId: Long,
             database: KaraokeConnection,
         ): Boolean {
-            val connection = database.getConnection() ?: return false
+            val connection =
+                database.getConnection()
+                    ?: run {
+                        draftLog.error("deleteByAssignment: нет соединения с БД (assignmentId={})", assignmentId)
+                        return false
+                    }
             return try {
-                val ps = connection.prepareStatement("DELETE FROM $TABLE_NAME WHERE assignment_id = ?")
-                ps.setLong(1, assignmentId)
-                ps.executeUpdate()
-                ps.close()
+                connection.prepareStatement("DELETE FROM $TABLE_NAME WHERE assignment_id = ?").use { ps ->
+                    ps.setLong(1, assignmentId)
+                    ps.executeUpdate()
+                }
                 true
             } catch (e: Exception) {
-                println("[SongAssignmentDraft.deleteByAssignment] ${e.message}")
+                draftLog.error("deleteByAssignment: не удалось удалить черновик (assignmentId={})", assignmentId, e)
                 false
             }
         }

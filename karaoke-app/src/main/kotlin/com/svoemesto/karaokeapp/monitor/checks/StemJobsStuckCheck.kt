@@ -8,6 +8,12 @@ import com.svoemesto.karaokeapp.monitor.MonitorContext
 import com.svoemesto.karaokeapp.monitor.MonitorSeverity
 
 /**
+ * BR-134 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): категория логов проверок
+ * мониторинга, читающих прод-БД.
+ */
+private val monitorCheckLog = org.slf4j.LoggerFactory.getLogger("infra.monitor.check")
+
+/**
  * Премиум-фича «Создать минусовку из аудиофайла» (StemJob) — задания, застрявшие в WAITING (поллер
  * почему-то не забрал) или WORKING (пайплайн демукса не дошёл до финализации) дольше STALE_MINUTES.
  * Реальные задания создают пользователи на прод-сайте — проверка смотрит remote (Connection.remote()),
@@ -23,8 +29,13 @@ object StemJobsStuckCheck : MonitorCheck {
             try {
                 StemJob.countStuck(db, STALE_MINUTES)
             } catch (e: Exception) {
-                println("StemJobsStuckCheck: ${e.message}")
-                0
+                // BR-134: ошибка НЕ подменяется нулём «проблем нет». Раньше исключение
+                // глоталось, оператор не видел, что проверка не смогла ответить (например,
+                // прод-БД недоступна), и в снапшоте не было ни алерта, ни ошибки. Теперь
+                // исключение пробрасывается — `MonitoringService.tick()` превращает его в
+                // WARNING-алерт `check.StemJobsStuckCheck.failure`.
+                monitorCheckLog.error("StemJobsStuckCheck: не удалось посчитать застрявшие задания", e)
+                throw e
             } finally {
                 try {
                     db.getConnection()?.close()

@@ -103,6 +103,49 @@
 Нет `migration tool`. Каждая миграция выполняется вручную
 (`psql -f file.sql`). TODO Pass 343+: автоматизировать.
 
+### Состояние применённых миграций (снимок от 2026-10-25)
+
+Журнала миграций в проекте нет (Решение 4: всё вручную), поэтому «что уже
+накатано» знать нечем. Ниже — состояние, зафиксированное после ручного
+применения 2026-10-25 на **обеих** базах (LOCAL — контейнер `karaoke-db` на
+админской машине, PROD — `188.127.240.124:5433`).
+
+| Файл | LOCAL | PROD | Что делает |
+|---|---|---|---|
+| `50_tbl_songs_free_after_on_air.sql` | было | было | флаг `free_after_on_air`, функция `tbl_songs_sync` → 95 слагаемых |
+| `51_public_settings_drop_captcha_server_key.sql` | применён | применён | удаляет серверный ключ капчи (теперь в env) |
+| `51_subscriptions_on_delete_restrict.sql` | применён | применён | `tbl_subscriptions.site_user_id`: CASCADE → RESTRICT |
+| `52_tbl_songs_sync_description_fields.sql` | применён | применён | 5 колонок, функция → 99 |
+| `53_tbl_songs_sync_album_id.sql` | применён | применён | `album_id`, функция → 100 |
+| `54_fix_result_text_gin_index.sql` | **пропущен** | **пропущен** | см. ниже |
+| `55_stem_jobs_on_delete_restrict.sql` | применён | применён | `tbl_stem_jobs.site_user_id`: CASCADE → RESTRICT |
+| `56_site_users_recordhash_canonical.sql` | применён | применён | канонический `recordhash` `tbl_site_users` → 19 слагаемых |
+| `deploy/recordhash_authors.sql` | применён | применён | канонический `recordhash` авторов → 17 слагаемых |
+| `deploy/recordhash_processes.sql` | применён | применён | канонический `recordhash` процессов → 18 слагаемых |
+
+**Почему 54 пропущен.** На обеих базах индекс уже существует и его определение
+ровно такое, какое создаёт миграция:
+`idx_gin_result_text ON public.tbl_songs USING gin (to_tsvector('russian'::regconfig, result_text))`.
+Миграция делает `DROP INDEX` + `CREATE INDEX` (без `CONCURRENTLY`) — то есть
+пересоздала бы индекс на 382 МБ, заблокировав запись в `tbl_songs` на минуты
+ради нулевого результата. Если понадобится применить её «для честности» —
+делать в окно без нагрузки и через `CREATE INDEX CONCURRENTLY`.
+
+**Согласованность формул.** После применения `md5(prosrc)` четырёх функций
+(`tbl_songs_sync`, `tbl_site_users`, `tbl_authors`, `tbl_processes`) на LOCAL и
+PROD совпали побайтово. Это обязательное условие: sync сравнивает строки только
+по `recordhash`, и расхождение формул означало бы «изменён весь каталог».
+
+**Бэкапы перед применением** (откат возможен):
+- LOCAL: `.scratch/db/local-20261025-1414.dump` (862 МБ);
+- PROD: `/root/db-backups/karaoke-20261025-1414.dump` (140 МБ).
+
+**Порядок.** Миграции применяются по числовому префиксу. Обратить внимание:
+в каталоге **две** миграции `51_*` (`public_settings_drop_captcha_server_key` и
+`subscriptions_on_delete_restrict`) — номер занят дважды, порядок между ними
+не критичен (они трогают разные таблицы), но при добавлении новых файлов
+нумерование надо продолжать с `57`.
+
 ### Решение 5: initdb-цепочка должна воспроизводить схему с нуля
 
 `deploy/docker-compose-database.yml` монтирует `deploy/karaoke-db/` в
@@ -170,6 +213,10 @@ description, short_description, warning, ready_songs_count, total_songs_count
       tracking).
 
 ## Changelog
+
+- **2026-10-25** (аудит #336, BR-019/BR-041/BR-533/BR-540/BR-541/BR-553/BR-537/BR-044):
+  зафиксировано состояние применённых миграций на обеих базах (LOCAL + PROD),
+  пропущенная `54` и её причина, бэкапы перед применением.
 
 - **2026-10-25** (аудит #336, пакет PKG-S3-21, OpenProject #393): канонический
   `deploy/recordhash_site_users.sql` + требование «повторное определение функции — полный

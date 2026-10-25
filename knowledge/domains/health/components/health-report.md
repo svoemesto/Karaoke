@@ -228,6 +228,19 @@ startRepairAll (async, HTTP thread) →
 - `song.pictureAlbumReady` ← `PICTURE_ALBUM` OK в `LOCAL_STORAGE`.
 - `song.pictureAuthorReady` ← `PICTURE_AUTHOR` OK в `LOCAL_STORAGE`.
 
+**Запись флагов — атомарная (BR-075, аудит #336, PKG-S3-22).** Установка флага
+(`song.stemAccompanimentReady = it` и т.п.) пишет его точечным compare-and-swap в
+`player_readiness_flags`, а не перезаписывает весь JSON: фоновый repair-loop и
+планировщик автопубликации больше не затирают ключи друг друга. Поле
+`player_readiness_flags` исключено из дифф-обновления песни (`saveToDb`) — иначе
+оно снова записало бы устаревший JSON.
+
+**Починка `root_folder` (BR-073, аудит #336, PKG-S3-22).** Если каталог песни
+не существует, `getHealthReportList` вызывает `Song.repairRootFolder()`: кандидат
+принимается, только если он единственный и в нём лежит файл этой песни. Раньше
+починка была побочным эффектом чтения геттера `rootFolder` (запись в БД из
+read-пути + риск указать на чужой каталог).
+
 Внутренний helper `localStorageReadinessVerdict(reports, karaokeFileType)`
 (до BR-279 — `isOkInLocalStorage`, возвращал только `Boolean`):
 

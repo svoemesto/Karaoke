@@ -380,6 +380,11 @@ class KaraokeProcessThread(
                             karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
                             karaokeProcess.end = Timestamp.from(Instant.now())
                             karaokeProcess.priority = -1
+                            // BR-036 (аудит #336, пакет PKG-S3-22): причина сбоя больше не
+                            // теряется в stdout контейнера — она дописывается к описанию
+                            // задания, которое видит оператор в админке.
+                            karaokeProcess.description =
+                                KaraokeProcess.appendErrorReason(karaokeProcess.description, e)
                             karaokeProcess.save()
                         }
                     }
@@ -699,8 +704,32 @@ class KaraokeProcessWorker {
                 sendStateMessage()
                 return
             }
-            KaraokeProcess.deleteDone(database)
-            KaraokeProcess.setWorkingToWaiting(database)
+            // BR-036 (аудит #336, пакет PKG-S3-22): восстановление при старте больше не
+            // «молчит о сбое». Раньше deleteDone/setWorkingToWaiting глушили исключение
+            // (println без стека), и очередь стартовала с осиротевшими WORKING-строками:
+            // воркер их не выбирает, лейн стоит, а очередь выглядит работающей.
+            // Теперь причина уходит в лог со стеком, а оператор видит SSE-уведомление.
+            val doneCleaned = KaraokeProcess.deleteDone(database)
+            val workingReset = KaraokeProcess.setWorkingToWaiting(database)
+            if (!doneCleaned || !workingReset) {
+                val failed =
+                    listOfNotNull(
+                        "удаление DONE".takeIf { !doneCleaned },
+                        "сброс WORKING → WAITING".takeIf { !workingReset },
+                    )
+                val failedSteps = failed.joinToString(", ")
+                SNS.send(
+                    SseNotification.error(
+                        Message(
+                            type = "error",
+                            head = "Очередь заданий",
+                            body =
+                                "Сбой восстановления при старте воркера: $failedSteps. " +
+                                    "Задания могут остаться в WORKING и не запуститься — проверьте лог.",
+                        ),
+                    ),
+                )
+            }
             // FR-007: сбрасываем «последнее отправленное значение», чтобы гарантировать
             // ровно одно начальное сообщение `countWaiting` при старте воркера —
             // даже если число совпало с предыдущим значением до остановки.

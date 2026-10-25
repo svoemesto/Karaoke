@@ -27,7 +27,13 @@ class SqlInjectionRegressionTest {
             args = mapOf("ids" to "1,2,3"),
             database = FakeKaraokeConnection(jdbc.connection),
         )
-        assertEquals("SELECT tbl_processes.* FROM tbl_processes WHERE tbl_processes.id IN (?, ?, ?)", jdbc.preparedSql())
+        // BR-037 (аудит #336, пакет PKG-S3-22): добавлен постоянный предикат
+        // `process_deleted_at IS NULL` — soft-deleted задания больше не возвращаются.
+        assertEquals(
+            "SELECT tbl_processes.* FROM tbl_processes WHERE tbl_processes.id IN (?, ?, ?) " +
+                "AND process_deleted_at IS NULL",
+            jdbc.preparedSql(),
+        )
         Mockito.verify(jdbc.prepared).setLong(1, 1L)
         Mockito.verify(jdbc.prepared).setLong(2, 2L)
         Mockito.verify(jdbc.prepared).setLong(3, 3L)
@@ -37,7 +43,7 @@ class SqlInjectionRegressionTest {
             args = mapOf("ids" to "1) OR 1=1"),
             database = FakeKaraokeConnection(injected.connection),
         )
-        assertTrue(injected.preparedSql().endsWith("1=0"), "невалидный ids даёт заведомо пустую выборку")
+        assertTrue(injected.preparedSql().contains("1=0"), "невалидный ids даёт заведомо пустую выборку")
     }
 
     @Test

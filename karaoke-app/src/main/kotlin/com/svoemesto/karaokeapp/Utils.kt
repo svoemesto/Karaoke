@@ -1618,9 +1618,11 @@ fun updateBpmAndKeyLV(
     var counterFailed = 0
     songList.forEach { song ->
         val sheetsageInfo = song.sheetsageInfo
-        if (sheetsageInfo.isNotEmpty()) {
-            val bpm = sheetsageInfo["tempo"] as String
-            val key = sheetsageInfo["key"] as String
+        // BR-079 (аудит #336, пакет PKG-S3-22): типизированный разбор вместо `Map<String, Any>`
+        // с приведениями `as String` (NPE на песне без `\tempo`).
+        if (!sheetsageInfo.isEmpty) {
+            val bpm = sheetsageInfo.tempo
+            val key = sheetsageInfo.key
             if (bpm != "" && key != "") {
                 println("${song.fileName} : bpm = $bpm, tone = $key")
                 song.fields[SongField.BPM] = bpm

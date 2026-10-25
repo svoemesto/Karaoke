@@ -1496,6 +1496,14 @@ data class HealthReport(
             val storageService = song.storageService
             val storageApiClient = song.storageApiClient
 
+            // BR-073 (аудит #336, пакет PKG-S3-22): починка root_folder — явная операция с
+            // проверкой однозначности кандидата. Раньше она была ПОБОЧНЫМ ЭФФЕКТОМ чтения геттера
+            // rootFolder (запись в БД из read-пути + совпадение хвоста могло указать на чужой
+            // каталог). Теперь геттер — чистое чтение, а починка живёт здесь (health-проверка).
+            if (song.rootFolder.isNotBlank() && !File(song.rootFolder).exists()) {
+                song.repairRootFolder()
+            }
+
             // CONSISTENCY_VIOLATION
 
             // Если у песни нету тональности

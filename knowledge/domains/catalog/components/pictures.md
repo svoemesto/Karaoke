@@ -212,6 +212,15 @@ MinIO. Исключения при декодировании/загрузке �
 
 ## Ловушки и инварианты
 
+- **Геттер картинки песни не создаёт запись (BR-074, аудит #336, PKG-S3-22).**
+  `Song.pictureAuthor` / `Song.pictureAlbum` — только чтение `tbl_pictures`.
+  Создание (INSERT + заливка в MinIO) — явные операции `Song.ensurePictureAuthor()` /
+  `Song.ensurePictureAlbum()`; вызывать их нужно в write-пути (импорт, загрузка
+  обложки, health-repair), а не из GET-запроса. Флаг готовности плеера
+  (`pictureAuthorReady` / `pictureAlbumReady`) выставляется только после проверки,
+  что объект **реально лежит в хранилище** (`storageService.fileExists`), а не по
+  факту наличия локального файла.
+
 1. **`useInList=false` MUST быть у больших полей**: иначе OOM на
    `loadList` (18k+ записей × big binary = crash).
 2. **`picture_full` setter `field = ""`**: base64 в БД не сохраняется.

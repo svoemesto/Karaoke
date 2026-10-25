@@ -192,6 +192,146 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 См. [dictionaries](dictionaries.md#пустой-голос-и-его-удаление-при-сохранении-specs547)
 и [specs/547](../../../../specs/547-drop-empty-song-voices/spec.md).
 
+### Лёгкая проекция для состояния/даты публикации (BR-057, PKG-S3-22)
+
+`/api/publications/date` нужна одна дата, а не песня целиком. Для этого в `Song.kt` есть
+`Song.loadPublicationDateCandidates(database, inWork)` → `List<PublicationDateCandidate>`
+(4 колонки: `id_status`, `free`, `publish_date`, `publish_time`).
+
+- `PublicationDateCandidate.stateAt(now)` считает состояние тем же
+  `SongStateResolver.resolve`, что и `Song.state` — контракт один, расхождение
+  «дата в UI не совпадает с фильтром» невозможно.
+- Предикат `id_status < 6` / `>= 6` — это первый шаг `SongStateResolver.resolve`
+  (`idStatus < 6 → IN_WORK`), поэтому отсечение в SQL не меняет результат.
+- `Song.dateTimePublish` и проекция используют один разбор
+  `parsePublishDateTime(date, time)` (таймзона MSK явно): иначе дата, разобранная
+  в UTC, даёт сдвиг на 3 часа при сравнении с «сейчас по Москве».
+- **Не заменяйте проекцию на `Song.loadListFromDb(emptyMap())`** ради «единообразия»:
+  это полная материализация ~100 полей на строку ради одной даты (было ровно так).
+
+### Геттеры `Song` не пишут и не запускают процессы (BR-072/073/074/080/083, PKG-S3-22)
+
+Правило после аудита #336: **чтение свойства не меняет БД и не запускает внешний CLI**.
+
+- `sourceMarkersList` — чистый разбор (`parseSourceMarkersOrEmpty`): неразбираемое значение
+  даёт пустой список и `ERROR` с `songId`/исходной строкой, но НЕ перезаписывает
+  `source_markers`. Явная миграция «одиночный формат → multi-voice» — только
+  `migrateSourceMarkersFormat()` (вызывается осознанно: health-action/импорт).
+  Раньше геттер при неудаче разбора писал `"[]"` и вызывал `saveToDb()` — обычное чтение
+  уничтожало разметку песни.
+- `ms` — чистое чтение сохранённого `song_ms` (0, если пусто). Заполнение — только явной
+  операцией `refreshDurationMsFromAudioFile()` (`ffprobe` + `UPDATE`), а не геттером: раньше
+  каждое чтение (включая DTO списка) порождало subprocess, а при недоступном файле —
+  subprocess на каждое обращение.
+- `songLengthMs`, `getMltProp`, `timesForFlashList[0]`, `getStartSilentOffsetMs` — устойчивы к
+  пустым маркерам: `maxOfOrNull ?: 0`, `firstOrNull()`, минимум по НЕПУСТЫМ голосам.
+  Пустой список — штатное состояние (`source_markers = "[]"`), а не ошибка.
+- `getStringsForAllNotesInSong` — проверяет `voice in sourceMarkersList.indices` и пустые
+  варианты аппликатур; `parseLockedStringLad` валидирует `stringLad` (0..5, лад ≥ 0) с
+  фолбэком на автоподбор строя; `clampTabsVariantIndex` не выпускает индекс за границу.
+- HTML аккордов/табов собирается конкатенацией: **все** интерполируемые значения
+  (`originalKey`, `newKey`, `capo`, `noteOctave`) обязаны проходить `escapeHtml()` —
+  иначе stored XSS в `v-html` публичной страницы.
+- `rootFolder` (BR-073) — **чистое чтение**: геттер не подбирает «похожий» каталог и не
+  пишет `UPDATE tbl_songs SET root_folder = ?`. Починка — явная операция
+  `Song.repairRootFolder()`: кандидат принимается, только если он **единственный**
+  и в нём лежит файл этой песни; иначе — fail-closed (WARN, корень не меняем).
+  Вызывается из `HealthReport.getHealthReportList` (health-проверка песни).
+- `pictureAuthor` / `pictureAlbum` (BR-074) — **чистое чтение** записи `tbl_pictures`.
+  Создание картинки (INSERT + заливка в MinIO) перенесено в явные операции
+  `Song.ensurePictureAuthor()` / `Song.ensurePictureAlbum()` (write-путь: импорт,
+  загрузка обложки, health-repair). Флаг готовности `pictureAuthorReady` /
+  `pictureAlbumReady` выставляется **только после проверки, что объект реально лежит
+  в хранилище** (`storageService.fileExists`), а не по факту наличия локального файла.
+  `ImageIO.read` может вернуть `null` (файл не картинка) — это `WARN` и `null`, не NPE.
+
+### Удаление песни: сначала строка, потом файлы (BR-106, PKG-S3-22)
+
+`Song.deleteFromDb(withFiles = true)`:
+
+1. `DELETE FROM tbl_songs WHERE id = ?` — **первым**, в `use {}`, ошибка → `WARN`
+   `song.delete.failed`, файлы **не трогаются** (fail-closed: «строка есть, звука нет»
+   хуже, чем «файл есть, строка есть»).
+2. Файлы (`fileAbsolutePath`, вокал, аккомпанемент) — best-effort, **сразу**
+   (`File.delete()`), результат пишется в лог. `deleteOnExit()` запрещён: в
+   долгоживущем контейнере файлы оставались на диске до перезапуска JVM, а список
+   путей рос в памяти.
+3. `SSE recordDelete` — только после успешного DELETE.
+
+### Разбор файлов Sheetsage: типизированный и устойчивый (BR-078/BR-079, PKG-S3-22)
+
+- `Song.sheetsageInfo` возвращает **типизированный** `SheetsageInfo`
+  (`key`, `tempo`, `chords`, `beattimes`), а не `Map<String, Any>`. Потребители
+  (`ApiController`, `Utils.updateBpmAndKeyLV`) читают поля напрямую — `as String`
+  на отсутствующем ключе давал NPE (`?: ""` применяется к результату приведения,
+  а не к значению в карте) → HTTP 500 вместо пустой строки.
+  JSON-эндпоинт `/api/song/sheetsageinfo` отдаёт `SheetsageInfo.toMap()` — формат
+  ответа прежний (те же имена ключей, пустые значения не попадают в карту).
+- Разбор устойчив: `substring(1, length - 2)` → `trim` + `removePrefix("[")` /
+  `removeSuffix("]")`; `toDouble()`/`toLong()` → `toDoubleOrNull()`/`toLongOrNull()`;
+  `beattimes[indexBeat]` → `getOrNull`; destructuring `split` → `getOrNull`.
+  Нештатный файл — `WARN` (`song.sheetsage.*`) с `songId`/путём и пустой результат,
+  а не исключение наружу.
+
+### Флаги готовности пишутся атомарно (BR-075, PKG-S3-22)
+
+Все readiness-флаги (`stemAccompanimentReady`, `pictureAlbumReady`,
+`newsAvailableAnnounced`, `premiumAutoPublishState`, `telegramAutoPublishState`,
+…) лежат в одном JSON-поле `tbl_songs.player_readiness_flags` (тип `text`).
+
+**Правило записи.** Флаг пишется **точечно и атомарно**:
+`UPDATE tbl_songs SET player_readiness_flags = ? WHERE id = ? AND COALESCE(player_readiness_flags, '{}') = ?`
+(compare-and-swap по текущему значению колонки, до 3 попыток — `Song.READINESS_FLAG_CAS_ATTEMPTS`).
+Значение-ожидание читается из БД непосредственно перед записью; при расхождении
+(колонку изменил параллельный поток) читаем заново и повторяем.
+
+**Чего больше нет.** Дифф-обновление (`saveToDb`) поле `player_readiness_flags`
+**не пишет** (`getDiff` отдаёт его как диагностическое поле, `recordDiffRealField = false`).
+Иначе оно снова записало бы весь устаревший JSON и затерело ключи параллельного потока.
+
+**Формат хранения не меняется** — компактный JSON без пробелов (`{"a":true}`).
+От него зависят проверки в `karaoke-web` (`flags.contains("\"pictureAlbumReady\":true")`),
+поэтому `jsonb`-нормализация не применяется: слияние выполняется в Kotlin, а в БД
+уходит результат с тем же форматом.
+
+**Кэш разбора** (BR-084): `player_readiness_flags` разбирается один раз на объект
+(`readinessFlagsCacheOf`, ключ кэша — сама строка JSON), сброс — при записи поля.
+Раньше JSON парсился заново на каждое чтение каждого из ~20 флагов.
+
+### Число голосов: «неизвестно» вместо «1» (BR-105, PKG-S3-22)
+
+- `Song.countVoicesLoaded: Int?` — число голосов по **реально загруженным** маркерам;
+  `null`, если `source_markers` не загружен (песня из списка с `withoutMarkersAndText = true`).
+- `Song.countVoices: Int` — исторический счётчик (используется в рендере, где маркеры
+  всегда загружены). Для незагруженных маркеров он опирается на заглушку `"[[]]"` и даёт `1`.
+- Фильтр списка «Количество голосов» (`filter_count_voices`) грузит `source_markers`
+  принудительно и сравнивает с `countVoicesLoaded` — раньше он считал заглушку, то есть
+  показывал ВСЕ песни при значении `1` и пусто при `2+`.
+- `SongDTO.countVoices` / `SongDTOdigest.countVoices` стали `Int?` — «неизвестно»
+  отдаётся как `null`, а не как выдуманное «1».
+
+### Слияние голосов при сохранении (BR-103, PKG-S3-22)
+
+Песня, загруженная **до** правки редактора, несёт устаревший снимок голосов.
+Раньше `saveToDb()` нормализовал этот снимок, а diff (против свежей строки) записывал
+его — голос, добавленный редактором, исчезал.
+
+**Правило (трёхстороннее слияние).** В `saveToDb()` голоса сливаются ДО вычисления diff:
+
+| Поле | Смысл |
+| --- | --- |
+| `base` | снимок голосов на момент загрузки песни (`loadedVoicesSnapshot`) |
+| `mine` | текущие значения объекта (до нормализации) |
+| `theirs` | свежая строка из БД (`savedSong`) |
+
+- объект голоса **не менял** (`mine == base`) → берётся `theirs` (голос редактора сохранён);
+- объект голоса **менял** → слияние по индексам: не тронутые этим объектом голоса
+  берутся из `theirs`, изменённые — из `mine`; удалённый объектом голос не восстанавливается.
+
+Нормализация применяется к **результату слияния**, а не к устаревшему снимку.
+Явная замена набора голосов (`copyFieldsFromAnother` с `SOURCE_TEXT`/`SOURCE_MARKERS`)
+слияние отключает — решение вызывающего приоритетно.
+
 ## Hot paths
 
 - **`POST /api/songs`** — на каждое изменение фильтра/страницы.
@@ -221,6 +361,15 @@ pre-commit вызов через `suppressTriggers` и повторяет хук
 
 ## Changelog
 
+- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-072/076/077/080/081/082/083/085/086)**:
+  зафиксировано правило «геттеры не пишут и не запускают процессы», миграция формата
+  `source_markers` вынесена в явную операцию, пустые маркеры больше не роняют длительность/
+  рендер, добавлена валидация `stringLad`/индекса строя и экранирование HTML. См.
+  `specs/394-pkg-s3-22/report.md`.
+- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-057)**: добавлена
+  лёгкая проекция `Song.loadPublicationDateCandidates` / `PublicationDateCandidate`
+  и общий разбор `parsePublishDateTime` для `Song.dateTimePublish`. См.
+  `specs/394-pkg-s3-22/report.md`.
 - **Pass 547** (2026-10-20, spec `547-drop-empty-song-voices`): добавлен раздел «Нормализация голосов при сохранении» — пустые голоса (кроме первого) удаляются в `saveToDb()`, новые методы `setSourceTextAndMarkers`/`setAllVoices`, чистая нормализация в `VoiceNormalization.kt`. Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 384** (2026-09-09): Initial. Автор: agent (Karaoke).

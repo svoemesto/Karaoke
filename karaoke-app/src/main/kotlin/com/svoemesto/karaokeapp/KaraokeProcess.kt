@@ -142,6 +142,7 @@ class KaraokeProcess(
             timeLeftStr = timeLeftStr,
             withoutControl = withoutControl,
             threadId = threadId,
+            processDeletedAt = processDeletedAt,
         )
 
     fun copy(): KaraokeProcess {
@@ -643,6 +644,18 @@ class KaraokeProcess(
     }
 
     companion object {
+        private val logger = org.slf4j.LoggerFactory.getLogger(KaraokeProcess::class.java)
+
+        /**
+         * Маркер хвоста «причина ошибки» в `process_description` (BR-036, пакет PKG-S3-22).
+         * Отдельной колонки под причину в схеме нет; описание видит оператор в админке,
+         * поэтому причина дописывается туда (идемпотентно — см. [appendErrorReason]).
+         */
+        internal const val ERROR_REASON_MARKER = " | ERROR: "
+
+        /** Ограничение длины описания с причиной, символов. */
+        internal const val ERROR_REASON_MAX_LENGTH = 500
+
         // Именованные "лейны" threadId для задач, не привязанных к конкретной песне/сессии редактирования
         const val THREAD_LANE_HEAVY_RENDER = 0 // MELT_*, DEMUCS*, SHEETSAGE и т.п. — тяжёлые задачи, нельзя гнать параллельно
         const val THREAD_LANE_LIGHT_BACKGROUND = -1 // SmartCopy, uploadToLocalStore — быстрые фоновые задачи
@@ -782,32 +795,54 @@ class KaraokeProcess(
             return result
         }
 
-        fun deleteDone(database: KaraokeConnection) {
+        /**
+         * Удаляет терминальные (`DONE`) задания при старте воркера.
+         *
+         * BR-036 (аудит #336, пакет PKG-S3-22): раньше исключение глушилось
+         * (`println(e.message)` — без стека и без признака «не удалось»), и восстановление
+         * продолжалось как ни в чём не бывало. Теперь причина уходит в лог со стеком, а
+         * вызывающий (`KaraokeProcessWorker.start`) видит результат и сигналит в SSE.
+         *
+         * @return `true` — очистка выполнена (или чистить было нечего); `false` — сбой БД.
+         */
+        fun deleteDone(database: KaraokeConnection): Boolean {
             println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Удаляем DONE (если есть)")
             try {
                 val connection = database.getConnection()
                 if (connection == null) {
                     println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                    return
+                    return false
                 }
                 val sql = "DELETE FROM tbl_processes WHERE process_status = ?"
                 val ps = connection.prepareStatement(sql)
                 ps.setString(1, "DONE")
                 ps.executeUpdate()
                 ps.close()
+                return true
             } catch (e: Exception) {
-                println(e.message)
+                logger.error("KaraokeProcess: не удалось удалить DONE-задания при старте воркера", e)
+                return false
             }
         }
 
-        fun setWorkingToWaiting(database: KaraokeConnection) {
+        /**
+         * Возвращает осиротевшие `WORKING`-задания в `WAITING` при старте воркера.
+         *
+         * BR-036 (аудит #336, пакет PKG-S3-22): сбой этого шага оставлял строки в `WORKING` —
+         * воркер их не выбирает (`getProcessesToStart` берёт только `WAITING`), лейн стоит,
+         * а очередь при этом выглядит работающей. Теперь исключение логируется со стеком,
+         * а вызывающий получает `false` и сигналит в SSE/мониторинг.
+         *
+         * @return `true` — сброс выполнен; `false` — сбой БД, `WORKING`-строки могли остаться.
+         */
+        fun setWorkingToWaiting(database: KaraokeConnection): Boolean {
             println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
 
             try {
                 val connection = database.getConnection()
                 if (connection == null) {
                     println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                    return
+                    return false
                 }
                 val sql =
                     "UPDATE tbl_processes SET " +
@@ -818,8 +853,42 @@ class KaraokeProcess(
                 ps.setString(2, "WORKING")
                 ps.executeUpdate()
                 ps.close()
+                return true
             } catch (e: Exception) {
-                println(e.message)
+                logger.error("KaraokeProcess: не удалось сбросить WORKING → WAITING при старте воркера", e)
+                return false
+            }
+        }
+
+        /**
+         * Дописывает причину сбоя к описанию задания (`process_description`) при `ERROR`.
+         *
+         * BR-036 (аудит #336, пакет PKG-S3-22): раньше при `ERROR` в БД попадал только статус,
+         * а причина уходила в stdout контейнера — в админке задание выглядело «упало, почему —
+         * неизвестно». Отдельной колонки под причину нет, поэтому по совету карточки пишем в
+         * `process_description` (она же видна оператору), сохраняя исходное описание шага.
+         *
+         * Идемпотентно: старый хвост ` | ERROR: …` отбрасывается, текст ограничен
+         * [ERROR_REASON_MAX_LENGTH].
+         */
+        internal fun appendErrorReason(
+            description: String,
+            cause: Throwable?,
+        ): String {
+            if (cause == null) return description
+            val base = description.substringBefore(ERROR_REASON_MARKER)
+            val reason =
+                buildString {
+                    append(cause::class.simpleName ?: cause.javaClass.simpleName)
+                    cause.message?.let { append(": ").append(it) }
+                }.replace('\n', ' ').trim()
+            val tail = "$ERROR_REASON_MARKER$reason"
+            val head = base.trimEnd()
+            val room = ERROR_REASON_MAX_LENGTH - tail.length
+            return if (head.length <= room) {
+                head + tail
+            } else {
+                head.take(room.coerceAtLeast(0)) + tail
             }
         }
 
@@ -1111,6 +1180,14 @@ class KaraokeProcess(
                 if (args.containsKey("process_prioritet")) addNumeric("process_prioritet", args["process_prioritet"])
                 if (args.containsKey("filter_notail")) where.raw("process_command <> 'tail'")
                 if (args.containsKey("thread_id")) addNumeric("thread_id", args["thread_id"])
+                // BR-037 (аудит #336, пакет PKG-S3-22): soft-deleted задания
+                // (`process_deleted_at <> NULL`) больше НЕ возвращаются по умолчанию.
+                // Раньше `loadList` их отдавал: в админке строка оставалась видимой, а
+                // `hasActiveProcess` навсегда видел `WAITING` — переименование файла песни
+                // блокировалось «выполняется фоновая обработка», sync-audio пропускал
+                // ребёнка. `getProcessesToStart` фильтровал их и раньше (эталон).
+                // Явный `include_deleted` — для инструментов разбора/восстановления.
+                if (!args.containsKey("include_deleted")) where.raw("process_deleted_at IS NULL")
 
                 if (!where.isEmpty()) sql += " WHERE ${where.build().joinToString(" AND ")}"
 
@@ -1150,12 +1227,13 @@ class KaraokeProcess(
                 result.sort()
 
                 if (args.containsKey("filter_limit")) {
-                    val limit = args["filter_limit"]?.toInt() ?: return result
-                    val resultLimit: MutableList<KaraokeProcess> = mutableListOf()
-                    for (i in 0 until limit) {
-                        resultLimit.add(result[i])
-                    }
-                    return resultLimit
+                    // BR-034 (аудит #336, пакет PKG-S3-22): `toInt()` бросал NumberFormatException
+                    // на нечисле (`?filterLimit=abc`), а `result[i]` — IndexOutOfBounds, когда
+                    // лимит больше числа строк (`?filterLimit=1000` при 50 заданиях). Оба
+                    // исключения не ловились (catch — только SQLException) → HTTP 500.
+                    // Теперь срез — через `take()`, а невалидное значение — явная ошибка
+                    // контракта (контроллеры отдают 400, см. `applyFilterLimit`).
+                    return applyFilterLimit(result, args["filter_limit"])
                 }
 
                 return result
@@ -1188,6 +1266,32 @@ class KaraokeProcess(
         ): Boolean =
             loadList(args = mapOf("song_id" to songId.toString()), database = database)
                 .any { it.status == KaraokeProcessStatuses.WAITING.toString() || it.status == KaraokeProcessStatuses.WORKING.toString() }
+
+        /**
+         * Срез результата [loadList] по `filter_limit` — без индексации и без падения.
+         *
+         * BR-034 (аудит #336, пакет PKG-S3-22). Правила:
+         * - нечисловое значение, отрицательное число или `null` — `IllegalArgumentException`
+         *   (ошибка контракта: на HTTP-границе контроллер отвечает 400, см.
+         *   `ApiController.apisProcessesDigests`/`apisProcessesPages`);
+         * - лимит больше числа строк — возвращается весь список (раньше был `IndexOutOfBounds`);
+         * - `0` — пустой список (осмысленный «ничего не отдавать»).
+         *
+         * @throws IllegalArgumentException если значение не является неотрицательным целым
+         */
+        internal fun applyFilterLimit(
+            result: List<KaraokeProcess>,
+            limitValue: String?,
+        ): List<KaraokeProcess> {
+            val raw = limitValue?.trim()
+            val limit =
+                raw?.toIntOrNull()
+                    ?: throw IllegalArgumentException(
+                        "filter_limit должен быть целым числом, получено: '${limitValue ?: "null"}'",
+                    )
+            require(limit >= 0) { "filter_limit не может быть отрицательным: $limit" }
+            return result.take(limit)
+        }
 
         fun delete(
             id: Long,

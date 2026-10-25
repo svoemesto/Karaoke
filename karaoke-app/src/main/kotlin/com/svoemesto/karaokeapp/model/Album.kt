@@ -806,8 +806,10 @@ class Album(
 
             // Создать/обновить запись Pictures через song.pictureAlbum (тот же путь, что и
             // saveAlbumCover) — никакого прямого SQL или MinIO из этого кода.
+            // BR-074 (аудит #336, пакет PKG-S3-22): геттер song.pictureAlbum больше не создаёт
+            // запись (чистое чтение) — создание перенесено в явный write-путь.
             try {
-                val pic = song.pictureAlbum
+                val pic = song.ensurePictureAlbum()
                 return pic != null
             } catch (_: Exception) {
                 return false

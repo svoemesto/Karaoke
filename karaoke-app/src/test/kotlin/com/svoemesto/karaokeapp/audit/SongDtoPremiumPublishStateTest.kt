@@ -48,6 +48,12 @@ class SongDtoPremiumPublishStateTest {
                 vkAutoPublishState = "error"
             }
 
+        // BR-075 (аудит #336, пакет PKG-S3-22): установка readiness-флага теперь пишет флаг
+        // в БД атомарно (compare-and-swap по колонке) — то есть НАСТРОЙКА теста ходит в БД.
+        // Проверяем именно toDTO(): он обязан остаться без обращений к БД (иначе список из
+        // 18k песен получил бы N+1).
+        val callsBeforeDto = database.getConnectionCalls.get()
+
         val dto = song.toDTO()
 
         assertEquals(true, dto.newsPremiumPublishPending, "без этого поля статус в карточке всегда null")
@@ -59,7 +65,7 @@ class SongDtoPremiumPublishStateTest {
         assertEquals("published", dto.telegramAutoPublishState)
         assertEquals("error", dto.vkAutoPublishState)
         assertEquals(
-            0,
+            callsBeforeDto,
             database.getConnectionCalls.get(),
             "toDTO() не должен обращаться к БД: список песен отдаётся пакетно",
         )

@@ -78,4 +78,3 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:aedbdea9c49f0
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:c9c4fc9523a4646d  # [kotlin-chmod] listOf("chmod", "666", drumsNameFlac.rightFileName()),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/propertiesfiledictionary/PropertiesFileDictionary.kt:2e44f9d600fac697  # [kotlin-chmod] runCommand(listOf("chmod", "666", pathToFile()))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/CleanupJournal.kt:93ae8d56b0d751ae  # [kotlin-chmod] if (isNew) runCommand(listOf("chmod", "666", path.toString()), ignoreErrors = true)
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt:2e44f9d600fac697  # [kotlin-chmod] runCommand(listOf("chmod", "666", pathToFile()))

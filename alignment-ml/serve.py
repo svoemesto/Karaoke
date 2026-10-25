@@ -27,11 +27,18 @@ use_finetuned (см. /align) - обе модели грузятся в памя�
 CTC) больше не блокирует event loop - GET /health отвечает во время выравнивания. Внутри обработчика
 нельзя вызывать ничего async (в частности, await file.read()) - тело уже разобрано Starlette и
 лежит в UploadFile.file (SpooledTemporaryFile), читаем его синхронно и потоково.
+
+Режим выравнивания виден в ответе (BR-493, аудит #336, порция P-69): поле ``star_token`` — True
+(baseline со звёздным токеном), False (явный откат без него; причина — в stderr сервиса) или null
+(дообученный чекпоинт, звёздный токен в этой ветке не используется). Отказ окружения
+(``align.AlignmentSetupError``: нет uroman, романизация выродилась в заглушки, BR-494) отдаётся
+как 503 с текстом причины, а не как ``ok: true`` с неверными таймингами.
 """
 
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -39,7 +46,7 @@ import soundfile as sf
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from align import align_syllables
+from align import AlignmentSetupError, align_syllables, star_token_enabled
 
 MODEL_PATH = os.environ.get("ALIGN_MODEL_PATH") or None
 DEFAULT_USE_FINETUNED = os.environ.get("ALIGN_DEFAULT_USE_FINETUNED", "").lower() in ("1", "true", "yes")
@@ -181,5 +188,13 @@ def align(
                     f"если это осознанно, поднимите ALIGN_MAX_AUDIO_SECONDS"
                 ),
             )
-        syllables = align_syllables(tmp.name, text, MODEL_PATH if finetuned else None)
-    return {"ok": True, "syllables": syllables, "used_finetuned": finetuned}
+        try:
+            syllables = align_syllables(tmp.name, text, MODEL_PATH if finetuned else None)
+        except AlignmentSetupError as exc:
+            # BR-494: окружение не готово (нет uroman, романизация выродилась в заглушки) -
+            # клиенту нужен явный отказ, а не ok:true с таймингами из вырожденного транскрипта.
+            print(f"[serve] выравнивание невозможно: {exc}", file=sys.stderr, flush=True)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+    # BR-493: сообщаем, каким режимом реально выровнено (None - дообученный чекпоинт).
+    star_token = star_token_enabled(MODEL_PATH if finetuned else None)
+    return {"ok": True, "syllables": syllables, "used_finetuned": finetuned, "star_token": star_token}

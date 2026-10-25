@@ -19,14 +19,17 @@ alignment, 1000+ языков включая русский) БЕЗ дообуч
 второстепенных голосах (voice > 0). Добавлен звёздный токен MMS_FA (with_star=True, "*" между
 словами - модель может списать на него кусок аудио, не описанный транскриптом) как попытка это
 починить - требует проверки реальным прогоном на тех же песнях, где были катастрофические ошибки.
-При любой проблеме с загрузкой (несовпадение версии torchaudio и т.п.) - тихий откат на обычный
-режим без звёздного токена (см. _load_model).
+Если версия torchaudio не поддерживает with_star - откат на обычный режим без звёздного токена,
+но он ЯВНЫЙ: флаг star_token уходит в /align, причина печатается в stderr (BR-493). Любой другой
+сбой загрузки (битая/недокачанная модель, OOM) - отказ, а не тихий откат.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
+import traceback
 
 import numpy as np
 import soundfile as sf
@@ -34,6 +37,20 @@ import torch
 import torchaudio
 
 from syllables import split_text_into_words
+
+
+class AlignmentSetupError(RuntimeError):
+    """Окружение сервиса не позволяет выравнивать: нет романизатора для MMS_FA, романизация
+    выродилась в заглушки и т.п. (BR-494).
+
+    Отдельный тип нужен, чтобы serve.py отвечал явной ошибкой 5xx, а не молча отдавал
+    ``ok: true`` с заведомо неверными таймингами (см. карточку P-69-06)."""
+
+
+# BR-494 (P-69-06): доля слов, ушедших в заглушку после романизации, выше которой выравнивание
+# отклоняется. 0.10 - порог из карточки аудита; при меньшей доле отдельные слова-исключения
+# (аббревиатуры, эмодзи) не должны ронять весь запрос.
+MAX_PLACEHOLDER_RATIO = 0.10
 
 
 def read_audio(path: str) -> tuple[torch.Tensor, int]:
@@ -100,19 +117,56 @@ def _load_model(model_path: str | None = None) -> dict:
     # наблюдались ошибки в десятки секунд именно на второстепенных голосах. "*" - специальный токен
     # MMS_FA именно под "кусок аудио не описан транскриптом" (экспериментально - первый реальный
     # прогон должен показать, действительно ли это чинит именно эти случаи).
+    #
+    # BR-493 (P-69-05): откат на режим без звёздного токена остаётся, но перестал быть тихим:
+    #   * успех -> state["star_token"] = True;
+    #   * откат -> state["star_token"] = False + state["star_fallback_reason"], причина уходит в
+    #     stderr вместе с трессировкой, а serve.py отдаёт признак режима в ответе /align;
+    #   * откат разрешён ТОЛЬКО для TypeError/AttributeError - это единственные исключения,
+    #     которые означают "в этой версии torchaudio нет get_model(with_star=...)". Любой другой
+    #     сбой (недокачанная/битая модель, OOM, сетевой сбой) - реальный отказ окружения:
+    #     раньше он тоже приводил к "тихой" загрузке без звёздного токена (и второй загрузке
+    #     модели), теперь пробрасывается наверх и превращается в 5xx, а не в неверные тайминги.
+    state["star_token"] = True
+    state["star_fallback_reason"] = None
     try:
         state["model"] = bundle.get_model(with_star=True)
         state["aligner"] = bundle.get_aligner()
         star_dict = bundle.get_dict(star="*")
         state["star_id"] = star_dict["*"]
-    except Exception as e:
-        print(f"[align] with_star=True недоступен ({e}) - откатываюсь на обычную загрузку без звёздного токена")
+    except (TypeError, AttributeError) as e:
+        print(
+            f"[align] with_star=True недоступен ({type(e).__name__}: {e}) - откатываюсь на загрузку "
+            f"без звёздного токена; тайминги многоголосых песен могут быть заметно хуже",
+            file=sys.stderr,
+            flush=True,
+        )
+        print(traceback.format_exc(), file=sys.stderr, flush=True)
         state["model"] = bundle.get_model()
         state["aligner"] = bundle.get_aligner()
         state["star_id"] = None
+        state["star_token"] = False
+        state["star_fallback_reason"] = f"{type(e).__name__}: {e}"
+    except Exception:
+        # Не откат, а отказ: печатаем полную причину и не грузим модель второй раз (BR-493).
+        print("[align] загрузка MMS_FA с звёздным токеном упала - выравнивание невозможно", file=sys.stderr, flush=True)
+        print(traceback.format_exc(), file=sys.stderr, flush=True)
+        raise
     state["model"].eval()
     _model_cache[model_path] = state
     return state
+
+
+def star_token_enabled(model_path: str | None = None) -> bool | None:
+    """Признак режима baseline-выравнивания для ответа /align (BR-493, P-69-05).
+
+    True - модель загружена со звёздным токеном; False - сработал явный откат (причина в
+    ``star_fallback_reason`` и в stderr); None - используется дообученный чекпоинт, звёздный
+    токен в этой ветке не применяется. Модель уже загружена вызовом ``align_syllables`` (кэш),
+    поэтому повторной загрузки 1B-весов здесь нет."""
+    if model_path is not None:
+        return None
+    return bool(_load_model(None).get("star_token"))
 
 
 def _romanize(words: list[str]) -> list[str]:
@@ -127,9 +181,16 @@ def _romanize(words: list[str]) -> list[str]:
 
         romanizer = ur.Uroman()
         return [romanizer.romanize_string(w).lower() for w in words]
-    except ImportError:
-        print("[align] uroman не установлен - пробуем подать кириллицу как есть (может не сработать)")
-        return [w.lower() for w in words]
+    except ImportError as e:
+        # BR-494 (P-69-06): раньше здесь кириллица уходила в MMS_FA как есть и целиком вычищалась
+        # _sanitize_for_vocab в заглушки "a a a ..." - модель выдавала правдоподобные, но
+        # бессмысленные интервалы, а /align отвечал ok: true. Романизация для MMS_FA обязательна,
+        # поэтому отсутствие uroman - отказ, а не тихая деградация.
+        raise AlignmentSetupError(
+            "uroman не установлен - романизация обязательна для MMS_FA "
+            "(установите пакет uroman и системный perl: pip install -r requirements.txt); "
+            "выравнивание остановлено, чтобы не отдавать неверные тайминги"
+        ) from e
 
 
 def _sanitize_for_vocab(words: list[str], bundle) -> list[str]:
@@ -137,20 +198,38 @@ def _sanitize_for_vocab(words: list[str], bundle) -> list[str]:
     обучена модель. Любой другой символ в romanized-тексте (артефакт uroman - апострофы, диакритика,
     случайно оставшийся пробел и т.п.) токенизатор либо не найдёт, либо смапит на blank/id=0, а
     forced_align считает такой target невалидным ("targets Tensor shouldn't contain blank index").
-    Фильтруем строго по реальному словарю модели, а не гадаем заранее, какие символы "безопасны"."""
+    Фильтруем строго по реальному словарю модели, а не гадаем заранее, какие символы "безопасны".
+
+    BR-494: если заглушкой заменена слишком большая доля слов (MAX_PLACEHOLDER_RATIO), выравнивание
+    отклоняется. Иначе весь русский текст мог молча превратиться в "a a a ..." при сломанной
+    романизации, и заведомо неверные тайминги уходили бы в маркеры."""
     vocab = bundle.get_dict()
     blank_chars = {c for c, i in vocab.items() if i == 0}
     valid = set(vocab.keys()) - blank_chars
 
     result = []
+    placeholders = 0
     for w in words:
         cleaned = "".join(c for c in w if c in valid)
         if cleaned == "":
             # Слово целиком состояло из символов вне словаря - не оставляем его вовсе без токенов
             # (сломало бы соответствие индексов со списком слов дальше по конвейеру), берём заглушку.
             cleaned = next(iter(valid), "a")
-            print(f"[align] слово '{w}' целиком вне словаря MMS_FA после романизации - заменено заглушкой")
+            placeholders += 1
+            print(
+                f"[align] слово '{w}' целиком вне словаря MMS_FA после романизации - заменено заглушкой",
+                file=sys.stderr,
+                flush=True,
+            )
         result.append(cleaned)
+
+    if words and placeholders / len(words) > MAX_PLACEHOLDER_RATIO:
+        raise AlignmentSetupError(
+            f"после романизации {placeholders} из {len(words)} слов "
+            f"({placeholders / len(words):.0%}) целиком вне словаря MMS_FA - больше порога "
+            f"{MAX_PLACEHOLDER_RATIO:.0%}; выравнивание остановлено (проверьте романизацию uroman и "
+            f"текст), иначе получился бы вырожденный транскрипт и неверные тайминги"
+        )
     return result
 
 

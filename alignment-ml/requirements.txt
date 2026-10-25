@@ -1,7 +1,14 @@
-torch>=2.1
-torchaudio>=2.1
-transformers>=4.40
+# Версии зафиксированы (BR-498, аудит #336, порция P-69): torch и torchaudio обязаны быть ОДНОЙ
+# парой - torchaudio ABI-привязан к конкретной версии torch, и pip, разрешая независимые нижние
+# границы, вправе собрать несовместимую комбинацию. Пара 2.11.0 - последняя доступная в индексе
+# (torchaudio 2.11.0 / torch 2.11.0); менять только вместе.
+torch==2.11.0
+torchaudio==2.11.0
+# eval_strategy появился в transformers 4.41, processing_class - в 4.46 (train.py: TrainingArguments,
+# Trainer). С 4.40-4.45 обучение падает с TypeError на старте.
+transformers>=4.46
 accelerate>=1.1.0
+# uroman требует системный perl (см. README, раздел «Запуск»).
 uroman>=1.2
 soundfile>=0.12
 bitsandbytes>=0.43

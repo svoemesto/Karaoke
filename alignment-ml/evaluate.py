@@ -18,9 +18,16 @@ from __future__ import annotations
 
 import argparse
 import statistics
+import sys
+import traceback
 
 from align import align_syllables
 from manifest import load_manifest
+
+# BR-492 (P-69-04): доля строк, на которых выравнивание УПАЛО (а не разошлось число слогов), выше
+# которой прогон оценки считается недействительным и завершается кодом 2. Раньше эти два исхода
+# сливались в один счётчик, и полностью упавший прогон печатал "Нет данных для оценки" с кодом 0.
+MAX_ALIGN_ERROR_RATIO = 0.05
 
 
 def evaluate(
@@ -50,6 +57,7 @@ def evaluate(
     rows_ok = 0
     rows_skipped_no_audio = 0
     rows_skipped_mismatch = 0
+    rows_failed_align = 0
 
     for idx, row in enumerate(rows):
         prefix = f"[evaluate] ({idx + 1}/{len(rows)}) song={row.song_id} voice={row.voice}"
@@ -63,8 +71,11 @@ def evaluate(
         try:
             predicted = align_syllables(row.audio_file, row.text, model_path)
         except Exception as e:
-            print(f"{prefix}: ошибка align - {e}", flush=True)
-            rows_skipped_mismatch += 1
+            # BR-492: тип исключения и трессировка обязательны - без них "ошибка align" неотличима
+            # от штатного расхождения слоговой разбивки (см. карточку P-69-04).
+            print(f"{prefix}: ошибка align - {type(e).__name__}: {e}", flush=True)
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
+            rows_failed_align += 1
             continue
 
         if len(predicted) != len(row.syllables):
@@ -95,7 +106,8 @@ def evaluate(
             print(f"{prefix}: ok, но нет слогов с ground truth для сравнения{suffix}", flush=True)
 
     print(f"\nПесен/голосов обработано: {rows_ok}, пропущено (нет аудио): {rows_skipped_no_audio}, "
-          f"пропущено (расхождение разбивки/ошибка): {rows_skipped_mismatch}")
+          f"пропущено (расхождение числа слогов): {rows_skipped_mismatch}, "
+          f"ошибок align: {rows_failed_align}")
     if errors_ms:
         print(f"Ошибка на слог (мс): среднее={statistics.mean(errors_ms):.1f}, "
               f"медиана={statistics.median(errors_ms):.1f}, "
@@ -103,6 +115,27 @@ def evaluate(
               f"максимум={max(errors_ms):.1f} (всего слогов: {len(errors_ms)})")
     else:
         print("Нет данных для оценки - проверьте путь к манифесту и наличие аудио на диске.")
+
+    # BR-492: прогон, не давший ни одного измерения или потерявший на ошибках align больше
+    # MAX_ALIGN_ERROR_RATIO строк, не должен выглядеть успешным (код 0): решение "baseline
+    # достаточен / finetuned лучше" принимается по этим числам.
+    if not errors_ms:
+        print(
+            "[evaluate] ни одного измерения не получено - прогон недействителен (код 2)",
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(2)
+    attempted = rows_ok + rows_skipped_mismatch + rows_failed_align
+    if attempted and rows_failed_align / attempted > MAX_ALIGN_ERROR_RATIO:
+        print(
+            f"[evaluate] выравнивание упало на {rows_failed_align} из {attempted} строк "
+            f"({rows_failed_align / attempted:.1%}) - больше порога "
+            f"{MAX_ALIGN_ERROR_RATIO:.0%}, прогон недействителен (код 2)",
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

@@ -197,46 +197,11 @@ export default {
     const { create } = useToast()
     this.connectSse(create)
 
-    this.$store.dispatch('setLastSettingType', {
-      value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT'),
-    })
-    this.$store.dispatch('setLastSettingValue', {
-      value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий'),
-    })
-    this.$store.dispatch('setLastPriorLyrics', {
-      value: await this.$store.getters.getWebvueProp('lastPriorLyrics', '1'),
-    })
-    this.$store.dispatch('setLastPriorKaraoke', {
-      value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0'),
-    })
-    this.$store.dispatch('setLastPriorChords', {
-      value: await this.$store.getters.getWebvueProp('lastPriorChords', ''),
-    })
-    this.$store.dispatch('setLastPriorMelody', {
-      value: await this.$store.getters.getWebvueProp('lastPriorMelody', ''),
-    })
-    this.$store.dispatch('setLastThreadId', {
-      value: await this.$store.getters.getWebvueProp('lastThreadId', '0'),
-    })
-    this.$store.dispatch('setLastPriorCodeLyrics', {
-      value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10'),
-    })
-    this.$store.dispatch('setLastPriorCodeKaraoke', {
-      value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10'),
-    })
-    this.$store.dispatch('setLastPriorDemucs', {
-      value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1'),
-    })
-    this.$store.dispatch('setLastPriorForcedAlign', {
-      value: await this.$store.getters.getWebvueProp('lastPriorForcedAlign', '-1'),
-    })
-    this.$store.dispatch('setLastPriorSymlinks', {
-      value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1'),
-    })
-    this.$store.dispatch('setLastPriorSmartCopy', {
-      value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1'),
-    })
-
+    // BR-369: polling-таймеры создаются ДО восстановления настроек. Раньше восстановление
+    // шло первым и состояло из 13 последовательных `await getWebvueProp(...)` без
+    // try/catch: любой отказ `/api/getwebvueprop` обрывал хук mounted ДО создания
+    // таймеров — бейджи чата/заданий/новых альбомов не обновлялись до перезагрузки
+    // страницы, а пользователь не видел ошибки.
     this.$store.dispatch('loadChatUnreadCount')
     this.chatUnreadPollTimer = setInterval(
       () => this.$store.dispatch('loadChatUnreadCount'),
@@ -254,6 +219,54 @@ export default {
       () => this.$store.dispatch('loadAuthorsWithNewAlbumCount'),
       AUTHORS_NEW_ALBUMS_POLL_INTERVAL_MS,
     )
+
+    await this.restoreLastSettings()
+  },
+  /**
+   * BR-369 / BR-097: восстановление настроек админки при старте SPA.
+   *
+   * Значения читаются ПАРАЛЛЕЛЬНО (Promise.allSettled) — 13 последовательных RTT
+   * на старте сменяются одним ожиданием. Отказ одного запроса не мешает остальным:
+   * `allSettled` не прерывается, а значение по умолчанию остаётся в state.
+   *
+   * BR-097: значения кладутся в state мутацией `restoreLastSettings` — БЕЗ записи
+   * на сервер. Раньше App.vue диспатчил `setLast*` для каждого значения, а те
+   * мутации писали `POST /api/setwebvueprop` — 13 лишних POST-записей тех же самых
+   * значений при каждой загрузке SPA.
+   *
+   * @returns {Promise<void>}
+   */
+  async restoreLastSettings() {
+    const settings = [
+      ['lastSettingType', 'COMMENT'],
+      ['lastSettingValue', 'Комментарий'],
+      ['lastPriorLyrics', '1'],
+      ['lastPriorKaraoke', '0'],
+      ['lastPriorChords', ''],
+      ['lastPriorMelody', ''],
+      ['lastPriorDemo', ''],
+      ['lastThreadId', '0'],
+      ['lastPriorCodeLyrics', '10'],
+      ['lastPriorCodeKaraoke', '10'],
+      ['lastPriorDemucs', '-1'],
+      ['lastPriorForcedAlign', '-1'],
+      ['lastPriorSymlinks', '-1'],
+      ['lastPriorSmartCopy', '-1'],
+    ]
+    try {
+      const results = await Promise.allSettled(
+        settings.map(([key, defaultValue]) => this.$store.getters.getWebvueProp(key, defaultValue)),
+      )
+      const values = {}
+      settings.forEach(([key], index) => {
+        const result = results[index]
+        if (result.status === 'fulfilled') values[key] = result.value
+      })
+      this.$store.dispatch('restoreLastSettings', values)
+    } catch (error) {
+      // Настройки — не критичны: админка должна работать и без них.
+      console.error('Не удалось восстановить настройки админки:', error)
+    }
   },
   beforeUnmount() {
     if (this.sseReconnectTimer) {

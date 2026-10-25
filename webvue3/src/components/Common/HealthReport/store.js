@@ -35,15 +35,22 @@ const healthReportGeneration = createRequestGeneration()
 export function loadHealthReportListWith({ request, commit, generation, id }) {
   const ticket = generation.next()
   commit('setHealthReportListIsLoading', true)
+  // BR-381: пустой успешный ответ и ошибка — РАЗНЫЕ состояния. Стираем прежнюю
+  // ошибку и заводим новую попытку.
+  commit('setHealthReportListError', '')
   return request({ method: 'POST', url: '/api/song/healthReportList', params: { id } })
     .then((data) => {
       if (!generation.isCurrent(ticket)) return { applied: false, stale: true }
       commit('updateHealthReportList', JSON.parse(data))
       commit('setHealthReportListSongId', id)
+      commit('setHealthReportListError', '')
       return { applied: true, stale: false }
     })
     .catch((error) => {
       if (!generation.isCurrent(ticket)) return { applied: false, stale: true }
+      // BR-381: ошибка фиксируется в state — без этого пустой список показывался
+      // как «нарушений не найдено», то есть ложное «всё хорошо».
+      commit('setHealthReportListError', (error && error.message) || 'Ошибка загрузки HR')
       console.log(error)
       return { applied: false, stale: false, error }
     })
@@ -83,6 +90,9 @@ export default {
     healthReportListIsLoading: false,
     // Песня, которой принадлежит показанный healthReportList (null — список ещё не загружен).
     healthReportListSongId: null,
+    // BR-381: текст ошибки загрузки ('' — ошибки нет). Позволяет отличить
+    // «нарушений не найдено» от «отчёт не получен».
+    healthReportListError: '',
   },
   getters: {
     getHealthReportList(state) {
@@ -94,6 +104,10 @@ export default {
     getHealthReportListSongId(state) {
       return state.healthReportListSongId
     },
+    // BR-381: текст ошибки загрузки HR-списка ('' — ошибки нет).
+    getHealthReportListError(state) {
+      return state.healthReportListError
+    },
   },
   mutations: {
     updateHealthReportList(state, result) {
@@ -104,6 +118,9 @@ export default {
     },
     setHealthReportListSongId(state, songId) {
       state.healthReportListSongId = songId === undefined ? null : songId
+    },
+    setHealthReportListError(state, message) {
+      state.healthReportListError = message || ''
     },
   },
   actions: {

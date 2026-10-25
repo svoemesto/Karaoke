@@ -102,6 +102,12 @@ export default {
     return {
       isConfirmVisible: false,
       confirmParams: undefined,
+      // BR-387: признак, что состояние воркера НЕ удалось синхронизировать.
+      // Пока он установлен, кнопка «Старт/Стоп» заблокирована: эндпоинт
+      // /api/processes/workerstartstop — ПЕРЕКЛЮЧАТЕЛЬ по серверному состоянию,
+      // поэтому клик при несинхронизированном состоянии мог ОСТАНОВИТЬ работающую
+      // очередь вместо запуска.
+      workerStateUnknown: false,
     }
   },
   computed: {
@@ -136,6 +142,8 @@ export default {
       )
     },
     disabled() {
+      // BR-387: пока состояние неизвестно, переключать очередь нельзя.
+      if (this.workerStateUnknown) return true
       return this.isWork && this.stopAfterThreadIsDone
     },
     processName() {
@@ -192,14 +200,40 @@ export default {
     doForceStop() {
       this.$store.dispatch('forceStopProcessWorker')
     },
+    // BR-387: начальная синхронизация состояния воркера.
+    //
+    // ДЕФЕКТ. Ни `.catch`, ни защиты `JSON.parse` не было: при 500/таймауте/не-JSON
+    // ответе `.then` не выполнялся, `isWork` оставался false, и в шапке показывалась
+    // иконка «play» и ноль ожидающих, хотя очередь могла работать. Клик по «play» —
+    // это ПЕРЕКЛЮЧАТЕЛЬ на сервере, то есть он ОСТАНОВИЛ бы работающую очередь.
+    //
+    // РЕШЕНИЕ. Отказ обрабатывается: состояние помечается неизвестным, кнопка
+    // блокируется, в консоль пишется причина. Успешная синхронизация снимает флаг.
     checkUpdateProcessesWorker() {
-      this.$store.dispatch('getProcessesWorkerStatusPromise').then((data) => {
-        let status = JSON.parse(data)
-        let isWork = status.isWork
-        let stopAfterThreadIsDone = status.stopAfterThreadIsDone
-        this.$store.dispatch('setProcessIsWorking', isWork)
-        this.$store.dispatch('setProcessWillStopAfterThreadIsDone', stopAfterThreadIsDone)
-      })
+      return this.$store
+        .dispatch('getProcessesWorkerStatusPromise')
+        .then((data) => {
+          let status = null
+          try {
+            status = JSON.parse(data)
+          } catch (e) {
+            status = null
+          }
+          if (!status) {
+            this.workerStateUnknown = true
+            // eslint-disable-next-line no-console
+            console.warn('[ProcessWorker] не удалось разобрать состояние воркера')
+            return
+          }
+          this.workerStateUnknown = false
+          this.$store.dispatch('setProcessIsWorking', status.isWork)
+          this.$store.dispatch('setProcessWillStopAfterThreadIsDone', status.stopAfterThreadIsDone)
+        })
+        .catch((error) => {
+          this.workerStateUnknown = true
+          // eslint-disable-next-line no-console
+          console.error('[ProcessWorker] не удалось получить состояние воркера:', error)
+        })
     },
     checkCountWaiting() {
       this.$store.dispatch('getProcessesCountWaitingPromise').then((raw) => {

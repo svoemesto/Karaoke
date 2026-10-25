@@ -1,4 +1,10 @@
 import { promisedXMLHttpRequest } from '../../lib/utils'
+import { createRequestGeneration } from '../../lib/target-request-guard.js'
+import { loadListWith } from '../../lib/list-loader.js'
+
+// BR-373 (аудит #336, пакет PKG-S3-31, OpenProject #403): загрузка дайджеста авторов —
+// с поколением запроса, `finally` и текстом ошибки в state.
+const authorsDigestGeneration = createRequestGeneration()
 
 /**
  * Компонент «Store».
@@ -10,6 +16,8 @@ export default {
   state: {
     authorsDigest: [],
     authorsDigestIsLoading: false,
+    // BR-373: текст ошибки загрузки дайджеста авторов ('' — ошибки нет).
+    authorsDigestsError: '',
     // Текущая страница пагинации в AuthorsTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     authorsTableCurrentPage: 1,
@@ -24,6 +32,10 @@ export default {
     },
     getAuthorsDigestIsLoading(state) {
       return state.authorsDigestIsLoading
+    },
+    // BR-373: текст ошибки загрузки дайджеста авторов.
+    getAuthorsDigestsError(state) {
+      return state.authorsDigestsError
     },
     getAuthorsTableCurrentPage(state) {
       return state.authorsTableCurrentPage
@@ -48,6 +60,9 @@ export default {
     setAuthorsDigestIsLoading(state, isLoading) {
       state.authorsDigestIsLoading = isLoading
     },
+    setAuthorsDigestsError(state, message) {
+      state.authorsDigestsError = message || ''
+    },
     setAuthorsTableCurrentPage(state, page) {
       state.authorsTableCurrentPage = page
     },
@@ -57,7 +72,10 @@ export default {
   },
   actions: {
     loadOneRecord(ctx, id) {
-      const params = { filter_id: id }
+      // BR-367: имя параметра — `filterId` (контракт бэкенда
+      // `POST /api/authors/authorsdigests`). Раньше было `filter_id`, Spring такой
+      // параметр игнорировал, и запрос возвращал ВСЕХ авторов вместо одного.
+      const params = { filterId: id }
       let request = { method: 'POST', url: '/api/authors/authorsdigests', params: params }
       promisedXMLHttpRequest(request)
         .then((data) => {
@@ -68,18 +86,47 @@ export default {
           console.log(error)
         })
     },
-    loadAuthorsDigests(ctx, params) {
-      let request = { method: 'POST', url: '/api/authors/authorsdigests', params: params }
-      ctx.commit('setAuthorsDigestIsLoading', true)
-      promisedXMLHttpRequest(request)
+    /**
+     * BR-367: читает ОДНОГО автора с сервера (свежие данные) — модалка алиасов
+     * использует их, чтобы не затереть правки, сделанные другим админом/синхронизацией,
+     * пока модалка была открыта.
+     *
+     * @param {object} ctx — контекст Vuex action
+     * @param {number|string} id — id автора
+     * @returns {Promise<object|null>} актуальный автор либо null.
+     */
+    loadOneRecordPromise(ctx, id) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/authors/authorsdigests',
+        params: { filterId: id },
+      })
         .then((data) => {
-          let result = JSON.parse(data)
-          ctx.commit('setAuthorsDigests', result)
-          ctx.commit('setAuthorsDigestIsLoading', false)
+          const result = JSON.parse(data)
+          const authors = result.authorsDigests || []
+          const found = authors.find((author) => String(author.id) === String(id)) || null
+          if (found) ctx.commit('updateAuthorsDigests', [found])
+          return found
         })
         .catch((error) => {
           console.log(error)
+          return null
         })
+    },
+    // BR-373: промис возвращается, флаг снимается в `finally` (в том числе при
+    // ошибке — раньше он залипал навсегда, и таблица показывала «Loading...»),
+    // ошибка видна в UI, а ответ применяется только владельцем текущего поколения.
+    loadAuthorsDigests(ctx, params) {
+      return loadListWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: authorsDigestGeneration,
+        requestOptions: { method: 'POST', url: '/api/authors/authorsdigests', params },
+        loadingCommit: 'setAuthorsDigestIsLoading',
+        errorCommit: 'setAuthorsDigestsError',
+        applyCommit: 'setAuthorsDigests',
+        errorMessage: 'Не удалось загрузить список авторов',
+      })
     },
     setAuthorValuePromise(ctx, payload) {
       let request = { method: 'POST', url: '/api/authors/updateauthor', params: payload }

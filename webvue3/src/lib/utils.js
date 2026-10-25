@@ -54,15 +54,24 @@ export function promisedXMLHttpRequest(obj) {
   })
 }
 
+// BR-366 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+//
+// Отказ записи больше не уходит в unhandled rejection: раньше промис игнорировался,
+// и ошибка была видна только как «Unhandled Promise Rejection» в консоли. Теперь
+// промис возвращается, а отказ обрабатывается предупреждением.
 export function setWebvueProp(field, key, value) {
   if (value === undefined || value === null) value = ''
-  if (field !== undefined && field !== null) {
-    promisedXMLHttpRequest({
-      method: 'POST',
-      url: '/api/setwebvueprop',
-      params: { key: key, value: value },
+  if (field === undefined || field === null) return Promise.resolve(false)
+  return promisedXMLHttpRequest({
+    method: 'POST',
+    url: '/api/setwebvueprop',
+    params: { key: key, value: value },
+  })
+    .then(() => true)
+    .catch((error) => {
+      console.warn(`Не удалось сохранить настройку ${key}:`, error)
+      return false
     })
-  }
 }
 
 // BR-379 / BR-426 (аудит #336, пакет PKG-S2-17, OpenProject #380).

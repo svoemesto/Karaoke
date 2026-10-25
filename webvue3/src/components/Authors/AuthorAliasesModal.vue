@@ -18,6 +18,9 @@
             <button class="aam-btn-remove" title="Удалить" @click="removeAlias(idx)">×</button>
           </div>
           <button class="aam-btn-add" @click="addAlias">+ Добавить алиас</button>
+          <!-- BR-368: отказ сервера виден в модалке — раньше она закрывалась как при
+               успешном сохранении, а алиасы фактически не записывались. -->
+          <div v-if="error" class="aam-error" v-text="error" />
         </div>
         <div class="aam-area-modal-footer">
           <button type="button" class="aam-btn-save" :disabled="saving" @click="save">
@@ -48,6 +51,8 @@ export default {
     return {
       aliasesList: [],
       saving: false,
+      // BR-368: текст ошибки сохранения ('' — ошибки нет).
+      error: '',
     }
   },
   computed: {
@@ -68,32 +73,57 @@ export default {
     removeAlias(idx) {
       this.aliasesList.splice(idx, 1)
     },
-    save() {
+    /**
+     * BR-367 / BR-368 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+     *
+     * BR-367. `POST /api/authors/updateauthor` — НЕ patch: он перезаписывает все
+     * переданные поля. Модалка слала полный снимок автора из дайджеста, поэтому
+     * правки, сделанные другим админом/синхронизацией/импортом, пока модалка была
+     * открыта, молча откатывались (lost update). Поэтому перед сохранением автор
+     * ПЕРЕЧИТЫВАЕТСЯ с сервера, и payload строится из свежих данных.
+     *
+     * BR-368. Ответ проверяется: бэкенд отдаёт `0`, если автор не найден (HTTP 200
+     * при этом). Прежняя проверка не срабатывала (ответ — строка «0»), и модалка
+     * закрывалась как при успешном сохранении.
+     *
+     * @returns {Promise<void>}
+     */
+    async save() {
       const cleaned = this.aliasesList.map((a) => a.trim()).filter((a) => a.length > 0)
-      const payload = {
-        id: this.author.id,
-        author: this.author.author,
-        ymId: this.author.ymId,
-        vkId: this.author.vkId,
-        lastAlbumYm: this.author.lastAlbumYm,
-        lastAlbumVk: this.author.lastAlbumVk,
-        lastAlbumProcessed: this.author.lastAlbumProcessed,
-        watched: this.author.watched,
-        skip: this.author.skip,
-        aliases: cleaned.join(';'),
-      }
+      this.error = ''
       this.saving = true
-      this.$store
-        .dispatch('setAuthorValuePromise', payload)
-        .then(() => {
-          this.$store.dispatch('loadOneRecord', this.authorId)
-          this.saving = false
-          this.close()
-        })
-        .catch((error) => {
-          console.error('Ошибка при сохранении алиасов:', error)
-          this.saving = false
-        })
+      try {
+        // Актуальный автор с сервера (fail-closed: не удалось прочитать — не пишем).
+        const fresh = await this.$store.dispatch('loadOneRecordPromise', this.authorId)
+        if (!fresh) {
+          this.error = 'Не удалось прочитать актуальные данные автора — алиасы не сохранены.'
+          return
+        }
+        const payload = {
+          id: fresh.id,
+          author: fresh.author,
+          ymId: fresh.ymId,
+          vkId: fresh.vkId,
+          lastAlbumYm: fresh.lastAlbumYm,
+          lastAlbumVk: fresh.lastAlbumVk,
+          lastAlbumProcessed: fresh.lastAlbumProcessed,
+          watched: fresh.watched,
+          skip: fresh.skip,
+          aliases: cleaned.join(';'),
+        }
+        const response = await this.$store.dispatch('setAuthorValuePromise', payload)
+        if (Number(response) === 0) {
+          this.error = 'Автор не найден на сервере — алиасы не сохранены.'
+          return
+        }
+        this.$store.dispatch('loadOneRecord', this.authorId)
+        this.close()
+      } catch (error) {
+        console.error('Ошибка при сохранении алиасов:', error)
+        this.error = (error && error.message) || 'Не удалось сохранить алиасы.'
+      } finally {
+        this.saving = false
+      }
     },
     close() {
       this.$emit('close')
@@ -205,6 +235,16 @@ export default {
 }
 .aam-btn-remove:hover {
   background-color: lightpink;
+}
+
+.aam-error {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px solid #a10000;
+  border-radius: 4px;
+  color: #a10000;
+  background-color: #fff2f2;
+  font-size: small;
 }
 
 .aam-btn-add {

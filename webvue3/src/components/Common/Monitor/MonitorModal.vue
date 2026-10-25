@@ -7,7 +7,11 @@
           <button class="mon-btn-close-x" @click="close" v-text="'×'" />
         </div>
         <div class="mon-area-body">
-          <div v-if="alerts.length === 0" class="mon-empty">Активных сообщений нет.</div>
+          <!-- BR-386: отказ загрузки — не то же самое, что «сообщений нет». -->
+          <div v-if="error" class="mon-empty mon-empty-error">
+            Не удалось загрузить состояние мониторинга: {{ error }}
+          </div>
+          <div v-else-if="alerts.length === 0" class="mon-empty">Активных сообщений нет.</div>
           <div
             v-for="alert in alerts"
             :key="alert.key"
@@ -69,6 +73,10 @@ export default {
     alerts() {
       return this.$store.getters.monitorVisibleAlerts
     },
+    // BR-386: текст ошибки загрузки мониторинга ('' — ошибки нет).
+    error() {
+      return this.$store.getters.monitorAlertsError
+    },
   },
   methods: {
     close() {
@@ -76,13 +84,24 @@ export default {
       this.$emit('close')
     },
     markRead(alert) {
-      this.$store.dispatch('markMonitorRead', alert.key)
+      // BR-386: отказ обрабатывается — раньше промис не сохранялся, и отказ сервера
+      // давал unhandled rejection без сообщения.
+      this.$store.dispatch('markMonitorRead', alert.key).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Не удалось отметить сообщение прочитанным:', error)
+      })
     },
     resolve(alert) {
       this.resolvingKeys.push(alert.key)
-      this.$store.dispatch('resolveMonitorAlert', alert.key).finally(() => {
-        this.resolvingKeys = this.resolvingKeys.filter((k) => k !== alert.key)
-      })
+      this.$store
+        .dispatch('resolveMonitorAlert', alert.key)
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Не удалось решить проблему мониторинга:', error)
+        })
+        .finally(() => {
+          this.resolvingKeys = this.resolvingKeys.filter((k) => k !== alert.key)
+        })
     },
     toggleTip(key) {
       this.openTipKey = this.openTipKey === key ? null : key
@@ -149,6 +168,11 @@ export default {
   text-align: center;
   color: gray;
   font-size: small;
+}
+
+.mon-empty-error {
+  color: #a10000;
+  font-weight: 600;
 }
 
 .mon-row {

@@ -161,7 +161,9 @@
         </div>
 
         <div class="scm-area-modal-footer">
-          <button type="button" class="scm-btn-close" @click="smartCopy">Smart Copy</button>
+          <button type="button" class="scm-btn-close" :disabled="isCreating" @click="smartCopy">
+            Smart Copy
+          </button>
           <button type="button" class="scm-btn-close" @click="cancel">Отмена</button>
         </div>
       </div>
@@ -203,6 +205,10 @@ export default {
       customConfirmParams: undefined,
       isFileExplorerVisible: false,
       file: null,
+      // BR-385: признак незавершённого запроса Smart Copy. Пока он установлен,
+      // модалка не закрывается — иначе результат приходил на уже размонтированный
+      // компонент и диалог «Создание Smart Copy … прошло успешно» не показывался.
+      isCreating: false,
     }
   },
   computed: {},
@@ -212,6 +218,11 @@ export default {
     },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false
+      // BR-385: закрыт диалог РЕЗУЛЬТАТА — значит, результат уже показан и
+      // незавершённого запроса больше нет: закрываем и саму модалку.
+      if (this.customConfirmParams && this.customConfirmParams.isAlert) {
+        this.$emit('close')
+      }
     },
     closeFileExplorer() {
       this.isFileExplorerVisible = false
@@ -310,18 +321,44 @@ export default {
       params.prior = result.prior
       params.threadId = result.threadId
 
-      this.$store.dispatch('createSmartCopyForAllPromise', params).then((data) => {
-        let response = JSON.parse(data)
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание Smart Copy',
-          body: `Создание Smart Copy для всех песен прошло успешно.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
-      this.$emit('close')
+      // BR-385: модалка закрывается ТОЛЬКО после завершения запроса и показа
+      // результата. Раньше `this.$emit('close')` выполнялся сразу после отправки:
+      // родитель снимал `v-if`, компонент размонтировался, а `.then` позже выставлял
+      // `customConfirmParams` на мёртвом компоненте — диалог «прошло успешно» не
+      // показывался никогда. Отказ (4xx/5xx/не-JSON) вообще не обрабатывался:
+      // unhandled rejection, пользователь не знал, создана ли задача.
+      this.isCreating = true
+      this.$store
+        .dispatch('createSmartCopyForAllPromise', params)
+        .then((data) => {
+          let response = null
+          try {
+            response = JSON.parse(data)
+          } catch (_e) {
+            response = null
+          }
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response ? 'info' : 'error',
+            header: 'Создание Smart Copy',
+            body: `Создание Smart Copy для всех песен прошло успешно.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((error) => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'error',
+            header: 'Создание Smart Copy: ошибка',
+            body: (error && error.message) || 'Не удалось создать Smart Copy.',
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .finally(() => {
+          this.isCreating = false
+        })
     },
     cancel() {
       this.$emit('close')

@@ -675,8 +675,13 @@ export default {
         .then(() => {
           // Не дёргаем сервер без фильтра — см. mounted(). Если таблица уже загружена
           // (фильтр применён), обновим, чтобы новый альбом попал в видимое подмножество.
+          // BR-365: перезагрузка идёт С ТЕКУЩИМ фильтром — раньше уходил пустой
+          // params, сервер возвращал ВСЕ альбомы, и таблица показывала нефильтрованный
+          // набор, хотя поля фильтра сохраняли прежние значения.
           if (this.countRows > 0) {
-            this.$store.dispatch('loadAlbumsDigests', {})
+            this.$store.dispatch('loadAlbumsDigests', {
+              ...this.$store.getters.getAlbumsFilter,
+            })
           }
         })
         .catch((error) => {
@@ -687,8 +692,11 @@ export default {
       this.$store
         .dispatch('deleteAlbumPromise', item.id)
         .then(() => {
+          // BR-365: та же перезагрузка с текущим фильтром (см. doCreateAlbum).
           if (this.countRows > 0) {
-            this.$store.dispatch('loadAlbumsDigests', {})
+            this.$store.dispatch('loadAlbumsDigests', {
+              ...this.$store.getters.getAlbumsFilter,
+            })
           }
         })
         .catch((error) => {

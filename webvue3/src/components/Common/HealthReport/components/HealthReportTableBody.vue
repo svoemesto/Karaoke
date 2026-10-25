@@ -1,6 +1,12 @@
 <template>
   <div class="hrl-table-body">
     <div v-if="isLoading" class="hrl-table-placeholder">Загрузка…</div>
+    <!-- BR-381: пустой успешный ответ и ошибка — разные состояния. Раньше при 500/
+         таймауте показывалось «нарушений не найдено», то есть ложное «всё хорошо»:
+         админ не запускал ремонт. -->
+    <div v-else-if="error" class="hrl-table-placeholder hrl-table-placeholder-error">
+      Не удалось загрузить Health Report: {{ error }}
+    </div>
     <div v-else-if="healthReportList.length === 0" class="hrl-table-placeholder">
       Записей Health Report нет — нарушений не найдено
     </div>
@@ -35,6 +41,12 @@ export default {
     isLoading: {
       type: Boolean,
       default: false,
+    },
+    // BR-381: текст ошибки загрузки ('' — ошибки нет). Показывается вместо
+    // «нарушений не найдено», чтобы отказ не выглядел как «проблем нет».
+    error: {
+      type: String,
+      default: '',
     },
   },
   data() {
@@ -72,5 +84,10 @@ export default {
   padding: 8px 12px;
   font-size: small;
   color: #666;
+}
+
+.hrl-table-placeholder-error {
+  color: #a10000;
+  font-weight: 600;
 }
 </style>

@@ -135,6 +135,11 @@ export default {
   data() {
     return {
       timeToClose: undefined,
+      // BR-372: id таймера обратного отсчёта. Раньше он не сохранялся, а
+      // `clearInterval(this.decreaseTimeToClose)` передавал ФУНКЦИЮ, а не id, —
+      // таймер продолжал тикать после закрытия и размонтирования модалки
+      // (утечка на каждое подтверждение с `timeout`).
+      timer: undefined,
     }
   },
   computed: {
@@ -215,7 +220,7 @@ export default {
     timeToClose: {
       handler() {
         if (this.timeToClose < 0) {
-          clearInterval(this.decreaseTimeToClose)
+          this.clearTimer()
           this.close()
         }
       },
@@ -224,16 +229,34 @@ export default {
   mounted() {
     if (this.params.timeout) {
       this.timeToClose = this.params.timeout
-      setInterval(this.decreaseTimeToClose, 1000)
+      // BR-372: id таймера сохраняется, чтобы его можно было остановить.
+      this.timer = setInterval(this.decreaseTimeToClose, 1000)
     }
+  },
+  beforeUnmount() {
+    // BR-372: размонтирование модалки обязано останавливать таймер, иначе он
+    // удерживает компонент и `params` (колбэки и поля формы) и ежесекундно
+    // вызывает close() на отсоединённом компоненте.
+    this.clearTimer()
   },
   methods: {
     decreaseTimeToClose() {
       this.timeToClose--
     },
+    /**
+     * BR-372: останавливает таймер обратного отсчёта (если он запущен).
+     * @returns {void}
+     */
+    clearTimer() {
+      if (this.timer !== undefined && this.timer !== null) {
+        clearInterval(this.timer)
+        this.timer = undefined
+      }
+    },
     ok() {
       // BR-399: «нажата Да» — это и есть подтверждение; признак `confirmed`
       // собирается вместе с полями формы (см. lib/confirm-result.js).
+      this.clearTimer()
       const ret = buildConfirmResult(this.params, true)
       this.params.callback(ret)
       this.$emit('close', ret)
@@ -241,6 +264,7 @@ export default {
     close() {
       // BR-399: контракт `@emits close` обещает `confirmed: true/false` — при
       // закрытии/истечении таймаута подтверждения нет.
+      this.clearTimer()
       this.$emit('close', buildConfirmResult(this.params, false))
     },
   },

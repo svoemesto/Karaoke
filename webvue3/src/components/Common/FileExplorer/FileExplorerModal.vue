@@ -104,6 +104,10 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
+      // BR-378: номер поколения запроса листинга. Ответ применяется только если он
+      // принадлежит последнему запросу — иначе листинг старого каталога мог
+      // подменить листинг нового (а `item.path` из чужого листинга ушёл бы в форму).
+      listingGeneration: 0,
     }
   },
   computed: {
@@ -157,9 +161,15 @@ export default {
         url: '/api/files',
         params: { path: path, extensions: this.extensions },
       }
+      // BR-378: ответ применяется только к СВОЕМУ каталогу. Раньше `fileExplorerFiles`
+      // заполнялся безусловно: при быстрой навигации ответ старого каталога мог
+      // прийти последним, и список показывал один каталог при пути в другом;
+      // клик по «файлу» из чужого листинга эмитил путь старого каталога.
+      const ticket = ++this.listingGeneration
       this.isBusy = true
       promisedXMLHttpRequest(request)
         .then((data) => {
+          if (ticket !== this.listingGeneration) return
           let result = JSON.parse(data)
           console.log('result', result)
           console.log('this.directory', this.directory)
@@ -177,6 +187,7 @@ export default {
           this.isBusy = false
         })
         .catch((error) => {
+          if (ticket !== this.listingGeneration) return
           console.log(error)
           this.isBusy = false
         })

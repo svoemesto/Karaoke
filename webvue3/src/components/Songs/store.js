@@ -60,6 +60,56 @@ import { createRequestGeneration } from '../../lib/target-request-guard.js'
 // (`src/components/Songs/__tests__/songs-digest-race.test.js`).
 const songsDigestGeneration = createRequestGeneration()
 
+// BR-095 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+//
+// ДЕФЕКТ. `getToSyncFromRest` определял принадлежность песни словарю «Sync Ids» ПОИСКОМ
+// ПОДСТРОКИ в сыром теле ответа: бэкенд отдаёт `List<String>` (JSON-массив `["12","123"]`),
+// а `ids.indexOf(String(id))` находил `2` внутри `"12"` — песня 2 считалась «в очереди на
+// sync», хотя её там нет. Ложное «да» приводило к неверному `dictAction` ('remove' вместо
+// 'add'), то есть к управлению чужой песней.
+//
+// РЕШЕНИЕ. Сравнение по элементам списка, а не по подстроке. Разбор вынесен в чистую
+// функцию — её покрывает регрессионный тест (src/components/Songs/__tests__/pkg-s3-31-songs-store.test.js).
+export function songIdInSyncIds(rawIds, songId) {
+  if (songId === undefined || songId === null) return false
+  let list = null
+  try {
+    const parsed = typeof rawIds === 'string' ? JSON.parse(rawIds) : rawIds
+    if (Array.isArray(parsed)) list = parsed
+  } catch (error) {
+    console.warn('[getToSyncFromRest] не удалось разобрать список Sync Ids:', error)
+    return false
+  }
+  if (!list) return false
+  const wanted = String(songId).trim()
+  return list.some((id) => String(id).trim() === wanted)
+}
+
+// BR-097 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+//
+// ДЕФЕКТ. 14 мутаций `setLast*` писали `POST /api/setwebvueprop` прямо из мутации и без
+// `.catch`: побочный эффект внутри мутации нарушает контракт Vuex (мутация — только
+// sync-присвоение state), а отклонённый промис уходил в unhandled rejection. В памяти
+// значение новое, на сервере — старое: при следующей сессии админ получал прежние
+// «prior»-значения в диалогах генерации.
+//
+// РЕШЕНИЕ. Присвоение остаётся в мутации, запись переносится в action, отказ обрабатывается
+// (предупреждение в консоли вместо unhandled rejection).
+async function persistWebvueProp(key, value) {
+  if (value === undefined || value === null) return false
+  try {
+    await promisedXMLHttpRequest({
+      method: 'POST',
+      url: '/api/setwebvueprop',
+      params: { key, value },
+    })
+    return true
+  } catch (error) {
+    console.warn(`[Songs/store] не удалось сохранить настройку ${key}:`, error)
+    return false
+  }
+}
+
 /**
  * Применяет ответ `/api/songsdigests`, если он принадлежит последнему запросу.
  *
@@ -135,6 +185,12 @@ export default {
     rightSongId: undefined,
     currentSong: undefined,
     currentSongHealthReports: [],
+    // BR-098: ошибка загрузки HR-списка. Пустая строка — «ошибки нет». Пока она
+    // не пуста, пустой список НЕ означает «нарушений не найдено».
+    currentSongHealthReportsError: '',
+    // BR-096: признак незавершённого запроса переключения sync — защита от
+    // двух быстрых кликов, которые отправляли бы одинаковый dictAction.
+    toSyncRequestInFlight: false,
     songPageSize: 50,
     // Текущая страница пагинации в SongsTable. Сохраняем в сторе, чтобы при уходе с компонента
     // (например на «Публикации») и возврате — открывалась страница, на которой остановился пользователь.
@@ -322,6 +378,10 @@ export default {
     getToSync(state) {
       return state.toSync
     },
+    // BR-096: признак незавершённого запроса переключения sync.
+    getToSyncRequestInFlight(state) {
+      return state.toSyncRequestInFlight
+    },
     getFreeTimeSlots(state) {
       return state.freeTimeSlots
     },
@@ -403,6 +463,10 @@ export default {
     },
     getCurrentSongHealthReports(state) {
       return state.currentSongHealthReports
+    },
+    // BR-098: текст ошибки загрузки HR-списка ('' — ошибки нет).
+    getCurrentSongHealthReportsError(state) {
+      return state.currentSongHealthReportsError
     },
     getCurrentSongId(state) {
       return state.currentSongId
@@ -1046,229 +1110,124 @@ export default {
     },
   },
   mutations: {
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastSettingType` (отказ обрабатывается, unhandled rejection не возникает).
     setLastSettingType(state, value) {
-      if (
-        state.lastSettingType !== undefined &&
-        state.lastSettingType !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastSettingType'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastSettingType = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastSettingValue` (отказ обрабатывается, unhandled rejection не возникает).
     setLastSettingValue(state, value) {
-      if (
-        state.lastSettingValue !== undefined &&
-        state.lastSettingValue !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastSettingValue'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastSettingValue = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorLyrics` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorLyrics(state, value) {
-      if (
-        state.lastPriorLyrics !== undefined &&
-        state.lastPriorLyrics !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorLyrics'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorLyrics = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorKaraoke` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorKaraoke(state, value) {
-      if (
-        state.lastPriorKaraoke !== undefined &&
-        state.lastPriorKaraoke !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorKaraoke'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorKaraoke = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorChords` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorChords(state, value) {
-      if (
-        state.lastPriorChords !== undefined &&
-        state.lastPriorChords !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorChords'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorChords = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorMelody` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorMelody(state, value) {
-      if (
-        state.lastPriorMelody !== undefined &&
-        state.lastPriorMelody !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorMelody'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorMelody = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorDemo` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorDemo(state, value) {
-      if (
-        state.lastPriorDemo !== undefined &&
-        state.lastPriorDemo !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorDemo'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorDemo = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastThreadId` (отказ обрабатывается, unhandled rejection не возникает).
     setLastThreadId(state, value) {
-      if (
-        state.lastThreadId !== undefined &&
-        state.lastThreadId !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastThreadId'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastThreadId = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorCodeLyrics` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorCodeLyrics(state, value) {
-      if (
-        state.lastPriorCodeLyrics !== undefined &&
-        state.lastPriorCodeLyrics !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorCodeLyrics'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorCodeLyrics = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorCodeKaraoke` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorCodeKaraoke(state, value) {
-      if (
-        state.lastPriorCodeKaraoke !== undefined &&
-        state.lastPriorCodeKaraoke !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorCodeKaraoke'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorCodeKaraoke = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorDemucs` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorDemucs(state, value) {
-      if (
-        state.lastPriorDemucs !== undefined &&
-        state.lastPriorDemucs !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorDemucs'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorDemucs = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorForcedAlign` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorForcedAlign(state, value) {
-      if (
-        state.lastPriorForcedAlign !== undefined &&
-        state.lastPriorForcedAlign !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorForcedAlign'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorForcedAlign = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorSymlinks` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorSymlinks(state, value) {
-      if (
-        state.lastPriorSymlinks !== undefined &&
-        state.lastPriorSymlinks !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorSymlinks'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorSymlinks = value
     },
+    // BR-097: мутация только присваивает state; запись на сервер — в action
+    // `setLastPriorSmartCopy` (отказ обрабатывается, unhandled rejection не возникает).
     setLastPriorSmartCopy(state, value) {
-      if (
-        state.lastPriorSmartCopy !== undefined &&
-        state.lastPriorSmartCopy !== null &&
-        value !== undefined &&
-        value !== null
-      ) {
-        const key = 'lastPriorSmartCopy'
-        promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/setwebvueprop',
-          params: { key: key, value: value },
-        })
-      }
       state.lastPriorSmartCopy = value
+    },
+    // BR-097: восстановление настроек при старте SPA. Значения кладутся в state
+    // БЕЗ записи на сервер — иначе каждая загрузка админки порождала 13 лишних
+    // POST /api/setwebvueprop с теми же значениями, что только что прочитали.
+    restoreLastSettings(state, values) {
+      const keys = [
+        'lastSettingType',
+        'lastSettingValue',
+        'lastPriorLyrics',
+        'lastPriorKaraoke',
+        'lastPriorChords',
+        'lastPriorMelody',
+        'lastPriorDemo',
+        'lastThreadId',
+        'lastPriorCodeLyrics',
+        'lastPriorCodeKaraoke',
+        'lastPriorDemucs',
+        'lastPriorForcedAlign',
+        'lastPriorSymlinks',
+        'lastPriorSmartCopy',
+      ]
+      for (const key of keys) {
+        if (values && values[key] !== undefined) state[key] = values[key]
+      }
+    },
+    // BR-096 / BR-099: мутация только присваивает — сеть живёт в action.
+    setToSync(state, value) {
+      state.toSync = value
+    },
+    setToSyncRequestInFlight(state, inFlight) {
+      state.toSyncRequestInFlight = inFlight
+    },
+    setFreeTimeSlots(state, slots) {
+      state.freeTimeSlots = slots
+    },
+    replaceSongInPage(state, payload) {
+      if (!state.songPages || !state.songPages[payload.pageIndex]) return
+      state.songPages[payload.pageIndex].splice(payload.songIndex, 1, payload.song)
+    },
+    // BR-098: список отчётов Health Report песни + признак ошибки загрузки.
+    setCurrentSongHealthReportsError(state, message) {
+      state.currentSongHealthReportsError = message || ''
+    },
+    // BR-099: pending-маркер Health Report для песни в дайджесте.
+    setSongHealthReportPending(state, payload) {
+      const song = state.songsDigest.find((s) => s.id === payload.songId)
+      if (!song) return
+      song.healthReportText = payload.text
+      song.healthReportColor = payload.color
     },
     saveSong(state, savedParams) {
       if (!state.currentSong) {
@@ -1837,21 +1796,9 @@ export default {
         }
       }
     },
-    changeToSync(state) {
-      let params = { dictName: 'Sync Ids', dictValue: state.currentSongId }
-      if (state.toSync) {
-        params.dictAction = 'remove'
-      } else {
-        params.dictAction = 'add'
-      }
-      promisedXMLHttpRequest({
-        method: 'POST',
-        url: '/api/utils/tfd',
-        params: params,
-      }).then((_) => {
-        state.toSync = !state.toSync
-      })
-    },
+    // BR-096: сетевого запроса в мутации больше нет — он живёт в action
+    // `changeToSync`, а мутация `setToSync` только присваивает подтверждённое
+    // сервером значение.
     setSearchResultsListIsLoading(state, isLoading) {
       state.searchResultsListIsLoading = isLoading
     },
@@ -1884,6 +1831,19 @@ export default {
       })
       return JSON.parse(data)
     },
+    // BR-099 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+    //
+    // ДЕФЕКТ. Action писал состояние напрямую, в обход мутаций: `ctx.state.toSync = …`,
+    // `ctx.state.freeTimeSlots = …`, `ctx.state.songPages[…].splice(…)`. Подписчики
+    // `store.subscribe` и Vuex-devtools таких изменений не видели. Хуже — проверка
+    // актуальности стояла ДО двух последовательных `await` (`/api/getdict`, затем
+    // `/api/getfreetimeslots`), поэтому между проверкой и присвоением пользователь мог
+    // выбрать другую песню: `state.toSync` оказывался от песни A, а `currentSongId` — от
+    // песни B (TOCTOU). Чекбокс sync показывал чужое состояние, а клик по нему вычислял
+    // `add`/`remove` из этого чужого флага, но применял к B.
+    //
+    // РЕШЕНИЕ. Все записи — через мутации; после КАЖДОГО `await` актуальность
+    // перепроверяется (`currId === ctx.state.currentSongId`), иначе результат отбрасывается.
     async setCurrentSongId(ctx, currId) {
       ctx.commit('setCurrentSongIdOnly', currId)
 
@@ -1896,8 +1856,7 @@ export default {
 
       if (songEntry) {
         ctx.commit('setCurrentSongData', songEntry)
-        ctx.state.toSync = await ctx.dispatch('getToSyncFromRest')
-        ctx.state.freeTimeSlots = await ctx.dispatch('getFreeTimeSlots')
+        await ctx.dispatch('applySongSyncState', currId)
       } else {
         try {
           const data = await promisedXMLHttpRequest({
@@ -1914,7 +1873,11 @@ export default {
               })
             })
             if (entryNow) {
-              ctx.state.songPages[entryNow.pageIndex].splice(entryNow.songIndex, 1, songFromRest)
+              ctx.commit('replaceSongInPage', {
+                pageIndex: entryNow.pageIndex,
+                songIndex: entryNow.songIndex,
+                song: songFromRest,
+              })
               ctx.commit('setCurrentSongData', {
                 song: songFromRest,
                 songIndex: entryNow.songIndex,
@@ -1922,8 +1885,7 @@ export default {
               })
             } else {
               ctx.commit('setCurrentSongData', { song: songFromRest, songIndex: -1, pageIndex: -1 })
-              ctx.state.toSync = await ctx.dispatch('getToSyncFromRest')
-              ctx.state.freeTimeSlots = await ctx.dispatch('getFreeTimeSlots')
+              await ctx.dispatch('applySongSyncState', currId)
             }
           }
         } catch (error) {
@@ -1933,7 +1895,36 @@ export default {
 
       ctx.dispatch('setCurrentSongHealthReports', currId)
     },
+    /**
+     * BR-099: признак sync и список свободных слотов — через мутации, с проверкой
+     * актуальности ПОСЛЕ каждого await. Если песню сменили, пока шёл запрос, результат
+     * отбрасывается: иначе флаг/слоты песни A применялись бы к песне B.
+     *
+     * @param {object} ctx — контекст Vuex action
+     * @param {number|string} currId — id песни, для которой запрошены данные
+     * @returns {Promise<void>}
+     */
+    async applySongSyncState(ctx, currId) {
+      const toSync = await ctx.dispatch('getToSyncFromRest', currId)
+      if (currId !== ctx.state.currentSongId) return
+      ctx.commit('setToSync', toSync)
+      const freeTimeSlots = await ctx.dispatch('getFreeTimeSlots')
+      if (currId !== ctx.state.currentSongId) return
+      ctx.commit('setFreeTimeSlots', freeTimeSlots)
+    },
+    // BR-098 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+    //
+    // ДЕФЕКТ. При ошибке загрузки `catch` только логировал, а `state.currentSongHealthReports`
+    // НЕ сбрасывался. В модалке HealthReport оставались отчёты ПРЕДЫДУЩЕЙ песни — под именем
+    // текущей: админ принимал решение о «здоровье» песни по чужому списку.
+    //
+    // РЕШЕНИЕ. Перед запросом список очищается, при ошибке — тоже (плюс текст ошибки
+    // в state, чтобы UI мог отличить «ошибка» от «нарушений нет»).
     async setCurrentSongHealthReports(ctx, currId) {
+      if (ctx.state.currentSongId === currId) {
+        ctx.commit('setCurrentSongHealthReports', [])
+        ctx.commit('setCurrentSongHealthReportsError', '')
+      }
       try {
         const data = await promisedXMLHttpRequest({
           method: 'POST',
@@ -1943,8 +1934,16 @@ export default {
         const result = JSON.parse(data)
         if (ctx.state.currentSongId === currId) {
           ctx.commit('setCurrentSongHealthReports', result)
+          ctx.commit('setCurrentSongHealthReportsError', '')
         }
       } catch (error) {
+        if (ctx.state.currentSongId === currId) {
+          ctx.commit('setCurrentSongHealthReports', [])
+          ctx.commit(
+            'setCurrentSongHealthReportsError',
+            (error && error.message) || 'Не удалось загрузить Health Report',
+          )
+        }
         console.log(error)
       }
     },
@@ -1963,60 +1962,122 @@ export default {
         params: { songIds: songIds.join(';') },
       }
       // Помечаем песни как pending локально (никаких сетевых ожиданий).
+      // BR-099: запись идёт через мутацию — иначе изменение не видно подписчикам
+      // store.subscribe и в Vuex-devtools.
       for (const songId of songIds) {
         const song = ctx.state.songsDigest.find((s) => s.id === songId)
         if (song) {
-          song.healthReportText = '?'
-          song.healthReportColor = '#CCCCCC'
+          ctx.commit('setSongHealthReportPending', { songId, text: '?', color: '#CCCCCC' })
         }
       }
       // Fire-and-forget: 202 Accepted, тело пустое. Ошибки — в консоль.
       promisedXMLHttpRequest(request).catch((err) => console.log(err))
     },
-    changeToSync(ctx) {
-      ctx.commit('changeToSync')
+    // BR-096 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+    //
+    // ДЕФЕКТ. Мутация `changeToSync` делала сетевой запрос и переключала `state.toSync`
+    // в `.then` — то есть ПОСЛЕ ответа, а `dictAction` вычислялся из флага ДО запроса.
+    // Два быстрых клика давали два одинаковых действия ('add'+'add' или 'remove'+'remove')
+    // и два переключения флага: UI оставался в состоянии, противоположном серверу.
+    // Отказ запроса не обрабатывался — unhandled rejection, чекбокс молча не менялся.
+    //
+    // РЕШЕНИЕ. Запрос — в action; действие вычисляется ОДИН раз и фиксируется; флаг
+    // переключается по подтверждённому сервером результату; параллельный запрос
+    // блокируется; отказ не меняет состояние и пишется в консоль.
+    async changeToSync(ctx) {
+      if (ctx.state.toSyncRequestInFlight) return null
+      const songId = ctx.state.currentSongId
+      const action = ctx.state.toSync ? 'remove' : 'add'
+      ctx.commit('setToSyncRequestInFlight', true)
+      try {
+        await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/utils/tfd',
+          params: { dictName: 'Sync Ids', dictValue: songId, dictAction: action },
+        })
+        // Состояние отражает то, что подтвердил сервер, а не переключение флага.
+        ctx.commit('setToSync', action === 'add')
+        return action === 'add'
+      } catch (error) {
+        console.error('Не удалось изменить признак sync песни:', error)
+        return null
+      } finally {
+        ctx.commit('setToSyncRequestInFlight', false)
+      }
     },
-    setLastSettingType(ctx, payload) {
+    // BR-097: восстановление настроек при старте SPA — без записи на сервер.
+    restoreLastSettings(ctx, values) {
+      ctx.commit('restoreLastSettings', values)
+    },
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastSettingType(ctx, payload) {
       ctx.commit('setLastSettingType', payload.value)
+      await persistWebvueProp('lastSettingType', payload.value)
     },
-    setLastSettingValue(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastSettingValue(ctx, payload) {
       ctx.commit('setLastSettingValue', payload.value)
+      await persistWebvueProp('lastSettingValue', payload.value)
     },
-    setLastPriorLyrics(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorLyrics(ctx, payload) {
       ctx.commit('setLastPriorLyrics', payload.value)
+      await persistWebvueProp('lastPriorLyrics', payload.value)
     },
-    setLastPriorKaraoke(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorKaraoke(ctx, payload) {
       ctx.commit('setLastPriorKaraoke', payload.value)
+      await persistWebvueProp('lastPriorKaraoke', payload.value)
     },
-    setLastPriorChords(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorChords(ctx, payload) {
       ctx.commit('setLastPriorChords', payload.value)
+      await persistWebvueProp('lastPriorChords', payload.value)
     },
-    setLastPriorMelody(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorMelody(ctx, payload) {
       ctx.commit('setLastPriorMelody', payload.value)
+      await persistWebvueProp('lastPriorMelody', payload.value)
     },
-    setLastPriorDemo(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorDemo(ctx, payload) {
       ctx.commit('setLastPriorDemo', payload.value)
+      await persistWebvueProp('lastPriorDemo', payload.value)
     },
-    setLastThreadId(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastThreadId(ctx, payload) {
       ctx.commit('setLastThreadId', payload.value)
+      await persistWebvueProp('lastThreadId', payload.value)
     },
-    setLastPriorCodeLyrics(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorCodeLyrics(ctx, payload) {
       ctx.commit('setLastPriorCodeLyrics', payload.value)
+      await persistWebvueProp('lastPriorCodeLyrics', payload.value)
     },
-    setLastPriorCodeKaraoke(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorCodeKaraoke(ctx, payload) {
       ctx.commit('setLastPriorCodeKaraoke', payload.value)
+      await persistWebvueProp('lastPriorCodeKaraoke', payload.value)
     },
-    setLastPriorDemucs(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorDemucs(ctx, payload) {
       ctx.commit('setLastPriorDemucs', payload.value)
+      await persistWebvueProp('lastPriorDemucs', payload.value)
     },
-    setLastPriorForcedAlign(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorForcedAlign(ctx, payload) {
       ctx.commit('setLastPriorForcedAlign', payload.value)
+      await persistWebvueProp('lastPriorForcedAlign', payload.value)
     },
-    setLastPriorSymlinks(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorSymlinks(ctx, payload) {
       ctx.commit('setLastPriorSymlinks', payload.value)
+      await persistWebvueProp('lastPriorSymlinks', payload.value)
     },
-    setLastPriorSmartCopy(ctx, payload) {
+    // BR-097: присвоение — мутацией, запись на сервер — здесь, с обработкой отказа.
+    async setLastPriorSmartCopy(ctx, payload) {
       ctx.commit('setLastPriorSmartCopy', payload.value)
+      await persistWebvueProp('lastPriorSmartCopy', payload.value)
     },
     setPreviousAndNextSongId(ctx) {
       let previousSongId = undefined
@@ -3070,15 +3131,17 @@ export default {
       let request = { method: 'POST', url: '/api/songs/smartcopyall', params: payload }
       return promisedXMLHttpRequest(request)
     },
-    async getToSyncFromRest(ctx) {
+    // BR-095: сравнение по элементам списка, а не поиском подстроки (см. songIdInSyncIds).
+    async getToSyncFromRest(ctx, songId) {
       const ids = await promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/getdict',
         params: { dict: 'Sync Ids' },
       })
-      const result = ids.indexOf(String(ctx.state.currentSongId)) !== -1
+      const wantedId = songId === undefined || songId === null ? ctx.state.currentSongId : songId
+      const result = songIdInSyncIds(ids, wantedId)
       console.log('getToSyncFromRest ids', ids)
-      console.log('getToSyncFromRest ctx.state.currentSongId', ctx.state.currentSongId)
+      console.log('getToSyncFromRest songId', wantedId)
       console.log('getToSyncFromRest result', result)
       return result
     },

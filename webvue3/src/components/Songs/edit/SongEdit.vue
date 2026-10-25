@@ -2041,7 +2041,12 @@
                       />
                     </button>
                   </div>
-                  <div v-if="showMelodyVk" class="label-and-input">
+                  <!-- BR-089: блок мелодии/табов во вкладке Max обязан использовать
+                       СВОЙ признак showMelodyMax. Раньше здесь стоял showMelodyVk —
+                       при заполненном idMaxMelody и пустом idVkMelody весь блок
+                       (play/edit/header/body/link + поля idMaxMelody) был скрыт:
+                       значение нельзя было ни увидеть, ни отредактировать. -->
+                  <div v-if="showMelodyMax" class="label-and-input">
                     <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
                     <button
                       class="btn-round-wide"
@@ -2549,6 +2554,10 @@ import { escapeHtml } from '../../../utils/escapeHtml.js'
 import { promisedXMLHttpRequest } from '../../../lib/utils.js'
 // BR-088: очередь автосохранения — вызов во время запроса больше не теряется.
 import { createAutosaveQueue } from '../../../lib/autosave-queue.js'
+import {
+  findInvalidNumericSongFields,
+  isValidNumericSongField,
+} from '../../../lib/song-numeric-fields.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import HealthReportTable from '../../Common/HealthReport/HealthReportTable.vue'
 import FamilySongsModal from './FamilySongsModal.vue'
@@ -3129,6 +3138,11 @@ export default {
         // Прежняя формулировка #218 («перезапрос на каждый автосейв») была
         // неверной; см. комментарий к задаче.
         const store = this.$store
+        // BR-091: каждый ответ привязывается к id песни на момент запроса. Раньше
+        // проверялся только `isUnmounted`, поэтому при быстром переключении песен
+        // медленный ответ песни A (большая песня считается дольше) перезаписывал
+        // превью текста/нот/аккордов песни B — в карточке показывался другой текст.
+        const requestedId = this.song && this.song.id
         const targets = [
           ['getAuthorPictureBase64Promise', 'imageAuthorBase64'],
           ['getAlbumPictureBase64Promise', 'imageAlbumBase64'],
@@ -3140,7 +3154,9 @@ export default {
           store
             .dispatch(action)
             .then((value) => {
-              if (!this.isUnmounted) this[field] = value
+              if (!this.isUnmounted && this.song && this.song.id === requestedId) {
+                this[field] = value
+              }
             })
             .catch((error) => {
               // eslint-disable-next-line no-console
@@ -3204,8 +3220,13 @@ export default {
       handler() {
         if (this.song) {
           const value = this.song.idSponsr
-          if (value && value.startsWith(this.prefixLinkSponsrPlay)) {
-            const newValue = value.replace(this.prefixLinkSponsrPlay, '').split('/')[0]
+          // BR-090: id извлекается регулярным выражением, допускающим ОБА вида URL
+          // (play `…/smkaraoke/<id>` и edit `…/smkaraoke/manage/post/<id>`). Прежний
+          // `replace(prefix, '').split('/')[0]` на edit-URL писал в поле строку
+          // «manage» — значение уходило в автосейв, а флаг свежести показывал «✔».
+          // Если id не найден — поле не трогаем (остаётся введённое значение).
+          const newValue = this.extractSponsrId(value)
+          if (newValue !== null && newValue !== value) {
             this.$store.dispatch('setCurrentSongField', { name: 'idSponsr', value: newValue })
           }
           if (value !== '' && this.song.versionSponsr === 0) {
@@ -4048,16 +4069,37 @@ export default {
       // десятки секунд (ffmpeg-декод на бэкенде), а навигация не блокируется: без этой
       // проверки поля `audio*` песни A записывались в открытую карточку песни B, затем
       // автосейв отправлял их в B — песне B приписывался аудио-родитель A.
+      // BR-127: отказ обрабатывается — раньше `try/finally` без `catch` оставлял
+      // unhandled rejection, а пустое тело ответа («song не найден») роняло JSON.parse.
       const requestedId = this.song && this.song.id
       try {
         const data = await this.$store.dispatch('findAudioParentPromise')
         if (!this.song || this.song.id !== requestedId) return
-        const result = JSON.parse(data)
+        let result = null
+        try {
+          result = JSON.parse(data)
+        } catch (_e) {
+          result = null
+        }
         if (result) {
           this.song.audioParentId = result.audioParentId
           this.song.audioSimilarityPercent = result.audioSimilarityPercent
           this.song.audioDeltaMs = result.audioDeltaMs
+        } else {
+          this.showTelegramToast(
+            'Аудио-родитель не найден.',
+            'Похожие версии',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
         }
+      } catch (error) {
+        this.showTelegramToast(
+          (error && error.message) || 'Ошибка поиска аудио-родителя.',
+          'Похожие версии: ошибка',
+          'toast-header-copytoclipboard',
+          'toast-body-copytoclipboard',
+        )
       } finally {
         this.isFindingAudioParent = false
       }
@@ -4403,6 +4445,17 @@ export default {
           const state = data.state || 'unknown'
           const error = data.error || ''
           const success = data.success === true
+          // BR-126: сервер при persistMessageId=true записывает message_id в
+          // Song.idTelegramDemo (TelegramAutoPublishService), а карточка продолжала
+          // считать песню неопубликованной: кнопка «Опубликовать сейчас» оставалась,
+          // а повторный клик получал «already published» и показывался как ошибка.
+          // Поэтому на успех с непустым messageId пишем id в карточку.
+          if (success && data.messageId) {
+            this.$store.dispatch('setCurrentSongField', {
+              name: 'idTelegramDemo',
+              value: data.messageId,
+            })
+          }
           if (success) {
             const msg =
               state === 'rendering'
@@ -4412,6 +4465,14 @@ export default {
                   : `Публикация выполнена.`
             this.showTelegramToast(
               msg,
+              'Telegram',
+              'toast-header-copytoclipboard',
+              'toast-body-copytoclipboard',
+            )
+          } else if (state === 'published') {
+            // BR-126: «уже опубликовано» — это не ошибка, а подтверждение состояния.
+            this.showTelegramToast(
+              error || 'Песня уже опубликована в Telegram.',
               'Telegram',
               'toast-header-copytoclipboard',
               'toast-body-copytoclipboard',
@@ -5118,30 +5179,80 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doDeleteSong() {
-      this.$store.dispatch('deleteCurrentSong')
-      this.$emit('close')
+      // BR-127: удаление дожидается ответа. Раньше запрос не ожидался, а карточка
+      // закрывалась сразу — при отказе сервера песня оставалась, но админ видел
+      // «удалено». Теперь карточка закрывается только при успехе, при отказе —
+      // сообщение об ошибке.
+      return this.$store
+        .dispatch('deleteCurrentSong')
+        .then(() => {
+          this.$emit('close')
+        })
+        .catch((error) => {
+          this.showTelegramToast(
+            (error && error.message) || 'Не удалось удалить песню.',
+            'Удаление: ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
+        })
     },
     async showSubsEdit() {
       // BR-125: голоса запрашиваются по id песни на момент клика. Если за время ответа
       // карточка переключилась на другую песню, модалка получила бы «голоса A / песня B»
       // и сохранение ушло бы в B, затерев разметку B текстом A.
+      // BR-127: ответ разбирается с проверкой — пустое тело (`{}` при «песня не найдена»)
+      // и отказ сервера больше не дают unhandled rejection и модалку с `voices=undefined`.
       const requestedId = this.song && this.song.id
-      const voices = JSON.parse(await this.$store.getters.getVoices).voices
-      if (!this.song || this.song.id !== requestedId) return
-      this.voices = voices
-      this.subsEditSongId = requestedId
-      this.isSubsEditVisible = true
+      try {
+        const raw = await this.$store.getters.getVoices
+        let parsed = null
+        try {
+          parsed = JSON.parse(raw)
+        } catch (_e) {
+          parsed = null
+        }
+        const voices = parsed && parsed.voices
+        if (!voices) {
+          this.showTelegramToast(
+            'Голоса песни не загрузились.',
+            'Субтитры: ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
+          return
+        }
+        if (!this.song || this.song.id !== requestedId) return
+        this.voices = voices
+        this.subsEditSongId = requestedId
+        this.isSubsEditVisible = true
+      } catch (error) {
+        this.showTelegramToast(
+          (error && error.message) || 'Не удалось загрузить голоса песни.',
+          'Субтитры: ошибка',
+          'toast-header-copytoclipboard',
+          'toast-body-copytoclipboard',
+        )
+      }
     },
     closeSubsEdit() {
-      this.$store
-        .dispatch('getTextFormattedPromise')
-        .then((textFormatted) => (this.textFormatted = textFormatted))
-      this.$store
-        .dispatch('getNotesFormattedPromise')
-        .then((notesFormatted) => (this.notesFormatted = notesFormatted))
-      this.$store
-        .dispatch('getChordsFormattedPromise')
-        .then((chordsFormatted) => (this.chordsFormatted = chordsFormatted))
+      // BR-127: у цепочек перезапроса форматтеров появился обработчик отказа —
+      // раньше он уходил в unhandled rejection, а запись в this.* после
+      // размонтирования обновляла мёртвый компонент.
+      const fetchInto = (action, field) => {
+        this.$store
+          .dispatch(action)
+          .then((value) => {
+            if (!this.isUnmounted) this[field] = value
+          })
+          .catch((error) => {
+            // eslint-disable-next-line no-console
+            console.error(`Ошибка загрузки ${action}:`, error)
+          })
+      }
+      fetchInto('getTextFormattedPromise', 'textFormatted')
+      fetchInto('getNotesFormattedPromise', 'notesFormatted')
+      fetchInto('getChordsFormattedPromise', 'chordsFormatted')
       this.isSubsEditVisible = false
     },
     showKaraokeEditor() {
@@ -5197,6 +5308,23 @@ export default {
     openLinkSponsr() {
       window.open(this.linkSponsrEdit, '_blank')
     },
+    /**
+     * BR-090 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+     *
+     * Извлекает id поста Sponsr из URL. Допускаются оба вида ссылок, которые
+     * открывает карточка: play (`https://sponsr.ru/smkaraoke/<id>`) и edit
+     * (`https://sponsr.ru/smkaraoke/manage/post/<id>`). Если id не найден —
+     * возвращается null, и вызывающий код НЕ трогает поле (иначе в `idSponsr`
+     * попадал первый сегмент пути — «manage»).
+     *
+     * @param {string} value — значение поля `song.idSponsr`.
+     * @returns {string|null} id поста либо null.
+     */
+    extractSponsrId(value) {
+      if (!value || typeof value !== 'string') return null
+      const match = value.match(/\/smkaraoke\/(?:manage\/post\/)?(\d+)(?:[/?#]|$)/)
+      return match ? match[1] : null
+    },
     openLinkBoosty() {
       window.open(this.linkBoosty, '_blank')
     },
@@ -5206,9 +5334,17 @@ export default {
     updateRemote() {
       this.$store.dispatch('updateOneRemoteSongPromise', this.song.id)
     },
-    toSyncRemote() {
-      // this.$store.dispatch('toSyncOneRemoteSongPromise', this.song.id);
-      this.$store.dispatch('changeToSync')
+    async toSyncRemote() {
+      // BR-096: признак sync переключается по подтверждённому сервером результату.
+      // null — запрос не прошёл (отказ или параллельный запрос): состояние не менялось,
+      // показываем ошибку, а не молча игнорируем.
+      const result = await this.$store.dispatch('changeToSync')
+      if (result === null) {
+        this.showTelegramToast(
+          'Не удалось изменить признак sync песни — состояние не изменено.',
+          'Sync: ошибка',
+        )
+      }
     },
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader
@@ -5842,8 +5978,24 @@ export default {
         // новое содержимое, поэтому currentSongId в этот момент уже указывает на
         // СЛЕДУЮЩУЮ песню, и правка ушла бы в неё вместо своей.
         let params = { id: this.song.id }
+        // BR-092: числовые поля валидируются ДО отправки. Невалидное значение
+        // («20x4», «2024—2025») сервер принял бы как есть, а мягкий парсер Song.kt
+        // превратил бы его в 0 — и UPDATE затирал бы прежнее значение нулём. Такое
+        // поле не включается в diff (сервер его не получает), а пользователь видит
+        // ошибку с названием поля.
+        const invalidNumericFields = findInvalidNumericSongFields(this.diff)
         for (let diffItem of this.diff) {
-          params[diffItem.name] = diffItem.new
+          if (isValidNumericSongField(diffItem.name, diffItem.new)) {
+            params[diffItem.name] = diffItem.new
+          }
+        }
+        if (invalidNumericFields.length > 0) {
+          this.showTelegramToast(
+            `Не сохранено — ожидается целое число: ${invalidNumericFields
+              .map((field) => field.label)
+              .join(', ')}.`,
+            'Ошибка сохранения',
+          )
         }
 
         // Если изменений нет (например, нажали кнопку вручную, но всё уже сохранено)
@@ -5856,7 +6008,11 @@ export default {
         // Проверяем, не появились ли новые изменения ПОКА шёл запрос к серверу
         // #217: после размонтирования таймер перевзводить нельзя — он продлил бы
         // цикл сохранения на уже мёртвом компоненте.
-        if (!this.isUnmounted && this.diff.length > 0) {
+        // BR-092: если среди оставшихся изменений есть заведомо невалидные числа,
+        // повторный автосейв не перевзводится — иначе получился бы бесконечный цикл
+        // тостов с одним и тем же сообщением.
+        const remainingInvalid = findInvalidNumericSongFields(this.diff)
+        if (!this.isUnmounted && this.diff.length > 0 && remainingInvalid.length === 0) {
           // Если появились, сразу ставим их в очередь на следующий автосейв
           this.saveTimer = setTimeout(this.executeSave, this.autoSaveDelayMs)
         }

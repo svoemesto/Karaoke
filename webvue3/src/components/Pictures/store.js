@@ -1,4 +1,10 @@
 import { promisedXMLHttpRequest } from '../../lib/utils'
+import { createRequestGeneration } from '../../lib/target-request-guard.js'
+import { loadListWith } from '../../lib/list-loader.js'
+
+// BR-391 (аудит #336, пакет PKG-S3-31, OpenProject #403): загрузка дайджеста картинок —
+// с поколением запроса, `finally` и текстом ошибки в state.
+const picturesDigestGeneration = createRequestGeneration()
 
 /**
  * Компонент «Store».
@@ -10,6 +16,8 @@ export default {
   state: {
     picturesDigest: [],
     picturesDigestIsLoading: false,
+    // BR-391: текст ошибки загрузки дайджеста картинок ('' — ошибки нет).
+    picturesDigestsError: '',
     pictureCurrent: undefined,
     pictureSnapshot: undefined,
     pictureCurrentId: 0,
@@ -23,6 +31,10 @@ export default {
     },
     getPicturesDigestIsLoading(state) {
       return state.picturesDigestIsLoading
+    },
+    // BR-391: текст ошибки загрузки дайджеста картинок.
+    getPicturesDigestsError(state) {
+      return state.picturesDigestsError
     },
     getPictureCurrent(state) {
       return state.pictureCurrent
@@ -84,6 +96,9 @@ export default {
     setPicturesDigestIsLoading(state, isLoading) {
       state.picturesDigestIsLoading = isLoading
     },
+    setPicturesDigestsError(state, message) {
+      state.picturesDigestsError = message || ''
+    },
     setPictureCurrentId(state, id) {
       state.pictureCurrentId = id
     },
@@ -123,7 +138,9 @@ export default {
   },
   actions: {
     loadOneRecord(ctx, id) {
-      const params = { filter_id: id }
+      // Имя параметра — `filterId` (контракт бэкенда `POST /api/pictures/picturesdigests`),
+      // как в Albums/store.js. Прежнее `filter_id` Spring игнорировал.
+      const params = { filterId: id }
       let request = { method: 'POST', url: '/api/pictures/picturesdigests', params: params }
       promisedXMLHttpRequest(request)
         .then((data) => {
@@ -134,18 +151,20 @@ export default {
           console.log(error)
         })
     },
+    // BR-391: промис возвращается, флаг снимается в `finally` (в том числе при
+    // ошибке — раньше он залипал навсегда, и таблица показывала «Loading...»),
+    // ошибка видна в UI, а ответ применяется только владельцем текущего поколения.
     loadPicturesDigests(ctx, params) {
-      let request = { method: 'POST', url: '/api/pictures/picturesdigests', params: params }
-      ctx.commit('setPicturesDigestIsLoading', true)
-      promisedXMLHttpRequest(request)
-        .then((data) => {
-          let result = JSON.parse(data)
-          ctx.commit('setPicturesDigests', result)
-          ctx.commit('setPicturesDigestIsLoading', false)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
+      return loadListWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: picturesDigestGeneration,
+        requestOptions: { method: 'POST', url: '/api/pictures/picturesdigests', params },
+        loadingCommit: 'setPicturesDigestIsLoading',
+        errorCommit: 'setPicturesDigestsError',
+        applyCommit: 'setPicturesDigests',
+        errorMessage: 'Не удалось загрузить список картинок',
+      })
     },
     setPictureValuePromise(ctx, payload) {
       let request = { method: 'POST', url: '/api/pictures/updatepicture', params: payload }

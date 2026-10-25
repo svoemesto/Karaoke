@@ -17,6 +17,9 @@
       :author-id="albumsAuthorId"
       @close="closeAuthorAlbums"
     />
+    <!-- BR-376: отказ сохранения виден в таблице — раньше модалка закрывалась как при
+         успехе, и админ считал изменение сохранённым. -->
+    <div v-if="authorError" class="authors-error-message" v-text="authorError" />
     <div class="authors-bv-table-header">
       <b-form-input
         :id="`rows-per-page-authors`"
@@ -253,6 +256,11 @@ export default {
       isBusy: false,
       currentAuthorId: '',
       currentAuthor: undefined,
+      // BR-377: снимок автора на момент открытия модалки — по нему считается
+      // diff изменённых полей (в payload уходит только то, что реально изменилось).
+      authorEditSnapshot: undefined,
+      // BR-376: текст ошибки сохранения автора ('' — ошибки нет).
+      authorError: '',
     }
   },
   computed: {
@@ -525,13 +533,18 @@ export default {
     },
 
     openVKMusicAuthor(item) {
-      if (item.ymId) {
+      // BR-375: проверяется ИМЕННО vkId. Прежде стояло `if (item.ymId)`: автор с
+      // заполненным VK ID и пустым Yandex ID не открывался вовсе, а автор с ymId и
+      // пустым vkId открывал страницу «https://vk.ru/artist//releases».
+      if (item.vkId) {
         const vkMusicAuthorLink = 'https://vk.ru/artist/' + item.vkId + '/releases'
         window.open(vkMusicAuthorLink, '_blank')
       }
     },
 
     changeValue(item) {
+      // BR-377: запоминаем снимок — по нему в `doChangeValue` считается diff.
+      this.authorEditSnapshot = { ...item }
       this.customConfirmParams = {
         allowHtml: true,
         header: 'Изменение Автора',
@@ -607,7 +620,10 @@ export default {
           {
             fldName: 'haveNewAlbum',
             fldLabel: 'Новый альбом?:',
-            fldValue: item.watched,
+            // BR-374: показывается ИМЕННО haveNewAlbum. Прежде здесь стоял
+            // `item.watched` — под видом «есть новый альбом» админ видел признак
+            // «слежу» и принимал решение по неверному значению.
+            fldValue: item.haveNewAlbum,
             fldIsBoolean: true,
             disabled: true,
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
@@ -658,23 +674,58 @@ export default {
       this.isCustomConfirmVisible = true
     },
 
+    /**
+     * BR-376 / BR-377 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+     *
+     * BR-377. `POST /api/authors/updateauthor` — НЕ patch: перезаписывает все
+     * переданные поля. Модалка слала полный снимок 15 полей, поэтому правки,
+     * сделанные другим админом/синхронизацией, пока модалка была открыта, молча
+     * откатывались (lost update). Теперь в payload уходят только ИЗМЕНЁННЫЕ поля
+     * (diff со снимком), а `id` — обязательный идентификатор.
+     *
+     * BR-376. Результат сохранения проверяется: `promisedXMLHttpRequest` резолвит
+     * строкой (`xhr.response`), поэтому `result !== 0` было истинно ВСЕГДА. Бэкенд
+     * отдаёт `0`, если автор не найден (HTTP 200) — такой ответ раньше считался
+     * успехом. Теперь сравнение строковое, а отказ показывается пользователю.
+     *
+     * @param {object} author — значения полей модалки.
+     */
     doChangeValue(author) {
+      const snapshot = this.authorEditSnapshot || {}
+      const payload = { id: author.id }
+      for (const key of Object.keys(author)) {
+        if (key === 'id' || key === 'confirmed') continue
+        if (author[key] !== snapshot[key]) payload[key] = author[key]
+      }
       this.$store
-        .dispatch('setAuthorValuePromise', author)
+        .dispatch('setAuthorValuePromise', payload)
         .then((result) => {
-          // result - это целое число, возвращаемое промисом
-          if (result !== 0) {
-            // Проверяем, отлично ли оно от нуля
+          // result — строка ответа сервера (id автора) либо '0', если автор не найден.
+          if (String(result) !== '0' && Number(result) > 0) {
             this.$store.dispatch('loadOneRecord', result)
+          } else {
+            this.showAuthorError('Автор не найден на сервере — изменения не сохранены.')
           }
         })
         .catch((error) => {
           console.error('Ошибка при выполнении setAuthorValuePromise:', error)
+          this.showAuthorError((error && error.message) || 'Не удалось сохранить автора.')
         })
+    },
+    /**
+     * BR-376: показ ошибки сохранения пользователю (а не только в консоли).
+     *
+     * @param {string} message — текст ошибки.
+     */
+    showAuthorError(message) {
+      this.authorError = message || 'Не удалось сохранить автора.'
     },
 
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false
+      // BR-377: снимок больше не нужен — сброс, чтобы следующая правка не
+      // сравнивалась с чужим снимком.
+      this.authorEditSnapshot = undefined
     },
 
     aliasesSummary(aliases) {
@@ -790,6 +841,16 @@ export default {
 </script>
 
 <style>
+/* BR-376: баннер ошибки сохранения автора. */
+.authors-error-message {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border: 1px solid #a10000;
+  border-radius: 4px;
+  color: #a10000;
+  background-color: #fff2f2;
+  font-size: small;
+}
 .authors-bv-table {
   padding: 0;
   margin: 0;

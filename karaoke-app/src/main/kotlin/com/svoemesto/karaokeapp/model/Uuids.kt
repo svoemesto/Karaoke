@@ -6,8 +6,8 @@ import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
-import java.sql.Timestamp
-import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
+import org.slf4j.LoggerFactory
 
 /**
  * Класс Uuids.
@@ -24,20 +24,24 @@ class Uuids(
     fun save() {
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+            // BR-199 (аудит #336, пакет `PKG-S3-24`): SLF4J вместо println (ADR local-0005).
+            log.error("Uuids.save: нет соединения с базой данных {}", database.name)
             return
         }
-        val sql =
-            "UPDATE tbl_uuids SET " +
-                "uuid = ?, " +
-                "WHERE id = ?"
-        val ps = connection.prepareStatement(sql)
-        var index = 1
-        ps.setString(index, uuid)
-        index++
-        ps.setInt(index, id)
-        ps.executeUpdate()
-        ps.close()
+        // BR-199: в SQL была лишняя запятая («uuid = ?, WHERE id = ?») — запрос был
+        // синтаксически невалиден и гарантированно бросал SQLException; statement при
+        // этом не закрывался (утечка). Теперь запрос валиден, statement — в `use {}`,
+        // ошибка логируется через SLF4J и не уходит молча в UI-поток.
+        val sql = "UPDATE tbl_uuids SET uuid = ? WHERE id = ?"
+        try {
+            connection.prepareStatement(sql).use { ps ->
+                ps.setString(1, uuid)
+                ps.setInt(2, id)
+                ps.executeUpdate()
+            }
+        } catch (e: SQLException) {
+            log.error("Uuids.save: не удалось обновить uuid для id={} (sqlState={}): {}", id, e.sqlState, e.message, e)
+        }
     }
 
     fun getSqlToInsert(): String {
@@ -55,6 +59,74 @@ class Uuids(
     }
 
     companion object {
+        /**
+         * BR-199 (аудит #336, пакет `PKG-S3-24`): логгер по конвенции ADR local-0005.
+         */
+        private val log = LoggerFactory.getLogger("infra.uuids")
+
+        /**
+         * BR-197 (аудит #336, пакет `PKG-S3-24`): кеш пар `(id, uuid)` на процесс.
+         *
+         * Раньше [getStoredUuid] на КАЖДЫЙ ключ MLT-модели делал отдельный
+         * `SELECT … WHERE id = ?` (тысячи round-trip'ов на одну песню), а для новых
+         * ключей — ещё и отдельный `INSERT`. Теперь все пары читаются одним запросом
+         * (`SELECT id, uuid FROM tbl_uuids` — несколько тысяч строк) и раздаются из
+         * памяти; новые ключи добавляются в кеш сразу после вставки.
+         */
+        private val uuidCache = ConcurrentHashMap<Int, String>()
+
+        /** Флаг «кеш загружен» — чтобы не грузить его повторно на каждый ключ. */
+        @Volatile
+        private var cacheLoaded = false
+
+        /**
+         * Загрузить все пары `(id, uuid)` одним запросом (BR-197).
+         *
+         * @return число загруженных пар.
+         */
+        fun loadAll(database: KaraokeConnection): Int {
+            val connection = database.getConnection()
+            if (connection == null) {
+                log.error("Uuids.loadAll: нет соединения с базой данных {}", database.name)
+                return 0
+            }
+            var count = 0
+            return try {
+                connection.createStatement().use { statement ->
+                    statement.executeQuery("SELECT id, uuid FROM tbl_uuids").use { rs ->
+                        while (rs.next()) {
+                            uuidCache[rs.getInt("id")] = rs.getString("uuid")
+                            count++
+                        }
+                    }
+                }
+                cacheLoaded = true
+                count
+            } catch (e: SQLException) {
+                log.error("Uuids.loadAll: SQL-ошибка (sqlState={}): {}", e.sqlState, e.message, e)
+                count
+            }
+        }
+
+        /** Значение uuid по id из кеша (`null` — ключа нет). */
+        fun cachedUuid(id: Int): String? = uuidCache[id]
+
+        /** Загружен ли кеш хотя бы раз. */
+        fun isCacheLoaded(): Boolean = cacheLoaded
+
+        /** Положить пару `(id, uuid)` в кеш (после вставки/обновления). */
+        fun putCached(
+            id: Int,
+            uuid: String,
+        ) {
+            uuidCache[id] = uuid
+        }
+
+        /** Убрать ключ из кеша (после удаления строки). */
+        fun removeCached(id: Int) {
+            uuidCache.remove(id)
+        }
+
         fun getDiff(
             uuidA: Uuids?,
             uuidB: Uuids?,
@@ -74,19 +146,20 @@ class Uuids(
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-199: SLF4J вместо println (ADR local-0005).
+                log.error("Uuids.createDbInstance: нет соединения с базой данных {}", database.name)
                 return null
             }
             val ps = connection.prepareStatement(sql)
-            ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS) // , Statement.RETURN_GENERATED_KEYS)
-//            val rs = ps.generatedKeys
-//
-//            val result = if (rs.next()) {
-//                picture.id = rs.getInt(1)
-//                picture
-//            } else null
-
-            ps.close()
+            try {
+                ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS) // , Statement.RETURN_GENERATED_KEYS)
+            } catch (e: SQLException) {
+                // BR-197: конфликт по PK возможен, если uuid уже создан другим
+                // процессом — это не ошибка, но её нужно видеть в журнале.
+                log.warn("Uuids.createDbInstance: не удалось вставить uuid для id={} (sqlState={}): {}", uuid.id, e.sqlState, e.message)
+            } finally {
+                ps.close()
+            }
 
             return uuid
         }
@@ -97,7 +170,8 @@ class Uuids(
         ): List<Uuids> {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-199: SLF4J вместо println (ADR local-0005).
+                log.error("Uuids.loadList: нет соединения с базой данных {}", database.name)
                 return emptyList()
             }
             var statement: Statement? = null
@@ -122,13 +196,14 @@ class Uuids(
 
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                // BR-199: SLF4J + объект исключения (ADR local-0005).
+                log.warn("Uuids.loadList: SQL-ошибка (sqlState={}): {}", e.sqlState, e.message, e)
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    log.warn("Uuids.loadList: не удалось закрыть ресурсы чтения: {}", e.message, e)
                 }
             }
             return emptyList()
@@ -140,14 +215,17 @@ class Uuids(
         ) {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                // BR-199: SLF4J вместо println (ADR local-0005).
+                log.error("Uuids.delete: нет соединения с базой данных {}", database.name)
                 return
             }
             val sql = "DELETE FROM tbl_uuids WHERE id = ?"
-            val ps = connection.prepareStatement(sql)
-            ps.setInt(1, id)
-            ps.executeUpdate()
-            ps.close()
+            connection.prepareStatement(sql).use { ps ->
+                ps.setInt(1, id)
+                ps.executeUpdate()
+            }
+            // BR-197: удалённый ключ не должен оставаться в кеше.
+            removeCached(id)
         }
 
         fun load(

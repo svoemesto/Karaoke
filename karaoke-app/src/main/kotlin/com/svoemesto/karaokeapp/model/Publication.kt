@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
+import org.slf4j.LoggerFactory
 
 // BR-411 (аудит #336, пакет PKG-S2-17, OpenProject #380): разбор клиентской даты
 // `dd.MM.yy` без падения.
@@ -1369,6 +1370,91 @@ class Publication(
         )
 
     companion object {
+        /**
+         * BR-189/BR-191 (аудит #336, пакет `PKG-S3-24`): категория логов публикаций.
+         */
+        private val publicationLog = LoggerFactory.getLogger("infra.editor.publication")
+
+        /**
+         * Формат даты публикации — `dd.MM.yy` (BR-191).
+         */
+        private const val PUBLISH_DATE_FORMAT = "dd.MM.yy"
+
+        /**
+         * BR-191: регулярка формата даты публикации (`dd.MM.yy`).
+         *
+         * Раньше формат нигде не проверялся: строка без точек давала
+         * `IndexOutOfBoundsException` на `split(".")[2]`, а мусор — `ParseException`.
+         * Одно неверное значение рушило построение ВСЕЙ сетки публикаций.
+         */
+        private val PUBLISH_DATE_REGEX = Regex("""^\d{2}\.\d{2}\.\d{2}$""")
+
+        /**
+         * BR-191: регулярка формата времени публикации (`HH:MM`).
+         */
+        private val PUBLISH_TIME_REGEX = Regex("""^\d{2}:\d{2}$""")
+
+        /**
+         * BR-191: разбор даты публикации — `null`, если формат или календарь неверны.
+         *
+         * Разбор строгий (`isLenient = false`): `31.02.26` — несуществующая дата, а не
+         * «3 февраля + 28 дней».
+         *
+         * @param raw строка даты в формате `dd.MM.yy`.
+         * @return разобранная дата или `null`.
+         */
+        internal fun parsePublishDate(raw: String): java.util.Date? {
+            if (!PUBLISH_DATE_REGEX.matches(raw)) return null
+            val format = SimpleDateFormat(PUBLISH_DATE_FORMAT)
+            format.isLenient = false
+            return try {
+                format.parse(raw)
+            } catch (_: java.text.ParseException) {
+                null
+            }
+        }
+
+        /**
+         * BR-191: проверка даты и времени публикации НА ЗАПИСИ.
+         *
+         * Раньше формат не проверялся нигде: `publish_date`/`publish_time` — свободный
+         * текст из legacy-формы и из webvue3 (там `<input>` без валидации), поэтому в БД
+         * попадали значения вроде `23/10/25` — и страница публикаций падала целиком.
+         *
+         * @param date дата публикации (`dd.MM.yy`); пустая — допустима (песня без даты).
+         * @param time время публикации (`HH:MM`); пустое — допустимо.
+         * @throws IllegalArgumentException с понятным сообщением о неверном формате.
+         */
+        fun validatePublishDateTime(
+            date: String,
+            time: String,
+        ) {
+            if (date.isNotBlank() && parsePublishDate(date) == null) {
+                throw IllegalArgumentException("неверный формат даты публикации '$date' (ожидается dd.MM.yy)")
+            }
+            if (time.isNotBlank() && !PUBLISH_TIME_REGEX.matches(time)) {
+                throw IllegalArgumentException("неверный формат времени публикации '$time' (ожидается HH:MM)")
+            }
+        }
+
+        /**
+         * BR-191: числовой идентификатор строки публикации из даты (`yyMMdd`).
+         *
+         * Раньше вычислялся как `split(".")[2] + split(".")[1] + split(".")[0]` — без
+         * проверки длины, то есть падал на датах без точек.
+         *
+         * @return идентификатор или `null`, если дата не разбирается.
+         */
+        internal fun publicationIdFromDate(raw: String): Int? {
+            if (!PUBLISH_DATE_REGEX.matches(raw)) return null
+            val parts = raw.split(".")
+            return try {
+                (parts[2] + parts[1] + parts[0]).toInt()
+            } catch (_: NumberFormatException) {
+                null
+            }
+        }
+
         fun getPublicationList(
             args: Map<String, String> = emptyMap(),
             database: KaraokeConnection,
@@ -1377,8 +1463,12 @@ class Publication(
         ): List<Publication> {
             val result: MutableList<Publication> = mutableListOf()
 
-            var filterDateFrom = args["filter_date_from"] ?: ""
-            var filterDateTo = args["filter_date_to"] ?: ""
+            // BR-190 (аудит #336, пакет `PKG-S3-24`): имя ключа сходится с контроллерами.
+            // Контроллеры кладут дату «с» под `publish_date_from`, модель читала
+            // `filter_date_from` — фильтр «с даты» молча игнорировался (список начинался
+            // с самой ранней даты, а «по дате» применялся). Читаем оба ключа.
+            var filterDateFrom = args["filter_date_from"] ?: args["publish_date_from"] ?: ""
+            var filterDateTo = args["filter_date_to"] ?: args["publish_date_to"] ?: ""
             val filterCond = args["filter_cond"] ?: ""
 
             if (filterCond == "all") {
@@ -1401,15 +1491,30 @@ class Publication(
                                 it.flags != ""
                         }
                 if (listOfSongsTemp.isNotEmpty()) {
+                    // BR-191: дата разбирается ОДИН раз и безопасно (`parsePublishDate`).
+                    // Раньше `SimpleDateFormat(...).parse(it.date)` бросал ParseException
+                    // на любой неверной дате — и рушил построение всей сетки публикаций.
                     var minDate = ""
-                    listOfSongsTemp.forEach {
-                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
-                            minDate = it.date
+                    var minDateValue: java.util.Date? = null
+                    listOfSongsTemp.forEach { song ->
+                        val parsed = parsePublishDate(song.date)
+                        if (parsed == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
+                            )
+                            return@forEach
+                        }
+                        if (minDateValue == null || parsed < minDateValue) {
+                            minDateValue = parsed
+                            minDate = song.date
                         }
                     }
-                    println(minDate)
-                    filterDateFrom = minDate
-                    filterDateTo = ""
+                    if (minDate != "") {
+                        filterDateFrom = minDate
+                        filterDateTo = ""
+                    }
                 }
             } else if (filterCond == "fromnotdone") {
                 val listOfSongsTemp =
@@ -1425,15 +1530,30 @@ class Publication(
                                 it.idStatus < 6L
                         }
                 if (listOfSongsTemp.isNotEmpty()) {
+                    // BR-191: дата разбирается ОДИН раз и безопасно (`parsePublishDate`).
+                    // Раньше `SimpleDateFormat(...).parse(it.date)` бросал ParseException
+                    // на любой неверной дате — и рушил построение всей сетки публикаций.
                     var minDate = ""
-                    listOfSongsTemp.forEach {
-                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
-                            minDate = it.date
+                    var minDateValue: java.util.Date? = null
+                    listOfSongsTemp.forEach { song ->
+                        val parsed = parsePublishDate(song.date)
+                        if (parsed == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
+                            )
+                            return@forEach
+                        }
+                        if (minDateValue == null || parsed < minDateValue) {
+                            minDateValue = parsed
+                            minDate = song.date
                         }
                     }
-                    println(minDate)
-                    filterDateFrom = minDate
-                    filterDateTo = ""
+                    if (minDate != "") {
+                        filterDateFrom = minDate
+                        filterDateTo = ""
+                    }
                 }
             } else if (filterCond == "fromnotcheck") {
                 val listOfSongsTemp =
@@ -1449,18 +1569,43 @@ class Publication(
                                 it.idStatus < 3L
                         }
                 if (listOfSongsTemp.isNotEmpty()) {
+                    // BR-191: дата разбирается ОДИН раз и безопасно (`parsePublishDate`).
+                    // Раньше `SimpleDateFormat(...).parse(it.date)` бросал ParseException
+                    // на любой неверной дате — и рушил построение всей сетки публикаций.
                     var minDate = ""
-                    listOfSongsTemp.forEach {
-                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
-                            minDate = it.date
+                    var minDateValue: java.util.Date? = null
+                    listOfSongsTemp.forEach { song ->
+                        val parsed = parsePublishDate(song.date)
+                        if (parsed == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
+                            )
+                            return@forEach
+                        }
+                        if (minDateValue == null || parsed < minDateValue) {
+                            minDateValue = parsed
+                            minDate = song.date
                         }
                     }
-                    println(minDate)
-                    filterDateFrom = minDate
-                    filterDateTo = ""
+                    if (minDate != "") {
+                        filterDateFrom = minDate
+                        filterDateTo = ""
+                    }
                 }
             }
 
+            // BR-191: границы фильтра разбираются один раз; песня с неверной датой
+            // пропускается с предупреждением, а не роняет всю страницу публикаций.
+            val parsedFilterFrom = if (filterDateFrom != "") parsePublishDate(filterDateFrom) else null
+            val parsedFilterTo = if (filterDateTo != "") parsePublishDate(filterDateTo) else null
+            if (filterDateFrom != "" && parsedFilterFrom == null) {
+                publicationLog.warn("Publication.getPublicationList: не разобрана граница фильтра '{}' — песни не отфильтрованы по ней", filterDateFrom)
+            }
+            if (filterDateTo != "" && parsedFilterTo == null) {
+                publicationLog.warn("Publication.getPublicationList: не разобрана граница фильтра '{}' — песни не отфильтрованы по ней", filterDateTo)
+            }
             val listOfSongs =
                 Song
                     .loadListFromDb(
@@ -1468,27 +1613,20 @@ class Publication(
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                         withoutMarkersAndText = true,
-                    ).filter {
-                        it.date != "" &&
-                            it.time != "" &&
-                            (
-                                if (filterDateFrom !=
-                                    ""
-                                ) {
-                                    SimpleDateFormat("dd.MM.yy").parse(it.date) >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom)
-                                } else {
-                                    true
-                                }
-                            ) &&
-                            (
-                                if (filterDateTo !=
-                                    ""
-                                ) {
-                                    SimpleDateFormat("dd.MM.yy").parse(it.date) <= SimpleDateFormat("dd.MM.yy").parse(filterDateTo)
-                                } else {
-                                    true
-                                }
+                    ).filter { song ->
+                        if (song.date == "") return@filter false
+                        val songDate = parsePublishDate(song.date)
+                        if (songDate == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
                             )
+                            return@filter false
+                        }
+                        song.time != "" &&
+                            (parsedFilterFrom == null || songDate >= parsedFilterFrom) &&
+                            (parsedFilterTo == null || songDate <= parsedFilterTo)
                     }
 
             listOfSongs.forEach { song ->
@@ -1496,24 +1634,54 @@ class Publication(
                 if (publicationInList == null) {
                     publicationInList = Publication(database)
                     publicationInList.publishDate = song.date
-                    publicationInList.id = (song.date.split(".")[2] + song.date.split(".")[1] + song.date.split(".")[0]).toInt()
+                    // BR-191: идентификатор строки — через безопасный разбор даты
+                    // (раньше `split(".")[2]` без проверки длины падал на датах без точек).
+                    publicationInList.id = publicationIdFromDate(song.date) ?: 0
                     result.add(publicationInList)
                 }
-                when (song.time) {
-                    "10:00" -> publicationInList.publish10 = song
-                    "11:00" -> publicationInList.publish11 = song
-                    "12:00" -> publicationInList.publish12 = song
-                    "13:00" -> publicationInList.publish13 = song
-                    "14:00" -> publicationInList.publish14 = song
-                    "15:00" -> publicationInList.publish15 = song
-                    "16:00" -> publicationInList.publish16 = song
-                    "17:00" -> publicationInList.publish17 = song
-                    "18:00" -> publicationInList.publish18 = song
-                    "19:00" -> publicationInList.publish19 = song
-                    "20:00" -> publicationInList.publish20 = song
-                    "21:00" -> publicationInList.publish21 = song
-                    "22:00" -> publicationInList.publish22 = song
-                    "23:00" -> publicationInList.publish23 = song
+                val entry = publicationInList
+                // BR-189: слот сетки выбирается по времени; конфликт (две песни на один
+                // `(publish_date, publish_time)`) больше не затирает первую песню молча —
+                // в журнал пишется предупреждение с id обеих песен.
+                val slot: kotlin.reflect.KMutableProperty1<Publication, Song?>? =
+                    when (song.time) {
+                        "10:00" -> Publication::publish10
+                        "11:00" -> Publication::publish11
+                        "12:00" -> Publication::publish12
+                        "13:00" -> Publication::publish13
+                        "14:00" -> Publication::publish14
+                        "15:00" -> Publication::publish15
+                        "16:00" -> Publication::publish16
+                        "17:00" -> Publication::publish17
+                        "18:00" -> Publication::publish18
+                        "19:00" -> Publication::publish19
+                        "20:00" -> Publication::publish20
+                        "21:00" -> Publication::publish21
+                        "22:00" -> Publication::publish22
+                        "23:00" -> Publication::publish23
+                        else -> null
+                    }
+                if (slot == null) {
+                    // BR-189: время вне сетки 10:00–23:00 больше не теряется молча.
+                    publicationLog.warn(
+                        "Publication.getPublicationList: время публикации '{}' вне сетки 10:00–23:00 (songId={}, date={}) — песня не показана в сетке",
+                        song.time,
+                        song.id,
+                        song.date,
+                    )
+                } else {
+                    val occupied = slot.get(entry)
+                    if (occupied != null) {
+                        publicationLog.warn(
+                            "Publication.getPublicationList: конфликт публикаций — слот {} {} уже занят песней id={} (песня id={} не показана в сетке)",
+                            song.date,
+                            song.time,
+                            occupied.id,
+                            song.id,
+                        )
+                    } else {
+                        slot.set(entry, song)
+                    }
                 }
             }
             result.sort()
@@ -1648,8 +1816,12 @@ class Publication(
                         ignoreUseInList = true,
                     ).map { it.author }
 
-            var filterDateFrom = args["filter_date_from"] ?: ""
-            var filterDateTo = args["filter_date_to"] ?: ""
+            // BR-190 (аудит #336, пакет `PKG-S3-24`): имя ключа сходится с контроллерами.
+            // Контроллеры кладут дату «с» под `publish_date_from`, модель читала
+            // `filter_date_from` — фильтр «с даты» молча игнорировался (список начинался
+            // с самой ранней даты, а «по дате» применялся). Читаем оба ключа.
+            var filterDateFrom = args["filter_date_from"] ?: args["publish_date_from"] ?: ""
+            var filterDateTo = args["filter_date_to"] ?: args["publish_date_to"] ?: ""
             val filterCond = args["filter_cond"] ?: ""
 
             if (filterCond == "all") {
@@ -1672,15 +1844,30 @@ class Publication(
                                 it.flags != ""
                         }
                 if (listOfSongsTemp.isNotEmpty()) {
+                    // BR-191: дата разбирается ОДИН раз и безопасно (`parsePublishDate`).
+                    // Раньше `SimpleDateFormat(...).parse(it.date)` бросал ParseException
+                    // на любой неверной дате — и рушил построение всей сетки публикаций.
                     var minDate = ""
-                    listOfSongsTemp.forEach {
-                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
-                            minDate = it.date
+                    var minDateValue: java.util.Date? = null
+                    listOfSongsTemp.forEach { song ->
+                        val parsed = parsePublishDate(song.date)
+                        if (parsed == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
+                            )
+                            return@forEach
+                        }
+                        if (minDateValue == null || parsed < minDateValue) {
+                            minDateValue = parsed
+                            minDate = song.date
                         }
                     }
-                    println(minDate)
-                    filterDateFrom = minDate
-                    filterDateTo = ""
+                    if (minDate != "") {
+                        filterDateFrom = minDate
+                        filterDateTo = ""
+                    }
                 }
             } else if (filterCond == "fromnotdone") {
                 val listOfSongsTemp =
@@ -1696,15 +1883,30 @@ class Publication(
                                 it.idStatus < 6L
                         }
                 if (listOfSongsTemp.isNotEmpty()) {
+                    // BR-191: дата разбирается ОДИН раз и безопасно (`parsePublishDate`).
+                    // Раньше `SimpleDateFormat(...).parse(it.date)` бросал ParseException
+                    // на любой неверной дате — и рушил построение всей сетки публикаций.
                     var minDate = ""
-                    listOfSongsTemp.forEach {
-                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
-                            minDate = it.date
+                    var minDateValue: java.util.Date? = null
+                    listOfSongsTemp.forEach { song ->
+                        val parsed = parsePublishDate(song.date)
+                        if (parsed == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
+                            )
+                            return@forEach
+                        }
+                        if (minDateValue == null || parsed < minDateValue) {
+                            minDateValue = parsed
+                            minDate = song.date
                         }
                     }
-                    println(minDate)
-                    filterDateFrom = minDate
-                    filterDateTo = ""
+                    if (minDate != "") {
+                        filterDateFrom = minDate
+                        filterDateTo = ""
+                    }
                 }
             } else if (filterCond == "fromnotcheck") {
                 val listOfSongsTemp =
@@ -1720,15 +1922,30 @@ class Publication(
                                 it.idStatus < 3L
                         }
                 if (listOfSongsTemp.isNotEmpty()) {
+                    // BR-191: дата разбирается ОДИН раз и безопасно (`parsePublishDate`).
+                    // Раньше `SimpleDateFormat(...).parse(it.date)` бросал ParseException
+                    // на любой неверной дате — и рушил построение всей сетки публикаций.
                     var minDate = ""
-                    listOfSongsTemp.forEach {
-                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
-                            minDate = it.date
+                    var minDateValue: java.util.Date? = null
+                    listOfSongsTemp.forEach { song ->
+                        val parsed = parsePublishDate(song.date)
+                        if (parsed == null) {
+                            publicationLog.warn(
+                                "Publication.getPublicationList: не разобрана дата публикации '{}' (songId={}) — песня пропущена",
+                                song.date,
+                                song.id,
+                            )
+                            return@forEach
+                        }
+                        if (minDateValue == null || parsed < minDateValue) {
+                            minDateValue = parsed
+                            minDate = song.date
                         }
                     }
-                    println(minDate)
-                    filterDateFrom = minDate
-                    filterDateTo = ""
+                    if (minDate != "") {
+                        filterDateFrom = minDate
+                        filterDateTo = ""
+                    }
                 }
             } else if (filterCond == "unpublish") {
                 // #326: только полностью готовые (статус 6), без назначенной

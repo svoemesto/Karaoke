@@ -6,6 +6,9 @@ import com.svoemesto.karaokeapp.model.SiteChatMessage
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
+import java.sql.SQLException
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -54,13 +57,25 @@ class ChatController {
         block: (KaraokeConnection) -> T,
     ): T = block(db)
 
+    /**
+     * Список тредов чата.
+     *
+     * BR-193 (аудит #336, пакет `PKG-S3-24`): сбой БД — это `503`, а не пустой список
+     * (пустой список тредов неотличим от «тредов нет» — админ видел бы «чата нет»).
+     */
     @PostMapping("/threads")
     @ResponseBody
     fun threads(
         @RequestParam(required = false) target: String?,
-    ): Map<String, Any> =
-        withDb(target) { db ->
-            mapOf("threads" to SiteChatMessage.loadThreads(db))
+    ): ResponseEntity<Map<String, Any>> =
+        try {
+            withDb(target) { db ->
+                ResponseEntity.ok(mapOf("threads" to SiteChatMessage.loadThreads(db)))
+            }
+        } catch (e: SQLException) {
+            ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("error" to "chat.threads.unavailable", "message" to "список тредов временно недоступен"))
         }
 
     // Открытие треда автором — заодно отмечает сообщения ОТ пользователя прочитанными. Пагинация
@@ -75,24 +90,46 @@ class ChatController {
         @RequestParam(required = false) limit: Int?,
         @RequestParam(required = false) beforeId: Long?,
         @RequestParam(required = false) afterId: Long?,
-    ): Map<String, Any> =
-        withDb(target) { db ->
-            val list =
-                SiteChatMessage
-                    .loadPageByUser(
-                        siteUserId = siteUserId,
-                        database = db,
-                        storageService = KSS_APP,
-                        storageApiClient = SAC_APP,
-                        limit = limit ?: SiteChatMessage.DEFAULT_PAGE_SIZE,
-                        beforeId = beforeId,
-                        afterId = afterId,
-                    ).map { it.toDTO() }
-            SiteChatMessage.markThreadReadByAuthor(siteUserId, db)
-            mapOf(
-                "messages" to list,
-                "total" to SiteChatMessage.countByUser(siteUserId, db),
-            )
+    ): ResponseEntity<Map<String, Any>> =
+        try {
+            withDb(target) { db ->
+                val list =
+                    SiteChatMessage
+                        .loadPageByUser(
+                            siteUserId = siteUserId,
+                            database = db,
+                            storageService = KSS_APP,
+                            storageApiClient = SAC_APP,
+                            limit = limit ?: SiteChatMessage.DEFAULT_PAGE_SIZE,
+                            beforeId = beforeId,
+                            afterId = afterId,
+                        ).map { it.toDTO() }
+                // BR-193: сбой UPDATE is_read — это ошибка, а не тихий no-op;
+                // -1 у счётчика = счётчик не удалось получить (сбой БД).
+                val marked = SiteChatMessage.markThreadReadByAuthor(siteUserId, db)
+                val total = SiteChatMessage.countByUser(siteUserId, db)
+                when {
+                    !marked ->
+                        ResponseEntity
+                            .status(HttpStatus.SERVICE_UNAVAILABLE)
+                            .body(mapOf("error" to "chat.mark_read.unavailable", "message" to "не удалось отметить сообщения прочитанными"))
+                    total == SiteChatMessage.COUNT_ERROR ->
+                        ResponseEntity
+                            .status(HttpStatus.SERVICE_UNAVAILABLE)
+                            .body(mapOf("error" to "chat.count.unavailable", "message" to "счётчик сообщений временно недоступен"))
+                    else ->
+                        ResponseEntity.ok(
+                            mapOf(
+                                "messages" to list,
+                                "total" to total,
+                            ),
+                        )
+                }
+            }
+        } catch (e: SQLException) {
+            ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("error" to "chat.messages.unavailable", "message" to "история чата временно недоступна"))
         }
 
     @PostMapping("/reply")
@@ -143,8 +180,20 @@ class ChatController {
     @ResponseBody
     fun unreadCount(
         @RequestParam(required = false) target: String?,
-    ): Int =
-        withDb(target) { db ->
-            SiteChatMessage.countUnreadFromUsers(db)
+    ): ResponseEntity<Int> =
+        try {
+            withDb(target) { db ->
+                val count = SiteChatMessage.countUnreadFromUsers(db)
+                // BR-193: -1 = счётчик не удалось получить (сбой БД) — не «непрочитанных нет».
+                if (count == SiteChatMessage.COUNT_ERROR) {
+                    ResponseEntity
+                        .status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(-1)
+                } else {
+                    ResponseEntity.ok(count)
+                }
+            }
+        } catch (e: SQLException) {
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(-1)
         }
 }

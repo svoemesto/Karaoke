@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
 import com.svoemesto.karaokeapp.services.PollingCache
 import jakarta.servlet.http.HttpServletRequest
+import java.sql.SQLException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -59,22 +60,43 @@ class PublicChatController(
     ): ResponseEntity<Any> {
         val user = currentUser(request)
         if (!user.isEffectivePremium) return premiumRequired()
+        // BR-193 (аудит #336, пакет `PKG-S3-24`): сбой БД — `503`, а не «пустой чат».
+        // Раньше модель глотала SQLException и отдавала пустую переписку с total=0:
+        // у пользователя выглядело бы как «переписка стёрта».
         val list =
-            SiteChatMessage
-                .loadPageByUser(
-                    siteUserId = user.id,
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    limit = limit ?: SiteChatMessage.DEFAULT_PAGE_SIZE,
-                    beforeId = beforeId,
-                    afterId = afterId,
-                ).map { it.toDTO() }
-        SiteChatMessage.markThreadReadByUser(user.id, WORKING_DATABASE)
+            try {
+                SiteChatMessage
+                    .loadPageByUser(
+                        siteUserId = user.id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        limit = limit ?: SiteChatMessage.DEFAULT_PAGE_SIZE,
+                        beforeId = beforeId,
+                        afterId = afterId,
+                    ).map { it.toDTO() }
+            } catch (e: SQLException) {
+                return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(mapOf("error" to "chat.messages.unavailable", "message" to "переписка временно недоступна"))
+            }
+        // BR-193: сбой UPDATE is_read — ошибка, а не тихий no-op.
+        if (!SiteChatMessage.markThreadReadByUser(user.id, WORKING_DATABASE)) {
+            return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("error" to "chat.mark_read.unavailable", "message" to "не удалось отметить сообщения прочитанными"))
+        }
+        val total = SiteChatMessage.countByUser(user.id, WORKING_DATABASE)
+        // BR-193: -1 = счётчик не удалось получить (сбой БД).
+        if (total == SiteChatMessage.COUNT_ERROR) {
+            return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("error" to "chat.count.unavailable", "message" to "счётчик сообщений временно недоступен"))
+        }
         return ResponseEntity.ok(
             mapOf(
                 "messages" to list,
-                "total" to SiteChatMessage.countByUser(user.id, WORKING_DATABASE),
+                "total" to total,
             ),
         )
     }
@@ -107,13 +129,22 @@ class PublicChatController(
     // получать сигнал о «новых сообщениях» в нём (для него всегда 0, без похода в БД).
     // Polling cache TTL=10s (FR-008, clarified) — снижает нагрузку на `tbl_site_chat_messages`.
     @GetMapping("/unreadcount")
-    fun unreadCount(request: HttpServletRequest): Map<String, Int> {
+    fun unreadCount(request: HttpServletRequest): ResponseEntity<Map<String, Int>> {
         val user = currentUser(request)
-        if (!user.isEffectivePremium) return mapOf("count" to 0)
+        if (!user.isEffectivePremium) return ResponseEntity.ok(mapOf("count" to 0))
         val cacheKey = "chat_unread:user:${user.id}"
-        return unreadCountPollingCache.getOrCompute(key = cacheKey, ttlSeconds = 10) {
-            val count = SiteChatMessage.countUnreadForUser(user.id, WORKING_DATABASE)
-            mapOf("count" to count)
+        val body =
+            unreadCountPollingCache.getOrCompute(key = cacheKey, ttlSeconds = 10) {
+                val count = SiteChatMessage.countUnreadForUser(user.id, WORKING_DATABASE)
+                mapOf("count" to count)
+            }
+        // BR-193 (аудит #336): -1 = счётчик не удалось получить (сбой БД) — раньше
+        // возвращался 0, и бейдж непрочитанных просто исчезал.
+        if (body["count"] == SiteChatMessage.COUNT_ERROR) {
+            return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("count" to SiteChatMessage.COUNT_ERROR))
         }
+        return ResponseEntity.ok(body)
     }
 }

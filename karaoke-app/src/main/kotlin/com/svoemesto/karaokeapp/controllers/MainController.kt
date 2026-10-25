@@ -1843,6 +1843,14 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-191 (аудит #336, пакет `PKG-S3-24`): дата/время публикации проверяются
+        // ДО сохранения — неверный формат больше не попадает в БД (и не роняет потом
+        // страницу публикаций целиком).
+        try {
+            Publication.validatePublishDateTime(song_date, song_time)
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message ?: "неверный формат даты/времени публикации")
+        }
         song?.let { songValue ->
             songValue.fileName = song_fileName
             songValue.rootFolder = song_rootFolder
@@ -2050,6 +2058,14 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        // BR-191 (аудит #336, пакет `PKG-S3-24`): дата/время публикации проверяются
+        // ДО сохранения — неверный формат больше не попадает в БД (и не роняет потом
+        // страницу публикаций целиком).
+        try {
+            Publication.validatePublishDateTime(song_date, song_time)
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message ?: "неверный формат даты/времени публикации")
+        }
         song?.let { songValue ->
             songValue.fileName = song_fileName
             songValue.rootFolder = song_rootFolder

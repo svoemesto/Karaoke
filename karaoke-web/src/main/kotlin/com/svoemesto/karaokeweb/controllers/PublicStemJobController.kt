@@ -98,8 +98,30 @@ class PublicStemJobController(
         if (ext !in StemJob.ALLOWED_EXTENSIONS) {
             return ResponseEntity.badRequest().body(mapOf("error" to "unsupported_format", "allowed" to StemJob.ALLOWED_EXTENSIONS))
         }
-        val activeCount = StemJob.countActiveByUser(user.id, db)
-        if (activeCount >= StemJob.MAX_ACTIVE_JOBS_PER_USER) {
+        // BR-198 (аудит #336, пакет `PKG-S3-24`): лимит очереди проверяется и создание
+        // выполняется ОДНОЙ атомарной операцией (транзакция + advisory-лок по
+        // site_user_id). Раньше это был check-then-act: два параллельных запроса
+        // пользователя оба видели `activeCount = 4` и создавали по заданию (6+ активных).
+        val job =
+            try {
+                StemJob.createIfUnderLimit(
+                    siteUserId = user.id,
+                    mode = mode,
+                    originalFileName = file.originalFilename ?: "upload.$ext",
+                    originalExt = ext,
+                    fileSizeBytes = file.size,
+                    database = db,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            } catch (e: java.sql.SQLException) {
+                // BR-198: счётчик не удалось получить (сбой БД) — задание НЕ создаётся
+                // (fail-closed), клиент получает 503, а не «успех».
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    mapOf("error" to "stemjobs.unavailable", "message" to "очередь заданий временно недоступна"),
+                )
+            }
+        if (job == null) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
                 mapOf(
                     "error" to "queue_limit_reached",
@@ -107,18 +129,6 @@ class PublicStemJobController(
                 ),
             )
         }
-
-        val job =
-            StemJob.createNew(
-                siteUserId = user.id,
-                mode = mode,
-                originalFileName = file.originalFilename ?: "upload.$ext",
-                originalExt = ext,
-                fileSizeBytes = file.size,
-                database = db,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ) ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "create_failed"))
 
         val dir = File(tempDir)
         if (!dir.exists()) dir.mkdirs()

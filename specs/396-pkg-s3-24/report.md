@@ -14,7 +14,7 @@
 | Партия | BR | Статус |
 |---|---|---|
 | 1 | BR-174, BR-177…BR-181, BR-183, BR-184, BR-186, BR-187 (10) | ✅ исправлены |
-| 2 | BR-189…BR-194, BR-196…BR-199 (10) | ⏳ в работе |
+| 2 | BR-189…BR-194, BR-196…BR-199 (10) | ✅ исправлены |
 | 3 | BR-202…BR-204, BR-207…BR-212, BR-215 (10) | ⏳ не начата |
 | — | BR-182, BR-185, BR-188, BR-195, BR-200, BR-201, BR-205, BR-206, BR-213, BR-214 (10) | ✅ закрыты волнами A–D (см. «Уже исправленные волнами A–D») |
 
@@ -135,6 +135,88 @@ BUILD SUCCESSFUL
 | Синхронизация контракта чистки `specs/544-song-artifact-cleanup/contracts/cleanup-api.md` под `202 + planId` (BR-174) | контракт принадлежит другому issue (#321), править его в этом пакете нельзя | контракт описан в `docs/features/pkg-s3-24.md` § «Известные ловушки» |
 | Точность переноса проверки состава из `apply` (HTTP `409` → `FAILED` прогон) | меняется наблюдаемое поведение админ-эндпоинта | поведение fail-closed: при несовпадении **ничего не удаляется** |
 | `MAX_SPLIT_WORDS = 24` / `MAX_SPLIT_LINES = 10` (BR-180) | границы влияют на вид длинных названий (нужен взгляд владельца на реальные названия) | разбиение не выполняется сверх 24 слов (однострочная раскладка) — вместо минут CPU |
+
+---
+
+## Партия 2 — BR-189…BR-194, BR-196…BR-199 (10 записей)
+
+### По записям
+
+| BR | Файл:строка (было) | Класс | Что не так | Как правильно | Проверка |
+|---|---|---|---|---|---|
+| BR-189 | `model/Publication.kt:1471-1495` | DATA | сетка публикаций — «одна песня на часовой слот», но уникальность `(publish_date, publish_time)` не обеспечена: `when (song.time)` присваивал слот **безусловно** (вторая песня молча затирала первую), а у `when` не было `else` — песня со временем вне 10:00–23:00 исчезала из выдачи без следа | слот выбирается через свойство (`Publication::publish10`…): перед записью проверяется занятость слота — при конфликте в журнал пишется WARN с id обеих песен (первая песня не затирается); `else` → WARN «время вне сетки». Частичный UNIQUE-индекс в БД — **за владельцем** (нужна миграция + дедупликация) | контрактная (1) |
+| BR-190 | `model/Publication.kt:1357` (+ `:1642`) | COMPAT | модель читала дату «с» из ключа `filter_date_from`, а контроллеры кладут `publish_date_from` → нижняя граница фильтра молча игнорировалась (список с самой ранней даты) | модель читает оба ключа: `args["filter_date_from"] ?: args["publish_date_from"]` (и симметрично для «по») — оба контроллера и legacy-страница работают | контрактная (1) |
+| BR-191 | `model/Publication.kt:1455, 1476` + `controllers/MainController.kt` | ERR | формат `publish_date` не проверялся нигде: `split(".")[2]` без проверки длины → `IndexOutOfBoundsException`, `SimpleDateFormat.parse` → `ParseException`; одно неверное значение рушило **всю** страницу публикаций; при записи формат принимался свободным текстом | `parsePublishDate()` — регулярка `dd.MM.yy` + строгий разбор (`isLenient=false`, `31.02.26` → null); границы фильтра и даты песен разбираются **один раз**, песня с неверной датой пропускается с WARN; `publicationIdFromDate()` вместо `split`; на записи — `Publication.validatePublishDateTime()` → `400` с понятным текстом (`MainController.songsUpdate`/`songs2Update`) | контрактная (1) + поведенческая (1) |
+| BR-192 | `model/SearchResult.kt:352-360`, `model/SearchAsync.kt:197-205` | PERF | удаление результатов поиска — N+1 DELETE (по строке в цикле), результат каждого `delete` отбрасывался; сбой на середине оставлял часть результатов привязанной к удалённой песне, а вызывающий отвечал «успех» | один `DELETE … WHERE id = ANY(?)` (`KaraokeDbTable.deleteIn`) для обоих семейств; расхождение «хотели удалить N, удалили M» → WARN `infra.search`; методы возвращают число удалённых строк | контрактная (1) |
+| BR-193 | `model/SiteChatMessage.kt:147-310` (6 методов) + контроллеры чата | ERR | шесть методов гасили `SQLException` в `println` по `e.message` и возвращали «пустой успех»: пустая история чата, `total=0`, бейдж непрочитанных `0`, тихий no-op при пометке прочитанным | SLF4J (`infra.chat`) с объектом исключения; счётчики возвращают признак ошибки `COUNT_ERROR = -1` (сбой ≠ «сообщений нет»), `markThreadRead` возвращает `Boolean`; чтение истории/тредов пробрасывает `SQLException`; контроллеры (`ChatController`, `PublicChatController`) → `503` + `{"error":"chat.*.unavailable"}`; монитор `UnreadChatMessagesCheck` → WARNING вместо «всё прочитано» | контрактная (2) |
+| BR-194 | `model/SiteUser.kt:106-119` | ERR | флаг `welcomeMessageSent = true` и `save()` выполнялись независимо от результата `createNew(...)` (возвращал `null` при сбое) → приветствие не доходило, а флаг оставался `true` — повторной попытки не было бы никогда | флаг ставится **только после** успешного создания сообщения; `save()` — с проверкой (при сбое флаг в памяти возвращается в `false`, исключение пробрасывается) | контрактная (1) |
+| BR-196 | `model/StatBySong.kt:268, 656, 1196` (+ `:522`) | PERF | `limit`/`offset` подставлялись в SQL «как есть»: `?pageSize=2000000000` вычитывал всю `tbl_events` (250k+ строк) в heap, а `offset = (page-1)*pageSize` переполнялся в отрицательный Int → SQL-ошибка, проглоченная методом (клиент получал `200` с пустой страницей) | единый `normalizeStatsPaging(limit, offset)` → `limit.coerceIn(1, 1000)`, `offset.coerceAtLeast(0)`; применён во всех четырёх местах (включая `getStatBySong`, где раньше нормализовался только `limit`) | контрактная (1) + поведенческая (1) |
+| BR-197 | `model/Uuids.kt:153-156` + `Uuids.kt:7-18` | PERF | на каждый ключ MLT-модели — отдельный `SELECT … WHERE id = ?` (тысячи round-trip'ов на песню), для новых — ещё и отдельный `INSERT` | кеш пар `(id, uuid)` на процесс: одна загрузка `SELECT id, uuid FROM tbl_uuids` + раздача из памяти; новые ключи пишутся в кеш сразу после вставки (с перечитыванием из БД, если строку создал другой процесс — иначе uuid в MLT не совпадал бы с uuid в БД) | контрактная (1) |
+| BR-198 | `model/StemJob.kt:266-281` + `karaoke-web/.../PublicStemJobController.kt:92-103` | RACE | лимит очереди (`MAX_ACTIVE_JOBS_PER_USER = 5`) — check-then-act: два параллельных `POST /create` оба видели `activeCount = 4` и создавали по заданию (6+ активных); при `SQLException` счётчик подменялся нулём — недоступность БД **полностью отключала** проверку лимита | `StemJob.createIfUnderLimit()` — проверка и вставка в одной транзакции под `pg_advisory_xact_lock(site_user_id)`; `countActiveByUser` при сбое возвращает `COUNT_ERROR = -1` → задание **не создаётся** (fail-closed), контроллер → `503 stemjobs.unavailable`; при лимите — `429 queue_limit_reached` | контрактная (1) |
+| BR-199 | `model/Uuids.kt:30-33` | ERR | SQL `UPDATE tbl_uuids SET uuid = ?, WHERE id = ?` — лишняя запятая делала запрос синтаксически невалидным (любой вызов бросал `SQLException`); `PreparedStatement` не закрывался; ошибка уходила молча в UI-поток | `UPDATE tbl_uuids SET uuid = ? WHERE id = ?`, statement — в `use {}`, ошибка логируется через SLF4J (`infra.uuids`) с `sqlState` и стеком | контрактная (1) |
+
+### «До / после»: команда и вывод
+
+```bash
+git stash push -m "s3-24-batch2-before-check" -- karaoke-app/src/main karaoke-web/src/main
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+  -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+  :karaoke-app:test --tests 'com.svoemesto.karaokeapp.audit.PkgS324Batch2*'
+git stash pop
+```
+
+Вывод «до» (12 тестов, 12 упали):
+
+```
+PkgS324Batch2SourceContractsTest > BR-189 конфликт публикаций не затирается молча() FAILED
+PkgS324Batch2SourceContractsTest > BR-191 дата публикации разбирается безопасно() FAILED
+PkgS324Batch2SourceContractsTest > BR-199 update uuid синтаксически валиден() FAILED
+PkgS324Batch2SourceContractsTest > BR-192 результаты поиска удаляются одним запросом() FAILED
+PkgS324Batch2SourceContractsTest > BR-193 счётчик чата помечает ошибку отдельным значением() FAILED
+PkgS324Batch2SourceContractsTest > BR-193 сбой чата не выглядит как пустой чат() FAILED
+PkgS324Batch2SourceContractsTest > BR-191 неверная дата не разбирается() FAILED
+PkgS324Batch2SourceContractsTest > BR-197 uuid читаются пакетно() FAILED
+PkgS324Batch2SourceContractsTest > BR-194 флаг приветствия ставится только после успеха() FAILED
+PkgS324Batch2SourceContractsTest > BR-196 пагинация статистики нормализована() FAILED
+PkgS324Batch2SourceContractsTest > BR-198 лимит очереди заданий атомарен() FAILED
+PkgS324Batch2SourceContractsTest > BR-190 ключ фильтра даты совпадает с контроллерами() FAILED
+12 tests completed, 12 failed
+```
+
+Показательные сообщения «до»:
+
+```
+BR-193: println в модели чата заменён на SLF4J (BR-193) ==> expected: <false> but was: <true>
+BR-196: нужен единый helper нормализации пагинации (BR-196) ==> expected: <true> but was: <false>
+BR-191: нужен публичный разбор даты публикации ==> expected: not <null>
+```
+
+Вывод «после» — `BUILD SUCCESSFUL` (12/12 проходят).
+
+Регрессионный тест партии 2: `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS324Batch2SourceContractsTest.kt`
+(12 тестов; новые API проверяются через рефлексию — чтобы класс собирался и на старом коде).
+
+### Побочные эффекты правок (важно для ревью)
+
+1. **BR-193 меняет коды ответов чата**: `200` → `503` при сбое БД (`chat.messages.unavailable`,
+   `chat.count.unavailable`, `chat.mark_read.unavailable`, `chat.threads.unavailable`); счётчики
+   чата на публичной стороне возвращают `-1` (признак ошибки) вместо `0`.
+2. **BR-191** теперь отклоняет сохранение песни с датой/временем вне формата (`dd.MM.yy` / `HH:MM`)
+   — `400` с текстом ошибки. В БД уже есть legacy-значения; они не мигрируются (миграции
+   запрещены пакетом), но больше не роняют страницу публикаций — просто пропускаются с WARN.
+3. **BR-189** при конфликте слота первая песня остаётся в сетке (раньше её затирала вторая),
+   а вторая не показывается — и это видно в журнале. Само ограничение на уровне БД (UNIQUE) —
+   за владельцем.
+4. **BR-198** при недоступной БД задание **не создаётся** (fail-closed), клиент получает `503`.
+5. **BR-197** кеш uuid живёт в процессе: после перезапуска он перечитывается из БД.
+
+### За владельцем (партия 2)
+
+| Вопрос | Почему за владельцем | Что сделано в коде meanwhile |
+|---|---|---|
+| Частичный UNIQUE-индекс на `(publish_date, publish_time)` (BR-189) | требует миграции и дедупликации существующих дублей (запись в БД запрещена пакетом) | конфликт слота больше не затирается молча — WARN с id песен |
+| Дедупликация авторов + UNIQUE на `tbl_authors.author` (BR-184, партия 1) | то же | дубль не создаётся при сбое чтения (`throwOnError`) |
+| Гонка «два параллельных премиум-события → два приветственных сообщения» (BR-194) | требует CAS-обновления в БД (`UPDATE … WHERE welcome_message_sent = false`) в одной транзакции с вставкой сообщения | флаг ставится только после успешного создания и сохранения; дубль остаётся возможен при параллельных событиях (S3) |
 
 ---
 

@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.sql.SQLException
 import java.sql.Timestamp
+import org.slf4j.LoggerFactory
 
 // «Чат с автором проекта». Одно сообщение в непрерывном треде site_user_id <-> автор (append-only,
 // сообщения не редактируются). Таблица живёт ЦЕЛИКОМ на PROD-БД (не участвует в LOCAL<->SERVER
@@ -71,6 +72,22 @@ class SiteChatMessage(
         )
 
     companion object {
+        /**
+         * BR-193 (аудит #336, пакет `PKG-S3-24`): категория логов чата.
+         *
+         * Раньше шесть методов гасили `SQLException` в `println` по `e.message` —
+         * без стека, без уровня и без логгера (ADR `local-0005`).
+         */
+        private val chatLog = LoggerFactory.getLogger("infra.chat")
+
+        /**
+         * BR-193: признак «счётчик не удалось получить» (сбой БД).
+         *
+         * Обычные значения счётчика — неотрицательные, поэтому `-1` однозначно читается
+         * как ошибка и не может быть принят за «сообщений нет».
+         */
+        const val COUNT_ERROR = -1
+
         const val TABLE_NAME = "tbl_site_chat_messages"
         const val DEFAULT_PAGE_SIZE = 10
         const val MAX_PAGE_SIZE = 2000
@@ -111,7 +128,11 @@ class SiteChatMessage(
             beforeId: Long? = null,
             afterId: Long? = null,
         ): List<SiteChatMessage> {
-            val connection = database.getConnection() ?: return emptyList()
+            // BR-193: «нет соединения» — это ошибка, а не «переписки нет»: раньше
+            // пользователь видел пустой чат (выглядит как стёртая переписка).
+            val connection =
+                database.getConnection()
+                    ?: throw SQLException("chat.messages.unavailable: нет соединения с БД")
             val result = mutableListOf<SiteChatMessage>()
             val where = StringBuilder("site_user_id = ?")
             if (beforeId != null) where.append(" AND id < ?")
@@ -145,16 +166,26 @@ class SiteChatMessage(
                     }
                 }
             } catch (e: SQLException) {
-                println("SiteChatMessage.loadPageByUser SQLException: ${e.message}")
+                // BR-193: SLF4J с объектом исключения (ADR local-0005) + проброс —
+                // пустой чат неотличим от «переписки нет».
+                chatLog.warn("SiteChatMessage.loadPageByUser: SQL-ошибка (sqlState={}, siteUserId={})", e.sqlState, siteUserId, e)
+                throw e
             }
             return if (orderDesc) result.asReversed() else result
         }
 
+        /**
+         * Число сообщений пользователя.
+         *
+         * BR-193: при сбое БД возвращается признак ошибки [COUNT_ERROR], а не `0` — «0 сообщений»
+         * и «не удалось посчитать» должны различаться (иначе пагинация чата показывала
+         * «сообщений нет» при сбое БД).
+         */
         fun countByUser(
             siteUserId: Long,
             database: KaraokeConnection,
         ): Int {
-            val connection = database.getConnection() ?: return 0
+            val connection = database.getConnection() ?: return COUNT_ERROR
             val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE site_user_id = ?"
             return try {
                 connection.prepareStatement(sql).use { ps ->
@@ -162,18 +193,25 @@ class SiteChatMessage(
                     ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
                 }
             } catch (e: SQLException) {
-                println("SiteChatMessage.countByUser SQLException: ${e.message}")
-                0
+                chatLog.warn("SiteChatMessage.countByUser: SQL-ошибка (sqlState={}, siteUserId={})", e.sqlState, siteUserId, e)
+                COUNT_ERROR
             }
         }
 
         // Непрочитанные автором сообщения В КОНКРЕТНОМ треде — бейдж на публичной стороне
         // (в отличие от countUnreadFromUsers, который считает глобально по всем тредам для webvue3).
+
+        /**
+         * Непрочитанные автором сообщения в треде пользователя.
+         *
+         * BR-193: при сбое БД возвращается признак ошибки [COUNT_ERROR], а не `0` — иначе
+         * бейдж непрочитанных просто исчезал бы (пользователь думал бы, что прочитал всё).
+         */
         fun countUnreadForUser(
             siteUserId: Long,
             database: KaraokeConnection,
         ): Int {
-            val connection = database.getConnection() ?: return 0
+            val connection = database.getConnection() ?: return COUNT_ERROR
             val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE site_user_id = ? AND is_from_author = true AND is_read = false"
             return try {
                 connection.prepareStatement(sql).use { ps ->
@@ -181,8 +219,8 @@ class SiteChatMessage(
                     ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
                 }
             } catch (e: SQLException) {
-                println("SiteChatMessage.countUnreadForUser SQLException: ${e.message}")
-                0
+                chatLog.warn("SiteChatMessage.countUnreadForUser: SQL-ошибка (sqlState={}, siteUserId={})", e.sqlState, siteUserId, e)
+                COUNT_ERROR
             }
         }
 
@@ -260,7 +298,9 @@ class SiteChatMessage(
                     }
                 }
             } catch (e: SQLException) {
-                println("SiteChatMessage.loadThreads SQLException: ${e.message}")
+                // BR-193: SLF4J + проброс — пустой список тредов неотличим от «тредов нет».
+                chatLog.warn("SiteChatMessage.loadThreads: SQL-ошибка (sqlState={})", e.sqlState, e)
+                throw e
             }
             return result
         }
@@ -268,16 +308,23 @@ class SiteChatMessage(
         // Непрочитанные автором сообщения от пользователей (глобально, по всем тредам) — для
         // мониторинга и бейджа меню webvue3. Симметричный подсчёт «непрочитанные от автора» не нужен
         // глобально — публичная сторона (PublicChatController.unreadCount) считает только свой тред.
+
+        /**
+         * Непрочитанные сообщения от пользователей (глобально, по всем тредам).
+         *
+         * BR-193: при сбое БД возвращается признак ошибки [COUNT_ERROR], а не `0` — «непрочитанных
+         * нет» и «не удалось посчитать» должны различаться.
+         */
         fun countUnreadFromUsers(database: KaraokeConnection): Int {
-            val connection = database.getConnection() ?: return 0
+            val connection = database.getConnection() ?: return COUNT_ERROR
             val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE is_from_author = false AND is_read = false"
             return try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
                 }
             } catch (e: SQLException) {
-                println("SiteChatMessage.countUnreadFromUsers SQLException: ${e.message}")
-                0
+                chatLog.warn("SiteChatMessage.countUnreadFromUsers: SQL-ошибка (sqlState={})", e.sqlState, e)
+                COUNT_ERROR
             }
         }
 
@@ -285,29 +332,40 @@ class SiteChatMessage(
         fun markThreadReadByAuthor(
             siteUserId: Long,
             database: KaraokeConnection,
-        ): Unit = markThreadRead(siteUserId, database, isFromAuthor = false)
+        ): Boolean = markThreadRead(siteUserId, database, isFromAuthor = false)
 
         // Открытие треда пользователем — все сообщения ОТ автора помечаются прочитанными.
         fun markThreadReadByUser(
             siteUserId: Long,
             database: KaraokeConnection,
-        ): Unit = markThreadRead(siteUserId, database, isFromAuthor = true)
+        ): Boolean = markThreadRead(siteUserId, database, isFromAuthor = true)
 
+        /**
+         * Пометить сообщения прочитанными.
+         *
+         * BR-193: возвращает признак успеха — раньше сбой UPDATE был тихим no-op,
+         * и вызывающий контроллер считал, что сообщения помечены (на деле они остались
+         * непрочитанными, и бейдж не уменьшался).
+         *
+         * @return `true` — помечены (или нечего было помечать), `false` — сбой БД.
+         */
         private fun markThreadRead(
             siteUserId: Long,
             database: KaraokeConnection,
             isFromAuthor: Boolean,
-        ) {
-            val connection = database.getConnection() ?: return
+        ): Boolean {
+            val connection = database.getConnection() ?: return false
             val sql = "UPDATE $TABLE_NAME SET is_read = true WHERE site_user_id = ? AND is_from_author = ? AND is_read = false"
-            try {
+            return try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.setLong(1, siteUserId)
                     ps.setBoolean(2, isFromAuthor)
                     ps.executeUpdate()
                 }
+                true
             } catch (e: SQLException) {
-                println("SiteChatMessage.markThreadRead SQLException: ${e.message}")
+                chatLog.warn("SiteChatMessage.markThreadRead: SQL-ошибка (sqlState={}, siteUserId={})", e.sqlState, siteUserId, e)
+                false
             }
         }
     }

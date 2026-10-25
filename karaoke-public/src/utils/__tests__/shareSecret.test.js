@@ -160,10 +160,7 @@ describe('BR-299 / BR-301: контракт исходников (падает �
       !/localStorage\.getItem\(storageKey/.test(src),
       'capability-URL не должен читаться из localStorage (BR-299)',
     )
-    assert.ok(
-      src.includes('resolveSecretStorage'),
-      'нужен sessionStorage-хранилище для секрета',
-    )
+    assert.ok(src.includes('resolveSecretStorage'), 'нужен sessionStorage-хранилище для секрета')
   })
 
   test('ShareLinkModal сверяет created с ответом polling', () => {
@@ -172,10 +169,7 @@ describe('BR-299 / BR-301: контракт исходников (падает �
       src.includes('reconcileCreatedLink'),
       'polling должен сверять созданную ссылку с фактическим состоянием (BR-301)',
     )
-    assert.ok(
-      src.includes('createdLinkId'),
-      'нужно хранить id созданной ссылки для сверки',
-    )
+    assert.ok(src.includes('createdLinkId'), 'нужно хранить id созданной ссылки для сверки')
   })
 
   test('useAuth чистит секреты при выходе и смене пользователя', () => {

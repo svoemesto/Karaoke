@@ -64,7 +64,13 @@ describe('BR-296: результат копирования проверяетс
   test('clipboard API отклонил, execCommand вернул FALSE — false (буфер пуст)', async () => {
     const doc = fakeDocument({ execResult: false })
     const ok = await copyTextToClipboard('https://example.test/s', {
-      navigator: { clipboard: { writeText: async () => { throw new Error('denied') } } },
+      navigator: {
+        clipboard: {
+          writeText: async () => {
+            throw new Error('denied')
+          },
+        },
+      },
       document: doc,
     })
     assert.equal(
@@ -77,7 +83,13 @@ describe('BR-296: результат копирования проверяетс
   test('clipboard API отклонил, execCommand БРОСИЛ — false', async () => {
     const doc = fakeDocument({ execThrows: true })
     const ok = await copyTextToClipboard('https://example.test/s', {
-      navigator: { clipboard: { writeText: async () => { throw new Error('denied') } } },
+      navigator: {
+        clipboard: {
+          writeText: async () => {
+            throw new Error('denied')
+          },
+        },
+      },
       document: doc,
     })
     assert.equal(ok, false)

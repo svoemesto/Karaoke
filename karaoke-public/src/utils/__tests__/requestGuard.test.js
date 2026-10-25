@@ -92,10 +92,7 @@ describe('BR-300 / BR-315 / BR-321: контракт исходников (па�
 
   test('songs store: один счётчик поколения выдачи на search и loadMore', () => {
     const src = readSource('src/store/modules/songs.js')
-    assert.ok(
-      src.includes('createRequestGuard'),
-      'нужен общий счётчик поколения выдачи',
-    )
+    assert.ok(src.includes('createRequestGuard'), 'нужен общий счётчик поколения выдачи')
     assert.ok(
       !/latestSearchId/.test(src) && !/latestLoadMoreId/.test(src),
       'старые независимые счётчики должны быть убраны (BR-321)',

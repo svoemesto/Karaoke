@@ -15,11 +15,7 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  CART_TOGGLE_RESULT,
-  classifyCartToggle,
-  needsCartLoad,
-} from '../cartToggle.js'
+import { CART_TOGGLE_RESULT, classifyCartToggle, needsCartLoad } from '../cartToggle.js'
 import { readSource } from './sourceContract.js'
 
 describe('BR-297: результат toggle разбирается', () => {
@@ -133,9 +129,6 @@ describe('BR-297 / BR-314: контракт исходников (падает �
 
   test('useAuthBootstrap сбрасывает корзину при logout', () => {
     const src = readSource('src/composables/useAuthBootstrap.js')
-    assert.ok(
-      src.includes('resetCart'),
-      'при logout корзина должна сбрасываться (BR-314)',
-    )
+    assert.ok(src.includes('resetCart'), 'при logout корзина должна сбрасываться (BR-314)')
   })
 })

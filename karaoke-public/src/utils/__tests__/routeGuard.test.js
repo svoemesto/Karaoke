@@ -68,7 +68,10 @@ describe('BR-316 / BR-317: контракт исходников (падает �
   test('useNewsUnreadCount: polling останавливается при !isAuthenticated()', () => {
     const src = readCode('src/composables/useNewsUnreadCount.js')
     assert.ok(src.includes('shouldPollNews'), 'нужна проверка условия polling')
-    const apply = src.slice(src.indexOf('function applyRouteState(route)'), src.indexOf('function init(route)'))
+    const apply = src.slice(
+      src.indexOf('function applyRouteState(route)'),
+      src.indexOf('function init(route)'),
+    )
     assert.ok(
       /if \(!shouldPollNews\(isAuthenticated\(\), hidden\)\) \{[\s\S]{0,200}stopPolling\(\)/.test(
         apply,

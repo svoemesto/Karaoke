@@ -293,10 +293,7 @@ describe('BR-304…BR-311: контракт исходников (падает �
   test('pre-roll: пауза не сбрасывает _isPrerolling', () => {
     const src = readSource('src/player/KaraokePlayer.js')
     const pause = src.slice(src.indexOf('  _pause() {'), src.indexOf('  _stopSources()'))
-    assert.ok(
-      src.includes('_prerollPaused = true'),
-      'нужен отдельный флаг паузы в pre-roll',
-    )
+    assert.ok(src.includes('_prerollPaused = true'), 'нужен отдельный флаг паузы в pre-roll')
     assert.ok(
       !/this\._isPrerolling = false/.test(pause),
       'в _pause() _isPrerolling не должен сбрасываться (иначе время прыгает)',
@@ -360,7 +357,10 @@ describe('BR-304…BR-311: контракт исходников (падает �
   test('Canvas: feature-detection и try/catch в рендер-цикле', () => {
     const src = readCode('src/player/KaraokePlayer.js')
     assert.ok(src.includes('createBackgroundCanvas'), 'нужен fallback вместо OffscreenCanvas')
-    assert.ok(!/new OffscreenCanvas\(/.test(src), 'прямой вызов OffscreenCanvas без проверки — старый баг')
+    assert.ok(
+      !/new OffscreenCanvas\(/.test(src),
+      'прямой вызов OffscreenCanvas без проверки — старый баг',
+    )
     assert.ok(src.includes('roundRectPath'), 'roundRect должен идти через helper с fallback')
     assert.ok(!/ctx\.roundRect\(/.test(src), 'прямые вызовы ctx.roundRect — старый баг')
     const loop = src.slice(src.indexOf('  _startRenderLoop() {'), src.indexOf('// ─── Background'))

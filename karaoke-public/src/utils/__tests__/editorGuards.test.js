@@ -196,10 +196,16 @@ describe('BR-338: расхождение текста и разметки', () =
 describe('BR-331…BR-338: контракт исходников (падает на старом коде)', () => {
   test('saveNow возвращает признак успеха, submit прерывается', () => {
     const src = readCode('src/views/EditorWorkView.vue')
-    const save = src.slice(src.indexOf('    async saveNow() {'), src.indexOf('    // --- Превью в плеере ---'))
+    const save = src.slice(
+      src.indexOf('    async saveNow() {'),
+      src.indexOf('    // --- Превью в плеере ---'),
+    )
     assert.ok(/return true/.test(save), 'saveNow должен возвращать признак успеха')
     assert.ok(/return false/.test(save), 'saveNow должен возвращать false при ошибке')
-    const submit = src.slice(src.indexOf('    async submit() {'), src.indexOf('    async recall() {'))
+    const submit = src.slice(
+      src.indexOf('    async submit() {'),
+      src.indexOf('    async recall() {'),
+    )
     assert.ok(
       /if \(!isSaveSuccessful\(this\.saveState\)\) \{/.test(submit),
       'submit обязан прерваться, если черновик не сохранён (BR-331)',
@@ -208,10 +214,7 @@ describe('BR-331…BR-338: контракт исходников (падает �
 
   test('статус из ответа save не применяется слепо', () => {
     const src = readCode('src/views/EditorWorkView.vue')
-    assert.ok(
-      src.includes('mergeSaveStatus'),
-      'нужен mergeSaveStatus (BR-332)',
-    )
+    assert.ok(src.includes('mergeSaveStatus'), 'нужен mergeSaveStatus (BR-332)')
     assert.ok(
       !/if \(body && body\.status\) this\.status = body\.status/.test(src),
       'слепое присваивание статуса из ответа save — старый баг',
@@ -220,7 +223,10 @@ describe('BR-331…BR-338: контракт исходников (падает �
 
   test('листенеры вешаются ДО асинхронной загрузки и снимаются в beforeUnmount', () => {
     const src = readCode('src/views/EditorWorkView.vue')
-    const mounted = src.slice(src.indexOf('  async mounted() {'), src.indexOf('  beforeUnmount() {'))
+    const mounted = src.slice(
+      src.indexOf('  async mounted() {'),
+      src.indexOf('  beforeUnmount() {'),
+    )
     const addIdx = mounted.indexOf("window.addEventListener('keydown'")
     const awaitIdx = mounted.indexOf('await this.fetchMe()')
     assert.ok(addIdx >= 0, 'keydown должен навешиваться')
@@ -247,14 +253,14 @@ describe('BR-331…BR-338: контракт исходников (падает �
 
   test('setActiveSound: сначала загрузка, потом фиксация', () => {
     const src = readCode('src/views/EditorWorkView.vue')
-    const fn = src.slice(src.indexOf('    async setActiveSound(sound) {'), src.indexOf('    // --- Голоса ---'))
+    const fn = src.slice(
+      src.indexOf('    async setActiveSound(sound) {'),
+      src.indexOf('    // --- Голоса ---'),
+    )
     const loadIdx = fn.indexOf('await this.ws.load(url)')
     const setIdx = fn.indexOf('this.activeSound = sound')
     assert.ok(loadIdx >= 0, 'загрузка стема обязательна')
-    assert.ok(
-      setIdx > loadIdx,
-      'activeSound должен фиксироваться ПОСЛЕ успешной загрузки (BR-336)',
-    )
+    assert.ok(setIdx > loadIdx, 'activeSound должен фиксироваться ПОСЛЕ успешной загрузки (BR-336)')
     assert.ok(fn.includes('catch'), 'reject от загрузки должен обрабатываться')
   })
 
@@ -273,7 +279,10 @@ describe('BR-331…BR-338: контракт исходников (падает �
     assert.ok(src.includes('voiceLabelPlan'), 'нужен план разметки голоса (BR-338)')
     assert.ok(src.includes('trimTrailingEmptyVoices'), 'нужен обрез пустых голосов')
     assert.ok(src.includes('lengthMismatchWarning'), 'нужно предупреждение о расхождении длин')
-    const loop = src.slice(src.indexOf('      for (let i = 0; i < voiceCount; i++) {'), src.indexOf('      this.currentVoiceIdx = 0'))
+    const loop = src.slice(
+      src.indexOf('      for (let i = 0; i < voiceCount; i++) {'),
+      src.indexOf('      this.currentVoiceIdx = 0'),
+    )
     assert.ok(
       /if \(plan\.relabel\) \{/.test(loop),
       'без текста relabelSyllables вызываться не должен',

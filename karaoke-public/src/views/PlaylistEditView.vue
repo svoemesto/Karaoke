@@ -601,10 +601,7 @@ export default {
     async function onReorder() {
       const previousOrder = items.value.map((it) => it.songId)
       try {
-        const { status } = await reorderPlaylist(
-          id,
-          previousOrder,
-        )
+        const { status } = await reorderPlaylist(id, previousOrder)
         if (status === 200) {
           // Отложенный push (FR-010): если пользователь сделал drag-drop сразу после клика ▶ —
           // даём плееру время применить свою очередь из playPos() до нашего setqueue.

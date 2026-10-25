@@ -59,14 +59,8 @@ describe('BR-326: тексты цен собираются из тарифов',
 describe('BR-326: контракт исходников (падает на старом коде)', () => {
   test('AboutView не содержит зашитых цен', () => {
     const src = readCode('src/views/AboutView.vue')
-    assert.ok(
-      !/449\s*₽/.test(src),
-      'цена 449 ₽/мес была зашита в текст страницы (BR-326)',
-    )
-    assert.ok(
-      !/49\s*₽(?!.*priceRub)/.test(src),
-      'цена 49 ₽ была зашита в текст страницы (BR-326)',
-    )
+    assert.ok(!/449\s*₽/.test(src), 'цена 449 ₽/мес была зашита в текст страницы (BR-326)')
+    assert.ok(!/49\s*₽(?!.*priceRub)/.test(src), 'цена 49 ₽ была зашита в текст страницы (BR-326)')
     assert.ok(src.includes('priceTexts'), 'цены должны собираться из тарифов')
     assert.ok(
       /apiGet\('\/api\/public\/account\/subscription\/tariffs', \{ scope: 'SITE' \}\)/.test(src),

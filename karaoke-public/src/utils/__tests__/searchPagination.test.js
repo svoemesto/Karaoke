@@ -84,7 +84,10 @@ describe('BR-344 / BR-345: контракт исходников (падает �
 
   test('SearchView: restoreFromUrl сбрасывает срез при targetPage <= 1', () => {
     const src = readCode('src/views/SearchView.vue')
-    const fn = src.slice(src.indexOf('    async restoreFromUrl() {'), src.indexOf('  },\n}\n</script>'))
+    const fn = src.slice(
+      src.indexOf('    async restoreFromUrl() {'),
+      src.indexOf('  },\n}\n</script>'),
+    )
     assert.ok(
       !/if \(targetPage <= 1\) return/.test(fn),
       'ранний return оставлял state на странице 2 при URL с page=1 (BR-344)',

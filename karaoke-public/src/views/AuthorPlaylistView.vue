@@ -236,9 +236,7 @@ export default {
       else if (s === SONG_STATUS.PREMIUM) openPremiumRequired({ benefits: PREMIUM_BENEFITS })
     }
 
-    const hasPlayable = computed(() =>
-      playableSongIds(songs.value, statusMap.value).length > 0,
-    )
+    const hasPlayable = computed(() => playableSongIds(songs.value, statusMap.value).length > 0)
 
     function playableIds() {
       const arr = playableSongIds(songs.value, statusMap.value)

@@ -17,12 +17,7 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  LOAD_STATE,
-  classifyLoad,
-  loadErrorCode,
-  loadErrorMessage,
-} from '../loadState.js'
+import { LOAD_STATE, classifyLoad, loadErrorCode, loadErrorMessage } from '../loadState.js'
 import { readSource } from './sourceContract.js'
 
 const isEmptyArray = (b) => !b || !Array.isArray(b.items) || b.items.length === 0
@@ -99,15 +94,15 @@ describe('BR-322 / BR-323 / BR-318 / BR-334 / BR-341 / BR-343 / BR-346: конт
   test('HomeView показывает «недоступно» вместо нулей', () => {
     const src = readSource('src/views/HomeView.vue')
     assert.ok(src.includes('statsError'), 'нужно отличать ошибку от данных')
-    assert.ok(
-      /v-if="statsError"/.test(src),
-      'блок статистики должен иметь ветку ошибки',
-    )
+    assert.ok(/v-if="statsError"/.test(src), 'блок статистики должен иметь ветку ошибки')
   })
 
   test('usePlaylistMembership: try/catch вокруг fetchPlaylists', () => {
     const src = readSource('src/composables/usePlaylistMembership.js')
-    const fn = src.slice(src.indexOf('async function loadPlaylists'), src.indexOf('// ---- BroadcastChannel'))
+    const fn = src.slice(
+      src.indexOf('async function loadPlaylists'),
+      src.indexOf('// ---- BroadcastChannel'),
+    )
     assert.ok(
       /try\s*\{[\s\S]*fetchPlaylists\(\)[\s\S]*\}\s*catch/.test(fn),
       'loadPlaylists должен ловить сетевой reject (BR-318)',
@@ -121,17 +116,20 @@ describe('BR-322 / BR-323 / BR-318 / BR-334 / BR-341 / BR-343 / BR-346: конт
       /try\s*\{[\s\S]*fetchTask\([\s\S]*\}\s*catch/.test(fn),
       'fetchTask должен быть в try/catch (BR-334)',
     )
-    assert.ok(/finally\s*\{[\s\S]{0,120}this\.loading = false/.test(fn), 'loading сбрасывается в finally')
+    assert.ok(
+      /finally\s*\{[\s\S]{0,120}this\.loading = false/.test(fn),
+      'loading сбрасывается в finally',
+    )
   })
 
   test('PlaylistEditView: notFound только на 404', () => {
     const src = readSource('src/views/PlaylistEditView.vue')
     assert.ok(src.includes('classifyLoad'), 'нужна классификация ответа')
-    const fn = src.slice(src.indexOf('async function load()'), src.indexOf('// Упорядоченный список'))
-    assert.ok(
-      /notFoundStatuses: \[404\]/.test(fn),
-      'notFound ставится только на 404 (BR-341)',
+    const fn = src.slice(
+      src.indexOf('async function load()'),
+      src.indexOf('// Упорядоченный список'),
     )
+    assert.ok(/notFoundStatuses: \[404\]/.test(fn), 'notFound ставится только на 404 (BR-341)')
     assert.ok(
       /unauthorizedStatuses: \[401, 403\]/.test(fn),
       '401/403 — «войдите заново», а не «не найдено»',
@@ -141,7 +139,10 @@ describe('BR-322 / BR-323 / BR-318 / BR-334 / BR-341 / BR-343 / BR-346: конт
   test('NewsView: отдельный флаг ошибки, markAllSeen только при успехе', () => {
     const src = readSource('src/views/NewsView.vue')
     assert.ok(src.includes('loadError'), 'нужен отдельный флаг ошибки')
-    const fn = src.slice(src.indexOf('async reload()'), src.indexOf('// Ответ {items, total, hasMore}'))
+    const fn = src.slice(
+      src.indexOf('async reload()'),
+      src.indexOf('// Ответ {items, total, hasMore}'),
+    )
     assert.ok(
       /applyPage\(data, true\)[\s\S]{0,80}this\.markAllSeen\(\)[\s\S]{0,200}catch/.test(fn),
       'markAllSeen вызывается только после успешной загрузки (BR-343)',

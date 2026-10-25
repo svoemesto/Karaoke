@@ -78,7 +78,10 @@ describe('BR-320: контракт исходников (падает на ст�
       src.includes("cancelZakromaStreamAction: 'cancelZakromaStream'"),
       'store-экшен отмены должен быть промаплен',
     )
-    const fn = src.slice(src.indexOf('    cancelZakromaStream() {'), src.indexOf('    onSelectSpecialBucket()'))
+    const fn = src.slice(
+      src.indexOf('    cancelZakromaStream() {'),
+      src.indexOf('    onSelectSpecialBucket()'),
+    )
     assert.ok(
       /this\.cancelZakromaStreamAction\(\)/.test(fn),
       '«Отмена» должна вызывать отмену потока (BR-320)',

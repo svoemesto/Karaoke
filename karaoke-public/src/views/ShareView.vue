@@ -48,12 +48,30 @@
       <p v-if="isExpired" class="km-share-error">
         Срок действия этой ссылки истёк. Попросите владельца прислать новую.
       </p>
+      <!-- BR-359: сессия плеера живёт 90 секунд и продлевается только heartbeat'ом
+           плеера. Если lease истёк (пользователь задержался на карточке), показываем
+           подсказку и обновляем сессию повторным claim перед переходом в плеер. -->
+      <p v-else-if="leaseExpired" class="km-share-error">
+        Сессия просмотра истекла. Обновите её, чтобы открыть плеер.
+      </p>
       <p v-else class="km-share-note">
         Вам открыли временный доступ к этой песне в режиме онлайн-плеера.
       </p>
-      <button v-if="!isExpired" class="km-btn km-btn-primary" @click="openPlayer">
-        Открыть плеер
+      <button
+        v-if="!isExpired"
+        class="km-btn km-btn-primary"
+        :disabled="state === 'claiming'"
+        @click="openPlayer"
+      >
+        {{ state === 'claiming' ? 'Обновляем доступ…' : 'Открыть плеер' }}
       </button>
+    </div>
+
+    <div v-else-if="state === 'error'" class="km-card km-card-error">
+      <h2>Сервис временно недоступен</h2>
+      <p>{{ errorText || 'Сервис временно недоступен. Попробуйте ещё раз.' }}</p>
+      <button class="km-btn" @click="retry">Повторить</button>
+      <router-link to="/" class="km-btn">На главную</router-link>
     </div>
 
     <div v-else class="km-card km-card-error">
@@ -65,15 +83,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { claimShare } from '../services/songShareLink'
 import { formatDate } from '../utils/dateFormat.js'
+import { SHARE_STATE, needsReclaim, shareClaimState, shareErrorText } from '../utils/shareClaim.js'
 
 const route = useRoute()
 const router = useRouter()
 
-const state = ref('claiming')
+const state = ref(SHARE_STATE.CLAIMING)
+// BR-358 (аудит #336, PKG-S3-28): текст ошибки показываем пользователю (код ответа
+// сервера раньше проглатывался).
+const errorText = ref('')
 const sessionTokenHash = ref('')
 const songId = ref(0)
 // linkExpiresAt — момент истечения самой ССЫЛКИ (epoch ms, фиксированный).
@@ -84,7 +106,15 @@ const linkExpiresAt = ref(0)
 // для проверки «lease ещё жив» (если не обновлять heartbeat'ом — плеер стопать).
 // До Pass 52 использовался и для «Доступно до» — баг (пользователь видел
 // «всего +2 минуты» от текущего времени, lease).
+// BR-359 (аудит #336, PKG-S3-28): значение НАконец используется — перед переходом в
+// плеер lease проверяется, а истёкший (или неизвестный) lease продлевается повторным
+// claim. Раньше lease жил 90 секунд, продлевался только heartbeat'ом плеера, а
+// лендинг его не проверял: пользователь уходил со страницы «Открыть плеер» →
+// 404 «Ошибка: HTTP 404» вместо плеера.
 const expiresAt = ref(0)
+// BR-359: «текущее время» — реактивное, чтобы «доступно до»/«сессия истекла»
+// пересчитывались, а не замерли на значении момента рендера.
+const now = ref(Date.now())
 const songName = ref('')
 const author = ref('')
 const album = ref('')
@@ -94,8 +124,18 @@ const artistImageUrl = ref('')
 
 const linkExpiresAtLabel = computed(() => formatDate(linkExpiresAt.value))
 
+// isExpired — по linkExpiresAt, не по expiresAt (lease). Lease обновляется при
+// каждом claim/heartbeat — если бы смотрели на lease, isExpired всегда был бы
+// false (только что claim прошёл). linkExpiresAt — фиксированный, от создания
+// ссылки, не меняется — это правильный индикатор «ссылка ещё жива».
+const isExpired = computed(() => linkExpiresAt.value > 0 && linkExpiresAt.value <= now.value)
+
+// BR-359: состояние lease-сессии для показа пользователю.
+const leaseExpired = computed(() => needsReclaim(expiresAt.value, now.value))
+
 async function doClaim() {
-  state.value = 'claiming'
+  state.value = SHARE_STATE.CLAIMING
+  errorText.value = ''
   try {
     const { status, body } = await claimShare(route.params.secret)
     if (status === 200 && body && body.sessionTokenHash) {
@@ -116,29 +156,38 @@ async function doClaim() {
       // Не путать с `expiresAt` ниже — это LEASE (короткий, обновляется).
       linkExpiresAt.value = Number(body.linkExpiresAt) || 0
       expiresAt.value = Number(body.expiresAt) || 0
-      state.value = 'ready'
-      return
+      now.value = Date.now()
+      state.value = SHARE_STATE.READY
+      return true
     }
-    const code = body && body.errorCode
-    if (code === 'share.concurrentLimit') state.value = 'concurrent'
-    else if (code === 'share.rateLimited') state.value = 'ratelimited'
-    else state.value = 'notfound'
+    // BR-358: «ссылки нет» — только для доменных кодов (`share.notFound`,
+    // `share.tokenMissing`). Системная ошибка (`500 share.internal`), любой 5xx и
+    // сеть — ОТДЕЛЬНОЕ состояние «сервис недоступен» с кнопкой «Повторить»:
+    // временный сбой сервера неотличим от мёртвой ссылки — это ложный диагноз.
+    state.value = shareClaimState(status, body)
+    errorText.value = shareErrorText(state.value)
+    return false
   } catch (_e) {
-    state.value = 'error'
+    state.value = SHARE_STATE.ERROR
+    errorText.value = shareErrorText(SHARE_STATE.ERROR)
+    return false
   }
 }
-
-// isExpired — по linkExpiresAt, не по expiresAt (lease). Lease обновляется при
-// каждом claim/heartbeat — если бы смотрели на lease, isExpired всегда был бы
-// false (только что claim прошёл). linkExpiresAt — фиксированный, от создания
-// ссылки, не меняется — это правильный индикатор «ссылка ещё жива».
-const isExpired = computed(() => linkExpiresAt.value > 0 && linkExpiresAt.value <= Date.now())
 
 function retry() {
   doClaim()
 }
 
-function openPlayer() {
+async function openPlayer() {
+  if (!songId.value || !sessionTokenHash.value) return
+  // BR-359: lease сессии короткий (90 с) и продлевается только heartbeat'ом плеера.
+  // Лендинг heartbeat не шлёт — если пользователь задержался на карточке, сессия уже
+  // мертва (sweeper обнуляет её), и плеер отдаёт 404. Поэтому перед переходом
+  // проверяем lease и, если он истёк (или неизвестен), делаем повторный claim.
+  if (needsReclaim(expiresAt.value, now.value)) {
+    const claimed = await doClaim()
+    if (!claimed) return
+  }
   if (!songId.value || !sessionTokenHash.value) return
   router.replace({
     path: `/player/${songId.value}`,
@@ -146,8 +195,24 @@ function openPlayer() {
   })
 }
 
+// BR-359: пересчёт «сейчас» — чтобы «Доступно до» и «сессия истекла» не замирали
+// на значении момента рендера. Таймер снимается при уходе со страницы.
+const nowTimer = setInterval(() => {
+  now.value = Date.now()
+}, 15000)
+
+function onVisibilityChange() {
+  now.value = Date.now()
+}
+
 onMounted(() => {
+  document.addEventListener('visibilitychange', onVisibilityChange)
   doClaim()
+})
+
+onBeforeUnmount(() => {
+  clearInterval(nowTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 

@@ -142,6 +142,13 @@ export default {
       // Явное состояние экрана: checking | processing | terminal | not-found |
       // check-error | unauthorized (см. utils/subscriptionPoll.js).
       view: POLL_VIEW.CHECKING,
+      // BR-351 (аудит #336, PKG-S3-28): id таймера опроса + флаг размонтирования.
+      // Раньше `setTimeout` не сохранялся, `beforeUnmount` отсутствовал: таймер доживал
+      // 12 секунд ПОСЛЕ ухода со страницы, а при `PAID` для `scope=SONG` выполнял
+      // `$router.replace('/song?id=…')` — принудительно уводя пользователя с той
+      // страницы, на которой он уже находился.
+      pollTimer: null,
+      isUnmounted: false,
     }
   },
   computed: {
@@ -161,7 +168,19 @@ export default {
   mounted() {
     this.poll()
   },
+  // BR-351 (аудит #336, PKG-S3-28): уход со страницы отменяет опрос.
+  beforeUnmount() {
+    this.isUnmounted = true
+    this.clearPollTimer()
+  },
   methods: {
+    // BR-351: снять таймер опроса (если он есть).
+    clearPollTimer() {
+      if (this.pollTimer) {
+        clearTimeout(this.pollTimer)
+        this.pollTimer = null
+      }
+    },
     async poll() {
       const orderId = this.$route.query.orderId
       const subId = Number(this.$route.query.subId)
@@ -210,7 +229,8 @@ export default {
         ? nextPollDelay(this.attempts, MAX_POLL_ATTEMPTS, POLL_INTERVAL_MS)
         : null
       if (!terminal && delay !== null) {
-        setTimeout(() => this.poll(), delay)
+        // BR-351: id таймера сохраняем — его можно снять при размонтировании.
+        this.pollTimer = setTimeout(() => this.poll(), delay)
         // Ошибку предыдущего ответа не прячем за спиннером: пользователь должен видеть,
         // что проверка идёт, но последний ответ был неудачным (и что есть кнопка повтора).
         this.loading = this.view !== POLL_VIEW.CHECK_ERROR
@@ -227,11 +247,17 @@ export default {
         this.sub.scope === 'SONG' &&
         this.sub.idSong
       ) {
+        // BR-351: авто-переход — только если компонент ещё смонтирован и мы всё ещё
+        // на странице возврата. Иначе пользователя уводило бы с той страницы, на
+        // которой он уже оказался.
+        if (this.isUnmounted) return
+        if (this.$route.path !== '/subscription/return') return
         this.$router.replace(`/song?id=${this.sub.idSong}`)
       }
     },
     retryPoll() {
       // Ручной повтор после «не удалось проверить статус» — начинаем отсчёт заново.
+      this.clearPollTimer()
       this.attempts = 0
       this.view = POLL_VIEW.CHECKING
       this.loading = true

@@ -463,12 +463,16 @@ export default {
       return !!(this.user && this.user.canWorkWithSkipped)
     },
     // specs/293-skip-author-toggle: текущая песня имеет тег SKIP (контент удалён).
+    //
+    // BR-360 (аудит #336, PKG-S3-28): раньше читалось `currentSong.tags`, но в
+    // `SongPublicDto` поля `tags` НЕТ (только вычисленный на сервере `contentRemoved`) —
+    // геттер всегда был false: бейдж SKIP не показывался никогда, а кнопки
+    // «Поделиться»/«Временный доступ» не скрывались для SKIP-песен (сервер потом
+    // отвечал 409 SongSkipped). Теперь используем готовый флаг сервера: он считается
+    // из `tags` ТОЧНЫМ сравнением токена (split(" ").contains("SKIP")), а не
+    // подстроки — «SKIPPED» больше не ложно считается SKIP.
     isCurrentSongSkipped() {
-      return !!(
-        this.currentSong &&
-        this.currentSong.tags &&
-        this.currentSong.tags.toUpperCase().includes('SKIP')
-      )
+      return !!(this.currentSong && this.currentSong.contentRemoved)
     },
     userId() {
       return this.user && this.user.id ? Number(this.user.id) : 0

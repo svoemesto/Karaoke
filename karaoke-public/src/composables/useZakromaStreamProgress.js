@@ -33,6 +33,14 @@ export function useZakromaStreamProgress() {
   const expectedCount = ref(0)
   const errorMessage = ref(null)
   const albums = ref([])
+  // BR-354 (аудит #336, PKG-S3-28): авторские поля страницы песен автора — приходят
+  // в первом NDJSON-сообщении `meta`. Раньше они были только в REST-версии
+  // (`ZakromaPublicDto`), а при переходе на стрим терялись: блок автора показывал
+  // пустое описание/предупреждение и никогда — бейдж SKIP.
+  const authorDescription = ref('')
+  const authorShortDescription = ref('')
+  const authorWarning = ref('')
+  const authorSkip = ref(false)
 
   // Pass 186 (specs/186-zakroma-songs-fast-load):
   // - BATCH_FLUSH — yield'им браузеру каждые N сообщений (не каждое), чтобы Vue успевал
@@ -103,6 +111,11 @@ export function useZakromaStreamProgress() {
     firstChunkTs = 0
     currentAuthor = author || ''
     currentExpectedCount = expectedCountFromCaller || 0
+    // BR-354: сброс авторских полей — иначе они «залипали» бы от прошлого стрима.
+    authorDescription.value = ''
+    authorShortDescription.value = ''
+    authorWarning.value = ''
+    authorSkip.value = false
     // T016: reset debounce-таймер.
     if (showTimeout) {
       clearTimeout(showTimeout)
@@ -239,6 +252,20 @@ export function useZakromaStreamProgress() {
       case 'meta':
         // expectedCount мог прийти как ожидаемое — перезаписываем локальный
         expectedCount.value = msg.expectedCount || 0
+        // BR-354: авторские поля (описание/предупреждение/SKIP) — из `meta`.
+        // Отсутствие полей у старого бэкенда — не ошибка: остаются пустые значения.
+        if (typeof msg.authorDescription === 'string') {
+          authorDescription.value = msg.authorDescription
+        }
+        if (typeof msg.authorShortDescription === 'string') {
+          authorShortDescription.value = msg.authorShortDescription
+        }
+        if (typeof msg.authorWarning === 'string') {
+          authorWarning.value = msg.authorWarning
+        }
+        if (typeof msg.authorSkip === 'boolean') {
+          authorSkip.value = msg.authorSkip
+        }
         break
       case 'album':
         // Добавляем "albumSettings: []" — сюда будут складываться song-сообщения.
@@ -290,6 +317,11 @@ export function useZakromaStreamProgress() {
               author: currentAuthor,
               expectedCount: currentExpectedCount,
               actualCount: msg.actualCount,
+              // BR-354: авторские поля — прокидываем в store (блок автора на странице).
+              authorDescription: authorDescription.value,
+              authorShortDescription: authorShortDescription.value,
+              authorWarning: authorWarning.value,
+              authorSkip: authorSkip.value,
             })
           }
         }
@@ -504,6 +536,11 @@ export function useZakromaStreamProgress() {
     expectedCount,
     errorMessage,
     albums,
+    // BR-354: авторские поля страницы песен автора (из NDJSON-сообщения `meta`).
+    authorDescription,
+    authorShortDescription,
+    authorWarning,
+    authorSkip,
     start,
     cancel,
     cleanup,

@@ -173,6 +173,19 @@
         Ничего не найдено по запросу «{{ songFilter }}»
       </div>
 
+      <!--
+        BR-357 (аудит #336, PKG-S3-28): автор не найден в каталоге (удалён, переименован,
+        снят с публикации) — явное пустое состояние. Раньше страница была просто пустой:
+        ни стрима, ни ошибки, ни объяснения (ветка с `notify` была мёртвым no-op).
+      -->
+      <div
+        v-if="authorChosen && !isSpecialBucketSelected && authorNotFound"
+        class="km-loading km-author-not-found"
+      >
+        Автор не найден — возможно, он снят с публикации или у него нет песен.
+        <RouterLink to="/zakroma">К списку авторов</RouterLink>
+      </div>
+
       <!-- Таблица: либо обычный автор, либо виртуальный спец-автор. -->
       <template v-if="authorChosen">
         <div v-for="zak in displayedZakroma" :key="zak.author" class="km-author-block">
@@ -389,6 +402,12 @@ import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
+import {
+  authorChosenForRoute,
+  isAuthorMissing,
+  zakromaBackTarget,
+  zakromaStreamParams,
+} from '../utils/zakromaRoute.js'
 // useZakromaStreamProgress подключается в T014 (Phase 4) — полноценный UI прогрессометра.
 // На этой фазе (T010) стрим идёт через store action `loadZakromaStream`, который
 // сам инстанцирует composable и пишет в state.streamProgress/streamError.
@@ -443,7 +462,15 @@ export default {
       // Имя — резолвится в mounted() через authorTiles по selectedAuthorId.
       selectedAuthor: '',
       // Плитки-пикер видны, пока автор не выбран. После выбора (в т.ч. «Все авторы») скрываются.
-      authorChosen: hasAuthor,
+      //
+      // BR-353 (аудит #336, PKG-S3-28): состояние выводится ИЗ МАРШРУТА. Раньше здесь стояло
+      // `authorChosen: hasAuthor`, а для маршрута `/zakroma/special-bucket` `hasAuthor` всегда
+      // `false` (нет `params.authorId`) — прямой заход (F5, закладка, внешняя ссылка) рендерил
+      // сетку авторов вместо таблицы спец-корзины.
+      authorChosen: authorChosenForRoute(this.$route.path, this.$route.params),
+      // BR-357 (аудит #336, PKG-S3-28): автор не найден в каталоге тайлов — явное пустое
+      // состояние вместо молчаливой пустой страницы.
+      authorNotFound: false,
       // Режим «Отдельные песни разных авторов» — отдельный route /zakroma/special-bucket (FR-A6).
       specialBucketShown: isSpecialBucketRoute,
       // Модалка подписки на конкретную песню — открывается кликом по золотой иконке плеера.
@@ -475,6 +502,9 @@ export default {
       'isStreaming',
       'streamProgress',
       'streamError',
+      // BR-357: «каталог тайлов уже загружен» — только после этого отсутствие тайла
+      // означает «автор не найден», а не «ещё грузится».
+      'lastLoadedTilesAt',
     ]),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
@@ -547,6 +577,24 @@ export default {
       }
       return this.isStreaming
     },
+    /**
+     * BR-357 (аудит #336, PKG-S3-28): каталог тайлов уже загружен? Только после этого
+     * можно утверждать, что автора «нет» (иначе это «ещё грузится»).
+     */
+    tilesLoaded() {
+      return this.lastLoadedTilesAt > 0
+    },
+    /**
+     * BR-355 (аудит #336, PKG-S3-28): тайл выбранного автора — источник параметров
+     * запуска стрима (имя + счётчик песен). Один источник для штатного старта и для
+     * кнопки «Повторить».
+     */
+    selectedTile() {
+      if (!this.selectedAuthorId) return null
+      return (
+        (this.authorTiles || []).find((t) => String(t.id) === String(this.selectedAuthorId)) || null
+      )
+    },
     /** Back-link для AppHeader (spec 254):
      *  - null на странице выбора автора → header-back-link скрыт;
      *  - { to: '/zakroma', label: '← К списку авторов' } при выбранном авторе или
@@ -560,16 +608,17 @@ export default {
       // или показываются все песни). Это новая логика цепочки навигации
       // (Pass 70 / issue #70): /zakroma (авторы) → /zakroma/{id}/albums (НОВАЯ) →
       // /zakroma/{id}?albumId={id} или все песни.
-      if (this.authorChosen || this.selectedAlbumId != null) {
-        return {
-          to: `/zakroma/${this.selectedAuthorId}/albums`,
-          label: '← К альбомам автора',
-        }
-      }
-      if (this.specialBucketShown) {
-        return { to: '/zakroma', label: '← К списку авторов' }
-      }
-      return null
+      //
+      // BR-353 (аудит #336, PKG-S3-28): целевой маршрут считает чистая функция
+      // `zakromaBackTarget` — спец-корзина проверяется ПЕРВОЙ (иначе она уходила в
+      // `/zakroma//albums` — маршрута с пустым сегментом не существует → пустая страница),
+      // а пустой `selectedAuthorId` больше не попадает в ссылку.
+      return zakromaBackTarget({
+        authorChosen: this.authorChosen,
+        specialBucketShown: this.specialBucketShown,
+        selectedAuthorId: this.selectedAuthorId,
+        selectedAlbumId: this.selectedAlbumId,
+      })
     },
     /**
      * specs/356-zakroma-albums-by-author (FR-003): фильтр альбома через query-параметр.
@@ -683,33 +732,27 @@ export default {
      */
     tryStartZakromaStream() {
       if (!this.authorChosen || !this.selectedAuthorId) return
-      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
+      const tile = this.selectedTile
       if (tile) {
         this.selectedAuthor = tile.author
+        this.authorNotFound = false
         // Pass 359: force=true обходит 30-секундный dedup в loadZakromaStream.
         // Без force: если пользователь только что открыл новую вкладку или
         // сделал hard-refresh на /zakroma/{id}?albumId=... — lastLoadedTimestamp
         // ещё не установлен (или > 30с), но кэш state.zakroma пуст; dedup бы
         // вернул no-op, страница оставалась пустой.
-        this.loadZakromaStream({
-          author: tile.author,
-          // specs/444-fix-album-progress (issue #179): author-side `expectedCount`
-          // (tile.songCount) — это число песен всего автора. При фильтре по альбому
-          // знаменатель прогресса должен считаться по альбому, и авторитетный источник —
-          // сервер (total_song_count/ready_song_count альбома). Поэтому при активном
-          // `?albumId=` НЕ шлём авторский expectedCount, отдаём undefined.
-          expectedCount: this.selectedAlbumId != null ? undefined : tile.songCount || undefined,
-          force: true,
-          // Pass 359: бэк фильтрует по `tbl_songs.album_id` чтобы не гонять
-          // все 388 песен автора когда нужны только 10 из альбома.
-          albumId: this.selectedAlbumId,
-        })
+        //
+        // BR-355 (аудит #336, PKG-S3-28): параметры запуска — из общей чистой функции
+        // `zakromaStreamParams` (тот же набор, что и у кнопки «Повторить»).
+        const params = zakromaStreamParams(tile, this.selectedAlbumId)
+        if (params) this.loadZakromaStream(params)
       } else {
-        // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже
-        // догрузит поток когда authorTiles появится.
-        if (typeof this.notify === 'function') {
-          // no-op: раньше показывали "Автор не найден" сразу, что было преждевременно.
-        }
+        // BR-357 (аудит #336, PKG-S3-28): автор не найден в каталоге — явное пустое
+        // состояние. Раньше здесь был мёртвый no-op (`typeof this.notify === 'function'`),
+        // и пользователь по битой/старой ссылке видел пустую страницу без объяснения.
+        // Важно: состояние выставляется ТОЛЬКО после загрузки каталога (`tilesLoaded`) —
+        // иначе это «ещё грузится», а не «автора нет».
+        this.authorNotFound = isAuthorMissing(tile, this.tilesLoaded)
       }
     },
     // BR-320: store-экшен отмены мапим под другим именем — локальный метод
@@ -917,7 +960,16 @@ export default {
     },
     retryLoadZakroma() {
       // FR-FE-001: повторный запуск после ошибки.
-      this.onAuthorSelect(this.selectedAuthor)
+      //
+      // BR-355 (аудит #336, PKG-S3-28): «Повторить» повторяет ЗАПУСК СТРИМА с теми же
+      // параметрами, что и штатный старт (автор, expectedCount, albumId, force) — БЕЗ
+      // навигации. Раньше здесь был `onAuthorSelect(this.selectedAuthor)`, а тот (со
+      // specs/356) делает `router.push('/zakroma/{id}/albums')` и сбрасывает локальное
+      // состояние: кнопка «Повторить» не повторяла загрузку, а уводила со страницы —
+      // упавший стрим так и не перезапускался.
+      const params = zakromaStreamParams(this.selectedTile, this.selectedAlbumId)
+      if (!params) return
+      this.loadZakromaStream(params)
     },
     cancelZakromaStream() {
       // FR-FE-006: «Отмена» → abort fetch + возврат к сетке авторов.

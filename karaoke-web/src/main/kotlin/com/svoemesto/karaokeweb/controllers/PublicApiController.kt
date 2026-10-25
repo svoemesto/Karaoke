@@ -646,7 +646,30 @@ class PublicApiController(
                                 database = WORKING_DATABASE,
                             )[auth] ?: 0L
                         }
-                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, metaExpectedCount)))
+                    // BR-354: метаданные автора (описание/предупреждение/SKIP) — для `meta`.
+                    val authorMeta = Author.loadPublicMetaByName(auth, WORKING_DATABASE)
+                    writer.write(
+                        mapper.writeValueAsString(
+                            ZakromaStreamMessageDto.meta(
+                                auth,
+                                metaExpectedCount,
+                                // BR-354 (аудит #336, PKG-S3-28): авторские поля страницы
+                                // песен автора. Раньше они были только в REST-версии
+                                // (`ZakromaPublicDto`), а при переходе на NDJSON-стрим терялись —
+                                // блок автора показывал пустое описание/предупреждение и
+                                // никогда — бейдж SKIP. Метаданные читаются одним лёгким
+                                // raw-SELECT'ом (без создания сущности Author и без storage).
+                                //
+                                // `authorSkip` отдаём только тем, кто имеет право видеть
+                                // SKIP-контент (`canSeeSkipped`) — иначе это раскрытие
+                                // скрытого автора обычному посетителю.
+                                authorDescription = authorMeta.description,
+                                authorShortDescription = authorMeta.shortDescription,
+                                authorWarning = authorMeta.warning,
+                                authorSkip = if (canSeeSkipped) authorMeta.skip else null,
+                            ),
+                        ),
+                    )
                     writer.newLine()
                     writer.flush()
                     // Явный out.flush() — гарантирует, что servlet-буфер

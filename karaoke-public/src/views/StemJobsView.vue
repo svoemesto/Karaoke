@@ -186,6 +186,7 @@
 import { authGet, authPost, authUpload } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
 import AppHeader from '../components/AppHeader.vue'
+import { visibleJobs } from '../utils/stemJobs.js'
 
 const STEM_LABELS = {
   accompaniment: 'Музыка',
@@ -200,7 +201,9 @@ const MAX_DURATION_SECONDS = 60 * 60
 const MAX_ACTIVE_JOBS = 5
 const ALLOWED_EXTENSIONS = ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'wma', 'opus', 'aiff']
 
-let pollTimer = null
+// BR-361 (аудит #336, PKG-S3-28): ручка таймера опроса переехала на ИНСТАНС компонента
+// (`data().pollTimer`). Раньше `pollTimer` был переменной уровня модуля: следующий
+// монтаж перезаписывал ручку, и уже утекший интервал становилось невозможно снять.
 
 /**
  * View-страница «Stem Jobs» — основной layout и data-fetching.
@@ -219,6 +222,10 @@ export default {
     return {
       loading: true,
       jobs: [],
+      // BR-361: таймер опроса — на инстансе (не на уровне модуля), снимается в beforeUnmount.
+      pollTimer: null,
+      // BR-361: флаг размонтирования — колбэк таймера не трогает мёртвый компонент.
+      isUnmounted: false,
       createForm: { mode: 'DEMUCS2' },
       selectedFile: null,
       uploading: false,
@@ -247,13 +254,24 @@ export default {
       this.$router.push({ path: '/login', query: { redirect: '/account/stemjobs' } })
       return
     }
-    await this.load()
-    pollTimer = setInterval(() => {
+    // BR-361 (аудит #336, PKG-S3-28): таймер заводим СИНХРОННО, ДО `await this.load()`.
+    // Раньше он создавался после await: если пользователь уходил со страницы, пока список
+    // ещё грузился, `beforeUnmount` снимал `pollTimer` (он ещё был null), а продолжение
+    // `mounted()` затем создавало интервал на уже размонтированном инстансе — фоновый
+    // опрос ушедшей страницы каждые 7 с до закрытия вкладки (и его уже нельзя было снять).
+    this.pollTimer = setInterval(() => {
+      if (this.isUnmounted) return
       if (this.activeCount > 0) this.load(true)
     }, 7000)
+    await this.load()
   },
   beforeUnmount() {
-    if (pollTimer) clearInterval(pollTimer)
+    // BR-361: снимаем таймер и ставим флаг — колбэк больше ничего не дёргает.
+    this.isUnmounted = true
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
   },
   methods: {
     modeText(mode) {
@@ -319,7 +337,11 @@ export default {
       if (!silent) this.loading = true
       try {
         const { status, body } = await authGet('/api/public/account/stemjobs/list', this.token)
-        if (status === 200 && Array.isArray(body)) this.jobs = body
+        // BR-362 (аудит #336, PKG-S3-28): задания, помеченные к удалению, в список не
+        // возвращаются. Раньше `load(true)` подменял `jobs` ответом сервера целиком, и
+        // удалённая карточка возвращалась (с `deleteRequested=true` — «Удаляется...»,
+        // кнопка disabled) до фонового cleanup на karaoke-app (раз в 5 минут).
+        if (status === 200 && Array.isArray(body)) this.jobs = visibleJobs(body)
       } catch (e) {
         /* оставляем прежний список */
       }

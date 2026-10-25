@@ -39,6 +39,14 @@ private val albumCoverHttpClient: HttpClient =
         .build()
 
 /**
+ * BR-293 (аудит #336, пакет PKG-S3-26): сбои поиска обложки на Яндекс.Музыке.
+ *
+ * Категория `infra.cover` — сбой внешнего источника не должен выглядеть как
+ * «источник ничего не нашёл» и не должен ронять эндпоинт.
+ */
+private val albumCoverLog = LoggerFactory.getLogger("infra.cover")
+
+/**
  * Поиск и сохранение картинки альбома (LogoAlbum.png): поиск обложки на странице артиста
  * в Яндекс.Музыке (переиспользует Playwright-профиль из [UtilsPlaywright]), фолбэк — поиск
  * картинок через SearXNG, скачивание кандидата и defensive center-crop + resize до 400×400.
@@ -210,7 +218,27 @@ fun findYandexAlbumCovers(
 ): AlbumCoverSearchOutcome {
     if (authorYmId.isBlank()) return AlbumCoverSearchOutcome.NotFound("у автора не указан ymId (id на Яндекс.Музыке)")
 
-    return when (val pageResult = fetchYandexArtistAlbumsHtml(authorYmId)) {
+    // BR-293 (#398): у Яндекс-ветки не было границы ошибок — `Playwright.create()`,
+    // запуск persistent-профиля и навигация бросали исключение, которое проходило
+    // через контроллер в 500. Фолбэк (SearXNG/fourget) выполнялся только для
+    // `NotFound`, то есть при любом сбое поиск обложки был невозможен.
+    // Теперь любой сбой приводит к `NotFound` — фолбэк работает.
+    val pageResult =
+        try {
+            fetchYandexArtistAlbumsHtml(authorYmId)
+        } catch (e: Exception) {
+            albumCoverLog.error(
+                "cover: поиск на Яндекс.Музыке не удался authorYmId={} error={}",
+                authorYmId,
+                "${e::class.simpleName}: ${e.message}",
+                e,
+            )
+            return AlbumCoverSearchOutcome.NotFound(
+                "Яндекс.Музыка недоступна: ${e::class.simpleName}",
+            )
+        }
+
+    return when (pageResult) {
         is YandexAlbumsPageResult.VpnBlocked ->
             AlbumCoverSearchOutcome.NotFound("Яндекс.Музыка недоступна из-за включённого VPN")
         is YandexAlbumsPageResult.AuthExpired ->

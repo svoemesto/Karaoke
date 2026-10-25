@@ -1,8 +1,10 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.DualStream
 import com.svoemesto.karaokeapp.propertiesfiledictionary.PropertiesFileDictionary
 import com.svoemesto.karaokeapp.propertiesfiledictionary.WebvueProperties
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.properties.Delegates
@@ -35,6 +37,9 @@ lateinit var DB_REMOTE_PORT: String
 lateinit var DB_REMOTE_SSL_MODE: String
 
 // @Component
+
+/** BR-291: логгер проверки конфигурации крипты при старте приложения. */
+private val cryptoLog = LoggerFactory.getLogger("infra.crypto.config")
 
 /**
  * Сервис для karaoke app .
@@ -72,6 +77,21 @@ class KaraokeAppService(
         WVP = WebvueProperties()
         System.setOut(DualStream(System.out))
         System.setErr(DualStream(System.err))
+        // BR-291 (аудит #336, пакет PKG-S3-26): конфигурация крипты проверяется на старте.
+        // Неверная длина ключа/IV — ошибка конфигурации, а не «не удалось зашифровать»:
+        // логируем явно (ERROR), а сами операции шифрования бросают
+        // CryptoConfigurationException (fail-closed: пустая строка вместо шифротекста
+        // в удалённую БД больше не уходит). Полный отказ приложения на старте —
+        // за владельцем (см. specs/398-pkg-s3-26/report.md).
+        try {
+            Crypto.validateCurrentKeyMaterial()
+        } catch (e: Exception) {
+            cryptoLog.error(
+                "Конфигурация крипты некорректна: {} — операции шифрования будут отклонены",
+                e.message,
+                e,
+            )
+        }
         cleanupEmptyBucketsOnStartup(KSS_APP)
     }
 }

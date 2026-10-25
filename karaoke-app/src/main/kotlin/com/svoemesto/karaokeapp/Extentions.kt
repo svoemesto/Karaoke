@@ -314,6 +314,113 @@ fun getCensoredPair(
 }
 
 /**
+ * BR-289/BR-294 (аудит #336, пакет PKG-S3-26): правила цензурирования, собранные ОДИН раз.
+ *
+ * Раньше [String.censored] на каждый вызов:
+ *  - читал весь словарь «Censored» из БД (SELECT по `tbl_dictionaries`) — в пакетном
+ *    `rescanAllCensoredNames` это N песен → N SELECT'ов (BR-294);
+ *  - компилировал по два regex на каждое слово — N×M компиляций;
+ *  - подставлял значение словаря в шаблон regex КАК ЕСТЬ (без `Regex.escape`): значение
+ *    с `*`, `[]`, `()` молча превращалось в шаблон и маскировало не то, а значение с
+ *    незакрытой скобкой роняло `toRegex()` (`PatternSyntaxException`) — то есть падало
+ *    сохранение песни (BR-289).
+ *
+ * Теперь значение словаря **экранируется** (`Regex.escape`), а шаблоны компилируются
+ * один раз на весь пакет.
+ */
+class CensoredDictionaryRules private constructor(
+    private val rules: List<Rule>,
+) {
+    /** Одно правило: исходное слово, маска и два готовых шаблона. */
+    class Rule(
+        val uncensored: String,
+        val censored: String,
+        val pattern: Regex,
+        val patternUpperFirst: Regex,
+    )
+
+    /** Применяет правила к тексту. */
+    fun apply(text: String): String {
+        var result = text
+        rules.forEach { rule ->
+            result = result.replace(rule.pattern, rule.censored)
+            result = result.replace(rule.patternUpperFirst, rule.censored.uppercaseFirstLetter())
+        }
+        return result
+    }
+
+    /** Число применимых правил (для диагностики). */
+    val size: Int get() = rules.size
+
+    companion object {
+        /**
+         * Читает словарь «Censored» и собирает правила.
+         *
+         * BR-289: пустые и заведомо неразбираемые значения отбрасываются (с записью
+         * в лог) — они не маскировали ничего, но ломали либо сохранение песни
+         * (`PatternSyntaxException`), либо маску.
+         */
+        fun load(database: KaraokeConnection): CensoredDictionaryRules =
+            buildRules(CensoredWordsDictionary(database = database).dict)
+
+        /**
+         * BR-289: сборка правил из готового списка значений словаря.
+         *
+         * Вынесено отдельно от [load], чтобы правила можно было проверить БЕЗ БД
+         * (регрессионный тест пакета `PKG-S3-26`).
+         */
+        internal fun buildRules(values: List<String>): CensoredDictionaryRules {
+            val rules = mutableListOf<Rule>()
+            values.forEach { value ->
+                val (uncensored, censored) = getCensoredPair(value)
+                if (uncensored.isBlank()) {
+                    censoredLog.warn(
+                        "censor: значение словаря без слова — пропущено (длина значения={})",
+                        value.length,
+                    )
+                    return@forEach
+                }
+                // BR-289: значение словаря — литеральный текст, а не regex-шаблон.
+                val escaped = Regex.escape(uncensored)
+                val upperFirst = uncensored.uppercaseFirstLetter()
+                val pattern =
+                    try {
+                        Regex("(?<![\\p{L}\\p{N}_])$escaped(?![\\p{L}\\p{N}_])")
+                    } catch (e: Exception) {
+                        censoredLog.warn(
+                            "censor: не удалось собрать шаблон для значения словаря — значение пропущено",
+                            e,
+                        )
+                        return@forEach
+                    }
+                val patternUpperFirst =
+                    try {
+                        Regex("(?<![\\p{L}\\p{N}_])${Regex.escape(upperFirst)}(?![\\p{L}\\p{N}_])")
+                    } catch (e: Exception) {
+                        censoredLog.warn(
+                            "censor: не удалось собрать шаблон для значения словаря с заглавной буквы — значение пропущено",
+                            e,
+                        )
+                        return@forEach
+                    }
+                rules.add(
+                    Rule(
+                        uncensored = uncensored,
+                        censored = censored,
+                        pattern = pattern,
+                        patternUpperFirst = patternUpperFirst,
+                    ),
+                )
+            }
+            return CensoredDictionaryRules(rules)
+        }
+    }
+}
+
+/** BR-289/BR-294: логгер сборки правил цензурирования. */
+private val censoredLog = org.slf4j.LoggerFactory.getLogger("infra.song.voices")
+
+/**
  * Заменяет слова из словаря «Censored» на маскированную форму (см. [getCensoredPair]).
  *
  * @param database Соединение, из которого читать словарь «Censored». Параметр обязателен —
@@ -323,24 +430,19 @@ fun getCensoredPair(
  *   karaoke-app, в karaoke-web его нет) → падает с `IllegalStateException`. Дефолт
  *   был убран в specs/140 после регрессии PR #139, чтобы компилятор ловил такие места.
  *   @see specs/140-fix-zakroma-censored-database
+ *
+ * BR-294: для пакетных операций используйте перегрузку с готовыми
+ * [CensoredDictionaryRules] — словарь читается и шаблоны компилируются один раз
+ * на пакет, а не на каждую песню.
  */
-fun String.censored(database: KaraokeConnection): String {
-    val censoredMap = CensoredWordsDictionary(database = database).dict.associate { getCensoredPair(it) }
+fun String.censored(database: KaraokeConnection): String = censored(CensoredDictionaryRules.load(database))
 
-    var result = this
-    censoredMap.forEach { (uncensored, censored) ->
-        // specs/141-fix-censored-web-storage-globals: \b в Java/Kotlin regex по умолчанию
-        // использует ASCII \w = [a-zA-Z_0-9] — НЕ работает с русскими буквами. Все слова
-        // словаря «Censored» русские, поэтому до этого фикса цензурирование в принципе
-        // не срабатывало на русских названиях. Заменяем \b на lookbehind/lookahead с
-        // Unicode property \p{L} (любая буква) + \p{N} (цифра) + _ (ASCII underscore).
-        val patt1 = "(?<![\\p{L}\\p{N}_])$uncensored(?![\\p{L}\\p{N}_])".toRegex()
-        result = result.replace(patt1, censored)
-        val patt2 = "(?<![\\p{L}\\p{N}_])${uncensored.uppercaseFirstLetter()}(?![\\p{L}\\p{N}_])".toRegex()
-        result = result.replace(patt2, censored.uppercaseFirstLetter())
-    }
-    return result
-}
+/**
+ * BR-294 (аудит #336, пакет PKG-S3-26): применение заранее собранных правил.
+ *
+ * Словарь не читается заново, шаблоны не компилируются заново.
+ */
+fun String.censored(rules: CensoredDictionaryRules): String = rules.apply(this)
 
 fun String.addNewLinesByUpperCase(minNewLine: Int = 2): String {
     if (this.split("\n").size >= minNewLine) return this

@@ -11,6 +11,7 @@ import com.svoemesto.karaokeapp.services.StorageCircuitBreaker
 import com.svoemesto.karaokeapp.services.StorageFileInfo
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
@@ -165,28 +166,32 @@ private data class CacheRow(
  * `size<0` → MARK_MISSING (exists=false). Идемпотентно.
  *
  * Читаем курсором в память (source/bucket/fileName — компактно; ~140k строк).
+ *
+ * BR-288 (аудит #336, пакет PKG-S3-26): «ошибка выборки» и «нечего обрабатывать» —
+ * РАЗНЫЕ состояния. Раньше сбой БД (или отсутствие соединения) превращался в пустой
+ * список, и оператор видел SSE «завершено: обработано 0 строк» вместо ошибки —
+ * ложный успех. Теперь сбой выборки **пробрасывается** наверх: вызывающий шлёт SSE
+ * `error` и не печатает «завершено».
  */
 private fun loadRowsNeedingBackfill(): List<CacheRow> {
     val result = mutableListOf<CacheRow>()
-    try {
-        val conn = Connection.local().getConnection() ?: return result
-        conn.use { c ->
-            val sql =
-                """
-                SELECT source, bucket, file_name
-                FROM tbl_storage_metadata_cache
-                WHERE NOT exists OR size IS NULL OR etag IS NULL OR etag = ''
-                """.trimIndent()
-            c.prepareStatement(sql).use { ps ->
-                ps.executeQuery().use { rs ->
-                    while (rs.next()) {
-                        result.add(CacheRow(rs.getString(1), rs.getString(2), rs.getString(3)))
-                    }
+    val conn =
+        Connection.local().getConnection()
+            ?: throw SQLException("Нет соединения с БД для выборки строк кеша хранилища")
+    conn.use { c ->
+        val sql =
+            """
+            SELECT source, bucket, file_name
+            FROM tbl_storage_metadata_cache
+            WHERE NOT exists OR size IS NULL OR etag IS NULL OR etag = ''
+            """.trimIndent()
+        c.prepareStatement(sql).use { ps ->
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    result.add(CacheRow(rs.getString(1), rs.getString(2), rs.getString(3)))
                 }
             }
         }
-    } catch (e: Exception) {
-        cacheBackfillLog.warn("cache:backfill loadRows failed error={}", "${e::class.simpleName}: ${e.message}")
     }
     return result
 }

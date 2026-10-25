@@ -6056,15 +6056,31 @@ class ApiController(
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                println("Пересчёт готовности плеера ($scope): завершено, проверено песен: $result")
+                // BR-287 (аудит #336, пакет PKG-S3-26): успех и пропуски разделены —
+                // раньше SSE всегда показывал «Проверено песен: <всего>», даже если
+                // сотни песен упали.
+                println(
+                    "Пересчёт готовности плеера ($scope): завершено, проверено песен: " +
+                        "${result.processed}, с ошибками: ${result.failed}",
+                )
                 SNS.send(
-                    SseNotification.message(
-                        Message(
-                            type = "info",
-                            head = "Пересчёт готовности плеера ($scope)",
-                            body = "Проверено песен: $result",
-                        ),
-                    ),
+                    if (result.failed > 0) {
+                        SseNotification.error(
+                            Message(
+                                type = "error",
+                                head = "Пересчёт готовности плеера ($scope)",
+                                body = "Проверено песен: ${result.processed}, с ошибками: ${result.failed}",
+                            ),
+                        )
+                    } else {
+                        SseNotification.message(
+                            Message(
+                                type = "info",
+                                head = "Пересчёт готовности плеера ($scope)",
+                                body = "Проверено песен: ${result.processed}",
+                            ),
+                        )
+                    },
                 )
             } catch (e: Throwable) {
                 log.error("Пересчёт готовности плеера ($scope): аварийно прерван", e)
@@ -8382,7 +8398,18 @@ class ApiController(
         )
     }
 
-    // Выполнение customActions у конкретного HealthReport-а
+    /**
+     * BR-285 (аудит #336, пакет PKG-S3-26): одиночное «выполнить действие» отчёта.
+     *
+     * Раньше `solutionActions` выполнялись СИНХРОННО в потоке HTTP-запроса Tomcat, а
+     * среди них есть блокирующие операции MinIO (`downloadFile` — десятки МБ). Это
+     * нарушало инвариант storage-домена № 4 («MinIO-операции НЕ выполняются в
+     * HTTP-handler-треде для пользовательских запросов»).
+     *
+     * Теперь действие уходит в `repairExecutor` (как каскадное «Исправить всё»),
+     * эндпоинт отвечает `202 Accepted`, фактический результат приходит по SSE
+     * (`HEALTH_REPORTS` + сообщение об ошибке при сбое).
+     */
     @PostMapping("/song/executeHealthReportActions")
     @ResponseBody
     fun executeHealthReportActions(
@@ -8390,23 +8417,29 @@ class ApiController(
         @RequestParam healthReportStatusName: String,
         @RequestParam healthReportTypeName: String,
         @RequestParam description: String,
-    ) {
-        Song
-            .loadFromDbById(
+    ): ResponseEntity<Void> {
+        val song =
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )?.let { song ->
-                val healthReportDTO =
-                    HealthReportDTO(
-                        songId = id,
-                        healthReportTypeName = healthReportTypeName,
-                        healthReportStatusName = healthReportStatusName,
-                        description = description,
-                    )
-                HealthReport.getHealthReport(song = song, dto = healthReportDTO)?.executeSolutionActions()
-            }
+            ) ?: return ResponseEntity.notFound().build()
+        val healthReportDTO =
+            HealthReportDTO(
+                songId = id,
+                healthReportTypeName = healthReportTypeName,
+                healthReportStatusName = healthReportStatusName,
+                description = description,
+            )
+        HealthReport.executeHealthReportActionsAsync(
+            song = song,
+            dto = healthReportDTO,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+        return ResponseEntity.accepted().build()
     }
 
     // Получение SearchAsyncListBySongId

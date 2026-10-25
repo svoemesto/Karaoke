@@ -637,6 +637,10 @@ fun rescanAllCensoredNames(
 
                 println("rescanAllCensoredNames: найдено песен: ${ids.size}")
 
+                // BR-294 (аудит #336, пакет PKG-S3-26): словарь «Censored» читается ОДИН раз
+                // на пакет, а не на каждую песню (было N SELECT'ов + N×M компиляций regex).
+                val censoredRules = CensoredDictionaryRules.load(WORKING_DATABASE)
+
                 // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
                 val connection = WORKING_DATABASE.getConnection() ?: return@startOneShotThread
                 ids.forEachIndexed { index, id ->
@@ -658,7 +662,7 @@ fun rescanAllCensoredNames(
                         psSel.close()
 
                         processed++
-                        val censoredValue = songName.censored(WORKING_DATABASE)
+                        val censoredValue = songName.censored(censoredRules)
                         if (censoredValue != current) {
                             val psUpd =
                                 connection.prepareStatement(
@@ -5038,13 +5042,27 @@ fun calculateAbsolutePathFromSymlink(
     return resolvedTargetAbsolutePath.toString()
 }
 
+/**
+ * BR-277 (аудит #336, пакет PKG-S3-26): битая символическая ссылка.
+ *
+ * `File(path).exists()` для битого симлинка возвращает `false` (Java следует по ссылке),
+ * поэтому действие «Удалить файл» для `KARAOKE_FILE_SYMLINK`/`LEGACY_MLT_FILE_TYPES`
+ * (HealthReport → `symlinkFolderReports`) было no-op: админка писала «попытка удалить
+ * несуществующий файл», ссылка оставалась, проблема возвращалась на следующем прогоне.
+ *
+ * Теперь existence определяется как «файл есть **или** это симлинк», а удаление идёт
+ * через `Files.deleteIfExists` (для битой ссылки это единственный корректный способ).
+ */
 fun actionToDeleteFileAndFolderIfFolderEmpty(pathToFile: String): () -> Unit =
     {
         println("actionToDeleteFileAndFolderIfFolderEmpty - Удаление файла '$pathToFile' >>>")
-        val fileExists = File(pathToFile).exists()
+        val path = Path.of(pathToFile)
+        val fileExists = File(pathToFile).exists() || Files.isSymbolicLink(path)
         if (fileExists) {
             val folder = File(pathToFile).parent
-            runCommand(args = listOf("rm", "-f", pathToFile))
+            if (!Files.deleteIfExists(path)) {
+                println("actionToDeleteFileAndFolderIfFolderEmpty - не удалось удалить файл '$pathToFile'")
+            }
             val folderExists = File(folder).exists()
             if (folderExists) {
                 val folderIsEmpty = Files.list(Path(folder)).findFirst().isEmpty
@@ -5056,7 +5074,7 @@ fun actionToDeleteFileAndFolderIfFolderEmpty(pathToFile: String): () -> Unit =
                     }
                 }
             }
-            if (File(pathToFile).exists()) {
+            if (File(pathToFile).exists() || Files.isSymbolicLink(path)) {
                 println("actionToDeleteFileAndFolderIfFolderEmpty - не удалось удалить файл '$pathToFile'")
             }
         } else {

@@ -192,6 +192,24 @@ enum class HealthReportStatus(val color: String) {
 - HTTP-тред не блокируется: `executeResolvable` выполняется в фоне.
 - UI получает initial SSE мгновенно.
 
+### Пакет `PKG-S3-26` (OpenProject #398, аудит #336): непротиворечивость отчёта о здоровье
+
+Восемь записей аудита одного файла (`HealthReport.kt`) закрыты одним набором правил.
+Суть общего корня: **отчёт о здоровье не должен показывать «всё хорошо», когда
+проверка не выполнялась или выполнялась частично**, и **ремонт не должен молчать
+об ошибке**.
+
+| BR | Что было | Стало |
+|---|---|---|
+| BR-280 | На каждую пару «тип файла × локация» шёл свой `KaraokeProcess.loadList` (~18 SQL-запросов на песню, тысячи на страницу «Песни») | Задания песни читаются **одним** запросом в `getHealthReportList` и раздаются в `actions*` параметром `songProcesses`; отбор — `filterSongProcesses(...)` в памяти (те же правила, что у `loadList`: `song_id`, `process_status`, `process_type`, `thread_id`, `process_args LIKE`) |
+| BR-281 | `cachedFileInfo` возвращал `null` и при «объекта нет», и при «не удалось узнать»; вызывающий трактовал `null` как «файл актуален» → отчёт `OK` при недоступном MinIO | Типизированный результат `StorageFileInfoProbe` (`Known` / `Missing` / `Unknown`) + вердикт `FileActualityVerdict` (`ACTUAL` / `NOT_ACTUAL` / `DISK_VANISHED` / `UNKNOWN`). «Не удалось узнать» → `WARNING` + `storageStateUnknown = true` (готовность плеера не сбрасывается), а не `OK` |
+| BR-282 | `recomputeAndBroadcast` стоял **до** `submit` и вне `try`: его исключение оставляло `repairInFlight[songId] = true` навсегда — «Исправить всё» и каскад для песни молча умирали до рестарта | Guard берётся и снимается в `try/catch/finally` вокруг **всего** тела `startRepairAll` |
+| BR-283 | Ошибка удаления объекта из REMOTE гасилась `println` внутри лямбды — UI показывал «исправлено», объект оставался | `deleteRemoteFileOrThrow`: SLF4J `ERROR` с throwable **и** проброс исключения в repair-цикл |
+| BR-284 | Исключение в одном действии обрывало весь каскад: остальные действия не выполнялись, финальный пересчёт и SSE не уходили | Каждое действие — в своём `try/catch`; `executeResolvable` возвращает число неуспешных действий; ошибка уходит в лог (`infra.health.report`) и в SSE (`type=error`) |
+| BR-285 | `POST /api/song/executeHealthReportActions` выполнял `solutionActions` (в т.ч. `downloadFile` из MinIO) **синхронно в потоке Tomcat** — нарушение инварианта storage-домена № 4 | Действие уходит в `repairExecutor` (`HealthReport.executeHealthReportActionsAsync`), эндпоинт отвечает `202 Accepted`, фактический результат — по SSE (`HEALTH_REPORTS` + сообщение об ошибке) |
+| BR-286 | Непрочитанный каталог симлинков (`AccessDeniedException` и т.п.) гасился `println` + `return@forEach` — каталог выпадал из аудита, отчёт выглядел здоровым | `WARNING`-запись без действия («Каталог ссылок не прочитан») + SLF4J `WARN` с throwable |
+| BR-287 | `recalculatePlayerReadiness` считал `failed`, но возвращал `total` — SSE всегда показывал «Проверено песен: N» | Возвращается `ReadinessRecalcResult(processed, failed)`; при `failed > 0` SSE — `type=error` с обоими числами; причина ошибки логируется через SLF4J с throwable |
+
 ### Repair-loop: `startRepairAll` / `recomputeAndBroadcast`
 
 Точка входа: `HealthReport.kt:2259` (Pass 364 — async, не блокирует HTTP). Используется при:
@@ -380,6 +398,47 @@ private fun executeResolvable(reports: List<HealthReport>) {
       thread lane; описан в Async Process Queue (Pass 342).
 - [ ] **`LEGACY_MLT_FILE_TYPES`** (строка 1107): set из 4 типов,
       помечен как legacy; нужно понять, планируется ли удаление.
+
+### Пакет `PKG-S3-26` (OpenProject #398, аудит #336) — правила, зафиксированные в Knowledge
+
+| BR | Файл | Правило |
+|---|---|---|
+| BR-280 | `karaoke-app/.../HealthReport.kt` | Задания песни читаются **одним** `KaraokeProcess.loadList` в `getHealthReportList` и раздаются в `actions*` параметром `songProcesses`; отбор — `filterSongProcesses(...)` в памяти. Новый `loadList` внутри `actions*` = возврат N+1 |
+| BR-281 | `karaoke-app/.../HealthReport.kt` | `cachedFileInfo` возвращает типизированный `StorageFileInfoProbe` (`Known`/`Missing`/`Unknown`), а не `null`. «Не удалось узнать» (`Unknown`) → `WARNING` + `storageStateUnknown = true`, **не** `OK` |
+| BR-282 | `karaoke-app/.../HealthReport.kt` | Guard `repairInFlight` (`attemptEnterRepair`/`exitRepair`) берётся и снимается в `try/catch/finally` вокруг **всего** тела `startRepairAll` |
+| BR-283 | `karaoke-app/.../HealthReport.kt` | Ошибка удаления объекта из REMOTE-хранилища не гасится: `deleteRemoteFileOrThrow` логирует через SLF4J с throwable и пробрасывает исключение в repair-цикл |
+| BR-284 | `karaoke-app/.../HealthReport.kt` | Каждое действие ремонта выполняется в своём `try/catch`; `executeResolvable` возвращает число неуспешных действий, они уходят в лог и в SSE (`type=error`) |
+| BR-285 | `karaoke-app/.../HealthReport.kt` + `ApiController.kt` | `POST /api/song/executeHealthReportActions` **не** выполняет `solutionActions` в потоке HTTP-запроса (там есть блокирующие `downloadFile` из MinIO): действие уходит в `repairExecutor`, эндпоинт отвечает `202 Accepted`, результат — по SSE |
+| BR-286 | `karaoke-app/.../HealthReport.kt` | Непрочитанный каталог симлинков даёт `WARNING`-запись без действия + SLF4J `WARN` с throwable (категория `infra.health.report`), а не тихий пропуск |
+| BR-287 | `karaoke-app/.../HealthReport.kt` + `ApiController.kt` | `recalculatePlayerReadiness` возвращает `ReadinessRecalcResult(processed, failed)`; SSE показывает оба числа, при `failed > 0` — `type=error` |
+| BR-288 | `karaoke-app/.../CacheEtagSizeBackfill.kt` | Ошибка выборки строк кеша **пробрасывается** (SSE `error`), а не превращается в пустой список с сообщением «обработано 0 строк» |
+
+## Ловушки (пакет `PKG-S3-26`, OpenProject #398)
+
+1. **`null` из `cachedFileInfo` больше не означает «файл актуален».** Если вызывающий
+   хочет сравнить размер объекта с размером файла на диске, он обязан спросить
+   `fileActualityVerdict(probe, pathToFile)` и разобрать **четыре** исхода, а не два.
+   `UNKNOWN` → `WARNING` + `storageStateUnknown = true`; `NOT_ACTUAL` → delete + upload;
+   `DISK_VANISHED` → `WARNING` без действий (BR-278); `ACTUAL` → `OK`.
+2. **Готовность плеера (`song_name_censored` → `*Ready`) не сбрасывается по неполной
+   проверке.** `reconcilePlayerReadinessFlags` пропускает флаг, если отчёт помечен
+   `storageStateUnknown` или имеет статус `WAITING` (BR-279 + BR-281).
+3. **Задания песни читаются один раз.** `getHealthReportList` загружает `songProcesses`
+   и передаёт их в `actions*`. Новый код в `actions*` не должен вызывать
+   `KaraokeProcess.loadList` — это возвращает N+1 (BR-280).
+4. **Ремонт выполняется вне HTTP-треда.** `POST /api/song/executeHealthReportActions`
+   отвечает `202 Accepted` и НЕ выполняет `solutionActions` в потоке запроса: там есть
+   блокирующие `downloadFile` из MinIO (BR-285).
+5. **Guard `repairInFlight` снимается в `finally`.** Любая новая точка входа в repair
+   обязана брать guard (`attemptEnterRepair`) и снимать его (`exitRepair`) в `finally`
+   (BR-282), иначе песня «залипает» до рестарта приложения.
+6. **Ошибка действия ремонта не остаётся тихой.** `executeResolvable` возвращает число
+   неуспешных действий; вызывающий обязан показать его в SSE (BR-284).
+7. **Битый симлинк удаляется через `Files.isSymbolicLink` / `Files.deleteIfExists`.**
+   `File.exists()` для битого симлинка = `false` — действие «удалить файл» было no-op
+   (BR-277).
+8. **Логика отчёта о здоровье пишется через SLF4J-категорию `infra.health.report`**,
+   а не в `println`: пропуск проверки обязан быть виден в логах (BR-286).
 
 ## Связанные ADR | Related ADRs
 

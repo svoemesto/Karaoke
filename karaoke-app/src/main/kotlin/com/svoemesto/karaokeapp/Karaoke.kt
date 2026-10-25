@@ -662,10 +662,13 @@ class Karaoke : Serializable {
             }
 
         // Настройки текста для голосов - групп
+        // BR-276 (аудит #336, пакет PKG-S3-26): сеттер писал строку голосов в ключ
+        // "flashColor" (копипаста с соседнего свойства) — голоса не сохранялись, а
+        // настройка цвета флеша затиралась нецветовой строкой. Ключ — "voices".
         var voices: MutableList<KaraokeVoice>
             get() = getVoicesFromString(KaraokeProperties.getString("voices"))
             set(value) {
-                KaraokeProperties.set("flashColor", getStringFromVoices(value))
+                KaraokeProperties.set("voices", getStringFromVoices(value))
             }
 
         // Ширина экрана в пикселах

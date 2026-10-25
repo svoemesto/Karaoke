@@ -247,6 +247,18 @@ OpenProject в `tools/tracker-lib.sh`).
 | MLT/рендер | [mlt-pipeline](../domains/rendering/components/mlt-pipeline.md) + [ADR-0002](../adr/0002-mlt-instead-of-ffmpeg.md) | [rendering domain](../domains/rendering/) и **R-44** |
 | Auth (Spring) | [security-config](../domains/identity/components/security-config.md) | [ADR-0006](../adr/0006-processbuilder-redirect-errorstream.md) |
 
+### Гигиена репозитория: чужие фикстуры и локальные пути (BR-526, BR-531, #398)
+
+- `karaoke-app/src/main/resources/test.xml` — образец запроса ЕГРН из чужого проекта с
+  ПДн-подобными полями (ФИО, телефон, e-mail, СНИЛС, адрес). Потребителя не было,
+  но файл упаковывался в `BOOT-INF/classes/` каждого боевого jar и лежал в публичном
+  репозитории. **Удалён**; в `src/main/resources` не должно быть XML/JSON-фикстур с
+  полями ПДн.
+- `karaoke-app/src/test/kotlin/{Правильный.xml,Неправильный.xml,1,2.xml}` — реальные
+  MLT-проекты с абсолютными путями `~/Documents/Караоке/…` (личные каталоги и название
+  песни автора) в публичном репозитории. Потребителей не было. **Удалены**;
+  в тестовых ресурсах не должно быть фикстур с локальными путями.
+
 ## Ловушки (TOP-11 из AGENTS.md)
 
 См. AGENTS.md § «HARD GATES» — полный список. Краткий preview:

@@ -257,7 +257,18 @@ class StorageApiClientWeb(
     override fun fileExists(
         bucketName: String,
         fileName: String,
-    ): Boolean {
+    ): Boolean = fileExistsReliable(bucketName = bucketName, fileName = fileName) ?: false
+
+    /**
+     * BR-144 (аудит #336, пакет `PKG-S3-23`): `fileExists` с признаком «ответ достоверен».
+     *
+     * `null` — хранилище не ответило (сеть/таймаут): такой результат кешировать нельзя,
+     * иначе ошибка закрепляется в вечном кеше метаданных как «файла нет».
+     */
+    override fun fileExistsReliable(
+        bucketName: String,
+        fileName: String,
+    ): Boolean? {
         val monoCheckIfExists =
             checkIfExists(
                 bucketName = bucketName,
@@ -271,7 +282,7 @@ class StorageApiClientWeb(
                 null
             }
 //        println("Результат проверки наличия файла в удаленном хранилище: $checkIfExists")
-        return checkIfExists?.get("exists") ?: false
+        return checkIfExists?.get("exists")
     }
 
     override fun fileIsActual(

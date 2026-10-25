@@ -245,6 +245,15 @@ class StorageCircuitBreaker(
 
     /**
      * Запись success. Переход HALF_OPEN→CLOSED (probe success).
+     *
+     * BR-145 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): счётчик сбоев
+     * обнуляется на ЛЮБОМ успехе, а не только при переходе HALF_OPEN→CLOSED.
+     *
+     * Контракт домена — «N **consecutive** failures»
+     * (`knowledge/domains/storage/components/storage-api-client.md`). Раньше успешный
+     * вызов в состоянии CLOSED счётчик не трогал, и пять редких одиночных сбоев (по
+     * одному в часы/дни) открывали circuit при полностью живом MinIO. Теперь порог
+     * означает именно серию подряд.
      */
     fun recordSuccess() {
         totalSuccesses.incrementAndGet()
@@ -255,6 +264,10 @@ class StorageCircuitBreaker(
                 "cache:circuit:state storage={} from={} to={} failureCount=0",
                 storageType, State.HALF_OPEN, State.CLOSED,
             )
+        } else if (state.get() == State.CLOSED) {
+            // BR-145: серия подряд прервана успехом — счётчик сбрасывается.
+            // Обнуление без лога: успех в CLOSED — норма, а не событие.
+            failureCount.set(0)
         }
     }
 

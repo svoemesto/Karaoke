@@ -214,14 +214,30 @@ class SseNotificationService(
         val emitter = createEmitter()
         val key = UserKey(userId, browserTabId)
 
-        emitters.putIfAbsent(key, mutableListOf())
+        // BR-147 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): список достаётся
+        // ОДИН раз через `computeIfAbsent`.
+        //
+        // Раньше было `putIfAbsent(key, mutableListOf())`, а затем `emitters[key]!!`:
+        // между этими двумя операциями параллельная рассылка (heartbeat каждые 15 с или
+        // любое событие) могла удалить мёртвый emitter, а с опустевшим списком — и сам
+        // ключ. Тогда `emitters[key]` возвращал null, `!!` кидал NullPointerException,
+        // и `GET /api/subscribe` отдавал 500 вместо подписки.
+        val emitterList = emitters.computeIfAbsent(key) { mutableListOf() }
 
-        with(emitters[key]!!) {
+        with(emitterList) {
             synchronized(this) {
                 if (size == maxEmittersPerTab) {
                     removeAt(0).safeComplete() // завершить предыдущий, если есть
                 }
                 add(emitter)
+                // BR-147: рассылка могла удалить ключ из мапы, пока мы ждали монитор
+                // списка (список опустел → `emitters.remove(userKey)`). Возвращаем ключ —
+                // иначе эмиттер остался бы в «осиротевшем» списке и подписка молча
+                // не работала бы.
+                //
+                // Порядок локов здесь и в `sendEventToKeys` одинаков — «монитор списка,
+                // потом бин карты», — поэтому взаимной блокировки не возникает.
+                emitters.computeIfAbsent(key) { emitterList }
             }
         }
         return emitter

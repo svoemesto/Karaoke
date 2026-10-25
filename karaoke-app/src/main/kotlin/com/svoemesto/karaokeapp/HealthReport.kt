@@ -159,6 +159,11 @@ data class HealthReport(
         /**
          * Sync version: blocking cache lookup (Pass 344).
          *
+         * @param loader `() -> Boolean?` — `null` означает «хранилище не ответило»
+         *   (fast-fail circuit breaker, таймаут, сетевая ошибка). Такой результат
+         *   НЕ кешируется: иначе один таймаут MinIO навсегда закреплял бы
+         *   `exists = false`, и health-report показывал «файла нет» при живом файле
+         *   (BR-144, аудит #336, пакет PKG-S3-23).
          * @param onFillComplete callback, вызываемый ПОСЛЕ успешного fill (спека #368).
          *   Если кеш уже заполнен (hit) — callback НЕ вызывается. Используется для
          *   recompute+SSE после cold-start. Default `null` — backward compatible
@@ -169,11 +174,12 @@ data class HealthReport(
             source: String,
             bucket: String,
             fileName: String,
-            loader: () -> Boolean,
+            loader: () -> Boolean?,
             onFillComplete: (() -> Unit)? = null,
         ): Boolean =
             storageMetadataCache?.getFileExists(source, bucket, fileName, loader, onFillComplete)
                 ?: loader()
+                ?: false
 
         /**
          * Pass 434 (#158): кешированный `StorageFileInfo` (etag/size). На hit — без
@@ -573,8 +579,10 @@ data class HealthReport(
                             }
                             actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
                         } else { // Файла нет в локальном хранилище
-                            val remoteFileExistsLoader433: () -> Boolean = {
-                                storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                            // BR-144: fileExistsReliable отличает «объекта нет» от «хранилище не
+                            // ответило» (fast-fail/таймаут) — недостоверный ответ не кешируется.
+                            val remoteFileExistsLoader433: () -> Boolean? = {
+                                storageApiClient.fileExistsReliable(bucketName = storageBucketName, fileName = storageFileName)
                             }
                             if (cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader433)) { // Файл есть в удалённом хранилище
                                 healthReportStatus = ERROR
@@ -871,8 +879,10 @@ data class HealthReport(
                         }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
-                        val remoteFileExistsLoader: () -> Boolean = {
-                            storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        // BR-144: fileExistsReliable отличает «объекта нет» от «хранилище не
+                        // ответило» (fast-fail/таймаут) — недостоверный ответ не кешируется.
+                        val remoteFileExistsLoader: () -> Boolean? = {
+                            storageApiClient.fileExistsReliable(bucketName = storageBucketName, fileName = storageFileName)
                         }
                         val existsInRemoteStore = cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader)
                         if (existsInRemoteStore) {
@@ -952,8 +962,10 @@ data class HealthReport(
                         }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
-                        val remoteFileExistsLoader1: () -> Boolean = {
-                            storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        // BR-144: fileExistsReliable отличает «объекта нет» от «хранилище не
+                        // ответило» (fast-fail/таймаут) — недостоверный ответ не кешируется.
+                        val remoteFileExistsLoader1: () -> Boolean? = {
+                            storageApiClient.fileExistsReliable(bucketName = storageBucketName, fileName = storageFileName)
                         }
                         val existsInRemoteStore = cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader1)
                         if (existsInRemoteStore) { // Файл есть в удалённом хранилище

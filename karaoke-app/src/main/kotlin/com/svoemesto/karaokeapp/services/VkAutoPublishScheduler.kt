@@ -34,6 +34,9 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Component
 class VkAutoPublishScheduler {
+    // BR-151/BR-152 (аудит #336, пакет `PKG-S3-23`): категория логов авто-публикации ВК.
+    private val vkLog = org.slf4j.LoggerFactory.getLogger("infra.vk.publish")
+
     // In-memory идемпотентность для редкого случая (FR-004a): news.id уже опубликованных
     // без-song_id новостей. Не переживает рестарт — но дубли после рестарта маловероятны
     // (publish_at <= now() остается, но Set пуст → попытка повторной публикации; для
@@ -53,15 +56,23 @@ class VkAutoPublishScheduler {
         }
 
         try {
-            resumeRenderingSongs()
-            publishScheduledNews()
+            // BR-152: сбой БД в загрузчике кандидатов прерывает тик (false), а не
+            // выглядит как «нечего публиковать».
+            if (!resumeRenderingSongs()) return
+            if (!publishScheduledNews()) return
         } catch (e: Exception) {
+            // BR-151 (аудит #336, пакет `PKG-S3-23`): тик больше не «падает молча» —
+            // исключение логируется через SLF4J (категория + Throwable).
+            vkLog.error("VkAutoPublishScheduler.tick failed", e)
         }
     }
 
     // Фаза 1 тика: песни в состоянии RENDERING, чья render-задача завершена → продолжить.
-    private fun resumeRenderingSongs() {
-        val renderingIds = loadRenderingCandidateIds()
+    //
+    // BR-152: сбой загрузчика кандидатов возвращает null — тик прерывается, вместо того
+    // чтобы тихо «не публиковать ничего».
+    private fun resumeRenderingSongs(): Boolean {
+        val renderingIds = loadRenderingCandidateIds() ?: return false
         for (songId in renderingIds) {
             val song =
                 Song.loadFromDbById(
@@ -82,11 +93,14 @@ class VkAutoPublishScheduler {
             val error = if (isError) "RENDER_MP4_DEMO failed (status=ERROR)" else null
             VkAutoPublishService.onRenderCompleted(songId, PublicationType.AIR, success = isDone, error = error)
         }
+        return true
     }
 
     // Фаза 2 тика: опубликованные air-новости с пустым idVk у связанной песни → publishToVk.
-    private fun publishScheduledNews() {
-        val candidates = loadNewsCandidates()
+    //
+    // BR-152: сбой загрузчика кандидатов возвращает null — тик прерывается.
+    private fun publishScheduledNews(): Boolean {
+        val candidates = loadNewsCandidates() ?: return false
         for (news in candidates) {
             val songId = resolveSongId(news)
             if (songId != null) {
@@ -99,14 +113,26 @@ class VkAutoPublishScheduler {
                     ) ?: continue
                 if (song.idVk.isNotEmpty()) continue // FR-008
                 if (!acquireRateLimitSlot()) continue // FR-006
-                VkAutoPublishService.publishToVk(song, PublicationType.AIR)
+                // BR-151: сбой обработки ОДНОЙ новости не должен обрывать цикл —
+                // остальные новости тика публикуются как обычно.
+                runCatching {
+                    VkAutoPublishService.publishToVk(song, PublicationType.AIR)
+                }.onFailure { e ->
+                    vkLog.warn("VkAutoPublishScheduler: не удалось опубликовать песню {} (songId={})", song.songName, song.id, e)
+                }
             } else {
                 // FR-021 редкий: ручная air-новость без song_id → пост без видео.
                 if (publishedNewsIdsWithoutSong.contains(news.id)) continue // FR-004a
                 if (!acquireRateLimitSlot()) continue
-                publishNewsWithoutVideo(news)
+                // BR-151: изоляция сбоя одной новости.
+                runCatching {
+                    publishNewsWithoutVideo(news)
+                }.onFailure { e ->
+                    vkLog.warn("VkAutoPublishScheduler: не удалось опубликовать новость без видео (newsId={})", news.id, e)
+                }
             }
         }
+        return true
     }
 
     /** FR-021 редкий: публикация ручной air-новости без song_id (только текст). */
@@ -155,8 +181,13 @@ class VkAutoPublishScheduler {
     }
 
     /** Cheap SELECT id песен в состоянии RENDERING (из player_readiness_flags JSON) с пустым id_vk. */
-    private fun loadRenderingCandidateIds(): List<Long> {
-        val connection = WORKING_DATABASE.getConnection() ?: return emptyList()
+    private fun loadRenderingCandidateIds(): List<Long>? {
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    vkLog.warn("VkAutoPublishScheduler: нет соединения с БД — кандидаты RENDERING не прочитаны")
+                    return null
+                }
         val result = mutableListOf<Long>()
         try {
             connection.createStatement().use { st ->
@@ -179,13 +210,25 @@ class VkAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-152: сбой SELECT раньше был неотличим от «кандидатов нет».
+            vkLog.warn(
+                "VkAutoPublishScheduler: не удалось прочитать кандидатов RENDERING (sqlState={})",
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return result
     }
 
     /** SQL-кандидаты: опубликованные air-новости (с song_id или с link=/song?id=...). */
-    private fun loadNewsCandidates(): List<News> {
-        val connection = WORKING_DATABASE.getConnection() ?: return emptyList()
+    private fun loadNewsCandidates(): List<News>? {
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    vkLog.warn("VkAutoPublishScheduler: нет соединения с БД — кандидаты air-новостей не прочитаны")
+                    return null
+                }
         val result = mutableListOf<News>()
         try {
             connection.createStatement().use { st ->
@@ -214,6 +257,13 @@ class VkAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-152: сбой SELECT раньше был неотличим от «новостей нет».
+            vkLog.warn(
+                "VkAutoPublishScheduler: не удалось прочитать кандидатов air-новостей (sqlState={})",
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return result
     }
@@ -232,7 +282,12 @@ class VkAutoPublishScheduler {
 
     /** Находит терминальную render-задачу RENDER_MP4_DEMO для песни (если она есть и не в работе). */
     private fun findRenderDemoProcess(songId: Long): RenderProcessInfo? {
-        val connection = WORKING_DATABASE.getConnection() ?: return null
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    vkLog.warn("VkAutoPublishScheduler: нет соединения с БД — render-задача не найдена (songId={})", songId)
+                    return null
+                }
         try {
             connection.createStatement().use { st ->
                 // 2026-08-02 fix: process_status, не status (старое имя колонки, несовместимо с текущей схемой).
@@ -252,6 +307,14 @@ class VkAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-152: сбой SELECT раньше был неотличим от «задачи нет».
+            vkLog.warn(
+                "VkAutoPublishScheduler: не удалось найти render-задачу (songId={}, sqlState={})",
+                songId,
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return null
     }

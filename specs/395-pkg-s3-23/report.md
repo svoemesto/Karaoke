@@ -14,7 +14,7 @@
 | Партия | BR | Статус |
 |---|---|---|
 | 1 | BR-117…BR-122, BR-129…BR-131, BR-134…BR-137 (13) | ✅ исправлены |
-| 2 | BR-144…BR-153 (10) | ⏳ в работе |
+| 2 | BR-144…BR-153 (10) | ✅ исправлены |
 | 3 | BR-155…BR-160, BR-163…BR-166 (10) | ⏳ в работе |
 | 4 | BR-167…BR-173 (6) | ⏳ в работе |
 
@@ -109,9 +109,67 @@ $ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
 
 ---
 
-## Партия 2 — BR-144…BR-153
+## Партия 2 — BR-144…BR-153 (10 записей)
 
-_в работе_
+### По записям
+
+| BR | Файл:строка (было) | Класс | Что не так | Как правильно | Проверка |
+|---|---|---|---|---|---|
+| BR-144 | `karaoke-app/.../services/StorageMetadataCache.kt:325-341` | DATA | `getFileExists` писал в **вечный** кеш любое значение loader'а; `fileExists` возвращает `false` и при отсутствии объекта, и при недоступном хранилище (fast-fail/таймаут) → один таймаут MinIO навсегда закреплял `exists=false` | `StorageApiClient.fileExistsReliable(): Boolean?` (null = «не ответили»); `getFileExists`/`getFileExistsAsync` принимают `() -> Boolean?` и **не кешируют** null; REMOTE-загрузчики health-report переведены на надёжный вариант | контрактная (2) |
+| BR-145 | `karaoke-app/.../services/StorageCircuitBreaker.kt:249-259` | ERR | `recordSuccess()` обнулял `failureCount` только при `HALF_OPEN→CLOSED`; успех в `CLOSED` счётчик не трогал — порог «N consecutive failures» превращался в «N сбоев за всё время» | обнуление `failureCount` на **любом** успехе в `CLOSED` | поведенческая (2, в т.ч. контрольная на «серия подряд всё ещё открывает circuit») |
+| BR-146 | `karaoke-app/.../services/TelegramAutoPublishScheduler.kt:149-151` (+ `:71-73`) | ERR | три загрузчика кандидатов ловили `SQLException` пустым блоком → сбой неотличим от «кандидатов нет»; `printStackTrace()` уходил в stdout | загрузчики возвращают `null` при сбое, фазы тика прерываются (`false`); SLF4J `infra.telegram.publish` (SQLState + Throwable) | контрактная (1) |
+| BR-147 | `karaoke-app/.../services/SseNotificationService.kt:217-219` | RACE | `putIfAbsent` + повторное разыменование `emitters[key]!!`: рассылка могла удалить ключ между операциями → NPE → 500 на `/api/subscribe` | `emitters.computeIfAbsent(key) { mutableListOf() }` — список берётся один раз; ключ возвращается в мапу, если рассылка его успела удалить | контрактная (1) |
+| BR-149 | `karaoke-app/.../services/VkAutoPublishService.kt:243-249` | ERR | `createProcess` возвращает `0` и при «уже выполняется» (single-flight), и при реальном отказе; оба случая давали `SEND_FAILED` + ложную ошибку → пока рендер шёл, тик затирал `RENDERING`, и `onRenderCompleted` не вызывался никогда | `hasActiveRenderProcess()`: при активном `RENDER_MP4_DEMO` состояние остаётся `RENDERING`, ошибка не пишется; отказ → `SEND_FAILED` как раньше | контрактная (1) |
+| BR-150 | `karaoke-app/.../services/VkAutoPublishService.kt:279-292` (+ `publishTextOnly`) | RACE | под локом перечитывался только `idVk`, а флаг `newsPremiumVkSent` проверялся по объекту, загруженному ДО лока → второй параллельный вызов публиковал **дубль** PREMIUM-поста | под локом перечитывается песня ЦЕЛИКОМ; флаг проверяется по свежей записи (`freshSong?.newsPremiumVkSent`) | контрактная (1) |
+| BR-151 | `karaoke-app/.../services/VkAutoPublishScheduler.kt:55-59` | ERR | весь тик в `catch (Exception) {}` без логирования; сбой на одной песне обрывал цикл — остальные новости тика не публиковались | `log.error("VkAutoPublishScheduler.tick failed", e)`; обработка каждой новости в `runCatching` (сбой одной не блокирует остальные) | контрактная (1) |
+| BR-152 | `karaoke-app/.../services/VkAutoPublishScheduler.kt:181-182` (+ `:216-217`, `:254-255`) и `VkAutoPublishService.kt:550-551` | ERR | четыре `catch (SQLException) {}` глотали ошибки БД; `findAirNewsForSong` отдавал `null` → AIR-пост публиковался с пустым `{newsBody}` | загрузчики возвращают `null` при сбое и тик прерывается; `findAirNewsForSong` бросает `VkNewsLookupException` → `publishToVk` пишет `SEND_FAILED` с причиной, пост **не** уходит с потерянным телом новости | контрактная (1) |
+| BR-153 | `karaoke-app/.../services/VkApiClient.kt:481-528` | ERR | `proxy.send(...)` стоял вне `try` — сырое `IOException`/`HttpTimeoutException` пролетало мимо `tryPhotosPath`/`publishFile` (ловят только `VkNetworkException`) и роняло весь тик | прокси-ветка оборачивает сбой в `VkNetworkException` (симметрично прямой ветке) + fallback на прямой запрос | контрактная (1) |
+
+### «До / после»: команда и вывод
+
+```bash
+# ДО: главные исходники откачены (git stash), тесты — новые
+$ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+    -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+    :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323Batch2SourceContractsTest"
+# было: 11 tests completed, 10 failed
+#   BR-144 недостоверный ответ хранилища не кешируется FAILED
+#   BR-144 health-report спрашивает надёжный ответ хранилища FAILED
+#   BR-145 успех в CLOSED обнуляет счётчик сбоев FAILED
+#   BR-146 загрузчики кандидатов Telegram не подменяют сбой БД пустым списком FAILED
+#   BR-147 подписка SSE не разыменовывает список эмиттеров повторно FAILED
+#   BR-149 уже выполняющийся рендер не превращается в ошибку публикации FAILED
+#   BR-150 флаг идемпотентности PREMIUM проверяется по свежей песне под локом FAILED
+#   BR-151 тик VK-публикации логирует исключение и изолирует сбой одной новости FAILED
+#   BR-152 сбой БД в VK-публикации не выглядит как пустой результат FAILED
+#   BR-153 сбой прокси оборачивается в VkNetworkException FAILED
+#   (11-й тест — контрольный «серия сбоев подряд всё ещё открывает circuit» — на старом
+#    коде проходит, он фиксирует, что исправление не сломало исходный контракт)
+
+# ПОСЛЕ
+$ ... :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323Batch2*"
+# стало: BUILD SUCCESSFUL (11 тестов)
+```
+
+### Изменённые файлы (партия 2)
+
+`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/`: `HealthReport.kt`,
+`services/{StorageApiClient,StorageCircuitBreaker,StorageMetadataCache,SseNotificationService,TelegramAutoPublishScheduler,VkApiClient,VkAutoPublishScheduler,VkAutoPublishService}.kt`;
+`karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StorageApiClientWeb.kt`
+(второй реализатор интерфейса `StorageApiClient` — новый метод `fileExistsReliable`).
+
+Тесты: `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS323Batch2SourceContractsTest.kt`.
+
+### Решения за владельцем
+
+- **BR-144**: `fileExists` (старое поведение «недоступно = false») сохранён для
+  остальных вызывающих; для кеша метаданных введён `fileExistsReliable`. Если владелец
+  хочет, чтобы недоступное хранилище ВООБЩЕ не давало «файла нет» в UI, это отдельная
+  правка health-report (там `false` трактуется как «файла нет»).
+- **BR-149**: «уже выполняется» определяется по наличию активного задания
+  `RENDER_MP4_DEMO` (WAITING/WORKING/CREATING) в `tbl_processes`. Если владелец хочет
+  различать и «поставлено в очередь мной» vs «поставлено ранее», нужен отдельный
+  идентификатор задания.
 
 ## Партия 3 — BR-155…BR-160, BR-163…BR-166
 

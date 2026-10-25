@@ -967,7 +967,7 @@ class ApiController(
             )
         val sheetsageinfo =
             song?.let {
-                song.sheetsageInfo
+                song.sheetsageInfo.toMap()
             } ?: emptyMap()
         return sheetsageinfo
     }
@@ -3353,7 +3353,9 @@ class ApiController(
 
         // Инвалидация кэша: если запись Pictures с таким именем уже существует — обновляем её
         // (а не создаём новую, чтобы не плодить дубли, см. docs/architecture-notes-archive.md).
-        // Если записи ещё нет — song.pictureAlbum сам создаст её из только что записанного файла.
+        // Если записи ещё нет — song.ensurePictureAlbum() создаст её из только что записанного файла.
+        // BR-074 (аудит #336, пакет PKG-S3-22): геттер song.pictureAlbum больше не создаёт запись
+        // (чистое чтение) — создание перенесено в явный write-путь.
         val existingPicture =
             Pictures.getPictureByName(
                 name = song.pictureNameAlbum,
@@ -3367,7 +3369,7 @@ class ApiController(
                 existingPicture.save()
                 existingPicture
             } else {
-                song.pictureAlbum
+                song.ensurePictureAlbum()
             }
 
         return picture?.let {
@@ -3451,29 +3453,32 @@ class ApiController(
         /**
          * Безопасное чтение строкового значения из `Song.sheetsageInfo` (BR-051, пакет PKG-S3-22).
          *
-         * `Song.sheetsageInfo` возвращает ПУСТУЮ map, если у песни нет файлов Sheetsage;
-         * `null as String` в этом случае давал `NullPointerException` → HTTP 500, хотя
+         * BR-079 (аудит #336): `Song.sheetsageInfo` теперь возвращает типизированный
+         * [com.svoemesto.karaokeapp.model.SheetsageInfo], а не `Map<String, Any>`, где ключ мог
+         * отсутствовать — `null as String` давал `NullPointerException` → HTTP 500, хотя
          * контракт API и UI (`if (bpm !== '')`) ждут пустую строку.
          */
         internal fun sheetsageString(
-            info: Map<String, Any>?,
+            info: com.svoemesto.karaokeapp.model.SheetsageInfo?,
             key: String,
-        ): String = info?.get(key) as? String ?: ""
+        ): String =
+            when (key) {
+                "tempo" -> info?.tempo ?: ""
+                "key" -> info?.key ?: ""
+                else -> ""
+            }
 
-        /** Список строк из `Song.sheetsageInfo`; неподходящее значение — пустой список (BR-051). */
+        /** Список строк из `Song.sheetsageInfo`; отсутствие — пустой список (BR-051/BR-079). */
         internal fun sheetsageStringList(
-            info: Map<String, Any>?,
+            info: com.svoemesto.karaokeapp.model.SheetsageInfo?,
             key: String,
-        ): List<String> = (info?.get(key) as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+        ): List<String> = if (key == "chords") info?.chords ?: emptyList() else emptyList()
 
-        /** Список `Double` из `Song.sheetsageInfo`; числа принимаются как [Number] (BR-051). */
+        /** Список `Double` из `Song.sheetsageInfo`; отсутствие — пустой список (BR-051/BR-079). */
         internal fun sheetsageDoubleList(
-            info: Map<String, Any>?,
+            info: com.svoemesto.karaokeapp.model.SheetsageInfo?,
             key: String,
-        ): List<Double> =
-            (info?.get(key) as? List<*>)
-                ?.mapNotNull { (it as? Number)?.toDouble() }
-                ?: emptyList()
+        ): List<Double> = if (key == "beattimes") info?.beattimes ?: emptyList() else emptyList()
 
         /**
          * Текст SSE-сообщения для «Точных маркеров» (BR-059, пакет PKG-S3-22).
@@ -5848,8 +5853,11 @@ class ApiController(
                 // (если их ещё нет, + загрузка full/preview в хранилище) и самопродолжающийся каскад
                 // HealthReport (стемы mp3, превью автора/альбома, загрузка всех файлов в локальное/удалённое
                 // хранилище) - тот же вызов, что делает кнопка Repair All на карточке песни.
-                newSong.pictureAuthor
-                newSong.pictureAlbum
+                // BR-074 (аудит #336, пакет PKG-S3-22): геттеры song.pictureAuthor/pictureAlbum
+                // больше не создают записи tbl_pictures (чистое чтение) — создание перенесено
+                // в явный write-путь ensurePictureAuthor()/ensurePictureAlbum().
+                newSong.ensurePictureAuthor()
+                newSong.ensurePictureAlbum()
                 HealthReport.startRepairAll(newSong, WORKING_DATABASE, storageService, storageApiClient)
             } catch (e: Exception) {
                 println(

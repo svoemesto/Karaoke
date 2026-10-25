@@ -38,7 +38,7 @@ data class SongDTO(
     val key: String,
     val bpm: Long,
     val ms: Long,
-    val countVoices: Int,
+    val countVoices: Int?,
     val firstSongInAlbum: Boolean,
     val flagBoosty: String,
     val flagSponsr: String,

@@ -14,10 +14,15 @@
 - **Per-feature документ (FR-009)**: `docs/features/pkg-s3-22-audit-fixes.md`
 - **SSoT**: `knowledge/domains/processing/components/async-process-queue.md`,
   `knowledge/domains/identity/components/security-config.md`,
-  `knowledge/system/utilities.md`
+  `knowledge/system/utilities.md`,
+  `knowledge/domains/catalog/components/song-entity.md`,
+  `knowledge/domains/catalog/components/dictionaries.md`,
+  `knowledge/domains/catalog/components/pictures.md`,
+  `knowledge/domains/health/components/health-report.md`
 
 Работа ведётся партиями по ~5–15 записей с коммитом после каждой партии
-(пакет большой: 40 записей). Ниже — состояние на текущий момент.
+(пакет большой: 40 записей). **Состояние: закрыты все 40 записей** (партии 1–4) —
+ниже отчёт по каждой партии.
 
 ---
 
@@ -222,48 +227,127 @@ BR-085 (битый JSON → `null`). Статический guard: BR-086 (вс�
   `origin/master`. Требует решения владельца/инфраструктуры (проверять только
   коммиты «своей» ветки, а не общую историю).
 
-## Остаток (передаётся следующему исполнителю)
+## Партия 4 (P-18a + P-18b): BR-073, BR-074, BR-075, BR-078, BR-079, BR-084, BR-103, BR-105, BR-106, BR-107 — закрыто (10 записей)
 
-**Закрыто 30 из 40 записей.** Осталось 10 — все в `model/Song.kt`, сгруппированы по риску:
+Основные правки — в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`.
+Попутно изменены потребители (этого требовала смена контракта):
+`controllers/ApiController.kt` (sheetsage + картинки), `model/Album.kt` (создание
+обложки), `Utils.kt` (массовый проход по sheetsage), `HealthReport.kt` (вызов
+явной починки корня), `model/SongDTO.kt` / `model/SongDTOdigest.kt`
+(`countVoices: Int?`).
 
-| BR | Карточка | Суть (из карточки) |
+| BR | Было | Стало |
 |---|---|---|
-| BR-073 | P-18-03 | геттер `rootFolder` мутирует `_rootFolder` и делает `UPDATE tbl_songs SET root_folder` из геттера; эвристика подбора корня не проверяет однозначность (чужой каталог) |
-| BR-074 | P-18-04 | геттеры `pictureAuthor`/`pictureAlbum` — read-путь, который пишет: INSERT `tbl_pictures`, заливка в MinIO, `saveToDb()`; флаг готовности ставится по локальному файлу до проверки в хранилище; `ImageIO.read` без проверки на `null` |
-| BR-075 | P-18-05 | `player_readiness_flags`: read-modify-write одного JSON без блокировки/версии — два потока затирают ключи друг друга |
-| BR-078 | P-18-08 | парсер `sheetsageInfo`: `substring(1, length-2)`, destructuring `split`, индексы `beattimes[...]`, `toDouble()` — без проверок, исключения наружу |
-| BR-079 | P-18-09 | `sheetsageInfo` возвращает `Map<String, Any>` с необязательными ключами — потребители читают `as String`/`as List<String>` (NPE). Нужен типизированный `SheetsageInfo` |
-| BR-084 | P-18-14 | `player_readiness_flags` парсится заново на каждое чтение каждого из ~20 флагов; `sourceMarkersList` — тоже; нужна мемоизация с инвалидацией при записи поля |
-| BR-103 | P-18-20 | `normalizeVoicesBeforeSave()` нормализует устаревший снимок голосов: добавленный редактором голос исчезает при сохранении долгоживущего объекта; нужен трёхсторонний diff/мерж по голосам |
-| BR-105 | P-18-22 | `filter_count_voices` применяется в памяти и опирается на заглушку `"[[]]"` при `withoutMarkersAndText = true` → `countVoices == 1` у всех песен; нужен SQL (`jsonb_array_length`) или загрузка `source_markers` |
-| BR-106 | P-18-23 | `deleteFromDb(withFiles = true)`: файлы удаляются ДО строки, вокал/аккомпанемент — `deleteOnExit()`, `ps.executeUpdate()` без `use/try` (при `SQLException` строка остаётся, аудио уже удалено) |
-| BR-107 | P-18-24 | `createDbInstance` ловит ЛЮБУЮ ошибку INSERT, «лечит» сиквенс и возвращает `null`; `saveToDb` игнорирует `null` → песня с `id = 0` уходит в процессы |
+| BR-073 | геттер `rootFolder` при отсутствующем каталоге перебирал `PROJECT_ROOT_FOLDERS`, подставлял хвост пути и при **первом** совпадении менял `_rootFolder` + делал `UPDATE tbl_songs SET root_folder = ?`; совпадение не проверялось на однозначность (чожой каталог того же автора) | геттер — **чистое чтение** (ни `UPDATE`, ни `getConnection`); починка — явная операция `Song.repairRootFolder(roots)`: кандидат принимается, только если он **единственный** и в нём лежит файл этой песни, иначе fail-closed (`song.root_folder.repair_skipped`); вызывается из `HealthReport.getHealthReportList` |
+| BR-074 | геттеры `pictureAuthor`/`pictureAlbum` — read-путь, который писал: INSERT `tbl_pictures` + заливка в MinIO + `saveToDb()`; флаг `picture*Ready` ставился по наличию **локального** файла; `ImageIO.read` без проверки на `null` (NPE) | геттеры — **чистое чтение**; создание — `Song.ensurePictureAuthor()` / `ensurePictureAlbum()` (write-путь: импорт, загрузка обложки, health-repair); флаг готовности выставляется **только после `storageService.fileExists`** (объект реально в хранилище); `ImageIO.read == null` → `WARN` + `null` |
+| BR-075 | `player_readiness_flags`: read-modify-write всего JSON из in-memory `fields` без блокировки/версии — два потока (заливка стемов / планировщик автопубликации) затирали ключи друг друга | запись флага — **точечный compare-and-swap**: `UPDATE tbl_songs SET player_readiness_flags = ? WHERE id = ? AND COALESCE(player_readiness_flags,'{}') = ?` (ожидание читается из БД перед записью, до 3 попыток, `Song.READINESS_FLAG_CAS_ATTEMPTS`); diff-обновление песни поле **не пишет** (`getDiff` → `recordDiffRealField = false`), формат хранения прежний (компактный JSON без пробелов — от него зависят проверки `karaoke-web`) |
+| BR-078 | парсер `sheetsageInfo`: `substring(1, length-2)`, destructuring `split`, индексы `beattimes[...]`, `toDouble()`/`toLong()` — исключения наружу (500 на диагностическом эндпоинте, обрыв массового прохода) | разбор устойчив: `trim` + `removePrefix("[")`/`removeSuffix("]")`, `toDoubleOrNull`/`toLongOrNull`, `getOrNull` по индексам, `diffBeats` через `coerceIn`; нештатный файл → `WARN` (`song.sheetsage.*`) с `songId`/путём и пустой результат |
+| BR-079 | `sheetsageInfo` возвращал `Map<String, Any>`, ключи появлялись только при совпадении регулярки; потребители читали `as String`/`as List<String>` → `null as String` = NPE (элвис `?: ""` применяется к результату приведения) | типизированный `data class SheetsageInfo(key, tempo, chords, beattimes)`; потребители (`ApiController`, `Utils.updateBpmAndKeyLV`) читают поля напрямую; JSON-эндпоинт отдаёт `SheetsageInfo.toMap()` — формат ответа прежний (те же ключи, пустые не попадают) |
+| BR-084 | `player_readiness_flags` парсился заново на каждое чтение каждого из ~20 флагов (десятки тысяч лишних разборов на 18k песен) | кэш разбора в объекте (`readinessFlagsCacheOf`), ключ кэша — сама строка JSON, сброс — при записи поля; boolean- и string-флаги читаются из одного кэша |
+| BR-103 | `normalizeVoicesBeforeSave()` нормализовала **устаревший** снимок голосов долгоживущего объекта, а diff (против свежей строки) записывал его — голос, добавленный редактором параллельно, исчезал | трёхстороннее слияние **до** вычисления diff: `base` (снимок при загрузке) + `mine` (объект) + `theirs` (свежая строка из БД). Объект не менял голоса → берётся `theirs`; менял → слияние по индексам (изменённые — приоритет, удалённые — не восстанавливаются). Нормализация применяется к **результату слияния**; явная замена (`copyFieldsFromAnother`) слияние отключает |
+| BR-105 | фильтр `filter_count_voices` применялся в памяти и опирался на заглушку `"[[]]"` (при `withoutMarkersAndText = true`) → `countVoices == 1` у всех песен: фильтр показывал всё при «1» и пусто при «2+» | `source_markers` грузится принудительно при наличии фильтра; сравнение — с `Song.countVoicesLoaded` (`null` — маркеры не загружены, а не «1»); `SongDTO.countVoices` / `SongDTOdigest.countVoices` стали `Int?` |
+| BR-106 | `deleteFromDb(withFiles = true)`: файлы удалялись **до** строки, вокал/аккомпанемент — `deleteOnExit()` (в контейнере файлы жили до перезапуска JVM, список путей рос в памяти); `ps.executeUpdate()` без `use/try` → при `SQLException` строка оставалась, а аудио уже исчезало | сначала `DELETE` (в `use {}`), ошибка → `WARN song.delete.failed` и файлы **не трогаются** (fail-closed); файлы — сразу (`File.delete()`), best-effort с логом; `deleteOnExit` запрещён; `DELETE` без строк → тоже без удаления файлов |
+| BR-107 | `createDbInstance` ловил **любую** ошибку INSERT, «лечил» сиквенс и возвращал `null`; `saveToDb` игнорировал `null` → песня с `id = 0` уходила в процессы | ловится только `SQLException`; «починка» сиквенса — только для рассинхрона (`23505` + `last_value` сиквенса позади `max(id)`); остальные ошибки INSERT **пробрасываются**; `null` — только когда строка реально не вставлена (пустые `generatedKeys`); `saveToDb` ловит `SQLException`, пишет `ERROR song.insert.failed` и возвращает `false` |
 
-Все десять — S3-«данные/гонки» в модели `Song` (крупные, с риском регрессии: затрагивают
-сохранение, импорт и геттеры, от которых зависят DDL/рендер). Для них нужен отдельный
-проход с прогоном `:karaoke-app:test` целиком и проверкой `RecordHash`-консистентности
-(см. `BR-103` — merge голосов связан с `getDiff`/`saveToDbLocked`).
+### Тесты партии 4
+
+`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PkgS322SongDataTest.kt` (18 тестов).
+
+Поведенческие (падали на старом коде):
+
+- **BR-073** — чтение `rootFolder` не открывает соединение (`FakeKaraokeConnection`,
+  `name = "LOCAL"`); `repairRootFolder` принимает единственного кандидата (mock JDBC,
+  `verify(ps).executeUpdate()`), отклоняет неоднозначного (2 кандидата) и кандидата без
+  файла песни.
+- **BR-074** — `ImageIO.read` не-картинки → `null` (реплика старого NPE) и
+  `ensurePictureAlbum()` возвращает `null` без исключения, флаг готовности не выставлен.
+- **BR-075** — `mergeReadinessFlag` сохраняет чужие ключи JSON и формат
+  `{"a":true}` (без пробелов); флаг несохранённой песни остаётся в памяти и не ходит в БД.
+- **BR-078** — `parseSheetsageBeattimes("")` → пустой список (реплика старого
+  `StringIndexOutOfBoundsException`), `"[0.0, мусор, 1.0]"` → числовая часть разобрана;
+  полный `sheetsageInfo` на временных файлах `.ly`/`[beattimes].txt` → темп/тональность/
+  аккорды/beat-times; битый `.ly` → пустой результат без исключения.
+- **BR-079** — `SheetsageInfo` типизирован, `toMap()` пуст для пустого разбора; реплика
+  старого `null as String` → NPE; в `ApiController`/`Utils` нет unchecked-кастов.
+- **BR-084** — кэш сбрасывается при записи поля (старое значение не «залипает»);
+  string-флаги читаются из того же кэша.
+- **BR-103** — `mergeVoiceFields`: голос редактора сохраняется; изменённый объектом
+  голос приоритетнее версии из БД; удалённый голос не восстанавливается.
+- **BR-105** — `countVoicesLoaded`: `null` для незагруженных маркеров (реплика старого
+  `countVoices == 1`) и реальное число для загруженных.
+- **BR-106** — при `SQLException` на `DELETE` файл песни **остаётся** на диске (раньше
+  удалялся первым).
+- **BR-107** — `createDbInstance` пробрасывает `SQLException` с исходным текстом
+  («not-null»), а не возвращает `null`.
+
+Статические guard'ы (шва нет — нужен живой БД/MinIO, либо проверяется порядок
+операций в исходнике):
+
+- **BR-073** — в теле геттера `rootFolder` нет `UPDATE tbl_songs` и `getConnection`.
+- **BR-074** — в геттерах `pictureAuthor`/`pictureAlbum` нет `createNewPicture`,
+  `saveToDb()` и выставления флага готовности.
+- **BR-075** — в исходнике есть CAS-предикат
+  `AND COALESCE(player_readiness_flags, '{}') = ?` и
+  `RecordDiff("player_readiness_flags", …, false)`.
+- **BR-103** — `applyVoiceMerge(savedSong, voiceFieldsBeforeSave)` вызывается **до**
+  `getDiff(this, savedSong)` (индексы в исходнике).
+- **BR-105** — фильтр использует `song.countVoicesLoaded?.toString()` и
+  `args.containsKey("filter_count_voices")` (принудительная загрузка маркеров).
+- **BR-106** — в `deleteFromDb` нет `deleteOnExit`, а `DELETE FROM tbl_songs` стоит
+  раньше `file.delete()`.
+- **BR-107** — `saveToDb` содержит `song.insert.failed` и `val created =` (результат
+  INSERT не игнорируется).
+
+Обоснование guard'ов: для BR-074/BR-075/BR-106/BR-107 требуется либо живая БД
+(INSERT/DELETE), либо MinIO — в юнит-тестах `karaoke-app` нет живой БД, а поддельное
+JDBC-соединение не позволяет отличить SELECT от INSERT по SQL-строке. Поэтому
+проверяется либо поведение на mock-JDBC (BR-073/BR-106/BR-107 — где достаточно
+одного статмента), либо порядок/состав операций в исходнике.
+
+Два ранее существовавших теста обновлены (поведение изменилось осознанно):
+
+- `SongDtoPremiumPublishStateTest` (BR-087, пакет PKG-S2-17) — после BR-075
+  **установка** readiness-флага пишет его в БД атомарно, то есть настройка теста
+  обращается к БД. Проверка «`toDTO()` не ходит в БД» сохранена, но теперь измеряет
+  только вызов `toDTO()` (счётчик снимается перед ним) — иначе тест ловил бы
+  изменения эталона, а не N+1 в `toDTO`.
+- `PkgS322ApiControllerTest` (BR-051) — helpers `sheetsageString`/`sheetsageStringList`/
+  `sheetsageDoubleList` переведены на типизированный `SheetsageInfo` (BR-079);
+  реплика старого поведения (`null as String` → NPE) в тесте сохранена.
 
 ---
 
-## Статус на момент передачи
+## Статус пакета
 
-- **Закрыто 30 из 40 записей** (партии 1–3), три коммита:
+- **Закрыто 40 из 40 записей** (партии 1–4), четыре коммита:
   `ec236744` (BR-034/035/036/037/114), `fcd5d297` (BR-051…BR-070, 16 записей),
-  `8281a84c` (BR-072/076/077/080/081/082/083/085/086, 9 записей).
+  `8281a84c` (BR-072/076/077/080/081/082/083/085/086, 9 записей),
+  `____` (BR-073/074/075/078/079/084/103/105/106/107, 10 записей — партия 4).
   История перезаписана 2026-10-25 до push: первый вариант коммитов (`git add -A`) захватил
   осколки shell-редиректов в корне worktree (`argparse`, `collections`, `os`, `re`,
   `subprocess`, `sys` — по ~23 МБ); они удалены из ветки, имена внесены в `.gitignore`.
-- **Осталось 10**: BR-073, BR-074, BR-075, BR-078, BR-079, BR-084, BR-103, BR-105,
-  BR-106, BR-107 — разбор в разделе «Остаток» выше.
-- **Проверки** (последний прогон, все три коммита вместе):
-  `:karaoke-app:test :karaoke-web:test` + `ktlintCheck` — BUILD SUCCESSFUL
-  (635 тестов, 0 падений); `check-knowledge-structure.sh` — OK (9/9);
-  `lint-knowledge.py --baseline` — OK; `check-doc-references.py` — OK;
-  `check-recordhash-consistency.py` — OK; `check-no-mp4-mentions.sh` — OK (139 baseline);
-  `check-feature-doc.sh` — все документы валидны; `check-subagent-isolation.sh` — OK;
-  `check-ssot-impact.py` — OK.
-- **За владельцем**: BR-114 — выбор механизма аутентификации admin-API и включение
-  `karaoke.security.admin-token` в деплое (`X-Admin-Username` не является идентичностью).
-- **PR/push/merge/деплой** не выполнялись. Задача остаётся **In progress**
-  (`mark-review` не вызывался: пакет не закрыт).
+- **Проверки** (последний прогон, все четыре коммита вместе):
+  `:karaoke-app:test :karaoke-web:test` + `ktlintCheck` — BUILD SUCCESSFUL;
+  `check-knowledge-structure.sh` — OK (9/9); `lint-knowledge.py --baseline` — OK;
+  `check-doc-references.py` — OK; `check-recordhash-consistency.py` — OK;
+  `check-no-mp4-mentions.sh` — OK (139 baseline); `check-feature-doc.sh` — все документы
+  валидны; `check-subagent-isolation.sh` — OK; `check-ssot-impact.py` — OK.
+- **За владельцем**:
+  - **BR-114** — выбор механизма аутентификации admin-API и включение
+    `karaoke.security.admin-token` в деплое (`X-Admin-Username` не является идентичностью);
+  - **BR-073** — починка `root_folder` теперь fail-closed: при неоднозначности (одинаковый
+    хвост пути под двумя корнями) каталог **не** меняется. Если в проде такие случаи
+    массовые — нужен выбор владельца (например, приоритет корня `done2` > `done1` > `work`);
+  - **BR-074** — перенос создания картинки в write-путь означает, что `GET`-запросы больше
+    не создают `tbl_pictures`. Для сценариев, где картинка создавалась «сама» при первом
+    обращении, нужен явный вызов `ensurePicture*` (импорт/health-repair уже вызывают);
+  - **BR-075** — readiness-флаги остаются в одном JSON-поле; атомарность достигнута
+    CAS-записью. Разделение флагов по колонкам (идеал карточки аудита) — отдельная
+    миграция схемы, решение владельца;
+  - **BR-103** — слияние голосов сделано **по индексам**: если объект и редактор добавили
+    голос в одну и ту же позицию, приоритет у сохраняющего объекта, и голос редактора
+    может быть потерян. Полный merge по идентичности голосов — за владельцем;
+  - **BR-107** — `createDbInstance` теперь пробрасывает `SQLException` наружу; вызывающие,
+    которые полагались на «исключение проглотится», обязаны обработать ошибку
+    (внутри пакета обработан `saveToDb` → `false` + `ERROR`).
+- **PR/push/merge/деплой** не выполнялись.

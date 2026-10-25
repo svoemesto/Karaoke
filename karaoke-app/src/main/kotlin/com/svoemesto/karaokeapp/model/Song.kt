@@ -19,6 +19,7 @@ import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -215,51 +216,111 @@ class Song(
     private var _rootFolder: String = ""
     var readonly = false
 
+    /**
+     * Корневой каталог песни.
+     *
+     * BR-073 (аудит #336, пакет PKG-S3-22): геттер — **чистое чтение**.
+     *
+     * Раньше при отсутствующем каталоге геттер перебирал [PROJECT_ROOT_FOLDERS], подставляя
+     * хвост исходного пути, и при ПЕРВОМ совпадении (1) менял `_rootFolder` и (2) выполнял
+     * `UPDATE tbl_songs SET root_folder = ?` — то есть обычное чтение свойства писало в БД,
+     * а совпадение хвоста не проверялось на однозначность (чужой каталог того же автора
+     * под другим корнем давал «чужой» `root_folder`, который дальше использовался как рабочий:
+     * `done_files/`, `symlink_*`, `renameAllArtifacts`, `deleteFromDb`).
+     *
+     * Теперь починка — явная операция [repairRootFolder]: кандидат принимается, только если
+     * он ЕДИНСТВЕННЫЙ и в нём лежит файл этой песни. Вызывается из health-проверки песни
+     * (`HealthReport.getHealthReportList`), а не из геттера.
+     */
     var rootFolder: String
-        get() {
-            if (_rootFolder == "") return _rootFolder
-            if (File(_rootFolder).exists()) return _rootFolder
-            if (database.name == "LOCAL") {
-                val folders = _rootFolder.split("/").reversed()
-                PROJECT_ROOT_FOLDERS.forEach { rsf ->
-                    var fld = ""
-                    folders.forEach { folder ->
-                        fld = "/$folder$fld"
-                        val candidate = "$rsf$fld"
-                        if (File(candidate).exists()) {
-                            _rootFolder = candidate
-
-                            val sql = "UPDATE tbl_songs SET root_folder = ? WHERE id = ?"
-                            val connection = database.getConnection()
-                            if (connection == null) {
-                                println(
-                                    "[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}",
-                                )
-                            } else {
-                                val ps = connection.prepareStatement(sql)
-                                ps.setString(1, candidate)
-                                ps.setLong(2, id)
-                                try {
-                                    ps.executeUpdate()
-                                    println(
-                                        "[${Timestamp.from(Instant.now())}] Новое значение root_folder сохранено в базе данных: $candidate",
-                                    )
-                                } catch (e: Exception) {
-                                    val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
-                                    println(errorMessage)
-                                }
-                                ps.close()
-                            }
-                            return _rootFolder
-                        }
-                    }
-                }
-            }
-            return _rootFolder
-        }
+        get() = _rootFolder
         set(value) {
             _rootFolder = value
         }
+
+    /**
+     * Кандидаты корневого каталога для починки [rootFolder] (BR-073) — чистая функция,
+     * ничего не пишет ни в БД, ни в память объекта.
+     *
+     * Кандидат — существующий каталог вида `<корень из PROJECT_ROOT_FOLDERS>/<хвост исходного
+     * пути>`; хвосты перебираются от самого длинного к самому короткому (как в прежней
+     * эвристике). Список может содержать несколько элементов — тогда починка не выполняется
+     * (fail-closed, см. [repairRootFolder]).
+     *
+     * @return существующие каталоги-кандидаты (пустой список — починить нечего)
+     */
+    internal fun rootFolderRepairCandidates(roots: List<String> = PROJECT_ROOT_FOLDERS): List<String> {
+        if (_rootFolder.isBlank()) return emptyList()
+        if (database.name != "LOCAL") return emptyList()
+        val segments = _rootFolder.split("/").filter { it.isNotBlank() }
+        if (segments.isEmpty()) return emptyList()
+        val result = mutableListOf<String>()
+        roots.forEach { root ->
+            for (take in segments.size downTo 1) {
+                val candidate = (listOf(root) + segments.takeLast(take)).joinToString("/")
+                if (candidate !in result && File(candidate).isDirectory) result.add(candidate)
+            }
+        }
+        return result
+    }
+
+    /**
+     * Явная починка [rootFolder] (BR-073) — единственное место, где `root_folder` пишется.
+     *
+     * Правила (fail-closed):
+     * 1. Кандидат должен быть **единственным**: иначе непонятно, чей это каталог — починка
+     *    не выполняется, в лог уходит WARN;
+     * 2. В кандидате должен лежать файл этой песни (сверка по имени файла) — иначе это
+     *    каталог другой песни;
+     * 3. Запись в БД — только после успешной проверки; ошибка записи — WARN, а не `println`.
+     *
+     * @return `true`, если корень был найден, применён и записан
+     */
+    fun repairRootFolder(roots: List<String> = PROJECT_ROOT_FOLDERS): Boolean {
+        if (id <= 0L) {
+            persistenceLog.warn("song.root_folder.repair_skipped: songId={} песня ещё не сохранена — корень не меняем", id)
+            return false
+        }
+        val candidates = rootFolderRepairCandidates(roots).filter { rootFolderContainsSongFile(it) }
+        if (candidates.size != 1) {
+            persistenceLog.warn(
+                "song.root_folder.repair_skipped: songId={} кандидатов={} (нужен ровно один) — корень не изменён",
+                id,
+                candidates.size,
+            )
+            return false
+        }
+        val candidate = candidates.first()
+        val connection = database.getConnection()
+        if (connection == null) {
+            persistenceLog.warn("song.root_folder.repair_failed: songId={} нет соединения с БД {} — корень не изменён", id, database.name)
+            return false
+        }
+        return try {
+            connection.prepareStatement("UPDATE tbl_songs SET root_folder = ? WHERE id = ?").use { ps ->
+                ps.setString(1, candidate)
+                ps.setLong(2, id)
+                ps.executeUpdate()
+            }
+            _rootFolder = candidate
+            persistenceLog.warn("song.root_folder.repaired: songId={} новый корень '{}'", id, candidate)
+            true
+        } catch (e: Exception) {
+            persistenceLog.warn("song.root_folder.repair_failed: songId={} корень '{}' не записан: {}", id, candidate, e.toString())
+            false
+        }
+    }
+
+    /**
+     * Проверка «каталог принадлежит этой песне» (BR-073): в каталоге должен лежать файл
+     * с именем этой песни (`<fileName>.flac`, либо производное имя вида `<fileName>-vocals.flac`).
+     */
+    private fun rootFolderContainsSongFile(candidate: String): Boolean {
+        if (fileName.isBlank()) return false
+        val names = File(candidate).list() ?: return false
+        val base = fileName
+        return names.any { it == base || it == "$base.flac" || it.startsWith("$base-") || it.startsWith("$base ") }
+    }
 
     /**
      * Длительность аудиофайла песни, мс.
@@ -542,6 +603,21 @@ class Song(
     @get:JsonIgnore
     val countVoices: Int get() = sourceMarkersList.size
 
+    /**
+     * Число голосов песни по РЕАЛЬНО загруженным маркерам (BR-105, аудит #336).
+     *
+     * `null` — маркеры не загружены (песня из списка с `withoutMarkersAndText = true`): число
+     * голосов НЕИЗВЕСТНО, а не «1». Раньше геттер [sourceMarkers] для незагруженного поля
+     * возвращал заглушку `"[[]]"` → [countVoices] == 1 у всех песен списка, и фильтр
+     * «Количество голосов» показывал всё при значении 1 и пусто при 2+.
+     */
+    val countVoicesLoaded: Int?
+        get() {
+            val raw = fields[SongField.SOURCE_MARKERS] ?: return null
+            if (raw.isBlank()) return 0
+            return parseSourceMarkersOrEmpty(raw).size
+        }
+
     @Suppress("unused")
     val countNotEmptyVoices: Int get() = sourceMarkersList.filter { it.isNotEmpty() }.size
 
@@ -781,80 +857,140 @@ class Song(
     val pictureNameAuthor: String get() = author
     val pictureNameAlbum: String get() = "$author - $year - $album"
 
+    /**
+     * Картинка автора песни (логотип автора).
+     *
+     * BR-074 (аудит #336, пакет PKG-S3-22): геттер — **чистое чтение**.
+     *
+     * Раньше это был read-путь, который ПИСАЛ: при отсутствии записи в `tbl_pictures` он
+     * читал локальный файл, создавал запись `Pictures` (INSERT + заливка в MinIO) и выставлял
+     * флаг готовности плеера — по факту наличия ЛОКАЛЬНОГО файла, без проверки, что объект
+     * доступен в хранилище. Итог: обычный `GET` менял БД и хранилище и мог завысить
+     * готовность песни в публичном плеере.
+     *
+     * Создание картинки — явная операция [ensurePictureAuthor] (write-путь: импорт, загрузка
+     * обложки, health-repair). Флаг готовности выставляется только после проверки, что
+     * объект РЕАЛЬНО лежит в хранилище.
+     */
     @get:JsonIgnore
-    val pictureAuthor: Pictures? get() {
-        var pic =
+    val pictureAuthor: Pictures? get() =
+        Pictures.getPictureByName(
+            name = pictureNameAuthor,
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+
+    /**
+     * Обложка альбома песни. BR-074 — чистое чтение, см. [pictureAuthor].
+     */
+    @get:JsonIgnore
+    val pictureAlbum: Pictures? get() =
+        Pictures.getPictureByName(
+            name = pictureNameAlbum,
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+
+    /**
+     * Явное создание картинки автора из локального файла (BR-074) — write-путь.
+     *
+     * @return запись `Pictures` (существующая или созданная), `null` — если файла нет
+     */
+    fun ensurePictureAuthor(): Pictures? =
+        ensurePicture(name = pictureNameAuthor, pathToFile = pathToFileLogoAuthor, width = 1000, height = 400)
+
+    /**
+     * Явное создание обложки альбома из локального файла (BR-074) — write-путь.
+     *
+     * @return запись `Pictures` (существующая или созданная), `null` — если файла нет
+     */
+    fun ensurePictureAlbum(): Pictures? =
+        ensurePicture(name = pictureNameAlbum, pathToFile = pathToFileLogoAlbum, width = 400, height = 400)
+
+    /**
+     * Общая часть [ensurePictureAuthor]/[ensurePictureAlbum] (BR-074).
+     *
+     * Порядок: сначала существующая запись, иначе — создание из локального файла
+     * (INSERT + заливка в хранилище). Флаг готовности выставляется ТОЛЬКО после проверки
+     * наличия объекта в хранилище (`storageService.fileExists`).
+     *
+     * `ImageIO.read` может вернуть `null` (файл не является изображением) — раньше это давало
+     * NPE в геттере; теперь — `WARN` и `null`.
+     */
+    private fun ensurePicture(
+        name: String,
+        pathToFile: String,
+        width: Int,
+        height: Int,
+    ): Pictures? {
+        val existing =
             Pictures.getPictureByName(
-                name = pictureNameAuthor,
+                name = name,
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        if (pic == null) {
-            val pathToFile = pathToFileLogoAuthor
-            if (pathToFile != "") {
-                val pictureBites = File(pathToFile).inputStream().readAllBytes()
-                val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
-                val resizedBi = if (bi.width == 1000 && bi.height == 400) bi else resizeBufferedImage(bi, newW = 1000, newH = 400)
-                val previewBi = resizeBufferedImage(bi, newW = 125, newH = 50)
-                val iosFull = ByteArrayOutputStream()
-                ImageIO.write(resizedBi, "png", iosFull)
-                val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
-                val iosPreview = ByteArrayOutputStream()
-                ImageIO.write(previewBi, "png", iosPreview)
-                Base64.getEncoder().encodeToString(iosPreview.toByteArray())
-//                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
-                val pict = Pictures(database)
-                pict.name = pictureNameAuthor
-                pict.full = full
-//                pict.preview = preview
-                pic = Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
+        if (existing != null) {
+            markPictureReadyIfStored(existing)
+            return existing
+        }
+        if (pathToFile.isBlank()) return null
+        val file = File(pathToFile)
+        if (!file.exists()) {
+            persistenceLog.warn("song.picture.file_missing: songId={} '{}' — картинка не создана", id, pathToFile)
+            return null
+        }
+        val pictureBites =
+            try {
+                file.inputStream().readAllBytes()
+            } catch (e: Exception) {
+                persistenceLog.warn("song.picture.read_failed: songId={} '{}': {}", id, pathToFile, e.toString())
+                return null
             }
+        val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+        if (bi == null) {
+            persistenceLog.warn("song.picture.not_an_image: songId={} '{}' — картинка не создана", id, pathToFile)
+            return null
         }
-        // Персистентный флаг готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql).
-        if (pic != null && !pictureAuthorReady) {
-            pictureAuthorReady = true
-            saveToDb()
-        }
-        return pic
+        val resizedBi = if (bi.width == width && bi.height == height) bi else resizeBufferedImage(bi, newW = width, newH = height)
+        val iosFull = ByteArrayOutputStream()
+        ImageIO.write(resizedBi, "png", iosFull)
+        val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
+        val pict = Pictures(database)
+        pict.name = name
+        pict.full = full
+        val created =
+            Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
+        if (created != null) markPictureReadyIfStored(created)
+        return created
     }
 
-    @get:JsonIgnore
-    val pictureAlbum: Pictures? get() {
-        var pic =
-            Pictures.getPictureByName(
-                name = pictureNameAlbum,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            )
-        if (pic == null) {
-            val pathToFile = pathToFileLogoAlbum
-            if (pathToFile != "") {
-                val pictureBites = File(pathToFile).inputStream().readAllBytes()
-                val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
-                val resizedBi = if (bi.width == 400 && bi.height == 400) bi else resizeBufferedImage(bi, newW = 400, newH = 400)
-                val previewBi = resizeBufferedImage(bi, newW = 50, newH = 50)
-                val iosFull = ByteArrayOutputStream()
-                ImageIO.write(resizedBi, "png", iosFull)
-                val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
-                val iosPreview = ByteArrayOutputStream()
-                ImageIO.write(previewBi, "png", iosPreview)
-                Base64.getEncoder().encodeToString(iosPreview.toByteArray())
-//                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
-                val pict = Pictures(database)
-                pict.name = pictureNameAlbum
-                pict.full = full
-//                pict.preview = preview
-                pic = Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
+    /**
+     * Персистентный флаг готовности картинки (см. deploy/karaoke-db/26_player_readiness_flags.sql).
+     *
+     * BR-074: флаг выставляется только после того, как объект ПРОВЕРЕН в хранилище. Раньше
+     * он ставился по факту наличия локального файла (или записи в БД) — публичный плеер
+     * считал песню готовой при недоступной картинке.
+     */
+    private fun markPictureReadyIfStored(pic: Pictures) {
+        val stored =
+            try {
+                storageService.fileExists(pic.storageBucketName, pic.storageFileName)
+            } catch (e: Exception) {
+                persistenceLog.warn("song.picture.ready_check_failed: songId={} '{}': {}", id, pic.name, e.toString())
+                false
             }
+        if (!stored) {
+            persistenceLog.warn("song.picture.not_stored: songId={} '{}' — флаг готовности НЕ выставлен", id, pic.name)
+            return
         }
-        // Персистентный флаг готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql).
-        if (pic != null && !pictureAlbumReady) {
-            pictureAlbumReady = true
-            saveToDb()
+        if (pic.name == pictureNameAuthor) {
+            if (!pictureAuthorReady) pictureAuthorReady = true
+        } else if (pic.name == pictureNameAlbum) {
+            if (!pictureAlbumReady) pictureAlbumReady = true
         }
-        return pic
     }
 
     @get:JsonIgnore
@@ -1023,63 +1159,96 @@ class Song(
         get() = fields[SongField.PLAYER_READINESS_FLAGS]?.ifBlank { "{}" } ?: "{}"
         set(value) {
             fields[SongField.PLAYER_READINESS_FLAGS] = value
+            // BR-084: кэш разбора инвалидируется сменой значения поля.
+            readinessFlagsCache = null
         }
 
-    @get:JsonIgnore
-    val playerReadinessFlagsMap: Map<String, Boolean> get() =
-        try {
-            // Парсим как JsonObject (а не Map<String, Boolean>) — это позволяет сосуществовать
-            // boolean-флагам (stemAccompanimentReady) и string-флагам (telegramAutoPublishState)
-            // в одном JSON-объекте без потери string-ключей (что было критическим багом
-            // 02.08.2026: setReadinessFlag через MapSerializer(String, Boolean) при
-            // encodeToString ОТБРАСЫВАЛ string-значения и сохранял только текущий boolean).
-            val obj =
+    /**
+     * BR-084 (аудит #336, пакет PKG-S3-22): кэш разбора `player_readiness_flags`.
+     *
+     * Раньше JSON парсился заново на КАЖДОЕ чтение КАЖДОГО из ~20 флагов (а `isContentReady`
+     * дёргает четыре из них) — на 18k песен это десятки тысяч лишних разборов без изменения
+     * результата. Теперь разобранный объект кэшируется и инвалидируется сменой значения поля
+     * (ключ кэша — сама строка JSON, поэтому «забыть» инвалидировать невозможно).
+     *
+     * @property raw строка JSON, из которой построен кэш
+     * @property json разобранный JSON-объект
+     * @property booleans boolean-флаги из JSON (string-ключи в отдельную карту не попадают)
+     */
+    private data class ReadinessFlagsCache(
+        val raw: String,
+        val json: kotlinx.serialization.json.JsonObject,
+        val booleans: Map<String, Boolean>,
+    )
+
+    @Volatile
+    private var readinessFlagsCache: ReadinessFlagsCache? = null
+
+    /**
+     * Разбор JSON-флага готовности с кэшем (BR-084).
+     *
+     * Парсим как JsonObject (а не Map<String, Boolean>) — это позволяет сосуществовать
+     * boolean-флагам (stemAccompanimentReady) и string-флагам (telegramAutoPublishState)
+     * в одном JSON-объекте без потери string-ключей (это был критический баг 02.08.2026:
+     * setReadinessFlag через MapSerializer(String, Boolean) при encodeToString ОТБРАСЫВАЛ
+     * string-значения и сохранял только текущий boolean).
+     */
+    private fun readinessFlagsCacheOf(raw: String): ReadinessFlagsCache {
+        readinessFlagsCache?.let { if (it.raw == raw) return it }
+        val json =
+            try {
                 Json.decodeFromString(
                     kotlinx.serialization.json.JsonObject
                         .serializer(),
-                    playerReadinessFlags,
+                    raw,
                 )
-            obj.entries
+            } catch (_: Exception) {
+                kotlinx.serialization.json.JsonObject(emptyMap())
+            }
+        val booleans =
+            json.entries
                 .mapNotNull { (k, v) ->
                     // JsonPrimitive.booleanOrNull появился в kotlinx-serialization-json 1.5+;
                     // для совместимости (на старых версиях booleanContent) используем .content.
                     val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
-                    val content = prim.content
-                    when (content) {
+                    when (prim.content) {
                         "true" -> k to true
                         "false" -> k to false
                         else -> null
                     }
                 }.toMap()
-        } catch (_: Exception) {
-            emptyMap()
-        }
+        val cache = ReadinessFlagsCache(raw = raw, json = json, booleans = booleans)
+        readinessFlagsCache = cache
+        return cache
+    }
+
+    @get:JsonIgnore
+    val playerReadinessFlagsMap: Map<String, Boolean> get() = readinessFlagsCacheOf(playerReadinessFlags).booleans
 
     private fun readinessFlag(key: String): Boolean = playerReadinessFlagsMap[key] == true
 
+    /**
+     * BR-075 (аудит #336, пакет PKG-S3-22): запись ОДНОГО флага в `player_readiness_flags`.
+     *
+     * Раньше это был read-modify-write всего JSON: объект читал поле из своей памяти, добавлял
+     * ключ и писал **весь** JSON обратно. Два потока с разными объектами `Song` (заливка стемов
+     * ставит `stemVocalReady`, планировщик автопубликации пишет `telegramAutoPublishState`)
+     * вычисляли каждый свой полный JSON из старого состояния — последний UPDATE затирал ключи
+     * другого (терялся флаг готовности либо состояние автопубликации).
+     *
+     * Теперь запись — **compare-and-swap по содержимому колонки**:
+     * `UPDATE tbl_songs SET player_readiness_flags = ? WHERE id = ? AND player_readiness_flags = ?`
+     * (значение-ожидание читается из БД непосредственно перед записью). Если строку изменил
+     * кто-то ещё — CAS не срабатывает, читаем значение заново и повторяем (ограниченное число
+     * попыток). Ключи разных потоков при этом не теряются.
+     *
+     * Дифф-обновление (`saveToDb`) поле `player_readiness_flags` НЕ пишет — иначе он опять
+     * записал бы весь устаревший JSON (см. [getDiff]).
+     */
     private fun setReadinessFlag(
         key: String,
         value: Boolean,
-    ) {
-        // Раньше использовался MapSerializer(String.serializer(), Boolean.serializer()) — это приводило
-        // к ПОТЕРЕ всех string-ключей в JSON (telegramAutoPublishState, vkAutoPublishState и т.п.) при
-        // любой записи boolean-флага. Теперь: парсим JSON как JsonObject (совместимо с обоими типами
-        // значений), модифицируем и сохраняем через JsonObject.encodeToString — string-значения
-        // сохраняются без искажений.
-        val updated =
-            try {
-                Json
-                    .decodeFromString(
-                        kotlinx.serialization.json.JsonObject
-                            .serializer(),
-                        playerReadinessFlags,
-                    ).toMutableMap()
-            } catch (_: Exception) {
-                mutableMapOf()
-            }
-        updated[key] = kotlinx.serialization.json.JsonPrimitive(value)
-        playerReadinessFlags = Json.encodeToString(kotlinx.serialization.json.JsonObject(updated))
-    }
+    ) = setReadinessFlagValue(key, kotlinx.serialization.json.JsonPrimitive(value))
 
     // Фаза 2 (specs/113-telegram-demo-publish): string-ключи состояния автопубликации демо в тот же
     // JSON-блоб player_readiness_flags. В отличие от boolean readiness-флагов выше, эти ключи хранят
@@ -1087,38 +1256,136 @@ class Song(
     // JsonObject, а не Map<String, Boolean>. Существующие boolean-флаги не затрагиваются: kx-сериализация
     // JsonObject прозрачно сосуществует с boolean-значениями в том же объекте (см. specs/101-song-news-flag
     // — тот же паттерн «новый ключ в существующем JSON без миграции/колонки»).
-    private fun readinessStringFlag(key: String): String =
-        try {
-            val obj =
-                Json.decodeFromString(
-                    kotlinx.serialization.json.JsonObject
-                        .serializer(),
-                    playerReadinessFlags
-                )
-            obj[key]?.let { el ->
-                if (el is kotlinx.serialization.json.JsonPrimitive) el.content else ""
-            } ?: ""
-        } catch (_: Exception) {
-            ""
-        }
+    private fun readinessStringFlag(key: String): String {
+        val obj = readinessFlagsCacheOf(playerReadinessFlags).json
+        return obj[key]?.let { el ->
+            if (el is kotlinx.serialization.json.JsonPrimitive) el.content else ""
+        } ?: ""
+    }
 
     private fun setReadinessStringFlag(
         key: String,
         value: String,
+    ) = setReadinessFlagValue(key, kotlinx.serialization.json.JsonPrimitive(value))
+
+    /**
+     * Общая точка записи флага готовности: локальное обновление + CAS-запись в БД (BR-075).
+     */
+    private fun setReadinessFlagValue(
+        key: String,
+        value: kotlinx.serialization.json.JsonPrimitive,
     ) {
-        val updated =
+        // Локально — сразу (объект должен отражать намерение вызывающего).
+        playerReadinessFlags = mergeReadinessFlag(playerReadinessFlags, key, value)
+        if (id <= 0L || readonly) return
+        if (!writeReadinessFlagToDb(key, value)) {
+            persistenceLog.warn(
+                "song.readiness_flag.write_failed: songId={} key={} — флаг записан только в память объекта",
+                id,
+                key,
+            )
+        }
+    }
+
+    /**
+     * Слияние одного ключа в JSON-строку флагов (BR-075) — чистая функция.
+     *
+     * @param raw исходный JSON (может быть пустым/битым — тогда берётся пустой объект)
+     * @param key ключ флага
+     * @param value значение флага (boolean или string)
+     * @return новый JSON-объект (формат `{"key":value}` — компактный, как в БД)
+     */
+    internal fun mergeReadinessFlag(
+        raw: String,
+        key: String,
+        value: kotlinx.serialization.json.JsonPrimitive,
+    ): String {
+        val obj =
             try {
                 Json
                     .decodeFromString(
                         kotlinx.serialization.json.JsonObject
                             .serializer(),
-                        playerReadinessFlags
+                        raw.ifBlank { "{}" },
                     ).toMutableMap()
             } catch (_: Exception) {
                 mutableMapOf()
             }
-        updated[key] = kotlinx.serialization.json.JsonPrimitive(value)
-        playerReadinessFlags = Json.encodeToString(updated)
+        obj[key] = value
+        return Json.encodeToString(kotlinx.serialization.json.JsonObject(obj))
+    }
+
+    /**
+     * CAS-запись одного флага в БД (BR-075): читаем текущее значение колонки, сливаем ключ и
+     * пишем только если колонка не менялась с момента чтения.
+     *
+     * @return `true`, если флаг записан в БД
+     */
+    private fun writeReadinessFlagToDb(
+        key: String,
+        value: kotlinx.serialization.json.JsonPrimitive,
+    ): Boolean {
+        val connection = database.getConnection() ?: return false
+        repeat(READINESS_FLAG_CAS_ATTEMPTS) { attempt ->
+            val current =
+                try {
+                    connection
+                        .prepareStatement("SELECT COALESCE(player_readiness_flags, '{}') FROM tbl_songs WHERE id = ?")
+                        .use { ps ->
+                            ps.setLong(1, id)
+                            ps.executeQuery().use { rs ->
+                                if (rs.next()) rs.getString(1)?.ifBlank { "{}" } ?: "{}" else null
+                            }
+                        }
+                } catch (e: Exception) {
+                    persistenceLog.warn("song.readiness_flag.read_failed: songId={} key={}: {}", id, key, e.toString())
+                    return false
+                }
+            if (current == null) {
+                // Строки нет — записать флаг некуда (песня удалена или ещё не создана).
+                persistenceLog.warn("song.readiness_flag.row_missing: songId={} key={} — флаг не записан", id, key)
+                return false
+            }
+            val merged = mergeReadinessFlag(current, key, value)
+            if (merged == current) {
+                // В БД уже это значение — UPDATE не нужен (меньше блокировок строки).
+                playerReadinessFlags = merged
+                return true
+            }
+            val updated =
+                try {
+                    connection
+                        .prepareStatement(
+                            "UPDATE tbl_songs SET player_readiness_flags = ? " +
+                                "WHERE id = ? AND COALESCE(player_readiness_flags, '{}') = ?",
+                        ).use { ps ->
+                            ps.setString(1, merged)
+                            ps.setLong(2, id)
+                            ps.setString(3, current)
+                            ps.executeUpdate()
+                        }
+                } catch (e: Exception) {
+                    persistenceLog.warn("song.readiness_flag.write_failed: songId={} key={}: {}", id, key, e.toString())
+                    return false
+                }
+            if (updated == 1) {
+                playerReadinessFlags = merged
+                return true
+            }
+            // Колонку изменил кто-то ещё — читаем заново и повторяем (ограниченное число попыток).
+            persistenceLog.warn(
+                "song.readiness_flag.cas_retry: songId={} key={} attempt={} — колонка изменена параллельно",
+                id,
+                key,
+                attempt + 1,
+            )
+        }
+        persistenceLog.warn(
+            "song.readiness_flag.cas_failed: songId={} key={} — флаг НЕ записан (параллельные изменения)",
+            id,
+            key,
+        )
+        return false
     }
 
     // Текущее состояние автопубликации демо в Telegram (один из TelegramAutoPublishState.code или ""
@@ -2190,42 +2457,52 @@ class Song(
         )
     }
 
-    val sheetsageInfo: Map<String, Any> get() {
-        // key - тональность
-        // tempo - bpm
-        // chords - аккорды в формате "аккорд время длительность_в_битах бит_по_счёту"
-        // beattimes - времена каждой 1/16 такта
-        val result: MutableMap<String, Any> = mutableMapOf()
-
+    /**
+     * Разбор файлов Sheetsage песни (BR-078/BR-079, аудит #336, пакет PKG-S3-22).
+     *
+     * BR-079: возвращается **типизированный** [SheetsageInfo], а не `Map<String, Any>`.
+     * Раньше ключи появлялись в карте только при совпадении регулярки, а потребители читали
+     * их приведениями `as String` / `as List<String>`: `null as String` даёт NPE (элвис `?: ""`
+     * применяется к результату приведения, а не к значению в карте) — то есть 500 на песне без
+     * `\tempo` вместо пустой строки.
+     *
+     * BR-078: разбор устойчив. Раньше `substring(1, length - 2)`, destructuring `split(" \\")`,
+     * `v1[0]`, `beattimes[indexBeat]` и `toDouble()`/`toLong()` бросали исключения наружу
+     * (`StringIndexOutOfBounds`, `IndexOutOfBounds`, `NumberFormatException`) — диагностический
+     * эндпоинт отвечал 500, а массовый проход `updateBpmAndKeyLV` обрывался на первой
+     * нештатной песне. Теперь: проверки длины, `toDoubleOrNull`/`toLongOrNull`, `getOrNull` по
+     * индексам; нештатный файл — `WARN` с `songId`/путём и пустой результат.
+     *
+     * @property key тональность (`"C♭ major"` и т.п.)
+     * @property tempo темп (bpm) строкой
+     * @property chords аккорды в формате `"аккорд время длительность_в_битах бит_по_счёту"`
+     * @property beattimes времена каждой 1/16 такта
+     */
+    val sheetsageInfo: SheetsageInfo get() {
         val file = File(pathToFileSheetsageLY)
         val fileBeatTime = File(pathToFileSheetsageBeattimes)
-        if (!file.exists() || !fileBeatTime.exists()) return result
+        if (!file.exists() || !fileBeatTime.exists()) return SheetsageInfo()
         val bodyLY =
             try {
                 file.readText(Charsets.UTF_8)
-            } catch (_: Exception) {
-                return result
+            } catch (e: Exception) {
+                persistenceLog.warn("song.sheetsage.read_failed: songId={} файл='{}': {}", id, pathToFileSheetsageLY, e.toString())
+                return SheetsageInfo()
             }
         val bodyBeattimes =
             try {
                 fileBeatTime.readText(Charsets.UTF_8)
-            } catch (_: Exception) {
-                return result
+            } catch (e: Exception) {
+                persistenceLog.warn(
+                    "song.sheetsage.read_failed: songId={} файл='{}': {}",
+                    id,
+                    pathToFileSheetsageBeattimes,
+                    e.toString(),
+                )
+                return SheetsageInfo()
             }
 
-        val beattimesSource = bodyBeattimes.substring(1, bodyBeattimes.length - 2).split(", ").map { it.toDouble() }
-        val beattimes: MutableList<Double> = mutableListOf()
-        for (i in 0 until beattimesSource.size - 1) {
-            val currentBeatTime = beattimesSource[i]
-            val nextBeatTime = beattimesSource[i + 1]
-            val lenOneBeat = (nextBeatTime - currentBeatTime) / 4
-            beattimes.add(currentBeatTime)
-            beattimes.add(currentBeatTime + lenOneBeat)
-            beattimes.add(currentBeatTime + lenOneBeat * 2)
-            beattimes.add(currentBeatTime + lenOneBeat * 2)
-            beattimes.add(currentBeatTime + lenOneBeat * 3)
-        }
-        result["beattimes"] = beattimes
+        val beattimes = parseSheetsageBeattimes(bodyBeattimes)
 
         val regexChords = Regex("\\\\chordmode \\{([\\n?|\\s\\S.]*?)}")
         val regexKey = Regex("\\\\key\\s([\\S|\\s]*?)\\n")
@@ -2236,10 +2513,16 @@ class Song(
         val matchResultKey = regexKey.find(bodyLY)
         val matchResultTempo = regexTempo.find(bodyLY)
 
+        var key = ""
         if (matchResultKey != null) {
-            val (v1, v2) = matchResultKey.groupValues[1].split(" \\")
-            val key =
-                v1[0].toString().uppercase() +
+            // BR-078: destructuring `val (v1, v2) = …split(" \\")` падал IndexOutOfBounds на
+            // строке `\key` без второго поля, `v1[0]` — на пустом значении.
+            val parts = matchResultKey.groupValues[1].split(" \\")
+            val v1 = parts.getOrNull(0)?.trim().orEmpty()
+            val v2 = parts.getOrNull(1)?.trim().orEmpty()
+            if (v1.isNotEmpty()) {
+                key =
+                    v1[0].toString().uppercase() +
                     (
                         when (v1.length) {
                             3 if v1.endsWith("is") -> "#"
@@ -2247,19 +2530,30 @@ class Song(
                             else -> ""
                         }
                     ) + " " + v2
-            result["key"] = key
+            } else {
+                persistenceLog.warn("song.sheetsage.key_unparsed: songId={} файл='{}'", id, pathToFileSheetsageLY)
+            }
         }
 
+        var tempo = ""
         if (matchResultTempo != null) {
-            val (_, tempo) = matchResultTempo.groupValues[1].split("=")
-            result["tempo"] = tempo.trim()
+            // BR-078: `val (_, tempo) = …split("=")` падал, если символа '=' не было.
+            tempo =
+                matchResultTempo.groupValues[1]
+                    .split("=")
+                    .getOrNull(1)
+                    ?.trim()
+                    .orEmpty()
         }
 
+        val chordsList: MutableList<String> = mutableListOf()
         if (matchResultChords != null) {
             val chords = matchResultChords.groupValues[1].trim().split(" ")
-            val chordsList: MutableList<String> = mutableListOf()
-            var indexBeat = diffBeats.toInt()
-            var chordTime = beattimes[indexBeat]
+            // BR-078: `diffBeats.toInt()` и `beattimes[indexBeat]` падали на нечисловом
+            // `diff_beats` и выходе за границу списка.
+            var indexBeat = diffBeats.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+            if (indexBeat < 0) indexBeat = 0
+            var chordTime = beattimes.getOrNull(indexBeat) ?: 0.0
 
             chords.forEach { chordText ->
                 val matchResultChord = regexChord.find(chordText)
@@ -2274,28 +2568,77 @@ class Song(
                                 ""
                             }
 
-                    chord = chord +
-                        try {
-                            matchResultChord.groupValues[6]
-                        } catch (_: Exception) {
-                            ""
-                        }
+                    chord = chord + matchResultChord.groupValues.getOrElse(6) { "" }
 
-                    val beats = (matchResultChord.groupValues[3].toLong()) * (matchResultChord.groupValues[4].toLong()) / 16
+                    val beats =
+                        (matchResultChord.groupValues[3].toLongOrNull() ?: 0L) *
+                            (matchResultChord.groupValues[4].toLongOrNull() ?: 0L) / 16
                     chord = "$chord $chordTime $beats $indexBeat"
                     for (@Suppress("unused") i in 0 until beats) {
                         indexBeat++
-                        if (indexBeat < beattimes.size) {
-                            chordTime = beattimes[indexBeat]
-                        }
+                        beattimes.getOrNull(indexBeat)?.let { chordTime = it }
                     }
 
                     chordsList.add(chord)
                 }
             }
-            result["chords"] = chordsList
         }
 
+        return SheetsageInfo(
+            key = key,
+            tempo = tempo,
+            chords = chordsList,
+            beattimes = beattimes,
+        )
+    }
+
+    /**
+     * Разбор списка beat-times из файла `[sheetsage] [beattimes].txt` (BR-078).
+     *
+     * Формат файла — `[0.0, 0.5, 1.0]` (возможен хвостовой перевод строки). Раньше разбор шёл
+     * через `substring(1, length - 2)`, что падало `StringIndexOutOfBoundsException` на
+     * коротком/пустом файле, а `toDouble()` — `NumberFormatException` на нечисловом значении.
+     *
+     * @param body содержимое файла
+     * @return список времён 1/16 такта (пустой список — если файл нечитаем)
+     */
+    internal fun parseSheetsageBeattimes(body: String): List<Double> {
+        val inner =
+            body
+                .trim()
+                .removePrefix("[")
+                .removeSuffix("]")
+                .trim()
+        if (inner.isBlank()) {
+            persistenceLog.warn("song.sheetsage.beattimes_empty: songId={} файл='{}'", id, pathToFileSheetsageBeattimes)
+            return emptyList()
+        }
+        val numbers = mutableListOf<Double>()
+        var skipped = 0
+        inner.split(",").forEach { part ->
+            val value = part.trim().toDoubleOrNull()
+            if (value == null) skipped++ else numbers.add(value)
+        }
+        if (skipped > 0) {
+            persistenceLog.warn(
+                "song.sheetsage.beattimes_partial: songId={} файл='{}' нечисловых значений={}",
+                id,
+                pathToFileSheetsageBeattimes,
+                skipped,
+            )
+        }
+        if (numbers.size < 2) return emptyList()
+        val result = mutableListOf<Double>()
+        for (i in 0 until numbers.size - 1) {
+            val currentBeatTime = numbers[i]
+            val nextBeatTime = numbers[i + 1]
+            val lenOneBeat = (nextBeatTime - currentBeatTime) / 4
+            result.add(currentBeatTime)
+            result.add(currentBeatTime + lenOneBeat)
+            result.add(currentBeatTime + lenOneBeat * 2)
+            result.add(currentBeatTime + lenOneBeat * 2)
+            result.add(currentBeatTime + lenOneBeat * 3)
+        }
         return result
     }
 
@@ -3967,6 +4310,9 @@ class Song(
      * Fail-safe (FR-012): нечитаемые данные голосов — нормализация пропускается, сохранение
      * продолжается обычным путём, факт пишется в лог.
      *
+     * BR-103: нормализация применяется к **объединённому** набору голосов (результат
+     * трёхстороннего слияния, см. [applyVoiceMerge]), а не к устаревшему снимку объекта.
+     *
      * @see docs/features/drop-empty-song-voices.md
      */
     private fun normalizeVoicesBeforeSave() {
@@ -3985,6 +4331,15 @@ class Song(
         val normalization = normalizeVoices(texts, markers)
         if (!normalization.changed) return
 
+        applyVoiceNormalization(normalization)
+    }
+
+    /**
+     * Применение результата нормализации голосов: запись полей, пересчёт производных текстов,
+     * запоминание результата (BR-103 — вынесено из [normalizeVoicesBeforeSave], чтобы тем же
+     * кодом нормализовался ОБЪЕДИНЁННЫЙ набор голосов).
+     */
+    private fun applyVoiceNormalization(normalization: VoiceNormalization) {
         fields[SongField.SOURCE_MARKERS] = Json.encodeToString(normalization.markers)
         fields[SongField.SOURCE_TEXT] = Json.encodeToString(normalization.texts)
         // Производные тексты — только при фактическом удалении (редкое событие, research R6).
@@ -3996,6 +4351,119 @@ class Song(
         voiceNormalizeLog.warn(
             "song.voices.normalized: songId=$id removed=${normalization.removedIndices.joinToString(",")} count=${normalization.count}",
         )
+    }
+
+    /**
+     * Снимок голосов, прочитанный из БД при загрузке песни (BR-103).
+     *
+     * Позволяет отличить «объект изменил голоса» от «объект несёт устаревший снимок»:
+     * без снимка фоновая задача, загрузившая песню ДО правки редактора, при сохранении
+     * записывала свой устаревший набор голосов — и голос, добавленный редактором, исчезал.
+     */
+    private var loadedVoicesSnapshot: Pair<String, String>? = null
+
+    /**
+     * Признак «голоса заменены явно» (BR-103) — копирование полей из другой песни
+     * ([copyFieldsFromAnother]). Такой набор голосов пишется как есть: слияние с БД здесь
+     * не применяется, потому что решение «заменить» принято вызывающим осознанно.
+     */
+    private var voiceFieldsExplicitlyReplaced = false
+
+    /**
+     * Текущие значения полей голосов (`source_text`, `source_markers`) или `null`, если поля
+     * не загружены (песня из списка с `withoutMarkersAndText = true`).
+     */
+    internal fun voiceFieldsRaw(): Pair<String, String>? {
+        val text = fields[SongField.SOURCE_TEXT] ?: return null
+        val markers = fields[SongField.SOURCE_MARKERS] ?: return null
+        return text to markers
+    }
+
+    /**
+     * Запомнить снимок голосов, прочитанных из БД (BR-103). Вызывается при загрузке песни.
+     */
+    internal fun rememberLoadedVoices() {
+        loadedVoicesSnapshot = voiceFieldsRaw()
+    }
+
+    /**
+     * Трёхстороннее слияние голосов (BR-103).
+     *
+     * @param base снимок голосов на момент загрузки объекта
+     * @param mine текущие значения объекта (до нормализации)
+     * @param theirs свежие значения из БД
+     * @return объединённые значения (`source_text`, `source_markers`)
+     */
+    internal fun mergeVoiceFields(
+        base: Pair<String, String>,
+        mine: Pair<String, String>,
+        theirs: Pair<String, String>,
+    ): Pair<String, String> {
+        val baseTexts = parseVoiceTexts(base.first) ?: return mine
+        val baseMarkers = parseVoiceMarkers(base.second) ?: return mine
+        val mineTexts = parseVoiceTexts(mine.first) ?: return mine
+        val mineMarkers = parseVoiceMarkers(mine.second) ?: return mine
+        val theirsTexts = parseVoiceTexts(theirs.first) ?: return mine
+        val theirsMarkers = parseVoiceMarkers(theirs.second) ?: return mine
+
+        val size = maxOf(mineTexts.size, theirsTexts.size)
+        val mergedTexts = mutableListOf<String>()
+        val mergedMarkers = mutableListOf<List<SourceMarker>>()
+        for (i in 0 until size) {
+            val mineText = mineTexts.getOrNull(i)
+            val mineMarker = mineMarkers.getOrNull(i)
+            val baseText = baseTexts.getOrNull(i)
+            val baseMarker = baseMarkers.getOrNull(i)
+            val mineAbsent = mineText == null && mineMarker == null
+            val baseAbsent = baseText == null && baseMarker == null
+            if (mineAbsent && !baseAbsent) continue // этот объект удалил голос — удаление приоритетно
+            if (mineText == baseText && mineMarker == baseMarker) {
+                // Объект этот голос не трогал — берём версию из БД (это может быть голос,
+                // добавленный редактором параллельно).
+                val theirText = theirsTexts.getOrNull(i)
+                val theirMarker = theirsMarkers.getOrNull(i)
+                if (theirText == null && theirMarker == null) continue
+                mergedTexts.add(theirText.orEmpty())
+                mergedMarkers.add(theirMarker.orEmpty())
+            } else {
+                if (mineAbsent) continue
+                mergedTexts.add(mineText.orEmpty())
+                mergedMarkers.add(mineMarker.orEmpty())
+            }
+        }
+        return Json.encodeToString(mergedTexts) to Json.encodeToString(mergedMarkers)
+    }
+
+    /**
+     * Применение трёхстороннего слияния голосов перед вычислением diff (BR-103).
+     *
+     * Сценарий дефекта: фоновый процесс держит объект песни, загруженный ДО того, как редактор
+     * добавил голос. Раньше `normalizeVoicesBeforeSave()` нормализовала УСТАРЕВШИЙ снимок, а
+     * diff (против свежей строки) записывал его — добавленный редактором голос исчезал.
+     *
+     * Теперь:
+     * - если объект голоса НЕ менял (значения совпадают со снимком загрузки) — берётся
+     *   свежая версия из БД (голос редактора сохраняется);
+     * - если объект голоса менял — выполняется слияние по голосам ([mergeVoiceFields]):
+     *   изменённые этим объектом голоса приоритетны, не тронутые — из БД.
+     */
+    private fun applyVoiceMerge(
+        savedSong: Song?,
+        mine: Pair<String, String>?,
+    ) {
+        if (voiceFieldsExplicitlyReplaced) return
+        val base = loadedVoicesSnapshot ?: return
+        val mineValues = mine ?: return
+        val theirs = savedSong?.voiceFieldsRaw() ?: return
+        if (base == mineValues) {
+            // Голоса не менялись — оставляем свежую версию из БД.
+            fields[SongField.SOURCE_TEXT] = theirs.first
+            fields[SongField.SOURCE_MARKERS] = theirs.second
+            return
+        }
+        val merged = mergeVoiceFields(base = base, mine = mineValues, theirs = theirs)
+        fields[SongField.SOURCE_TEXT] = merged.first
+        fields[SongField.SOURCE_MARKERS] = merged.second
     }
 
     fun setIndexTabsVariant(ind: Int) {
@@ -5603,11 +6071,14 @@ class Song(
      */
     fun saveToDb(): Boolean {
         if (readonly) return false
-        // specs/547-drop-empty-song-voices (FR-001/FR-002): пустые голоса (кроме первого)
-        // удаляются при ЛЮБОМ сохранении песни — до вычисления diff, чтобы UPDATE записал уже
-        // нормализованные source_text/source_markers.
-        normalizeVoicesBeforeSave()
+        // BR-103 (аудит #336, пакет PKG-S3-22): значения полей голосов ДО нормализации —
+        // по ним считается трёхстороннее слияние со свежей строкой из БД.
+        val voiceFieldsBeforeSave = voiceFieldsRaw()
         if (id == 0L) {
+            // specs/547-drop-empty-song-voices (FR-001/FR-002): пустые голоса (кроме первого)
+            // удаляются при ЛЮБОМ сохранении песни — до вычисления diff, чтобы UPDATE записал уже
+            // нормализованные source_text/source_markers.
+            normalizeVoicesBeforeSave()
             // specs/277-song-name-censored: baseline-автозаполнение song_name_censored для НОВЫХ
             // песен (INSERT-ветка). Раньше baseline срабатывал только в UPDATE-ветке ниже, и песни,
             // созданные через `Song.createFromPath()` (импорт из папки), попадали в БД с
@@ -5617,7 +6088,20 @@ class Song(
             }
             markNewsAvailableIfReady()
             // specs/544 (FR-006): sidecar-файл состояния больше не пишется.
-            createDbInstance(this, database)
+            // BR-107: результат INSERT больше не игнорируется — null означает «строка не вставлена».
+            val created =
+                try {
+                    createDbInstance(this, database)
+                } catch (e: SQLException) {
+                    persistenceLog.error("song.insert.failed: песня НЕ сохранена (songId=0): {}", e.message, e)
+                    null
+                }
+            if (created == null) {
+                persistenceLog.warn(
+                    "song.insert.failed: песня НЕ сохранена — id остался 0; вызывающий обязан не считать песню сохранённой",
+                )
+                return false
+            }
             return true
         } else {
             markNewsAvailableIfReady()
@@ -5635,6 +6119,11 @@ class Song(
                 )
                 return false
             }
+
+            // BR-103: слияние голосов (устаревший снимок фонового объекта) и нормализация
+            // РЕЗУЛЬТАТА слияния — до вычисления diff, чтобы в UPDATE ушёл объединённый набор.
+            applyVoiceMerge(savedSong, voiceFieldsBeforeSave)
+            normalizeVoicesBeforeSave()
 
             // При сохранении проверяем и меняем если надо номера версий на площадках. Если на площадке 0 и было изменение id - обновляем
             if (savedSong !== null) {
@@ -6351,26 +6840,74 @@ class Song(
 //    fun doMP3Lyrics(prior: Int = -1, threadId: Int) {
 //        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior, threadId = threadId)
 //    }
+
+    /**
+     * Удаление песни из БД и (опционально) её файлов (BR-106, аудит #336, пакет PKG-S3-22).
+     *
+     * Порядок изменён: **сначала строка БД, потом файлы**.
+     *
+     * Раньше файлы удалялись ДО удаления строки и без транзакции: основной аудиофайл —
+     * `File.delete()` сразу, вокал/аккомпанемент — `deleteOnExit()` (регистрация на выход JVM:
+     * в долгоживущем контейнере файлы оставались на диске до перезапуска, а список путей рос
+     * в памяти). При `SQLException` на DELETE строка оставалась, а аудиофайл уже был удалён —
+     * песня с «битым» звуком, восстановление только из хранилища/бэкапа.
+     *
+     * Теперь: ошибка DELETE → строка остаётся, файлы НЕ трогаются (fail-closed, расхождение
+     * «файл есть, строка есть» лучше, чем «строка есть, звука нет»); удаление файлов —
+     * best-effort с записью результата в лог.
+     */
     fun deleteFromDb(
         withFiles: Boolean = true,
         sync: Boolean = false,
     ) {
-        if (withFiles) {
-            if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
-            if (File(vocalsNameFlac).exists()) File(vocalsNameFlac).deleteOnExit()
-            if (File(accompanimentNameFlac).exists()) File(accompanimentNameFlac).deleteOnExit()
-        }
-
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+            persistenceLog.warn(
+                "song.delete.failed: songId={} нет соединения с БД {} — строка НЕ удалена, файлы сохранены",
+                id,
+                database.name,
+            )
             return
         }
         val sql = "DELETE FROM tbl_songs${if (sync) "_sync" else ""} WHERE id = ?"
-        val ps = connection.prepareStatement(sql)
-        ps.setLong(1, id)
-        ps.executeUpdate()
-        ps.close()
+        val deletedRows =
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setLong(1, id)
+                    ps.executeUpdate()
+                }
+            } catch (e: Exception) {
+                persistenceLog.warn(
+                    "song.delete.failed: songId={} DELETE не выполнен: {} — файлы НЕ удалены",
+                    id,
+                    e.toString(),
+                )
+                return
+            }
+        if (deletedRows <= 0) {
+            persistenceLog.warn(
+                "song.delete.no_rows: songId={} DELETE затронул 0 строк (строка уже удалена) — файлы НЕ удалены",
+                id,
+            )
+            return
+        }
+
+        if (withFiles) {
+            listOf(fileAbsolutePath, vocalsNameFlac, accompanimentNameFlac).forEach { path ->
+                if (path.isBlank()) return@forEach
+                val file = File(path)
+                if (!file.exists()) return@forEach
+                val deleted =
+                    try {
+                        file.delete()
+                    } catch (e: Exception) {
+                        false
+                    }
+                if (!deleted) {
+                    persistenceLog.warn("song.delete.file_failed: songId={} файл='{}' не удалён", id, path)
+                }
+            }
+        }
 
         val messageRecordDelete =
             SseNotification.recordDelete(
@@ -6782,6 +7319,25 @@ class Song(
 
     companion object {
         const val TABLE_NAME = "tbl_songs"
+
+        /**
+         * Логгер операций записи песни в БД (BR-073/075/106/107, аудит #336).
+         *
+         * В companion — потому что используется и в инстанс-методах, и в статических
+         * (`createDbInstance`).
+         */
+        private val persistenceLog = LoggerFactory.getLogger("infra.song.persistence")
+
+        /**
+         * BR-075 (аудит #336, пакет PKG-S3-22): число попыток CAS-записи одного флага
+         * готовности в `player_readiness_flags`.
+         *
+         * Каждая попытка — чтение текущего значения колонки + `UPDATE ... WHERE <значение не
+         * менялось>`. Значение меняется редко (несколько писателей на песню), поэтому трёх
+         * попыток достаточно; при исчерпании — `WARN` и флаг остаётся записанным только
+         * в памяти объекта (следующий пересчёт health его восстановит).
+         */
+        const val READINESS_FLAG_CAS_ATTEMPTS = 3
 
         /**
          * Читает проекцию «id_status, free, publish_date, publish_time» без материализации
@@ -7659,7 +8215,12 @@ class Song(
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
                 if (settA.freeAfterOnAir != settB.freeAfterOnAir) result.add(RecordDiff("free_after_on_air", settA.freeAfterOnAir, settB.freeAfterOnAir))
                 if (settA.playerReadinessFlags != settB.playerReadinessFlags) {
-                    result.add(RecordDiff("player_readiness_flags", settA.playerReadinessFlags, settB.playerReadinessFlags))
+                    // BR-075 (аудит #336, пакет PKG-S3-22): поле НЕ пишется diff-обновлением.
+                    // Флаги готовности пишутся только атомарным CAS-вызовом (см.
+                    // setReadinessFlagValue): общее JSON-поле при записи «всей строки» затирало
+                    // ключи, записанные параллельным потоком. Diff остаётся диагностическим
+                    // (recordDiffRealField = false) — значение видно в SSE, но в UPDATE не попадает.
+                    result.add(RecordDiff("player_readiness_flags", settA.playerReadinessFlags, settB.playerReadinessFlags, false))
                 }
                 if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
                 if (settA.songType != settB.songType) result.add(RecordDiff("song_type", settA.songType.dbValue, settB.songType.dbValue))
@@ -7860,6 +8421,49 @@ class Song(
             return emptyList()
         }
 
+        /**
+         * Создание записи песни в БД (INSERT + RETURNING id) — BR-107 (аудит #336).
+         *
+         * Раньше `catch (_: Exception)` ловил ЛЮБУЮ ошибку INSERT (NOT NULL, длина, тип,
+         * конфликт), «лечил» сиквенс и возвращал `null`: INSERT не выполнен, `song.id` оставался
+         * `0`, а вызывающий (импорт папки, создание песни) продолжал работать с несохранённым
+         * объектом и ставил процессы с `songId = 0`.
+         *
+         * Теперь:
+         * - ловится ТОЛЬКО [SQLException];
+         * - «починка» сиквенса применяется только к рассинхрону последовательности
+         *   (нарушение уникальности при `last_value` сиквенса позади `max(id)`);
+         * - остальные ошибки INSERT **пробрасываются наружу** — их нельзя превращать в «null»;
+         * - `null` возвращается только когда строка действительно не вставлена
+         *   (пустые `generatedKeys`).
+         *
+         * @return созданная песня с проставленным `id` или `null` (строка не вставлена)
+         * @throws SQLException ошибка INSERT, не связанная с рассинхроном сиквенса
+         */
+
+        /**
+         * Починка рассинхрона последовательности `tbl_songs_id_seq` (BR-107).
+         *
+         * @return `true`, если последовательность была позади `max(id)` и перезапущена
+         */
+        private fun repairSongIdSequenceIfOutOfSync(connection: Connection): Boolean {
+            connection.createStatement().use { statement ->
+                val lastId =
+                    statement.executeQuery("select max(id) as last_value from tbl_songs;").use { rs ->
+                        if (rs.next()) rs.getLong("last_value") else 0L
+                    }
+                val lastSeq =
+                    statement.executeQuery("select last_value from tbl_songs_id_seq;").use { rs ->
+                        if (rs.next()) rs.getLong("last_value") else 0L
+                    }
+                if (lastSeq < lastId) {
+                    statement.execute("alter sequence tbl_songs_id_seq restart with ${lastId + 1};")
+                    return true
+                }
+            }
+            return false
+        }
+
         fun createDbInstance(
             song: Song,
             database: KaraokeConnection,
@@ -7874,31 +8478,40 @@ class Song(
             val ps = connection.prepareStatement(sql)
             try {
                 ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            } catch (_: Exception) {
-                // Проверяем последнее значение сиквенса и айдишника таблицы
-                val statement = connection.createStatement()
-                val rsLastId = statement.executeQuery("select max(id) as last_value from tbl_songs;")
-                val rsLastSeq = statement.executeQuery("select last_value from tbl_songs_id_seq;")
-                rsLastId.next()
-                val lastId = rsLastId.getLong("last_value")
-                rsLastSeq.next()
-                val lastSeq = rsLastSeq.getLong("last_value")
-                if (lastSeq < lastId) {
-                    statement.execute("alter sequence tbl_songs_id_seq restart with ${lastId + 1};")
-                    ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
+            } catch (e: SQLException) {
+                // BR-107: рассинхрон сиквенса — единственная ситуация, которую можно «починить».
+                val isDuplicateKey = e.sqlState == "23505" || (e.message?.contains("duplicate key") == true)
+                if (!isDuplicateKey || !repairSongIdSequenceIfOutOfSync(connection)) {
+                    ps.close()
+                    throw e
                 }
+                ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             }
-            val rs = ps.generatedKeys
+            val generatedId =
+                try {
+                    ps.generatedKeys.use { rs ->
+                        if (rs.next()) rs.getInt(1) else -1
+                    }
+                } catch (e: Exception) {
+                    -1
+                }
+            ps.close()
 
             val result =
-                if (rs.next() && song.id <= 0) {
-                    song.fields[SongField.ID] = rs.getInt(1).toString()
+                if (generatedId > 0 && song.id <= 0) {
+                    song.fields[SongField.ID] = generatedId.toString()
                     song
                 } else {
                     null
                 }
 
-            ps.close()
+            if (result == null) {
+                println(
+                    "[${Timestamp.from(Instant.now())}] WARN song.insert.no_generated_key: песня НЕ вставлена " +
+                        "(generatedKeys пуст) — id остался 0",
+                )
+                return null
+            }
             result?.let {
                 val messageRecordAdd =
                     SseNotification.recordAdd(
@@ -8603,6 +9216,14 @@ class Song(
                         rs.getString("formatted_text_song")?.let { value -> song.formattedTextSong = value }
                         rs.getString("formatted_text_tabs")?.let { value -> song.formattedTextTabs = value }
                         rs.getString("formatted_text_chords")?.let { value -> song.formattedTextChords = value }
+                        // BR-103: снимок голосов на момент загрузки — по нему позже отличается
+                        // «объект изменил голоса» от «объект несёт устаревший снимок».
+                        song.rememberLoadedVoices()
+                    } else if (args.containsKey("filter_count_voices")) {
+                        // BR-105: для фильтра «Количество голосов» маркеры грузятся принудительно —
+                        // иначе счётчик голосов считался бы по заглушке "[[]]" (всегда 1).
+                        rs.getString("source_markers")?.let { value -> song.sourceMarkers = value }
+                        song.rememberLoadedVoices()
                     }
                     rs.getInt("rate").let { value -> song.fields[SongField.RATE] = value.toString() }
                     rs.getInt("id_tariff").let { value -> song.fields[SongField.ID_TARIFF] = value.toString() }
@@ -8653,9 +9274,13 @@ class Song(
 //                        result.add(song)
 //                    }
 
-                    if (!args.containsKey("filter_count_voices") ||
-                        (args.containsKey("filter_count_voices") && args["filter_count_voices"] == song.countVoices.toString())
-                    ) {
+                    // BR-105 (аудит #336, пакет PKG-S3-22): фильтр «Количество голосов» считается
+                    // по РЕАЛЬНЫМ маркерам. Раньше в списочных путях маркеры не грузились, геттер
+                    // отдавал заглушку "[[]]" → countVoices == 1 у всех песен (фильтр показывал всё
+                    // при 1 и пусто при 2+). Маркеры для этого фильтра грузятся принудительно
+                    // (см. блок загрузки выше), поэтому здесь значение всегда реальное.
+                    val countVoicesFilter = args["filter_count_voices"]
+                    if (countVoicesFilter == null || countVoicesFilter == song.countVoicesLoaded?.toString()) {
                         result.add(song)
                     }
                 }
@@ -8813,10 +9438,16 @@ class Song(
                 return
             }
             val sql = "DELETE FROM tbl_songs${if (sync) "_sync" else ""} WHERE id = ?"
-            val ps = connection.prepareStatement(sql)
-            ps.setLong(1, id)
-            ps.executeUpdate()
-            ps.close()
+            // BR-106: statement закрывается в use{}, ошибка DELETE — в лог (раньше исключение
+            // уходило наружу, а statement не закрывался).
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setLong(1, id)
+                    ps.executeUpdate()
+                }
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] WARN song.delete.failed: songId=$id DELETE не выполнен: ${e.message}")
+            }
         }
 
         /**
@@ -9215,7 +9846,7 @@ class Song(
             bpm = bpm,
             resultVersion = resultVersion,
             ms = ms,
-            countVoices = countVoices,
+            countVoices = countVoicesLoaded,
             firstSongInAlbum = firstSongInAlbum,
             flagBoosty = flagBoosty,
             flagSponsr = flagSponsr,
@@ -9362,6 +9993,11 @@ class Song(
                     wasChange = true
                 }
             }
+            // BR-103 (аудит #336, пакет PKG-S3-22): если копируются поля голосов — набор заменён
+            // явно, трёхстороннее слияние с БД не применяется (решение вызывающего приоритетно).
+            if (listFields.contains(SongField.SOURCE_TEXT) || listFields.contains(SongField.SOURCE_MARKERS)) {
+                voiceFieldsExplicitlyReplaced = true
+            }
             // specs/357-folder-import-overwrite (FR-140): copyFieldsFromAnother может жить
             // долго (между loadFromDbById и saveToDb — десятки полей + IO на переименование файлов
             // через copyFile/renameTo). Параллельный SongEdit мог обновить поля. saveToDbLocked()
@@ -9420,5 +10056,42 @@ internal fun parsePublishDateTime(
             }.parse("$date $time")
     } catch (_: Exception) {
         null
+    }
+}
+
+/**
+ * Типизированный результат разбора файлов Sheetsage (BR-079, аудит #336, пакет PKG-S3-22).
+ *
+ * Заменяет `Map<String, Any>`, где ключи появлялись только при совпадении регулярки, а
+ * потребители читали их приведениями `as String` / `as List<String>` (`null as String` → NPE,
+ * то есть HTTP 500 вместо пустого значения).
+ *
+ * @property key тональность (`"C♭ major"` и т.п.), пустая строка — не найдена
+ * @property tempo темп (bpm) строкой, пустая строка — не найден
+ * @property chords аккорды в формате `"аккорд время длительность_в_битах бит_по_счёту"`
+ * @property beattimes времена каждой 1/16 такта
+ */
+data class SheetsageInfo(
+    val key: String = "",
+    val tempo: String = "",
+    val chords: List<String> = emptyList(),
+    val beattimes: List<Double> = emptyList(),
+) {
+    /** `true`, если не разобрано ничего (нет файлов Sheetsage или они нечитаемы). */
+    val isEmpty: Boolean get() = key.isBlank() && tempo.isBlank() && chords.isEmpty() && beattimes.isEmpty()
+
+    /**
+     * Представление для JSON-эндпоинта `/api/song/sheetsageinfo`.
+     *
+     * Ключи с пустым значением не попадают в карту — формат ответа совпадает с прежним
+     * (`Map<String, Any>` с теми же именами ключей).
+     */
+    fun toMap(): Map<String, Any> {
+        val result = mutableMapOf<String, Any>()
+        if (key.isNotBlank()) result["key"] = key
+        if (tempo.isNotBlank()) result["tempo"] = tempo
+        if (chords.isNotEmpty()) result["chords"] = chords
+        if (beattimes.isNotEmpty()) result["beattimes"] = beattimes
+        return result
     }
 }

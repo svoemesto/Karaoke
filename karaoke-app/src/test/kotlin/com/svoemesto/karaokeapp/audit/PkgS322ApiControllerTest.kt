@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.audit
 import com.svoemesto.karaokeapp.FakeKaraokeConnection
 import com.svoemesto.karaokeapp.controllers.ApiController
 import com.svoemesto.karaokeapp.model.PublicationDateCandidate
+import com.svoemesto.karaokeapp.model.SheetsageInfo
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongState
 import com.svoemesto.karaokeapp.textfilehistory.HistoryMap
@@ -49,7 +50,7 @@ class PkgS322ApiControllerTest {
 
     private fun source(name: String = "ApiController.kt"): String = File("src/main/kotlin/com/svoemesto/karaokeapp/controllers/$name").readText()
 
-    // ------------------------------------------------------------------ BR-051
+    // ------------------------------------------------------------------ BR-051 / BR-079
     @Test
     fun `BR-051 пустой sheetsageInfo отдаёт пустые значения, а не NPE`() {
         val empty: Map<String, Any> = emptyMap()
@@ -57,19 +58,25 @@ class PkgS322ApiControllerTest {
         // Старое поведение: `emptyMap()["tempo"] as String` → null as String → NPE → HTTP 500.
         assertThrows<NullPointerException> { empty["tempo"] as String }
 
-        assertEquals("", ApiController.sheetsageString(empty, "tempo"))
+        // BR-079: `Song.sheetsageInfo` теперь типизированный (SheetsageInfo) — «ключа нет»
+        // больше не бывает, но контракт API прежний: пустая строка / пустой список.
+        val info: SheetsageInfo? = null
+        assertEquals("", ApiController.sheetsageString(info, "tempo"))
         assertEquals("", ApiController.sheetsageString(null, "key"))
-        assertEquals(emptyList<String>(), ApiController.sheetsageStringList(empty, "chords"))
-        assertEquals(emptyList<Double>(), ApiController.sheetsageDoubleList(empty, "beattimes"))
-
-        // Чужая структура (строка вместо списка) не должна валить запрос.
-        assertEquals(emptyList<String>(), ApiController.sheetsageStringList(mapOf("chords" to "C-G-Am"), "chords"))
-        assertEquals(emptyList<Double>(), ApiController.sheetsageDoubleList(mapOf("beattimes" to "1,2"), "beattimes"))
+        assertEquals(emptyList<String>(), ApiController.sheetsageStringList(info, "chords"))
+        assertEquals(emptyList<Double>(), ApiController.sheetsageDoubleList(info, "beattimes"))
 
         // Нормальные значения читаются как раньше.
-        assertEquals("128", ApiController.sheetsageString(mapOf("tempo" to "128"), "tempo"))
-        assertEquals(listOf("C", "G"), ApiController.sheetsageStringList(mapOf("chords" to listOf("C", "G")), "chords"))
-        assertEquals(listOf(1.5, 2.0), ApiController.sheetsageDoubleList(mapOf("beattimes" to listOf(1.5, 2)), "beattimes"))
+        val filled = SheetsageInfo(key = "C major", tempo = "128", chords = listOf("C", "G"), beattimes = listOf(1.5, 2.0))
+        assertEquals("128", ApiController.sheetsageString(filled, "tempo"))
+        assertEquals("C major", ApiController.sheetsageString(filled, "key"))
+        assertEquals(listOf("C", "G"), ApiController.sheetsageStringList(filled, "chords"))
+        assertEquals(listOf(1.5, 2.0), ApiController.sheetsageDoubleList(filled, "beattimes"))
+
+        // Неизвестный ключ — пустое значение, а не исключение.
+        assertEquals("", ApiController.sheetsageString(filled, "unknown"))
+        assertEquals(emptyList<String>(), ApiController.sheetsageStringList(filled, "unknown"))
+        assertEquals(emptyList<Double>(), ApiController.sheetsageDoubleList(filled, "unknown"))
     }
 
     // ------------------------------------------------------------------ BR-052

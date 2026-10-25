@@ -31,7 +31,7 @@ data class SongDTOdigest(
     val dateTimePublish: Date?,
     val year: Long,
     val track: Long,
-    val countVoices: Int,
+    val countVoices: Int?,
     val firstSongInAlbum: Boolean,
     val flagBoosty: String,
     val flagSponsr: String,

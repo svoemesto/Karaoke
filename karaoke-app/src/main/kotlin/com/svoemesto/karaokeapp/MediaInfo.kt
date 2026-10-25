@@ -68,6 +68,9 @@ class MediaInfo {
          * @throws MediaInfoException процесс не запустился, не завершился за таймаут
          *   или завершился с ненулевым кодом
          */
+        /** Сколько ждём поток-читатель после завершения процесса (мс). */
+        private const val READER_JOIN_TIMEOUT_MS = 10_000L
+
         internal fun runMediaInfo(
             param: List<String>,
             timeoutSeconds: Long = mediaInfoTimeoutSeconds(),
@@ -112,13 +115,26 @@ class MediaInfo {
                 try {
                     awaitProcessExit(process, param, timeoutSeconds) { buffer.toString() }
                 } catch (e: ProcessExitException) {
-                    throw MediaInfoException(e.message ?: "mediainfo не завершился за $timeoutSeconds с", e)
+                    // Процесс не завершился и будет убит в finally. Его потомок (например,
+                    // `sleep` внутри `sh -c`) может продолжать держать конец пайпа — тогда
+                    // поток-читатель не получает EOF. Ждать его здесь нельзя: это
+                    // затормозило бы возврат на полный таймаут (BR-035, тест на «умеренную
+                    // быстроту»). Вывод здесь — best effort; поток-читатель daemon'ный.
+                    throw MediaInfoException(
+                        "mediainfo не завершился [${describeCommand(param)}]: ${e.reason}; " +
+                            "хвост вывода: ${outputTail(buffer.toString())}",
+                        e,
+                    )
                 } finally {
                     // destroyForcibly() для уже завершившегося процесса — no-op; для
                     // зависшего — гарантированное освобождение дескрипторов (BR-035).
                     process.destroyForcibly()
-                    readerThread.join(1000)
                 }
+            // Процесс завершился — концы пайпа закрыты, поток-читатель получит EOF.
+            // Ждём его ДО чтения буфера: иначе хвост вывода может оказаться пустым
+            // (воспроизводилось в CI: сообщение об ошибке уходило без хвоста —
+            // поток просыпался позже, чем процесс завершался).
+            readerThread.join(READER_JOIN_TIMEOUT_MS)
             val out = buffer.toString()
             if (exitCode != 0) {
                 throw MediaInfoException(

@@ -196,21 +196,17 @@ class PkgS322ProcessTest {
     // ------------------------------------------------------------------ BR-035
     @Test
     fun `BR-035 зависший mediainfo убивается по таймауту, а не вешает поток`() {
-        val script =
-            stubScript(
-                """
-                # «зависший» mediainfo: не закрывает stdout и не завершается
-                sleep 30
-                echo '{"media":{}}'
-                """.trimIndent(),
-            )
+        // Команда запускается напрямую (`/bin/sh -c`), а не через временный скрипт:
+        // исполняемость файла в /tmp зависит от окружения (на CI-раннерах временный
+        // каталог может быть noexec), и тест становился зависимым от машины.
+        val hungCommand = sh("sleep 30; echo '{\"media\":{}}'")
 
         // Старое поведение: `ProcessBuilder(...).start()` + чтение inputStream до EOF без
         // waitFor() — вызов висел бы все 30 с (и дольше) и держал поток очереди.
         val startedAt = System.currentTimeMillis()
         val error =
             assertThrows<MediaInfoException> {
-                MediaInfo.runMediaInfo(listOf(script.absolutePath), timeoutSeconds = 1)
+                MediaInfo.runMediaInfo(hungCommand, timeoutSeconds = 1)
             }
         val elapsed = System.currentTimeMillis() - startedAt
 
@@ -220,17 +216,11 @@ class PkgS322ProcessTest {
 
     @Test
     fun `BR-035 ненулевой код возврата mediainfo — явная ошибка, а не пустой вывод`() {
-        val script =
-            stubScript(
-                """
-                echo "mediainfo: file not found" >&2
-                exit 2
-                """.trimIndent(),
-            )
+        val failingCommand = sh("echo \"mediainfo: file not found\" >&2; exit 2")
 
         val error =
             assertThrows<MediaInfoException> {
-                MediaInfo.runMediaInfo(listOf(script.absolutePath), timeoutSeconds = 5)
+                MediaInfo.runMediaInfo(failingCommand, timeoutSeconds = 5)
             }
         val message = error.message.orEmpty()
         assertTrue(message.contains("код"), "в ошибке должен быть код возврата: $message")
@@ -254,6 +244,9 @@ class PkgS322ProcessTest {
                 .first { it["@type"] == "Audio" }["Duration"],
         )
     }
+
+    /** Команда через /bin/sh: не зависит от прав на временном файле (см. комментарий в тесте). */
+    private fun sh(script: String): List<String> = listOf("/bin/sh", "-c", script)
 
     private fun stubScript(body: String): File {
         val file = File.createTempFile("mediainfo-stub", ".sh")

@@ -2,6 +2,8 @@
 
 - **Аудит**: #336, волна E, пакет `PKG-S3-28` (`specs/336-code-audit/backlog.md`, блок `### PKG-S3-28`).
 - **Ветка**: `629-pkg-s3-28` от `origin/master` `061c484d` (merge PR #726 — пакет #399/`PKG-S3-27`).
+- **Коммит пакета**: `f23158de` — `fix(336): BR-347..BR-362 — 15 записей аудита #336 в
+  karaoke-public (PKG-S3-28)`. Push и PR не делались (по условию задачи).
 - **Worktree**: `/home/nsa/Karaoke/.worktrees/waveE-s3-28`.
 - **Источник правды**: карточки `specs/336-code-audit/findings/P-47.md`, `P-48.md`, `P-49.md`;
   номера BR — из `specs/336-code-audit/registry.csv` (`work_package = 400`).
@@ -234,7 +236,15 @@ this.currentSong.tags && this.currentSong.tags.toUpperCase().includes('SKIP')
 | Guard: стиль knowledge | `python3 tools/lint-knowledge.py` | PASS |
 | Guard: cross-links knowledge | `bash tools/check-knowledge-cross-links.sh` | PASS (714 ссылок) |
 | Guard: FR-009 per-feature | `bash tools/check-feature-doc.sh docs/features/pkg-s3-28.md` | PASS |
-| Guard: SSoT impact | `python3 tools/check-ssot-impact.py` | PASS |
+| Guard: ссылки в документации | `python3 tools/check-doc-references.py` | PASS (4384 ссылки, 2788 путей) |
+| Guard: SSoT impact | `python3 tools/check-ssot-impact.py` | PASS (0 нарушений) |
+| Frontend build | `cd karaoke-public && npm run build` | PASS (vite build) |
+
+Отдельно: `bash tools/check-audit-coverage.sh` падает на **SC-009** — «1 файл не упомянут
+в research.md»: `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/EventsBuffer.kt`
+(4 `@Scheduled`). Этот файл есть в `origin/master` и моим пакетом **не трогался**
+(в диффе пакета его нет) — предсуществующее падение волны E, не связанное с #400.
+Guard в список обязательных проверок пакета не входит.
 
 ---
 

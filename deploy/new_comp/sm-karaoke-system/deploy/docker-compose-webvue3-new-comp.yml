@@ -13,6 +13,9 @@ services:
       - /sm-karaoke/done2:/sm-karaoke/done2
       - /sm-karaoke/system:/sm-karaoke/system
       - /sm-karaoke/system/deploy/nginx_webvue3.conf:/etc/nginx/nginx.conf
+    # BR-560: без restart nginx-контейнер не поднимался после падения/ребута хоста.
+    restart: unless-stopped
+    mem_limit: 256m
     networks:
       - karaokenet # Используем внешнюю сеть
     command: /bin/bash -c "exec nginx -g 'daemon off;'"

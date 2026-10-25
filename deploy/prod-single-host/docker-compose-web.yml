@@ -3,7 +3,9 @@ services:
 
   karaoke-web:
     container_name: karaoke-web
-    image: ${DOCKER_REGISTRY}/karaoke-web:1
+    # BR-042 (аудит #336 / P-70-04, OpenProject #393): тег — из IMAGE_TAG, а не литерал :1.
+    # IMAGE_TAG экспортирует do.sh (собранный/скачанный тег); без него — 1 (прежнее поведение).
+    image: ${DOCKER_REGISTRY}/karaoke-web:${IMAGE_TAG:-1}
     ports:
       # Наружу — только host-nginx (443/80); karaoke-web слушает loopback (#173).
       - "127.0.0.1:${WEB_PORT_HOST}:${WEB_PORT_INSIDE_CONTAINER}"
@@ -63,6 +65,11 @@ services:
       - STORAGE_PROXY_URL=http://minio-proxy
     volumes:
       - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
+      # BR-547 (аудит #336 / P-73-09, OpenProject #393): -XX:HeapDumpPath=/dumps указывал
+      # в каталог, которого в контейнере не было (в volumes был только WEB_FOLDER) — при OOM
+      # дамп не писался, и диагностика падения терялась. Каталог тот же, что у karaoke-db
+      # (./karaoke-db/dumps, монтируется в docker-compose-database.yml).
+      - ./karaoke-db/dumps:/dumps
     extra_hosts:
       - "minio-proxy:host-gateway"
     networks:
@@ -75,6 +82,26 @@ services:
       - -XX:HeapDumpPath=/dumps
     command: ${APP_JAVA_OPTS} -jar /app.jar
     restart: always
+    # BR-547: healthcheck + cgroup-потолок. Раньше healthcheck не было вовсе: `restart: always`
+    # перезапускает только УПАВШИЙ процесс, а «зависший» karaoke-web (JVM жива, HTTP не отвечает)
+    # оставался Up без сигнала мониторингу. Лимитов памяти/CPU тоже не было: на хосте 3.8 ГБ
+    # karaoke-web с -Xmx1200m (APP_JAVA_OPTS) + Postgres + MinIO не имели потолка, и хостовый
+    # OOM-killer мог выбрать контейнер БД.
+    #
+    # healthcheck дергает публичный read-only эндпоинт (authors-tiles читает кэш/БД, побочных
+    # эффектов не пишет; /api/public/stats НЕ подходит — он регистрирует событие в tbl_events).
+    # bash есть в образе (eclipse-temurin:22-jre-jammy). $$line — чтобы compose не подставлял
+    # переменную сам.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/${WEB_PORT_INSIDE_CONTAINER:-7799}; printf \"GET /api/public/authors-tiles HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; read -r line <&3; case \"$$line\" in *\" 200 \"*) exit 0;; esac; exit 1'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    # -Xmx1200m (см. deploy/prod-single-host/.env.example, APP_JAVA_OPTS) + запас на metaspace,
+    # потоки и нативную память.
+    mem_limit: 1600m
+    cpus: 2.0
     # BR-546 (аудит #336 / P-73-08, OpenProject #371): ротация логов.
     # Без max-size/max-file json-file драйвер растёт, пока не забьёт диск
     # прод-хоста (985 ГБ): Postgres перестаёт писать ("No space left on device"),

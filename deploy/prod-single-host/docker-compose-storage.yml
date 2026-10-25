@@ -10,8 +10,11 @@ services:
     # Переключение вступает в силу при следующем пересоздании контейнера.
     image: sm-karaoke.ru:5443/mirror/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
     environment:
-      - MINIO_ACCESS_KEY=${STORAGE_KEY}
-      - MINIO_SECRET_KEY=${STORAGE_SECRET}
+      # BR-047 (аудит #336 / P-70-09, OpenProject #393): имена MINIO_ACCESS_KEY/
+      # MINIO_SECRET_KEY устарели (с 2021 — MINIO_ROOT_USER/MINIO_ROOT_PASSWORD);
+      # на запиненном RELEASE.2025-09-07 поддерживаются только ROOT-имена.
+      - MINIO_ROOT_USER=${STORAGE_KEY}
+      - MINIO_ROOT_PASSWORD=${STORAGE_SECRET}
       - WORK_IN_CONTAINER=1
     container_name: karaoke-storage
     ports:

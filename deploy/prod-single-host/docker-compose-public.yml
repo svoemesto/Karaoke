@@ -3,7 +3,9 @@ services:
 
   karaoke-public:
     container_name: karaoke-public
-    image: ${DOCKER_REGISTRY}/karaoke-public:1
+    # BR-042 (аудит #336 / P-70-04, OpenProject #393): тег — из IMAGE_TAG, а не литерал :1.
+    # IMAGE_TAG экспортирует do.sh (собранный/скачанный тег); без него — 1 (прежнее поведение).
+    image: ${DOCKER_REGISTRY}/karaoke-public:${IMAGE_TAG:-1}
     ports:
       # Наружу — только host-nginx; SPA слушает loopback (#173).
       - "127.0.0.1:7907:7907"

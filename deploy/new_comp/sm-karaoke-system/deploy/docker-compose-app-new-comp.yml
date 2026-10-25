@@ -61,6 +61,30 @@ services:
       - java
       - -Xmx2g
     command: -jar /app.jar
+    # BR-560 (аудит #336 / P-72-08, OpenProject #393): политика перезапуска, потолок
+    # ресурсов и healthcheck.
+    #
+    # Было: ни `restart:`, ни `healthcheck`, а в deploy.resources был только
+    # reservations.devices (GPU) без limits. do_start_app поднимал karaoke-app независимо от
+    # готовности БД/хранилища; упавшее на старте приложение не поднималось само, а память
+    # контейнера (JVM 2 ГБ + нативная: Playwright/Chromium, MLT, метаспейс, потоки) не была
+    # ограничена cgroup'ом — при пике хостовый OOM-killer мог убить БД, а не приложение.
+    #
+    # `depends_on` между файлами compose невозможен (db/storage/app — отдельные файлы и
+    # отдельные `docker-compose up`), поэтому готовность БД/хранилища закрывается политикой
+    # перезапуска: приложение падает на старте и перезапускается, пока зависимости не поднимутся.
+    restart: unless-stopped
+    # -Xmx2g в entrypoint + запас на metaspace/потоки/нативные библиотеки.
+    mem_limit: 3g
+    cpus: 4.0
+    healthcheck:
+      # HTTP-эндпоинта «готов» у karaoke-app нет, поэтому проверяем, что приложение слушает
+      # свой порт (application.yml: server.port=8899). bash есть в образе (ubuntu:22.04).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8899'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
 
   searxng:
     image: searxng/searxng:latest

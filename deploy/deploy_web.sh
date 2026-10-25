@@ -15,6 +15,16 @@ if [ -z "${PROD_HOST:-}" ]; then
   exit 1
 fi
 
+# BR-042 (аудит #336 / P-70-04, OpenProject #393): тег сборки — один на весь цикл.
+# Берём его из deploy/.version (туда его пишет do.sh и при сборке, и при push) и передаём
+# на прод явно: раньше прод тянул ЛИТЕРАЛ :1, и при BUILD_VERSION != 1 на сервер уезжал
+# предыдущий образ. Пусто → 1 (как раньше).
+if [ -z "${BUILD_VERSION:-}" ] && [ -f "${SCRIPT_DIR}/.version" ]; then
+  BUILD_VERSION="$(cat "${SCRIPT_DIR}/.version" | tr -d ' \r')"
+fi
+export BUILD_VERSION="${BUILD_VERSION:-1}"
+echo "=== Тег образов (BUILD_VERSION): ${BUILD_VERSION} ==="
+
 echo "=== Сборка karaoke-web jar + Docker образа (под локом сборки, см. build-lock.sh) ==="
 cd "$SCRIPT_DIR"
 bash do.sh build_web
@@ -26,7 +36,7 @@ echo "=== Pull и restart на сервере ==="
 # Pass 540 (issue #286): после pull проверяем, что на сервере действительно НОВЫЙ образ.
 # `Status: Downloaded newer image` — признак, что pull забрал свежий манифест;
 # `Image is up to date` при новом push — сигнал, что что-то не доехало.
-PULL_OUT="$(ssh root@"${PROD_HOST}" "cd Karaoke/deploy && bash do.sh pull_web" 2>&1)"
+PULL_OUT="$(ssh root@"${PROD_HOST}" "cd Karaoke/deploy && BUILD_VERSION=$(printf '%q' "${BUILD_VERSION}") bash do.sh pull_web" 2>&1)"
 printf '%s\n' "$PULL_OUT"
 if printf '%s' "$PULL_OUT" | grep -q 'Downloaded newer image'; then
   echo "=== OK: на сервере образ обновлён ==="

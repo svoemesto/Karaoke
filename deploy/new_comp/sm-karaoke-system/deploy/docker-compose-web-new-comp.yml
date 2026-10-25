@@ -26,6 +26,10 @@ services:
       - -Djava.security.egd=file:/dev/./urandom
     command: -Xmx1048m -jar /app.jar
     restart: always
+    # BR-560: -Xmx1048m + запас на metaspace/потоки; без cgroup-потолка контейнер мог
+    # вытеснить хост (и БД) при пике.
+    mem_limit: 1536m
+    cpus: 2.0
 
 networks:
   karaokenet:

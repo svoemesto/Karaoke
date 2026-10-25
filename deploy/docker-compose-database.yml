@@ -22,6 +22,11 @@ services:
     volumes: # локальная папка : папка внутри контейнера
       - ${DB_FOLDER}:/var/lib/postgresql/data/16 # мапим локальную папку /sm-karaoke/system/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
       - ./karaoke-db:/docker-entrypoint-initdb.d # мапим папку karaoke-db из текущего каталога (deploy) в контейнер по пути docker-entrypoint-initdb.d - из нее будут запускаться скрипты для инициализации бд
+      # BR-046 (аудит #336 / P-70-08, OpenProject #393): каталог дампов для do.sh restore_db /
+      # create_clear_db. Без него /dumps внутри контейнера не существует (был смонтирован только
+      # в прод-варианте prod-single-host/docker-compose-database.yml), и восстановление падало
+      # на «No such file or directory», печатая при этом «Restore DB!».
+      - ./karaoke-db/dumps:/dumps
     restart: always
 
 networks:

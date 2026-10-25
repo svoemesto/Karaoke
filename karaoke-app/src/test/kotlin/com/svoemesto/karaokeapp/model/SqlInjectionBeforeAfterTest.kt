@@ -43,7 +43,13 @@ class SqlInjectionBeforeAfterTest {
 
         val sql = jdbc.preparedSql()
         assertFalse(sql.contains(payload), "в SQL не должно быть пользовательских значений")
-        assertEquals("SELECT tbl_processes.* FROM tbl_processes WHERE process_name LIKE ? AND process_status = ?", sql)
+        // BR-037 (аудит #336, пакет PKG-S3-22): к фильтрам добавлен постоянный предикат
+        // `process_deleted_at IS NULL` — soft-deleted задания больше не возвращаются.
+        assertEquals(
+            "SELECT tbl_processes.* FROM tbl_processes WHERE process_name LIKE ? AND process_status = ? " +
+                "AND process_deleted_at IS NULL",
+            sql,
+        )
         assertFalse(hasOperatorOutsideLiterals(sql))
         Mockito.verify(jdbc.prepared).setString(1, "%$payload%")
         Mockito.verify(jdbc.prepared).setString(2, payload)

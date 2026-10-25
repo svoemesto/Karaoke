@@ -357,6 +357,21 @@ Apache POI wrapper для чтения/записи Excel.
 
 Извлечение метаданных медиа (ffprobe). Используется для импорта.
 
+### Контракт запуска (BR-035, аудит #336, пакет PKG-S3-22)
+
+- Единая точка запуска — `MediaInfo.runMediaInfo(param, timeoutSeconds)`:
+  stdout читается **отдельным демон-потоком** (EOF наступает только после
+  выхода процесса, синхронное чтение зависало бы вместе с ним), завершение
+  ждётся через `awaitProcessExit` (`waitFor(timeout)` + `destroyForcibly()`),
+  ненулевой код возврата и не-JSON вывод дают `MediaInfoException`.
+- Таймаут — `mediaInfoTimeoutSeconds()` (`KARAOKE_MEDIAINFO_TIMEOUT_SECONDS`,
+  по умолчанию 30 с). Раньше `waitFor()` был закомментирован, и зависший
+  `mediainfo` блокировал поток очереди навсегда.
+- `getInfoBySectionAndParameter` по-прежнему возвращает `null` при сбое, но
+  пишет `WARN` с путём файла и причиной; вызывающий
+  (`Song.durationInMilliseconds`) использует `toDoubleOrNull() ?: 0.0`.
+- Тест — `PkgS322ProcessTest.kt` в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/`.
+
 ---
 
 ## `SanitizePath.kt` (80 строк)
@@ -529,7 +544,7 @@ UUID-генерация. Используется для:
 
 - `karaoke-app/.../KaraokeProcessWorker.kt:188`
 - `karaoke-app/.../services/PlayerMp4MuxService.kt:170`
-- `karaoke-app/.../MediaInfo.kt:29, 102`
+- `karaoke-app/.../MediaInfo.kt` (`runMediaInfo`, `getInfo`)
 - `karaoke-app/.../WaveformCompare.kt:129`
 - `karaoke-app/.../Utils.kt:4480`
 - `karaoke-app/.../controllers/ApiController.kt:7824`

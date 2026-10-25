@@ -36,6 +36,13 @@ data class KaraokeProcessDTO(
     val timeLeftStr: String,
     val withoutControl: Boolean,
     val threadId: Int,
+    /**
+     * BR-037 (аудит #336, пакет PKG-S3-22): признак soft-delete. `loadList` по умолчанию
+     * больше не отдаёт удалённые строки, поэтому поле нужно для инструментов, которые
+     * запрашивают их явно (`include_deleted`), — иначе клиент не отличит «удалено» от
+     * «активно».
+     */
+    val processDeletedAt: Timestamp? = null,
 ) : Serializable,
     Comparable<KaraokeProcessDTO>,
     KaraokeDbTableDto {

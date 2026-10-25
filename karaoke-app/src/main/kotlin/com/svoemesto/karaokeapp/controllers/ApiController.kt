@@ -2348,7 +2348,7 @@ class ApiController(
         @RequestParam(required = false) filterType: String?,
         @RequestParam(required = false) filterLimit: String?,
         @RequestParam(required = false) filterNotail: String?,
-    ): Map<String, Any> {
+    ): ResponseEntity<Map<String, Any>> {
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
         filterThreadId?.let { if (filterThreadId != "") args["thread_id"] = filterThreadId }
@@ -2359,14 +2359,27 @@ class ApiController(
         filterDescription?.let { if (filterDescription != "") args["process_description"] = filterDescription }
         filterSongId?.let { if (filterSongId != "") args["song_id"] = filterSongId }
         filterType?.let { if (filterType != "") args["process_type"] = filterType }
-        filterLimit?.let { if (filterLimit != "") args["filter_limit"] = filterLimit }
+        // BR-034 (аудит #336, пакет PKG-S3-22): нечисловой/отрицательный `filterLimit`
+        // раньше доходил до `toInt()`/`result[i]` в `KaraokeProcess.loadList` и валил
+        // запрос в HTTP 500. Это ошибка клиента, а не сервера → 400 с причиной.
+        filterLimit?.takeIf { it != "" }?.let {
+            val parsed = it.trim().toIntOrNull()
+            if (parsed == null || parsed < 0) {
+                return ResponseEntity.badRequest().body(
+                    mapOf("error" to "Некорректный filterLimit: ожидается неотрицательное целое число"),
+                )
+            }
+            args["filter_limit"] = parsed.toString()
+        }
         filterNotail?.let { if (filterNotail != "") args["filter_notail"] = filterNotail }
 
-        return mapOf(
-            "workInContainer" to APP_WORK_IN_CONTAINER,
-            "processesDigests" to KaraokeProcess.loadList(args, WORKING_DATABASE).map { it.toDTO() },
-            "statuses" to KaraokeProcessStatuses.entries.toTypedArray(),
-            "types" to KaraokeProcessTypes.entries.toTypedArray(),
+        return ResponseEntity.ok(
+            mapOf(
+                "workInContainer" to APP_WORK_IN_CONTAINER,
+                "processesDigests" to KaraokeProcess.loadList(args, WORKING_DATABASE).map { it.toDTO() },
+                "statuses" to KaraokeProcessStatuses.entries.toTypedArray(),
+                "types" to KaraokeProcessTypes.entries.toTypedArray(),
+            ),
         )
     }
 

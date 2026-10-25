@@ -1712,7 +1712,15 @@ class MainController(
         filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
         filter_song_id?.let { if (filter_song_id != "") args["song_id"] = filter_song_id }
         filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
-        filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
+        // BR-034 (аудит #336, пакет PKG-S3-22): нечисловой/отрицательный `filter_limit`
+        // раньше валил страницу в 500 (`toInt()`/`result[i]` в KaraokeProcess.loadList).
+        // Для HTML-страницы админки честнее проигнорировать некорректный параметр, чем
+        // отдать 400: лимит — необязательный фильтр, а не часть контракта страницы.
+        filter_limit
+            ?.trim()
+            ?.toIntOrNull()
+            ?.takeIf { it >= 0 }
+            ?.let { args["filter_limit"] = it.toString() }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("processes", KaraokeProcess.loadList(args, WORKING_DATABASE))
 

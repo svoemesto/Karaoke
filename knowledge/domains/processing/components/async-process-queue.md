@@ -328,6 +328,56 @@ Per-process force-stop в коде нет: остановка адресуетс
 недетерминированной финализации сборщиком мусора. Поток задания
 (`KaraokeProcessThread.run`) закрывал — этот паттерн и стал образцом.
 
+## Старт воркера и видимость soft-deleted заданий (BR-034/036/037)
+
+Зафиксировано пакетом `PKG-S3-22` (аудит #336, OpenProject #394). Три контракта,
+которые легко нарушить, потому что нарушение не видно в UI.
+
+### `loadList` по умолчанию скрывает soft-deleted строки
+
+- `KaraokeProcess.loadList` добавляет `process_deleted_at IS NULL` в `WHERE`,
+  если в `args` нет явного `include_deleted`. Раньше soft-deleted задание
+  (админский `POST /api/admin/processes/{id}/delete` ставит `process_deleted_at`,
+  но НЕ меняет `process_status`) оставалось видимым в `/api/processesdigests`,
+  а `hasActiveProcess` навсегда видел `WAITING` — переименование файла песни
+  блокировалось сообщением «выполняется фоновая обработка», sync-audio пропускал
+  ребёнка. Эталон — `getProcessesToStart`, который фильтровал deleted всегда.
+- `KaraokeProcessDTO.processDeletedAt` отдаёт признак наружу: клиент должен
+  отличать «удалено» от «активно», когда строки запрошены с `include_deleted`.
+- **Не убирайте фильтр из `loadList` ради «полной» админской выборки.** Для этого
+  есть `include_deleted`; `createProcess` (single-flight по `existedProcesses`)
+  опирается на тот же фильтр — иначе soft-deleted `WAITING` навсегда запрещал бы
+  пересоздание задания.
+
+### Сбой восстановления при старте — видимый, а не проглоченный
+
+- `KaraokeProcess.deleteDone` и `setWorkingToWaiting` возвращают `Boolean`:
+  `false` — сбой БД, состояние восстановления неизвестно. Исключение пишется
+  в лог со стеком (SLF4J), а `KaraokeProcessWorker.start` при `false` отправляет
+  SSE-уведомление об ошибке.
+- Почему это важно: воркер выбирает только `WAITING`. Если `WORKING`-строки
+  остались, лейн стоит, а очередь выглядит работающей (`isWork = true`) — и
+  `RenderQueueStalledCheck` молчит.
+
+### Причина `ERROR` — в `process_description`
+
+- Отдельной колонки под причину в `tbl_processes` нет, поэтому
+  `KaraokeProcess.appendErrorReason(description, cause)` дописывает хвост
+  ` | ERROR: <тип>: <сообщение>` (идемпотентно, до 500 символов) и сохраняется
+  обычным `save()`.
+- Описание видно оператору в админке. Раньше причина уходила только в stdout
+  контейнера, и задание выглядело «упало, почему — неизвестно».
+
+### `filter_limit` — срез без падения
+
+- `KaraokeProcess.applyFilterLimit(result, value)`: `take(limit)`, а не
+  `result[i]`; нечисловое/отрицательное значение — `IllegalArgumentException`
+  (на HTTP-границе `POST /api/processesdigests` отвечает 400; HTML-страница
+  `/processes` просто игнорирует некорректный необязательный фильтр).
+- Раньше `toInt()` на нечисле давал `NumberFormatException`, а лимит больше
+  числа строк — `IndexOutOfBoundsException`; оба не ловились (`catch` только
+  `SQLException`) и превращались в HTTP 500.
+
 ## Связанные ADR
 
 - [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md) —
@@ -344,6 +394,12 @@ Per-process force-stop в коде нет: остановка адресуетс
 
 ## Changelog
 
+- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-034/036/037)**:
+  зафиксированы контракты `loadList` (фильтр `process_deleted_at IS NULL` +
+  `include_deleted`), видимого сбоя восстановления при старте воркера
+  (`deleteDone`/`setWorkingToWaiting` → `Boolean`, лог со стеком, SSE), причины
+  `ERROR` в `process_description` и безопасного среза `filter_limit`
+  (`applyFilterLimit`). См. `specs/394-pkg-s3-22/report.md`.
 - **2026-10-24, аудит #336 (OpenProject #373, PKG-S2-10, BR-030..BR-033)**:
   зафиксированы контракты «один писатель прогресса», атомарный claim
   (`claimForWorking`), цепочка шагов (`process_chain_id` + `process_order`,

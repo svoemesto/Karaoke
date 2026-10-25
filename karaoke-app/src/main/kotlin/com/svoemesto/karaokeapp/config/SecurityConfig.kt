@@ -35,6 +35,28 @@ class SecurityConfig {
     @Order(1)
     fun webSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         logger.info(">>> Creating WebSecurityFilterChain (Order 1)...")
+        // BR-114 (аудит #336, пакет PKG-S3-22): состояние периметра зафиксировано явно.
+        //
+        // Сейчас `.anyRequest().permitAll()` — это НЕ «так и надо», а следствие того, что
+        // механизма аутентификации в приложении нет: нет ни formLogin/httpBasic, ни
+        // UserDetailsService, ни фильтра, выпускающего аутентифицированного субъекта.
+        // Правило `authenticated()` для `/api/private/**` защищает пустое множество —
+        // контроллеров с таким путём в репозитории нет.
+        //
+        // Включить `authenticated()` «просто так» нельзя: админка (единственный UI)
+        // получила бы 401 на каждый запрос без возможности войти. Выбор механизма
+        // (form-login / basic-auth на nginx / mTLS / SSO) — решение владельца.
+        //
+        // Безопасный шов, который уже работает: `AdminApiTokenFilter` — при заданном
+        // `karaoke.security.admin-token` (env `KARAOKE_ADMIN_TOKEN`) admin-эндпоинты
+        // требуют заголовок `X-Admin-Token`, иначе 401. Без токена фильтр пропускает
+        // запросы, но пишет WARN об открытом admin-API. Подробности — в KDoc фильтра
+        // и в specs/394-pkg-s3-22/report.md (§ BR-114).
+        logger.warn(
+            "Периметр admin-API: authorization по-прежнему permitAll (BR-114). " +
+                "Защита включается настройкой karaoke.security.admin-token (AdminApiTokenFilter); " +
+                "механизм аутентификации — за владельцем.",
+        )
         try {
             http
                 .authorizeHttpRequests { requests ->

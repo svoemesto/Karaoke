@@ -1840,16 +1840,19 @@ class Song(
     val kdenliveSubsFileName: String get() = "$rootFolder/$fileName.kdenlive.srt"
 
     @get:JsonIgnore
-    val durationInMilliseconds: Long get() =
-        (
-            (
-                MediaInfo.getInfoBySectionAndParameter(
-                    fileAbsolutePath,
-                    "Audio",
-                    "Duration",
-                ) ?: "0.0"
-            ).toDouble() * 1000
-        ).toLong()
+    val durationInMilliseconds: Long get() {
+        // BR-035 (аудит #336, пакет PKG-S3-22): `?: "0.0"` подменял сбой mediainfo нулём
+        // без следа, а `toDouble()` на нечисловом ответе («1 234», пустая строка) бросал
+        // NumberFormatException. Теперь `toDoubleOrNull()`: причина сбоя уже залогирована
+        // WARN в MediaInfo, здесь — только безопасное значение по умолчанию.
+        val seconds =
+            MediaInfo
+                .getInfoBySectionAndParameter(fileAbsolutePath, "Audio", "Duration")
+                ?.trim()
+                ?.toDoubleOrNull()
+                ?: 0.0
+        return (seconds * 1000).toLong()
+    }
 
     @get:JsonIgnore
     val durationTimecode: String get() = convertMillisecondsToTimecode(durationInMilliseconds)

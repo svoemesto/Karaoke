@@ -243,3 +243,27 @@ BR-085 (битый JSON → `null`). Статический guard: BR-086 (вс�
 сохранение, импорт и геттеры, от которых зависят DDL/рендер). Для них нужен отдельный
 проход с прогоном `:karaoke-app:test` целиком и проверкой `RecordHash`-консистентности
 (см. `BR-103` — merge голосов связан с `getDiff`/`saveToDbLocked`).
+
+---
+
+## Статус на момент передачи
+
+- **Закрыто 30 из 40 записей** (партии 1–3), три коммита:
+  `ec236744` (BR-034/035/036/037/114), `fcd5d297` (BR-051…BR-070, 16 записей),
+  `8281a84c` (BR-072/076/077/080/081/082/083/085/086, 9 записей).
+  История перезаписана 2026-10-25 до push: первый вариант коммитов (`git add -A`) захватил
+  осколки shell-редиректов в корне worktree (`argparse`, `collections`, `os`, `re`,
+  `subprocess`, `sys` — по ~23 МБ); они удалены из ветки, имена внесены в `.gitignore`.
+- **Осталось 10**: BR-073, BR-074, BR-075, BR-078, BR-079, BR-084, BR-103, BR-105,
+  BR-106, BR-107 — разбор в разделе «Остаток» выше.
+- **Проверки** (последний прогон, все три коммита вместе):
+  `:karaoke-app:test :karaoke-web:test` + `ktlintCheck` — BUILD SUCCESSFUL
+  (635 тестов, 0 падений); `check-knowledge-structure.sh` — OK (9/9);
+  `lint-knowledge.py --baseline` — OK; `check-doc-references.py` — OK;
+  `check-recordhash-consistency.py` — OK; `check-no-mp4-mentions.sh` — OK (139 baseline);
+  `check-feature-doc.sh` — все документы валидны; `check-subagent-isolation.sh` — OK;
+  `check-ssot-impact.py` — OK.
+- **За владельцем**: BR-114 — выбор механизма аутентификации admin-API и включение
+  `karaoke.security.admin-token` в деплое (`X-Admin-Username` не является идентичностью).
+- **PR/push/merge/деплой** не выполнялись. Задача остаётся **In progress**
+  (`mark-review` не вызывался: пакет не закрыт).

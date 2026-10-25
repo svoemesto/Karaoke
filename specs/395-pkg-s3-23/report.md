@@ -18,7 +18,7 @@
 | 3 | BR-155…BR-160, BR-163…BR-166 (10) | ✅ исправлены |
 | 4 | BR-167…BR-173 (6) | ✅ исправлены |
 
-**Итог партий:** 39/39 записей исправлены, 4 коммита.
+**Итог партий:** 39/39 записей исправлены, 5 коммитов (4 партии + SSoT/документ).
 
 ---
 
@@ -300,3 +300,96 @@ $ ... :karaoke-app:test --tests "com.svoemesto.karaokeapp.audit.PkgS323*"
 - **BR-173**: в `karaoke-web/src/main/resources/application.yml` остались те же мёртвые
   ключи `app.max-file-size`/`app.max-request-size` (рядом с живым `app.public-site-url`).
   Они не входят ни в одну запись реестра — фикс оставлен «за владельцем».
+
+
+---
+
+## Проверки CI (финальный прогон, после всех партий)
+
+Полный набор — ровно тот, что указан в ТЗ пакета:
+
+```bash
+$ GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+    -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+    :karaoke-app:test :karaoke-web:test
+# BUILD SUCCESSFUL (karaoke-app: 624 теста, karaoke-web: без изменений)
+
+$ ... ktlintCheck
+# BUILD SUCCESSFUL
+
+$ bash tools/check-knowledge-structure.sh
+# OK: knowledge/ structure valid (9/9 checks passed)
+
+$ python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt
+# All documentation passes architectural style and structural checks.
+
+$ python3 tools/check-doc-references.py
+# Проверено: ссылок 4313, путей 2549, эндпоинтов 334; whitelist: 51 записей.
+# OK: битых ссылок, несуществующих путей и эндпоинтов нет.
+
+$ python3 tools/check-recordhash-consistency.py
+# OK recordhash-контракт: NEW-префикс в триггерах, канонические файлы == модели
+# (+бэфилл), миграции tbl_site_users == канонической формулы, tbl_songs_sync
+# содержит все колонки INSERT.
+
+$ bash tools/check-no-mp4-mentions.sh
+# ✅ OK: all 139 MP4 mentions are in baseline (grandfathered)
+
+$ bash tools/check-feature-doc.sh docs/features/*.md
+# ==> Все документы валидны
+
+$ bash tools/check-subagent-isolation.sh
+# ✅ Все commits в ветке 615-pkg-s3-23 уникальны (нет race condition)
+```
+
+**Фронтенд.** `webvue3/` и `karaoke-public/` не затронуты
+(`git diff --stat e42a573d..HEAD -- webvue3 karaoke-public` — пусто), поэтому
+`npm run lint` / `npm run test:unit` не запускались: в worktree нет `node_modules`,
+а установка зависимостей требует сети.
+
+**Что НЕ делалось** (по запретам ТЗ): деплой не выполнялся; контейнеры, прод и БД
+не трогались; `specs/336-code-audit/registry.csv` не изменён (проверено
+`git diff --stat e42a573d..HEAD -- specs/336-code-audit/registry.csv` — пусто);
+push и PR не делались; коммитов в `master` нет; история не переписывалась;
+`SKIP=` не использовался.
+
+## Коммиты пакета
+
+| Коммит | Содержание |
+|---|---|
+| `008b5539` | Партия 1: BR-117…BR-137 (13 записей) |
+| `a58bbf48` | Партия 2: BR-144…BR-153 (10 записей) |
+| `fb3fce7f` | Партия 3: BR-155…BR-160, BR-163…BR-166 (10 записей) |
+| `52b364a5` | Партия 4: BR-167…BR-173 (6 записей) |
+| `9bee74c3` | SSoT + per-feature документ (FR-009) |
+
+## Решения за владельцем (сводно)
+
+1. **BR-121** — ручная авторизация Яндекс.Музыки (`createNewAuthContext2`) под
+   `YANDEX_PROFILE_LOCK` намеренно **не** берётся: она ждёт человека минутами и
+   заблокировала бы автоматику на всё это время. Строгая сериализация
+   «авторизация vs автоматика» — отдельная правка состояния профиля.
+2. **BR-144** — `fileExists` (старое «недоступно = false») сохранён для остальных
+   вызывающих; для кеша метаданных введён `fileExistsReliable`. Если недоступное
+   хранилище не должно давать «файла нет» в UI — это отдельная правка health-report.
+3. **BR-149** — «уже выполняется» определяется по наличию активного задания
+   `RENDER_MP4_DEMO` в `tbl_processes`. Различать «поставлено мной» и «поставлено
+   ранее» без отдельного идентификатора задания нельзя.
+4. **BR-156** — `LIMIT` = 200 кандидатов за тик (тик раз в 60 с). Хвост очереди
+   уйдёт на следующие тики — осознанный размен.
+5. **BR-160** — тик обновления VK ID-токена стал чаще (каждые 10 минут вместо
+   часа); частота refresh'а ограничена самим VK.
+6. **BR-163** — поток в `uploadFile(path)` закрывается на стороне сервиса; во
+   владении потоком у вызывающих (`uploadFile(InputStream)`) ничего не изменилось.
+7. **BR-168** — транзакция использует кэшированное в потоке соединение
+   (`KaraokeConnection`), `autoCommit` возвращается в `finally`. Отдельное
+   соединение на транзакцию — правка `KaraokeConnection`.
+8. **BR-170** — после сбоя записи в журнал файл УЖЕ удалён (необратимо), поэтому
+   прогон помечается `FAILED`, а не откатывается. Вариант «писать в журнал ДО
+   удаления» меняет порядок операций и контракт FR-012 — решение за владельцем.
+9. **BR-173** — в `karaoke-web/src/main/resources/application.yml` остались те же
+   мёртвые ключи `app.max-file-size`/`app.max-request-size` (рядом с живым
+   `app.public-site-url`). Они не входят ни в одну запись реестра — фикс оставлен
+   за владельцем.
+10. **BR-136** — TTL завершённой admin-задачи = 1 час (значение ТЗ
+    «например, `finishedAt + 1 ч`»), константа `TASK_TTL_MS`.

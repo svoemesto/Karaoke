@@ -31,6 +31,7 @@ const TOKEN_RE = /[0-9A-Za-zА-Яа-яЁё]+|\n|[^\S\n]+|[^\s0-9A-Za-zА-Яа-я
  *
  * @type {number}
  */
+import { escapeHtml } from '../utils/escapeHtml.js'
 export const DIFF_MAX_TOKENS = 2000
 
 /**
@@ -41,20 +42,6 @@ export const DIFF_MAX_TOKENS = 2000
  */
 export function tokenize(text) {
   return String(text || '').match(TOKEN_RE) || []
-}
-
-/**
- * Экранирует текст перед вставкой в HTML.
- *
- * @param {string} text — текст.
- * @returns {string} экранированный текст.
- */
-export function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }
 
 /**

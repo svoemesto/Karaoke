@@ -601,6 +601,7 @@ import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
 import ReviewModal from '../SongEditor/ReviewModal.vue'
 import { promisedXMLHttpRequest } from '../../lib/utils'
 import { buildSongById, buildSongIdAndPageId, sortTableItems } from '../../lib/table-sort.js'
+import { escapeHtml } from '../../utils/escapeHtml.js'
 import KaraokePlayer from '../../player/KaraokePlayer.js'
 
 const ASSIGN_STATUS_LABELS = {
@@ -2124,15 +2125,19 @@ export default {
       this.repairAllPromise = this.repairAllForCurrentPage()
       this.repairAllPromise.then((result) => {
         this.customConfirmParams = {
+          // BR-440: в body есть статичная разметка (<strong>, <br>) — значит нужен
+          // явный allowHtml: true (R2), а пользовательские значения обязаны быть
+          // экранированы на входе в HTML-буфер (R3, tools/check-confirm-escape.py).
+          allowHtml: true,
           isAlert: true,
           alertType: result.errors.length > 0 ? 'error' : 'info',
           header: 'Repair All',
           body:
-            `Обработано песен: <strong>${result.done}</strong> из <strong>${result.total}</strong>.` +
+            `Обработано песен: <strong>${escapeHtml(result.done)}</strong> из <strong>${escapeHtml(result.total)}</strong>.` +
             (result.errors.length > 0
               ? `<br>Ошибок: ${result.errors.length} (${result.errors
                   .slice(0, 10)
-                  .map((e) => `#${e.songId} — ${e.error}`)
+                  .map((e) => `#${escapeHtml(e.songId)} — ${escapeHtml(e.error)}`)
                   .join('; ')})`
               : ''),
           timeout: 10,
@@ -2295,7 +2300,8 @@ export default {
         // unhandled rejection терялся: ни «Готово», ни сообщения об ошибке.
         .catch((e) => {
           this.customConfirmParams = {
-            allowHtml: true,
+            // BR-436: в body нет статичной разметки → текстовый режим (R2).
+            // allowHtml: true здесь был лишней доверенной поверхностью.
             isAlert: true,
             alertType: 'error',
             header: 'Обновление хранилища',

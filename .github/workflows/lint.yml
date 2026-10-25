@@ -70,6 +70,22 @@ jobs:
       - name: Self-test guard (до/после)
         run: bash tools/check-actions-pinned.sh --self-test
 
+  # === Guard: мусор в корне репозитория ===
+  # Осколки shell-редиректов (`... > os`) — файлы с именами стандартных модулей
+  # Python в корне. Попадали в коммиты пакета PKG-S3-22 (аудит #336, #394):
+  # `git add -A` забирал их молча, ~23 МБ каждый. Ignored-правила .gitignore
+  # от этого не спасают (обходятся `git add -f`) — поэтому отдельный guard.
+  root-junk-guard:
+    name: root junk files (BR-394)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check no redirect artifacts in repo root
+        run: bash tools/check-root-junk.sh
+
   # === Backend: ktlint (Kotlin/Java) ===
   # Baseline-aware: новые нарушения валят, старые (из baseline) — нет.
   # См. build.gradle.kts: ktlint-gradle 12.x автоматически читает

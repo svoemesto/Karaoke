@@ -127,3 +127,15 @@ playwright-report/
 # root-овым при первом restore_db.
 /deploy/karaoke-db/dumps/*
 !/deploy/karaoke-db/dumps/.gitkeep
+
+# Осколки shell/python-редиректов в корне репозитория (имена стандартных модулей
+# Python). Появляются при запуске инструментов с ошибочным перенаправлением
+# (`2>file`, `>file`) и раньше случайно попадали в коммиты пакета PKG-S3-22
+# (аудит #336, OpenProject #394): ~23 МБ каждый. Ignored-правила НЕ защищают от
+# `git add -f` — за это отвечает guard tools/check-root-junk.sh.
+/argparse
+/collections
+/os
+/re
+/subprocess
+/sys

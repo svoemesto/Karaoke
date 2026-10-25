@@ -39,13 +39,21 @@ export default {
     topSeverity() {
       return this.$store.getters.monitorTopSeverity
     },
+    // BR-386: ошибка загрузки мониторинга. Пока она есть, состояние неизвестно —
+    // показывать зелёный («сообщений нет») нельзя.
+    error() {
+      return this.$store.getters.monitorAlertsError
+    },
     dotColor() {
+      // BR-386: серый — «нет связи с мониторингом», состояние неизвестно.
+      if (this.error) return '#9E9E9E'
       return SEVERITY_COLORS[this.topSeverity] ?? SEVERITY_COLORS['-1']
     },
     isCritical() {
       return this.topSeverity === 3
     },
     tooltipText() {
+      if (this.error) return 'Мониторинг: нет связи с сервисом мониторинга'
       if (this.topSeverity < 0) return 'Мониторинг: сообщений нет'
       if (this.topSeverity === 0) return 'Мониторинг: информационные сообщения'
       if (this.topSeverity === 1) return 'Мониторинг: есть предупреждения'

@@ -1,4 +1,11 @@
 import { promisedXMLHttpRequest } from '../../lib/utils'
+import { createRequestGeneration } from '../../lib/target-request-guard.js'
+import { loadListWith } from '../../lib/list-loader.js'
+
+// BR-363 / BR-364 (аудит #336, пакет PKG-S3-31, OpenProject #403): загрузка дайджеста
+// альбомов — с поколением запроса, `finally` и текстом ошибки в state.
+const albumsDigestGeneration = createRequestGeneration()
+const albumsDigestLiteGeneration = createRequestGeneration()
 
 /**
  * Компонент «Store».
@@ -11,11 +18,14 @@ export default {
   state: {
     albumsDigest: [],
     albumsDigestIsLoading: false,
+    // BR-363: текст ошибки загрузки дайджеста ('' — ошибки нет). Показывается в таблице.
+    albumsDigestsError: '',
     // Лёгкий дайджест (без автора/картинок/счётчика песен, specs/022) — отдельный от albumsDigest
     // слот стора, чтобы пикер «Альбом (ссылка)» в SongEdit.vue не толкался в один кеш с
     // "тяжёлым" дайджестом AlbumsTable.vue (иначе кто первый загрузился — того и кеш).
     albumsDigestLite: [],
     albumsDigestLiteIsLoading: false,
+    albumsDigestsLiteError: '',
     // Текущая страница пагинации в AlbumsTable — как у Authors, переживает уход/возврат к компоненту.
     albumsTableCurrentPage: 1,
   },
@@ -25,6 +35,10 @@ export default {
     },
     getAlbumsDigestIsLoading(state) {
       return state.albumsDigestIsLoading
+    },
+    // BR-363: текст ошибки загрузки дайджеста альбомов.
+    getAlbumsDigestsError(state) {
+      return state.albumsDigestsError
     },
     getAlbumsDigestLite(state) {
       return state.albumsDigestLite
@@ -52,11 +66,17 @@ export default {
     setAlbumsDigestIsLoading(state, isLoading) {
       state.albumsDigestIsLoading = isLoading
     },
+    setAlbumsDigestsError(state, message) {
+      state.albumsDigestsError = message || ''
+    },
     setAlbumsDigestsLite(state, result) {
       state.albumsDigestLite = result.albumsDigests
     },
     setAlbumsDigestLiteIsLoading(state, isLoading) {
       state.albumsDigestLiteIsLoading = isLoading
+    },
+    setAlbumsDigestsLiteError(state, message) {
+      state.albumsDigestsLiteError = message || ''
     },
     setAlbumsTableCurrentPage(state, page) {
       state.albumsTableCurrentPage = page
@@ -94,34 +114,37 @@ export default {
       }
       return promisedXMLHttpRequest(request).then((data) => Number(data))
     },
+    // BR-363 / BR-364: промис возвращается, флаг снимается в `finally` (в том числе
+    // при ошибке), ошибка видна в UI, а ответ применяется только владельцем текущего
+    // поколения запроса — «побеждает последний запрос», а не последний пришедший ответ.
     loadAlbumsDigests(ctx, params) {
-      let request = { method: 'POST', url: '/api/albums/albumsdigests', params: params }
-      ctx.commit('setAlbumsDigestIsLoading', true)
-      promisedXMLHttpRequest(request)
-        .then((data) => {
-          let result = JSON.parse(data)
-          ctx.commit('setAlbumsDigests', result)
-          ctx.commit('setAlbumsDigestIsLoading', false)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
+      return loadListWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: albumsDigestGeneration,
+        requestOptions: { method: 'POST', url: '/api/albums/albumsdigests', params },
+        loadingCommit: 'setAlbumsDigestIsLoading',
+        errorCommit: 'setAlbumsDigestsError',
+        applyCommit: 'setAlbumsDigests',
+        errorMessage: 'Не удалось загрузить список альбомов',
+      })
     },
     // Лёгкий дайджест (без автора/картинок/счётчика песен) — для пикеров, которым нужны только
     // id/authorId/year/name (см. SongEdit.vue albumsForSongAuthor). Отдельный экшен/эндпоинт —
     // не толкается в общий кеш albumsDigest с AlbumsTable.vue.
+    // BR-363 (зеркало): та же схема, что у тяжёлого дайджеста — промис возвращается,
+    // флаг снимается в `finally`, ошибка не остаётся только в консоли.
     loadAlbumsDigestsLite(ctx) {
-      let request = { method: 'POST', url: '/api/albums/albumsdigestslite', params: {} }
-      ctx.commit('setAlbumsDigestLiteIsLoading', true)
-      promisedXMLHttpRequest(request)
-        .then((data) => {
-          let result = JSON.parse(data)
-          ctx.commit('setAlbumsDigestsLite', result)
-          ctx.commit('setAlbumsDigestLiteIsLoading', false)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
+      return loadListWith({
+        request: promisedXMLHttpRequest,
+        commit: (type, payload) => ctx.commit(type, payload),
+        generation: albumsDigestLiteGeneration,
+        requestOptions: { method: 'POST', url: '/api/albums/albumsdigestslite', params: {} },
+        loadingCommit: 'setAlbumsDigestLiteIsLoading',
+        errorCommit: 'setAlbumsDigestsLiteError',
+        applyCommit: 'setAlbumsDigestsLite',
+        errorMessage: 'Не удалось загрузить лёгкий дайджест альбомов',
+      })
     },
     setAlbumValuePromise(ctx, payload) {
       let request = { method: 'POST', url: '/api/albums/updatealbum', params: payload }

@@ -149,6 +149,11 @@ export default {
     countRows() {
       return this.$store.getters.getListeningHistoryDigestTotalCount
     },
+    // BR-382: страница в Vuex — источник истины (в том числе после применения
+    // фильтра модалка сбрасывает её на 1).
+    storedCurrentPage() {
+      return this.$store.getters.getListeningHistoryTableCurrentPage || 1
+    },
     itemsShownOnCurrentPage() {
       // Размер текущей серверной страницы: для последней страницы меньше perPage, для остальных = perPage.
       // Формула: items between (currentPage-1)*perPage и min(countRows, currentPage*perPage), exclusive end.
@@ -199,6 +204,11 @@ export default {
   watch: {
     digestIsLoading() {
       this.isBusy = this.digestIsLoading
+    },
+    // BR-382: применение фильтра сбрасывает страницу в Vuex на 1 — таблица
+    // подхватывает это значение, чтобы пагинатор и данные не расходились.
+    storedCurrentPage(newPage) {
+      if (newPage !== this.currentPage) this.currentPage = newPage
     },
     currentPage(newPage, oldPage) {
       // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.

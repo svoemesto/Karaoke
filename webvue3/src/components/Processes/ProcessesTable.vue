@@ -225,6 +225,9 @@ export default {
       currentProcessForAuditId: null,
       // specs/319-process-bulk-actions-v2 (US1, US2): bulk-actions UI state.
       isBulkUpdateModalVisible: false,
+      // BR-394: флаг «следующую смену страницы грузить не надо» — снимает лишнюю
+      // параллельную загрузку при программном сбросе страницы.
+      skipNextPageLoad: false,
     }
   },
   computed: {
@@ -422,6 +425,15 @@ export default {
   watch: {
     currentPage: {
       handler() {
+        // BR-394: программный сброс страницы (смена «строк на страницу») не должен
+        // порождать вторую загрузку. Раньше `this.currentPage = 1` синхронно будил
+        // watcher, и та грузила страницу со СТАРЫМ perPage — параллельно с запросом
+        // из `onPerPageChange` (с новым). Ответы могли прийти в обратном порядке, и
+        // таблица показывала 50 строк при пагинаторе на 100.
+        if (this.skipNextPageLoad) {
+          this.skipNextPageLoad = false
+          return
+        }
         this.loadPage()
       },
     },
@@ -462,7 +474,13 @@ export default {
         return
       }
       if (parsed === this.perPage) return
-      this.currentPage = 1 // ADR-0004: page reset
+      // ADR-0004: page reset. BR-394: сброс помечается флагом, чтобы watcher
+      // currentPage НЕ грузил страницу второй раз — страница грузится один раз,
+      // ниже, уже с новым perPage.
+      if (this.currentPage !== 1) {
+        this.skipNextPageLoad = true
+        this.currentPage = 1
+      }
       const ok = await this.$store.dispatch('setRowsPerPage', {
         tableKey: 'processes',
         value: parsed,

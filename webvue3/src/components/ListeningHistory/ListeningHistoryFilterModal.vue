@@ -91,24 +91,63 @@
  */
 export default {
   name: 'ListeningHistoryFilterModal',
-  data() {
-    return {
-      userIdFilter: '',
-      songIdFilter: '',
-      lastPlayedFromFilter: '',
-      lastPlayedToFilter: '',
-    }
+  computed: {
+    // BR-382: фильтры живут в Vuex (ListeningHistory/filter/store.js), а не только
+    // в `data` модалки. Раньше они применялись одноразовым dispatch и тут же терялись:
+    // пагинация, «Обновить», смена БД и смена «строк на страницу» уходили без
+    // фильтров, и таблица показывала весь список.
+    userIdFilter: {
+      get() {
+        return this.$store.getters.getListeningHistoryFilterUserId
+      },
+      set(value) {
+        this.$store.dispatch('setListeningHistoryFilterUserId', { value: value })
+      },
+    },
+    songIdFilter: {
+      get() {
+        return this.$store.getters.getListeningHistoryFilterSongId
+      },
+      set(value) {
+        this.$store.dispatch('setListeningHistoryFilterSongId', { value: value })
+      },
+    },
+    lastPlayedFromFilter: {
+      get() {
+        return this.$store.getters.getListeningHistoryFilterLastPlayedFrom
+      },
+      set(value) {
+        this.$store.dispatch('setListeningHistoryFilterLastPlayedFrom', { value: value })
+      },
+    },
+    lastPlayedToFilter: {
+      get() {
+        return this.$store.getters.getListeningHistoryFilterLastPlayedTo
+      },
+      set(value) {
+        this.$store.dispatch('setListeningHistoryFilterLastPlayedTo', { value: value })
+      },
+    },
   },
   methods: {
     ok() {
-      const params = {}
-      if (this.userIdFilter) params.filterUserId = Number(this.userIdFilter)
-      if (this.songIdFilter) params.filterSongId = Number(this.songIdFilter)
-      if (this.lastPlayedFromFilter)
-        params.filterLastPlayedFrom = new Date(this.lastPlayedFromFilter).toISOString()
-      if (this.lastPlayedToFilter)
-        params.filterLastPlayedTo = new Date(this.lastPlayedToFilter).toISOString()
-      this.$store.dispatch('loadListeningHistoryDigest', params)
+      // BR-382: параметры фильтра собираются в одном месте — в сторе
+      // (`getListeningHistoryFilter`), и применяются ко всем последующим загрузкам.
+      // Даты приводятся к ISO — формат, который ждёт бэкенд.
+      if (this.lastPlayedFromFilter) {
+        this.$store.dispatch('setListeningHistoryFilterLastPlayedFrom', {
+          value: new Date(this.lastPlayedFromFilter).toISOString(),
+        })
+      }
+      if (this.lastPlayedToFilter) {
+        this.$store.dispatch('setListeningHistoryFilterLastPlayedTo', {
+          value: new Date(this.lastPlayedToFilter).toISOString(),
+        })
+      }
+      // BR-382: страница сбрасывается на 1 — иначе первая страница показывалась
+      // под номером прежней (например, «3»), а счётчик «Показано N из M» врал.
+      this.$store.commit('setListeningHistoryTableCurrentPage', 1)
+      this.$store.dispatch('loadListeningHistoryDigest', { page: 1 })
       this.$emit('close')
     },
     cancel() {

@@ -131,7 +131,10 @@ export default {
       this.$store
         .dispatch('reorderAlbumsPromise', ids)
         .then(() => {
-          this.$store.dispatch('loadAlbumsDigests', {})
+          // BR-365: перезагрузка с фильтром по автору модалки — раньше уходил пустой
+          // params, и таблица показывала ВСЕ альбомы вместо альбомов этого автора.
+          const authorId = this.author ? this.author.id : undefined
+          this.$store.dispatch('loadAlbumsDigests', authorId ? { filterAuthorId: authorId } : {})
           this.saving = false
           this.close()
         })

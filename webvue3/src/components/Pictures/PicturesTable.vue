@@ -222,7 +222,13 @@ export default {
     await this.$store.dispatch('loadTableSettings')
     this.perPage = this.$store.getters.getRowsPerPage('pictures')
 
-    // this.$store.dispatch('loadPicturesDigests', { filterPicture: 'Павел Кашин'} )
+    // BR-390: дайджест загружается при открытии раздела. Раньше единственный вызов
+    // загрузки был в `PicturesFilterModal.ok()`, поэтому при первом открытии (и после
+    // каждого F5, пока фильтр не применён) таблица показывала пустой список — ложное
+    // «нет данных» без спиннера и без подсказки «задайте фильтр». Здесь страница уже
+    // пагинируется на клиенте (весь дайджест + per-page), поэтому тяжёлой
+    // предзагрузки с фильтром здесь не было и быть не должно.
+    await this.$store.dispatch('loadPicturesDigests', {})
   },
   methods: {
     /**

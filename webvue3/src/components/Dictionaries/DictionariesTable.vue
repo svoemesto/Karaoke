@@ -300,7 +300,11 @@ export default {
           dictValue: this.newItem.dictValue,
         })
         .then((result) => {
-          this.$store.dispatch('loadDictionariesDigests', {})
+          // BR-384: перезагрузка с ТЕКУЩИМ фильтром — иначе после добавления
+          // значения таблица показывала полный список словарей и фильтр «слетел».
+          this.$store.dispatch('loadDictionariesDigests', {
+            ...this.$store.getters.getDictionariesFilter,
+          })
           if (!result.created) {
             alert(
               `Значение «${this.newItem.dictValue}» уже есть в словаре «${this.newItem.dictName}»`,

@@ -208,8 +208,12 @@ export default {
     totalCount() {
       return this.$store.getters.getNewsTotalCount
     },
+    // BR-389: размер страницы берётся из общей настройки таблиц (`tableSettings`),
+    // а НЕ из readonly-computed `getNewsPerPage`. Прежнее `this.perPage = ...` было
+    // записью в computed без setter'а — значение не менялось, сервер продолжал
+    // получать `pageSize=35`, и поле «Строк на странице» для новостей не работало.
     perPage() {
-      return this.$store.getters.getNewsPerPage
+      return this.$store.getters.getRowsPerPage('news')
     },
     newsFields() {
       return [
@@ -255,7 +259,9 @@ export default {
     // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
     // защищён флагом  в store ).
     await this.$store.dispatch('loadTableSettings')
-    this.perPage = this.$store.getters.getRowsPerPage('news')
+    // BR-389: сохранённый размер страницы синхронизируется со стором новостей —
+    // иначе сервер получал бы дефолтные 35 строк.
+    this.$store.dispatch('setNewsPerPage', this.$store.getters.getRowsPerPage('news'))
 
     this.$store.dispatch('loadNews')
   },
@@ -279,16 +285,21 @@ export default {
         return
       }
       if (parsed === this.perPage) return
-      this.currentPage = 1 // ADR-0004: page reset
+      // ADR-0004: сброс страницы. Раньше писалось `this.currentPage = 1` — в
+      // компоненте нет такого поля (есть только computed `currentPageModel`),
+      // поэтому сброса не происходило.
       const ok = await this.$store.dispatch('setRowsPerPage', {
         tableKey: 'news',
         value: parsed,
       })
       if (ok) {
-        this.perPage = this.$store.getters.getRowsPerPage('news')
+        // BR-389: размер страницы синхронизируется со стором, страница сбрасывается
+        // на 1, и загрузка идёт с новым pageSize.
+        this.$store.dispatch('setNewsPerPage', this.$store.getters.getRowsPerPage('news'))
+        this.currentPageModel = 1
         await this.$store.dispatch('loadNews', {
-          page: this.currentPage,
-          perPage: this.perPage,
+          page: 1,
+          perPage: this.$store.getters.getRowsPerPage('news'),
         })
       }
     },

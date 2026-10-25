@@ -210,24 +210,10 @@ export default {
     },
   },
   async beforeMount() {
-    this.$store.dispatch('setAlbumsFilterId', {
-      value: await this.$store.getters.getWebvueProp('albumsFilterId', ''),
-    })
-    this.$store.dispatch('setAlbumsFilterAuthorName', {
-      value: await this.$store.getters.getWebvueProp('albumsFilterAuthorName', ''),
-    })
-    this.$store.dispatch('setAlbumsFilterYear', {
-      value: await this.$store.getters.getWebvueProp('albumsFilterYear', ''),
-    })
-    this.$store.dispatch('setAlbumsFilterName', {
-      value: await this.$store.getters.getWebvueProp('albumsFilterName', ''),
-    })
-    this.$store.dispatch('setAlbumsFilterAlbumType', {
-      value: await this.$store.getters.getWebvueProp('albumsFilterAlbumType', ''),
-    })
-    this.$store.dispatch('setAlbumsFilterSongsCountMin', {
-      value: await this.$store.getters.getWebvueProp('albumsFilterSongsCountMin', ''),
-    })
+    // BR-366: фильтр восстанавливается ОДНИМ действием и без записи на сервер.
+    // Прежде здесь было шесть последовательных GET и шесть POST — те же значения
+    // читались и тут же записывались обратно.
+    await this.$store.dispatch('restoreAlbumsFilter')
     if (
       !this.$store.getters.getAuthorsDigest ||
       this.$store.getters.getAuthorsDigest.length === 0
@@ -247,7 +233,10 @@ export default {
     }
   },
   methods: {
-    ok() {
+    async ok() {
+      // BR-366: фильтр сохраняется на сервер ЗДЕСЬ (по кнопке «Применить»), а не на
+      // каждый `input` — иначе ввод 30 символов давал 30 POST'ов подряд.
+      await this.$store.dispatch('persistAlbumsFilter')
       let params = {}
       if (this.albumsFilterId) params.filterId = this.albumsFilterId
       if (this.albumsFilterAuthorName) params.filterAuthorName = this.albumsFilterAuthorName

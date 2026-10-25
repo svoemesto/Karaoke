@@ -3,7 +3,11 @@
     <div class="hrt-modal-backdrop">
       <div class="health-report-table-root">
         <HealthReportTableHeader :health-report-list="healthReportList" :song-id="id" />
-        <HealthReportTableBody :health-report-list="healthReportList" :is-loading="isLoading" />
+        <HealthReportTableBody
+          :health-report-list="healthReportList"
+          :is-loading="isLoading"
+          :error="error"
+        />
         <HealthReportTableFooter @close="close" />
       </div>
     </div>
@@ -37,6 +41,10 @@ export default {
     isLoading() {
       return this.$store.getters.getHealthReportListIsLoading
     },
+    // BR-381: ошибка загрузки отчёта — показывается вместо «нарушений не найдено».
+    error() {
+      return this.$store.getters.getHealthReportListError
+    },
   },
   mounted() {
     // OpenProject #325: модалка должна открываться и при нуле записей HR,
@@ -44,6 +52,7 @@ export default {
     // а не по списку отчётов). Список предыдущей песни сбрасываем, чтобы
     // не показывать чужие строки, пока идёт запрос.
     this.$store.commit('updateHealthReportList', [])
+    this.$store.commit('setHealthReportListError', '')
     this.$store.dispatch('loadHealthReportList', this.id)
   },
   methods: {

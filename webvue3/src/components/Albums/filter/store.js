@@ -1,5 +1,35 @@
 import { setWebvueProp } from '../../../lib/utils'
 
+// BR-366 (аудит #336, пакет PKG-S3-31, OpenProject #403).
+//
+// ДЕФЕКТ. Server-side persistence фильтра (принятый паттерн — см.
+// knowledge/system/frontend/filter-stores.md § Persistence) был реализован в мутациях:
+// каждая мутация вызывала `setWebvueProp`, который сразу отправлял
+// `POST /api/setwebvueprop`. Мутации вызываются из `v-model`-сеттеров модалки
+// (`AlbumsFilterModal.vue`) на КАЖДОЕ нажатие клавиши: ввод 30-символьного названия —
+// 30 POST'ов подряд. Запросы не упорядочены и не отменялись (при перестановке ответов
+// на сервере оставался более ранний префикс строки), а ошибка записи не обрабатывалась
+// (необработанный промис).
+//
+// РЕШЕНИЕ. Запись фильтра на сервер — по действию пользователя («Применить»), а не на
+// каждый `input`: мутации стали чистыми (только state), а запись вынесена в actions
+// `persistAlbumsFilter` (с обработкой отказа) и `restoreAlbumsFilter` (чтение без
+// записи — прежняя «восстановляющая» запись тех же значений тоже была лишней).
+
+/**
+ * Ключи настроек фильтра альбомов (совпадают с именами полей в state).
+ *
+ * @type {string[]}
+ */
+const ALBUMS_FILTER_KEYS = [
+  { stateKey: 'albumsFilterId', mutation: 'setAlbumsFilterId' },
+  { stateKey: 'albumsFilterAuthorName', mutation: 'setAlbumsFilterAuthorName' },
+  { stateKey: 'albumsFilterYear', mutation: 'setAlbumsFilterYear' },
+  { stateKey: 'albumsFilterName', mutation: 'setAlbumsFilterName' },
+  { stateKey: 'albumsFilterAlbumType', mutation: 'setAlbumsFilterAlbumType' },
+  { stateKey: 'albumsFilterSongsCountMin', mutation: 'setAlbumsFilterSongsCountMin' },
+]
+
 /**
  * Компонент «Store».
  *
@@ -81,28 +111,23 @@ export default {
   },
 
   mutations: {
+    // BR-366: мутации только присваивают state — сетевой записи здесь нет.
     setAlbumsFilterId(state, value) {
-      setWebvueProp(state.albumsFilterId, 'albumsFilterId', value)
       state.albumsFilterId = value
     },
     setAlbumsFilterAuthorName(state, value) {
-      setWebvueProp(state.albumsFilterAuthorName, 'albumsFilterAuthorName', value)
       state.albumsFilterAuthorName = value
     },
     setAlbumsFilterYear(state, value) {
-      setWebvueProp(state.albumsFilterYear, 'albumsFilterYear', value)
       state.albumsFilterYear = value
     },
     setAlbumsFilterName(state, value) {
-      setWebvueProp(state.albumsFilterName, 'albumsFilterName', value)
       state.albumsFilterName = value
     },
     setAlbumsFilterAlbumType(state, value) {
-      setWebvueProp(state.albumsFilterAlbumType, 'albumsFilterAlbumType', value)
       state.albumsFilterAlbumType = value
     },
     setAlbumsFilterSongsCountMin(state, value) {
-      setWebvueProp(state.albumsFilterSongsCountMin, 'albumsFilterSongsCountMin', value)
       state.albumsFilterSongsCountMin = value
     },
   },
@@ -124,6 +149,38 @@ export default {
     },
     setAlbumsFilterSongsCountMin(ctx, payload) {
       ctx.commit('setAlbumsFilterSongsCountMin', payload.value)
+    },
+    /**
+     * BR-366: восстановление фильтра с сервера — ЧТЕНИЕ без записи.
+     *
+     * Прежний `beforeMount` модалки читал шесть значений и тут же записывал их
+     * обратно (шесть лишних POST'ов на каждое открытие модалки).
+     *
+     * @returns {Promise<void>}
+     */
+    async restoreAlbumsFilter(ctx) {
+      const results = await Promise.allSettled(
+        ALBUMS_FILTER_KEYS.map(({ stateKey }) => ctx.getters.getWebvueProp(stateKey, '')),
+      )
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          ctx.commit(ALBUMS_FILTER_KEYS[index].mutation, result.value)
+        }
+      })
+    },
+    /**
+     * BR-366: сохранение фильтра на сервере — по кнопке «Применить», а не на каждый
+     * `input`. Отказ обрабатывается (предупреждение), промис возвращается.
+     *
+     * @returns {Promise<boolean>} true — все значения сохранены.
+     */
+    async persistAlbumsFilter(ctx) {
+      const results = await Promise.all(
+        ALBUMS_FILTER_KEYS.map(({ stateKey }) =>
+          setWebvueProp(ctx.state[stateKey], stateKey, ctx.state[stateKey]),
+        ),
+      )
+      return results.every((ok) => ok !== false)
     },
   },
 }

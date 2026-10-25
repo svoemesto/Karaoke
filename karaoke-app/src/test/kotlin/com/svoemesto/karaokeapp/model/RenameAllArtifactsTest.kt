@@ -47,9 +47,9 @@ class RenameAllArtifactsTest {
         file(stems, "$oldName-vocals.flac")
         file(stems, "$oldName-accompaniment.mp3")
 
-        val renamed = SongArtifactRenamer.renameLocal(album.path, oldName, newName)
+        val outcome = SongArtifactRenamer.renameLocal(album.path, oldName, newName)
 
-        assertEquals(5, renamed.size, "должны переименоваться исходник, key.json и три стема")
+        assertEquals(5, outcome.renamed.size, "должны переименоваться исходник, key.json и три стема")
         assertTrue(File(album, "$newName.flac").exists())
         assertTrue(File(album, "$newName [key].json").exists())
         assertTrue(File(stems, "$newName-accompaniment.flac").exists())
@@ -132,9 +132,9 @@ class RenameAllArtifactsTest {
         file(album, "key_bpm.csv")
         File(album, "$oldName [karaoke].png").mkdirs() // каталог с «нашим» именем — не файл
 
-        val renamed = SongArtifactRenamer.renameLocal(album.path, oldName, newName)
+        val outcome = SongArtifactRenamer.renameLocal(album.path, oldName, newName)
 
-        assertEquals(0, renamed.size)
+        assertEquals(0, outcome.renamed.size)
         assertTrue(File(album, "LogoAlbum.png").exists())
         assertTrue(File(album, "key_bpm.csv").exists())
         assertTrue(File(album, "$oldName [karaoke].png").isDirectory)
@@ -150,8 +150,8 @@ class RenameAllArtifactsTest {
         val first = SongArtifactRenamer.renameLocal(album.path, oldName, newName)
         val second = SongArtifactRenamer.renameLocal(album.path, oldName, newName)
 
-        assertEquals(1, first.size)
-        assertEquals(0, second.size, "повторный вызов не должен ничего находить")
+        assertEquals(1, first.renamed.size)
+        assertEquals(0, second.renamed.size, "повторный вызов не должен ничего находить")
         assertTrue(File(album, "$newName.flac").exists())
     }
 

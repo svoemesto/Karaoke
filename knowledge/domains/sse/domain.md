@@ -187,7 +187,13 @@ L3-компонентов у домена пока нет: контекст оп
 
 ## Domain Invariants
 
-1. **`SseEmitter.timeout = -1` (forever)**: SSE-соединение держится,
+1. **`SseEmitter.timeout = -1` (forever)**
+   - **Правка BR-147 (аудит #336, `PKG-S3-23`)**: список эмиттеров подписки
+     достаётся ОДИН раз (`emitters.computeIfAbsent(key) { mutableListOf() }`).
+     Повторное разыменование `emitters[key]!!` после `putIfAbsent` давало NPE
+     (→ 500 на `/api/subscribe`), когда параллельная рассылка успевала удалить
+     ключ между двумя операциями.
+: SSE-соединение держится,
    пока клиент не отключится. Heartbeat (комментарии) защищает от
    прокси-timeout'ов.
 2. **`send()` НЕ ДОЛЖЕН бросать exception** в caller-thread — ошибки

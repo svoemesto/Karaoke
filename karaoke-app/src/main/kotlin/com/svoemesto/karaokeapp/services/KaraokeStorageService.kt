@@ -6,6 +6,7 @@ import io.minio.errors.MinioException
 import io.minio.http.Method
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -160,6 +161,12 @@ class KaraokeStorageServiceImpl(
     private val storageMetadataCache: StorageMetadataCache,
     @Qualifier("localStorageCircuitBreaker") private val localStorageCircuitBreaker: StorageCircuitBreaker,
 ) : KaraokeStorageService {
+    /**
+     * BR-164 (аудит #336, пакет `PKG-S3-23`): категория логов локального хранилища —
+     * ошибки S3, которые НЕ означают «объекта нет».
+     */
+    private val storageLog = LoggerFactory.getLogger("infra.cache.storage.local")
+
     private val endpoint: String =
         if (wic !=
             0L
@@ -266,8 +273,33 @@ class KaraokeStorageServiceImpl(
                             .`object`(decodedFileName) // Используем декодированное имя
                             .build(),
                     )
-                } catch (_: MinioException) {
-                    null
+                } catch (e: ErrorResponseException) {
+                    // BR-164: «объекта нет» — только NoSuchKey/NoSuchBucket; остальные
+                    // коды (403/500 и т.п.) — ошибка, а не «нет stat».
+                    val code = runCatching { e.errorResponse().code() }.getOrNull()
+                    if (code == "NoSuchKey" || code == "NoSuchBucket" || code == "ResourceNotFound") {
+                        null
+                    } else {
+                        storageLog.warn(
+                            "getFileStat: не-«отсутствие» ошибка S3 (code={}, bucket={}, file={})",
+                            code,
+                            bucketName,
+                            decodedFileName,
+                            e,
+                        )
+                        throw RuntimeException("Error getting file stat (S3 code=$code): ${e.message}", e)
+                    }
+                } catch (e: MinioException) {
+                    // BR-164: сетевые/серверные сбои MinIO — тоже ошибка, а не «нет stat».
+                    // Раньше здесь возвращался null, и backfill кеша писал exists=false для
+                    // живого файла (size<0 → exists=false).
+                    storageLog.warn(
+                        "getFileStat: сбой MinIO (bucket={}, file={})",
+                        bucketName,
+                        decodedFileName,
+                        e,
+                    )
+                    throw RuntimeException("Error getting file stat: ${e.message}", e)
                 }
             },
             emptyValue = null,
@@ -377,13 +409,19 @@ class KaraokeStorageServiceImpl(
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
             val size = file.length()
-            val fileInputStream = file.inputStream()
-            uploadFile(
-                bucketName = bucketName,
-                fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
-                file = fileInputStream,
-                size = size,
-            )
+            // BR-163 (аудит #336, пакет `PKG-S3-23`): поток закрывается гарантированно
+            // (`use { }`) — ни при успехе, ни при исключении. Раньше `file.inputStream()`
+            // не закрывался НИКОГДА: minio-java переданный поток не закрывает, поэтому
+            // каждая загрузка «с диска» оставляла открытый дескриптор. В массовых циклах
+            // (`Utils.uploadPicturesToStorage`, перенос стемов) их копились пачками.
+            file.inputStream().use { fileInputStream ->
+                uploadFile(
+                    bucketName = bucketName,
+                    fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
+                    file = fileInputStream,
+                    size = size,
+                )
+            }
         }
     }
 
@@ -541,8 +579,27 @@ class KaraokeStorageServiceImpl(
                                 .build(),
                         )
                         true
-                    } catch (_: ErrorResponseException) {
-                        false
+                    } catch (e: ErrorResponseException) {
+                        // BR-164 (аудит #336, пакет `PKG-S3-23`): «объекта нет» — это
+                        // ТОЛЬКО NoSuchKey/NoSuchBucket. Раньше ЛЮБОЙ ErrorResponseException
+                        // (AccessDenied 403, InternalError 500, InvalidAccessKeyId) трактовался
+                        // как «файла нет»: health-report показывал пропажу существующих
+                        // файлов, прогрев кеша писал exists=false, `pushMp3ToStorage`
+                        // перезагружал стемы. Остальные коды — явная ошибка (и breaker'у,
+                        // и в лог).
+                        val code = runCatching { e.errorResponse().code() }.getOrNull()
+                        if (code == "NoSuchKey" || code == "NoSuchBucket" || code == "ResourceNotFound") {
+                            false
+                        } else {
+                            storageLog.warn(
+                                "fileExists: не-«отсутствие» ошибка S3 (code={}, bucket={}, file={})",
+                                code,
+                                bucketName,
+                                decodedFileName,
+                                e,
+                            )
+                            throw RuntimeException("Error checking object existence (S3 code=$code): ${e.message}", e)
+                        }
                     } catch (e: Exception) {
                         throw RuntimeException("Error checking object existence: ${e.message}", e)
                     }

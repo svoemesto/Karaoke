@@ -2,7 +2,14 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
+import org.slf4j.LoggerFactory
 import java.io.Serializable
+
+/**
+ * BR-130 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): категория логов раскладки
+ * голосов (пустой голос — штатная краевая ситуация, а не повод ронять генерацию MLT).
+ */
+private val voiceLog = LoggerFactory.getLogger("infra.render.voice")
 
 /**
  * Класс Setting Voice.
@@ -45,6 +52,19 @@ data class SongVoice(
     }
 
     fun actuateChilds(songVersion: SongVersion) {
+        // BR-130 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): голос без строк —
+        // штатная краевая ситуация (все его маркеры отфильтрованы по типу версии,
+        // например остались только CHORD/NOTE, которых нет в LYRICS/KARAOKE).
+        // Раньше `getLines().maxOf { … }` на пустом списке ронял всю генерацию MLT
+        // песни с NoSuchElementException("List is empty").
+        if (getLines().isEmpty()) {
+            voiceLog.warn(
+                "actuateChilds: голос без строк для версии {} (voiceId={}) — пропускаем расчёт раскладки",
+                songVersion.name,
+                voiceId,
+            )
+            return
+        }
         var lineY = 0
         val textLineHeight = getLines().firstOrNull { it.haveTextElementOrComment(songVersion) }?.h(songVersion) ?: 0
         getLines().forEachIndexed { indexLine, line ->
@@ -64,7 +84,8 @@ data class SongVoice(
             line.transformProperties = getLineTransformProperties(songVersion, indexLine)
             lineY += line.h(songVersion)
         }
-        countLineTracks = getLines().maxOf { line -> getLines().filter { it.isOnScreen(line.lineStartMs) }.size }
+        // BR-130: `maxOfOrNull` вместо `maxOf` — пустой список строк даёт 0, а не исключение.
+        countLineTracks = getLines().maxOfOrNull { line -> getLines().filter { it.isOnScreen(line.lineStartMs) }.size } ?: 0
 
         if (songVersion in listOf(SongVersion.CHORDS)) {
             var chordX = 0
@@ -102,7 +123,8 @@ data class SongVoice(
                 chord.transformChordProperties = getChordTransformProperties(indexChord, chords, deltaMs)
                 chordX += chordHeight
             }
-            countChordPictureTracks = chords.maxOf { chord -> chords.filter { it.chordIsOnScreen(chord.syllableStartMs) }.size }
+            // BR-130: `maxOfOrNull` вместо `maxOf` — аккордов может не быть вовсе.
+            countChordPictureTracks = chords.maxOfOrNull { chord -> chords.filter { it.chordIsOnScreen(chord.syllableStartMs) }.size } ?: 0
         }
     }
 
@@ -299,7 +321,9 @@ data class SongVoice(
         val result: MutableList<TransformProperty> = mutableListOf()
 
         val startIndex = thisLine.indexLineStart
-        val endIndex = if (thisLine.indexLineEnd < thisLine.indexLineStart) getLines().last().lineId else thisLine.indexLineEnd
+        // BR-130: `lastOrNull()` вместо `last()` — голос без строк не должен ронять расчёт.
+        val endIndex =
+            if (thisLine.indexLineEnd < thisLine.indexLineStart) getLines().lastOrNull()?.lineId ?: -1 else thisLine.indexLineEnd
         if (endIndex < startIndex) return emptyList()
 
 //        val frameWidthPx = Karaoke.frameWidthPx
@@ -373,11 +397,16 @@ data class SongVoice(
 
     fun textLines(songVersion: SongVersion): List<SongVoiceLine> = getLines().filter { it.haveTextElement(songVersion) }
 
+    /**
+     * BR-130 (аудит #336, пакет `PKG-S3-23`): `maxByOrNull` вместо `maxBy` —
+     * у голоса может не быть ни одной строки с текстом для этой версии, и раньше
+     * `maxBy` на пустом списке ронял генерацию MLT песни.
+     */
     fun longerTextElement(songVersion: SongVersion): SongVoiceLineElement? =
         textLines(songVersion)
-            .maxBy {
+            .maxByOrNull {
                 it.w(songVersion)
-            }.textElement(songVersion)
+            }?.textElement(songVersion)
 
     var voiceId: Int = -1
 
@@ -432,6 +461,10 @@ data class SongVoice(
 
     fun linesTransformProperties(): List<TransformProperty> {
         val result: MutableList<TransformProperty> = mutableListOf()
+        // BR-130 (аудит #336, пакет `PKG-S3-23`): у голоса без строк `getLines().last()`
+        // бросал NoSuchElementException. Для такого голосаtransform-свойства не нужны —
+        // возвращаем пустой список.
+        val lastLineEndMs = getLines().lastOrNull()?.lineEndMs ?: return result
         val frameWidthPx = Karaoke.frameWidthPx
         val frameHeightPx = Karaoke.frameHeightPx
         val deltaX = longerElementPreviousVoice?.w() ?: 0
@@ -460,7 +493,7 @@ data class SongVoice(
             )
         val trFadeOut =
             TransformProperty(
-                time = convertMillisecondsToTimecode(getLines().last().lineEndMs - 1000),
+                time = convertMillisecondsToTimecode(lastLineEndMs - 1000),
                 x = x,
                 y = y,
                 w = frameWidthPx,
@@ -469,7 +502,7 @@ data class SongVoice(
             )
         val trEnd =
             TransformProperty(
-                time = convertMillisecondsToTimecode(getLines().last().lineEndMs),
+                time = convertMillisecondsToTimecode(lastLineEndMs),
                 x = x,
                 y = y,
                 w = frameWidthPx,

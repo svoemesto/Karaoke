@@ -17,6 +17,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import javax.imageio.ImageIO
+import kotlin.concurrent.withLock
 
 /**
  * Общий HTTP-клиент для всех сетевых запросов модуля обложек: поиск картинок
@@ -121,40 +122,47 @@ private sealed class YandexAlbumsPageResult {
  * Поэтому изменение безопасно при ЛЮБОЙ трактовке — если прогрев был нужен, он остался;
  * если не был, исчезла только бесполезная работа. Экономится полный запуск Chromium
  * (секунды и сотни мегабайт) на каждый поиск обложки.
+ *
+ * BR-121 (аудит #336, пакет `PKG-S3-23`): доступ к persistent-профилю Яндекс.Музыки
+ * сериализирован через [YANDEX_PROFILE_LOCK]. Chromium держит эксклюзивную блокировку
+ * каталога профиля: параллельный `launchPersistentContext` на том же `USER_DATA_DIR`
+ * не стартует, и поиск обложек/текста падал.
  */
 private fun fetchYandexArtistAlbumsHtml(authorYmId: String): YandexAlbumsPageResult {
     val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
     val searchUrl = "$authorUrl/albums"
 
-    Playwright.create().use { playwright ->
-        val context =
-            playwright.chromium().launchPersistentContext(
-                USER_DATA_DIR,
-                BrowserType
-                    .LaunchPersistentContextOptions()
-                    .setHeadless(true)
-                    .setLocale("ru-RU")
-                    .setTimezoneId("Europe/Moscow"),
-            )
-        val page = context.pages().firstOrNull() ?: context.newPage()
-        try {
-            page.navigate("https://music.yandex.ru/")
-            page.navigate(searchUrl)
-            val currentUrl = page.url()
-            val html = page.content()
+    YANDEX_PROFILE_LOCK.withLock {
+        Playwright.create().use { playwright ->
+            val context =
+                playwright.chromium().launchPersistentContext(
+                    USER_DATA_DIR,
+                    BrowserType
+                        .LaunchPersistentContextOptions()
+                        .setHeadless(true)
+                        .setLocale("ru-RU")
+                        .setTimezoneId("Europe/Moscow"),
+                )
+            val page = context.pages().firstOrNull() ?: context.newPage()
+            try {
+                page.navigate("https://music.yandex.ru/")
+                page.navigate(searchUrl)
+                val currentUrl = page.url()
+                val html = page.content()
 
-            if (currentUrl.contains("passport.yandex") || currentUrl.contains("id.yandex")) {
-                return YandexAlbumsPageResult.AuthExpired
+                if (currentUrl.contains("passport.yandex") || currentUrl.contains("id.yandex")) {
+                    return YandexAlbumsPageResult.AuthExpired
+                }
+                if (html.contains("недоступна в вашем регионе", ignoreCase = true)) {
+                    return YandexAlbumsPageResult.VpnBlocked
+                }
+                if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+                    return YandexAlbumsPageResult.BotDetected
+                }
+                return YandexAlbumsPageResult.Html(html)
+            } finally {
+                context.close()
             }
-            if (html.contains("недоступна в вашем регионе", ignoreCase = true)) {
-                return YandexAlbumsPageResult.VpnBlocked
-            }
-            if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
-                return YandexAlbumsPageResult.BotDetected
-            }
-            return YandexAlbumsPageResult.Html(html)
-        } finally {
-            context.close()
         }
     }
 }

@@ -14,6 +14,21 @@ import com.svoemesto.karaokeapp.model.Dictionary
  */
 interface TextFileDictionary {
     companion object {
+        /**
+         * Разрешённые операции над словарём.
+         *
+         * BR-172 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): действие выбирается
+         * ЯВНЫМ `when`, а не через reflection по имени метода.
+         *
+         * Раньше `declaredMethods.firstOrNull { it.name == dictAction }` + `invoke` позволял
+         * вызвать ЛЮБОЙ публичный метод класса словаря — и всегда с одним аргументом
+         * `List<String>`. Методы другой арности (`clear`, `save`, `loadList`, `have`,
+         * `addOne`, `removeOne`, `editOne`, `dictName`, `getDatabase`) давали
+         * `IllegalArgumentException: wrong number of arguments`, а исключение из самого
+         * метода — `InvocationTargetException`; ни то, ни другое не ловилось → HTTP 500.
+         */
+        val ALLOWED_ACTIONS: Set<String> = setOf("add", "remove")
+
         fun doAction(
             dictName: String,
             dictAction: String,
@@ -21,8 +36,12 @@ interface TextFileDictionary {
         ): Boolean {
             val tfd = TEXT_FILE_DICTS[dictName] ?: return false
             val tfdInstance = tfd.getDeclaredConstructor().newInstance()
-            val func = tfdInstance.javaClass.declaredMethods.firstOrNull { it.name == dictAction } ?: return false
-            func.invoke(tfdInstance, dictValues)
+            // BR-172: только разрешённые операции и только с правильной арностью.
+            when (dictAction) {
+                "add" -> tfdInstance.add(dictValues)
+                "remove" -> tfdInstance.remove(dictValues)
+                else -> return false
+            }
             return true
         }
 

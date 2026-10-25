@@ -261,7 +261,21 @@ object SongUpdateMapper {
                     // issue #323: каскад не покрывал исходник, [key].json, flac-стемы, вложения
                     // done_files и симлинки — после переименования проверка здоровья показывала
                     // AUDIO_SONG/AUDIO_ACCOMPANIMENT/AUDIO_VOCAL по LOCAL_FILESYSTEM.
-                    song.renameAllArtifacts(oldFileName)
+                    //
+                    // BR-131 (аудит #336, пакет `PKG-S3-23`): неудачные переименования
+                    // возвращаются наружу. Раньше они молча терялись, и админ видел «успех»,
+                    // хотя часть артефактов осталась под старым именем. Теперь — явная
+                    // ошибка в ответе с перечнем проблемных файлов.
+                    val renameFailures = song.renameAllArtifacts(oldFileName)
+                    if (renameFailures.isNotEmpty()) {
+                        val preview =
+                            renameFailures
+                                .take(3)
+                                .joinToString("; ") { "${it.path} — ${it.reason}" }
+                        val tail = if (renameFailures.size > 3) " и ещё ${renameFailures.size - 3}." else "."
+                        fileNameRenameError =
+                            "Имя файла изменено, но ${renameFailures.size} артефакт(ов) на диске переименовать не удалось: $preview$tail"
+                    }
                 }
             }
         }

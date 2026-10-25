@@ -71,6 +71,18 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 ## Domain Invariants | Инварианты и правила бизнеса
 
 1. **Каждая проверка тикает раз в минуту** через `MonitoringService`.
+   - **Правки BR-134, BR-135, BR-136 (аудит #336, `PKG-S3-23`)**:
+     - ошибка проверки, читающей прод-БД, НЕ подменяется нулём «проблем нет»:
+       исключение пробрасывается и превращается в WARNING-алерт
+       `check.<Name>.failure` (BR-134);
+     - тик мониторинга **не пересекается с самим собой**: `fixedDelay` +
+       single-flight guard, пересекающийся тик пропускается с записью в лог
+       (BR-135);
+     - реестр фоновых admin-задач ограничен по TTL (1 час), пул потоков
+       закрывается при остановке приложения (BR-136);
+     - общий инвариант «сбой ≠ штатный результат» —
+       [error-semantics](components/error-semantics.md).
+
 2. **WARNING → CRITICAL** по нарастающей: если проверка WARNING > 5
    минут без recovery, эскалация в CRITICAL (TODO).
 3. **SLF4J-категории обязательны**: каждая проверка логирует через
@@ -93,6 +105,7 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 
 ## Структура компонентов (C4 L3)
 
+- [error-semantics](components/error-semantics.md) — сквозной инвариант «сбой ≠ штатный результат»: как отличать «нет данных» от «хранилище/БД/сеть не ответили» (аудит #336, пакет `PKG-S3-23`, 39 записей).
 - [log-categories](components/log-categories.md) — В Karaoke есть **соглашение о SLF4J-категориях**: компоненты логируют через `infra.*` категории для удобного grep'а в…
 - [monitor-checks-detailed](components/monitor-checks-detailed.md) — детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](components/monitor-checks.md).
 - [monitor-checks](components/monitor-checks.md) — Эта компонента — единая точка регистрации всех проверок мониторинга. Каждая проверка реализует `MonitorCheck` интерфейс…

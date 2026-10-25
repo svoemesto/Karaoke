@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.KaraokeProcess
+import com.svoemesto.karaokeapp.KaraokeProcessStatuses
 import com.svoemesto.karaokeapp.KaraokeProcessTypes
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
@@ -15,7 +16,6 @@ import java.sql.SQLException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Выполняет полный цикл автопубликации песни в группу ВКонтакте (specs/121-vk-news-auto-publish).
@@ -34,15 +34,44 @@ import java.util.concurrent.ConcurrentHashMap
  * @see archive/docs/features/vk-news-auto-publish.md
  */
 object VkAutoPublishService {
+    /**
+     * BR-149/BR-150 (аудит #336, пакет `PKG-S3-23`): категория логов авто-публикации ВК.
+     */
+    private val vkLog = org.slf4j.LoggerFactory.getLogger("infra.vk.publish")
+
+    /**
+     * BR-152: сбой чтения air-новости из БД. Отдельный тип, чтобы вызывающий мог
+     * отличить «новости нет» (`null`) от «БД не ответила» (исключение).
+     */
+    class VkNewsLookupException(
+        message: String,
+    ) : RuntimeException(message)
+
     private val client = VkApiClient()
     private val warmupClient = VkPreviewWarmupClient()
     private val photoClient = VkPhotoUploadClient()
-    private val songLocks = ConcurrentHashMap<Long, Any>()
+
+    /**
+     * BR-155 (аудит #336, пакет `PKG-S3-23`): striped-локи фиксированного размера.
+     *
+     * Раньше был `ConcurrentHashMap<Long, Any>` с per-song локами, из которого записи
+     * НИКОГДА не удалялись: каждая песня, для которой вызывалась публикация, оставляла
+     * объект-лок до конца жизни процесса, и карта росла с числом песен (десятки тысяч).
+     *
+     * Полосы фиксированного размера решают это без ref-count: локов всегда ровно
+     * [SONG_LOCK_STRIPES], память не растёт. Коллизия двух песен в одну полосу лишь
+     * немного сериализует публикации — корректность не нарушается (локи независимы,
+     * вложенных захватов нет).
+     */
+    private val songLocks: Array<Any> = Array(SONG_LOCK_STRIPES) { Any() }
+
+    private const val SONG_LOCK_STRIPES = 256
+
     private const val PREWARM_FAILURE_PREFIX = "preview prewarm failed:"
     private const val PHOTO_UPLOAD_FAILURE_PREFIX = "photo upload failed:"
     private const val PHOTO_ATTACH_FAILURE_PREFIX = "photo attach failed:"
 
-    private fun lockFor(songId: Long): Any = songLocks.computeIfAbsent(songId) { Any() }
+    private fun lockFor(songId: Long): Any = songLocks[Math.floorMod(songId, SONG_LOCK_STRIPES.toLong()).toInt()]
 
 /**
      * Выполняет полный цикл публикации [song] в группу ВК типа [type] (FR-001, FR-008,
@@ -115,7 +144,21 @@ object VkAutoPublishService {
         }
 
         // Рендерим шаблон, чтобы узнать — нужно ли прикреплять демо-MP4 (маркер {demoVideo}).
-        val news = newsFor(song, type)
+        //
+        // BR-152: сбой чтения air-новости из БД — это ошибка, а не «новости нет».
+        // Раньше `news` был null и AIR-шаблон рендерился с пустым `{newsBody}` — пост
+        // уходил в публичную группу с потерянным телом новости. Теперь публикация
+        // прерывается, а причина попадает в `vkAutoPublishLastError`.
+        val news =
+            try {
+                newsFor(song, type)
+            } catch (e: VkNewsLookupException) {
+                writeFailure(song, e.message ?: "news.lookup.failed")
+                return VkAutoPublishResult(
+                    state = VkAutoPublishState.SEND_FAILED,
+                    error = e.message ?: "news.lookup.failed",
+                )
+            }
         val rendered = VkTemplateService.renderWithFlags(VkTemplateService.templateFor(type), song, news)
         if (!rendered.includeDemoVideo) {
             // Шаблон без {demoVideo} — публикуем только текст, без рендера/прикрепления видео.
@@ -214,6 +257,35 @@ object VkAutoPublishService {
         return publishFile(song, demoFile, rendered.message, effectiveType, effectivePersistPostId)
     }
 
+    /**
+     * BR-149: есть ли активное (WAITING/WORKING/CREATING) задание `RENDER_MP4_DEMO`
+     * по этой песне.
+     *
+     * Используется, чтобы отличить «рендер уже выполняется» (не ошибка) от «не удалось
+     * поставить задание» (ошибка).
+     */
+    private fun hasActiveRenderProcess(song: Song): Boolean =
+        try {
+            KaraokeProcess
+                .loadList(
+                    args =
+                        mapOf(
+                            "song_id" to song.id.toString(),
+                            "process_type" to KaraokeProcessTypes.RENDER_MP4_DEMO.name,
+                        ),
+                    database = WORKING_DATABASE,
+                ).any {
+                    it.status == KaraokeProcessStatuses.WAITING.name ||
+                        it.status == KaraokeProcessStatuses.WORKING.name ||
+                        it.status == KaraokeProcessStatuses.CREATING.name
+                }
+        } catch (e: Exception) {
+            // Проверка — «мягкая»: при сбое считаем, что активного задания нет, и
+            // отдаём ошибку «не удалось поставить» (старая, но честная семантика).
+            vkLog.warn("hasActiveRenderProcess: не удалось проверить активные render-задачи (songId={})", song.id, e)
+            false
+        }
+
     /** Ставит задачу `RENDER_MP4_DEMO` в очередь (FR-020 сц. 2/3) и возвращает RENDERING. */
     private fun startRenderAndReturn(
         song: Song,
@@ -241,6 +313,21 @@ object VkAutoPublishService {
                     ),
             )
         if (processId <= 0) {
+            // BR-149 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): `createProcess`
+            // возвращает 0 в ДВУХ разных случаях, и раньше они не различались:
+            //   1) «уже выполняется» — активное задание RENDER_MP4_DEMO (WAITING/WORKING/
+            //      CREATING) → single-flight, отказ НЕ является ошибкой;
+            //   2) «не удалось поставить» — невалидные args или сбой вставки в БД.
+            //
+            // Раньше в обоих случаях писалась ошибка и состояние переводилось в
+            // SEND_FAILED. Пока рендер реально шёл, каждый 60-секундный тик затирал
+            // состояние RENDERING, и фаза `resumeRenderingSongs` (требует
+            // `vkAutoPublishState == rendering`) уже никогда не вызывала
+            // `onRenderCompleted` — песня навсегда висела в send_failed.
+            if (hasActiveRenderProcess(song)) {
+                // Рендер уже идёт — состояние остаётся RENDERING, ошибка не пишется.
+                return VkAutoPublishResult(state = VkAutoPublishState.RENDERING)
+            }
             writeFailure(song, "could not enqueue RENDER_MP4_DEMO (processId=$processId)")
             return VkAutoPublishResult(
                 state = VkAutoPublishState.SEND_FAILED,
@@ -276,7 +363,21 @@ object VkAutoPublishService {
             // Идемпотентность под локом: если параллельный вызов уже опубликовал — выходим.
             // song здесь может быть stale (загружен до того, как параллельный onRenderCompleted
             // успел сделать wall.post), поэтому перечитываем idVk из БД под локом.
-            val persistedIdVk = Song.loadFromDbById(id = song.id, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)?.idVk ?: ""
+            //
+            // BR-150 (аудит #336, пакет `PKG-S3-23`): под локом перечитываем ПЕСНЮ ЦЕЛИКОМ,
+            // а не только `idVk`. Раньше флаг `newsPremiumVkSent` проверялся по объекту,
+            // загруженному ДО входа в `synchronized`: если параллельный вызов успел опубликовать
+            // PREMIUM-пост (persistPostId=false → `idVk` остаётся пустым, `newsPremiumVkSent=true`)
+            // и сохранить песню, второй вызов под локом видел пустой `idVk` и stale
+            // `newsPremiumVkSent=false` — и публиковал ДУБЛЬ поста в публичной группе.
+            val freshSong =
+                Song.loadFromDbById(
+                    id = song.id,
+                    database = WORKING_DATABASE,
+                    storageService = KSS_APP,
+                    storageApiClient = SAC_APP,
+                )
+            val persistedIdVk = freshSong?.idVk ?: ""
             if (persistedIdVk.isNotEmpty()) {
                 song.fields[SongField.ID_VK] = persistedIdVk
                 return@synchronized VkAutoPublishResult(
@@ -284,7 +385,8 @@ object VkAutoPublishService {
                     postId = persistedIdVk,
                 )
             }
-            if (type == PublicationType.PREMIUM && song.newsPremiumVkSent) {
+            val premiumAlreadySent = freshSong?.newsPremiumVkSent ?: song.newsPremiumVkSent
+            if (type == PublicationType.PREMIUM && premiumAlreadySent) {
                 return@synchronized VkAutoPublishResult(
                     state = VkAutoPublishState.PUBLISHED,
                     postId = "",
@@ -412,7 +514,18 @@ object VkAutoPublishService {
         val lock = lockFor(song.id)
         return synchronized(lock) {
             // Идемпотентность под локом: см. publishFile.
-            val persistedIdVk = Song.loadFromDbById(id = song.id, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)?.idVk ?: ""
+            //
+            // BR-150: под локом перечитываем песню ЦЕЛИКОМ — флаг `newsPremiumVkSent`
+            // проверяется по свежему значению, а не по объекту, загруженному до лока
+            // (иначе второй параллельный вызов публиковал бы дублирующий PREMIUM-пост).
+            val freshSong =
+                Song.loadFromDbById(
+                    id = song.id,
+                    database = WORKING_DATABASE,
+                    storageService = KSS_APP,
+                    storageApiClient = SAC_APP,
+                )
+            val persistedIdVk = freshSong?.idVk ?: ""
             if (persistedIdVk.isNotEmpty()) {
                 song.fields[SongField.ID_VK] = persistedIdVk
                 return@synchronized VkAutoPublishResult(
@@ -420,7 +533,8 @@ object VkAutoPublishService {
                     postId = persistedIdVk,
                 )
             }
-            if (type == PublicationType.PREMIUM && song.newsPremiumVkSent) {
+            val premiumAlreadySent = freshSong?.newsPremiumVkSent ?: song.newsPremiumVkSent
+            if (type == PublicationType.PREMIUM && premiumAlreadySent) {
                 return@synchronized VkAutoPublishResult(
                     state = VkAutoPublishState.PUBLISHED,
                     postId = "",
@@ -523,9 +637,22 @@ object VkAutoPublishService {
         return findAirNewsForSong(song.id)
     }
 
-    /** Ищет опубликованную новость `air` для песни по song_id или по link=/song?id=<id>. */
+    /**
+     * Ищет опубликованную новость `air` для песни по song_id или по link=/song?id=<id>.
+     *
+     * BR-152 (аудит #336, пакет `PKG-S3-23`): сбой SELECT больше не выглядит как
+     * «новости нет». Раньше исключение глоталось и возвращался `null`, а вызывающий
+     * публиковал AIR-шаблон БЕЗ `{newsBody}` — пост уходил с пустым плейсхолдером, и в
+     * `vkAutoPublishLastError` ничего не попадало. Теперь сбой БД приводит к явной
+     * ошибке публикации.
+     */
     private fun findAirNewsForSong(songId: Long): News? {
-        val connection = WORKING_DATABASE.getConnection() ?: return null
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    vkLog.warn("findAirNewsForSong: нет соединения с БД (songId={})", songId)
+                    throw VkNewsLookupException("news.lookup.unavailable: нет соединения с БД")
+                }
         try {
             val linkPattern = "%/song?id=$songId%"
             connection
@@ -548,6 +675,8 @@ object VkAutoPublishService {
                     }
                 }
         } catch (e: SQLException) {
+            vkLog.warn("findAirNewsForSong: не удалось прочитать air-новость (songId={}, sqlState={})", songId, e.sqlState, e)
+            throw VkNewsLookupException("news.lookup.failed: не удалось прочитать air-новость (sqlState=${e.sqlState})")
         }
         return null
     }

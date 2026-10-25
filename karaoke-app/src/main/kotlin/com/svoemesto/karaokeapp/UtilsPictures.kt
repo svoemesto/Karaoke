@@ -13,6 +13,59 @@ import java.nio.file.Files
 import java.util.*
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
+import org.slf4j.LoggerFactory
+
+/**
+ * BR-117 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): ошибки записи публикуемой
+ * картинки больше не глотаются `println(e.message)` — они пишутся в SLF4J (путь + стек)
+ * и пробрасываются наружу как [PictureWriteException].
+ */
+private val pictureLog = LoggerFactory.getLogger("infra.pictures")
+
+/**
+ * BR-117: ошибка записи публикуемой картинки.
+ *
+ * Раньше `createSongPicture` возвращал `Unit` «как будто успех» даже после сбоя
+ * `ImageIO.write`/`area.bi()`, и вызывающий endpoint отдавал SSE «прошло успешно».
+ * Теперь ошибка поднимается наружу: HTTP-эндпоинт отдаёт 5xx, а публикация не идёт
+ * с битым артефактом.
+ */
+class PictureWriteException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
+ * BR-117: записать PNG в файл, не скрывая ошибку.
+ *
+ * Вынесено отдельной функцией, чтобы поведение («ошибка записи видна, а не теряется»)
+ * можно было проверить юнит-тестом без поднятия БД и хранилища.
+ *
+ * @param image картинка.
+ * @param fileName путь файла (каталог должен существовать).
+ * @param versionLabel человекочитаемая метка версии — попадает в текст ошибки.
+ * @throws PictureWriteException если запись не удалась.
+ */
+internal fun writePictureOrThrow(
+    image: java.awt.image.BufferedImage,
+    fileName: String,
+    versionLabel: String,
+) {
+    try {
+        // `ImageIO.write` возвращает false, если writer для формата не найден —
+        // раньше этот случай молча считался успехом (файла не было, ответ 200).
+        if (!ImageIO.write(image, "png", File(fileName))) {
+            throw IllegalStateException("ImageIO не нашёл writer для формата png")
+        }
+        setPublishedFilePermissions(fileName)
+    } catch (e: Exception) {
+        // BR-117: ошибка записи картинки (нет каталога, disk full, EACCES) больше не
+        // глотается `println(e.message)`. Пишем в SLF4J (путь + стек) и пробрасываем
+        // наружу — вызывающий не отрапортует «прошло успешно» и не опубликует битый файл.
+        pictureLog.error("writePictureOrThrow: не удалось записать картинку '{}' (версия {})", fileName, versionLabel, e)
+        throw PictureWriteException("Не удалось создать картинку версии $versionLabel: $fileName", e)
+    }
+}
 
 fun createDzenPicture(pathToAuthor: String) {
     val pathToLogoAuthor = "$pathToAuthor/LogoAuthor.png"
@@ -645,14 +698,9 @@ fun createSongPicture(
                 ),
         )
 
-    val file = File(fileName)
-
-    try {
-        ImageIO.write(area.bi(), "png", file)
-        setPublishedFilePermissions(fileName)
-    } catch (e: Exception) {
-        println(e.message)
-    }
+    // BR-117: ошибка записи пробрасывается наружу (см. writePictureOrThrow) —
+    // вызывающий не отрапортует «прошло успешно» и не публикует битый файл.
+    writePictureOrThrow(area.bi(), fileName, songVersion.name)
 }
 
 fun getSongChordsPicture(

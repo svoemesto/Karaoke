@@ -76,6 +76,23 @@ interface StorageApiClient {
         fileName: String,
     ): Boolean
 
+    /**
+     * BR-144 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): `fileExists` с признаком
+     * «ответ достоверен».
+     *
+     * Обычный [fileExists] возвращает `false` и при отсутствии объекта, и при недоступном
+     * хранилище (fast-fail открытого circuit breaker, per-call timeout, сетевая ошибка).
+     * Для вечного кеша метаданных это опасно: один таймаут MinIO навсегда закреплял бы
+     * `exists = false`, и health-report показывал «файла нет» при живом файле.
+     *
+     * @return `true`/`false` — достоверный ответ хранилища; `null` — хранилище не
+     *   ответило (fast-fail/таймаут/ошибка), результат кешировать нельзя.
+     */
+    fun fileExistsReliable(
+        bucketName: String,
+        fileName: String,
+    ): Boolean?
+
     fun fileIsActual(
         bucketName: String,
         fileName: String,
@@ -404,15 +421,31 @@ class StorageApiClientImpl(
         // - При OPEN circuit: fast-fail (return false за <1ms, без MinIO-call).
         // - При per-call timeout (default 5s): return false.
         // - При network exception: return false + log + increment failureCount.
-        return storageCircuitBreaker
+        //
+        // BR-144: прежнее поведение сохранено (недоступное хранилище = «файла нет»),
+        // но для кеша метаданных есть [fileExistsReliable] — он отличает «нет» от
+        // «хранилище не ответило».
+        return fileExistsReliable(bucketName = bucketName, fileName = fileName) ?: false
+    }
+
+    /**
+     * BR-144: достоверность ответа хранилища.
+     *
+     * `decorate` отдаёт `emptyValue` (пустую карту) при fast-fail/таймауте/ошибке —
+     * по карте это неотличимо от «объекта нет». Здесь пустая карта превращается в
+     * `null` («ответ недостоверен»), а успешный `statObject` — в `true`/`false`.
+     */
+    override fun fileExistsReliable(
+        bucketName: String,
+        fileName: String,
+    ): Boolean? =
+        storageCircuitBreaker
             .decorate(
                 operation = "fileExists",
                 loader = { checkIfExists(bucketName = bucketName, fileName = fileName) },
                 emptyValue = emptyMap<String, Boolean>(),
             ).block()
             ?.get("exists")
-            ?: false
-    }
 
     override fun fileIsActual(
         bucketName: String,

@@ -108,7 +108,18 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 ## Domain Invariants | Инварианты и правила бизнеса
 
-1. **`ProcessBuilder` всегда с `redirectErrorStream(true)`**: stdout и
+1. **`ProcessBuilder` всегда с `redirectErrorStream(true)`**
+   - **Правки BR-117, BR-121, BR-122 (аудит #336, `PKG-S3-23`)**:
+     - ошибка записи публикуемой картинки пробрасывается наружу
+       (`PictureWriteException`) — вызывающий не отрапортует «прошло успешно»
+       и не публикует битый файл (BR-117);
+     - один запуск Chromium на операцию с persistent-профилем Яндекс.Музыки,
+       доступ к профилю сериализирован (`YANDEX_PROFILE_LOCK`) — Chromium держит
+       эксклюзивную блокировку каталога профиля (BR-121);
+     - `ffmpeg` запускается с таймаутом (`waitFor(...)` + `destroyForcibly()`),
+       вывод уходит во временный файл (нет stdout-трубы, которую надо «осужать»),
+       временные файлы удаляются при любом исходе (BR-122).
+: stdout и
    stderr должны быть объединены, иначе процесс блокируется (см.
    [ADR-0006](../../adr/0006-processbuilder-redirect-errorstream.md)).
 2. **AudioAnalize → MLT → render строго последовательны**: каждый

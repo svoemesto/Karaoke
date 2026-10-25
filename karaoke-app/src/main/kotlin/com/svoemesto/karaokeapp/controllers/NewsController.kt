@@ -3,11 +3,15 @@ package com.svoemesto.karaokeapp.controllers
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.News
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.server.ResponseStatusException
+import java.sql.SQLException
 import java.sql.Timestamp
 
 // Админка «Новостей» (tbl_news) — готовятся на LOCAL из webvue3, уходят на прод штатной
@@ -23,6 +27,21 @@ import java.sql.Timestamp
 @Controller
 @RequestMapping("/api/news")
 class NewsController {
+    /**
+     * BR-119 (аудит #336, пакет `PKG-S3-23`): верхняя граница размера страницы новостей.
+     * Раньше `pageSize` не ограничивался — `pageSize=Int.MAX_VALUE` пытался отдать всю
+     * ленту (19k+ строк) одним ответом.
+     */
+    companion object {
+        const val MAX_PAGE_SIZE = 200
+    }
+
+    /**
+     * BR-119 (аудит #336, пакет `PKG-S3-23`): SQL-ошибки админского списка новостей
+     * пишутся в SLF4J (не в stdout через `println`).
+     */
+    private val log = LoggerFactory.getLogger("infra.admin.news")
+
     private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
     // resolveDb() открывает новое физическое соединение на каждый вызов — без явного close() пул
@@ -60,14 +79,30 @@ class NewsController {
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false, defaultValue = "0") page: Int,
         @RequestParam(required = false, defaultValue = "50") pageSize: Int,
-    ): Map<String, Any> =
-        withDb(target) { db ->
-            val offset = page * pageSize
-            mapOf(
-                "news" to News.loadAll(db, limit = pageSize, offset = offset).map { it.toDTO() },
-                "total" to News.countAll(db),
+    ): Map<String, Any> {
+        // BR-119 (аудит #336, пакет `PKG-S3-23`): page/pageSize clamp'ятся.
+        // Раньше page=-3 давал offset=-150, Postgres отвергал LIMIT/OFFSET, SQLException
+        // глотался в News.loadAll — и клиент получал 200 с пустым списком при непустом total.
+        // pageSize сверху тоже ограничен: pageSize=Int.MAX_VALUE отдавал всю ленту одним ответом.
+        val safePage = page.coerceAtLeast(0)
+        val safePageSize = pageSize.coerceIn(1, MAX_PAGE_SIZE)
+        val offset = safePage * safePageSize
+        return try {
+            withDb(target) { db ->
+                mapOf(
+                    "news" to News.loadAll(db, limit = safePageSize, offset = offset).map { it.toDTO() },
+                    "total" to News.countAll(db),
+                )
+            }
+        } catch (e: SQLException) {
+            // BR-119: сбой БД — 503, а не пустой «успешный» список.
+            log.error("news.list: SQL-ошибка (sqlState={}, page={}, pageSize={})", e.sqlState, safePage, safePageSize, e)
+            throw ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "news.list.unavailable: не удалось получить список новостей",
             )
         }
+    }
 
     @PostMapping("/create")
     @ResponseBody

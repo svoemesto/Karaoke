@@ -524,7 +524,28 @@ class VkApiClient {
                 )
             }
         }
-        return proxy.send(request, HttpResponse.BodyHandlers.ofString())
+        // BR-153 (аудит #336, пакет `PKG-S3-23`): сбой транспорта в ПРОКСИ-ветке
+        // оборачивается в тот же типизированный `VkNetworkException`, что и прямая ветка.
+        // Раньше `proxy.send(...)` стоял вне `try`, и «сырое» IOException/HttpTimeoutException
+        // пролетало мимо `tryPhotosPath`/`publishFile` (там ловятся только VkNetworkException
+        // и подтипы) — весь тик падал, вместо штатной деградации «пост без превью».
+        return try {
+            proxy.send(request, HttpResponse.BodyHandlers.ofString())
+        } catch (e: Exception) {
+            // Прокси не сработал — пробуем прямой запрос (fallback), как в прямой ветке.
+            println("VkApiClient: прокси недоступен (${e.message}), пробуем прямой запрос")
+            try {
+                val response = directClient.send(request, HttpResponse.BodyHandlers.ofString())
+                useProxy = false
+                modeSetAtMs = now
+                response
+            } catch (e2: Exception) {
+                throw VkNetworkException(
+                    "VK недоступен ни через прокси, ни напрямую: ${e2.message ?: e2.javaClass.simpleName}",
+                    e2,
+                )
+            }
+        }
     }
 
     /**

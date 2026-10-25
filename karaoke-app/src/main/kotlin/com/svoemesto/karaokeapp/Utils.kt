@@ -63,6 +63,7 @@ import kotlin.io.path.Path
 import kotlin.io.println
 import kotlin.io.readText
 import kotlin.io.writeText
+import kotlin.concurrent.withLock
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
@@ -3514,52 +3515,59 @@ sealed class AlbumSearchResult {
  * Поэтому изменение безопасно при ЛЮБОЙ трактовке, а издержки (полный запуск Chromium —
  * секунды и сотни мегабайт на каждый вызов) уходят. Тот же паттерн убран и в
  * `fetchYandexArtistAlbumsHtml` (`AlbumCoverFinder.kt`).
+ *
+ * BR-121 (аудит #336, пакет `PKG-S3-23`): доступ к persistent-профилю Яндекс.Музыки
+ * сериализирован через [YANDEX_PROFILE_LOCK] — Chromium держит эксклюзивную блокировку
+ * каталога профиля, и параллельный `launchPersistentContext` на том же `USER_DATA_DIR`
+ * не стартовал.
  */
 fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
     val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
     val searchUrl = "$authorUrl/albums"
 
-    Playwright.create().use { playwright ->
-        val context =
-            playwright.chromium().launchPersistentContext(
-                USER_DATA_DIR,
-                BrowserType
-                    .LaunchPersistentContextOptions()
-                    .setHeadless(true)
-                    .setLocale("ru-RU")
-                    .setTimezoneId("Europe/Moscow"),
-            )
+    YANDEX_PROFILE_LOCK.withLock {
+        Playwright.create().use { playwright ->
+            val context =
+                playwright.chromium().launchPersistentContext(
+                    USER_DATA_DIR,
+                    BrowserType
+                        .LaunchPersistentContextOptions()
+                        .setHeadless(true)
+                        .setLocale("ru-RU")
+                        .setTimezoneId("Europe/Moscow"),
+                )
 
-        val page = context.pages().firstOrNull() ?: context.newPage()
-        try {
-            page.navigate("https://music.yandex.ru/")
-            page.navigate(searchUrl)
-            val currentUrl = page.url()
-            val html = page.content()
+            val page = context.pages().firstOrNull() ?: context.newPage()
+            try {
+                page.navigate("https://music.yandex.ru/")
+                page.navigate(searchUrl)
+                val currentUrl = page.url()
+                val html = page.content()
 
-            if (currentUrl.contains("passport.yandex") || currentUrl.contains("id.yandex")) {
-                return AlbumSearchResult.AuthExpired
+                if (currentUrl.contains("passport.yandex") || currentUrl.contains("id.yandex")) {
+                    return AlbumSearchResult.AuthExpired
+                }
+
+                if (html.contains("недоступна в вашем регионе", ignoreCase = true)) {
+                    return AlbumSearchResult.VpnBlocked
+                }
+
+                if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+                    return AlbumSearchResult.BotDetected
+                }
+
+                val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
+                val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
+                val result = album.textBetween("""\"title\":\"""", """\",\"""")
+
+                return if (result.isNotEmpty()) {
+                    AlbumSearchResult.Success(result)
+                } else {
+                    AlbumSearchResult.Unknown(page.title(), currentUrl)
+                }
+            } finally {
+                context.close()
             }
-
-            if (html.contains("недоступна в вашем регионе", ignoreCase = true)) {
-                return AlbumSearchResult.VpnBlocked
-            }
-
-            if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
-                return AlbumSearchResult.BotDetected
-            }
-
-            val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
-            val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
-            val result = album.textBetween("""\"title\":\"""", """\",\"""")
-
-            return if (result.isNotEmpty()) {
-                AlbumSearchResult.Success(result)
-            } else {
-                AlbumSearchResult.Unknown(page.title(), currentUrl)
-            }
-        } finally {
-            context.close()
         }
     }
 }

@@ -66,6 +66,9 @@ import java.sql.SQLException
  */
 @Component
 class PremiumAutoPublishScheduler {
+    // BR-165/BR-166 (аудит #336, пакет `PKG-S3-23`): категория логов премиум-публикации.
+    private val premiumLog = org.slf4j.LoggerFactory.getLogger("infra.premium.publish")
+
     // periodicFixedDelay читается из KaraokeProperties (premiumAutoPublishTickFixedDelayMs, default 30000).
     // Через @Scheduled-механизм SpEL-${} не работает (KaraokeProperties — наш собственный base64,
     // а не Spring application.properties), поэтому используем дефолт 30000 и при необходимости
@@ -81,10 +84,13 @@ class PremiumAutoPublishScheduler {
         // try/catch (по образцу TelegramAutoPublishScheduler.tick()), чтобы сбой одной фазы не
         // "терял" другую полностью — на следующем тике обе фазы попробуют снова.
         try {
-            resumeRenderingSongs()
-            publishPendingSongs()
+            // BR-165 (аудит #336, пакет `PKG-S3-23`): сбой БД в загрузчике кандидатов
+            // прерывает тик (false), а не выглядит как «песен в очереди нет».
+            if (!resumeRenderingSongs()) return
+            if (!publishPendingSongs()) return
         } catch (e: Exception) {
-            e.printStackTrace()
+            // BR-165: `printStackTrace()` уходил в stderr, мимо структурированных логов.
+            premiumLog.error("PremiumAutoPublishScheduler.tick failed", e)
         }
     }
 
@@ -100,15 +106,16 @@ class PremiumAutoPublishScheduler {
      * (research.md R1 `specs/122-premium-auto-publish`): раньше это делал только
      * `TelegramAutoPublishScheduler`/`VkAutoPublishScheduler`, гейтящиеся чужими флагами.
      */
-    private fun resumeRenderingSongs() {
-        val ids = loadRenderingCandidateIds()
+    private fun resumeRenderingSongs(): Boolean {
+        val ids = loadRenderingCandidateIds() ?: return false
         for (songId in ids) {
             try {
                 resumeRenderingSong(songId)
             } catch (e: Exception) {
-                e.printStackTrace()
+                premiumLog.warn("PremiumAutoPublishScheduler: не удалось продолжить рендер песни {}", songId, e)
             }
         }
+        return true
     }
 
     private fun resumeRenderingSong(songId: Long) {
@@ -174,16 +181,18 @@ class PremiumAutoPublishScheduler {
 
     // ---- Фаза 2: обычный цикл публикации (уже существовавший, уточнён per-channel) --------
 
-    private fun publishPendingSongs() {
-        val candidateIds = loadPendingIds()
-        if (candidateIds.isEmpty()) return
+    private fun publishPendingSongs(): Boolean {
+        // BR-165: сбой БД в загрузчике очереди возвращает null — тик прерывается.
+        val candidateIds = loadPendingIds() ?: return false
+        if (candidateIds.isEmpty()) return true
         for (songId in candidateIds) {
             try {
                 processSong(songId)
             } catch (e: Exception) {
-                e.printStackTrace()
+                premiumLog.warn("PremiumAutoPublishScheduler: не удалось обработать песню {}", songId, e)
             }
         }
+        return true
     }
 
     private fun processSong(songId: Long) {
@@ -228,9 +237,13 @@ class PremiumAutoPublishScheduler {
                     publicationType = PublicationType.PREMIUM,
                     persistMessageId = false,
                 )
-            if (tgResult.state.code == "send_failed") {
-                handleFailure(song, "telegram", tgResult.error ?: "sendVideo failed")
-            }
+            // BR-166 (аудит #336, пакет `PKG-S3-23`): нетерминальные коды обрабатываются
+            // ЯВНО. Раньше тик реагировал только на `send_failed`, а `SCHEDULED`
+            // («not content-ready») игнорировался: счётчик попыток не рос, флаг
+            // `newsPremiumPublishPending` не сбрасывался, состояние оставалось RUNNING —
+            // и песня НАВСЕГДА оставалась в очереди: каждые 30 с полная загрузка песни и
+            // попытка публикации, без лога и без терминального FAILED.
+            handleChannelOutcome(song, "telegram", tgResult.state.code, tgResult.error)
         }
 
         // Перезагрузка после publishToTelegram (он мог изменить telegramAutoPublishLastAttemptAt
@@ -255,9 +268,8 @@ class PremiumAutoPublishScheduler {
                     type = PublicationType.PREMIUM,
                     persistPostId = false,
                 )
-            if (vkResult.state.code == "send_failed") {
-                handleFailure(reloaded, "vk", vkResult.error ?: "wallPost/sendPostWithVideo failed")
-            }
+            // BR-166: тот же явный разбор нетерминальных кодов для канала VK.
+            handleChannelOutcome(reloaded, "vk", vkResult.state.code, vkResult.error)
         }
 
         // Финальная проверка: оба канала закрыты?
@@ -269,6 +281,40 @@ class PremiumAutoPublishScheduler {
                 storageApiClient = SAC_APP,
             ) ?: return
         closeIfBothChannelsDone(finalCheck)
+    }
+
+    /**
+     * BR-166: единый разбор результата публикации по каналу.
+     *
+     * - `send_failed` — попытка неудачная: инкрементируем счётчик канала (как раньше).
+     * - `scheduled` (контент не готов) — попытка тоже неудачная в смысле «публикации не
+     *   было»: инкрементируем счётчик, пишем причину. Иначе песня навсегда остаётся в
+     *   очереди с бесконечными тяжёлыми попытками.
+     * - `published` — успех, счётчик не трогаем.
+     * - прочие коды (`rendering`/`publishing` и т.п.) — это нормальный «в процессе»,
+     *   попытку не засчитываем, но причину пишем в `premiumAutoPublishLastError`.
+     */
+    private fun handleChannelOutcome(
+        song: Song,
+        channel: String,
+        stateCode: String,
+        error: String?,
+    ) {
+        when (stateCode) {
+            "send_failed" -> handleFailure(song, channel, error ?: "sendVideo failed")
+            "scheduled" -> handleFailure(song, channel, error ?: "not content-ready")
+            else -> {
+                if (stateCode != "published") {
+                    premiumLog.warn(
+                        "PremiumAutoPublishScheduler: канал {} вернул неожиданный код '{}' (songId={}, error={})",
+                        channel,
+                        stateCode,
+                        song.id,
+                        error,
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -368,8 +414,13 @@ class PremiumAutoPublishScheduler {
      * Cheap SELECT id песен с newsPremiumPublishPending=true в player_readiness_flags.
      * Без загрузки полного Song. Этот же паттерн, что в VkAutoPublishScheduler.loadRenderingCandidateIds.
      */
-    private fun loadPendingIds(): List<Long> {
-        val connection = WORKING_DATABASE.getConnection() ?: return emptyList()
+    private fun loadPendingIds(): List<Long>? {
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    premiumLog.warn("PremiumAutoPublishScheduler: нет соединения с БД — очередь премиум-публикаций не прочитана")
+                    return null
+                }
         val result = mutableListOf<Long>()
         try {
             connection.createStatement().use { st ->
@@ -395,6 +446,13 @@ class PremiumAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-165: сбой БД раньше был неотличим от «очередь пуста».
+            premiumLog.warn(
+                "PremiumAutoPublishScheduler: не удалось прочитать очередь премиум-публикаций (sqlState={})",
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return result
     }
@@ -404,8 +462,13 @@ class PremiumAutoPublishScheduler {
      * (`telegramAutoPublishState`/`vkAutoPublishState`) в состоянии `rendering` — кандидаты для
      * [resumeRenderingSongs]. Без загрузки полного `Song`.
      */
-    private fun loadRenderingCandidateIds(): List<Long> {
-        val connection = WORKING_DATABASE.getConnection() ?: return emptyList()
+    private fun loadRenderingCandidateIds(): List<Long>? {
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    premiumLog.warn("PremiumAutoPublishScheduler: нет соединения с БД — кандидаты рендера не прочитаны")
+                    return null
+                }
         val result = mutableListOf<Long>()
         try {
             connection.createStatement().use { st ->
@@ -433,6 +496,13 @@ class PremiumAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-165: сбой БД раньше был неотличим от «кандидатов нет».
+            premiumLog.warn(
+                "PremiumAutoPublishScheduler: не удалось прочитать кандидатов рендера (sqlState={})",
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return result
     }
@@ -441,7 +511,12 @@ class PremiumAutoPublishScheduler {
      * `TelegramAutoPublishScheduler.findRenderDemoProcess`). Возвращает `null`, если задача
      * ещё `WORKING`/`WAITING` или не найдена. */
     private fun findRenderDemoProcess(songId: Long): RenderProcessInfo? {
-        val connection = WORKING_DATABASE.getConnection() ?: return null
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    premiumLog.warn("PremiumAutoPublishScheduler: нет соединения с БД — render-задача не найдена (songId={})", songId)
+                    return null
+                }
         try {
             connection.createStatement().use { st ->
                 val rs =
@@ -460,6 +535,14 @@ class PremiumAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-165: сбой БД раньше был неотличим от «задачи нет».
+            premiumLog.warn(
+                "PremiumAutoPublishScheduler: не удалось найти render-задачу (songId={}, sqlState={})",
+                songId,
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return null
     }

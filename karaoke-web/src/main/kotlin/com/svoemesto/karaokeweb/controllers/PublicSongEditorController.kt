@@ -339,7 +339,16 @@ class PublicSongEditorController(
         if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         // Чистим черновик ДО удаления задания (как в admin revoke()).
-        SongAssignmentDraft.deleteByAssignment(id, db)
+        //
+        // BR-129 (аудит #336, пакет `PKG-S3-23`): если очистка черновика НЕ удалась,
+        // задание НЕ удаляем — иначе в tbl_song_assignment_drafts осталась бы осиротевшая
+        // строка на несуществующее назначение. Причина залогирована в
+        // SongAssignmentDraft.deleteByAssignment.
+        if (!SongAssignmentDraft.deleteByAssignment(id, db)) {
+            return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(mapOf("ok" to false, "error" to "draft_cleanup_failed"))
+        }
         val ok = SongAssignment.delete(id, db)
         println("[editor-tasks/refuse] user=${user.id} id=$id deleted=$ok")
         return ResponseEntity.ok(mapOf("ok" to ok, "deleted" to if (ok) 1 else 0))

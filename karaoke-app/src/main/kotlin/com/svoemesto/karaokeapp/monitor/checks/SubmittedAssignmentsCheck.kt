@@ -8,6 +8,12 @@ import com.svoemesto.karaokeapp.monitor.MonitorContext
 import com.svoemesto.karaokeapp.monitor.MonitorSeverity
 
 /**
+ * BR-134 (аудит #336, пакет `PKG-S3-23`): категория логов проверок мониторинга,
+ * читающих прод-БД.
+ */
+private val monitorCheckLog = org.slf4j.LoggerFactory.getLogger("infra.monitor.check")
+
+/**
  * Задания онлайн-редактора разметки, отправленные пользователем «на проверку» (SUBMITTED). Реальный
  * рабочий цикл (назначить → работа → апрув) чаще всего идёт целиком на PROD (см. SongEditorController,
  * SongEditor/store.js defaultTarget='remote') — проверка смотрит remote, тем же источником, что бейдж
@@ -21,8 +27,11 @@ object SubmittedAssignmentsCheck : MonitorCheck {
             try {
                 SongAssignment.countSubmitted(db, ctx.storageService, ctx.storageApiClient)
             } catch (e: Exception) {
-                println("SubmittedAssignmentsCheck: ${e.message}")
-                0
+                // BR-134 (аудит #336, пакет `PKG-S3-23`): зеркало StemJobsStuckCheck —
+                // ошибка не подменяется нулём «проблем нет», а пробрасывается:
+                // MonitoringService.tick() превратит её в WARNING `check.<Name>.failure`.
+                monitorCheckLog.error("SubmittedAssignmentsCheck: не удалось посчитать задания на проверке", e)
+                throw e
             } finally {
                 try {
                     db.getConnection()?.close()

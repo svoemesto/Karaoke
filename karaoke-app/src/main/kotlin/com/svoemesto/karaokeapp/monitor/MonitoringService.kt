@@ -8,9 +8,16 @@ import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+
+/**
+ * BR-135 (аудит #336, пакет `PKG-S3-23`): категория логов мониторинга.
+ */
+private val monitorLog = LoggerFactory.getLogger("infra.monitor.tick")
 
 /**
  * Фоновый планировщик мониторинга ключевых моментов проекта (см. DEVELOPMENT.md, раздел «Подсистема
@@ -37,19 +44,41 @@ class MonitoringService {
 
     private fun ctx() = MonitorContext(localDb = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
 
-    @Scheduled(fixedRate = 60_000L, initialDelay = 20_000L)
+    /**
+     * BR-135 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): single-flight для тика.
+     *
+     * Тик внутри делает блокирующие сетевые вызовы (HTTP-пинг 5 с, curl 8 с, ssh 15 с,
+     * JDBC-пинг прод-БД до 10/30 с, три проверки прод-БД). При недоступном проде один
+     * тик легко превышает минуту, и планировщик запускал следующий ПАРАЛЛЕЛЬНО: диагностика
+     * дублировалась, `ProdContainerCheck.firstFailureAt` правился из двух потоков, а снапшот
+     * записывался в порядке завершения — более старый тик мог перезаписать более свежий.
+     *
+     * Теперь: `fixedDelay` вместо `fixedRate` + явный guard [tickRunning]. Пересекающийся
+     * тик не выполняется вовсе и пишет WARN в лог.
+     */
+    private val tickRunning = AtomicBoolean(false)
+
+    @Scheduled(fixedDelay = 60_000L, initialDelay = 20_000L)
     fun tick() {
-        val alerts =
-            MonitorRegistry.checks.flatMap { check ->
-                try {
-                    check.run(ctx())
-                } catch (e: Exception) {
-                    listOf(checkFailureAlert(check, e))
+        if (!tickRunning.compareAndSet(false, true)) {
+            monitorLog.warn("MonitoringService.tick: предыдущий тик ещё выполняется — текущий пропущен (single-flight)")
+            return
+        }
+        try {
+            val alerts =
+                MonitorRegistry.checks.flatMap { check ->
+                    try {
+                        check.run(ctx())
+                    } catch (e: Exception) {
+                        listOf(checkFailureAlert(check, e))
+                    }
                 }
-            }
-        snapshot = alerts.associateBy { it.key }
-        pruneDismissed()
-        broadcast()
+            snapshot = alerts.associateBy { it.key }
+            pruneDismissed()
+            broadcast()
+        } finally {
+            tickRunning.set(false)
+        }
     }
 
     private fun checkFailureAlert(
@@ -57,7 +86,7 @@ class MonitoringService {
         e: Exception,
     ): MonitorAlert {
         val checkName = check::class.simpleName ?: check.javaClass.simpleName
-        println("[MonitoringService] проверка $checkName упала: ${e.message}")
+        monitorLog.warn("[MonitoringService] проверка {} упала", checkName, e)
         return MonitorAlert(
             key = "check.$checkName.failure",
             severity = MonitorSeverity.WARNING,
@@ -78,7 +107,7 @@ class MonitoringService {
         try {
             SNS.send(SseNotification.monitorAlerts(currentDtos()))
         } catch (e: Exception) {
-            println("[MonitoringService] ошибка broadcast: ${e.message}")
+            monitorLog.warn("[MonitoringService] ошибка broadcast", e)
         }
     }
 

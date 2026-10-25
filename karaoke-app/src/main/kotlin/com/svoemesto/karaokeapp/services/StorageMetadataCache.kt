@@ -317,7 +317,9 @@ class StorageMetadataCache {
      * @param source LOCAL или REMOTE.
      * @param bucket bucket name (NOT hardcoded; per Constitution).
      * @param fileName file name (URL-decoded caller'ом).
-     * @param loader blocking `() -> Boolean` — вызывается только при cache miss.
+     * @param loader blocking `() -> Boolean?` — вызывается только при cache miss.
+     *   `null` означает «хранилище не ответило» (fast-fail circuit breaker, таймаут,
+     *   сетевая ошибка) — такой результат НЕ кешируется (BR-144).
      * @param onFillComplete callback, вызываемый ПОСЛЕ успешного fill (спека #368).
      *   Если кеш уже заполнен (hit) — callback НЕ вызывается. Используется для
      *   recompute+SSE после cold-start (см. HealthReport.cachedFileExists).
@@ -326,7 +328,7 @@ class StorageMetadataCache {
         source: String,
         bucket: String,
         fileName: String,
-        loader: () -> Boolean,
+        loader: () -> Boolean?,
         onFillComplete: (() -> Unit)? = null,
     ): Boolean {
         validate(source, bucket, fileName)
@@ -338,6 +340,17 @@ class StorageMetadataCache {
         miss(source)
         val startedAt = System.currentTimeMillis()
         val value = loader()
+        if (value == null) {
+            // BR-144 (аудит #336, пакет `PKG-S3-23`): результат, полученный из
+            // НЕДОСТУПНОГО хранилища, кешировать нельзя. Раньше `false` от
+            // fast-fail/таймаута писался в вечный кеш, и health-report до ручного
+            // сброса кеша показывал «файла нет» при живом файле.
+            log.warn(
+                "cache:miss key={} bucket={} fileName={} source={} operation=fileExists value=unknown (storage unreachable) — НЕ кешируем",
+                buildKey(source, bucket, fileName), bucket, fileName, source,
+            )
+            return false
+        }
         upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
         val durationMs = System.currentTimeMillis() - startedAt
         log.info(
@@ -740,7 +753,7 @@ class StorageMetadataCache {
         source: String,
         bucket: String,
         fileName: String,
-        loader: () -> Boolean,
+        loader: () -> Boolean?,
         onFillComplete: (() -> Unit)? = null,
         songId: Long = 0,
     ): CompletableFuture<Boolean?> {
@@ -757,6 +770,14 @@ class StorageMetadataCache {
                 val startedAt = System.currentTimeMillis()
                 try {
                     val value = loader()
+                    // BR-144: недостоверный ответ (хранилище не ответило) не кешируется.
+                    if (value == null) {
+                        log.warn(
+                            "cache:miss:async key={} bucket={} fileName={} source={} operation=fileExists value=unknown (storage unreachable) — НЕ кешируем",
+                            buildKey(source, bucket, fileName), bucket, fileName, source,
+                        )
+                        return@Runnable
+                    }
                     upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
                     val durationMs = System.currentTimeMillis() - startedAt
                     log.info(

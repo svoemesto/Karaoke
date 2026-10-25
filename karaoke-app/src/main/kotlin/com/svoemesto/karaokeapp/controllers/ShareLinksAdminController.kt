@@ -2,14 +2,18 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.server.ResponseStatusException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.sql.Timestamp
+import org.slf4j.LoggerFactory
 
 // BR-410 (аудит #336, пакет PKG-S2-17, OpenProject #380): сортировка дайджеста
 // share-ссылок по колонкам, которые реально видит админ.
@@ -35,6 +39,34 @@ internal fun shareLinksSortExpression(sortBy: String?): String =
         "secret" -> "l.token_hash"
         else -> "l.created_at"
     }
+
+/**
+ * BR-118 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): валидация фильтра по дате
+ * ДО SQL.
+ *
+ * Раньше `filterCreatedFrom`/`filterCreatedTo` подставлялись в SQL «как есть», и мусор
+ * (`filterCreatedFrom=x`) ронял запрос с `SQLException` — который проглатывался, и админ
+ * получал 200 с пустым списком вместо внятной ошибки. Теперь негодная дата → 400 с
+ * указанием поля; валидная дата нормализуется к `yyyy-MM-dd HH:mm:ss`.
+ */
+internal fun shareLinksDateFilter(
+    value: String?,
+    field: String,
+): String? {
+    val raw = value?.trim().orEmpty()
+    if (raw.isEmpty()) return null
+    val normalized = raw.replace('T', ' ')
+    val withSeconds =
+        if (normalized.length == 16) "$normalized:00" else normalized
+    return try {
+        Timestamp.valueOf(withSeconds).toString()
+    } catch (_: Exception) {
+        throw ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Некорректное значение параметра '$field': '$raw' (ожидается 'yyyy-MM-dd' или 'yyyy-MM-dd HH:mm:ss')",
+        )
+    }
+}
 
 // Админский read-only просмотр ВСЕХ временных share-ссылок (`tbl_song_share_links`). Не путать
 // с per-user `SiteShareLinksController` (там только ссылки одного пользователя). Этот
@@ -64,6 +96,12 @@ internal fun shareLinksSortExpression(sortBy: String?): String =
 @Controller
 @RequestMapping("/api/sharelinks")
 class ShareLinksAdminController {
+    /**
+     * BR-118 (аудит #336, пакет `PKG-S3-23`): SQL-ошибки дайджеста пишутся в SLF4J
+     * (не в stdout через `printStackTrace`), чтобы причина попадала в структурированные логи.
+     */
+    private val log = LoggerFactory.getLogger("infra.admin.sharelinks")
+
     private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
     private fun <T> withDb(
@@ -100,8 +138,12 @@ class ShareLinksAdminController {
             val whereList = mutableListOf<String>()
             filterOwnerId?.let { whereList.add("l.owner_site_user_id=$it") }
             filterSongId?.let { whereList.add("l.song_id=$it") }
-            filterCreatedFrom?.takeIf { it.isNotBlank() }?.let { whereList.add("l.created_at >= '${it.replace("'", "''")}'") }
-            filterCreatedTo?.takeIf { it.isNotBlank() }?.let { whereList.add("l.created_at <= '${it.replace("'", "''")}'") }
+            // BR-118: дата валидируется ДО SQL — мусор в фильтре даёт 400 с указанием поля,
+            // а не SQLException внутри запроса (и не пустой «успешный» ответ).
+            shareLinksDateFilter(filterCreatedFrom, "filterCreatedFrom")
+                ?.let { whereList.add("l.created_at >= '${it.replace("'", "''")}'") }
+            shareLinksDateFilter(filterCreatedTo, "filterCreatedTo")
+                ?.let { whereList.add("l.created_at <= '${it.replace("'", "''")}'") }
             if (filterActiveOnly) {
                 whereList.add("l.active=true")
                 whereList.add("l.expires_at > now()")
@@ -165,7 +207,19 @@ class ShareLinksAdminController {
                         )
                     }
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    // BR-118: ошибка БД больше не выглядит как «ссылок нет».
+                    // Логируем через SLF4J (категория + SQLState) и отдаём 503.
+                    log.error(
+                        "sharelinks.digest: SQL-ошибка при выборке списка (sqlState={}, page={}, pageSize={})",
+                        e.sqlState,
+                        safePage,
+                        safePageSize,
+                        e,
+                    )
+                    throw ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "sharelinks.digest.unavailable: не удалось получить список share-ссылок",
+                    )
                 } finally {
                     try {
                         rs?.close()
@@ -190,7 +244,13 @@ class ShareLinksAdminController {
                     rs = st.executeQuery(countSql)
                     if (rs.next()) totalCount = rs.getInt(1)
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    // BR-118: та же контрактная ошибка, что и для выборки списка —
+                    // сбой подсчёта не должен выглядеть как «всего 0 ссылок».
+                    log.error("sharelinks.digest: SQL-ошибка при подсчёте totalCount (sqlState={})", e.sqlState, e)
+                    throw ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "sharelinks.digest.unavailable: не удалось посчитать количество share-ссылок",
+                    )
                 } finally {
                     try {
                         rs?.close()

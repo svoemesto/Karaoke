@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.services
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.Song
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.sql.SQLException
@@ -47,6 +48,9 @@ import java.util.TimeZone
  */
 @Component
 class TelegramAutoPublishScheduler {
+    // BR-146 (аудит #336, пакет `PKG-S3-23`): категория логов авто-публикации в Telegram.
+    private val telegramLog = LoggerFactory.getLogger("infra.telegram.publish")
+
     // Периодичность тика: 60 секунд. Короче window (59 мин по умолчанию, временно для отладки), чтобы любая песня,
     // чья date/time попала в окно, гарантированно поймана. fixedDelay (не fixedRate) —
     // гарантия, что долгий тик (несколько sendVideo с retry) не наезжает на следующий.
@@ -65,17 +69,23 @@ class TelegramAutoPublishScheduler {
 
         try {
             val beforeResume = System.currentTimeMillis()
-            resumeRenderingSongs()
+            // BR-146 (аудит #336, пакет `PKG-S3-23`): сбой БД в загрузчике кандидатов
+            // прерывает тик (возвращается false), а не выглядит как «кандидатов нет».
+            if (!resumeRenderingSongs()) return
             val beforePublish = System.currentTimeMillis()
-            publishScheduledSongs()
+            if (!publishScheduledSongs()) return
         } catch (e: Exception) {
-            e.printStackTrace()
+            // BR-146: `printStackTrace()` уходил в stdout, вне структурированных логов.
+            telegramLog.error("TelegramAutoPublishScheduler.tick failed", e)
         }
     }
 
     // Фаза 1 тика: песни в состоянии RENDERING, чья render-задача завершена → продолжить.
-    private fun resumeRenderingSongs() {
-        val renderingIds = loadRenderingCandidateIds()
+    //
+    // BR-146: возвращает false, если загрузчик кандидатов упал (сбой БД) — тик
+    // прерывается, вместо того чтобы тихо «опубликовать ноль песен».
+    private fun resumeRenderingSongs(): Boolean {
+        val renderingIds = loadRenderingCandidateIds() ?: return false
         for (songId in renderingIds) {
             val song =
                 Song.loadFromDbById(
@@ -96,12 +106,13 @@ class TelegramAutoPublishScheduler {
             val error = if (isError) "RENDER_MP4_DEMO failed (status=ERROR)" else null
             TelegramAutoPublishService.onRenderCompleted(songId, success = isDone, error = error)
         }
+        return true
     }
 
     // Фаза 2 тика: песни с заполненными date/time и пустым idTelegramDemo → publishToTelegram.
-    private fun publishScheduledSongs() {
+    private fun publishScheduledSongs(): Boolean {
         val windowMinutes = KaraokeProperties.getLong("telegramAutoPublishWindowMinutes").let { if (it <= 0) 59L else it }
-        val candidates = loadWindowCandidateIds(windowMinutes)
+        val candidates = loadWindowCandidateIds(windowMinutes) ?: return false
         for (songId in candidates) {
             val song =
                 Song.loadFromDbById(
@@ -119,12 +130,18 @@ class TelegramAutoPublishScheduler {
             // "опоздавшие").
             val result = TelegramAutoPublishService.publishToTelegram(song, allowPastDate = true)
         }
+        return true
     }
 
     // Cheap SELECT id песен в состоянии RENDERING (из player_readiness_flags JSON) с пустым
     // id_telegram_demo. Без loadListFromDb (без тяжёлых полей).
-    private fun loadRenderingCandidateIds(): List<Long> {
-        val connection = WORKING_DATABASE.getConnection() ?: return emptyList()
+    private fun loadRenderingCandidateIds(): List<Long>? {
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    telegramLog.warn("TelegramAutoPublishScheduler: нет соединения с БД — кандидаты RENDERING не прочитаны")
+                    return null
+                }
         val result = mutableListOf<Long>()
         try {
             connection.createStatement().use { st ->
@@ -147,6 +164,13 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-146: сбой запроса раньше был неотличим от «кандидатов нет».
+            telegramLog.warn(
+                "TelegramAutoPublishScheduler: не удалось прочитать кандидатов RENDERING (sqlState={})",
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return result
     }
@@ -155,8 +179,13 @@ class TelegramAutoPublishScheduler {
     // заполненности date/time и пустому id_telegram_demo. Окно [now - window, now]
     // применяется на стороне Kotlin (Postgres to_timestamp не нужен — парсим в Kotlin,
     // тот же формат "dd.MM.yy HH:mm", что Song.dateTimePublish).
-    private fun loadWindowCandidateIds(windowMinutes: Long): List<Long> {
-        val connection = WORKING_DATABASE.getConnection() ?: return emptyList()
+    private fun loadWindowCandidateIds(windowMinutes: Long): List<Long>? {
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    telegramLog.warn("TelegramAutoPublishScheduler: нет соединения с БД — кандидаты окна не прочитаны")
+                    return null
+                }
         val result = mutableListOf<Long>()
         val now = nowMoscow()
         val windowStart = Date(now.time - windowMinutes * 60_000L)
@@ -186,6 +215,13 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-146: сбой запроса раньше был неотличим от «кандидатов нет».
+            telegramLog.warn(
+                "TelegramAutoPublishScheduler: не удалось прочитать кандидатов окна публикации (sqlState={})",
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return result
     }
@@ -193,7 +229,12 @@ class TelegramAutoPublishScheduler {
     // Находит терминальную render-задачу RENDER_MP4_DEMO для песни (если она есть и не в работе).
     // Возвращает пару (status, id) или null, если задача ещё WORKING/WAITING или не найдена.
     private fun findRenderDemoProcess(songId: Long): RenderProcessInfo? {
-        val connection = WORKING_DATABASE.getConnection() ?: return null
+        val connection =
+            WORKING_DATABASE.getConnection()
+                ?: run {
+                    telegramLog.warn("TelegramAutoPublishScheduler: нет соединения с БД — render-задача не найдена (songId={})", songId)
+                    return null
+                }
         try {
             connection.createStatement().use { st ->
                 // 2026-08-02 fix: process_status, не status (старое имя, несовместимо с текущей схемой).
@@ -213,6 +254,14 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
+            // BR-146: сбой запроса раньше был неотличим от «задачи нет».
+            telegramLog.warn(
+                "TelegramAutoPublishScheduler: не удалось найти render-задачу (songId={}, sqlState={})",
+                songId,
+                e.sqlState,
+                e,
+            )
+            return null
         }
         return null
     }

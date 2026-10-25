@@ -7036,14 +7036,24 @@ class Song(
      * Метод идемпотентен: отсутствующие файлы и уже перенесённые объекты пропускаются.
      *
      * @param oldFileName прежнее значение [fileName] (в момент вызова поле уже содержит новое).
+     * @return список неудачных переименований (BR-131) — пустой, если всё прошло.
      * @see specs/323-complete-song-rename
      */
-    fun renameAllArtifacts(oldFileName: String) {
-        if (oldFileName == fileName) return
+    fun renameAllArtifacts(oldFileName: String): List<SongArtifactRenamer.RenameFailure> {
+        if (oldFileName == fileName) return emptyList()
 
-        val renamed = SongArtifactRenamer.renameLocal(rootFolder, oldFileName, fileName)
-        if (renamed.isNotEmpty()) {
-            println("[renameAllArtifacts] переименовано локальных артефактов: ${renamed.size}")
+        // BR-131 (аудит #336, пакет `PKG-S3-23`): неудачи переименования возвращаются
+        // наружу, а не теряются. Раньше `renameTo == false` молча пропускался, и песня
+        // сохранялась в БД с новым `fileName`, пока часть артефактов оставалась под старым.
+        val outcome = SongArtifactRenamer.renameLocal(rootFolder, oldFileName, fileName)
+        if (outcome.renamed.isNotEmpty()) {
+            println("[renameAllArtifacts] переименовано локальных артефактов: ${outcome.renamed.size}")
+        }
+        if (outcome.hasFailures) {
+            println(
+                "[renameAllArtifacts] НЕ переименовано локальных артефактов: ${outcome.failures.size} " +
+                    "(см. категорию infra.catalog.rename)",
+            )
         }
 
         val oldStorageFileName = "$author/$year - $album/$oldFileName"
@@ -7054,6 +7064,7 @@ class Song(
                 description = "картинка $suffix",
             )
         }
+        return outcome.failures
     }
 
     /**

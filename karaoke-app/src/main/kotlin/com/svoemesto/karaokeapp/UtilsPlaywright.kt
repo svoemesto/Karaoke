@@ -9,6 +9,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.ReentrantLock
 import org.slf4j.LoggerFactory
 
 private val log = LoggerFactory.getLogger("UtilsPlaywright")
@@ -207,6 +208,23 @@ fun createNewSponsrAuthContext() {
 
 // Путь к папке, где будет храниться профиль (создастся автоматически)
 val USER_DATA_DIR = Path.of("./yandex-browser-profile")
+
+/**
+ * BR-121 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): сериализация доступа к
+ * persistent-профилю Яндекс.Музыки.
+ *
+ * Chromium держит эксклюзивную блокировку на каталоге профиля: второй
+ * `launchPersistentContext` на том же `USER_DATA_DIR` не стартует. Поэтому все
+ * АВТОМАТИЧЕСКИЕ операции с профилем (поиск текста песни, поиск обложек/альбомов)
+ * выполняются под этим локом — иначе параллельный импорт падал с «не удалось
+ * запустить Chromium», и текст песни просто не находился.
+ *
+ * Ручная авторизация ([createNewAuthContext2]) под лок НЕ берётся намеренно: она
+ * ждёт человека (минуты) и заблокировала бы автоматические операции на всё это время.
+ * Её правило — «не запускать автоматику, пока идёт авторизация» — живёт в
+ * [UtilsPlaywright] (см. `authInProgress`).
+ */
+val YANDEX_PROFILE_LOCK = ReentrantLock()
 
 fun createNewAuthContext2() {
     runAuthFlow(

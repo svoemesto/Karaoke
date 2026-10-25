@@ -156,10 +156,14 @@ class SiteUser(
     @KaraokeDbTableField(name = "ban_reason")
     var banReason: String = ""
 
-    @KaraokeDbTableField(name = "last_login_at")
+    // BR-044 (аудит #336 / P-70-06, OpenProject #393): время входа намеренно ВНЕ recordhash —
+    // иначе каждый вход давал бы расхождение LOCAL↔SERVER и лишнюю запись в прод. Флаг
+    // useInHash = false проверяется статически (tools/check-recordhash-consistency.py, check 2).
+    @KaraokeDbTableField(name = "last_login_at", useInHash = false)
     var lastLoginAt: Timestamp = Timestamp(0)
 
-    @KaraokeDbTableField(name = "created_at")
+    // BR-044: created_at неизменяем после вставки — в recordhash не участвует по той же причине.
+    @KaraokeDbTableField(name = "created_at", useInHash = false)
     var createdAt: Timestamp = Timestamp(0)
 
     override fun compareTo(other: SiteUser): Int = email.compareTo(other.email)

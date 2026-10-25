@@ -22,6 +22,35 @@
 
 ---
 
+## SSoT и per-feature документ (FR-009)
+
+- **Новый компонент SSoT**: `knowledge/domains/monitoring/components/error-semantics.md` —
+  сквозной инвариант «сбой ≠ штатный результат»: канонические пары
+  «штатный результат / сбой», механизмы различения в коде (трёхзначный
+  `Boolean?`, `sealed class Outcome`, `null` вместо пустого списка, типизированные
+  исключения, транзакция, журнал как часть результата), где зафиксированы
+  регрессионные проверки. Зарегистрирован в
+  `knowledge/domains/monitoring/domain.md` § «Структура компонентов (C4 L3)».
+- **Новые SLF4J-категории** (18 шт.) зарегистрированы в
+  `knowledge/domains/monitoring/components/log-categories.md` — по правилу самой
+  компоненты («Регистрация новой категории должна быть зафиксирована в таблице
+  выше»): `infra.pictures`, `infra.admin.sharelinks`, `infra.admin.news`,
+  `infra.admin.tasks`, `infra.editor.draft`, `infra.catalog.rename`,
+  `infra.monitor.check`, `infra.monitor.tick`, `infra.alignment`,
+  `infra.telegram.publish`, `infra.telegram.polling`, `infra.vk.publish`,
+  `infra.whisper.asr`, `infra.premium.publish`, `infra.cache.storage.local`,
+  `infra.cleanup`, `infra.sponsr.sync`, `infra.waveform.compare`.
+- **Инварианты по доменам** добавлены в `knowledge/domains/*/domain.md`:
+  `storage` (BR-144, BR-145, BR-163, BR-164), `integration` (BR-149…BR-153,
+  BR-157, BR-158, BR-159, BR-160), `health` (BR-169…BR-171), `persistence`
+  (BR-168), `sse` (BR-147), `catalog` (BR-130, BR-131), `editorial` (BR-129),
+  `monitoring` (BR-134…BR-136), `processing` (BR-117, BR-121, BR-122).
+- **Per-feature документ (FR-009)**: `docs/features/pkg-s3-23.md` — 6 обязательных
+  секций (`## Что делает`, `## Зачем`, `## Как работает`, `## Инварианты`,
+  `## Известные ловушки`, `## Ссылки`) и 16 ловушек.
+
+---
+
 ## Партия 1 — BR-117…BR-122, BR-129…BR-131, BR-134…BR-137 (13 записей)
 
 ### По записям

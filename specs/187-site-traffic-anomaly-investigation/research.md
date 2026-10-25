@@ -148,8 +148,9 @@
 | 12 | `VkIdTokenRefreshScheduler.tick` | `karaoke-app/.../VkIdTokenRefreshScheduler.kt:44-...` | `cron = "0 0 * * * *"` (час) | Обновление VK токена | 1 HTTP | OK | P3 |
 | 13 | `SponsrSyncScheduler.run` | `karaoke-app/.../SponsrSyncScheduler.kt:25-...` | `12 * 3600_000L` (12 часов) | Sync подписчиков Sponsr | N HTTP (внешний) | OK | P3 |
 | 14 | `MonitoringService.tick` | `karaoke-app/.../monitor/MonitoringService.kt:40-...` | `60_000L` | Мониторинг процессов | 1 SELECT | OK | P3 |
+| 15 | `EventsBuffer.flush` | `karaoke-web/.../services/EventsBuffer.kt:147-...` | `fixedDelay = ${karaoke.web.events.batch-flush-interval-ms:5000}` (5 с) | Сбрасывает буфер событий в БД пачкой (JDBC batch INSERT, до 500 записей за flush, fail-open при ошибке) | 1 batch INSERT / 5 с (до 600 INSERT/мин при полном буфере) | OK (пачками, не по одному) | P3 | `karaoke-web/.../services/EventsBuffer.kt:147-...` | `fixedDelay = ${karaoke.web.events.batch-flush-interval-ms:5000}` (5 с) | Сбрасывает буфер событий в БД пачкой (JDBC batch INSERT, до 500 записей за flush) | 1 batch INSERT / 5 с (до 600 INSERT/мин при полном буфере) | OK (пачками, не по одному) | P3 |
 
-**Итого по таблице B**: 0 P1, 0 P2, 14 OK. Все scheduled-задачи работают на низком cron/fixedDelay, не пишут в `tbl_events` (не нагружают БД).
+**Итого по таблице B**: 0 P1, 0 P2, 15 OK. Все scheduled-задачи работают на низком cron/fixedDelay, не пишут в `tbl_events` (не нагружают БД).
 
 **Вывод**: scheduled-задачи НЕ являются источниками нагрузки. Это контрольная проверка — если бы они были, добавили бы в P1.
 

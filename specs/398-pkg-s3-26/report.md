@@ -78,3 +78,221 @@
 | BR-526 | `karaoke-app/src/main/resources/test.xml:1-463` | SEC | В `src/main/resources` (боевой classpath) лежал образец запроса ЕГРН из чужого проекта с ПДн-подобными полями (ФИО, телефон, e-mail, СНИЛС, адрес с квартирой). Потребителя не было (0 вхождений «test.xml» в коде/конфигах/Dockerfile), но файл упаковывался в `BOOT-INF/classes/` каждого боевого jar и лежал в публичном репозитории; guard'а на такие фикстуры нет | Файл **удалён**; регрессионный тест ищет в `src/main/resources` любые XML/JSON с полями ПДн (`snils`, `phoneNumber`, `passport`, `EGRNRequest`) | поведенческая (1) |
 | BR-531 | `karaoke-app/src/test/kotlin/Правильный.xml:1-1887` (+ зеркала `Неправильный.xml`, `1`, `2.xml`) | SEC | В каталоге тестовых исходников лежали реальные MLT-проекты с абсолютными путями `~/Documents/Караоке/…` (пути к stem-файлам, `done_projects`, название песни автора) — внутренние данные автора в публичном репозитории и в classpath тестов; потребителей нет | Файлы **удалены** (все четыре — один корень «личные пути в репозитории», лид аудита объединил локации в BR-531); регрессионный тест ищет в `src/test` любые фикстуры с `~/Documents/`, `/home/`, `C:\Users\` | поведенческая (1) |
 
+
+---
+
+## «До / после»: команда и вывод
+
+Проверка «до» — регрессионные тесты на **старом** коде: изменённые исходники откачены
+через `git stash push -- karaoke-app/src/main karaoke-web/src/main` (тесты остаются), после
+чего тесты прогнаны.
+
+### Контрактные проверки (компилируются и на старом коде)
+
+Класс `PkgS326SourceContractsTest` **не ссылается на новые API** — только на текст
+исходников, поэтому компилируется и на старом коде и служит настоящим доказательством
+«до/после».
+
+```bash
+git stash push -m "s3-26-before-check" -- karaoke-app/src/main karaoke-web/src/main
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+  -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+  :karaoke-app:test --tests 'com.svoemesto.karaokeapp.audit.PkgS326SourceContractsTest'
+git stash pop
+```
+
+Вывод «до» (16 тестов, **16 упали** — каждая запись имеет наблюдаемый «до»):
+
+```
+PkgS326SourceContractsTest > BR-276 сеттер voices пишет в ключ voices а не flashColor() FAILED
+PkgS326SourceContractsTest > BR-280 задания песни загружаются одним запросом а не по одному на тип файла() FAILED
+PkgS326SourceContractsTest > BR-281 неизвестность состояния хранилища больше не значит файл актуален() FAILED
+PkgS326SourceContractsTest > BR-282 guard ремонта снимается даже если пересчёт упал() FAILED
+PkgS326SourceContractsTest > BR-283 ошибка удаления из удалённого хранилища не гасится() FAILED
+PkgS326SourceContractsTest > BR-284 каждое действие ремонта выполняется в своём try-catch() FAILED
+PkgS326SourceContractsTest > BR-285 одиночное действие отчёта не выполняется в HTTP-потоке() FAILED
+PkgS326SourceContractsTest > BR-286 непрчитанный каталог ссылок даёт WARNING а не тихий пропуск() FAILED
+PkgS326SourceContractsTest > BR-287 пересчёт готовности возвращает и число ошибок() FAILED
+PkgS326SourceContractsTest > BR-288 ошибка выборки строк кеша не выглядит как пустой успех() FAILED
+PkgS326SourceContractsTest > BR-289 значение словаря экранируется перед подстановкой в шаблон() FAILED
+PkgS326SourceContractsTest > BR-290 деление на максимальную длительность защищено от нуля() FAILED
+PkgS326SourceContractsTest > BR-291 ошибки крипты логируются через SLF4J а не в stdout() FAILED
+PkgS326SourceContractsTest > BR-292 разбор настроек голосов проверяет размер после split() FAILED
+PkgS326SourceContractsTest > BR-293 сбой Яндекс-ветки приводит к NotFound а не к 500() FAILED
+PkgS326SourceContractsTest > BR-294 пакетное пересканирование читает словарь один раз() FAILED
+
+16 tests completed, 16 failed
+```
+
+### Поведенческие проверки
+
+Класс `PkgS326BehaviorTest` проверяет поведение там, где это возможно без БД/браузера.
+Для записей, чья правка ввела новый API (`StorageFileInfoProbe`, `CensoredDictionaryRules`,
+`CryptoConfigurationException`, `ReadinessRecalcResult`), класс **не компилируется** на
+старом коде — поэтому «до» для них проверено точечно: откатывался ровно тот файл,
+который менялся, и запускался соответствующий тест.
+
+| BR | Как проверено «до» | Вывод «до» |
+|---|---|---|
+| BR-277 | откат `Utils.kt` | `BR-277 битая символическая ссылка удаляется действием repair() FAILED` |
+| BR-290 | откат `Functions.kt` | `BR-290 голос без непустых по времени линий не роняет создание проекта() FAILED` (ArithmeticException) |
+| BR-292 | откат `Converter.kt` | `BR-292 усечённая настройка голосов не роняет разбор() FAILED` + `BR-292 некорректный цвет из настройки не роняет разбор() FAILED` |
+| BR-526 | возврат `src/main/resources/test.xml` | `BR-526 в prod-resources нет чужих XML-фикстур с полями ПДн() FAILED` |
+| BR-531 | возврат `Правильный.xml`/`Неправильный.xml`/`1`/`2.xml` | `BR-531 в репозитории нет тестовых MLT-фикстур с локальными путями() FAILED` |
+| BR-276, BR-280, BR-281, BR-283, BR-284, BR-287, BR-289, BR-291, BR-294 | контрактные проверки выше (они и есть «до» для этих записей) | 16/16 FAILED |
+
+Вывод «после» (обе части):
+
+```bash
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew --max-workers=2 \
+  -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true \
+  :karaoke-app:test --tests 'com.svoemesto.karaokeapp.audit.PkgS326*'
+```
+
+```
+BUILD SUCCESSFUL in 30s     # 33 теста, 0 падений (17 поведенческих + 16 контрактных)
+```
+
+### Почему для части записей выбран статический guard
+
+Обоснование (требование ТЗ «для S3-мелочей допустим статический guard, если поведенческий
+тест невозможен»):
+
+| BR | Почему поведенческий тест невозможен в юнит-контуре |
+|---|---|
+| BR-282 | Нужен `Song` из БД и искусственный сбой `recomputeAndBroadcast` (сбой БД в `saveToDbLocked` / ошибка `SNS.send`) — воспроизводится только в интеграционном окружении с живой БД |
+| BR-285 | Требуется замер времени потока Tomcat и реальный `downloadFile` из MinIO — то есть развёрнутый стенд |
+| BR-286 | Требуется каталог симлинков с отозванными правами (`AccessDeniedException`) — поведение ФС под конкретными uid/gid не воспроизводится в юнит-тесте |
+| BR-288 | Требуется недоступная БД в момент выборки (pool исчерпан / рестарт `karaoke-db`) |
+| BR-293 | Требуется Chromium/Playwright и заблокированный persistent-профиль Яндекс.Музыки |
+
+Для этих пяти записей контрактная проверка фиксирует ровно то свойство, которое было
+сломано (обязательный `try/catch`/`finally`, запрет `println` в `catch`, типизированный
+результат, `202 Accepted` вместо синхронного выполнения).
+
+---
+
+## Побочные эффекты (что меняется для пользователя и для системы)
+
+1. **Контракт `POST /api/song/executeHealthReportActions` изменился**: было `200` с пустым
+   телом и синхронным выполнением действий, стало `202 Accepted` + выполнение в фоне.
+   Клиент (`webvue3/src/components/Common/HealthReport/store.js`) вызывает действие и
+   сразу перезапрашивает список — теперь список может прийти **до** применения действия;
+   актуальное состояние придёт по SSE `HEALTH_REPORTS` (обработчик в `webvue3/src/App.vue`
+   уже есть и обновляет стор). Отдельного изменения фронта не потребовалось, но это
+   **поведенческое изменение тайминга в UI** — отмечено здесь и в «Известных ловушках».
+2. **`GET`/`POST /api/utils/recalcplayerreadiness`** теперь может вернуть SSE
+   `type=error` (а не `info`) — если часть песен не пересчиталась. Фронт показывает
+   сообщение об ошибке, но само число «проверено» корректно разделено.
+3. **«Объекта нет» в хранилище теперь означает «неактуально»** (delete + upload), а не
+   «всё хорошо». Это может породить одноразовую перезаливку объекта, который был удалён
+   из MinIO вручную, — это и есть правильное поведение (BR-281), но стоит знать при
+   анализе журнала ремонта.
+4. **Частые `downloadFile` из health-report больше не занимают поток Tomcat** — при
+   параллельных кликах админка больше не получит исчерпание пула запросов.
+5. **Сбор отчёта по песне стал дешевле**: ~18 SQL-запросов → 1 на песню (BR-280).
+6. **Значения словаря «Censored» с метасимволами теперь ищутся буквально.** Если в
+   словаре лежало значение-регулярное выражение (например, `х*й` в смысле «х, хх, ххх…»),
+   после правки оно маскирует **ровно** «х*й». Проверить словарь в проде перед
+   использованием — за владельцем.
+7. **Зашифрованные значения перестают «тихо превращаться в пустую строку»**: при неверной
+   длине `CRYPTO_AES_KEY`/`CRYPTO_AES_IV` операции синхронизации теперь падают с
+   `CryptoConfigurationException` (раньше — уходила пустая строка, и удалённая сторона
+   отвечала «не удалось расшифровать»).
+8. **Крипта проверяется при старте приложения** (`KaraokeAppService.init`): при неверной
+   длине ключа/IV в лог уходит `ERROR` (`infra.crypto.config`), приложение **стартует**,
+   но операции шифрования отказываются работать. Полный отказ при старте (fail-fast)
+   сознательно не сделан — см. «За владельцем».
+
+---
+
+## За владельцем
+
+1. **Полный отказ приложения на старте при неверной конфигурации крипты (fail-fast).**
+   Сейчас — «стартует, но операции отказываются» (fail-closed на уровне операции).
+   Fail-fast (не поднимать контейнер) не сделан: опечатка в env превратилась бы в
+   неподнимающийся контейнер. Решение — за владельцем.
+2. **Словарь «Censored» в проде.** После BR-289 значения с метасимволами ищутся буквально.
+   Нужна проверка словаря (и пересканирование названий
+   `POST /api/utils/rescanallcensorednames`) — за владельцем (данные не трогал).
+3. **Миграция `CRYPTO_AES_KEY` / `CRYPTO_AES_IV` с legacy-значений** (в `deploy/` эти
+   переменные не заданы — используются захардкоженные legacy-ключ и IV). BR-291 этого не
+   менял (это отдельный корень BR-011) — за владельцем.
+4. **UI-тайминг одиночного «выполнить действие»** (п. 1 «Побочные эффекты»): если
+   владелец хочет, чтобы список отчётов обновлялся строго после применения действия,
+   нужен явный `status=applied` в SSE — сейчас обновление приходит общим каналом
+   `HEALTH_REPORTS`. За владельцем.
+5. **Зеркало BR-288 в `ExportAlignmentDataset.kt`** (тот же корень «ошибка выборки →
+   ложный успех», но файл вне пакета). Не трогал — за владельцем (или за пакетом #397,
+   где лежат остальные записи `Utils.kt`/`P-07`).
+6. **Очистка уже опубликованных фикстур.** Файлы `test.xml` и `Правильный.xml` удалены
+   из репозитория, но они остаются в истории git и в уже собранных боевых jar-файлах.
+   Публичный репозиторий `github.com/svoemesto/Karaoke` — перезапись истории **не**
+   выполнялась (запрещено); решение об очистке истории — за владельцем.
+
+---
+
+## Проверки (CI-набор)
+
+| Проверка | Результат |
+|---|---|
+| `GRADLE_USER_HOME=… ./gradlew --max-workers=2 … :karaoke-app:test :karaoke-web:test` | ✅ `BUILD SUCCESSFUL in 1m 47s` (оба модуля; новые тесты `PkgS326*` — 33, все зелёные) |
+| `… ./gradlew … ktlintCheck` | ✅ `BUILD SUCCESSFUL in 33s` (ktlint + ktlintCheck по main/test) |
+| `bash tools/check-knowledge-structure.sh` | ✅ `OK: knowledge/ structure valid (9/9 checks passed)` |
+| `python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt` | ✅ `All documentation passes architectural style and structural checks.` |
+| `python3 tools/check-doc-references.py` | ✅ 4335 ссылок / 2650 путей / 353 эндпоинта — 0 проблем (54 записи whitelist, из них 3 новые — на удалённые файлы) |
+| `python3 tools/check-recordhash-consistency.py` | ✅ `OK recordhash-контракт …` |
+| `bash tools/check-no-mp4-mentions.sh` | ✅ `OK: all 139 MP4 mentions are in baseline (grandfathered)` |
+| `bash tools/check-feature-doc.sh docs/features/*.md` | ✅ `Все документы валидны` (включая новый `docs/features/pkg-s3-26.md`) |
+| `bash tools/check-subagent-isolation.sh` | ✅ ветка `626-pkg-s3-26` в отдельном worktree `/home/nsa/Karaoke/.worktrees/waveE-s3-26` (предупреждение «не содержит новых commits относительно master» — на момент прогона коммит ещё не был сделан) |
+| `bash tools/check-file-permissions.sh` | ✅ `OK: chmod с правом записи для всех нет (покрыто baseline: 100 совпадений)` |
+| `bash tools/check-no-legacy-tbl-settings.sh` | ✅ `OK: 1757 файлов проверено, нарушений нет` |
+| `python3 tools/check-ssot-impact.py` | ✅ `OK: all matched SSoT-impact rules satisfied` (29 изменённых файлов, 13 значимых, 0 нарушений) |
+| `cd webvue3 && npm run lint` / `npm run test:unit` | ✅ eslint — 0 ошибок; `node --test` — 227 тестов, 227 pass, 0 fail |
+| `cd karaoke-public && npm run lint` / `npm run test:unit` | ✅ eslint — 0 ошибок; `node --test` — 106 тестов, 106 pass, 0 fail |
+
+Фронтенд не менялся (в пакете нет записей по `webvue3`/`karaoke-public`); проверки
+прогнаны для полноты CI-набора.
+
+---
+
+## Знание (SSoT) и per-feature документ
+
+- `knowledge/domains/health/components/health-report.md` — контракты BR-280…BR-288 и
+  раздел «Ловушки (пакет `PKG-S3-26`)».
+- `knowledge/domains/storage/components/storage-flow.md` — BR-281 («не знаю» ≠ «актуален»).
+- `knowledge/domains/catalog/components/song-entity.md` — BR-289/BR-294 (правила цензурирования).
+- `knowledge/domains/processing/components/two-db-sync.md` — BR-291 (конфигурация AES).
+- `knowledge/domains/rendering/components/mlt-generator.md` — BR-290/BR-292 (разбор настроек, `maxDuration`).
+- `knowledge/domains/integration/components/external-api-clients.md` — BR-293 (сбой источника обложек).
+- `knowledge/domains/monitoring/components/log-categories.md` — новые категории
+  `infra.health.report`, `infra.converter`, `infra.crypto.config`.
+- `knowledge/guidelines/architecture-conventions.md` — BR-526/BR-531 (гигиена репозитория).
+- `docs/features/pkg-s3-26.md` — per-feature документ (FR-009) с разделом «Известные ловушки».
+
+---
+
+## Хэши артефактов
+
+Ключевые файлы правки (SHA-256, рабочее дерево после коммита `7cefdd40`):
+
+| Файл | SHA-256 |
+|---|---|
+| `karaoke-app/.../HealthReport.kt` | `d7fbde772c3bccfc5450685df53b23b674584f9ea6f5df700a4fdd43da9fbd5d` |
+| `karaoke-app/.../Extentions.kt` | `921d9e6c17f60dbd7e244dff3d947c3e3b57a7f60d3aa75a1673a56aa4c3856c` |
+| `karaoke-app/.../Crypto.kt` | `6d720d87485d63525b6f9e5757db679a04f7b4a84e6750f9815f6a38f92e45b1` |
+| `karaoke-app/.../Converter.kt` | `f8cd2ef668151dd260457b245f0e124eba04442118d96d72454a020b5cf95d1c` |
+| `karaoke-app/.../Functions.kt` | `5948b41345ad916e49c091438bdc13c45c2028e5d7a7ab0a4058ce04354b096a` |
+| `karaoke-app/.../AlbumCoverFinder.kt` | `61ae46a0c4ca954dbc28fced88e6aa1b981f424cc75f201319b3b843e44675a6` |
+| `karaoke-app/.../CacheEtagSizeBackfill.kt` | `928f0833fa60063ff010d7f564d828814c7d9436ef51da2fc4c5425f01c97750` |
+| `karaoke-app/.../Karaoke.kt` | `a550bcb0b5587418eea683cf4626f5e33a34a237c68439ae1e62b61d23106360` |
+| `karaoke-app/.../Utils.kt` | `32d36a811f99a83e9f91d44f7f98093acbbeb16888d74d80390ebd6feaf58db0` |
+| `karaoke-app/.../controllers/ApiController.kt` | `61fc266a46683db5cdaf7bc658c3f6904673ca1bd8a011307acc36ca467cc875` |
+| `karaoke-app/.../services/KaraokeAppService.kt` | `2d705e52d1c3760a4ef40643a6fe873444f2740c6022d993e880d34973fb554c` |
+| `karaoke-app/src/test/.../audit/PkgS326BehaviorTest.kt` | `11ad5be65d4662b16f824c048ab99538a9c0e5f69026340664f1cbd6b7501609` |
+| `karaoke-app/src/test/.../audit/PkgS326SourceContractsTest.kt` | `57fa456a80c10949602a9ea96e579673cb0672f86a72e10a9426caf4da5d2151` |
+| `docs/features/pkg-s3-26.md` | `22568c0702b739848da24f760d127b352abfbc371a126309046cda877568e0fa` |
+
+Коммит пакета: `7cefdd40` («PKG-S3-26 (OpenProject #398): 19 записей аудита #336 в karaoke-app»),
+ветка `626-pkg-s3-26` от `origin/master` `d5fbab3f`. Push и PR **не** выполнялись
+(по условию задачи).

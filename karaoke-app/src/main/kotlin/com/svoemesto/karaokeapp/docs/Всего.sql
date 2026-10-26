@@ -1,2 +1,2 @@
 select count(DISTINCT id) as songs
-from tbl_settings
+from tbl_songs

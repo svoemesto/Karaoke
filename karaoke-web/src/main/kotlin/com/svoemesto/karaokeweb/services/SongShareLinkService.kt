@@ -588,8 +588,18 @@ class SongShareLinkService(
         // напрямую, чтобы не зависеть от karaoke-app-классов (Song/Storage) — в karaoke-web
         // они заглушки (см. WebKaraokeStorageServiceImpl).
         val songInfo = loadSongInfo(songId, database)
-        // DEBUG: принудительно log.error вместо log.info — точно должно дойти до консоли.
-        log.error("ShareLink tryClaim START linkId=$linkId songId=$songId songName='${songInfo.name}' browserHash='${browserHash.take(8)}…'")
+        // BR-517 (аудит #336, OpenProject #409): штатный путь — уровень `debug`,
+        // а не `error`. Раньше каждый успешный claim логировался как ERROR
+        // («DEBUG: принудительно log.error вместо log.info») — это забивало
+        // алерты уровнем ERROR на нормальной работе и деградировало сигнал
+        // об ошибках.
+        log.debug(
+            "ShareLink tryClaim START linkId={} songId={} songName='{}' browserHash='{}…'",
+            linkId,
+            songId,
+            songInfo.name,
+            browserHash.take(8),
+        )
         val now = System.currentTimeMillis()
         val sessionSecret = generateSecret()
         val sessionTokenHash = sha256Hex(sessionSecret)
@@ -699,14 +709,14 @@ class SongShareLinkService(
                 artistImageUrl = songInfo.artistImageUrl,
             )
         } catch (e: ShareException) {
-            println("[tryClaim] ShareException class=${e::class.simpleName} msg=${e.message}")
-            e.printStackTrace()
-            log.error("ShareLink tryClaim ShareException: class=${e::class.simpleName} msg=${e.message}")
+            // BR-517 (аудит #336, OpenProject #409): стек — в логгер, а не в stdout.
+            // `println` + `printStackTrace()` писали стек в stdout контейнера, где
+            // нет ротации docker-логов, а в централизованный лог попадало только
+            // сообщение без стека.
+            log.error("ShareLink tryClaim ShareException: class={} msg={}", e::class.simpleName, e.message, e)
             throw e
         } catch (e: Exception) {
-            println("[tryClaim] UNEXPECTED class=${e::class.simpleName} msg=${e.message}")
-            e.printStackTrace()
-            log.error("ShareLink tryClaim UNEXPECTED class=${e::class.simpleName} msg=${e.message}", e)
+            log.error("ShareLink tryClaim UNEXPECTED: class={} msg={}", e::class.simpleName, e.message, e)
             throw InternalError(e)
         }
     }

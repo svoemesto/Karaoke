@@ -83,15 +83,12 @@ class StatsController {
             // в течение TTL показывает цифры предыдущего запроса.
             val key = StatsCacheKey.forEndpoint(endpoint = endpoint, target = target, params = params)
 
-            @Suppress("UNCHECKED_CAST")
-            val cached = StatsCache.get(key) as? Map<String, Any>
-            if (cached != null) {
-                ResponseEntity.ok(cached)
-            } else {
-                val body = withDb(target) { db -> compute(db) }
-                StatsCache.put(key, body as Any)
-                ResponseEntity.ok(body)
-            }
+            // BR-226 (аудит #336, OpenProject #409): single-flight. Раньше два
+            // одновременных запроса после истечения TTL оба видели промах и оба
+            // выполняли тяжёлый агрегат (COUNT(*) по tbl_events). Теперь считает
+            // только первый поток, остальные ждут его результат.
+            val body: Map<String, Any> = StatsCache.getOrCompute(key) { withDb(target) { db -> compute(db) } }
+            ResponseEntity.ok(body)
         } catch (e: SQLException) {
             statsUnavailableResponse(requestUri, e)
         }

@@ -1,5 +1,5 @@
 select count(DISTINCT id) as songs
-from tbl_settings
+from tbl_songs
 where publish_date != ''
   and publish_date is not null
   and publish_time != ''

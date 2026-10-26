@@ -65,6 +65,12 @@ class SiteUsersController {
         @RequestParam(required = false) filterIsEffectivePremium: String?,
         @RequestParam(required = false) filterIsBanned: String?,
         @RequestParam(required = false) filterIsEditor: String?,
+        // BR-221 (аудит #336, OpenProject #409): серверная пагинация диджеста.
+        // `perPage = 0` (по умолчанию) — полный список, как раньше (обратная
+        // совместимость для существующих клиентов). `perPage > 0` — выборка
+        // страницы через SQL LIMIT/OFFSET + отдельный COUNT(*) в `totalCount`.
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "0") perPage: Int,
     ): Map<String, Any> =
         withDb(target) { db ->
             val args: MutableMap<String, String> = mutableMapOf()
@@ -78,15 +84,22 @@ class SiteUsersController {
             filterIsBanned?.let { if (it != "") args["isBanned"] = it }
             filterIsEditor?.let { if (it != "") args["isEditor"] = it }
 
+            val limit = perPage.coerceAtLeast(0)
+            val offset = if (limit > 0) (page.coerceAtLeast(1) - 1) * limit else 0
             val list =
                 SiteUser
                     .loadList(
                         whereArgs = args,
+                        limit = limit,
+                        offset = offset,
                         database = db,
                         storageService = KSS_APP,
                         storageApiClient = SAC_APP,
                     ).map { it.toDTO() }
-            mapOf("siteUsersDigest" to list)
+            // totalCount — отдельным COUNT(*) с тем же набором условий (не длина
+            // выборки: при пагинации это число строк на странице).
+            val totalCount = SiteUser.countList(whereArgs = args, database = db)
+            mapOf("siteUsersDigest" to list, "totalCount" to totalCount)
         }
 
     @PostMapping("/byId")

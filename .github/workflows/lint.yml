@@ -285,6 +285,40 @@ jobs:
         working-directory: ${{ matrix.spa }}
         run: npx prettier --check "src/**/*.{vue,js,ts,json}"
 
+  # === Frontend: сборка SPA (BR-507, P-78-01) ===
+  # До этого джоба workflow только ЛИНТЕРОВАл фронтенд: PR с не собирающимся
+  # SPA (ошибка импорта, битый vite-конфиг, несовместимая версия зависимости)
+  # проходил CI и мержился в master — падало только при ручном деплое.
+  # Команда — та же, что локально (AGENTS.md § «Обязательная проверка после
+  # изменения», шаг 4): `cd <spa> && npm run build`.
+  frontend-build:
+    name: frontend build (${{ matrix.spa }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        spa: [webvue3, karaoke-public]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 22 (LTS)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.spa }}/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: ${{ matrix.spa }}
+        run: npm ci --no-audit --no-fund
+
+      - name: Build SPA (vite)
+        # R-375: npm run только из каталога фронта (cd <spa> && npm run ...).
+        working-directory: ${{ matrix.spa }}
+        run: npm run build
+
   # === Экранирование текста подтверждений (спека #558, OP #360, BR-123) ===
   # Общий компонент подтверждения админки по умолчанию выводит текст как
   # ТЕКСТ; сырая разметка принимается только при явном `allowHtml: true`.
@@ -514,6 +548,7 @@ jobs:
             --exclude-loopback
             --exclude-mail
             --accept 200,203,206,301,302,303,304,307,308,403,429
+            docs/features/
             archive/docs/features/
             CONTRIBUTING.md
 
@@ -707,36 +742,23 @@ jobs:
         # GitHub branch protection (server-side, admin-enforced) — primary defense.
         # Этот CI step — final safety net: detect any direct commit that somehow
         # slipped through (e.g., admin bypass before protection was enabled, force-push,
-        # or any future bypass). Если в последних 24h на master есть НЕ merge-commit —
-        # CI fail. Это "скрипт-проверка для тех, кто обошёл branch protection".
+        # or any future bypass). Если на master есть НЕ merge-commit — CI fail.
         # Прецедент: 2026-09-09, спека #354 — agent закоммитил напрямую в master
         # после мержа PR #452, owner поймал.
-        run: |
-          # pipefail: если `git log` не отработал (нет истории/битый клон) —
-          # шаг должен упасть, а не рапортовать «нарушений нет».
-          set -o pipefail
-          # Guard обязан УМЕЕТЬ оценить состояние master. Если remote-tracking
-          # ref origin/master недоступен (например, checkout без fetch-depth) —
-          # проверка невозможна, и «успех» был бы ложным (BR-509, P-78-03).
-          if ! git rev-parse --verify --quiet origin/master >/dev/null; then
-            echo "❌ FAIL: origin/master недоступен — проверка прямых коммитов в master невозможна"
-            echo "   Ожидается checkout с fetch-depth: 0 (полная история) + remote-tracking ref."
-            exit 1
-          fi
-          DIRECT_COMMITS=$(git log --first-parent origin/master --since=24.hours --no-merges --pretty=format:"%H %s" | wc -l | tr -d ' ')
-          if [ "$DIRECT_COMMITS" -gt 0 ]; then
-            echo "❌ FAIL: $DIRECT_COMMITS direct commit(s) on master (must be merge commits only)"
-            echo ""
-            git log --first-parent origin/master --since=24.hours --no-merges --pretty=format:"  %H %s"
-            echo ""
-            echo "AGENTS.md § Git — CI-gate для master (NON-NEGOTIABLE) requires merge commits only."
-            echo "Defensive layers (Pass 353):"
-            echo "  1. GitHub branch protection (server-side, primary defense)"
-            echo "  2. Pre-commit hook tools/git-hooks/pre-commit-block-master.sh (client-side)"
-            echo "  3. This CI lint step (server-side, final safety net)"
-            exit 1
-          fi
-          echo "✅ No direct commits to master in last 24h"
+        #
+        # BR-509 (аудит #336, OpenProject #409): инлайн-шаг заменён скриптом
+        # tools/check-direct-commits.sh. Причина: `git log --pretty=format:... | wc -l`
+        # занижал счётчик на ЕДИНИЦУ (вывод `format:` не заканчивается переводом
+        # строки) — ОДИН прямой коммит давал DIRECT_COMMITS=0, и guard НИКОГДА
+        # не падал. Скрипт считает через `git rev-list --count`, умеет `--self-test`
+        # («до/после» на фикстуре) и различает нарушение (1) и «проверка не
+        # выполнена» (2) — по правилу пакета #402.
+        run: bash tools/check-direct-commits.sh
+
+      - name: Self-test guard'а прямых коммитов (до/после)
+        # Фикстура: корректная история (только merge-коммиты) → PASS;
+        # подсовытый прямой коммит → FAIL с ненулевым кодом.
+        run: bash tools/check-direct-commits.sh --self-test
 
   # === docker-image-tags guard (Pass 379, R-04, R-05, wayfinder #106) ===
   # Локальный guard-скрипт enforce'ит R-04 (nginx:stable) + R-05 (node:22-alpine).

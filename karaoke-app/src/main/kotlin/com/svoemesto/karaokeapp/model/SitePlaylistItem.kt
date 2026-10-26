@@ -124,6 +124,38 @@ class SitePlaylistItem(
             return 0
         }
 
+        /**
+         * BR-220 (аудит #336, OpenProject #409): количество элементов для НАБОРА
+         * плейлистов ОДНИМ агрегатным запросом.
+         *
+         * Раньше `SitePlaylistsController.digest` вызывал [countItems] в цикле по
+         * плейлистам — на `N` плейлистов это `N` отдельных `SELECT COUNT(*)`
+         * (ADR-0001: «пакетная загрузка, не по одной»). Теперь — один
+         * `GROUP BY` по списку id.
+         *
+         * @return карта `playlist_id -> количество элементов` (только для плейлистов
+         *   с элементами; отсутствующий ключ = 0).
+         */
+        fun countItemsByPlaylistIds(
+            playlistIds: List<Long>,
+            database: KaraokeConnection,
+        ): Map<Long, Int> {
+            if (playlistIds.isEmpty()) return emptyMap()
+            val connection = database.getConnection() ?: return emptyMap()
+            val sql =
+                "SELECT playlist_id, COUNT(*) AS cnt FROM $TABLE_NAME " +
+                    "WHERE playlist_id IN (${playlistIds.joinToString(",")}) GROUP BY playlist_id"
+            val result = HashMap<Long, Int>()
+            connection.createStatement().use { st ->
+                st.executeQuery(sql).use { rs ->
+                    while (rs.next()) {
+                        result[rs.getLong("playlist_id")] = rs.getInt("cnt")
+                    }
+                }
+            }
+            return result
+        }
+
         // Множество song_id, входящих в набор плейлистов (для батч-эндпоинта membership в таблицах).
         fun songIdsInPlaylists(
             playlistIds: List<Long>,

@@ -32,30 +32,53 @@
         var cntClick_button_body_VkKaraoke = 0;
         var cntClick_button_body_VkLyrics = 0;
 
-        var stompClientSettings = null;
-        var stompClientProcesses = null;
+        // BR-216: STOMP-подписки на несуществующий `/api/message` заменены на SSE
+        // (`/api/subscribe`) — см. connect().
+        var sseSource = null;
 
+        // BR-216 (аудит #336, OpenProject #409): live-обновление страницы.
+        //
+        // Раньше страница подписывалась на STOMP-эндпоинт `/api/message`, которого
+        // в `karaoke-app` НЕТ (конфиг брокера удалён в 2024-08-15, остался только
+        // в `karaoke-web`) — подписка молча не устанавливалась, и live-обновлений
+        // не было. Даже если бы эндпоинт был, контракт не совпадал: клиент читал
+        // `recordChangeId`/`recordChangeTableName`/`recordChangeDiffs`, а сервер
+        // отдаёт `recordId`/`tableName`/`diffs` (RecordChangeMessage), и сравнивал
+        // таблицу с `tbl_settings` — давно `tbl_songs`.
+        //
+        // Теперь — тот же SSE-канал, что и в songs.html (BR-211):
+        // `GET /api/subscribe`, payload — обёртка `{type, data}`, где
+        // `type = "recordChange"`, `data = RecordChangeMessage`.
         function connect() {
-            var socketSettings = new SockJS('/api/message');
-            stompClientSettings = Stomp.over(socketSettings);
-            stompClientSettings.connect({}, function (frame) {
-                console.log('Connected: ' + frame);
-                stompClientSettings.subscribe('/api/messages/recordchange', function (recordchange) {
-                    console.log("Получено сообщение...");
-                    updateSettingsFromMessage(JSON.parse(recordchange.body));
-                });
-            });
-
-            var socketProgress = new SockJS('/api/message');
-            stompClientProcesses = Stomp.over(socketProgress);
-            stompClientProcesses.connect({}, function (frame) {
-                console.log('Connected: ' + frame);
-                stompClientProcesses.subscribe('/api/messages/processesrecordchange', function (recordchange) {
-                    console.log("Получено сообщение...");
-                    updateProcessesFromMessage(JSON.parse(recordchange.body));
-                });
-            });
-
+            if (typeof EventSource === 'undefined') {
+                console.warn('SSE не поддерживается браузером — live-обновления отключены');
+                return;
+            }
+            var tabId = 'songs2-' + Math.random().toString(36).substring(2);
+            sseSource = new EventSource('/api/subscribe?tabId=' + encodeURIComponent(tabId));
+            sseSource.onmessage = function (event) {
+                var payload = null;
+                try {
+                    payload = JSON.parse(event.data);
+                } catch (e) {
+                    // BR-216: разбор сообщения не должен ронять обработчик.
+                    console.warn('SSE: не удалось разобрать сообщение', e);
+                    return;
+                }
+                if (!payload || !payload.data) return;
+                console.log("Получено сообщение...");
+                // Одна подписка на все таблицы: по имени таблицы раскидываем
+                // обработчики (tbl_songs — строки таблицы, tbl_processes — прогресс).
+                if (payload.data.tableName === 'tbl_processes') {
+                    updateProcessesFromMessage(payload.data);
+                } else {
+                    updateSettingsFromMessage(payload.data);
+                }
+            };
+            sseSource.onerror = function () {
+                // BR-216: обрыв соединения больше не молчит — браузер переподключится сам.
+                console.warn('SSE: соединение потеряно, идёт переподключение');
+            };
         }
 
         var currentTimeStamp = new Date().getTime();
@@ -571,7 +594,10 @@
                 success: function () {
 
                     // updateSettings(id)
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("сохранение песни", xhr, status, error);
+                },
             });
             return false;
         }
@@ -641,229 +667,153 @@
 
         function doRowColor() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/color", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/color", function (result) {
                 var row = document.getElementById("row" + id);
                 row.style.backgroundColor = result;
-            }
+            });
         }
 
         function doTextDzenLyricsWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenlyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenlyricswoheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenLyricsBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenlyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenlyricsbtwoheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenKaraokeWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenkaraokewoheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenKaraokeBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenkaraokebtwoheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenChordsWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenchordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenchordswoheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenChordsBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenchordsbtwoheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
 
         function doTextDzenLyricsHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenlyricsheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenlyricsheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenLyricsBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenlyricsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenlyricsbtheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenKaraokeHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenkaraokeheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenkaraokeheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenKaraokeBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenkaraokebtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenkaraokebtheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenChordsHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenchordsheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenchordsheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextDzenChordsBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenchordsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textdzenchordsbtheader", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doTextVkLyricsWOHeader() {
 
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvklyricswoheader", function (result) {
+                copyToClipboardSafely(result);
 
                 cntClick_button_body_VkLyrics++;
                 if (cntClick_button_body_VkLyrics > 2) cntClick_button_body_VkLyrics = 0;
                 setButtonLinkEditStyle();
-            }
+            });
         }
 
         function doTextVkLyricsBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvklyricsbtwoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextVkKaraokeWOHeader() {
 
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkkaraokewoheader", function (result) {
+                copyToClipboardSafely(result);
 
                 cntClick_button_body_VkKaraoke++;
                 if (cntClick_button_body_VkKaraoke > 2) cntClick_button_body_VkKaraoke = 0;
                 setButtonLinkEditStyle();
-            }
+            });
         }
 
         function doTextVkKaraokeBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkkaraokebtwoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextVkChordsWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkchordswoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextVkChordsBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkchordsbtwoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
 
@@ -871,29 +821,21 @@
 
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvklyricsheader", function (result) {
+                copyToClipboardSafely(result);
 
                 cntClick_button_head_VkLyrics++;
                 if (cntClick_button_head_VkLyrics > 2) cntClick_button_head_VkLyrics = 0;
                 setButtonLinkEditStyle();
-            }
+            });
         }
 
         function doTextVkLyricsBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvklyricsbtheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextVkKaraokeHeader() {
@@ -901,248 +843,169 @@
 
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokeheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkkaraokeheader", function (result) {
+                copyToClipboardSafely(result);
 
                 cntClick_button_head_VkKaraoke++;
                 if (cntClick_button_head_VkKaraoke > 2) cntClick_button_head_VkKaraoke = 0;
                 setButtonLinkEditStyle();
-            }
+            });
         }
 
         function doTextVkKaraokeBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokebtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkkaraokebtheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextVkChordsHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkchordsheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextVkChordsBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textvkchordsbtheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
 
         function doTextTelegramLyricsWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramlyricswoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramLyricsBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramlyricsbtwoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramKaraokeWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramkaraokewoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramKaraokeBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramkaraokebtwoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramChordsWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramchordswoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramChordsBtWOHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramchordsbtwoheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
 
         function doTextTelegramLyricsHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramlyricsheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramLyricsBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramlyricsbtheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramKaraokeHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokeheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramkaraokeheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramKaraokeBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokebtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramkaraokebtheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramChordsHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramchordsheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextTelegramChordsBtHeader() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/texttelegramchordsbtheader", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
 
         function doTextBoostyHead() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textboostyhead", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textboostyhead", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextBoostyFilesHead() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textboostyhead", false);
-            request.send();
-            if (request.status === 200) {
-                var result = "[ФАЙЛЫ] " + request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textboostyhead", function (result) {
+                var text = "[ФАЙЛЫ] " + result;
+                copyToClipboardSafely(text);
                 // alert(result);
-            }
+            });
         }
 
         function doTextBoostyBody() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textboostybody", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textboostybody", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doTextBoostyFilesBody() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textboostybody", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
+            getText("/song/" + id + "/textboostybody", function (result) {
+                copyToClipboardSafely(result);
                 // alert(result);
-            }
+            });
         }
 
         function doBoostyLink() {
@@ -1157,13 +1020,9 @@
 
         function doTextVKBody() {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkbody", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
+            getText("/song/" + id + "/textvkbody", function (result) {
+                copyToClipboardSafely(result);
+            });
         }
 
         function doVKLink() {
@@ -1181,7 +1040,10 @@
                     let endIndex = data.indexOf("</div>", startIndex);
                     let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                     alert(textBetweenDivs);
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("создание караоке", xhr, status, error);
+                },
             });
         }
 
@@ -1194,7 +1056,10 @@
                     data: "",
                     success: function (data) {
                         alert("Готово!");
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("установка даты/времени публикации", xhr, status, error);
+                    },
                 });
             }
 
@@ -1219,7 +1084,10 @@
                     let endIndex = data.indexOf("</div>", startIndex);
                     let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                     alert(textBetweenDivs);
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("создание файлов kdenlive", xhr, status, error);
+                },
             });
         }
 
@@ -1232,11 +1100,22 @@
                     url: "/song/" + id + "/delete",
                     data: "",
                     success: function (data) {
+                        // BR-217: сервер возвращает 1 — удалено, 0 — такой песни нет
+                        // (`MainController.doDelete`: `if (song == null) return 0`).
+                        // Раньше «Удалено» показывалось на ЛЮБОМ 2xx, и строка
+                        // исчезала из таблицы, даже если песня не была удалена.
+                        if (String(data).trim() === "0") {
+                            alert("Песня не найдена — удалять нечего");
+                            return;
+                        }
 
                         currentRow.remove();
 
                         alert("Удалено");
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("удаление песни", xhr, status, error);
+                    },
                 });
             }
         }
@@ -1248,7 +1127,10 @@
                 data: {"source": el_songName.value},
                 success: function (data) {
                     el_id_text.innerText = '«' + data + '»';
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("цензура названия", xhr, status, error);
+                },
             });
         }
 
@@ -1273,7 +1155,10 @@
                         let endIndex = data.indexOf("</div>", startIndex);
                         let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                         alert(textBetweenDivs);
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("создание караоке (все песни)", xhr, status, error);
+                    },
                 });
             }
         }
@@ -1300,7 +1185,10 @@
                         let endIndex = data.indexOf("</div>", startIndex);
                         let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                         alert(textBetweenDivs);
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("создание demucs (все песни)", xhr, status, error);
+                    },
                 });
             }
         }
@@ -1326,7 +1214,10 @@
                         let endIndex = data.indexOf("</div>", startIndex);
                         let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                         alert(textBetweenDivs);
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("создание 720p караоке (все песни)", xhr, status, error);
+                    },
                 });
             }
         }
@@ -1353,7 +1244,10 @@
                         let endIndex = data.indexOf("</div>", startIndex);
                         let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                         alert(textBetweenDivs);
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("создание 720p текста (все песни)", xhr, status, error);
+                    },
                 });
             }
         }
@@ -1365,7 +1259,10 @@
                 data: "",
                 success: function (data) {
                     alert("OK");
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("создание тегов", xhr, status, error);
+                },
             });
         }
 
@@ -1390,7 +1287,10 @@
                         let endIndex = data.indexOf("</div>", startIndex);
                         let textBetweenDivs = data.substring(startIndex + 5, endIndex);
                         alert(textBetweenDivs);
-                    }
+                    },
+                    error: function (xhr, status, error) {
+                        reportAjaxError("поиск текста песни", xhr, status, error);
+                    },
                 });
             }
         }
@@ -1514,7 +1414,10 @@
                 url: "/song/" + id + "/symlink",
                 data: "",
                 success: function(data) {
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("создание symlink", xhr, status, error);
+                },
             });
         }
 
@@ -1524,30 +1427,22 @@
             if (cntClick_button_link_edit_DzenKaraoke > 2) cntClick_button_link_edit_DzenKaraoke = 0;
             setButtonLinkEditStyle();
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textdzenkaraokewoheader", function (result) {
                 copyToClipboard(result);
                 var link = prefix_link_dzen_edit + el_idDzenKaraoke.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
         function openLinkDzenEditKaraokeBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textdzenkaraokebtwoheader", function (result) {
                 copyToClipboard(result);
                 var link = prefix_link_dzen_edit + el_idDzenKaraokeBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1558,60 +1453,44 @@
             setButtonLinkEditStyle();
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenlyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textdzenlyricswoheader", function (result) {
                 copyToClipboard(result);
                 var link = prefix_link_dzen_edit + el_idDzenLyrics.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
         function openLinkDzenEditLyricsBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenlyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textdzenlyricsbtwoheader", function (result) {
                 copyToClipboard(result);
                 var link = prefix_link_dzen_edit + el_idDzenLyricsBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
         function openLinkDzenEditChords() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenchordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textdzenchordswoheader", function (result) {
                 copyToClipboard(result);
                 var link = prefix_link_dzen_edit + el_idDzenChords.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
         function openLinkDzenEditChordsBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textdzenchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textdzenchordsbtwoheader", function (result) {
                 copyToClipboard(result);
                 var link = prefix_link_dzen_edit + el_idDzenChordsBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1686,15 +1565,11 @@
             setButtonLinkEditStyle();
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvkkaraokewoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_edit + el_idVkKaraoke.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1706,15 +1581,11 @@
         function openLinkVkEditKaraokeBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvkkaraokebtwoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_edit + el_idVkKaraokeBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1730,15 +1601,11 @@
             setButtonLinkEditStyle();
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvklyricswoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_edit + el_idVkLyrics.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1750,15 +1617,11 @@
         function openLinkVkEditLyricsBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvklyricsbtwoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_edit + el_idVkLyricsBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1770,15 +1633,11 @@
         function openLinkVkEditChords() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvkchordswoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_edit + el_idVkChords.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1790,15 +1649,11 @@
         function openLinkVkEditChordsBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvkchordsbtwoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_edit + el_idVkChordsBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1810,15 +1665,11 @@
         function openLinkVkPlayKaraoke() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvkkaraokewoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_play + el_idVkKaraoke.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1831,15 +1682,11 @@
         function openLinkVkPlayLyrics() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/textvklyricswoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_vk_play + el_idVkLyrics.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1862,15 +1709,11 @@
         function openLinkTelegramEditKaraoke() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokewoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/texttelegramkaraokewoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_telegram_edit + el_idTelegramKaraoke.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1882,15 +1725,11 @@
         function openLinkTelegramEditKaraokeBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/texttelegramkaraokebtwoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_telegram_edit + el_idTelegramKaraokeBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1902,15 +1741,11 @@
         function openLinkTelegramEditLyrics() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/texttelegramlyricswoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_telegram_edit + el_idTelegramLyrics.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1922,15 +1757,11 @@
         function openLinkTelegramEditLyricsBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/texttelegramlyricsbtwoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_telegram_edit + el_idTelegramLyricsBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1942,15 +1773,11 @@
         function openLinkTelegramEditChords() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/texttelegramchordswoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_telegram_edit + el_idTelegramChords.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -1962,15 +1789,11 @@
         function openLinkTelegramEditChordsBt() {
 
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
+            getText("/song/" + id + "/texttelegramchordsbtwoheader", function (result) {
                 copyToClipboard(result)
                 var link = prefix_link_telegram_edit + el_idTelegramChordsBt.value;
                 window.open(link, '_blank');
-            }
+            });
 
         }
 
@@ -2024,33 +1847,94 @@
             document.body.removeChild(textarea);
         }
 
+        // BR-212 (тот же приём, что в songs.html): Clipboard API доступен только в
+        // secure-контексте (https или localhost). Админка karaoke-app слушается по
+        // HTTP (http://<host>:8898), поэтому `navigator.clipboard` там — undefined,
+        // и прямой вызов бросал TypeError. Используем существующий copyToClipboard
+        // (execCommand) как fallback.
+        function copyToClipboardSafely(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).catch(function (e) {
+                    console.warn('clipboard.writeText не удался, пробуем execCommand', e);
+                    return copyToClipboard(text);
+                });
+            }
+            return Promise.resolve(copyToClipboard(text));
+        }
+
+        // BR-217/BR-218 (аудит #336, OpenProject #409): единая точка HTTP-запросов
+        // страницы. Раньше здесь был синхронный XHR (`open(..., false)`) без проверки
+        // результата: блокировка главного потока на каждом запросе (64 вызова) и
+        // «успех», о котором страница даже не знала.
+        //
+        // Теперь запрос АСИНХРОННЫЙ, а результат проверяется: при не-2xx/сетевой
+        // ошибке вызывается onError с причиной, а onSuccess — только при HTTP 200.
+        function getText(url, onSuccess, onError) {
+            var request = new XMLHttpRequest();
+            request.open('GET', url, true);
+            request.onload = function () {
+                if (request.status === 200) {
+                    onSuccess(request.responseText);
+                } else {
+                    reportRequestError(url, request, onError);
+                }
+            };
+            request.onerror = function () {
+                reportRequestError(url, request, onError);
+            };
+            request.send();
+        }
+
+        // BR-217: причина сбоя обязана быть видна — иначе индикатор показывает
+        // «запущено», а на деле запрос упал.
+        function reportRequestError(url, request, onError) {
+            var message = "Ошибка запроса " + url + " (HTTP " + request.status + ")";
+            console.error(message, request);
+            if (onError) {
+                onError(request);
+            } else {
+                alert(message);
+            }
+        }
+
+        // BR-217: обработчик `error` для jQuery-ajax — раньше у всех вызовов
+        // `$.ajax` на странице его не было, поэтому 404/500/таймаут были молчаливыми.
+        function reportAjaxError(action, xhr, status, error) {
+            var code = (xhr && xhr.status) ? xhr.status : "?";
+            var message = "Ошибка: " + action + " (HTTP " + code + ", " + (status || "?") + ")";
+            console.error(message, error);
+            alert(message);
+        }
+
         function doProcess(link) {
             var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/" + link, true);
-            request.send();
-            if (link === "doprocesslyrics") {
-                document.getElementById(`fld_${id}_flag_lyrics`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocesskaraoke") {
-                document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocesschords") {
-                document.getElementById(`fld_${id}_flag_chords`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocesslyricsbt") {
-                document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocesskaraokebt") {
-                document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocesschordsbt") {
-                document.getElementById(`fld_${id}_flag_chordsbt`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocessall") {
-                document.getElementById(`fld_${id}_flag_lyrics`).style.backgroundColor = "#FFFF00";
-                document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
-                document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
-                document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
-            } else if (link === "doprocessallwolyrics") {
-                document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
-                document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
-                document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
-            }
+            // BR-217: индикатор жёлтым ставится ТОЛЬКО после успешного ответа.
+            // Раньше он красился сразу после `send()`, и при 404/500/таймауте
+            // страница показывала «запущено» при неудачном запросе.
+            getText("/song/" + id + "/" + link, function () {
+                if (link === "doprocesslyrics") {
+                    document.getElementById(`fld_${id}_flag_lyrics`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocesskaraoke") {
+                    document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocesschords") {
+                    document.getElementById(`fld_${id}_flag_chords`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocesslyricsbt") {
+                    document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocesskaraokebt") {
+                    document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocesschordsbt") {
+                    document.getElementById(`fld_${id}_flag_chordsbt`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocessall") {
+                    document.getElementById(`fld_${id}_flag_lyrics`).style.backgroundColor = "#FFFF00";
+                    document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
+                    document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
+                    document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
+                } else if (link === "doprocessallwolyrics") {
+                    document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
+                    document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
+                    document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
+                }
+            });
         }
 
 
@@ -2094,15 +1978,21 @@
                 url: `/song/${id}/${name}`,
                 data: "",
                 success: function (data) {
-                }
+                },
+                error: function (xhr, status, error) {
+                    reportAjaxError("операция", xhr, status, error);
+                },
             });
         }
 
         function updateSettingsFromMessage(recordchange) {
-            var id = recordchange.recordChangeId;
-            var table = recordchange.recordChangeTableName;
-            var diffs = recordchange.recordChangeDiffs;
-            if (table === 'tbl_settings') {
+            // BR-216: ключи payload — `recordId`/`tableName`/`diffs`
+            // (RecordChangeMessage), а не `recordChange*`; имя таблицы песен —
+            // `tbl_songs` (переименование `tbl_settings` → `tbl_songs`, миграция 28).
+            var id = recordchange.recordId;
+            var table = recordchange.tableName;
+            var diffs = recordchange.diffs || [];
+            if (table === 'tbl_songs') {
 
                 var idRow = `row${id}`;
                 var idCurrentRow = "";
@@ -2368,60 +2258,61 @@
         }
 
         function updateProcessesFromMessage(recordchange) {
-            var id = recordchange.recordChangeId;
-            var table = recordchange.recordChangeTableName;
-            var diffs = recordchange.recordChangeDiffs;
-            if (table === 'tbl_processes') {
-                if (id === 0) {
+            // BR-216: ключи payload — `recordId`/`tableName`/`diffs` (RecordChangeMessage),
+            // а не `recordChange*`.
+            var id = recordchange.recordId;
+            var table = recordchange.tableName;
+            if (table !== 'tbl_processes') return;
+            if (id === 0) return;
 
-                } else {
-                    var processName = "";
-                    var processType = "";
-                    var processPassed = "";
-                    var processLeft = "";
-                    var processPercentage = "";
+            // Сервер шлёт изменения процессов с ПУСТЫМ `diffs`
+            // (`KaraokeProcess`: `diffs = emptyList()`), актуальное состояние задания —
+            // в `record` (KaraokeProcessDTO). Раньше обработчик читал diff'ы, которых
+            // в payload нет, — прогресс-бар не двигался никогда.
+            var record = recordchange.record || {};
+            var diffs = recordchange.diffs || [];
 
-                    diffs.forEach((diff) => {
-                        var recordDiffName = diff.recordDiffName;
-                        var recordDiffValueNew = diff.recordDiffValueNew;
-                        switch (recordDiffName) {
+            var processName = record.name !== undefined ? record.name : "";
+            var processType = record.type !== undefined ? record.type : "";
+            var processLeft = record.timeLeftStr !== undefined ? record.timeLeftStr : "";
+            var processPercentage = record.percentage !== undefined ? record.percentage : "";
 
-                            case 'process_name':
-                                processName = recordDiffValueNew;
-                                break;
+            // Совместимость с payloads, где изменения всё-таки приходят diff'ами.
+            diffs.forEach(function (diff) {
+                var recordDiffName = diff.recordDiffName;
+                var recordDiffValueNew = diff.recordDiffValueNew;
+                switch (recordDiffName) {
 
-                            case 'process_type':
-                                processType = recordDiffValueNew;
-                                break;
+                    case 'process_name':
+                        processName = recordDiffValueNew;
+                        break;
 
-                            case 'percentageNum':
-                                processPercentage = recordDiffValueNew;
-                                break;
+                    case 'process_type':
+                        processType = recordDiffValueNew;
+                        break;
 
-                            case 'timePassedStr':
-                                processPassed = recordDiffValueNew;
-                                break;
+                    case 'percentageNum':
+                        processPercentage = recordDiffValueNew;
+                        break;
 
-                            case 'timeLeftStr':
-                                processLeft = recordDiffValueNew;
-                                break;
+                    case 'timePassedStr':
+                        break;
 
-                            default:
-                        }
+                    case 'timeLeftStr':
+                        processLeft = recordDiffValueNew;
+                        break;
 
-                    });
-
-                    var processText = `${processName} /${processType}/ [${processLeft}]`
-                    var processProgressBarText = `${processPercentage}%`
-                    var elemProcessText = document.getElementById("process_text");
-                    var elemProcessProgressBar = document.getElementById("process_progress_bar");
-                    elemProcessText.innerText = processText;
-                    elemProcessProgressBar.innerText = processProgressBarText;
-                    elemProcessProgressBar.style.width = processProgressBarText;
-
+                    default:
                 }
+            });
 
-            }
+            var processText = `${processName} /${processType}/ [${processLeft}]`
+            var processProgressBarText = `${processPercentage}%`
+            var elemProcessText = document.getElementById("process_text");
+            var elemProcessProgressBar = document.getElementById("process_progress_bar");
+            elemProcessText.innerText = processText;
+            elemProcessProgressBar.innerText = processProgressBarText;
+            elemProcessProgressBar.style.width = processProgressBarText;
         }
 
         $(function () {
@@ -2431,12 +2322,13 @@
         function getSongPictureAlbum() {
             if (prev_album !== el_album.value) {
                 var id = el_id.value;
-                var request = new XMLHttpRequest();
-                request.open('GET', "/song/" + id + "/picturealbum", false);
-                request.send();
-                if (request.status === 200) {
-                    el_image_album.src = 'data:image/gif;base64,' + request.responseText;
-                }
+                getText("/song/" + id + "/picturealbum", function (result) {
+                    // BR-218: запрос асинхронный — за это время пользователь мог
+                    // выбрать другую строку. Ответ для прежней песни не должен
+                    // попасть в картинку новой.
+                    if (el_id.value !== id) return;
+                    el_image_album.src = 'data:image/gif;base64,' + result;
+                });
             }
         }
 
@@ -2444,12 +2336,13 @@
         function getSongPictureAuthor() {
             if (prev_author !== el_author.value) {
                 var id = el_id.value;
-                var request = new XMLHttpRequest();
-                request.open('GET', "/song/" + id + "/pictureauthor", false);
-                request.send();
-                if (request.status === 200) {
-                    el_image_author.src = 'data:image/gif;base64,' + request.responseText;
-                }
+                getText("/song/" + id + "/pictureauthor", function (result) {
+                    // BR-218: запрос асинхронный — за это время пользователь мог
+                    // выбрать другую строку. Ответ для прежней песни не должен
+                    // попасть в картинку новой.
+                    if (el_id.value !== id) return;
+                    el_image_author.src = 'data:image/gif;base64,' + result;
+                });
             }
         }
 

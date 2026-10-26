@@ -47,6 +47,37 @@ object WhisperAsrService {
     private val log = LoggerFactory.getLogger("infra.whisper.asr")
 
     /**
+     * BR-154 (аудит #336, OpenProject #409): HTTP-клиент ASR — один на процесс.
+     *
+     * Раньше `transcribeDetailed` создавал новый `OkHttpClient` на КАЖДЫЙ вызов:
+     * вместе с ним поднимались собственный connection pool и dispatcher, которые
+     * не переиспользовались между запросами. Клиент кэшируется по таймауту — при
+     * смене `whisperTimeoutMs` в админке он пересоздаётся (таймаут остаётся
+     * управляемым), при неизменном — переиспользуется.
+     */
+    @Volatile private var cachedClient: OkHttpClient? = null
+
+    @Volatile private var cachedTimeoutMs: Long = 0L
+
+    private fun httpClient(timeoutMs: Long): OkHttpClient {
+        cachedClient?.let { if (cachedTimeoutMs == timeoutMs) return it }
+        synchronized(this) {
+            cachedClient?.let { if (cachedTimeoutMs == timeoutMs) return it }
+            val client =
+                OkHttpClient
+                    .Builder()
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .build()
+            cachedTimeoutMs = timeoutMs
+            cachedClient = client
+            return client
+        }
+    }
+
+    /**
      * BR-159: результат выравнивания ASR с причиной.
      *
      * `null` — сервис не настроен (нет URL или нет файла) — это НЕ ошибка.
@@ -116,14 +147,7 @@ object WhisperAsrService {
         val apiKey = KaraokeProperties.getString("whisperApiKey")
         val language = KaraokeProperties.getString("whisperLanguage").ifBlank { "ru" }
 
-        val client =
-            OkHttpClient
-                .Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .build()
+        val client = httpClient(timeoutMs)
 
         val mediaType = "audio/flac".toMediaTypeOrNull()
         val requestBody =

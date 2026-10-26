@@ -1,4 +1,4 @@
 select distinct song_author
-from public.tbl_settings
+from public.tbl_songs
 where id_sponsr <> '' and tags not like '%+%'
 order by song_author

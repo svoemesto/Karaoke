@@ -5,7 +5,9 @@ import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import org.slf4j.LoggerFactory
 import java.io.Serializable
 import java.sql.Timestamp
 
@@ -87,6 +89,8 @@ class SongAssignment(
     companion object {
         const val TABLE_NAME = "tbl_song_assignments"
 
+        private val log = LoggerFactory.getLogger(SongAssignment::class.java)
+
         fun loadByAssignee(
             assigneeId: Long,
             database: KaraokeConnection,
@@ -136,6 +140,44 @@ class SongAssignment(
                     storageApiClient = storageApiClient,
                 ).map { it as SongAssignment }
                 .sorted()
+
+        /**
+         * BR-221 (аудит #336, OpenProject #409): задания для админского диджеста —
+         * фильтры применяются В SQL, а не в памяти после полной загрузки.
+         *
+         * Раньше `SongEditorController.digest` загружал ВСЕ назначения и уже потом
+         * отсеивал их по `assigneeId` и по автору песни — на каждый рендер таблицы
+         * это полный скан `tbl_song_assignments` (а с автором — ещё и `tbl_songs`).
+         *
+         * @param assigneeId назначение конкретному пользователю (`assignee_id`).
+         * @param authorLike подстрока автора песни (`song_author` через подзапрос).
+         */
+        fun loadList(
+            assigneeId: Long?,
+            authorLike: String?,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SongAssignment> {
+            val where = mutableListOf<String>()
+            assigneeId?.let { where += "assignee_id=$it" }
+            authorLike
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    val safe = it.replace("'", "''")
+                    where += "song_id IN (SELECT id FROM tbl_songs WHERE LOWER(song_author) LIKE '%${safe.lowercase()}%')"
+                }
+            return KaraokeDbTable
+                .loadList(
+                    clazz = SongAssignment::class,
+                    tableName = TABLE_NAME,
+                    whereList = where,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SongAssignment }
+                .sorted()
+        }
 
         fun getById(
             id: Long,
@@ -196,6 +238,84 @@ class SongAssignment(
         /** Одно предпочтительное назначение из списка (BR-128). */
         internal fun preferredAssignment(list: List<SongAssignment>): SongAssignment? =
             list.minWithOrNull(preferredAssignmentOrder)
+
+        /**
+         * BR-223 (аудит #336, OpenProject #409): **атомарный** переход статуса
+         * задания в `approved`.
+         *
+         * Раньше защита от повторного апрува была check-then-act: контроллер
+         * читал `admin_status`, и если он ещё не `approved` — применял разметку,
+         * пушил песню на SERVER и ставил процесс `RENDER_MP4_DEMO`. Два
+         * параллельных запроса (двойной клик по «Одобрить» или ретрай после
+         * таймаута — апрув делает синхронный push) оба проходили проверку и оба
+         * запускали тяжёлый рендер.
+         *
+         * Теперь переход — одна SQL-команда с условием
+         * `admin_status <> 'approved'`: ровно один вызов обновляет строку,
+         * остальные получают `false` (задание уже одобрено).
+         *
+         * @param previousStatus прежнее значение `admin_status` — для SSE-diff.
+         * @return `true` — переход выполнен этим вызовом; `false` — задание уже
+         *   было одобрено (гонка выиграна другим запросом) либо нет соединения.
+         */
+        fun markApprovedIfNotApproved(
+            id: Long,
+            reviewedAt: Timestamp,
+            previousStatus: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Boolean {
+            val connection = database.getConnection() ?: return false
+            val sql =
+                "UPDATE $TABLE_NAME SET admin_status = ?, reviewed_at = ?, review_comment = '' " +
+                    "WHERE id = ? AND admin_status <> ?"
+            val updated =
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setString(1, SongAssignmentStatus.ADMIN_APPROVED)
+                    ps.setTimestamp(2, reviewedAt)
+                    ps.setLong(3, id)
+                    ps.setString(4, SongAssignmentStatus.ADMIN_APPROVED)
+                    ps.executeUpdate()
+                }
+            if (updated <= 0) return false
+            // SSE-уведомление — как в KaraokeDbTable.save(), иначе подписчики
+            // (recordChange) не увидят смену статуса.
+            try {
+                val saved =
+                    KaraokeDbTable.loadById(
+                        clazz = SongAssignment::class,
+                        tableName = TABLE_NAME,
+                        id = id,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                SNS.send(
+                    SseNotification.recordChange(
+                        RecordChangeMessage(
+                            tableName = TABLE_NAME,
+                            recordId = id,
+                            diffs =
+                                listOf(
+                                    RecordDiff(
+                                        "admin_status",
+                                        SongAssignmentStatus.ADMIN_APPROVED,
+                                        previousStatus,
+                                    ),
+                                ),
+                            databaseName = database.name,
+                            record = saved?.toDTO(),
+                        ),
+                    ),
+                )
+            } catch (e: Exception) {
+                // SNS в unit-тестах не инициализирован (lateinit) — это не повод
+                // откатывать уже выполненный переход статуса.
+                log.warn("Не удалось разослать SSE recordChange для {}: {}", TABLE_NAME, e.message, e)
+            }
+            return true
+        }
 
         // Композитный статус для набора песен (батчем: assignment + его draft), переиспользуется и
         // статус-эндпоинтом для таблицы/карточки песни, и фильтром /api/songsdigests — единая точка

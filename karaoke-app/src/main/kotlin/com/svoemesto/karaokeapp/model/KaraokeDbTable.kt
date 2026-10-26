@@ -486,6 +486,7 @@ interface KaraokeDbTable {
             sync: Boolean = false,
             ignoreUseInList: Boolean = false,
             throwOnError: Boolean = false,
+            orderBy: String? = null,
         ): List<KaraokeDbTable> =
             loadListInternal(
                 clazz = clazz,
@@ -499,6 +500,7 @@ interface KaraokeDbTable {
                 sync = sync,
                 ignoreUseInList = ignoreUseInList,
                 throwOnError = throwOnError,
+                orderBy = orderBy,
             )
 
         fun loadList(
@@ -513,6 +515,7 @@ interface KaraokeDbTable {
             sync: Boolean = false,
             ignoreUseInList: Boolean = false,
             throwOnError: Boolean = false,
+            orderBy: String? = null,
         ): List<KaraokeDbTable> =
             loadListInternal(
                 clazz = clazz,
@@ -526,6 +529,7 @@ interface KaraokeDbTable {
                 sync = sync,
                 ignoreUseInList = ignoreUseInList,
                 throwOnError = throwOnError,
+                orderBy = orderBy,
             )
 
         @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -541,6 +545,7 @@ interface KaraokeDbTable {
             sync: Boolean,
             ignoreUseInList: Boolean,
             throwOnError: Boolean = false,
+            orderBy: String? = null,
         ): List<KaraokeDbTable> {
             val connection = database.getConnection()
             if (connection == null) {
@@ -585,6 +590,11 @@ interface KaraokeDbTable {
                 sql = "$sqlSelect $sqlFrom"
 
                 if (!where.isEmpty) sql += " WHERE ${where.joinToString(" AND ")}"
+                // BR-221 (аудит #336, OpenProject #409): детерминированный порядок для
+                // серверной пагинации. Без ORDER BY строки приходят в произвольном
+                // порядке, и страницы перекрываются/пропускают записи.
+                // ВНИМАНИЕ: значение — КОНСТАНТА из кода, не пользовательский ввод.
+                if (!orderBy.isNullOrBlank()) sql += " ORDER BY $orderBy"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 

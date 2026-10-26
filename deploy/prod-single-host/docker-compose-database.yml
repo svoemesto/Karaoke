@@ -27,6 +27,15 @@ services:
       - ssl_cert_file=${DB_SSL_CERT_FILE:-/certs/postgres/server.crt}
       - -c
       - ssl_key_file=${DB_SSL_KEY_FILE:-/certs/postgres/server.key}
+      # BR-606 (аудит #336, P1-операционка): приложение держит соединение на поток
+      # (ThreadLocal, ADR-0001) и закрывает его только при завершении потока.
+      # Пул Tomcat и Dispatchers.IO создают/уничтожают потоки — часть соединений не
+      # закрывается, счётчик растёт. На дефолтных max_connections=100 боевая БД
+      # исчерпывает лимит («sorry, too many clients already») → очередь встаёт,
+      # планировщики не читают БД, сайт отдаёт 5xx. 300 — страховка; настоящее
+      # решение (закрывать соединение при смерти потока) — отдельная задача.
+      - -c
+      - max_connections=${DB_MAX_CONNECTIONS:-300}
     ports:
       - "127.0.0.1:${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера
     networks:

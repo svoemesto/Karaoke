@@ -497,7 +497,7 @@ BR-495,P-69,DATA,S3,alignment-ml/train.py,271,280,train-data-loss:alignment,ис
 BR-496,P-69,DATA,S3,alignment-ml/chunking.py,26,28,chunk-boundary:alignment,исправлено,lead-verified,392
 BR-497,P-69,BUILD,S3,alignment-ml/start_trainig.sh,1,4,train-script:alignment,исправлено,lead-verified,392
 BR-498,P-69,BUILD,S3,alignment-ml/requirements.txt,1,3,pinned-deps:alignment,исправлено,lead-verified,392
-BR-499,P-41,BUILD,S3,karaoke-db/gradle/wrapper/gradle-wrapper.properties,3,3,gradle-wrapper-outdated:build,TODO,lead-verified,406
+BR-499,P-41,BUILD,S3,karaoke-db/gradle/wrapper/gradle-wrapper.properties,3,3,gradle-wrapper-outdated:build,исправлено,lead-verified,406
 BR-500,P-39,COMPAT,S2,karaoke-web/src/main/resources/templates/statbysong.html,207,209,statbysong-field-missing:templates,исправлено,lead-verified,378
 BR-501,P-39,ERR,S3,karaoke-web/src/main/resources/templates/song.html,4,4,null-song-500:templates,исправлено,lead-verified,401
 BR-502,P-39,ERR,S3,karaoke-web/src/main/resources/templates/filter.html,479,482,null-field-author:templates,исправлено,lead-verified,401
@@ -525,10 +525,10 @@ BR-523,P-50,TEST,S3,karaoke-public/src/composables/__tests__/formatText.test.js,
 BR-524,P-50,TEST,S3,karaoke-public/e2e/public-editor.spec.js,44,58,bundle-text-assertion:test,исправлено,lead-verified,387
 BR-525,P-50,TEST,S3,karaoke-public/e2e/public-editor.spec.js,15,28,e2e-not-in-ci:test,исправлено,lead-verified,387
 BR-526,P-29,SEC,S3,karaoke-app/src/main/resources/test.xml,1,463,pii-fixture-in-jar:resources,исправлено,lead-verified,398
-BR-527,P-74,BUILD,S3,build.gradle.kts,45,45,jackson-version-skew:build,TODO,lead-verified,406
-BR-528,P-74,BUILD,S3,gradle/wrapper/gradle-wrapper.properties,1,7,gradle-wrapper-no-checksum:build,TODO,lead-verified,406
-BR-529,P-74,SEC,S3,gradle.properties,9,9,heap-dump-world-readable:build,TODO,lead-verified,406
-BR-530,P-74,BUILD,S3,build.gradle.kts,34,68,dead-duplicate-build-config:build,TODO,lead-verified,406
+BR-527,P-74,BUILD,S3,build.gradle.kts,45,45,jackson-version-skew:build,исправлено,lead-verified,406
+BR-528,P-74,BUILD,S3,gradle/wrapper/gradle-wrapper.properties,1,7,gradle-wrapper-no-checksum:build,исправлено,lead-verified,406
+BR-529,P-74,SEC,S3,gradle.properties,9,9,heap-dump-world-readable:build,исправлено,lead-verified,406
+BR-530,P-74,BUILD,S3,build.gradle.kts,34,68,dead-duplicate-build-config:build,исправлено,lead-verified,406
 BR-531,P-34,SEC,S3,karaoke-app/src/test/kotlin/Правильный.xml,1,1887,local-paths-fixture-in-repo:test,исправлено,lead-verified,398
 BR-532,P-30,TEST,S3,karaoke-app/src/test/kotlin/com/svoemesto/PlaywrightTests.kt,15,20,manual-playwright-in-test-set:test,исправлено,lead-verified,386
 BR-533,P-71,DATA,S2,deploy/karaoke-db/31_entity_description_fields.sql,72,74,sync-table-missing-columns:db,исправлено,lead-verified,363

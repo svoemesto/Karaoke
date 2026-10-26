@@ -10,10 +10,10 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageCircuitBreaker
 import com.svoemesto.karaokeapp.services.StorageFileInfo
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.concurrent.thread
 
 /**
  * Pass 435 (#159) + Pass 448 (#181): backfill/актуализация `etag`/`size` в
@@ -72,7 +72,12 @@ fun backfillCacheEtagSize(
 ): String {
     if (!cacheBackfillInProgress.compareAndSet(false, true)) return "ALREADY_RUNNING"
 
-    thread {
+    // Одноразовый фоновый поток: канонический `startOneShotThread` закрывает
+    // thread-local соединение потока в `finally` при любом исходе (успех/исключение).
+    // Экземпляр БД — тот же, что использует выборка строк (`Connection.local()`),
+    // иначе закрывался бы не тот thread-local кеш (BR-627, аудит #336,
+    // OpenProject #410).
+    startOneShotThread(Connection.local(), "cache-etag-size-backfill") {
         try {
             val cache =
                 HealthReport.storageMetadataCache

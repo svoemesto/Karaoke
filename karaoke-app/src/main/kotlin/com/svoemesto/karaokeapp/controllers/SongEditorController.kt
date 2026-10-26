@@ -24,9 +24,9 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.RenderVersion
 import com.svoemesto.karaokeapp.services.WhisperAsrService
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import com.svoemesto.karaokeapp.updateRemoteDatabaseFromLocalDatabase
 import com.svoemesto.karaokeapp.updateRemoteSongFromLocalDatabase
-import kotlin.concurrent.thread
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -552,8 +552,19 @@ class SongEditorController(
                 // idStatus=5 не имеет смысла (картинки/авторы на проде могли уже обновиться через
                 // предыдущие операции, дублирующий sync — лишний шум).
                 println("[approve/feature-131] US2 — sync-related thread SCHEDULED for songId=${song.id}")
+                // Одноразовый фоновый поток: канонический `startOneShotThread` закрывает
+                // thread-local соединение потока в `finally` при любом исходе (успех/исключение).
+                // Сырой `kotlin.concurrent.thread` здесь оставлял канал к БД висеть до
+                // финализации сборщиком мусора (BR-627, аудит #336, OpenProject #410).
+                // Синхронизация related-таблиц ходит в ДВЕ БД (LOCAL и SERVER, см.
+                // updateRemoteDatabaseFromLocalDatabase) — у каждого экземпляра
+                // KaraokeConnection свой thread-local кеш, поэтому закрываем оба.
                 if (song.idStatus >= 6L) {
-                    thread {
+                    startOneShotThread(
+                        database = WORKING_DATABASE,
+                        name = "approve-sync-related",
+                        alsoClose = listOf(Connection.remote()),
+                    ) {
                         println("[approve/sync-related] thread START for songId=${song.id}")
                         try {
                             val syncRelatedStart = System.currentTimeMillis()

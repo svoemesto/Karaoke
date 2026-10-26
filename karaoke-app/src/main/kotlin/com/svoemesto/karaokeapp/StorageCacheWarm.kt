@@ -10,9 +10,9 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageCircuitBreaker
 import com.svoemesto.karaokeapp.services.StorageFileInfo
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.concurrent.thread
 
 /**
  * Спека #449 (#182): полный прогрев persistent-кеша хранилища.
@@ -56,7 +56,12 @@ fun warmStorageCache(
 ): String {
     if (!cacheWarmInProgress.compareAndSet(false, true)) return "ALREADY_RUNNING"
 
-    thread {
+    // Одноразовый фоновый поток: канонический `startOneShotThread` закрывает
+    // thread-local соединение потока в `finally` при любом исходе (успех/исключение).
+    // Сырой `kotlin.concurrent.thread` здесь закрывал соединение вручную внутри тела
+    // (`use { }` в loadSongsForWarm) — то есть при исключении до этой строки канал
+    // оставался висеть (BR-627, аудит #336, OpenProject #410).
+    startOneShotThread(database, "cache-warm") {
         try {
             val cache =
                 HealthReport.storageMetadataCache

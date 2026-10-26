@@ -3,7 +3,7 @@
 > **Issue**: OpenProject #406 · **Пакет**: `PKG-S3-34` · **Волна**: E ·
 > **Аудит**: #336 · **Severity**: S3 · **Ветка**: `640-pkg-s3-34` ·
 > **Worktree**: `/home/nsa/Karaoke/.worktrees/waveE-s3-34`
-> **Коммит**: `f129315a4b42e88628cfaa5a302e5adeb962116d`
+> **Коммит (реализация)**: `4464309b36f6cd2595caa6bf723ba01509a44bc9` (PR #744 → merge `53c0c5b5`)
 > **Per-feature документ**: [`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md)
 > **SSoT**: [`knowledge/guidelines/architecture-conventions.md` § R-46](../../knowledge/guidelines/architecture-conventions.md),
 > [`knowledge/system/infra/ci-tools.md`](../../knowledge/system/infra/ci-tools.md)
@@ -338,7 +338,7 @@ org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError 
 
 ## Хэши
 
-**Коммит:** `f129315a4b42e88628cfaa5a302e5adeb962116d` (ветка `640-pkg-s3-34`).
+**Коммит (реализация):** `4464309b36f6cd2595caa6bf723ba01509a44bc9` (ветка `640-pkg-s3-34`, PR #744, merge в master — `53c0c5b5`).
 
 **Контрольные суммы файлов (sha256):**
 

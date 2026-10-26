@@ -64,3 +64,6 @@ knowledge/guidelines/architecture-conventions.md	path	karaoke-app/src/main/resou
 docs/features/pkg-s3-34.md	path	pom.xml	honest-gap
 knowledge/guidelines/architecture-conventions.md	path	pom.xml	honest-gap
 knowledge/system/infra/ci-tools.md	path	pom.xml	honest-gap
+archive/docs/features/songs-table.md	path	songs.html	archived-record
+archive/docs/features/songs-table.md	path	songs2.html	archived-record
+archive/docs/features/songs-table.md	path	area_left_column.html	archived-record

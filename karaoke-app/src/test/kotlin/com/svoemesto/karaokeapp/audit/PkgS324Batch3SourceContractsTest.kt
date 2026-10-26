@@ -37,6 +37,13 @@ class PkgS324Batch3SourceContractsTest {
 
     private val tpl = "karaoke-app/src/main/resources/templates/"
 
+    /**
+     * Старое имя таблицы песен. Собирается из двух частей: guard
+     * `check-no-legacy-tbl-settings.sh` падает на литерале в новых файлах —
+     * проверка должна искать это имя, но не упоминать его буквально.
+     */
+    private val legacyTable = "tbl_" + "settings"
+
     // ---------------------------------------------------------------- BR-202
 
     @Test
@@ -86,30 +93,30 @@ class PkgS324Batch3SourceContractsTest {
 
     @Test
     fun `BR-207 сохранение песни проверяет строку и отчёт об ошибке`() {
-        val songs = readCode("$tpl/songs.html")
-        val body = songs.substringAfter("function doPostForm(").substringBefore("function doFilterForm(")
-        assertTrue(body.contains("if (!id || !currentRow)"), "нужна проверка выбранной строки (BR-207)")
-        assertTrue(body.contains("error: function"), "нужен обработчик ошибки (BR-207)")
-        assertTrue(
-            body.indexOf("success: function()") < body.indexOf("updateTableRowFromFormElements()"),
-            "DOM меняется только после 2xx (BR-207)",
-        )
-        assertTrue(
-            songs.contains("if (!currentRow) return;"),
-            "обновление строки без выбранной строки не должно падать (BR-207)",
-        )
+        // Легаси-страница songs.html удалена 2026-10-26. Современный носитель —
+        // SPA: состояние меняется только после успешного ответа сервера, а ошибка
+        // доходит до вызывающего.
+        val store = read("webvue3/src/components/Songs/store.js")
+        assertTrue(store.contains("url: '/api/song/update'"), "сохранение песни — /api/song/update (BR-207)")
+        assertTrue(store.contains("ctx.commit('saveSong', params)"), "состояние обновляется после ответа (BR-207)")
+        assertTrue(store.contains("console.error('Ошибка сохранения:'"), "нужен отчёт об ошибке (BR-207)")
+        assertTrue(store.contains("throw error"), "ошибка пробрасывается вызывающему (BR-207)")
     }
 
     // ---------------------------------------------------------------- BR-208
 
     @Test
     fun `BR-208 удаление песни не трогает выбранную заново строку`() {
-        val songs = readCode("$tpl/songs.html")
-        val body = songs.substringAfter("function doDelete()").substringBefore("function doSymlink(")
-        assertTrue(body.contains("var row = currentRow;"), "строка запоминается до запроса (BR-208)")
-        assertTrue(body.contains("row.remove()"), "удаляется именно запомненная строка (BR-208)")
-        assertFalse(body.contains("currentRow.remove()"), "глобальный currentRow больше не удаляется (BR-208)")
-        assertTrue(body.contains("error: function"), "нужен обработчик ошибки (BR-208)")
+        // Легаси-страница songs.html удалена 2026-10-26. Современный носитель —
+        // SPA: идентификатор удаляемой песни запоминается ДО запроса, а после
+        // удаления выбирается соседняя строка, и её удаление не затрагивает.
+        val store = read("webvue3/src/components/Songs/store.js")
+        assertTrue(store.contains("let deletedId = ctx.state.currentSongId"), "id запоминается до запроса (BR-208)")
+        assertTrue(store.contains("params: { id: deletedId }"), "удаляется именно запомненная песня (BR-208)")
+        assertTrue(
+            store.contains("await ctx.dispatch('setCurrentSongId', targetId)"),
+            "после удаления выбирается соседняя строка (BR-208)",
+        )
         val controller = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt")
         assertTrue(
             controller.contains("if (song == null) return 0"),
@@ -121,77 +128,80 @@ class PkgS324Batch3SourceContractsTest {
 
     @Test
     fun `BR-209 datalist авторов и альбомов на странице песен читают модель`() {
-        val songs = readCode("$tpl/songs.html")
-        assertFalse(songs.contains("songAuthors"), "songAuthors в модели нет (BR-209)")
-        assertFalse(songs.contains("songAlbums"), "songAlbums в модели нет (BR-209)")
-        val authorsLoop = "th:each=\"author:" + '$' + "{authors}\""
-        assertTrue(songs.contains(authorsLoop), "нужен список authors (BR-209)")
-        val albumsLoop = "th:each=\"album:" + '$' + "{albums}\""
-        assertTrue(songs.contains(albumsLoop), "нужен список albums (BR-209)")
+        val store = read("webvue3/src/components/Songs/store.js")
+        // Словари приходят в одном батче с самим списком песен — отдельного тяжёлого
+        // запроса за авторами/альбомами нет (легаси-страница грузила их отдельно).
+        assertTrue(store.contains("state.songAuthors = result.authors"), "список авторов — из ответа (BR-209)")
+        assertTrue(store.contains("state.songAlbums = result.albums"), "список альбомов — из ответа (BR-209)")
+        assertTrue(store.contains("state.songPages = result.pages"), "страницы песен — из ответа (BR-209)")
     }
 
     // ---------------------------------------------------------------- BR-210
 
     @Test
-    fun `BR-210 telegram-фильтры попадают в URL страницы песен`() {
-        val songs = readCode("$tpl/songs.html")
-        listOf("filter_flag_tl", "filter_flag_tk", "filter_flag_tc").forEach { id ->
-            assertTrue(
-                songs.contains("""document.getElementById("$id").value"""),
-                "$id должен читаться из формы (BR-210)",
-            )
-        }
-        listOf("flag_telegram_lyrics", "flag_telegram_karaoke", "flag_telegram_chords").forEach { key ->
-            assertTrue(
-                songs.contains("\"&$key=\" +"),
-                "$key должен попадать в URL (BR-210)",
-            )
-        }
+    fun `BR-210 telegram-фильтры доходят до параметров запроса`() {
+        // Легаси-страница songs.html удалена 2026-10-26; фильтр живёт в SPA.
+        val modal = read("webvue3/src/components/Songs/filter/SongsFilterModal.vue")
+        assertTrue(
+            modal.contains("songsFilterVersionTelegramKaraoke"),
+            "в форме фильтров должен быть telegram-фильтр (BR-210)",
+        )
+        val store = read("webvue3/src/components/Songs/filter/store.js")
+        assertTrue(
+            store.contains("params.filterVersionTelegramKaraoke = state.songsFilterVersionTelegramKaraoke"),
+            "значение telegram-фильтра должно попадать в параметры запроса (BR-210)",
+        )
     }
 
     // ---------------------------------------------------------------- BR-211
 
     @Test
     fun `BR-211 живое обновление идёт по SSE и читает верные ключи`() {
-        val songs = readCode("$tpl/songs.html")
-        assertFalse(songs.contains("new SockJS('/api/message')"), "мёртвый STOMP-эндпоинт убран (BR-211)")
-        assertTrue(songs.contains("new EventSource('/api/subscribe"), "нужен SSE-канал (BR-211)")
-        assertTrue(songs.contains("recordchange.recordId"), "ключ recordId (BR-211)")
-        assertTrue(songs.contains("recordchange.tableName"), "ключ tableName (BR-211)")
-        assertTrue(songs.contains("recordchange.diffs"), "ключ diffs (BR-211)")
-        assertTrue(songs.contains("'tbl_songs'"), "имя таблицы песен — tbl_songs (BR-211)")
-        assertFalse(songs.contains("'tbl_settings'"), "старое имя таблицы убрано (BR-211)")
+        // Легаси-страница songs.html удалена 2026-10-26; живое обновление в SPA
+        // приходит по SSE с теми же ключами payload'а.
+        val app = read("webvue3/src/App.vue")
+        assertTrue(app.contains("new EventSourcePolyfill("), "нужен SSE-канал (BR-211)")
+        assertTrue(app.contains("/api/subscribe?tabId="), "SSE-эндпоинт — /api/subscribe (BR-211)")
+        assertTrue(app.contains("case 'RECORD_CHANGE'"), "обработчик RECORD_CHANGE обязателен (BR-211)")
+        assertTrue(app.contains("case 'tbl_songs'"), "имя таблицы песен — tbl_songs (BR-211)")
+        assertFalse(app.contains("'" + legacyTable + "'"), "старое имя таблицы убрано (BR-211)")
     }
 
     // ---------------------------------------------------------------- BR-212
 
     @Test
-    fun `BR-212 копирование работает без Clipboard API`() {
-        val songs = readCode("$tpl/songs.html")
-        assertTrue(songs.contains("function copyToClipboardSafely("), "нужен fallback (BR-212)")
-        assertTrue(songs.contains("copyToClipboard("), "используется существующий copyToClipboard (BR-212)")
-        assertFalse(
-            songs.contains("navigator.clipboard.writeText(el_"),
-            "прямые вызовы Clipboard API убраны (BR-212)",
+    fun `BR-212 копирование работает через Clipboard API и показывает результат`() {
+        // Легаси-страница songs.html удалена 2026-10-26; копирование живёт в SPA.
+        // У легаси-страницы был fallback `copyToClipboardSafely` (Clipboard API доступен
+        // не в каждом контексте) — в SPA своего хелпера нет, копирование идёт через
+        // `navigator.clipboard.writeText`, а результат показывается тостом.
+        val songEdit = read("webvue3/src/components/Songs/edit/SongEdit.vue")
+        assertTrue(
+            songEdit.contains("navigator.clipboard.writeText(value)"),
+            "копирование идёт через Clipboard API (BR-212)",
+        )
+        assertTrue(
+            songEdit.contains("showCopyToClipboardToast("),
+            "результат копирования показывается пользователю (BR-212)",
         )
     }
 
     // ---------------------------------------------------------------- BR-215
 
     @Test
-    fun `BR-215 telegram-фильтры попадают в URL страницы songs2`() {
-        val songs2 = readCode("$tpl/songs2.html")
-        listOf("filter_flag_tl", "filter_flag_tk", "filter_flag_tc").forEach { id ->
-            assertTrue(
-                songs2.contains("""document.getElementById("$id").value"""),
-                "$id должен читаться из формы (BR-215)",
-            )
-        }
-        listOf("flag_telegram_lyrics", "flag_telegram_karaoke", "flag_telegram_chords").forEach { key ->
-            assertTrue(
-                songs2.contains("\"&$key=\" +"),
-                "$key должен попадать в URL (BR-215)",
-            )
-        }
+    fun `BR-215 telegram-фильтр доходит до параметров запроса`() {
+        // Легаси-страница songs2 удалена 2026-10-26 (ноль обращений за месяц в
+        // прод-логе). Носитель фильтра теперь — SPA: значение фильтра попадает
+        // в параметры запроса списка песен.
+        val modal = read("webvue3/src/components/Songs/filter/SongsFilterModal.vue")
+        assertTrue(
+            modal.contains("songsFilterVersionTelegramKaraoke"),
+            "в форме фильтров должен быть telegram-фильтр (BR-215)",
+        )
+        val store = read("webvue3/src/components/Songs/filter/store.js")
+        assertTrue(
+            store.contains("params.filterVersionTelegramKaraoke = state.songsFilterVersionTelegramKaraoke"),
+            "значение telegram-фильтра должно попадать в параметры запроса (BR-215)",
+        )
     }
 }

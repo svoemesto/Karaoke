@@ -78,16 +78,18 @@ class PkgS212SourceContractsTest {
 
     @Test
     fun `BR-206 и BR-214 списки песен грузятся страницей, а не целиком`() {
+        // Легаси-страницы песен (`/songs`, `/songs2`) удалены 2026-10-26: ноль
+        // обращений за месяц в прод-логе, возможности перенесены в SPA. Современный
+        // контракт пагинации — API-списки: limit задаётся фильтром и валидируется.
+        val apiController =
+            read("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt")
+        assertTrue(apiController.contains("args[\"filter_limit\"] = parsed.toString()"))
+        assertTrue(apiController.contains("Некорректный filterLimit"))
+        // Страницы не должны вернуться: они мертвы и тянут за собой шаблоны.
         val controller = read(mainController)
-        assertTrue(controller.contains("args[\"limit\"] = (LEGACY_PAGE_SIZE + 1).toString()"))
-        assertTrue(controller.contains("args[\"offset\"] = pageOffset(page).toString()"))
-        assertTrue(controller.contains("loadedSongs.size > LEGACY_PAGE_SIZE"))
-        for (template in listOf("songs.html", "area_left_column.html")) {
-            val text = read("karaoke-app/src/main/resources/templates/$template")
-            assertTrue(text.contains("id=\"areaPager\""), "$template: нет постраничного вывода")
-            assertTrue(text.contains("filter_page"), "$template: фильтры/страница не передаются в URL")
-        }
-        assertTrue(read("karaoke-app/src/main/resources/templates/songs2.html").contains("doFilterPage("))
+        assertFalse(controller.contains("@GetMapping(\"/songs\")"))
+        assertFalse(controller.contains("@GetMapping(\"/songs2\")"))
+        assertFalse(controller.contains("@PostMapping(\"/songs2_update\")"))
     }
 
     @Test

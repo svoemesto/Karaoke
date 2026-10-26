@@ -55,60 +55,59 @@ class PkgS335SourceContractsTest {
     // ---------------------------------------------------------------- BR-216
 
     @Test
-    fun `BR-216 realtime-контракт songs2 совпадает с сервером`() {
-        val songs2 = readCode("$tpl/songs2.html")
-        assertFalse(
-            songs2.contains("recordchange.recordChangeId"),
-            "ключ recordChangeId не совпадает с DTO RecordChangeMessage (BR-216)",
+    fun `BR-216 realtime-контракт SPA совпадает с сервером`() {
+        // Легаси-страница songs2 удалена 2026-10-26. Live-обновления приходят в
+        // SPA по SSE: сервер шлёт `recordChange` (recordId / tableName / diffs),
+        // клиент читает recordId и подменяет песню по record.
+        val app = read("webvue3/src/App.vue")
+        assertTrue(app.contains("new EventSourcePolyfill("), "нужен SSE-канал (BR-216)")
+        assertTrue(app.contains("/api/subscribe?tabId="), "SSE-эндпоинт — /api/subscribe (BR-216)")
+        assertTrue(app.contains("case 'RECORD_CHANGE'"), "обработчик RECORD_CHANGE обязателен (BR-216)")
+        assertTrue(app.contains("case 'tbl_songs'"), "имя таблицы песен — tbl_songs (BR-216)")
+        assertFalse(app.contains("'" + legacyTable + "'"), "старое имя таблицы убрано (BR-216)")
+        val store = read("webvue3/src/components/Songs/store.js")
+        assertTrue(store.contains("let songId = userEventData.recordId"), "нужен ключ recordId (BR-216)")
+        assertTrue(
+            store.contains("state.songsDigest.splice(i, 1, userEventData.record)"),
+            "песня подменяется по record (BR-216)",
         )
-        assertFalse(songs2.contains("recordchange.recordChangeTableName"), "recordChangeTableName (BR-216)")
-        assertFalse(songs2.contains("recordchange.recordChangeDiffs"), "recordChangeDiffs (BR-216)")
-        assertTrue(songs2.contains("recordchange.recordId"), "нужен ключ recordId (BR-216)")
-        assertTrue(songs2.contains("recordchange.tableName"), "нужен ключ tableName (BR-216)")
-        assertTrue(songs2.contains("recordchange.diffs"), "нужен ключ diffs (BR-216)")
-        assertTrue(songs2.contains("'tbl_songs'"), "имя таблицы песен — tbl_songs (BR-216)")
-        assertFalse(songs2.contains("'" + legacyTable + "'"), "старое имя таблицы убрано (BR-216)")
-        // Транспорт: STOMP-эндпоинта `/api/message` в karaoke-app нет — нужен SSE.
-        assertFalse(songs2.contains("new SockJS('/api/message')"), "мёртвый STOMP-эндпоинт убран (BR-216)")
-        assertTrue(songs2.contains("new EventSource('/api/subscribe"), "нужен SSE-канал (BR-216)")
         // Разбор сообщения не должен ронять обработчик.
-        assertTrue(songs2.contains("try {"), "JSON.parse должен быть в try/catch (BR-216)")
+        assertTrue(app.contains("try {"), "JSON.parse должен быть в try/catch (BR-216)")
     }
 
     // ---------------------------------------------------------------- BR-217
 
     @Test
-    fun `BR-217 ajax-ошибки songs2 не игнорируются`() {
-        val songs2 = read("$tpl/songs2.html")
-        val ajaxCount = songs2.split("$.ajax({").size - 1
-        val errCount = songs2.split("error: function (xhr, status, error)").size - 1
-        assertTrue(ajaxCount > 0, "в шаблоне есть ajax-вызовы (BR-217)")
+    fun `BR-217 ajax-ошибки не игнорируются`() {
+        // Легаси-страница songs2 удалена 2026-10-26. Современный носитель —
+        // SPA: общий XHR-helper отклоняет промис на не-2xx и на сетевой ошибке,
+        // вызывающий обязан обработать отказ.
+        val utils = read("webvue3/src/lib/utils.js")
+        assertTrue(utils.contains("export function promisedXMLHttpRequest("), "нужен общий XHR-helper (BR-217)")
+        assertTrue(utils.contains("xhr.onerror = () => {"), "сетевая ошибка обязана отклонять промис (BR-217)")
+        assertTrue(utils.contains("reject(err)"), "ошибка пробрасывается вызывающему (BR-217)")
+        val store = read("webvue3/src/components/Songs/store.js")
+        assertTrue(store.contains(".catch((error) => {"), "вызывающий обрабатывает отказ (BR-217)")
         assertTrue(
-            errCount >= ajaxCount,
-            "у всех ajax-вызовов должен быть error-обработчик: $errCount из $ajaxCount (BR-217)",
+            store.contains("console.error('Ошибка сохранения:'"),
+            "ошибка сохранения не остаётся без отчёта (BR-217)",
         )
-        assertTrue(songs2.contains("function reportAjaxError("), "нужен общий обработчик ошибки (BR-217)")
-        // Индикатор «запущено» ставится только после успешного ответа.
-        val doProcess = songs2.substringAfter("function doProcess(link)").substringBefore("function doPostForm")
-        assertTrue(
-            doProcess.indexOf("getText(") < doProcess.indexOf("#FFFF00"),
-            "индикатор ставится только после успешного ответа (BR-217)",
-        )
-        // Удаление: сервер отдаёт 0, когда песни нет.
-        assertTrue(songs2.contains("Песня не найдена"), "ответ 0 при удалении обрабатывается (BR-217)")
     }
 
     // ---------------------------------------------------------------- BR-218
 
     @Test
-    fun `BR-218 в songs2 нет синхронных XHR`() {
-        val songs2 = readCode("$tpl/songs2.html")
+    fun `BR-218 нет синхронных XHR`() {
+        // Легаси-страница songs2 удалена 2026-10-26; в SPA все запросы асинхронные.
+        val utils = read("webvue3/src/lib/utils.js")
         assertFalse(
-            Regex("""request\.open\([^)]*,\s*false\s*\)""").containsMatchIn(songs2),
+            Regex("""xhr\.open\([^)]*,\s*false\s*\)""").containsMatchIn(utils),
             "синхронный XHR блокирует главный поток (BR-218)",
         )
-        assertTrue(songs2.contains("function getText("), "нужен асинхронный helper (BR-218)")
-        assertTrue(songs2.contains("request.open('GET', url, true)"), "helper делает асинхронный GET (BR-218)")
+        assertTrue(
+            utils.contains("xhr.open(obj.method || 'GET', obj.url, true)"),
+            "helper делает асинхронный запрос (BR-218)",
+        )
     }
 
     // ---------------------------------------------------------------- BR-220

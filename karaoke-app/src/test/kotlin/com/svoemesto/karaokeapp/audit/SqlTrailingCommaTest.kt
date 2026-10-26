@@ -1,7 +1,5 @@
 package com.svoemesto.karaokeapp.audit
 
-import java.io.File
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -34,15 +32,15 @@ class SqlTrailingCommaTest {
         return file.readText(Charsets.UTF_8)
     }
 
+    /** Начало SQL-блока: SELECT/INSERT/UPDATE/DELETE/WITH (регистр не важен). */
+    private val sqlStartRegex = Regex("(?i)^(SELECT|INSERT|UPDATE|DELETE|WITH)\\b", RegexOption.DOT_MATCHES_ALL)
+
     /** SQL-блоки в исходнике: тройные кавычки. Kotlin-подстановки `${...}` вырезаются. */
     private fun sqlBlocks(source: String): List<String> =
         Regex("\"\"\"(.*?)\"\"\"", RegexOption.DOT_MATCHES_ALL)
             .findAll(source)
             .map { it.groupValues[1] }
-            .filter {
-                Regex("(?i)^(SELECT|INSERT|UPDATE|DELETE|WITH)\\b", RegexOption.DOT_MATCHES_ALL)
-                    .containsMatchIn(it.trimStart())
-            }
+            .filter { sqlStartRegex.containsMatchIn(it.trimStart()) }
             .map { block -> block.replace(Regex("\\$\\{[^}]*\\}"), " ") }
             .toList()
 

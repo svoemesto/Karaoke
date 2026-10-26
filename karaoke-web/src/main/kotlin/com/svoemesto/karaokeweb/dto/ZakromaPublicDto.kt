@@ -98,13 +98,22 @@ data class ZakromaPublicDto(
     // Счётчики альбомов по типу для группировки/быстрых фильтров (FR-023/024/025/026), в порядке
     // AlbumType.ZAKROMA_GROUP_ORDER, только типы с count > 0.
     val albumTypeCounts: List<AlbumTypeSummaryDto> = emptyList(),
-    // specs/293-skip-author-toggle: true, если автор имеет `tbl_authors.skip = TRUE`.
-    // Используется UI karaoke-public для условного рендера бейджа «SKIP» рядом с именем автора
-    // (только для пользователей с canWorkWithSkipped=true).
-    val authorSkip: Boolean = false,
+    // specs/293-skip-author-toggle: true — автор помечен `tbl_authors.skip = TRUE`,
+    // false — не помечен, null — состояние SKIP этому пользователю не раскрывается.
+    // UI karaoke-public рендерит бейдж «SKIP» только для пользователей с
+    // canWorkWithSkipped=true, поэтому для остальных поле null.
+    // Контракт одинаков для REST и NDJSON-стрима (см. `fromZakroma`).
+    val authorSkip: Boolean? = null,
 ) {
     companion object {
-        fun fromZakroma(list: List<Zakroma>): List<ZakromaPublicDto> =
+        /**
+         * @param canSeeSkipped право видеть SKIP-контент (`canWorkWithSkipped`).
+         *   false → `authorSkip` не раскрывается (null) — как в NDJSON-стриме.
+         */
+        fun fromZakroma(
+            list: List<Zakroma>,
+            canSeeSkipped: Boolean = false,
+        ): List<ZakromaPublicDto> =
             list.map { zak ->
                 ZakromaPublicDto(
                     author = zak.author,
@@ -118,7 +127,9 @@ data class ZakromaPublicDto(
                     authorShortDescription = zak.authorShortDescription,
                     authorWarning = zak.authorWarning,
                     // specs/293-skip-author-toggle: прокидываем флаг `tbl_authors.skip` для UI-бейджа.
-                    authorSkip = zak.authorSkip,
+                    // Только тем, кому положено видеть SKIP: иначе это раскрытие скрытого
+                    // автора обычному посетителю (в NDJSON-стриме правило такое же).
+                    authorSkip = if (canSeeSkipped) zak.authorSkip else null,
                     albumTypeCounts =
                         zak.albums
                             .groupingBy { it.albumType }

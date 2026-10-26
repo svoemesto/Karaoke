@@ -87,21 +87,36 @@ class PublicSubscriptionController(
     @GetMapping("/tariffs")
     fun tariffs(
         @RequestParam scope: String,
-    ): List<Map<String, Any?>> {
-        val paymentsEnabled = paymentService.hasCredentials()
-        return PriceTariff
-            .loadAll(db, storageService, storageApiClient)
-            .filter { it.scope == scope && it.isActive }
-            .map {
+    ): ResponseEntity<Any> {
+        // BR-629 (контракты публичного API): `scope` — закрытый список. Раньше любой
+        // мусор в scope молча давал пустой список, а фронт показывал «Тарифы пока не
+        // настроены» — то есть ошибка запроса выглядела как «тарифов нет». Теперь
+        // неизвестный scope — явная ошибка со списком допустимых значений.
+        if (scope !in TARIFF_SCOPES) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 mapOf(
-                    "id" to it.id,
-                    "name" to it.name,
-                    "priceRub" to it.priceRub,
-                    "periodDays" to it.periodDays,
-                    "isDefault" to it.isDefault,
-                    "paymentsEnabled" to paymentsEnabled,
-                )
-            }
+                    "error" to "unknown_scope",
+                    "scope" to scope,
+                    "allowedScopes" to TARIFF_SCOPES,
+                ),
+            )
+        }
+        val paymentsEnabled = paymentService.hasCredentials()
+        val tariffs =
+            PriceTariff
+                .loadAll(db, storageService, storageApiClient)
+                .filter { it.scope == scope && it.isActive }
+                .map {
+                    mapOf(
+                        "id" to it.id,
+                        "name" to it.name,
+                        "priceRub" to it.priceRub,
+                        "periodDays" to it.periodDays,
+                        "isDefault" to it.isDefault,
+                        "paymentsEnabled" to paymentsEnabled,
+                    )
+                }
+        return ResponseEntity.ok(tariffs)
     }
 
     // ---- Цена (для показа в CheckoutModal ДО оплаты) -------------------------------------------
@@ -432,5 +447,16 @@ class PublicSubscriptionController(
         sub.yookassaPaymentMethodId = ""
         sub.save()
         return ResponseEntity.ok(mapOf("ok" to true))
+    }
+
+    companion object {
+        /**
+         * Допустимые значения `scope` публичного списка тарифов.
+         *
+         * BR-629 (контракты публичного API): `scope` — закрытый список, иначе опечатка
+         * в запросе выглядит как «тарифов не настроено» (пустой список). Значения взяты
+         * из модели (`PriceTariff.SCOPE_*`), чтобы контракт не расходился с данными.
+         */
+        val TARIFF_SCOPES: List<String> = listOf(PriceTariff.SCOPE_SONG, PriceTariff.SCOPE_SITE)
     }
 }

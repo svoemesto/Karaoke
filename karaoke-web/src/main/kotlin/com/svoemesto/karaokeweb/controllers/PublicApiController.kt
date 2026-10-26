@@ -30,6 +30,7 @@ import com.svoemesto.karaokeweb.dto.ZakromaStreamMetricDto
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.services.ZakromaStreamProgress
+import com.svoemesto.karaokeweb.services.SkipTag
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -313,7 +314,7 @@ class PublicApiController(
     internal fun isPubliclyVisible(song: Song): Boolean = song.idStatus >= publishedIdStatus && !hasSkipTag(song.tags)
 
     /** Тег SKIP — контент снят по требованию правообладателя (тот же разбор, что в SongPublicDto). */
-    internal fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
+    internal fun hasSkipTag(tags: String?): Boolean = SkipTag.hasSkipTag(tags)
 
     /**
      * Счётчики главной страницы (BR-016, аудит #336).
@@ -537,7 +538,11 @@ class PublicApiController(
                     albumId = albumId,
                 )
             }
-        return ZakromaPublicDto.fromZakroma(zakroma)
+        // BR-629 (контракты публичного API): REST и NDJSON отдают флаг SKIP-автора
+        // одинаково — null тем, кому видеть SKIP-контент не положено. Раньше REST
+        // отдавал его всем, а поток — только привилегированным: расхождение двух
+        // представлений одних и тех же данных.
+        return ZakromaPublicDto.fromZakroma(zakroma, canSeeSkipped)
     }
 
     /**

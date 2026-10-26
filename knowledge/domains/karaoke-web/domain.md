@@ -228,6 +228,7 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 - [main-controller](components/main-controller.md) — `MainController` — Thymeleaf-страницы + internal endpoints.
 - [public-controllers-2](components/public-controllers-2.md) — детальный обзор 5 critical public controllers.
 - [public-controllers-3](components/public-controllers-3.md) — `PublicApiController` — главный public API контроллер.
+- [public-api-contracts](components/public-api-contracts.md) — контракты публичного API: видимость SKIP, публичные тарифы.
 - [public-controllers-4](components/public-controllers-4.md) — `PublicPlayerController` — endpoints плеера.
 - [public-controllers-5](components/public-controllers-5.md) — обзор 5 мелких Public-контроллеров.
 - [public-controllers-6](components/public-controllers-6.md) — обзор 7 critical Public-контроллеров (средние).

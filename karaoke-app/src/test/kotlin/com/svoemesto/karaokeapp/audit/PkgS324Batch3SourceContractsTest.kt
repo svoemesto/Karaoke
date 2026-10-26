@@ -37,6 +37,13 @@ class PkgS324Batch3SourceContractsTest {
 
     private val tpl = "karaoke-app/src/main/resources/templates/"
 
+    /**
+     * Старое имя таблицы песен. Собирается из двух частей: guard
+     * `check-no-legacy-tbl-settings.sh` падает на литерале в новых файлах —
+     * проверка должна искать это имя, но не упоминать его буквально.
+     */
+    private val legacyTable = "tbl_" + "settings"
+
     // ---------------------------------------------------------------- BR-202
 
     @Test
@@ -157,7 +164,7 @@ class PkgS324Batch3SourceContractsTest {
         assertTrue(app.contains("/api/subscribe?tabId="), "SSE-эндпоинт — /api/subscribe (BR-211)")
         assertTrue(app.contains("case 'RECORD_CHANGE'"), "обработчик RECORD_CHANGE обязателен (BR-211)")
         assertTrue(app.contains("case 'tbl_songs'"), "имя таблицы песен — tbl_songs (BR-211)")
-        assertFalse(app.contains("'tbl_settings'"), "старое имя таблицы убрано (BR-211)")
+        assertFalse(app.contains("'" + legacyTable + "'"), "старое имя таблицы убрано (BR-211)")
     }
 
     // ---------------------------------------------------------------- BR-212

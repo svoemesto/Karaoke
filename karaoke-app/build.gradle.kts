@@ -98,13 +98,14 @@ tasks.withType<Test> {
 // `manualTest` собирается и запускается только по явной команде и НЕ входит
 // в `check`/`build`:
 //   ./gradlew :karaoke-app:manualTest
-val manualTest by sourceSets.creating {
-    // Ручные сценарии видят код приложения (как и тесты) и общую тестовую обвязку.
-    compileClasspath += sourceSets["main"].output
-    runtimeClasspath += sourceSets["main"].output
-    compileClasspath += sourceSets["test"].output
-    runtimeClasspath += sourceSets["test"].output
-}
+val manualTest =
+    sourceSets.create("manualTest") {
+        // Ручные сценарии видят код приложения (как и тесты) и общую тестовую обвязку.
+        compileClasspath += sourceSets["main"].output
+        runtimeClasspath += sourceSets["main"].output
+        compileClasspath += sourceSets["test"].output
+        runtimeClasspath += sourceSets["test"].output
+    }
 
 configurations["manualTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["manualTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])

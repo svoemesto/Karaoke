@@ -75,7 +75,7 @@ pre-commit run --all-files    # прогнать все хуки вручную 
 | `recordhash-consistency-guard` | `tools/check-recordhash-consistency.py` | контракт recordhash (sync-движок сравнивает строки только по recordhash) | всегда |
 | `confirm-escape-guard` | `tools/check-confirm-escape.py` | R1/R2/R3 экранирования текста подтверждений | `webvue3/src/**`, сам guard, `config/frontend/confirm-safe-expressions.txt` |
 | `secret-in-argv-guard` | `tools/check-secret-in-argv.sh` | секрет не передаётся через `argv` | `deploy/**`, `tools/**`, `specs/**` (`.sh`, `.bash`) + сам baseline |
-| `gradle-wrapper-guard` | `tools/check-gradle-wrapper.sh` | единая версия gradle-wrapper ≥ 8.14 + `distributionSha256Sum` | `*/gradle/wrapper/gradle-wrapper.properties` |
+| `gradle-wrapper-guard` | `tools/check-gradle-wrapper.sh` | единая версия gradle-wrapper ≥ 9.8.2 + `distributionSha256Sum` | `*/gradle/wrapper/gradle-wrapper.properties` |
 | `build-config-guard` | `tools/check-build-config.sh` | Jackson без явных версий, мёртвый корневой build-конфиг, дампы кучи | корневые и модульные build-файлы, `gradle.properties`, корневой Maven-дескрипт, `.idea/misc.xml`, `tools/gradle-heap-dump.sh` |
 | `marker-escape-guard` | `tools/check-marker-escape-guard.sh` | тест экранирования метки комментария «взведён» и его skip-состояние соответствует production-коду | редактор караоке, ReviewModal, тестовые файлы, фикстуры `tools/fixtures/marker-escape/` |
 | `check-value-placeholders` | `tools/check-value-placeholders.sh` | `@Value` не теряет плейсхолдер | `karaoke-web/src/**`, `karaoke-app/src/**` |

@@ -175,7 +175,7 @@ Guard, который что-то проверяет, обязан уметь п
 
 | Guard | Что проверяет | Где вызывается | Коды |
 |---|---|---|---|
-| `tools/check-gradle-wrapper.sh` | все четыре gradle-wrapper'а (`gradle/`, `karaoke-app/`, `karaoke-web/`, `karaoke-db/`) указывают на **одну** версию дистрибутива не ниже `8.14`, и в каждом есть `distributionSha256Sum`, совпадающая с официально опубликованной | CI-джоб `build-config-guard`; pre-commit-хуки `gradle-wrapper-guard` | 0 / 1 / 2 |
+| `tools/check-gradle-wrapper.sh` | все четыре gradle-wrapper'а (`gradle/`, `karaoke-app/`, `karaoke-web/`, `karaoke-db/`) указывают на **одну** версию дистрибутива не ниже `9.8.2`, и в каждом есть `distributionSha256Sum`, совпадающая с официально опубликованной | CI-джоб `build-config-guard`; pre-commit-хуки `gradle-wrapper-guard` | 0 / 1 / 2 |
 | `tools/check-build-config.sh` | в build-файлах нет явных версий `com.fasterxml.jackson.*` (версию задаёт BOM Spring Boot 3.5.6 → 2.19.2); в корневом `build.gradle.kts` нет мёртвого блока `dependencies`; в корне репозитория нет `pom.xml` и ссылок на него в `.idea/misc.xml`; в `org.gradle.jvmargs` нет `-XX:+HeapDumpOnOutOfMemoryError` | CI-джоб `build-config-guard`; pre-commit-хуки `build-config-guard` | 0 / 1 / 2 |
 | `tools/gradle-heap-dump.sh` | opt-in дамп кучи: `umask 077`, каталог `0700` внутри `GRADLE_USER_HOME`, файл дампа `0600` (в общем `/tmp` дамп был доступен любому пользователю, а в нём — карта `System.getenv()`) | CI-джоб `build-config-guard` | 0 / 1 / 2 |
 | `tools/check-gradle-user-home.sh` | `GRADLE_USER_HOME` указывает на **writable** каталог; путь выводится от корня репозитория, без хардкода пути машины | pre-commit-хуки `gradle-user-home-guard` | 0 / 1 / 2 |

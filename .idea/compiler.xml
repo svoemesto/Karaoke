@@ -10,6 +10,7 @@
       <module name="Karaoke" options="-parameters" />
       <module name="Karaoke.karaoke-app" options="-parameters" />
       <module name="Karaoke.karaoke-app.main" options="-parameters" />
+      <module name="Karaoke.karaoke-app.manualTest" options="-parameters" />
       <module name="Karaoke.karaoke-app.test" options="-parameters" />
       <module name="Karaoke.karaoke-web" options="-parameters" />
       <module name="Karaoke.karaoke-web.main" options="-parameters" />

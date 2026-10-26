@@ -44,10 +44,14 @@ related:
 но с **пустым** `diffs` — актуальное состояние задания лежит в `record`
 (`KaraokeProcessDTO`: `name`, `type`, `percentage`, `timeLeftStr`).
 
-Второй получатель — легаси-страница `karaoke-app/.../templates/songs2.html`:
-раньше она подписывалась на STOMP-эндпоинт `/api/message`, которого в
-`karaoke-app` нет, — live-обновления не работали никогда. Теперь страница
-использует тот же SSE-канал `GET /api/subscribe`.
+Получатель — SPA админки (`webvue3`): она подписывается на тот же SSE-канал
+`GET /api/subscribe` и разбирает `RECORD_CHANGE` по `tableName` (`tbl_songs` →
+список песен, `tbl_processes` → состояние задания).
+
+Легаси-страница `karaoke-app/.../templates/songs2.html` была вторым получателем
+и удалена 2026-10-26 вместе с `/songs` и `/songs2` (ноль обращений за месяц в
+прод-логе). До удаления она подписывалась на STOMP-эндпоинт `/api/message`,
+которого в `karaoke-app` нет, — live-обновления не работали никогда.
 
 **Архитектурное решение**: SSE, а не WebSocket, потому что:
 

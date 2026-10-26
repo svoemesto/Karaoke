@@ -625,4 +625,4 @@ BR-623,P-68,TEST,S3,webvue3/e2e/yo-highlight.spec.js,91,91,test-yo-highlight-liv
 BR-624,P-68,TEST,S3,webvue3/playwright.config.js,28,31,workers-one-hides-flaky:test,исправлено,lead-verified,389
 BR-625,P-68,TEST,S3,webvue3/e2e/smoke.spec.js,1,1,test-smoke-live-data:test,исправлено,lead-verified,389
 BR-626,P-75,SEC,S2,tools/analyze-prod-incident.sh,42,42,secret-in-argv,исправлено,да,408
-BR-627,P-70,LEAK,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt,150,175,threadlocal-connection-leak:app,TODO,,410
+BR-627,P-70,LEAK,S2,karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt,150,175,threadlocal-connection-leak:app,исправлено,"исправлено в PR #756 (спека 645, вариант A)",410

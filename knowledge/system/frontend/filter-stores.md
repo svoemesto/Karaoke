@@ -132,6 +132,4 @@ Filter store — **отдельно**, чтобы не загрязнять ос
 
 ## Changelog
 
-- **Specs 450** (2026-09-24): поля «Автор:» в фильтрах Авторы/Альбомы
-  получили datalist подсказок из `songAuthorsPromise` (issue #183).
 - **Pass 455-457** (2026-09-09): Initial. Автор: agent (Karaoke).

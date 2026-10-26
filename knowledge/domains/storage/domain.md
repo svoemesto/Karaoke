@@ -415,9 +415,7 @@ LOCAL+REMOTE (включая `exists=false`). Нужен после сброса
 
 ## Changelog
 
-- **Аудит BR-558** (2026-10-24, OpenProject #372): добавлено «Решение 6» — заголовки безопасности в host-nginx и исключение `nosniff` для MinIO-контура. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).
-- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): бакет `stemjobs` — приватный (ключи `<jobId>/…`), добавлено «Решение 5» (перенос приватных объектов в отдельный бакет + стартовый инвариант политики). Автор: agent (Karaoke).
 ## BR-141/BR-162: загрузка fail-closed и уборка только своих бакетов (аудит #336)
 
 - `StorageApiClient.uploadFile(pathToFileOnDisk)` при ошибке **бросает**

@@ -166,7 +166,8 @@
    устройство/вкладки); иначе считается число активных сессий, при
    `>= maxConcurrentSessions` (2) → `ConcurrentLimit` и
    `rejected_concurrent++`; создаётся строка в `tbl_song_share_sessions`
-   и lease `now() + leaseTtlSeconds` (90 с).
+   и lease `now() + leaseTtlSeconds` (90 с). Карта rate-limit claim'ов
+   чистится по TTL и ограничена 50 000 IP.
 3. **Heartbeat** (`heartbeat`): `active_session_lease_until = now() + leaseTtlSeconds`,
    `last_used_at = now()`; `executeUpdate() == 0` → `LeaseExpired`;
    отдельным UPDATE обновляется `last_seen_at` сессии.
@@ -237,21 +238,6 @@ domain](../../storage/domain.md)). Реальный доступ — через 
 
 ## Changelog
 
-- **BR-004/BR-005/BR-515/BR-516** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `RateLimitInterceptor` —
-  конструкторные настройки и отдельный экземпляр на endpoint; `PriceService.withOrdinalLock` —
-  атомарная выдача номера акции «каждая N-я бесплатно»; `SubscriptionRenewalScheduler.renewEach` —
-  сбой одного пользователя не прерывает цикл, подробный лог не чаще 6 ч; карта rate-limit claim'ов
-  в `SongShareLinkService` чистится по TTL и ограничена 50 000 IP. Автор: agent (Karaoke).
-
-- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес
-  источника запроса в `RateLimitInterceptor` теперь берётся из `util/ClientIpResolver`
-  (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer) — своя копия правила
-  «первый элемент XFF» удалена, подделка заголовка больше не обходит лимит.
-
-- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): `PlayerGestureUnlockService`
-  — удалено распознавание «скрытого жеста» (`registerClick`), токен несёт id пользователя и
-  разбирается одним методом `describeToken`; добавлены `PlayerAccessService` (правило
-  доступа), `PlayerRightsProvider` (живой источник прав), `PlayerSongLoader` (загрузка песни).
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -132,10 +132,3 @@ test:unit`):
 - `webvue3-views.md` — каталог административных views (места сборки текста
   подтверждений).
 - `docs/features/escape-confirm-user-data.md` — per-feature документ (FR-009).
-
-## Changelog
-
-- 2026-10-24: создан документ (спека #558 / 562, OpenProject #360, BR-123):
-  текстовый режим по умолчанию в `CustomConfirm.vue`, экранирование на входе в
-  43 местах, проверка `tools/check-confirm-escape.py` (R1/R2/R3) в pre-commit
-  и CI, список безопасных выражений, регресс-контроль «до/после».

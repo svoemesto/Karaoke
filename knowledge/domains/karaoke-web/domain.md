@@ -283,20 +283,6 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 
 ## Changelog
 
-- **2026-10-25** (OpenProject #377, пакет PKG-S2-14 аудита #336): добавлена компонента
-  [public-spa-clients](components/public-spa-clients.md) — клиентские инварианты публичного
-  SPA `karaoke-public` (экранирование меток, поколение загрузки трека, release share-сессии
-  только на уходе со страницы, таймаут XHR, состояния оплаты/капчи/чата). 13 записей:
-  BR-295, BR-302, BR-303, BR-312, BR-313, BR-319, BR-327, BR-328, BR-329, BR-330, BR-339,
-  BR-340, BR-350.
-- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): добавлено
-  «Решение 5: Адрес источника запроса» — единое правило `X-Real-IP` → последний элемент
-  `X-Forwarded-For` → TCP-peer (`util/ClientIpResolver`); перечислены потребители правила
-  и исключение для журнала безопасности (BR-011, #357).
-- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): добавлены сервисы
-  `PlayerAccessService` (правило доступа к байтам/разметке — живая проверка права),
-  `PlayerRightsProvider` (живой источник прав из БД) и `PlayerSongLoader` (загрузка песни);
-  `PlayerGestureUnlockService` больше не распознаёт «скрытый жест» (историческое имя сохранено).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): добавлена
   секция «Публичные контракты (API)» (группы `/api/public/*`, Thymeleaf,
   internal, STOMP-WebSocket — сверено по контроллерам). Автор: agent (Karaoke).

@@ -122,7 +122,8 @@ SEO-HTML для ботов:
    и `News.countPublished(db)`; ответ `{items, total, hasMore: offset + items.size < total}`.
    Отдаются только опубликованные новости (`publish_at` наступил), свежие
    сверху; постраничность введена спекой `090-news-pagination` из-за
-   19000+ строк в `tbl_news`.
+   19000+ строк в `tbl_news`. Серверный `client_max_body_size` на location
+   метрик — за владельцем (ops-конфиг nginx).
 2. `GET /since` — polling-бейдж: `id` (default 0) — `lastSeenId` из
    localStorage анонима, для залогиненного — последний просмотренный id.
    `PollingCache` с TTL 60 с; ключ `news_since:anon` для анонима или
@@ -179,9 +180,6 @@ SEO-HTML для ботов:
 
 ## Changelog
 
-- **BR-015** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `page`/`size` публичной ленты
-  новостей нормализуются (`size` ≤ 100, `page` ≥ 0, offset в `Long`). Серверный
-  `client_max_body_size` на location метрик — за владельцем (ops-конфиг nginx). Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции
   по контроллерам перенесены под «Интерфейсы и Контракты»; добавлена
   «Логика и Алгоритмы» с проверенными по коду потоками OG-рендера,

@@ -104,7 +104,4 @@ const NEWS_SHOWN_ROUTES = new Set(['/'])    // R-009
 
 ## Changelog
 
-- **OpenProject #399** (2026-10-25, аудит #336, `PKG-S3-27`): BR-317 —
-  polling останавливается при выходе из аккаунта, а не только на скрытых
-  маршрутах; добавлен `watch` на токен.
 - **Pass 387** (2026-09-09): Initial. Автор: agent (Karaoke).

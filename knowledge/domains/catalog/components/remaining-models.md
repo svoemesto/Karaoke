@@ -223,7 +223,5 @@ publish10 … publish23: SongDTO?, publish10text … publish23text: String)`.
 
 ## Changelog
 
-- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): Publication — конечная
-  раскладка стопок и постраничная выдача расписания (BR-188/BR-200). Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 348** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -214,18 +214,7 @@ description, short_description, warning, ready_songs_count, total_songs_count
 
 ## Changelog
 
-- **2026-10-25** (аудит #336, BR-019/BR-041/BR-533/BR-540/BR-541/BR-553/BR-537/BR-044):
-  зафиксировано состояние применённых миграций на обеих базах (LOCAL + PROD),
-  пропущенная `54` и её причина, бэкапы перед применением.
 
-- **2026-10-25** (аудит #336, пакет PKG-S3-21, OpenProject #393): канонический
-  `deploy/recordhash_site_users.sql` + требование «повторное определение функции — полный
-  набор» (BR-044, check 5 guard'а); Решение 7 (RESTRICT для строк, которым соответствуют
-  объекты MinIO, BR-537); каталог дополнен 54 (GIN-индекс по колонке), 55 (FK заданий),
-  56 (канонический recordhash `tbl_site_users`).
-- **2026-10-24** (аудит #336, OpenProject #363): Решение 3 дополнено контрактом
-  канонических `deploy/recordhash_*.sql`, правилом `NEW.`-префикса (BR-553), guard'ом
-  `tools/check-recordhash-consistency.py` и порядком «50 → 52» (BR-533).
 - **Pass 382** (2026-10-24, PKG-S2-08 / OpenProject #371): Решение 5
   (initdb-цепочка с нуля: идемпотентность, bootstrap таблицы в 18) и
   Решение 6 (канонический набор/порядок колонок recordhash авторов);

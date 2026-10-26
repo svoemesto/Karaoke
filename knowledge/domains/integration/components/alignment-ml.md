@@ -246,6 +246,19 @@ ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
 «baseline достаточен / finetuned лучше» можно было принять по пустым
 данным.
 
+### Тесты
+
+Юнит-тесты на `pytest` лежат в `alignment-ml/tests/`:
+
+| Файл | Что фиксирует |
+|---|---|
+| `alignment-ml/tests/test_evaluate_errors.py` | диагностика `evaluate.py`: раздельные счётчики, код 2 при пустом/сбойном прогоне |
+| `alignment-ml/tests/test_align_modes.py` | режимы выравнивания, откат `with_star` + `star_token` в ответе `/align` |
+| `alignment-ml/tests/test_dataset_exclusion.py` | исключение нечитаемых чанков вместо случайной подмены (`bad_indices` + префильтр + коллатор) |
+| `alignment-ml/tests/test_chunking_boundaries.py` | рез чанков по границам слов и padding только на настоящих паузах |
+| `alignment-ml/tests/test_requirements_pin.py` | зафиксированная пара `torch==2.11.0`/`torchaudio==2.11.0`, `transformers>=4.46` |
+| `alignment-ml/tests/test_train_scripts.py` | скрипты обучения: `set -euo pipefail`, каталог скрипта, проверки venv/манифеста и `ALIGN_MANIFEST` |
+
 ### Запуск всего pipeline
 
 ```bash
@@ -280,26 +293,4 @@ multipart upload к этому сервису.
 
 ## Changelog
 
-- **BR-492/493/494/495/496/497/498** (2026-10-25, OpenProject #392, аудит #336,
-  пакет PKG-S3-20): диагностика `evaluate.py` (раздельные счётчики,
-  трессировка, код 2 при пустом/сбойном прогоне); наблюдаемый и ограниченный
-  `TypeError`/`AttributeError` откат `with_star` + `star_token` в ответе
-  `/align`; `uroman` обязателен (503 вместо кириллицы без романизации) и порог
-  заглушек 10 %; исключение нечитаемых чанков вместо случайной подмены
-  (`bad_indices` + префильтр + коллатор); рез чанков по границам слов и padding
-  только на настоящих паузах; скрипты обучения — `set -euo pipefail`, каталог
-  скрипта, проверки venv/манифеста и `ALIGN_MANIFEST`; зафиксирована пара
-  `torch==2.11.0`/`torchaudio==2.11.0`, `transformers>=4.46`, требование `perl`.
-  Тесты — `alignment-ml/tests/test_evaluate_errors.py`,
-  `alignment-ml/tests/test_align_modes.py`,
-  `alignment-ml/tests/test_dataset_exclusion.py`,
-  `alignment-ml/tests/test_chunking_boundaries.py`,
-  `alignment-ml/tests/test_train_scripts.py`,
-  `alignment-ml/tests/test_requirements_pin.py`. Автор: agent (Karaoke).
-- **BR-489/490/491** (2026-10-24, OpenProject #370, аудит #336, пакет PKG-S2-07):
-  `/align` переведён на синхронный обработчик (threadpool) — выравнивание
-  больше не блокирует event loop; добавлены пределы приёма
-  (`ALIGN_MAX_UPLOAD_MB`, `ALIGN_MAX_AUDIO_SECONDS`, `soundfile.info` до
-  декодирования, потоковое чтение тела) и коды 413/415; словарь CTC-головы
-  привязан к составу данных через «vocab.meta.json». Автор: agent (Karaoke).
 - **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).

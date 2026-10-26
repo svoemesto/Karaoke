@@ -72,7 +72,9 @@ endpoints** (для server-to-server между karaoke-app и karaoke-web).
    `InternalStemJobController.authorized()`, спека 554). При отказе — `403`,
    ни одной SQL-команды не выполняется, запись в журнал категории
    `infra.sync.security` (`sync:security:denied`: время, адрес источника, причина;
-   без тела запроса).
+   без тела запроса). Адрес источника в **журнале безопасности** определяется
+   по-прежнему только по `X-Real-IP` — это исключение из общего правила
+   `ClientIpResolver` (`BR-011`), и оно намеренное.
 2. `Crypto.decrypt(word)` должен совпасть с `Crypto.WORDS_TO_CHECK` —
    иначе возвращается «Не удалось расшифровать кодовое слово».
 3. Применяет три набора действий к `WORKING_DATABASE` **одной транзакцией**
@@ -151,19 +153,6 @@ endpoints для internal). Разделение — по `produces` и типу
 
 ## Changelog
 
-- **BR-012/BR-504** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `POST /changerecords`
-  применяет батч одной транзакцией (`autoCommit=false`, `commit`/`rollback`, восстановление
-  autocommit); ссылка новости на главной проходит проверку схемы (`SafeLink`) до рендера.
-  Автор: agent (Karaoke).
-- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес источника
-  в `doRegisterEvent` определяется по общему правилу `util/ClientIpResolver`
-  (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer); правило журнала
-  безопасности `syncSourceAddress` не менялось (по-прежнему только `X-Real-IP`, BR-011).
-
-- **Спека 554** (2026-10-24, OpenProject #357, аудит BR-011): контракт `POST /changerecords`
-  дополнен требованием заголовка `X-Internal-Secret` (fail-safe), отказом `403` без деталей,
-  нейтральным `5xx` вместо текста ошибки БД и сетевым рубежом nginx (allow/deny по адресу
-  админской машины). Автор: agent (Karaoke).
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции
   «Endpoints …» сведены в «Интерфейсы и Контракты» (два контракта: Thymeleaf

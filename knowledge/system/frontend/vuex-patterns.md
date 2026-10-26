@@ -207,10 +207,5 @@ HealthReport-запросы — самые дорогие (MinIO round-trip). Л
 
 ## Changelog
 
-- **2026-10-25** (OpenProject #380, аудит #336, PKG-S2-17): поколение ответа для
-  обычных (не target-aware) загрузок, готовность bulk-snapshot, адресность ответа,
-  очередь автосохранения, «пронести» поля маркеров, пропуск `undefined` в params.
-- **2026-10-24** (OpenProject #367, аудит #336): ссылка на общий guard
-  target-aware запросов — поколение ответа и БД строки.
 - **Pass 349** (2026-09-09): Initial overview. Прецедент: задачи
   #65, #69 + общий Knowledge-аудит. Автор: agent (Karaoke).

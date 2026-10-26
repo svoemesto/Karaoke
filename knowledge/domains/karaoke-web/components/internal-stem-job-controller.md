@@ -112,6 +112,5 @@ admin-машины (firewall, см. `PublicVkAuthController`).
 
 ## Changelog
 
-- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): добавлены эндпоинты `PUT /{id}/files/{fileName}` и `POST /{id}/purge` — приём приватных объектов задания по тому же секрету `X-Internal-Secret`. Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 436-438** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -172,8 +172,5 @@ Boolean-поля намеренно **без** `is`-префикса (`onAir`, `
 
 ## Changelog
 
-- **#215** (2026-09-30): добавлен раздел «Экранирование» — `formattedText*`
-  отдаются как готовый HTML под `v-html` публичного сайта, экранирование
-  выполняется в билдерах `Song.kt`. Автор: agent (Karaoke).
 - **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).
 - **Pass 440** (2026-09-09): Initial. Автор: agent (Karaoke).

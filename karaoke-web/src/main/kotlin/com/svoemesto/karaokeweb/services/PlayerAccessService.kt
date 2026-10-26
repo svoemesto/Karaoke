@@ -232,5 +232,5 @@ class PlayerAccessService(
     }
 
     /** Тег `SKIP` — контент снят по требованию правообладателя (тот же разбор, что в SongPublicDto). */
-    private fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
+    private fun hasSkipTag(tags: String?): Boolean = SkipTag.hasSkipTag(tags)
 }

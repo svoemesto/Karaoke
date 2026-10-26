@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
+import com.svoemesto.karaokeweb.util.TestRepoRoot
 
 /**
  * Контрактные проверки исходников пакета `PKG-S3-29` (аудит #336, OpenProject #401).
@@ -24,15 +25,7 @@ import java.io.File
  * @see specs/401-pkg-s3-29/report.md
  */
 class PkgS329SourceContractsTest {
-    private fun repoFile(relativePath: String): File {
-        var dir = File(System.getProperty("user.dir")).absoluteFile
-        while (!File(dir, "settings.gradle.kts").isFile) {
-            dir = dir.parentFile ?: error("не найден корень репозитория (settings.gradle.kts)")
-        }
-        val file = File(dir, relativePath)
-        assertTrue(file.isFile, "файл не найден: $relativePath")
-        return file
-    }
+    private fun repoFile(relativePath: String): File = TestRepoRoot.file(relativePath)
 
     private fun read(relativePath: String): String = repoFile(relativePath).readText()
 

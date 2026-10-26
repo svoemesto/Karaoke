@@ -18,6 +18,7 @@ import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.PlayerSongLoader
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.services.SongShareLinkService
+import com.svoemesto.karaokeweb.services.SkipTag
 import com.svoemesto.karaokeweb.util.Mp3Trimmer
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -139,7 +140,7 @@ class PublicPlayerController(
     private fun stemsReady(song: Song): Boolean = song.isContentReady
 
     /** Тег `SKIP` — контент снят по требованию правообладателя (specs/293-skip-author-toggle). */
-    private fun hasSkipTag(tags: String?): Boolean = (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
+    private fun hasSkipTag(tags: String?): Boolean = SkipTag.hasSkipTag(tags)
 
     /**
      * Решает, можно ли прямо сейчас показать на странице песни встроенный онлайн-плеер вместо

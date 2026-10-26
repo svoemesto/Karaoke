@@ -9,11 +9,11 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
+import com.svoemesto.karaokeapp.services.startOneShotThread
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileWriter
-import kotlin.concurrent.thread
 
 @Serializable
 data class AlignmentSyllableDto(
@@ -55,7 +55,12 @@ fun exportAlignmentDataset(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): String {
-    thread {
+    // Одноразовый фоновый поток: канонический `startOneShotThread` закрывает
+    // thread-local соединение потока в `finally` при любом исходе (успех/исключение).
+    // Сырой `kotlin.concurrent.thread` здесь оставлял физический канал к PostgreSQL
+    // висеть до недетерминированной финализации сборщиком мусора — утечка BR-627
+    // (аудит #336, OpenProject #410).
+    startOneShotThread(WORKING_DATABASE, "export-alignment-dataset") {
         val json = Json { ignoreUnknownKeys = true }
         val ids = mutableListOf<Long>()
         try {

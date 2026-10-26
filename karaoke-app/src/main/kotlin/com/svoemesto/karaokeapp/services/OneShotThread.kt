@@ -32,6 +32,13 @@ import com.svoemesto.karaokeapp.KaraokeConnection
  *   `Throwable` (в частности из `SNS.send`, который сериализует payload вне
  *   `try`) оставит флаг поднятым навсегда, и повторный запуск станет невозможен
  *   до перезапуска приложения (аудит #336, BR-254).
+ * @param alsoClose дополнительные экземпляры [KaraokeConnection], чьи thread-local
+ *   соединения закрываются в том же `finally`. Нужно, когда тело потока ходит в
+ *   **две** БД (LOCAL + SERVER): у каждого экземпляра `KaraokeConnection` свой
+ *   `ThreadLocal`, поэтому закрытие только [database] оставило бы соединение к
+ *   второй БД висеть — ровно та же утечка (BR-627, OpenProject #410).
+ *   Закрытие дополнительных соединений выполняется ПОСЛЕ закрытия [database] и
+ *   не зависит от его исхода: ошибка одного не мешает закрытию остальных.
  * @param block тело одноразовой задачи.
  * @return запущенный поток (уже стартовал).
  *
@@ -41,6 +48,7 @@ fun startOneShotThread(
     database: KaraokeConnection,
     name: String? = null,
     onFinally: () -> Unit = {},
+    alsoClose: List<KaraokeConnection> = emptyList(),
     block: () -> Unit,
 ): Thread =
     Thread(
@@ -60,6 +68,10 @@ fun startOneShotThread(
                 // Соединение потока закрываем ВСЕГДА — и при успехе, и при исключении:
                 // иначе утечка (аудит #336, BR-060, BR-038, BR-116).
                 database.closeThreadConnection()
+                // Поток мог ходить в несколько БД (LOCAL + SERVER) — у каждого
+                // экземпляра KaraokeConnection свой ThreadLocal-кеш, поэтому
+                // закрываем и остальные (BR-627, OpenProject #410).
+                alsoClose.forEach { closeQuietly(it) }
             }
         },
         name,
@@ -67,3 +79,16 @@ fun startOneShotThread(
         isDaemon = true
         start()
     }
+
+/**
+ * Закрывает thread-local соединение [database], не давая сбою закрытия
+ * прервать цепочку закрытия остальных соединений потока.
+ */
+private fun closeQuietly(database: KaraokeConnection) {
+    try {
+        database.closeThreadConnection()
+    } catch (_: Exception) {
+        // Ошибка закрытия дополнительного соединения не должна помешать закрытию
+        // остальных и не должна маскировать исходное исключение тела потока.
+    }
+}

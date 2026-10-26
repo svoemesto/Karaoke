@@ -746,7 +746,14 @@ class KaraokeProcessWorker {
             // `startOneShotThread` делает это гарантированно (и при успехе, и при исключении).
             // Без этого каждый цикл stop/start оставлял открытым физический канал к БД
             // до недетерминированной финализации сборщиком мусора.
-            startOneShotThread(database, "karaoke-process-worker") {
+            // Поток очереди ходит и в SERVER (ветка sync-batch, см. processRemoteSongsSyncBatch):
+            // у экземпляров LOCAL и SERVER разные thread-local кеши, поэтому закрываем оба
+            // (BR-627, аудит #336, OpenProject #410).
+            startOneShotThread(
+                database = database,
+                name = "karaoke-process-worker",
+                alsoClose = listOf(Connection.remote()),
+            ) {
                 try {
                     var attempt = 0
                     while (true) {

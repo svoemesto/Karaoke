@@ -8,7 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Регрессионный тест «до/после» для контракта закрытия JDBC-соединения одноразового
- * потока (аудит #336, OpenProject #368, BR-038 + BR-060).
+ * потока (аудит #336, OpenProject #368, BR-038 + BR-060; OpenProject #410, BR-627 —
+ * поток, ходящий в две БД, обязан закрывать оба соединения).
  *
  * **До правки** фоновые задачи API-контроллеров и поток очереди создавались сырым
  * `thread { … }` и НЕ вызывали `closeThreadConnection()`: физическое соединение
@@ -84,5 +85,49 @@ class OneShotThreadTest {
         assertTrue(thread.isDaemon, "фоновый поток не должен держать JVM")
         thread.join(10_000)
         assertTrue(!thread.isAlive, "поток должен завершиться после выполнения тела")
+    }
+
+    /**
+     * BR-627 (OpenProject #410): поток, который ходит в ДВЕ БД (LOCAL + SERVER),
+     * обязан закрывать thread-local соединение **обоих** экземпляров — у каждого
+     * `KaraokeConnection` свой `ThreadLocal`, и закрытие только переданного
+     * оставило бы канал к второй БД висеть.
+     */
+    @Test
+    fun `закрываются соединения обеих БД, к которым пошёл поток`() {
+        val local = FakeConnection()
+        val server = FakeConnection()
+
+        val thread =
+            startOneShotThread(
+                database = local,
+                name = "test-one-shot-two-databases",
+                alsoClose = listOf(server),
+            ) { }
+
+        thread.join(10_000)
+
+        assertEquals(1, local.closeCalls.get(), "соединение основной БД должно быть закрыто")
+        assertEquals(1, server.closeCalls.get(), "соединение второй БД должно быть закрыто")
+    }
+
+    /** То же — при исключении внутри тела: закрытие не зависит от исхода. */
+    @Test
+    fun `закрываются соединения обеих БД даже если тело упало`() {
+        val local = FakeConnection()
+        val server = FakeConnection()
+
+        val thread =
+            startOneShotThread(
+                database = local,
+                name = "test-one-shot-two-databases-error",
+                alsoClose = listOf(server),
+            ) {
+                throw IllegalStateException("сбой внутри фоновой задачи")
+            }
+        thread.join(10_000)
+
+        assertEquals(1, local.closeCalls.get(), "соединение основной БД должно быть закрыто")
+        assertEquals(1, server.closeCalls.get(), "соединение второй БД должно быть закрыто")
     }
 }

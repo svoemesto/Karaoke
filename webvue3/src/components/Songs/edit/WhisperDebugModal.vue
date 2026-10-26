@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import { copyToClipboardSafely } from '../../../utils/clipboard.js'
 /**
  * Отладочное окно результата авто-маркеров (Whisper): показывает "сырой" ответ распознавания
  * (текст + слова с таймкодами/уверенностью) и уже сформированные из него маркеры - ДО применения
@@ -110,7 +111,12 @@ export default {
   },
   methods: {
     async copyToClipboard(value) {
-      await navigator.clipboard.writeText(value)
+      // Единый хелпер с запасным путём: Clipboard API доступен не везде.
+      const copied = await copyToClipboardSafely(value)
+      if (!copied) {
+        console.warn('Не удалось скопировать текст — скопируйте его вручную')
+      }
+      return copied
     },
     apply() {
       this.$emit('apply')

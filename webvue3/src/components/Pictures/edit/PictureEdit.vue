@@ -95,6 +95,7 @@
 <script>
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import { escapeHtml } from '../../../utils/escapeHtml.js'
+import { copyToClipboardSafely } from '../../../utils/clipboard.js'
 import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
 import { useToast } from 'bootstrap-vue-next'
 import { h } from 'vue'
@@ -216,15 +217,18 @@ export default {
       })
     },
     async copyToClipboard(value, fieldName) {
-      await navigator.clipboard.writeText(value)
-      this.showCopyToClipboardToast(fieldName, value)
+      // Единый хелпер с запасным путём (Clipboard API может быть недоступен или
+      // отклонён). Тост показываем в обоих случаях: при отказе копирования в нём
+      // сам текст — пользователь скопирует его вручную.
+      const copied = await copyToClipboardSafely(value)
+      this.showCopyToClipboardToast(fieldName, value, !copied)
     },
     async pasteFromClipboard(name) {
       await navigator.clipboard.readText().then((data) => {
         return this.$store.dispatch('setPictureCurrentField', { name: name, value: data })
       })
     },
-    showCopyToClipboardToast(fieldName, fieldValue) {
+    showCopyToClipboardToast(fieldName, fieldValue, notCopied = false) {
       // Use a shorter name for this.$createElement
       // const h = this.$createElement
 
@@ -279,7 +283,9 @@ export default {
             [fieldName],
           ),
           h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [
-            ` скопировано в буфер обмена:`,
+            notCopied
+              ? ` НЕ скопировано (буфер обмена недоступен) — скопируйте вручную:`
+              : ` скопировано в буфер обмена:`,
           ]),
         ]),
         h('br'),

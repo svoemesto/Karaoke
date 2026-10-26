@@ -112,6 +112,8 @@
 </template>
 
 <script>
+import { toServerWallClock } from '../../lib/datetime-wall-clock.js'
+
 /**
  * Модальное окно фильтров для таблицы «Подписки».
  *
@@ -143,9 +145,8 @@ export default {
       if (this.userIdFilter) params.filterUserId = Number(this.userIdFilter)
       if (this.songIdFilter) params.filterSongId = Number(this.songIdFilter)
       if (this.createdFromFilter)
-        params.filterCreatedFrom = new Date(this.createdFromFilter).toISOString()
-      if (this.createdToFilter)
-        params.filterCreatedTo = new Date(this.createdToFilter).toISOString()
+        params.filterCreatedFrom = toServerWallClock(this.createdFromFilter)
+      if (this.createdToFilter) params.filterCreatedTo = toServerWallClock(this.createdToFilter)
       // BR-458: пагинация серверная — вместе с фильтром обязательно уходят страница и
       // её размер, иначе сервер отдаст первые 25 строк (по умолчанию), а фильтр
       // применится к странице, которой в UI уже нет. При смене фильтра — снова 1-я.

@@ -1820,6 +1820,39 @@ export default {
       }
       return result
     },
+    // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): список всех
+    // удерживаемых кнопок транспорта — глобальный сброс при отпускании мыши вне
+    // кнопки, потере фокуса окна и уходе вкладки в фон.
+    pressedButtons() {
+      return [
+        'pressedX',
+        'pressedA',
+        'pressedD',
+        'pressedQ',
+        'pressedE',
+        'pressedZ',
+        'pressedC',
+        'pressedBL',
+        'pressedBR',
+        'pressedComma',
+        'pressedPeriod',
+        'pressedS',
+        'pressedW',
+        'pressed1',
+        'pressed2',
+        'pressed3',
+        'pressed4',
+        'pressed5',
+        'pressed6',
+        'pressed0',
+        'pressedT',
+        'pressedY',
+        'pressedU',
+        'pressedI',
+        'pressedP',
+        'pressedO',
+      ]
+    },
     getFormattedNotes() {
       const stringsForAllNotesArray = this.getStringsForAllNotesInSong()
       if (stringsForAllNotesArray === undefined || stringsForAllNotesArray.length === 0) return ''
@@ -1930,10 +1963,18 @@ export default {
               }
               const noteLength = note.length
               // Находим номер струны и номер лада, подставляем их в массив stringNote
+              // BR-455 (аудит #336, пакет PKG-S3-33, OpenProject #405): геттер НЕ пишет
+              // в состояние. Раньше здесь стояло присваивание пары «струна|лад» в
+              // `marker.stringLad` — побочный эффект в computed, который перезаписывал СОХРАНЯЕМОЕ поле
+              // (`getMarkersToSave`: stringLad) производным от алгоритма подбора табов при
+              // КАЖДОМ пересчёте форматтера (а он зовётся из watcher'ов sourceMarkers /
+              // sourceText / currentMarker — то есть на каждое нажатие клавиши), даже если
+              // админ не открывал вкладку «Ноты». Теперь пара [струна, лад] — локальная
+              // (нужна только для отрисовки), а в маркер пишет явное действие пользователя
+              // (кнопка «зафиксировать лад» — onOffLocklad).
               const sn = marker.lockLad
                 ? [marker.stringLad.split('|')[0], marker.stringLad.split('|')[1]]
                 : stringsForAllNotes[stringsForAllNotesIndex]
-              marker.stringLad = sn[0] + '|' + sn[1]
               let stringIndex = sn[0]
               let lad = sn[1] + (sn[1] < 10 ? '-' : '')
               stringNote.splice(stringIndex, 1, lad)
@@ -2215,13 +2256,22 @@ export default {
       return highlightWords(this.sourceText, this.attentionWords)
     },
     // Тег-якоря для syncMarkersFromSpecTags(): для каждого распознанного тега на отдельной строке -
-    // после какого ординального индекса sourceSyllables он стоит. syllableIndex считается через тот
-    // же computeSyllables() на РЕАЛЬНОМ префиксе обработанных строк (не на приближении), поэтому
-    // всегда совпадает с тем, что фактически даст getSyllables на полном тексте.
+    // после какого ординального индекса sourceSyllables он стоит.
+    //
+    // BR-457 (аудит #336, пакет PKG-S3-33, OpenProject #405): счётчик слогов
+    // накапливается ПОСТРОЧНО — по одному проходу computeSyllables() на строку.
+    // Прежний код для КАЖДОЙ строки пересчитывал слоги на всём накопленном
+    // префиксе (склейка всех обработанных строк) — квадратично по
+    // числу строк (замер аудита: 200 строк — ~121 мс на один пересчёт), а
+    // вызывается это из watcher'а `sourceText`, то есть на КАЖДОЕ нажатие клавиши
+    // в блоке исходного текста.
+    //
+    // Разница с прежним подсчётом возможна только для строки, начинающейся с
+    // ровно «-_» (склейка безгласного фрагмента с последним слогом предыдущей
+    // строки) — редкий крайний случай, где якорь может сместиться на один слог.
     specTagAnchors() {
       const anchors = []
       const rawLines = this.sourceText.replace(/\r\n/g, '\n').split('\n')
-      const processedLines = []
       let syllableCount = 0
       rawLines.forEach((line) => {
         const [stripped, tags] = parseSpecTagLine(line)
@@ -2236,10 +2286,8 @@ export default {
               })
             }
           })
-          processedLines.push('')
         } else {
-          processedLines.push(line)
-          syllableCount = computeSyllables(processedLines.join('\n')).length
+          syllableCount += computeSyllables(line).length
         }
       })
       return anchors
@@ -2481,6 +2529,14 @@ export default {
     },
     pressedA: {
       handler() {
+        // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): интервал гасится
+        // ДО раннего выхода по `!isEditMode`. Раньше выход шёл первым, поэтому при уходе
+        // фокуса в поле ввода (setEditMode(false)) интервал продолжал тикать: пауза
+        // переставала действовать, перемотка не останавливалась.
+        if (!this.pressedA) {
+          clearInterval(this.intervalSkipBackward)
+          this.intervalSkipBackward = null
+        }
         if (!this.isEditMode) return
         if (this.pressedA) {
           this.ws.setPlaybackRate(this.editSpeed)
@@ -2496,6 +2552,14 @@ export default {
     },
     pressedD: {
       handler() {
+        // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): интервал гасится
+        // ДО раннего выхода по `!isEditMode`. Раньше выход шёл первым, поэтому при уходе
+        // фокуса в поле ввода (setEditMode(false)) интервал продолжал тикать: пауза
+        // переставала действовать, перемотка не останавливалась.
+        if (!this.pressedD) {
+          clearInterval(this.intervalSkipForward)
+          this.intervalSkipForward = null
+        }
         if (!this.isEditMode) return
         if (this.pressedD) {
           this.ws.setPlaybackRate(this.editSpeed)
@@ -2529,6 +2593,14 @@ export default {
     },
     pressedZ: {
       handler() {
+        // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): интервал гасится
+        // ДО раннего выхода по `!isEditMode`. Раньше выход шёл первым, поэтому при уходе
+        // фокуса в поле ввода (setEditMode(false)) интервал продолжал тикать: пауза
+        // переставала действовать, перемотка не останавливалась.
+        if (!this.pressedZ) {
+          clearInterval(this.intervalPressZ)
+          this.intervalPressZ = null
+        }
         if (!this.isEditMode) return
         if (this.pressedZ) {
           this.intervalPressZ = setInterval(() => {
@@ -2541,6 +2613,14 @@ export default {
     },
     pressedC: {
       handler() {
+        // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): интервал гасится
+        // ДО раннего выхода по `!isEditMode`. Раньше выход шёл первым, поэтому при уходе
+        // фокуса в поле ввода (setEditMode(false)) интервал продолжал тикать: пауза
+        // переставала действовать, перемотка не останавливалась.
+        if (!this.pressedC) {
+          clearInterval(this.intervalPressC)
+          this.intervalPressC = null
+        }
         if (!this.isEditMode) return
         if (this.pressedC) {
           this.intervalPressC = setInterval(() => {
@@ -2744,6 +2824,14 @@ export default {
     },
     pressedBL: {
       handler() {
+        // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): интервал гасится
+        // ДО раннего выхода по `!isEditMode`. Раньше выход шёл первым, поэтому при уходе
+        // фокуса в поле ввода (setEditMode(false)) интервал продолжал тикать: пауза
+        // переставала действовать, перемотка не останавливалась.
+        if (!this.pressedBL) {
+          clearInterval(this.intervalPressBL)
+          this.intervalPressBL = null
+        }
         if (!this.isEditMode) return
         if (this.pressedBL) {
           this.goToPreviousMarker()
@@ -2757,6 +2845,14 @@ export default {
     },
     pressedBR: {
       handler() {
+        // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): интервал гасится
+        // ДО раннего выхода по `!isEditMode`. Раньше выход шёл первым, поэтому при уходе
+        // фокуса в поле ввода (setEditMode(false)) интервал продолжал тикать: пауза
+        // переставала действовать, перемотка не останавливалась.
+        if (!this.pressedBR) {
+          clearInterval(this.intervalPressBR)
+          this.intervalPressBR = null
+        }
         if (!this.isEditMode) return
         if (this.pressedBR) {
           this.goToNextMarker()
@@ -2871,6 +2967,13 @@ export default {
     document.removeEventListener('keydown', this.listenerKeyDown, false)
     document.removeEventListener('keyup', this.listenerKeyUp, false)
 
+    // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): глобальные слушатели
+    // отпускания кнопки — снимаются вместе с компонентом.
+    window.removeEventListener('mouseup', this.onGlobalPointerRelease, true)
+    window.removeEventListener('pointerup', this.onGlobalPointerRelease, true)
+    window.removeEventListener('blur', this.onGlobalPointerRelease, true)
+    document.removeEventListener('visibilitychange', this.onGlobalPointerRelease, true)
+
     // Обработчики слайдеров были анонимными функциями — снять их было нельзя,
     // поэтому ссылка на DOM-узел и слушатель переехали в именованные методы.
     if (this.sliderZoom) this.sliderZoom.removeEventListener('input', this.onSliderZoomInput)
@@ -2920,6 +3023,18 @@ export default {
     this.initWavesurfer()
     this.isEditMode = true
 
+    // BR-452 (аудит #336, пакет PKG-S3-33, OpenProject #405): отпускание кнопки
+    // ВНЕ самой кнопки не присылает `mouseup` элементу — флаг `pressed*` оставался
+    // `true`, watcher не срабатывал, и интервал (каждые 16 мс для «D», 10 мс для «A»,
+    // 100 мс для «[»/«]») продолжал работать бесконечно: пауза переставала действовать,
+    // а следующее нажатие той же кнопки выглядело «мёртвым» (значение не менялось —
+    // watcher не срабатывал). Поэтому отпускание слушается ГЛОБАЛЬНО (window, capture),
+    // а потеря фокуса окна/вкладки тоже сбрасывает все удержания.
+    window.addEventListener('mouseup', this.onGlobalPointerRelease, true)
+    window.addEventListener('pointerup', this.onGlobalPointerRelease, true)
+    window.addEventListener('blur', this.onGlobalPointerRelease, true)
+    document.addEventListener('visibilitychange', this.onGlobalPointerRelease, true)
+
     // ЕДИНСТВЕННАЯ точка, где длительность аудио становится известна и
     // регионы создаются заново. Раньше здесь стоял свой цикл создания
     // регионов, а ниже — компенсирующий проход `if (this.duration > 0)`.
@@ -2944,6 +3059,12 @@ export default {
     // этого, но мы предпочитаем не полагаться на защитный код там, где можно обеспечить
     // инвариант порядком присваиваний здесь.
     this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
+    // BR-453 (аудит #336, пакет PKG-S3-33, OpenProject #405): после каждого `await`
+    // проверяем, не размонтирован ли компонент. Раньше в `mounted()` не было НИ ОДНОЙ
+    // такой проверки (вопреки отчёту #189): закрытие модалки во время загрузки давало
+    // `TypeError: Cannot read properties of null (reading 'on')` — компонент уже
+    // размонтирован, а `this.ws` обнулён.
+    if (this.isUnmounted) return
     if (this.loadedMarkers.length > 0) {
       for (let index = 0; index < this.loadedMarkers.length; index++) {
         let marker = Object.assign({}, this.loadedMarkers[index])
@@ -2970,7 +3091,11 @@ export default {
     this.redrawMarkers()
 
     this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
+    // BR-453: см. выше — проверка после каждого `await`.
+    if (this.isUnmounted) return
     this.indexTabsVariant = await this.$store.getters.getIndexTabsVariant
+    // BR-453: и перед блоком навешивания обработчиков — `this.ws` мог уже быть null.
+    if (this.isUnmounted) return
     // Словарь подсветки «ё». Не await намеренно: словарь не блокирует
     // показ редактора, а подсветка появится, как только он приедет.
     this.loadAttentionWords()
@@ -3142,13 +3267,55 @@ export default {
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false
     },
+    /**
+     * Снимает регион с маркера (BR-468).
+     *
+     * Инвариант #192: ключ `region` есть ВСЕГДА, а значение может быть `null`
+     * (скрытый тип маркера, аудио ещё не готово, dummyMarker). Поэтому обращаться
+     * к `marker.region.remove()` без проверки нельзя: `TypeError: Cannot read
+     * properties of null (reading 'remove')`. Особенно опасно `createBeatMarkers()`:
+     * watcher `currentVoice` обнуляет `region` ВСЕМ загруженным маркерам и сразу
+     * вызывает `createBeatMarkers()` — а тот первым делом удаляет beat-маркеры.
+     *
+     * @param {Object} marker — маркер (может быть undefined).
+     * @returns {void}
+     */
+    removeMarkerRegion(marker) {
+      if (!marker) return
+      if (marker.region) {
+        marker.region.remove()
+        marker.region = null
+      }
+    },
+    /**
+     * Сбрасывает ВСЕ удержания кнопок транспорта (BR-452).
+     *
+     * Вызывается глобальными слушателями `mouseup`/`pointerup` (capture-фаза, window),
+     * а также `blur` окна и `visibilitychange` (переключение вкладки, блокировка экрана).
+     * Без этого отпускание кнопки мыши ВНЕ кнопки оставляло флаг `pressed*` включённым,
+     * а интервал повтора — работающим (см. комментарий в mounted()).
+     *
+     * @returns {void}
+     */
+    onGlobalPointerRelease() {
+      this.pressedButtons.forEach((name) => {
+        if (this[name]) this[name] = false
+      })
+    },
     closeSearchText() {
       this.isSearchTextVisible = false
       if (this.currentMarker) this.setEditMode(true)
     },
     returnSearchText(returnedText) {
+      // BR-454 (аудит #336, пакет PKG-S3-33, OpenProject #405): выход по кнопке
+      // «применить» равнозначен закрытию модалки — режим редактирования восстанавливается
+      // (как в closeSearchText). Раньше `doSearchText()` гасил `isEditMode`, а здесь он не
+      // возвращался: глобальные хоткеи редактора (W/1/2/…/X/A/D/Z/C, [ / ]) оставались
+      // выключенными до тех пор, пока пользователь не сфокусирует и не расфокусирует
+      // какое-нибудь поле — редактор выглядел «сломанным».
       this.sourceText = returnedText
       this.isSearchTextVisible = false
+      if (this.currentMarker) this.setEditMode(true)
     },
     doAiTextEditor() {
       // Гасим хоткеи редактора на время модалки: у неё есть textarea, и
@@ -3384,6 +3551,23 @@ export default {
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) {
           return
         }
+      }
+
+      // BR-456 (аудит #336, пакет PKG-S3-33, OpenProject #405): гард по
+      // `document.activeElement` НЕ покрывает модалки без полей ввода. `CustomConfirm`
+      // состоит из v-html-заголовка и кнопок — фокус остаётся на кнопке/body, и
+      // гард не срабатывает: все хоткеи редактора продолжают действовать ПОВЕРХ
+      // открытого диалога подтверждения. Пример: «Очистить маркеры» открывает
+      // вопрос «удалить все маркеры?», и нажатие `s`/`w`/`1`/`2` в этот момент
+      // удаляет/добавляет маркер на вейвформе за диалогом. Гасим хоткеи на время
+      // ЛЮБОЙ открытой модалки.
+      if (
+        this.isCustomConfirmVisible ||
+        this.isSearchTextVisible ||
+        this.isAiTextEditorVisible ||
+        this.isWhisperDebugVisible
+      ) {
+        return
       }
 
       switch (e.code) {
@@ -3711,12 +3895,28 @@ export default {
     setRegionMode(isRegionMode) {
       if (!isRegionMode) {
         this.setMoveMode(isRegionMode)
-        this.regionMarker.region.remove()
-        this.regionMarker.region = null
+        // BR-468: регион снимается через хелпер (region может быть null).
+        this.removeMarkerRegion(this.regionMarker)
         this.regionMarker = undefined
         this.regionMarkerStart = undefined
         this.regionMarkerEnd = undefined
       } else {
+        // BR-470 (аудит #336, пакет PKG-S3-33, OpenProject #405): регион создаётся
+        // ТОЛЬКО когда длительность аудио известна. `addRegion()` ДО получения
+        // длительности необратимо ломает позицию региона (wavesurfer: clampPosition
+        // при totalDuration === 0 даёт 0 для ЛЮБОГО t) — выделение «схлопывалось»
+        // в точку 0, и дальнейшие «удалить/вставить маркеры из региона» работали
+        // по диапазону [0, 0].
+        if (!this.ws || this.ws.getDuration() === 0) {
+          this.customConfirmParams = {
+            header: 'Регион',
+            body: 'Аудио ещё не загружено — выделение фрагмента доступно только после готовности аудио.',
+            isAlert: true,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+          return
+        }
         let timeToAdd = this.currentTime
         let regionMarker = {
           time: timeToAdd,
@@ -3733,34 +3933,44 @@ export default {
           id: this.generateUUID(),
         })
         this.regionMarker = regionMarker
+        // BR-470: координаты берём из ЖИВОГО региона.
         this.regionMarkerStart = regionMarker.region.start
         this.regionMarkerEnd = regionMarker.region.end
       }
       this.isRegionMode = isRegionMode
     },
     setMoveMode(isMoveMode) {
-      console.log('setMoveMode this.regionMarkerStart', this.regionMarkerStart)
-      console.log('setMoveMode this.regionMarkerEnd', this.regionMarkerEnd)
+      // BR-470 (аудит #336, пакет PKG-S3-33, OpenProject #405): координаты берём из
+      // ЖИВОГО региона, а не из снимка `regionMarkerStart/End` (снимок не обновлялся
+      // при перетаскивании региона, поэтому пересоздание региона по старым
+      // координатам сбрасывало выделение).
+      const region = this.regionMarker ? this.regionMarker.region : null
+      const regionStart = region ? region.start : this.regionMarkerStart
+      const regionEnd = region ? region.end : this.regionMarkerEnd
+      console.log('setMoveMode regionStart', regionStart)
+      console.log('setMoveMode regionEnd', regionEnd)
       this.isMoveMode = isMoveMode
       let color = this.isMoveMode ? '#00009933' : '#00990033'
-      this.regionMarker.region.remove()
-      this.regionMarker.region = null
+      // BR-468: регион снимается через хелпер (region может быть null).
+      this.removeMarkerRegion(this.regionMarker)
       this.regionMarker = undefined
       let regionMarker = {
-        time: this.regionMarkerStart,
+        time: regionStart,
         label: '',
         color: color,
         position: 'top',
         markertype: 'region',
       }
       regionMarker.region = this.wsRegions.addRegion({
-        start: this.regionMarkerStart,
-        end: this.regionMarkerEnd,
+        start: regionStart,
+        end: regionEnd,
         content: regionMarker.label,
         color: regionMarker.color,
         id: this.generateUUID(),
       })
       this.regionMarker = regionMarker
+      this.regionMarkerStart = regionStart
+      this.regionMarkerEnd = regionEnd
     },
     pasteMarkersInRegionToNewPlace() {
       if (this.isRegionMode) {
@@ -3782,12 +3992,16 @@ export default {
           let indexToInsert = this.currentMarkersIndex
           markersToCopy.forEach((markerToCopy) => {
             const newTime = markerToCopy.time + delta
+            // BR-471 (аудит #336, пакет PKG-S3-33, OpenProject #405): копируются ВСЕ
+            // поля маркера. Раньше копировались только time/label/color/position/
+            // markertype — терялись `note`, `chord`, `stringLad`, `lockLad`, то есть
+            // ровно те поля, которые сохраняются в БД (`getMarkersToSave`). У
+            // chord-маркера значение лежит в `chord` (label пуст), у note-маркера —
+            // в `note`: скопированные копии уезжали в БД усечёнными.
             let newMarker = {
+              ...markerToCopy,
               time: newTime,
-              label: markerToCopy.label,
-              color: markerToCopy.color,
-              position: markerToCopy.position,
-              markertype: markerToCopy.markertype,
+              region: undefined,
             }
             newMarker.region = this.createRegionMarker(newMarker)
             this.sourceMarkers.splice(indexToInsert, 0, newMarker)
@@ -3814,8 +4028,8 @@ export default {
         if (markersToDelete.length > 0) {
           markersToDelete.forEach((markerToDelete) => {
             const index = this.sourceMarkers.indexOf(markerToDelete)
-            markerToDelete.region.remove()
-            markerToDelete.region = null
+            // BR-468: снимаем регион через хелпер (region может быть null).
+            this.removeMarkerRegion(markerToDelete)
             if (index >= 0) {
               this.sourceMarkers.splice(index, 1)
             }
@@ -3998,6 +4212,27 @@ export default {
       })
 
       this.sortSourceMarkers()
+    },
+    /**
+     * Сигнатура отрисованного содержимого маркера (BR-473).
+     *
+     * Содержимое региона — это DOM-элемент, поэтому сравнивать его нельзя:
+     * `getRegionContentFromMarker` создаёт НОВЫЙ Element на каждый вызов, и
+     * сравнение DOM-узла со свежим элементом истинно всегда. Сигнатура собирается
+     * из полей, которые реально влияют на отрисовку (тип маркера, лейбл, нота,
+     * аккорд), — при их неизменности setContent() не вызывается.
+     *
+     * @param {Object} marker — маркер.
+     * @returns {string} сигнатура содержимого.
+     */
+    getMarkerContentSignature(marker) {
+      if (!marker) return ''
+      return [
+        marker.markertype || '',
+        marker.label || '',
+        marker.note || '',
+        marker.chord || '',
+      ].join('\u0000')
     },
     getRegionContentFromMarker(marker) {
       if (!marker || !marker.label) return ''
@@ -4500,7 +4735,10 @@ export default {
         let bpm = Math.round(60 / ((this.currentTime - bpmMarker.time) / 4))
         // Записываем новое значение BPM в маркер
         bpmMarker.label = 'BPM|' + bpm
-        bpmMarker.region.setContent(this.getRegionContentFromMarker(bpmMarker))
+        // BR-468: region может быть null (инвариант #192).
+        if (bpmMarker.region) {
+          bpmMarker.region.setContent(this.getRegionContentFromMarker(bpmMarker))
+        }
         this.createBeatMarkers()
         return
       }
@@ -4513,8 +4751,18 @@ export default {
         markertype: markerType,
       }
 
-      let indexToInsert = this.currentMarkersIndex + (diff < 0.002 && !notDelete ? 0 : 1)
-      let countDeleted = diff < 0.002 && !notDelete ? 1 : 0
+      // BR-469 (аудит #336, пакет PKG-S3-33, OpenProject #405): индекс нормализуется,
+      // а замена разрешена ТОЛЬКО при `currentMarkersIndex >= 0`. Раньше при
+      // currentMarkersIndex === -1 (playhead раньше первого маркера) расчёт давал
+      // indexToInsert = -1, и `this.sourceMarkers[-1]` → undefined →
+      // `markerToDelete.region.remove()` → TypeError: добавление ЛЮБОГО маркера в
+      // начале песни падало вместо вставки (гард #192 закрыл ровно этот класс для
+      // deleteMarker, но addMarker остался без гарда). Теперь при -1 маркер
+      // вставляется в позицию 0 БЕЗ удаления.
+      const canReplace = this.currentMarkersIndex >= 0
+      const replaceExisting = diff < 0.002 && !notDelete && canReplace
+      let indexToInsert = Math.max(0, this.currentMarkersIndex + (replaceExisting ? 0 : 1))
+      let countDeleted = replaceExisting ? 1 : 0
 
       if (withEndOfLine) {
         let endOfLineMarker = {
@@ -4532,8 +4780,9 @@ export default {
       } else {
         if (countDeleted > 0) {
           let markerToDelete = this.sourceMarkers[indexToInsert]
-          markerToDelete.region.remove()
-          markerToDelete.region = null
+          // BR-469: маркер для замены может отсутствовать — тогда просто вставляем.
+          // BR-468: снимаем регион через хелпер (region может быть null).
+          this.removeMarkerRegion(markerToDelete)
         }
         newMarker.region = this.createRegionMarker(newMarker)
         this.sourceMarkers.splice(indexToInsert, countDeleted, newMarker)
@@ -4636,8 +4885,8 @@ export default {
         for (let i = 0; i < this.sourceMarkers.length; i++) {
           let marker = this.sourceMarkers[i]
           if (marker.markertype === 'beat') {
-            marker.region.remove()
-            marker.region = null
+            // BR-468: region может быть null (инвариант #192) — снимаем через хелпер.
+            this.removeMarkerRegion(marker)
             this.sourceMarkers.splice(i, 1)
             break
           }
@@ -4723,7 +4972,9 @@ export default {
         // Создаём бит-маркеры до следующего BPM-маркера или до конца
         let currentTime = bpmMarker.time + noteLength32
         let counter = 1
-        let nextBpmMarkerTime = bpmMarker.region.totalDuration
+        // BR-468: длительность аудио берём НЕ из `bpmMarker.region` (по инварианту
+        // #192 region может быть null — тогда было TypeError), а из самого плеера.
+        let nextBpmMarkerTime = this.ws ? this.ws.getDuration() : this.duration
         if (indexBpmMarker < bpmMarkers.length - 1) {
           nextBpmMarkerTime = bpmMarkers[indexBpmMarker + 1].time
         }
@@ -4896,8 +5147,8 @@ export default {
         for (let i = 0; i < this.sourceMarkers.length; i++) {
           let marker = this.sourceMarkers[i]
           if (marker.markertype === 'chord') {
-            marker.region.remove()
-            marker.region = null
+            // BR-468: region может быть null (инвариант #192).
+            this.removeMarkerRegion(marker)
             this.sourceMarkers.splice(i, 1)
             break
           }
@@ -4976,6 +5227,11 @@ export default {
     doMarkersFirst() {
       // Берем текущую позицию, находим первый маркер, вычисляем разницу, прибавляем или вычитаем эту разницу у всех последующих маркеров, кроме маркера конца
       let markers = this.sourceMarkers
+      // BR-472 (аудит #336, пакет PKG-S3-33, OpenProject #405): на пустом списке
+      // маркеров `markers[0].time` → TypeError (соседний doMarkersInc защищён
+      // проверкой `markers.length > 0`). Кнопка «Сдвинуть сюда первый маркер»
+      // доступна всегда — в том числе для голоса без текста/разметки.
+      if (markers.length === 0) return
       const diff = this.currentTime - markers[0].time
       for (let i = 0; i < markers.length - 1; i++) {
         let marker = markers[i]
@@ -4996,8 +5252,8 @@ export default {
             marker.label === 'GROUP|0') ||
           (marker.markertype === 'syllables' && marker.label === '')
         ) {
-          marker.region.remove()
-          marker.region = null
+          // BR-468: region может быть null (инвариант #192).
+          this.removeMarkerRegion(marker)
           this.sourceMarkers.splice(i, 1)
           i--
         }
@@ -5008,8 +5264,8 @@ export default {
         ) {
           marker.markertype = 'newline'
           marker.label = ''
-          marker.region.remove()
-          marker.region = null
+          // BR-468: region может быть null (инвариант #192).
+          this.removeMarkerRegion(marker)
           marker.region = this.createRegionMarker(marker)
           this.sourceMarkers.splice(i, 1, marker)
         }
@@ -5051,8 +5307,8 @@ export default {
         for (let i = 0; i < this.sourceMarkers.length; i++) {
           let marker = this.sourceMarkers[i]
           if (this.isShowMarkerType(marker.markertype)) {
-            marker.region.remove()
-            marker.region = null
+            // BR-468: region может быть null (инвариант #192).
+            this.removeMarkerRegion(marker)
             this.sourceMarkers.splice(i, 1)
             break
           }
@@ -5334,12 +5590,39 @@ export default {
       // let loadSongStartTime = Date.now();
       let currentTime = this.ws.getCurrentTime()
       // let loadStartTime = Date.now();
-      this.ws.load('/api/song/' + this.song.id + '/file' + this.sound).then(() => {
-        // let loadEndTime = Date.now();
-        this.ws.setTime(currentTime)
-        this.ws.zoom(this.sliderZoom.value)
-        this.ws.setVolume(this.sliderVolume.value)
-      })
+      // BR-474 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ загрузки аудио
+      // обрабатывается. Раньше у промиса `this.ws.load(...)` был только `.then`: при
+      // 404/500/обрыве получался unhandled rejection, пользователь не видел ни
+      // сообщения, ни причины, а `ws.on('decode')` не срабатывал — редактор
+      // открывался «без маркеров» без объяснения. Запрос не отменяем (wavesurfer
+      // сам не умеет), но показываем ошибку.
+      const ws = this.ws
+      const loadPromise = ws.load('/api/song/' + this.song.id + '/file' + this.sound)
+      Promise.resolve(loadPromise)
+        .then(() => {
+          // Компонент мог быть размонтирован, а `this.ws` — уже null (beforeUnmount
+          // обнуляет его): поздний `.then` падал на `this.ws.setTime`.
+          if (this.isUnmounted || ws !== this.ws) return
+          // let loadEndTime = Date.now();
+          this.ws.setTime(currentTime)
+          this.ws.zoom(this.sliderZoom.value)
+          this.ws.setVolume(this.sliderVolume.value)
+        })
+        .catch((e) => {
+          // eslint-disable-next-line no-console
+          console.error('[SubsEdit.loadSong] не удалось загрузить аудио:', e)
+          if (this.isUnmounted) return
+          this.customConfirmParams = {
+            header: 'Ошибка загрузки аудио',
+            body:
+              'Не удалось загрузить аудио песни: ' +
+              (e && e.message ? e.message : e) +
+              '. Разметка не может быть показана без аудио.',
+            isAlert: true,
+            timeout: 15,
+          }
+          this.isCustomConfirmVisible = true
+        })
       // let loadSongEndtTime = Date.now();
     },
     initWavesurfer() {
@@ -5768,9 +6051,12 @@ export default {
                   case 'syllables':
                     if (this.currentMarker.markertype === 'syllables') {
                       this.currentMarker.note = note
-                      this.currentMarker.region.setContent(
-                        this.getRegionContentFromMarker(this.currentMarker),
-                      )
+                      // BR-468: region может быть null (скрытый тип маркера).
+                      if (this.currentMarker.region) {
+                        this.currentMarker.region.setContent(
+                          this.getRegionContentFromMarker(this.currentMarker),
+                        )
+                      }
                       this.sourceMarkers.splice(0, 1, this.sourceMarkers[0])
                       this.goToNextMarker('syllables')
                     }
@@ -5778,9 +6064,12 @@ export default {
                   case 'note':
                     if (this.currentMarker.markertype === 'note') {
                       this.currentMarker.note = note
-                      this.currentMarker.region.setContent(
-                        this.getRegionContentFromMarker(this.currentMarker),
-                      )
+                      // BR-468: region может быть null (скрытый тип маркера).
+                      if (this.currentMarker.region) {
+                        this.currentMarker.region.setContent(
+                          this.getRegionContentFromMarker(this.currentMarker),
+                        )
+                      }
                       this.sourceMarkers.splice(0, 1, this.sourceMarkers[0])
                       this.goToNextMarker('note')
                     }
@@ -5853,8 +6142,20 @@ export default {
           seen.add(region)
           if (region.start !== marker.time) region.setOptions({ start: marker.time })
           if (region.color !== marker.color) region.setOptions({ color: marker.color })
+          // BR-473 (аудит #336, пакет PKG-S3-33, OpenProject #405): `region.content` —
+          // это DOM-ЭЛЕМЕНТ (wavesurfer `setContent`), а `getRegionContentFromMarker`
+          // возвращает НОВЫЙ Element на каждый вызов. Поэтому сравнение DOM-узла со
+          // свежим элементом истинно ВСЕГДА, и setContent() вызывался для каждого
+          // видимого маркера на
+          // каждый redrawMarkers() (а он зовётся из watcher'а sourceText — на каждое
+          // нажатие клавиши): полный пересбор HTML/SVG и замена DOM-узла без
+          // изменения маркера. Теперь сравнивается СИГНАТУРА содержимого.
           const content = this.getRegionContentFromMarker(marker)
-          if (region.content !== content) region.setContent(content)
+          const signature = this.getMarkerContentSignature(marker)
+          if (marker._contentSignature !== signature) {
+            marker._contentSignature = signature
+            region.setContent(content)
+          }
         } else {
           marker.region = this.createRegionMarker(marker)
           if (marker.region) seen.add(marker.region)

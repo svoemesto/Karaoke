@@ -442,6 +442,12 @@
               </div>
             </b-tab>
             <b-tab title="История">
+              <!-- BR-445 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ
+                   загрузки истории виден пользователю — раньше вкладка оставалась
+                   пустой без сообщения (неотличимо от «истории нет»). -->
+              <div v-if="songsHistoryError" class="sfm-history-error">
+                {{ songsHistoryError }}
+              </div>
               <div class="sfm-history-table-body">
                 <b-table
                   :items="songsHistory"
@@ -718,6 +724,10 @@ export default {
     songsHistory() {
       return this.$store.getters.getSongsHistory
     },
+    // BR-445: текст ошибки загрузки истории фильтров.
+    songsHistoryError() {
+      return this.$store.getters.getSongsHistoryError
+    },
     dictDates() {
       function addZero(num) {
         if (num >= 0 && num <= 9) {
@@ -836,10 +846,19 @@ export default {
     })
   },
   async mounted() {
-    this.$store.getters.songAuthorsPromise.then((data) => {
+    // BR-445 (аудит #336, пакет PKG-S3-33, OpenProject #405): загрузка истории
+    // фильтров больше НЕ зависит от успеха загрузки списка авторов. Раньше список
+    // авторов грузился через геттер-обещание, и его `.then` шёл без `catch`: при
+    // 500/таймауте/не-JSON промис отклонялся (unhandled rejection),
+    // `loadSongsHistory` не вызывался вовсе, и вкладка «История» оставалась
+    // пустой без сообщения.
+    this.$store.dispatch('loadSongsHistory')
+    try {
+      const data = await this.$store.getters.songAuthorsPromise
       this.dictAuthors = JSON.parse(data).authors
-      this.$store.dispatch('loadSongsHistory')
-    })
+    } catch (e) {
+      console.error('Не удалось загрузить список авторов для фильтра:', e)
+    }
   },
   methods: {
     ok() {
@@ -945,7 +964,18 @@ export default {
         ? args['filter_version_max_karaoke']
         : ''
       this.songsFilterRate = args['filter_rate'] ? args['filter_rate'] : ''
-      this.songsFilterIsSync = args['filter_is_sync'] ? args['filter_is_sync'] : ''
+      // BR-444 (аудит #336, пакет PKG-S3-33, OpenProject #405): ключи `historyArgs`
+      // читаются по контракту бэкенда. `SongsHistory` хранит тот же `args`, что ушёл
+      // в `Song.loadListFromDb`, где ключ синхронизации — `is_sync` (не
+      // `filter_is_sync`); из-за опечатки значение всегда было `undefined`, и поле
+      // сбрасывалось в ''. `filter_audio_parent_id` и `flag_free` в историю пишутся
+      // (с 2026-07-30 / с фильтра «Free»), но не читались вовсе и НЕ сбрасывались —
+      // в восстановленный фильтр молча подмешивались текущие значения.
+      this.songsFilterIsSync = args['is_sync'] ? args['is_sync'] : ''
+      this.songsFilterAudioParentId = args['filter_audio_parent_id']
+        ? args['filter_audio_parent_id']
+        : ''
+      this.songsFilterFlagFree = args['flag_free'] ? args['flag_free'] : ''
       this.songsFilterStatusProcessLyrics = args['filter_status_process_lyrics']
         ? args['filter_status_process_lyrics']
         : ''
@@ -985,6 +1015,16 @@ export default {
 .sfm-fld-history-name:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+/* BR-445: отказ загрузки истории виден пользователю. */
+.sfm-history-error {
+  border: thin solid darkred;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  color: darkred;
+  background: #ffeaea;
+  font-size: small;
 }
 
 .sfm-modal-fade-enter,

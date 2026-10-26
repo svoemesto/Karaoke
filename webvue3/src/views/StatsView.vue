@@ -315,6 +315,7 @@
       :events="userEvents"
       :total-count="userEventsTotalCount"
       :is-loading="userEventsIsLoading"
+      :error="userEventsError"
       :cap="userEventsPageSize"
       @close="selectedUser = null"
     />
@@ -325,6 +326,7 @@
       :events="songEvents"
       :total-count="songEventsTotalCount"
       :is-loading="songEventsIsLoading"
+      :error="songEventsError"
       :cap="songEventsPageSize"
       @close="selectedSong = null"
     />
@@ -543,6 +545,10 @@ export default {
     userEventsIsLoading() {
       return this.$store.getters.getStatsUserEventsIsLoading
     },
+    // BR-465: отказ drill-down показывается в модалке, а не выглядит как «нет событий».
+    userEventsError() {
+      return this.$store.getters.getStatsUserEventsError
+    },
     statsBySong() {
       return this.$store.getters.getStatsBySong
     },
@@ -560,6 +566,10 @@ export default {
     },
     songEventsIsLoading() {
       return this.$store.getters.getStatsSongEventsIsLoading
+    },
+    // BR-465: см. userEventsError.
+    songEventsError() {
+      return this.$store.getters.getStatsSongEventsError
     },
     webEvents() {
       return this.$store.getters.getWebEvents

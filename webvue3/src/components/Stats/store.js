@@ -46,6 +46,18 @@ function getJson(url, timeoutMs = STATS_REQUEST_TIMEOUT_MS) {
 }
 
 /**
+ * Текст ошибки загрузки данных статистики (BR-465, аудит #336, пакет PKG-S3-33).
+ *
+ * @param {any} e — исключение/ошибка отклонённого промиса.
+ * @param {string} what — что именно не удалось загрузить.
+ * @returns {string} текст для показа пользователю.
+ */
+function statsErrorText(e, what) {
+  const detail = e && e.message ? e.message : String(e)
+  return `Не удалось загрузить ${what}: ${detail}`
+}
+
+/**
  * Компонент «Store».
  *
  * @see AGENTS.md
@@ -79,6 +91,10 @@ export default {
     userEvents: [],
     userEventsTotalCount: 0,
     userEventsIsLoading: false,
+    // BR-465 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ drill-down —
+    // отдельное состояние. Пустой список событий и «не удалось загрузить» — разные
+    // утверждения о данных.
+    userEventsError: null,
     // Топ песен
     statsBySong: [],
     statsBySongIsLoading: false,
@@ -91,6 +107,8 @@ export default {
     songEvents: [],
     songEventsTotalCount: 0,
     songEventsIsLoading: false,
+    // BR-465: см. userEventsError.
+    songEventsError: null,
     // Лог событий
     webEvents: [],
     webEventsIsLoading: false,
@@ -171,6 +189,10 @@ export default {
     getStatsUserEventsIsLoading(state) {
       return state.userEventsIsLoading
     },
+    // BR-465: ошибка drill-down по пользователю (null — ошибки нет).
+    getStatsUserEventsError(state) {
+      return state.userEventsError
+    },
     getStatsBySong(state) {
       return state.statsBySong
     },
@@ -188,6 +210,10 @@ export default {
     },
     getStatsSongEventsIsLoading(state) {
       return state.songEventsIsLoading
+    },
+    // BR-465: ошибка drill-down по песне (null — ошибки нет).
+    getStatsSongEventsError(state) {
+      return state.songEventsError
     },
     getWebEvents(state) {
       return state.webEvents
@@ -297,6 +323,10 @@ export default {
     setStatsUserEventsIsLoading(state, v) {
       state.userEventsIsLoading = v
     },
+    // BR-465: текст ошибки drill-down по пользователю.
+    setStatsUserEventsError(state, v) {
+      state.userEventsError = v
+    },
     setStatsBySong(state, data) {
       state.statsBySong = data
     },
@@ -314,6 +344,10 @@ export default {
     },
     setStatsSongEventsIsLoading(state, v) {
       state.songEventsIsLoading = v
+    },
+    // BR-465: текст ошибки drill-down по песне.
+    setStatsSongEventsError(state, v) {
+      state.songEventsError = v
     },
     setWebEvents(state, data) {
       state.webEvents = data
@@ -497,23 +531,36 @@ export default {
         })
     },
     // Drill-down по пользователю: залогиненный (siteUserId>0) ЛИБО аноним (anonId).
+    //
+    // BR-465 (аудит #336, пакет PKG-S3-33, OpenProject #405):
+    //   - состояние очищается ДО запроса (прежние события принадлежали ДРУГОМУ
+    //     пользователю: модалка показывала события A под именем B);
+    //   - действие возвращает промис (`Promise<Boolean>`) — вызывающий может
+    //     отличить успех от отказа;
+    //   - отказ кладётся в отдельное состояние ошибки, а не проглатывается.
     loadStatsUserEvents(ctx, { siteUserId = 0, anonId = '', page = 1, pageSize = 50 }) {
       const seq = statsRequestGuard.begin('user-events')
       ctx.commit('setStatsUserEventsIsLoading', true)
+      ctx.commit('setStatsUserEventsError', null)
+      ctx.commit('setStatsUserEvents', [])
+      ctx.commit('setStatsUserEventsTotalCount', 0)
       let url = `/api/stats/user-events?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`
       if (siteUserId) url += `&siteUserId=${siteUserId}`
       if (anonId) url += `&anonId=${encodeURIComponent(anonId)}`
-      getJson(url)
+      return getJson(url)
         .then((r) => {
-          if (!statsRequestGuard.isCurrent('user-events', seq)) return
+          if (!statsRequestGuard.isCurrent('user-events', seq)) return false
           ctx.commit('setStatsUserEvents', r.items)
           ctx.commit('setStatsUserEventsTotalCount', r.totalCount)
           ctx.commit('setStatsUserEventsIsLoading', false)
+          return true
         })
         .catch((e) => {
-          if (!statsRequestGuard.isCurrent('user-events', seq)) return
+          if (!statsRequestGuard.isCurrent('user-events', seq)) return false
           console.log(e)
           ctx.commit('setStatsUserEventsIsLoading', false)
+          ctx.commit('setStatsUserEventsError', statsErrorText(e, 'события пользователя'))
+          return false
         })
     },
     loadStatsBySong(ctx, { page = 1, pageSize = 50 } = {}) {
@@ -537,21 +584,30 @@ export default {
         })
     },
     // Drill-down по песне: все события конкретной песни (клик по строке «Топ песен»).
+    //
+    // BR-465: см. loadStatsUserEvents — очистка состояния до запроса, промис
+    // вовне, отдельное состояние ошибки.
     loadStatsSongEvents(ctx, { songId, page = 1, pageSize = 2000 } = {}) {
       const seq = statsRequestGuard.begin('song-events')
       ctx.commit('setStatsSongEventsIsLoading', true)
+      ctx.commit('setStatsSongEventsError', null)
+      ctx.commit('setStatsSongEvents', [])
+      ctx.commit('setStatsSongEventsTotalCount', 0)
       const url = `/api/stats/song-events?target=${ctx.state.statsTarget}&songId=${songId}&page=${page}&pageSize=${pageSize}`
-      getJson(url)
+      return getJson(url)
         .then((r) => {
-          if (!statsRequestGuard.isCurrent('song-events', seq)) return
+          if (!statsRequestGuard.isCurrent('song-events', seq)) return false
           ctx.commit('setStatsSongEvents', r.items)
           ctx.commit('setStatsSongEventsTotalCount', r.totalCount)
           ctx.commit('setStatsSongEventsIsLoading', false)
+          return true
         })
         .catch((e) => {
-          if (!statsRequestGuard.isCurrent('song-events', seq)) return
+          if (!statsRequestGuard.isCurrent('song-events', seq)) return false
           console.log(e)
           ctx.commit('setStatsSongEventsIsLoading', false)
+          ctx.commit('setStatsSongEventsError', statsErrorText(e, 'события песни'))
+          return false
         })
     },
     loadWebEvents(ctx, { page = 1, pageSize = 50, eventType = '', days = 0 } = {}) {

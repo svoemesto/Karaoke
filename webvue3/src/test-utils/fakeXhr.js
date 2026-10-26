@@ -40,6 +40,30 @@ class FakeXhr {
     this.onload()
   }
 
+  /**
+   * Имитирует таймаут запроса (BR-481, пакет PKG-S3-33).
+   *
+   * Настоящий XMLHttpRequest при превышении `xhr.timeout` вызывает `ontimeout`.
+   * Заглушка умеет то же самое — иначе конечный таймаут нечем проверить.
+   * Имя НЕ `timeout`: у настоящего XHR `timeout` — это СВОЙСТВО (число), и
+   * транспорт присваивает его (`xhr.timeout = ...`).
+   *
+   * @returns {void}
+   */
+  simulateTimeout() {
+    if (typeof this.ontimeout === 'function') this.ontimeout()
+  }
+
+  /**
+   * Имитирует отмену запроса (BR-481, пакет PKG-S3-33).
+   *
+   * @returns {void}
+   */
+  abort() {
+    this.aborted = true
+    if (typeof this.onabort === 'function') this.onabort()
+  }
+
   /** Параметры form-urlencoded тела запроса. */
   get params() {
     return Object.fromEntries(new URLSearchParams(this.body))

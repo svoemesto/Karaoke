@@ -18,6 +18,8 @@ export default class KaraokePlayer {
   //     могут быть относительными путями (например, /api/song/123/filevoice.mp3) — используются как есть.
   constructor(container, songIdOrOptions, apiBase) {
     this.container = container
+    // BR-478: флаг отмены инициализации (страница покинута, а init() ещё идёт).
+    this._destroyed = false
     if (
       songIdOrOptions !== null &&
       typeof songIdOrOptions === 'object' &&
@@ -185,6 +187,9 @@ export default class KaraokePlayer {
   }
 
   async init() {
+    // BR-478: новый запуск init() снимает флаг отмены (плеер умеет
+    // переинициализироваться — например, при смене файла).
+    this._destroyed = false
     // Phase 1: show animated background immediately, before any network requests
     this._buildUI()
     this._bgCanvas = this._generateStarfield()
@@ -264,10 +269,17 @@ export default class KaraokePlayer {
       this._albumImg = this.data.albumImageUrl
         ? await this._loadImage(this.data.albumImageUrl).catch(() => null)
         : null
+      // BR-478 (аудит #336, пакет PKG-S3-33, OpenProject #405): после каждого
+      // `await` проверяем, не уничтожен ли плеер. Иначе уход со страницы во время
+      // загрузки оставлял «висящую» инициализацию: она докачивала стемы и создавала
+      // НОВЫЙ AudioContext, который уже никто не закрывал.
+      if (this._isDestroyed()) return
       this._artistImg = this.data.artistImageUrl
         ? await this._loadImage(this.data.artistImageUrl).catch(() => null)
         : null
+      if (this._isDestroyed()) return
       await this._loadAudio()
+      if (this._isDestroyed()) return
       // Parse after audio load so this.duration is known
       // INSTRUMENTAL/POETRY: маркеры не обрабатываются вовсе (плеер показывает только надпись) —
       // см. _isCaptionOnly()/_renderTypeCaption().
@@ -284,10 +296,12 @@ export default class KaraokePlayer {
         }
         this._demoFadeInSeconds = isFinite(firstTextTime) ? firstTextTime : 0
       }
-      this._buildFlashTimes()
-      // Compute silent offset (mirrors Kotlin getStartSilentOffsetMs):
-      // if first syllable < 5s, prepend silence so counters have time to appear
+      // BR-486 (аудит #336, пакет PKG-S3-33, OpenProject #405): `_silentOffset`
+      // ДОЛЖЕН быть посчитан ДО `_buildFlashTimes()`. Раньше порядок был обратный:
+      // фильтр в `_buildFlashTimes` отсекал моменты «до тишины» по НУЛЕВОМУ
+      // смещению (`t > -this._silentOffset`), из-за чего первая вспышка терялась.
       this._silentOffset = this._computeSilentOffset()
+      this._buildFlashTimes()
       this._preroll = this._splashDur + this._silentOffset
       this._isPrerolling = true
       this._dtPaused = 0
@@ -323,6 +337,38 @@ export default class KaraokePlayer {
   // статичная надпись поверх фона (см. _renderTypeCaption). SONG — поведение не меняется.
   _isCaptionOnly() {
     return this.data?.songType === 'instrumental' || this.data?.songType === 'poetry'
+  }
+
+  /**
+   * Проверяет, не уничтожен ли плеер, и освобождает ресурсы, созданные ПОСЛЕ
+   * вызова `destroy()`.
+   *
+   * BR-478 (аудит #336, пакет PKG-S3-33, OpenProject #405): `destroy()` закрывал
+   * только УЖЕ существующий AudioContext. Если уход со страницы случился ДО конца
+   * `init()`, инициализация продолжалась: докачивала стемы и создавала НОВЫЙ
+   * AudioContext с декодированными буферами — закрывать его было уже некому
+   * (контекст и десятки МБ буферов жили до перезагрузки страницы; лимит браузера
+   * — около 6 AudioContext на страницу).
+   *
+   * @returns {boolean} true — инициализацию надо прервать.
+   */
+  _isDestroyed() {
+    if (!this._destroyed) return false
+    if (this.audioCtx) {
+      const ctx = this.audioCtx
+      this.audioCtx = null
+      try {
+        const closing = ctx.close()
+        if (closing && typeof closing.catch === 'function') closing.catch(() => {})
+      } catch (_e) {
+        // контекст уже закрыт — ничего делать не нужно
+      }
+    }
+    this.accBuffer = null
+    this.vocBuffer = null
+    this._accBufferOriginal = null
+    this._vocBufferOriginal = null
+    return true
   }
 
   // ─── Preroll ──────────────────────────────────────────────────────────────
@@ -1580,6 +1626,9 @@ export default class KaraokePlayer {
         updateProgress()
       }),
     ])
+    // BR-478: страницу могли покинуть, пока грузились стемы — контекст уже закрыт
+    // `destroy()`, а буферы держали бы десятки МБ до перезагрузки страницы.
+    if (this._isDestroyed()) return
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf
     // Сохранить оригинальные буферы для офлайн-транспонирования (всегда от оригинала, не от уже
@@ -4054,6 +4103,9 @@ export default class KaraokePlayer {
   }
 
   destroy() {
+    // BR-478: флаг отмены. `init()` проверяет его после каждого `await` и
+    // прерывает инициализацию, освобождая уже созданные ресурсы.
+    this._destroyed = true
     if (this.animId) cancelAnimationFrame(this.animId)
     clearTimeout(this._prerollTimeout)
     this._endedHandled = true

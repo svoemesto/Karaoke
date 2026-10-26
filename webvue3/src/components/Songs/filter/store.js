@@ -38,6 +38,10 @@ export default {
     songsFilterSongType: '',
     songsHistory: [],
     songsHistoryIsLoading: false,
+    // BR-445 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ загрузки истории
+    // фильтров — отдельное состояние. Пустая история и «не удалось загрузить» —
+    // разные утверждения.
+    songsHistoryError: null,
   },
   getters: {
     getSongsHistory(state) {
@@ -45,6 +49,10 @@ export default {
     },
     getSongsHistoryIsLoading(state) {
       return state.songsHistoryIsLoading
+    },
+    // BR-445: текст ошибки загрузки истории фильтров (null — ошибки нет).
+    getSongsHistoryError(state) {
+      return state.songsHistoryError
     },
     getSongsFilterId(state) {
       return state.songsFilterId
@@ -228,6 +236,10 @@ export default {
     setSongsHistoryIsLoading(state, isLoading) {
       state.songsHistoryIsLoading = isLoading
     },
+    // BR-445: текст ошибки загрузки истории фильтров.
+    setSongsHistoryError(state, error) {
+      state.songsHistoryError = error
+    },
 
     setSongsFilterId(state, value) {
       setWebvueProp(state.songsFilterId, 'songsFilterId', value)
@@ -347,17 +359,31 @@ export default {
     },
   },
   actions: {
+    // BR-445 (аудит #336, пакет PKG-S3-33, OpenProject #405): загрузка истории
+    // фильтров возвращает промис и сбрасывает флаг загрузки при ЛЮБОМ исходе
+    // (`finally`). Раньше `catch` только логировал ошибку: флаг загрузки
+    // оставался поднятым, а пользователь не видел ни сообщения, ни причины.
     loadSongsHistory(ctx) {
       let request = { method: 'POST', url: '/api/songshistory' }
       ctx.commit('setSongsHistoryIsLoading', true)
-      promisedXMLHttpRequest(request)
+      ctx.commit('setSongsHistoryError', null)
+      return promisedXMLHttpRequest(request)
         .then((data) => {
           let result = JSON.parse(data)
           ctx.commit('updateSongsHistory', result)
-          ctx.commit('setSongsHistoryIsLoading', false)
+          return true
         })
         .catch((error) => {
           console.log(error)
+          ctx.commit(
+            'setSongsHistoryError',
+            'Не удалось загрузить историю фильтров: ' +
+              (error && error.message ? error.message : error),
+          )
+          return false
+        })
+        .finally(() => {
+          ctx.commit('setSongsHistoryIsLoading', false)
         })
     },
     setSongsFilterId(ctx, payload) {

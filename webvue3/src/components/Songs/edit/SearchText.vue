@@ -299,21 +299,36 @@ export default {
     },
     /** Удаляет старые результаты (на бэкенде, через forceResearch) и ищет заново выбранным движком. */
     async doResearch(engine) {
-      await this.$store.dispatch('searchTextForSong', { forceResearch: true, engine: engine })
-      const listSearchAsync = await this.getAsyncList(this.songId)
-      if (listSearchAsync.length > 0) {
-        const currentSearchAsync = listSearchAsync[0]
-        this.searchIsDone = currentSearchAsync.done
-        this.currentSearchAsync = currentSearchAsync
-        this.searchResultsList = currentSearchAsync.done
-          ? await this.getResultsList(currentSearchAsync.id)
-          : []
-      } else {
-        this.searchIsDone = false
-        this.currentSearchAsync = undefined
-        this.searchResultsList = []
+      // BR-448 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ запроса больше
+      // не выглядит как «всё получилось». Раньше исключение уходило в unhandled
+      // rejection: пользователь не видел ошибки, а старые результаты поиска
+      // продолжали отображаться как актуальные — их можно было принять за результат
+      // нового поиска и применить. При ошибке состояние НЕ чистится (показываем
+      // прежний результат + текст ошибки), потому что «ничего не изменилось» —
+      // честное состояние, а «список пуст» — нет.
+      try {
+        await this.$store.dispatch('searchTextForSong', { forceResearch: true, engine: engine })
+        const listSearchAsync = await this.getAsyncList(this.songId)
+        if (listSearchAsync.length > 0) {
+          const currentSearchAsync = listSearchAsync[0]
+          this.searchIsDone = currentSearchAsync.done
+          this.currentSearchAsync = currentSearchAsync
+          this.searchResultsList = currentSearchAsync.done
+            ? await this.getResultsList(currentSearchAsync.id)
+            : []
+        } else {
+          this.searchIsDone = false
+          this.currentSearchAsync = undefined
+          this.searchResultsList = []
+        }
+        this.currentResult = undefined
+      } catch (e) {
+        console.error('Не удалось выполнить поиск заново:', e)
+        this.showError(
+          'Поиск текста',
+          'Не удалось выполнить поиск заново: ' + (e && e.message ? e.message : e),
+        )
       }
-      this.currentResult = undefined
     },
     /** Открывает диалог подтверждения удаления результатов поиска без нового поиска. */
     openDeleteConfirm() {
@@ -326,11 +341,38 @@ export default {
     },
     /** Удаляет результаты поиска (на бэкенде) и очищает локальное состояние, без нового поиска. */
     async doDeleteResults() {
-      await this.$store.dispatch('deleteSearchResults', this.songId)
+      // BR-448: отказ удаления не должен выглядеть как выполненное удаление.
+      try {
+        await this.$store.dispatch('deleteSearchResults', this.songId)
+      } catch (e) {
+        console.error('Не удалось удалить результаты поиска:', e)
+        this.showError(
+          'Удаление результатов поиска',
+          'Не удалось удалить результаты поиска: ' + (e && e.message ? e.message : e),
+        )
+        return
+      }
       this.searchResultsList = []
       this.currentSearchAsync = undefined
       this.currentResult = undefined
       this.searchIsDone = false
+    },
+    /**
+     * Показывает ошибку пользователю (BR-448).
+     *
+     * @param {string} header — заголовок окна.
+     * @param {string} body — текст ошибки.
+     * @returns {void}
+     */
+    showError(header, body) {
+      this.customConfirmParams = {
+        isAlert: true,
+        alertType: 'error',
+        header: header,
+        body: body,
+        timeout: 15,
+      }
+      this.isCustomConfirmVisible = true
     },
   },
 }

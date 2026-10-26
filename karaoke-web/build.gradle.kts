@@ -33,7 +33,10 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
+    // Jackson — без явной версии: версию всего семейства задаёт BOM
+    // Spring Boot 3.5.6 (2.19.2). Пин 2.14.2 убран (BR-527) — он давал
+    // смешанный стек (databind 2.14.2 + core/annotations 2.19.2) в артефакте.
+    implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("org.postgresql:postgresql:42.7.8")
     implementation("commons-io:commons-io:2.20.0")
     implementation("com.google.code.gson:gson:2.8.9")

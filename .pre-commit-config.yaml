@@ -211,6 +211,28 @@ repos:
         files: '^(deploy|tools|specs)/.*\.(sh|bash)$|^tools/check-secret-in-argv\.(sh|baseline)$'
         stages: [pre-commit]
 
+      # === Guard: конфигурация сборки (BR-499/BR-527/BR-528/BR-529/BR-530, OP #406) ===
+      # Аудит #336, волна E, пакет PKG-S3-34. Пять записей об одном: в
+      # репозитории было три разных gradle-wrapper'а без checksum'ов, явный
+      # пин Jackson поверх BOM'а, дамп кучи в общий /tmp и мёртвый дублирующий
+      # build-конфиг (блок dependencies в корне + pom.xml).
+      # Коды возврата: 0 — успех, 1 — нарушение, 2 — проверка не выполнена.
+      - id: gradle-wrapper-guard
+        name: gradle-wrapper guard (BR-499/BR-528)
+        entry: bash tools/check-gradle-wrapper.sh --quiet
+        language: system
+        pass_filenames: false
+        files: '^(gradle|karaoke-app|karaoke-web|karaoke-db)/gradle/wrapper/gradle-wrapper\.properties$|^tools/check-gradle-wrapper\.sh$'
+        stages: [pre-commit]
+
+      - id: build-config-guard
+        name: build config guard (BR-527/BR-529/BR-530)
+        entry: bash tools/check-build-config.sh --quiet
+        language: system
+        pass_filenames: false
+        files: '^(build\.gradle\.kts|gradle\.properties|karaoke-app/build\.gradle\.kts|karaoke-web/build\.gradle\.kts|karaoke-db/build\.gradle\.kts|pom\.xml|\.idea/misc\.xml|tools/gradle-heap-dump\.sh|tools/check-build-config\.sh)$'
+        stages: [pre-commit]
+
       # === Guard: тест экранирования метки комментария (BR-523) ===
       # Проверяет, что регрессионный тест «взведён» (падает на уязвимом снимке
       # кода и проходит на исправленном) и что его skip-состояние соответствует

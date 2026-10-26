@@ -33,7 +33,12 @@ dependencies {
 //    implementation("clojure-interop:javax.sound:1.0.5")
     implementation("org.jflac:jflac-codec:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
+    // Jackson — без явной версии: версию всего семейства (databind/core/
+    // annotations/datatype-*/module-*) задаёт BOM Spring Boot 3.5.6 (2.19.2).
+    // Раньше здесь стоял пин jackson-databind:2.14.2 (BR-527): в поставляемом
+    // jar'е лежал databind 2.14.2 рядом с core/annotations 2.19.2 — смешанный
+    // стек одного семейства, не покрытый поддержкой производителя.
+    implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("org.odftoolkit:odfdom-java:0.9.0")
     implementation("org.odftoolkit:simple-odf:0.9.0")
     implementation("org.postgresql:postgresql:42.7.8")

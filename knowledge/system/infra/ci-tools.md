@@ -1,3 +1,33 @@
+- **OpenProject #406** (2026-10-26, аудит #336 волна E, пакет `PKG-S3-34`,
+  5 BR, модуль «прочее»): конфигурация сборки приведена к единому виду и
+  закрыта guard'ами. (1) **BR-499** — в репозитории было три разных
+  gradle-wrapper'а (корень 8.14, `karaoke-app`/`karaoke-web` 9.1.0,
+  `karaoke-db` 7.5.1); CI и `deploy/do.sh` собирают корневым wrapper'ом, а
+  разработчик в каталоге модуля запускает другой Gradle. Все четыре wrapper'а
+  переведены на 8.14 — версию, на которой зелёная CI-сборка; переход на
+  Gradle 9.x — решение владельца (Kotlin 2.2.20 / Spring Boot 3.5.6 на 9.x
+  не проверены). (2) **BR-528** — в каждый wrapper добавлен
+  `distributionSha256Sum` (официальная сумма с `services.gradle.org`,
+  подтверждена двумя хостами и локальной загрузкой дистрибутива); неверная
+  сумма → wrapper отказывается запускать дистрибутив. (3) **BR-527** — снят
+  явный пин `jackson-databind:2.14.2` (модули) и мёртвый дубль в корне;
+  весь стек Jackson теперь управляется BOM'ом Spring Boot 3.5.6 (2.19.2).
+  (4) **BR-529** — из `gradle.properties` убраны
+  `-XX:+HeapDumpOnOutOfMemoryError`/`-XX:HeapDumpPath=/tmp/gradle-heap.hprof`
+  (дамп кучи с `System.getenv()` в общем `/tmp`, права 0644); вместо них —
+  opt-in `tools/gradle-heap-dump.sh`: `umask 077` + каталог `0700` внутри
+  `GRADLE_USER_HOME` → файл дампа `0600` (проверяется эмпирически).
+  (5) **BR-530** — удалён мёртвый блок `dependencies` в корневом
+  `build.gradle.kts` (у корня нет `src/`, `implementation` не наследуется) и
+  `pom.xml` в корне (второй, неиспользуемый build-дескриптор; IDE импортировал
+  его как фантомный Maven-проект). Новые guard'ы: `tools/check-gradle-wrapper.sh`
+  (единая версия ≥ 8.14 + корректная сумма), `tools/check-build-config.sh`
+  (Jackson, мёртвый конфиг, дампы кучи), `tools/gradle-heap-dump.sh`; джоб
+  `build-config-guard` в `.github/workflows/lint.yml` и pre-commit-хуки
+  `gradle-wrapper-guard` / `build-config-guard`. Коды возврата — как в пакете
+  #402 (0 — успех, 1 — нарушение, 2 — проверка не выполнена). Регламент —
+  **R-46** в `knowledge/guidelines/architecture-conventions.md`. Подробности —
+  в `docs/features/pkg-s3-34.md`.
 - **OpenProject #402** (2026-10-26, аудит #336 волна E, пакет `PKG-S3-30`,
   24 BR): guard'ы `tools/` приведены к правилу «не смог проверить — не значит
   «нарушений нет»». Зафиксированы четыре класса дефектов и правила против них:

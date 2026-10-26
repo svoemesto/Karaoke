@@ -2,7 +2,7 @@
 
 > **Домен**: `knowledge/guidelines/`
 > **Назначение**: **primary reference** для build/runtime/docker конвенций
-> Karaoke (R-04, R-05, R-06, R-08, R-11, R-44) и правил работы с секретами
+> Karaoke (R-04, R-05, R-06, R-08, R-11, R-44, R-46) и правил работы с секретами
 > («Секреты не передаются через argv»). Детальные описания —
 > в `knowledge/domains/<name>/` и `knowledge/adr/`.
 >
@@ -123,6 +123,63 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
 
 **Enforcement**: code review (no guard script — требует domain knowledge).
 
+### R-46 — Конфигурация сборки: один Gradle, один Jackson, без мёртвых дублей
+
+**Rule** (аудит #336, OpenProject #406, пакет `PKG-S3-34`):
+
+1. **Один gradle-wrapper на весь репозиторий.** Все четыре wrapper'а
+   (`gradle/`, `karaoke-app/`, `karaoke-web/`, `karaoke-db/`) указывают на
+   **одну** версию дистрибутива — ту, на которой зелёная CI-сборка, — и не
+   ниже минимума `8.14`.
+2. **Контрольная сумма дистрибутива зафиксирована.** В каждом wrapper'е есть
+   `distributionSha256Sum=<сумма с services.gradle.org>`.
+3. **Jackson — одной версии, управляемой BOM'ом.** В build-файлах **нет** явных
+   версий `com.fasterxml.jackson.*`: версию всего семейства задаёт BOM Spring
+   Boot (2.19.2).
+4. **Дамп кучи — только явным opt-in и с приватными правами.** Каталог дампов
+   `0700` внутри `GRADLE_USER_HOME`, файл дампа — `0600`.
+5. **Нет мёртвого дублирующего build-конфига.** В корневом `build.gradle.kts`
+   нет блока `dependencies`; в корне репозитория нет `pom.xml`.
+
+**Protocol**:
+
+- Смена версии Gradle — отдельным PR с зелёной сборкой; версия ниже `8.14`
+  запрещена (на ней ломается Kotlin 2.2.20 / Spring Boot 3.5.6).
+- Сумму дистрибутива брать **только** из официального
+  `https://services.gradle.org/distributions/gradle-<v>-bin.zip.sha256`
+  (тот же файл публикует `downloads.gradle.org`), не выдумывать и не брать
+  из локального кеша. Таблица эталонных сумм — в `tools/check-gradle-wrapper.sh`.
+- Jackson: версию не задавать (`implementation("com.fasterxml.jackson.core:jackson-databind")`).
+- Дамп кучи: `bash tools/gradle-heap-dump.sh <задачи>` — скрипт ставит
+  `umask 077` и создаёт каталог `0700`; в `gradle.properties` флагов дампа нет.
+- Зависимости модулей — только в build-файлах модулей. Корневой проект
+  исходников не имеет, `implementation` в subprojects не наследуется.
+
+**Failure**:
+
+- три разных Gradle в репозитории → CI проверяет не то, что запускает
+  разработчик в каталоге модуля (BR-499);
+- wrapper без суммы → Gradle распаковывает и запускает ~130 МБ бинарника без
+  проверки целостности (компрометация CDN/зеркала/прокси) (BR-528);
+- `jackson-databind:2.14.2` рядом с `jackson-core:2.19.2` → смешанный стек
+  семейства, не покрытый поддержкой производителя (BR-527);
+- `-XX:HeapDumpPath=/tmp/…` → полный дамп кучи (вместе с `System.getenv()`,
+  т.е. секретами окружения) читается любым локальным пользователем (BR-529);
+- мёртвый блок `dependencies` в корне и `pom.xml` → правка зависимости «не
+  туда», фантомный Maven-проект в IDE, сборка с Java-target 16 (BR-530).
+
+**Source**: `gradle/wrapper/gradle-wrapper.properties`,
+`karaoke-{app,web,db}/gradle/wrapper/gradle-wrapper.properties`,
+`build.gradle.kts`, `karaoke-app/build.gradle.kts`, `karaoke-web/build.gradle.kts`,
+`gradle.properties`, `tools/gradle-heap-dump.sh`.
+
+**Enforcement**: `tools/check-gradle-wrapper.sh` (версии + checksum'ы),
+`tools/check-build-config.sh` (Jackson, мёртвый конфиг, дампы кучи),
+`tools/gradle-heap-dump.sh --self-test` (эмпирическая проверка прав 700/600).
+Джоб `build-config-guard` в `.github/workflows/lint.yml`, pre-commit-хуки
+`gradle-wrapper-guard` и `build-config-guard`. Per-feature документ —
+[`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md).
+
 ## Контейнеры и инфраструктура
 
 | Тема | Ключевые правила |
@@ -233,7 +290,7 @@ OpenProject в `tools/tracker-lib.sh`).
 
 | Тема | Ключевые правила |
 | --- | --- |
-| **Jackson conventions** | `is`-prefix запрещён, `@JsonProperty` обязателен. См. [identity dictionaries](../domains/identity/components/dictionaries.md). |
+| **Jackson conventions** | `is`-prefix запрещён, `@JsonProperty` обязателен. Версию Jackson не задавать вручную — BOM Spring Boot. См. [identity dictionaries](../domains/identity/components/dictionaries.md). → **R-46**. |
 | **Webvue3 patterns** | Vue 3 + Bootstrap-vue-next. |
 | **Documentation conventions** | Markdown, frontmatter, mermaid. |
 
@@ -246,6 +303,7 @@ OpenProject в `tools/tracker-lib.sh`).
 | Deploy | deploy workflow | docker conventions (R-04, R-05) |
 | MLT/рендер | [mlt-pipeline](../domains/rendering/components/mlt-pipeline.md) + [ADR-0002](../adr/0002-mlt-instead-of-ffmpeg.md) | [rendering domain](../domains/rendering/) и **R-44** |
 | Auth (Spring) | [security-config](../domains/identity/components/security-config.md) | [ADR-0006](../adr/0006-processbuilder-redirect-errorstream.md) |
+| Конфигурация сборки (wrapper/зависимости/дампы) | **R-46** + [ci-tools](../system/infra/ci-tools.md) | `tools/check-gradle-wrapper.sh`, `tools/check-build-config.sh` |
 
 ### Гигиена репозитория: чужие фикстуры и локальные пути (BR-526, BR-531, #398)
 
@@ -274,6 +332,34 @@ OpenProject в `tools/tracker-lib.sh`).
 9. **CI блокирует merge** при любом failing check.
 10. **«Доступ — только онлайн»** (см. оферту). НЕ упоминать MP4/скачивание. → **R-11**.
 11. **Санитайзер идемпотентен** (`SanitizePath.kt`, `Extentions.kt`). → **R-08**.
+
+### Ловушки конфигурации сборки (R-46)
+
+1. **Корень сборки — не место для зависимостей.** У корневого проекта нет `src/`,
+   а `implementation` **не наследуется** в subprojects: правка зависимости в
+   корневом `build.gradle.kts` меняет ровно ничего в собираемом приложении.
+   Правило: зависимости — только в build-файлах модулей.
+2. **Явная версия зависимости перебивает BOM.** `jackson-databind:2.14.2` рядом
+   с `jackson-core:2.19.2` — смешанный стек одного семейства. Правило: версии
+   семейства задаёт BOM, в build-файле версии нет.
+3. **`validateDistributionUrl=true` — не проверка целостности.** Она проверяет
+   доступность URL. Без `distributionSha256Sum` Gradle распаковывает ~130 МБ
+   бинарника и запускает его без сверки с официальной суммой.
+4. **`-XX:HeapDumpPath=/tmp/…` — дамп читает любой пользователь.** Права файла
+   дампа = `0666 & ~umask` (обычно 0644), а в дампе — `System.getenv()`, то есть
+   секреты окружения сборки. Правило: каталог `0700` внутри `GRADLE_USER_HOME`
+   + `umask 077` → файл `0600` (см. `tools/gradle-heap-dump.sh`).
+5. **Один репозиторий — один Gradle.** CI и `deploy/do.sh` собирают корневым
+   wrapper'ом; если в модуле другой wrapper, «зелёная сборка» не означает, что
+   разработчик проверяет то же самое.
+6. **`pom.xml` в корне Gradle-проекта — не безобидный legacy.** IDE
+   автоимпортирует его как отдельный Maven-проект (с другими версиями
+   зависимостей и Java-target), а `mvn package` собирает отдельный артефакт.
+   Правило: в корне Gradle-проекта Maven-дескрипта нет.
+7. **Версия Gradle ниже, чем умеет тулчейн.** Kotlin 2.2.20 / Spring Boot
+   3.5.6 не проверены на Gradle 9.x: «выровнять версии» ≠ «обновить версию».
+   Правило: смена версии — отдельный PR с зелёной сборкой; guard держит
+   минимум.
 
 ## Когда добавлять правило
 

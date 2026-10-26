@@ -166,7 +166,10 @@ Search без результатов = зафиксировать в spec.md я�
   Модули: `karaoke-app` (core engine, разворачивается ТОЛЬКО на admin-машине),
   `karaoke-web` (публичный API/Thymeleaf, тонкий слой над `karaoke-app`,
   разворачивается на проде), `karaoke-db` (legacy, не используется в продакшене).
-  Корневой `pom.xml` — leftover от Maven, не использовать.
+  Корневой `pom.xml` (leftover от Maven) УДАЛЁН 2026-10-26 (BR-530,
+  аудит #336 / OpenProject #406): Maven-сборка не используется ни CI, ни
+  скриптами, а POM задавал другой результат сборки (версия 1.0-SNAPSHOT,
+  Java-target 16, зависимости 2021–2022 гг.). Сборка — только Gradle.
 - **Frontend**: Vue 3 + Vite, Node 22 (LTS), Bootstrap 5 / Bootstrap-vue-next.
   `karaoke-vue` — legacy, не участвует в сборке.
 - **Storage**: PostgreSQL (через сырой JDBC), MinIO (S3-compatible объектное

@@ -49,7 +49,8 @@ A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot backend
   legacy Thymeleaf templates of `karaoke-web`. Deployed to prod.
 - `deploy/` — docker-compose files (one per service: app, web, db, webvue3, storage/MinIO, ollama,
   searxng) plus `do.sh`, the build/deploy orchestration script, and server setup notes.
-- Root `pom.xml` is a leftover Maven file, unused — the project builds with Gradle.
+- The root Maven descriptor was a leftover and was removed on 2026-10-26 (audit #336, BR-530) —
+  the project builds with Gradle only.
 
 ## Build & run
 

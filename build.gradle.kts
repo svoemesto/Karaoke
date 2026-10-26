@@ -8,9 +8,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20" // Обновлено
     // Линтеры для Kotlin (применяются в subprojects через apply false, см. subprojects {})
     id("org.jlleitschuh.gradle.ktlint") version "12.3.0" apply false
-    // Генератор KDoc → HTML. Dokka 1.9.20 — последний 1.x, совместим
-    // с Jackson 2.14 (используется в проекте) и Kotlin 2.x runtime.
-    // Dokka 2.0.x требует Jackson 2.18+ (конфликт с Spring Boot 3.5 BOM).
+    // Генератор KDoc → HTML. Dokka 1.9.20 — последний 1.x.
+    // Комментарий раньше утверждал «Jackson 2.14 (используется в проекте)» —
+    // это было неверно (BR-527): в проекте Jackson 2.19.2 (BOM Spring Boot
+    // 3.5.6), а 2.14.2 существовал только как мёртвый пин jackson-databind.
+    // Dokka подключён с `apply false` — в сборку модулей не входит.
     id("org.jetbrains.dokka") version "1.9.20" apply false
     // detekt 1.23.x скомпилирован с Kotlin 2.0.x и не запускается на Kotlin 2.2.20 runtime.
     // FR-002/FR-007 (specs/001-code-standards-docs/spec.md) требуют ktlint+detekt вместе;
@@ -31,41 +33,18 @@ repositories {
     maven("https://raw.github.com/kokorin/maven-repo/releases")
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-websocket")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
-
-    implementation("clojure-interop:javax.sound:1.0.5")
-    implementation("org.jflac:jflac-codec:1.5.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
-    implementation("org.odftoolkit:odfdom-java:0.9.0")
-    implementation("org.odftoolkit:simple-odf:0.9.0")
-    implementation("org.postgresql:postgresql:42.7.7")
-    implementation("commons-io:commons-io:2.14.0")
-    implementation("com.google.code.gson:gson:2.8.9")
-
-    implementation("com.github.st-h:TarsosDSP:2.4.1")
-
-    implementation("org.jsoup:jsoup:1.21.2")
-    implementation("io.ktor:ktor-server-core:2.3.0")
-    implementation("org.apache.commons:commons-csv:1.8")
-
-    implementation("org.seleniumhq.selenium:selenium-java:4.37.0")
-
-    implementation("javax.websocket:javax.websocket-all:1.1")
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation ("org.seleniumhq.selenium:selenium-java:4.37.0")
-
-    implementation("org.apache.commons:commons-lang3:3.18.0")
-    implementation("io.minio:minio:8.6.0")
-
-}
+// Блок `dependencies` в корневом проекте УДАЛЁН (BR-530, аудит #336 /
+// OpenProject #406).
+//
+// Он был мёртвым: у корневого проекта нет каталога `src/`, а `implementation`
+// НЕ наследуется в subprojects — каждый модуль имеет свой `build.gradle.kts`.
+// При этом версии в корне расходились с модульными (postgresql 42.7.7 против
+// 42.7.8, commons-io 2.14.0 против 2.20.0, commons-lang3 3.18.0 против
+// 3.14.0), поэтому правка зависимости в корне меняла НИЧЕГО в собираемом
+// приложении — но файл выглядел как основной и читался первым.
+// Источник истины по зависимостям — build-файлы модулей.
+// Явно заданной версии Jackson здесь тоже больше нет: весь стек Jackson
+// управляется BOM'ом Spring Boot 3.5.6 (BR-527).
 
 tasks.withType<KotlinCompile> {
     compilerOptions {

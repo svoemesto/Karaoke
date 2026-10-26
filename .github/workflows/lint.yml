@@ -86,6 +86,47 @@ jobs:
       - name: Check no redirect artifacts in repo root
         run: bash tools/check-root-junk.sh
 
+  # === Guard: конфигурация сборки (BR-499/BR-527/BR-528/BR-529/BR-530, OP #406) ===
+  # Аудит #336, волна E, пакет PKG-S3-34 (модуль «прочее»). Пять записей об
+  # одном: конфигурация сборки в репозитории расходилась сама с собой и
+  # ничего не проверяла по целостности.
+  #   BR-499 — три разных gradle-wrapper'а (8.14 / 9.1.0 / 7.5.1): CI и
+  #     deploy/do.sh собирают корневым wrapper'ом (8.14), а разработчик в
+  #     каталоге модуля запускает другой Gradle. Теперь версия одна и не ниже
+  #     минимума, на котором зелёная CI-сборка.
+  #   BR-528 — ни в одном wrapper'е не было `distributionSha256Sum`: Gradle
+  #     распаковывал дистрибутив (~130 МБ) без проверки целостности.
+  #   BR-527 — явный пин `jackson-databind:2.14.2` перебивал BOM Spring Boot
+  #     (2.19.2): в артефакте лежал смешанный стек Jackson.
+  #   BR-529 — `-XX:HeapDumpPath=/tmp/gradle-heap.hprof`: полный дамп кучи в
+  #     общем /tmp с правами 0644 (в дампе — System.getenv(), т.е. секреты).
+  #   BR-530 — мёртвый блок `dependencies` в корневом build.gradle.kts и
+  #     `pom.xml` в корне (второй, неиспользуемый build-дескриптор).
+  # Коды возврата guard'ов: 0 — успех, 1 — нарушение, 2 — проверка не
+  # выполнена (правило пакета #402).
+  build-config-guard:
+    name: build config guard (BR-499/BR-527/BR-528/BR-529/BR-530)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check gradle-wrapper (единая версия + checksum)
+        run: bash tools/check-gradle-wrapper.sh
+
+      - name: Self-test gradle-wrapper guard (до/после)
+        run: bash tools/check-gradle-wrapper.sh --self-test
+
+      - name: Check build config (Jackson / дампы кучи / мёртвый конфиг)
+        run: bash tools/check-build-config.sh
+
+      - name: Self-test build config guard (до/после)
+        run: bash tools/check-build-config.sh --self-test
+
+      - name: Check heap-dump helper (каталог 700, файл дампа 600)
+        run: bash tools/gradle-heap-dump.sh --self-test
+
   # === Backend: ktlint (Kotlin/Java) ===
   # Baseline-aware: новые нарушения валят, старые (из baseline) — нет.
   # См. build.gradle.kts: ktlint-gradle 12.x автоматически читает

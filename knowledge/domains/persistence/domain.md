@@ -175,25 +175,48 @@ fallback'ы. Текущее поведение `save()` этому против�
 
 Увеличенный лимит — **страховка**, а не решение: он отодвигает отказ, но не
 устраняет утечку каналов завершаемых пулом потоков (третья строка таблицы).
-Окончательное решение (ограниченный пул соединений вместо ThreadLocal-кеша
-либо детерминированное закрытие) — **OpenProject #410**: оно меняет контракт
-жизненного цикла соединения целиком и требует отдельной спеки с замерами.
+Детерминированное закрытие для **одноразовых** потоков выполнено
+(OpenProject #410, BR-627): все фоновые потоки прикладного кода, ходящие в БД,
+запускаются через `startOneShotThread`, а проверка охватывает динамически все
+файлы прикладного кода, обращающиеся к БД. Окончательное решение по типу
+«завершаемый пулом» (ограниченный пул соединений вместо ThreadLocal-кеша) —
+отдельная задача с замерами; её объём — вне спеки #410.
 
 **Канонический способ для одноразовых потоков** — хелпер
-`startOneShotThread(database, name) { … }`
+`startOneShotThread(database, name, onFinally, alsoClose) { … }`
 (`karaoke-app/.../services/OneShotThread.kt`): он сам оборачивает тело в
 `try/finally` и закрывает соединение потока при любом исходе (успех/исключение).
 Сырой `kotlin.concurrent.thread` в прикладном коде запрещён.
+
+**Поток, ходящий в две БД.** У каждого экземпляра `KaraokeConnection` — свой
+`ThreadLocal`-кеш, поэтому поток, который ходит и в LOCAL, и в SERVER (например,
+фоновая синхронизация related-таблиц), обязан закрывать **оба** соединения.
+Для этого у канонического хелпера есть аддитивный параметр `alsoClose`:
+`startOneShotThread(database, name, alsoClose = listOf(Connection.remote())) { … }`.
+Закрытие дополнительных соединений выполняется в том же `finally` и не зависит
+от исхода тела.
 
 **Что освобождается на месте**: `PreparedStatement`/`ResultSet` — через `use { }`.
 Физическое соединение — по правилам таблицы выше.
 
 Инвариант проверяется тестами:
-`karaoke-app/src/test/.../services/OneShotThreadTest.kt` (гарантия закрытия),
-`.../services/OneShotThreadWiringTest.kt` (в аудируемых файлах нет сырых
-одноразовых потоков), `karaoke-app/src/test/.../controllers/ChatControllerThreadLocalTest.kt`
+`karaoke-app/src/test/.../services/OneShotThreadTest.kt` (гарантия закрытия —
+при успехе, при исключении, и для потока, ходящего в две БД),
+`.../services/OneShotThreadWiringTest.kt` (в **всех** файлах прикладного кода,
+обращающихся к БД, нет сырых одноразовых потоков — охват определяется
+динамически, а не фиксированным перечнем; проверка снабжена негативной
+фикстурой «до/после»),
+`karaoke-app/src/test/.../controllers/ChatControllerThreadLocalTest.kt`
 и `karaoke-web/src/test/.../services/EventsBufferThreadLocalTest.kt`
 (переиспользуемый поток НЕ закрывает соединение).
+
+**Регламент прогона тестов.** Тестовые потоки тоже оставляют соединения — так
+же, как фоновые операции; поэтому перед длинным прогоном backend-тестов лимит
+соединений БД должен иметь требуемый запас (`max_connections=300`,
+переопределяется `DB_MAX_CONNECTIONS`). Проверка состояния:
+`SELECT count(*) FROM pg_stat_activity;` — сравнить с `max_connections`.
+Канонический текст регламента — [ci-tools.md](../../system/infra/ci-tools.md)
+(§ «Прогон backend-тестов и лимит соединений БД»).
 
 Полный разбор решения — [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md).
 
@@ -304,9 +327,12 @@ UI обновляется без polling → экономия трафика и 
   переиспользуемый — запрещён (см. «Соединение на поток» выше и
   [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md)).
   Оба метода — `open` (шов для юнит-тестов).
-- `startOneShotThread(database, name) { … }`
+- `startOneShotThread(database, name, onFinally, alsoClose) { … }`
   (`karaoke-app/.../services/OneShotThread.kt`) — запуск одноразового фонового
   потока с гарантированным закрытием его JDBC-соединения в `finally`.
+  `alsoClose` — список дополнительных экземпляров `KaraokeConnection`, чьи
+  thread-local соединения закрываются в том же `finally` (для потоков, ходящих
+  в две БД: LOCAL + SERVER).
 - `Connection.local()` / `Connection.remote()` / `Connection.virtual()` —
   singleton-фабрики (`name = LOCAL | SERVER | VIRTUAL`); URL/credentials зависят
   от `APP_WORK_*`.
@@ -375,7 +401,11 @@ L3-компонентов у домена пока нет: контекст оп
 4. **Отсутствие `closeThreadConnection()` в одноразовом потоке** — утечка
    физического канала к PostgreSQL до финализации сборщиком мусора; при
    `max_connections` это отказ БД для всего приложения. Прецедент — BR-038/BR-060
-   (аудит #336).
+   (аудит #336), а также BR-627 (OpenProject #410): четыре фоновых потока в
+   файлах с обращением к БД запускались сырым `kotlin.concurrent.thread` и не
+   закрывали соединение. Фикс — канонический `startOneShotThread`; проверка
+   `OneShotThreadWiringTest` теперь находит такие места динамически, во всех
+   файлах прикладного кода, обращающихся к БД.
 5. **`getDiff` field order** — **FIXED in Pass 451** [OK]:
    `KaraokeDbTable.getDiff` теперь сортирует по
    `KaraokeDbTableField.name` для детерминированного UPDATE column
@@ -405,6 +435,9 @@ L3-компонентов у домена пока нет: контекст оп
 - [ ] **Логирование при ошибках save**: куда, в каком формате.
 - [ ] **Connection leak** — частично закрыт аудитом #336 (BR-006/027/038/060/116,
       контракт зафиксирован в [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md)).
+      Сырые одноразовые потоки в файлах с обращением к БД закрыты
+      (OpenProject #410, BR-627): 4 места переведены на `startOneShotThread`,
+      проверка `OneShotThreadWiringTest` охватывает динамически все такие файлы.
       Осталось family-семейство `withDb` в 16 контроллерах `karaoke-app`
       (`TariffsController`, `SiteUsersController`, `SponsrSyncController`,
       `StatsController`, `StemJobsAdminController`, `SubscriptionsController`,

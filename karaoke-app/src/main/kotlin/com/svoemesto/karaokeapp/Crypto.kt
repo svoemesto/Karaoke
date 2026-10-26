@@ -21,16 +21,20 @@ class CryptoConfigurationException(
 /**
  * AES/CBC/PKCS5PADDING crypto для двух-БД sync (см. Utils.kt:888, 902).
  *
- * **SECURITY** (Pass 343+ fix, issue из spec 426):
+ * **SECURITY** (Pass 343+ fix, issue из spec 426; ротация завершена 2026-10-26):
  * Ключ и IV **MUST** браться из env-переменных (`CRYPTO_AES_KEY`,
- * `CRYPTO_AES_IV`). Hardcoded fallback оставлен **только** для
- * обратной совместимости (если ключи не заданы, логируется WARN
- * при первом использовании, но шифрование продолжает работать —
- * чтобы существующие зашифрованные SQL не сломались).
+ * `CRYPTO_AES_IV`). Hardcoded fallback **удалён**: если переменные не
+ * заданы — [CryptoConfigurationException], сервис не стартует.
  *
- * **TODO (Pass 343+)**: добавить миграцию: при включении env-ключа
- * расшифровать старые записи (через fallback) и зашифровать
- * заново. После полной миграции — удалить fallback.
+ * Секрет в коде больше не живёт: в репозитории ключа нет, он лежит только
+ * в `deploy/do.env` на каждом хосте (вне git) и прокидывается в контейнер
+ * через `CRYPTO_AES_KEY` / `CRYPTO_AES_IV` в compose-файлах.
+ *
+ * Ключ и IV должны быть **ОДИНАКОВЫМИ** у `karaoke-app` (шифрует
+ * `sqlToInsert`/`sqlToDelete`) и `karaoke-web` (расшифровывает) — это разные
+ * хосты, поэтому значения синхронизируются вручную.
+ *
+ * Порядок ротации и процедура: `docs/ops/crypto-key-rotation.md`.
  *
  * BR-291 (аудит #336, пакет `PKG-S3-26`):
  *  - длина ключа (16/24/32 байта) и IV (16 байт) проверяется явно; неверная
@@ -49,11 +53,6 @@ class Crypto {
         private const val ENV_KEY = "CRYPTO_AES_KEY"
         private const val ENV_IV = "CRYPTO_AES_IV"
 
-        // Legacy hardcoded значения (Pass 343+ — DEPRECATED, оставлены
-        // для обратной совместимости; будут удалены после миграции).
-        private const val LEGACY_KEY = "aesEncryptionKey"
-        private const val LEGACY_INIT_VECTOR = "nbwZ08J5101kUxCQ"
-
         const val WORDS_TO_CHECK = "Строка для проверки крипты"
 
         /** BR-291: допустимые длины ключа AES (в байтах): 128/192/256 бит. */
@@ -64,7 +63,6 @@ class Crypto {
 
         // Кешируем факт использования legacy + однократный WARN-лог
         // (чтобы не спамить при каждом вызове).
-        @Volatile private var legacyWarned = false
 
         /**
          * BR-291: явная проверка длины ключа и IV.
@@ -91,7 +89,7 @@ class Crypto {
         }
 
         /**
-         * BR-291: проверка **текущей** (env или legacy) конфигурации.
+         * BR-291: проверка **текущей** (env) конфигурации.
          *
          * Вызывается на старте приложения: конфигурация проверяется один раз, а не
          * «внутри try» на каждой операции. Сама операция при неверной конфигурации
@@ -101,34 +99,34 @@ class Crypto {
             validateKeyMaterial(key(), initVector())
         }
 
-        private fun key(): String {
-            val envKey = System.getenv(ENV_KEY)
-            if (!envKey.isNullOrBlank()) {
-                return envKey
-            }
-            if (!legacyWarned) {
-                log.warn(
-                    "CRYPTO_AES_KEY env not set — falling back to LEGACY hardcoded key. " +
-                        "Migrate to env ASAP (see Crypto.kt KDoc)."
-                )
-                legacyWarned = true
-            }
-            return LEGACY_KEY
-        }
+        private fun key(): String = resolveOrThrow(ENV_KEY, System.getenv(ENV_KEY))
 
-        private fun initVector(): String {
-            val envIv = System.getenv(ENV_IV)
-            if (!envIv.isNullOrBlank()) {
-                return envIv
-            }
-            if (!legacyWarned) {
-                log.warn(
-                    "CRYPTO_AES_IV env not set — falling back to LEGACY hardcoded IV. " +
-                        "Migrate to env ASAP (see Crypto.kt KDoc)."
+        private fun initVector(): String = resolveOrThrow(ENV_IV, System.getenv(ENV_IV))
+
+        /**
+         * Достаёт обязательную переменную окружения или падает.
+         *
+         * Fail-fast вместо тихого fallback'а на hardcoded-ключ: сервис без ключа
+         * не должен работать «наполовину» — иначе шифрование уедет от расшифровки
+         * (разные хосты) и потеряется молча.
+         *
+         * @param name имя переменной окружения
+         * @param value значение из окружения (может быть `null` или пустым)
+         * @throws CryptoConfigurationException если значение не задано
+         */
+        fun resolveOrThrow(
+            name: String,
+            value: String?,
+        ): String {
+            if (value.isNullOrBlank()) {
+                throw CryptoConfigurationException(
+                    "$name is not set — ключ шифрования обязателен. Задайте его в deploy/do.env " +
+                        "на ВСЕХ хостах, где работают karaoke-app/karaoke-web (значения должны быть " +
+                        "ОДИНАКОВЫМИ: app шифрует, web расшифровывает). " +
+                        "Процедура: docs/ops/crypto-key-rotation.md.",
                 )
-                legacyWarned = true
             }
-            return LEGACY_INIT_VECTOR
+            return value
         }
 
         fun decrypt(encrypted: String?): String? {

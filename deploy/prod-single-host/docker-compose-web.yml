@@ -21,6 +21,11 @@ services:
       - STORAGE_KEY=${STORAGE_KEY}
       - STORAGE_SECRET=${STORAGE_SECRET}
       - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
+      # Ключ шифрования служебных полей между сервисами (sqlToInsert/sqlToDelete и кодовое
+      # слово). Секрет живёт только в окружении (deploy/do.env, вне git) — в коде его нет.
+      # Ключ и IV должны быть ОДИНАКОВЫМИ у karaoke-app (шифрует) и karaoke-web (расшифровывает).
+      - CRYPTO_AES_KEY=${CRYPTO_AES_KEY}
+      - CRYPTO_AES_IV=${CRYPTO_AES_IV}
       - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
       - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}

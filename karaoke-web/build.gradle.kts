@@ -57,6 +57,11 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Тестовый ключ шифрования: `Crypto` работает fail-fast (без CRYPTO_AES_* сервис
+    // не стартует), а в тестовом окружении переменной нет. Значение — ТОЛЬКО для тестов,
+    // в рабочих хостах ключ живёт в deploy/do.env (вне git).
+    environment("CRYPTO_AES_KEY", "testAESCryptoKeyForTestsOnly1234")
+    environment("CRYPTO_AES_IV", "testIv0123456789")
 }
 
 tasks.register("prepareKotlinBuildScriptModel") {}

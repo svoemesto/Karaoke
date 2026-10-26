@@ -301,7 +301,7 @@ class VkAutoPublishScheduler {
                 LEFT JOIN tbl_songs s
                        ON s.id = COALESCE(
                               n.song_id,
-                              NULLIF(substring(n.link FROM 'song.id=([0-9]+)'), '')::bigint,
+                              NULLIF(substring(n.link FROM 'song.id=([0-9]+)'), '')::bigint
                           )
                 WHERE n.category = 'air'
                   AND n.publish_at IS NOT NULL AND n.publish_at <= now()

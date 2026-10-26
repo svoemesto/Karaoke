@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.audit.TestRepoRoot
+
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -246,17 +248,11 @@ class OneShotThreadWiringTest {
     }
 
     /** Корень репозитория (каталог с `settings.gradle.kts`). */
-    private fun repoRoot(): File {
-        var dir = File(System.getProperty("user.dir")).absoluteFile
-        while (!File(dir, "settings.gradle.kts").isFile) {
-            dir = dir.parentFile ?: error("не найден корень репозитория (settings.gradle.kts)")
-        }
-        return dir
-    }
+    private fun repoRoot(): File = TestRepoRoot.repoRoot()
 
     /** Файл по пути относительно корня репозитория. */
     private fun repoRootFile(relativePath: String): File {
-        val file = File(repoRoot(), relativePath)
+        val file = TestRepoRoot.file(relativePath)
         assertTrue(file.isFile, "файл не найден: $relativePath")
         return file
     }

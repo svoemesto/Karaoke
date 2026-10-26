@@ -44,6 +44,7 @@
 | 46 | author_sort_order | `tbl_authors.sort_order` + полный recordhash (BR-534) |
 | 27 | listening_history | tbl_listening_history (ListeningHistory) |
 | 51 | subscriptions_on_delete_restrict | `tbl_subscriptions.site_user_id` → `ON DELETE RESTRICT` (BR-041) |
+| 57 | authors_unique_author | UNIQUE-индекс на `tbl_authors.author` (BR-628) |
 | ... (ещё ~25, см. `ls deploy/karaoke-db/*.sql`) | | |
 
 **NB**: номера не строго последовательные (есть 04 дважды, 17
@@ -122,6 +123,7 @@
 | `56_site_users_recordhash_canonical.sql` | применён | применён | канонический `recordhash` `tbl_site_users` → 19 слагаемых |
 | `deploy/recordhash_authors.sql` | применён | применён | канонический `recordhash` авторов → 17 слагаемых |
 | `deploy/recordhash_processes.sql` | применён | применён | канонический `recordhash` процессов → 18 слагаемых |
+| `deploy/karaoke-db/57_authors_unique_author.sql` | **не применён** | **не применён** | UNIQUE-индекс на `tbl_authors.author`; перед применением проверить, что дубликатов нет (проверка на 2026-10-26: 0 групп на обеих БД) |
 
 **Почему 54 пропущен.** На обеих базах индекс уже существует и его определение
 ровно такое, какое создаёт миграция:

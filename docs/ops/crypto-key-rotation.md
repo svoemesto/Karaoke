@@ -23,6 +23,7 @@
 | Факт | Где проверить |
 |---|---|
 | Ключ и IV задаются только через `CRYPTO_AES_KEY` / `CRYPTO_AES_IV` в окружении | `deploy/do.env` на каждом хосте (файл вне git) |
+| Значения заданы на **всех трёх хостах матрицы**: админ-машина `nsa-i9`, прод `188.127.240.124`, вторая машина `dev-pc` (состояние на 2026-10-26) | `deploy/do.env` на каждом хосте; на проде права `600` |
 | В коде значения ключа **нет**: константы legacy удалены, `Crypto.resolveOrThrow` бросает `CryptoConfigurationException`, если переменная не задана | `Crypto.kt` |
 | Compose прокидывает переменные в контейнеры | `deploy/docker-compose-app.yml`, `deploy/docker-compose-web.yml`, `deploy/prod-single-host/docker-compose-web.yml` |
 | `karaoke-web` использует **тот же** класс `Crypto`, что и `karaoke-app` | `karaoke-web/build.gradle.kts` → `implementation(project(":karaoke-app"))` |

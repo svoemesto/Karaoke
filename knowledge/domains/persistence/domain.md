@@ -425,16 +425,7 @@ L3-компонентов у домена пока нет: контекст оп
   поток с гарантированным закрытием соединения)
 - `karaoke-app/.../KaraokeProperties.kt` (через getString/getLong/...)
 
-## Changelog
-
-- **Pass 341 P2** (2026-09-09): Initial. Автор: agent (Karaoke).
-- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).
-- **OpenProject #368** (2026-10-24, аудит #336, BR-006/027/038/060/116): добавлен
-  раздел «Соединение на поток (ThreadLocal) и его жизненный цикл», инвариант
-  жизненного цикла соединения, ловушки (закрытие в переиспользуемом потоке /
-  отсутствие закрытия в одноразовом) и контракт `startOneShotThread`. Решение
-  зафиксировано в [local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md).
-## BR-176: NULL в `save()` и ошибка UPDATE (аудит #336)
+## NULL в `save()` и ошибка UPDATE
 
 - `bindRecordDiffValue` биндит `null` как типизированный SQL NULL
   (`ps.setNull(index, sqlTypeForNull(oldValue))`): `Timestamp → TIMESTAMP`,
@@ -451,7 +442,7 @@ L3-компонентов у домена пока нет: контекст оп
 `publish_at`, ни остальные поля запроса. Регрессия:
 `KaraokeDbTableNullBindingTest`.
 
-## Инварианты пакета `PKG-S3-24` (аудит #336, OpenProject #396)
+## Инварианты чтения и create-or-get
 
 - **Сбой чтения ≠ «строк нет».** `KaraokeDbTable.loadList(throwOnError = true)`
   пробрасывает `SQLException` (в т.ч. при отсутствии соединения) — для путей
@@ -464,3 +455,8 @@ L3-компонентов у домена пока нет: контекст оп
 - **Ошибка вставки различается с гонкой**: `createDbInstance` логирует `SQLState`;
   `23505` (unique violation) — ожидаемая гонка (INFO), остальное — ошибка (ERROR).
   BR-181.
+
+## Changelog
+
+- **Pass 341 P2** (2026-09-09): Initial. Автор: agent (Karaoke).
+- **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

@@ -54,11 +54,12 @@ ONLINE=0
 
 # Версия, на которой зелёная CI-сборка (root wrapper, backend-lint/backend-build/
 # backend-test и deploy/do.sh). Понижать версию нельзя.
-MIN_VERSION="8.14"
+MIN_VERSION="9.8.2"
 
 # Официально опубликованные суммы дистрибутивов
 # (https://services.gradle.org/distributions/gradle-<v>-bin.zip.sha256).
 KNOWN_CHECKSUMS_8_14="61ad310d3c7d3e5da131b76bbf22b5a4c0786e9d892dae8c1658d4b484de3caa"
+KNOWN_CHECKSUMS_9_8_2="21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607"
 KNOWN_CHECKSUMS_9_1_0="a17ddd85a26b6a7f5ddb71ff8b05fc5104c0202c6e64782429790c933686c806"
 KNOWN_CHECKSUMS_7_5_1="f6b8596b10cce501591e92f229816aa4046424f3b24d771751b06779d58c8ec4"
 
@@ -95,6 +96,7 @@ ROOT="$(cd "$ROOT" 2>/dev/null && pwd)" || {
 known_checksum() {
     case "$1" in
         8.14) printf '%s' "$KNOWN_CHECKSUMS_8_14" ;;
+        9.8.2) printf '%s' "$KNOWN_CHECKSUMS_9_8_2" ;;
         9.1.0) printf '%s' "$KNOWN_CHECKSUMS_9_1_0" ;;
         7.5.1) printf '%s' "$KNOWN_CHECKSUMS_7_5_1" ;;
         *) return 1 ;;
@@ -317,7 +319,7 @@ make_wrapper() {
 # Путь wrapper'а — <project_dir>/gradle/wrapper/gradle-wrapper.properties
 # (так устроены и корневой проект, и модули).
 make_good_tree() {
-    local root="$1" version="${2:-8.14}" sum="${3:-$KNOWN_CHECKSUMS_8_14}"
+    local root="$1" version="${2:-$MIN_VERSION}" sum="${3:-$KNOWN_CHECKSUMS_9_8_2}"
     make_wrapper "$root" "$version" "$sum"
     make_wrapper "$root/karaoke-app" "$version" "$sum"
     make_wrapper "$root/karaoke-web" "$version" "$sum"
@@ -326,7 +328,7 @@ make_good_tree() {
 
 self_test() {
     local tmp rc=0 sum8 rc_case
-    sum8="$KNOWN_CHECKSUMS_8_14"
+    sum8="$KNOWN_CHECKSUMS_9_8_2"
 
     tmp="$(mktemp -d)" || {
         echo "self-test: не удалось создать временный каталог" >&2
@@ -335,7 +337,7 @@ self_test() {
     trap "rm -rf '$tmp'" EXIT
 
     # 1. Корректное дерево → PASS (exit 0)
-    make_good_tree "$tmp/good" "8.14" "$sum8"
+    make_good_tree "$tmp/good" "$MIN_VERSION" "$sum8"
     ROOT="$tmp/good"
     collect_wrappers
     if check_wrappers >/dev/null 2>&1; then
@@ -346,7 +348,7 @@ self_test() {
     fi
 
     # 2. Разнобой версий → FAIL
-    make_good_tree "$tmp/skew" "8.14" "$sum8"
+    make_good_tree "$tmp/skew" "$MIN_VERSION" "$sum8"
     make_wrapper "$tmp/skew/karaoke-db" "9.1.0" "$KNOWN_CHECKSUMS_9_1_0"
     ROOT="$tmp/skew"
     collect_wrappers
@@ -410,7 +412,7 @@ self_test() {
     # 8. Чужой вложенный checkout (например, .worktrees/*) — не наш репозиторий:
     #    его wrapper'ы не проверяются (иначе guard ругался бы на версии,
     #    которых в master нет, и блокировал работу в главном checkout'е).
-    make_good_tree "$tmp/nested" "8.14" "$sum8"
+    make_good_tree "$tmp/nested" "$MIN_VERSION" "$sum8"
     make_wrapper "$tmp/nested/.worktrees/other" "7.5.1" "$KNOWN_CHECKSUMS_7_5_1"
     ROOT="$tmp/nested"
     collect_wrappers

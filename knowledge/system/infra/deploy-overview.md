@@ -79,6 +79,17 @@ NB: `Dockerfile*` несколько штук = эксперименты с ра
 | `tracker-docker-compose.yml` | OpenProject tracker (для задач) |
 | `prod-single-host/docker-compose-registry.yml` | Приватный registry (Zot) на прод-хосте, `127.0.0.1:5000` |
 
+**Лимит соединений БД.** Контейнер `karaoke-db` поднимается с
+`max_connections=300` (переопределяется `DB_MAX_CONNECTIONS`; параметр задан в
+`docker-compose-database.yml` и `prod-single-host/docker-compose-database.yml`).
+Приложение держит по одному физическому соединению на поток (см.
+[local-ADR-0009](../../adr/local-0009-thread-local-connection-lifecycle.md) и
+[домен persistence](../../domains/persistence/domain.md)), поэтому запас по
+лимиту — страховка на время, пока не решено, что делать с каналами потоков,
+завершаемых пулом. Признак исчерпания: `FATAL: sorry, too many clients
+already` в логах, очередь `KaraokeProcess` не отвечает (`GET
+/process/isworking` → `false`), сайт отдаёт 5xx.
+
 ## nginx конфигурации
 
 - `deploy/web-server-deploy/deploy/nginx.conf` — главный.

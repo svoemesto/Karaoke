@@ -2,7 +2,7 @@
 
 > **Домен**: `knowledge/guidelines/`
 > **Назначение**: **primary reference** для build/runtime/docker конвенций
-> Karaoke (R-04, R-05, R-06, R-08, R-11, R-44, R-46) и правил работы с секретами
+> Karaoke (R-04, R-05, R-06, R-08, R-11, R-44, R-46, R-47, R-48) и правил работы с секретами
 > («Секреты не передаются через argv»). Детальные описания —
 > в `knowledge/domains/<name>/` и `knowledge/adr/`.
 >
@@ -180,6 +180,96 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
 `gradle-wrapper-guard` и `build-config-guard`. Per-feature документ —
 [`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md).
 
+### R-47 — Проверки пакета не равны CI: контрактный прогон перед PR
+
+**Rule**:
+
+1. Перед открытием PR прогоняются **все** `run:`-команды из
+   `.github/workflows/lint.yml`, а не выборочный набор. Список команд
+   **извлекается из воркфлоу** (парсинг `run:`), а не по памяти: воркфлоу
+   меняется, и память — нет.
+2. Пакетный набор проверок (тесты модуля, его lint, prettier) — это
+   **дополнительный** слой, а не замена CI-набору.
+3. Новый guard' регистрируется целиком: скрипт в `tools/`, джоб в
+   `.github/workflows/lint.yml`, pre-commit-хук, `--self-test` с негативной
+   фикстурой (плохое состояние → ненулевой код; чистое состояние → 0).
+4. Guard, который **не смог выполнить** проверку, возвращает ненулевой код.
+   Коды унифицированы: `0` — успех, `1` — нарушение, `2` — проверка не
+   выполнена. «Нет данных» — это не «нарушений нет».
+
+**Protocol**:
+
+```bash
+python3 - <<'PY' > /tmp/ci_runs.txt
+import re, pathlib
+s = pathlib.Path('.github/workflows/lint.yml').read_text(encoding='utf-8')
+for m in re.finditer(r'^\s*-?\s*run:\s*(.+)$', s, re.M):
+    cmd = m.group(1).strip()
+    if cmd.startswith(('bash tools/','python3 tools/','python tools/','./tools/')):
+        print(cmd)
+PY
+while read -r cmd; do cmd="${cmd//\$\{\{ matrix.spa \}\}/webvue3}"; eval "$cmd" >/tmp/g.out 2>&1 || echo "НЕ-НУЛЕВОЙ: $cmd"; done < /tmp/ci_runs.txt
+```
+
+**Failure**:
+
+- пакет прошёл свой набор проверок, а CI поймал регрессию: пользовательские
+  значения попали в текст подтверждения без `escapeHtml`, а `allowHtml: true`
+  стоял в блоке без разметки (PR пришлось дополнять отдельным коммитом);
+- guard считает прямые коммиты как `git log --pretty=format:… | wc -l` — такой
+  вывод **не заканчивается переводом строки**, счётчик занижается на единицу, и
+  **один** прямой коммит даёт «нарушений нет»: guard не падает никогда;
+- guard обходит каталог через `find` и цепляет чужие checkout'ы (`.worktrees/*`)
+  → в главном checkout'е десятки ложных нарушений; список файлов берётся из
+  `git ls-files` — ровно то, что видит CI.
+
+**Source**: `.github/workflows/lint.yml`, `tools/check-*.sh`, `tools/check-*.py`.
+
+**Enforcement**: ручной прогон всех `run:`-команд перед PR + `--self-test`
+каждого нового guard'а. Регламент guard'ов — в
+[system/infra/ci-tools.md](../system/infra/ci-tools.md).
+
+### R-48 — Правило, повторяющееся в компонентах, живёт в общем модуле
+
+**Rule**:
+
+1. Если механизм или правило повторяется **в двух и более** компонентах
+   (сторах, view'ах, контроллерах), оно выносится в **один** общий модуль и
+   переиспользуется.
+2. **Дубликат реализации запрещён.** Если общий модуль уже существует — он
+   расширяется; вторая реализация того же правила удаляется.
+3. Перед правкой — поиск существующего модуля: по `knowledge/` (SSoT-инварианты)
+   и по коду (`webvue3/src/lib/`, `karaoke-public/src/utils/`). Пакет, который
+   пользуется чужим общим модулем, **не переписывает** его.
+4. В отчёте пакета фиксируется, что дублирования не было (или что и почему
+   осталось отдельным).
+
+**Protocol**:
+
+- новый общий модуль — рядом с уже существующими (`webvue3/src/lib/`,
+  `karaoke-public/src/utils/`), с тестами на уровне модуля;
+- перед созданием второго модуля — `grep` по имени правила в `src/` и в
+  `knowledge/`; найденный модуль переиспользуется;
+- каноническая реализация utility-функции живёт в одном месте: если есть
+  `utils/escapeHtml.js`, новый модуль **импортирует** её, а не определяет
+  свою.
+
+**Failure**:
+
+- три пакета подряд принесли **свои** реализации одних и тех же вещей (кеш
+  UUID, функция рескана цензуры, `escapeHtml`): каждая копия — новое место для
+  дефекта, а при слиянии — дополнительный разбор решений, чью реализацию
+  оставить;
+- общий модуль создан заново, хотя канонический уже был: `lib/text-diff.js`
+  определил собственную `escapeHtml` при наличии `utils/escapeHtml.js` — дубль
+  удалён отдельным коммитом.
+
+**Source**: `webvue3/src/lib/`, `karaoke-public/src/utils/`,
+`knowledge/system/frontend/webvue3-audit-invariants.md`.
+
+**Enforcement**: ревью пакета (проверка на дубли) + отчёт пакета с явным
+утверждением о дублировании.
+
 ## Контейнеры и инфраструктура
 
 | Тема | Ключевые правила |
@@ -304,6 +394,8 @@ OpenProject в `tools/tracker-lib.sh`).
 | MLT/рендер | [mlt-pipeline](../domains/rendering/components/mlt-pipeline.md) + [ADR-0002](../adr/0002-mlt-instead-of-ffmpeg.md) | [rendering domain](../domains/rendering/) и **R-44** |
 | Auth (Spring) | [security-config](../domains/identity/components/security-config.md) | [ADR-0006](../adr/0006-processbuilder-redirect-errorstream.md) |
 | Конфигурация сборки (wrapper/зависимости/дампы) | **R-46** + [ci-tools](../system/infra/ci-tools.md) | `tools/check-gradle-wrapper.sh`, `tools/check-build-config.sh` |
+| Контур проверок (guard'ы, коды возврата, порядок прогона) | **R-47** + [ci-tools](../system/infra/ci-tools.md) | `tools/check-*.sh`, `tools/check-*.py` |
+| Общие модули вместо копий по компонентам | **R-48** + [webvue3-audit-invariants](../system/frontend/webvue3-audit-invariants.md) | `webvue3/src/lib/`, `karaoke-public/src/utils/` |
 
 ### Гигиена репозитория: чужие фикстуры и локальные пути (BR-526, BR-531, #398)
 

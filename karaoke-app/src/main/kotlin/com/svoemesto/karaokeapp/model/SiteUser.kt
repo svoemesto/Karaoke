@@ -312,6 +312,7 @@ class SiteUser(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
+            orderBy: String? = "id",
         ): List<SiteUser> =
             KaraokeDbTable
                 .loadList(
@@ -323,6 +324,7 @@ class SiteUser(
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
+                    orderBy = orderBy,
                 ).map { it as SiteUser }
 
         // Пользователи, у которых подписка на сайт истекает до указанного момента (включая уже
@@ -359,6 +361,56 @@ class SiteUser(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             ) as? SiteUser?
+
+        /**
+         * BR-220 (аудит #336, OpenProject #409): пакетная загрузка владельцев
+         * ОДНИМ запросом (`id IN (...)`) вместо [getSiteUserById] в цикле.
+         *
+         * ADR-0001: «Пакетная загрузка, не по одной». Раньше
+         * `SitePlaylistsController.digest` делал по `SELECT` на каждого
+         * владельца — на `M` владельцев это `M` запросов на один рендер таблицы.
+         *
+         * @return карта `id -> пользователь` (только найденные).
+         */
+        fun loadByIds(
+            ids: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Map<Long, SiteUser> {
+            if (ids.isEmpty()) return emptyMap()
+            return KaraokeDbTable
+                .loadByIds(
+                    clazz = SiteUser::class,
+                    tableName = TABLE_NAME,
+                    ids = ids,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SiteUser }
+                .associateBy { it.id }
+        }
+
+        /**
+         * BR-221 (аудит #336, OpenProject #409): количество строк под фильтр —
+         * отдельный `COUNT(*)`, чтобы пагинация не считала строки в памяти.
+         *
+         * Тот же набор условий, что и в [getWhereList], — иначе `totalCount`
+         * не совпадёт с реально отфильтрованной выборкой.
+         */
+        fun countList(
+            whereArgs: Map<String, String>,
+            database: KaraokeConnection,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            val where = getWhereList(whereArgs)
+            val whereSql = if (where.isEmpty()) "" else " WHERE ${where.joinToString(" AND ")}"
+            val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME$whereSql"
+            connection.createStatement().use { st ->
+                st.executeQuery(sql).use { rs -> if (rs.next()) return rs.getInt("cnt") }
+            }
+            return 0
+        }
 
         fun getSiteUserByEmail(
             email: String,

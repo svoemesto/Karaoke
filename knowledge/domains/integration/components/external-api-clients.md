@@ -74,6 +74,18 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 `VkApiClientSendModeTest`). Прецедент: 2026-09-23 — `IllegalStateException`
 пролетал через `@Scheduled`-тик 12× подряд.
 
+**Переиспользование HTTP-клиента** (BR-154, аудит #336, OpenProject #409):
+прямой `HttpClient` — общий на класс (`SHARED_DIRECT_CLIENT` в
+`companion object`), прокси-клиент кэшируется по URL и пересоздаётся только
+при смене `vkProxyUrl` (тот же приём, что в `TelegramApiClient`, BR-142).
+Раньше клиент создавался на каждый `VkApiClient()`, а тот — на каждый вызов
+(`VkAutoPublishScheduler`, `VkIdTokenRefreshScheduler`,
+`ApiController.vkIdRefreshNow`): у каждого JDK-клиента свой selector-поток и
+пул соединений, `close()` у него нет. Места, создававшие экземпляр на
+вызов, используют `VkApiClient.shared` — это же сохраняет состояние
+прокси-режима (`useProxy`), которое иначе терялось на каждом новом
+экземпляре. Тесты: `VkHttpClientReuseTest`.
+
 ---
 
 ### 2. `VkPhotoUploadClient`
@@ -211,6 +223,12 @@ TTL (`vkProxyModeTtlMs`) с авто-возвратом. **Отличие**: п�
 **DTO**: `WhisperWordDto(word, start, confidence)`, `WhisperSegmentDto(text, start)`.
 
 **Используется**: `FORCED_ALIGN_MARKERS` KaraokeProcessType.
+
+**HTTP-клиент** (BR-154, аудит #336, OpenProject #409): один
+`OkHttpClient` на сервис, кэшируется по таймауту (`whisperTimeoutMs`).
+Раньше клиент создавался на каждый вызов `transcribe` — вместе с ним
+поднимались собственный connection pool и dispatcher, которые не
+переиспользовались между запросами. Тесты: `VkHttpClientReuseTest`.
 
 ---
 

@@ -306,26 +306,35 @@ internal enum class VkSendMode {
 class VkApiClient {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val directClient: HttpClient =
-        HttpClient
-            .newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build()
+    /**
+     * BR-154 (аудит #336, OpenProject #409): прямой HTTP-клиент — **общий на процесс**,
+     * а не на каждый экземпляр [VkApiClient].
+     *
+     * Раньше конструктор создавал новый `java.net.http.HttpClient` на каждый
+     * `VkApiClient()`, а тот, в свою очередь, создавался на каждый вызов
+     * (`VkAutoPublishScheduler.publishNewsWithoutVideo`, `VkIdTokenRefreshScheduler`,
+     * `ApiController.vkIdRefreshNow`). У каждого JDK-клиента свой selector-поток и
+     * пул соединений, `close()` у него нет — в прокси-режиме это постоянный churn
+     * потоков и TCP-соединений. Теперь клиент один и переиспользуется.
+     */
+    private val directClient: HttpClient = SHARED_DIRECT_CLIENT
 
     @Volatile private var useProxy = false
 
     @Volatile private var modeSetAtMs = 0L
 
+    /**
+     * BR-154: прокси-клиент кэшируется по URL и пересоздаётся только при смене
+     * `vkProxyUrl` (тот же приём, что в [TelegramApiClient], BR-142). Прежде здесь
+     * создавался новый `HttpClient` на КАЖДЫЙ запрос в прокси-режиме — каждый со
+     * своим selector-потоком, который никто не закрывал.
+     */
     private fun proxyClient(): HttpClient? {
         val proxyUrl = KaraokeProperties.getString("vkProxyUrl")
         if (proxyUrl.isBlank()) return null
         val uri = URI(proxyUrl)
         if (uri.host == null || uri.port <= 0) return null
-        return HttpClient
-            .newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .proxy(ProxySelector.of(InetSocketAddress(uri.host, uri.port)))
-            .build()
+        return sharedProxyClient(proxyUrl, uri)
     }
 
     private fun baseUrl(): String = "https://api.vk.ru/method"
@@ -1135,6 +1144,60 @@ class VkApiClient {
         // 100 — One of the parameters is missing or invalid.
         // 29 — Rate limit (для photos.* — non-retryable внутри метода, fallback на docs.*).
         private val NON_RETRYABLE_ERROR_CODES = setOf(4, 5, 15, 27, 100, 29)
+
+        /**
+         * BR-154 (аудит #336, OpenProject #409): общий прямой HTTP-клиент VK.
+         *
+         * Раньше конструктор [VkApiClient] создавал новый
+         * `java.net.http.HttpClient` на каждый экземпляр, а сам экземпляр создавался
+         * на каждый вызов (`VkAutoPublishScheduler.publishNewsWithoutVideo`,
+         * `VkIdTokenRefreshScheduler`, `ApiController.vkIdRefreshNow`). У каждого
+         * JDK-клиента свой selector-поток и пул соединений, `close()` у него нет —
+         * в прокси-режиме это постоянный churn потоков и TCP-соединений.
+         */
+        private val SHARED_DIRECT_CLIENT: HttpClient =
+            HttpClient
+                .newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build()
+
+        @Volatile private var cachedProxyUrl: String? = null
+
+        @Volatile private var cachedProxyClient: HttpClient? = null
+
+        /**
+         * BR-154: клиент для прокси-режима — по одному на URL прокси.
+         * При смене `vkProxyUrl` старый клиент заменяется (его сокеты закрывает
+         * GC после простоя; сам `HttpClient.close()` в Java 17 недоступен).
+         */
+        private fun sharedProxyClient(
+            proxyUrl: String,
+            uri: URI,
+        ): HttpClient {
+            cachedProxyClient?.let { if (cachedProxyUrl == proxyUrl) return it }
+            synchronized(this) {
+                cachedProxyClient?.let { if (cachedProxyUrl == proxyUrl) return it }
+                val client =
+                    HttpClient
+                        .newBuilder()
+                        .connectTimeout(Duration.ofSeconds(10))
+                        .proxy(ProxySelector.of(InetSocketAddress(uri.host, uri.port)))
+                        .build()
+                cachedProxyUrl = proxyUrl
+                cachedProxyClient = client
+                return client
+            }
+        }
+
+        /**
+         * BR-154: общий экземпляр клиента.
+         *
+         * Кроме экономии HTTP-клиентов это сохраняет состояние прокси-режима
+         * (`useProxy`/`modeSetAtMs`): раньше каждый новый экземпляр стартовал с
+         * `useProxy = false` и первым запросом снова долбился в заблокированный
+         * прямой доступ к VK, вместо того чтобы сразу пойти через прокси.
+         */
+        val shared: VkApiClient by lazy { VkApiClient() }
 
         // Парсер JSON для дешифровки ответа users.get при проверке user-token в
         // ApiController.saveVkUserToken. ignoreUnknownKeys=true — VK может добавлять новые

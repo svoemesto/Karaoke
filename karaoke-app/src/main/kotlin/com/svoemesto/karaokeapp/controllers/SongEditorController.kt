@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import java.io.File
 import java.sql.Timestamp
+import org.slf4j.LoggerFactory
 
 // Админская сторона онлайн-редактора караоке-разметки (webvue3). Живёт в karaoke-app (admin-машина):
 // назначение песни пользователю с автозаливкой стемов в MinIO, просмотр черновиков, апрув (применение
@@ -75,6 +76,18 @@ class SongEditorController(
     // выбрасывал значение. Фича «прибить ноту к струне/ладу» не работала ни разу.
     // Каноническое имя — `lockLad`, как в SourceMarker. См. тикет #201 карты #186.
     private val json = Json { ignoreUnknownKeys = true }
+
+    // BR-224 (аудит #336, OpenProject #409): SLF4J-логгер контроллера (ADR local-0005).
+    // Раньше сбои апрува попадали в stdout через `println` — без уровня, категории и стека.
+    private val log = LoggerFactory.getLogger(SongEditorController::class.java)
+
+    /**
+     * BR-223 (аудит #336, OpenProject #409): полосовые локи для апрува.
+     *
+     * Фиксированный массив (без карты): память не растёт с числом заданий
+     * (в отличие от `songLocks` в BR-155). Номер полосы — `id % N`.
+     */
+    private val approveLocks: Array<Any> = Array(APPROVE_LOCKS) { Any() }
 
     private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
@@ -219,15 +232,30 @@ class SongEditorController(
         @RequestParam(required = false) filterAuthor: String?,
     ): Map<String, Any> =
         withDb(target) { db ->
-            var assignments = SongAssignment.loadAll(db, storageService, storageApiClient)
-            filterAssigneeId?.let { a -> assignments = assignments.filter { it.assigneeId == a } }
+            // BR-221 (аудит #336, OpenProject #409): фильтры `assigneeId` и `author`
+            // применяются В SQL (раньше — в памяти после загрузки ВСЕХ назначений).
+            // `filterStatus` остаётся в памяти: композитный статус выводится из
+            // (admin_status, draft.user_status, reviewed_at, submitted_at) — выразить
+            // это в SQL значило бы продублировать `SongAssignmentStatus.resolve()`
+            // и разойтись с ним при правках (см. отчёт пакета #409).
+            val assignments =
+                SongAssignment.loadList(
+                    assigneeId = filterAssigneeId,
+                    authorLike = filterAuthor,
+                    database = db,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
 
             val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
+            // BR-220 (родственная правка): владельцы — ОДНИМ запросом, а не по SELECT на каждого.
             val users =
-                assignments
-                    .map { it.assigneeId }
-                    .distinct()
-                    .associateWith { SiteUser.getSiteUserById(it, db, storageService, storageApiClient) }
+                SiteUser.loadByIds(
+                    ids = assignments.map { it.assigneeId }.distinct(),
+                    database = db,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             val songs =
                 if (assignments.isEmpty()) {
                     emptyMap()
@@ -260,9 +288,6 @@ class SongEditorController(
                     )
                 }
             filterStatus?.takeIf { it.isNotBlank() }?.let { st -> list = list.filter { it["status"] == st } }
-            filterAuthor?.takeIf { it.isNotBlank() }?.let { author ->
-                list = list.filter { (it["author"] as? String)?.contains(author, ignoreCase = true) == true }
-            }
             mapOf("songAssignmentsDigest" to list)
         }
 
@@ -345,6 +370,23 @@ class SongEditorController(
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false) idStatus: Int?,
     ): Map<String, Any?> {
+        // BR-223 (аудит #336, OpenProject #409): два параллельных запроса на ОДНО
+        // задание сериализуются полосовым локом (фиксированный массив — без карты,
+        // которая росла бы как `songLocks` в BR-155). Второй запрос дождётся
+        // первого, перечитает задание и увидит `approved` → `already_approved`
+        // без повторного применения разметки, push'а и рендера.
+        val lock = approveLocks[(id % APPROVE_LOCKS).toInt()]
+        return synchronized(lock) { approveInternal(id = id, target = target, idStatus = idStatus) }
+    }
+
+    /**
+     * BR-223: тело апрува (вызывается под полосовым локом, см. [approve]).
+     */
+    private fun approveInternal(
+        id: Long,
+        target: String?,
+        idStatus: Int?,
+    ): Map<String, Any?> {
         val isRemoteRead = target == "remote"
         val readDb = if (isRemoteRead) Connection.remote() else null
         try {
@@ -359,6 +401,18 @@ class SongEditorController(
                 // анонс повторно, просто сообщаем администратору, что задание уже одобрено.
                 if (aRead.adminStatus == SongAssignmentStatus.ADMIN_APPROVED) {
                     return@withDb mapOf("ok" to true, "status" to "already_approved")
+                }
+
+                // BR-222 (аудит #336, OpenProject #409): валидация `idStatus` — ДО любых
+                // мутаций. Раньше проверка стояла ПОСЛЕ `song.setAllVoices(...)`, который
+                // сохраняет песню в БД: запрос с `idStatus=7` успевал записать
+                // маркеры/текст и поднять `id_status`, и только потом отвечал
+                // `invalid_idstatus` — состояние БД не соответствовало ответу.
+                // specs/184-approve-status-choice/contracts/approve-endpoint.md:
+                // «валидация выполняется до любых записей».
+                if (idStatus != null && idStatus != 5 && idStatus != 6) {
+                    log.warn("approve: INVALID idStatus={} assignmentId={}", idStatus, id)
+                    return@withDb mapOf("ok" to false, "status" to "error", "error" to "invalid_idstatus: must be 5 or 6")
                 }
 
                 val draft =
@@ -402,12 +456,8 @@ class SongEditorController(
                     // поэтому статус выставляется сразу в терминальное значение 6 (READY), а не на 1 шаг
                     // вперёд (specs/022-song-status-lifecycle).
                     //
-                    // Feature 184: валидация `idStatus` — допустимы только 5 или 6 (либо null = дефолт 6).
-                    // Стоит ПОСЛЕ short-circuit already_approved и ДО записи в БД.
-                    if (idStatus != null && idStatus != 5 && idStatus != 6) {
-                        println("[approve/feature-184] INVALID idStatus=$idStatus for assignmentId=$id")
-                        return@withDb mapOf("ok" to false, "status" to "error", "error" to "invalid_idstatus: must be 5 or 6")
-                    }
+                    // BR-222: валидация `idStatus` вынесена ВВЕРХ (до `setAllVoices`) —
+                    // см. комментарий в [approveInternal].
                     val requestedIdStatus = idStatus ?: 6
 
                     // Фактический статус, до которого ПОДНИМАЕМ: max(current, requested).
@@ -431,7 +481,9 @@ class SongEditorController(
                             println("[approve/feature-184] songId=${song.id} idStatus=6 reason=default")
                     }
                 } catch (e: Exception) {
-                    println("[SongEditorController.approve] применение разметки к песне ${song.id} не удалось: ${e.message}")
+                    // BR-224: SLF4J со стеком (ADR local-0005) — `println` с одним
+                    // `e.message` терял и категорию, и уровень, и стек.
+                    log.error("approve: применение разметки к песне songId={} не удалось", song.id, e)
                     return@withDb mapOf("ok" to false, "status" to "error", "error" to "song_save_failed")
                 }
 
@@ -461,9 +513,14 @@ class SongEditorController(
                         // новость появится при следующей серверной синхронизации, обнаружившей переход
                         // (MainController.doChangeRecords).
                     } catch (e: Exception) {
-                        println(
-                            "[SongEditorController.approve] push на SERVER не удался " +
-                                "(${System.currentTimeMillis() - pushStart} ms): ${e.message}",
+                        // BR-224 (аудит #336, OpenProject #409): SLF4J со стеком, а не
+                        // `println` с одним `e.message` — по docker logs было видно
+                        // строку без категории, без уровня и без стека (ADR local-0005).
+                        log.error(
+                            "approve: push на SERVER не удался songId={} durationMs={}",
+                            song.id,
+                            System.currentTimeMillis() - pushStart,
+                            e,
                         )
                     }
                 }
@@ -514,8 +571,15 @@ class SongEditorController(
                             )
                             println("[approve/sync-related] thread END OK for songId=${song.id}")
                         } catch (e: Exception) {
-                            println("[approve/sync-related] ошибка sync related: ${e.message}")
-                            println("[approve/sync-related] thread END EXCEPTION for songId=${song.id}")
+                            // BR-224 (аудит #336, OpenProject #409): SLF4J со стеком.
+                            // Раньше — `println` с одним `e.message`: в фоновом потоке
+                            // исключение вообще не оставляло throwable, и по docker logs
+                            // было невозможно понять, где именно упало.
+                            log.error(
+                                "approve: sync-related не удался songId={} thread=END EXCEPTION",
+                                song.id,
+                                e,
+                            )
                         }
                     }
                 } else {
@@ -541,19 +605,38 @@ class SongEditorController(
                 // необработанным исключением (specs/094-fix-approve-news-failure, FR-003/FR-005): при
                 // сбое задание НЕ помечается одобренным, администратор получает типизированную ошибку
                 // вместо необработанного HTTP 500 (см. research.md, п.2 — ранее незащищённое место).
+                //
+                // BR-223 (аудит #336, OpenProject #409): переход статуса — АТОМАРНЫЙ
+                // (`UPDATE ... WHERE admin_status <> 'approved'`), а не «прочитал — потом
+                // записал». Два параллельных апрува одного задания больше не могут оба
+                // применить разметку, оба запустить push и оба поставить процесс
+                // `RENDER_MP4_DEMO`: выигрывает ровно один, второй получает
+                // `already_approved` (состояние БД уже соответствует ответу).
                 val saveStatusStart = System.currentTimeMillis()
-                try {
-                    aRead.adminStatus = SongAssignmentStatus.ADMIN_APPROVED
-                    aRead.reviewedAt = Timestamp(System.currentTimeMillis())
-                    aRead.reviewComment = ""
-                    aRead.save()
-                    println("[approve/timing] aRead.save(): ${System.currentTimeMillis() - saveStatusStart} ms")
-                } catch (e: Exception) {
-                    println(
-                        "[SongEditorController.approve] сохранение статуса задания $id не удалось " +
-                            "(${System.currentTimeMillis() - saveStatusStart} ms): ${e.message}",
-                    )
-                    return@withDb mapOf("ok" to false, "status" to "error", "error" to "save_failed")
+                val approved =
+                    try {
+                        SongAssignment.markApprovedIfNotApproved(
+                            id = id,
+                            reviewedAt = Timestamp(System.currentTimeMillis()),
+                            previousStatus = aRead.adminStatus,
+                            database = assignmentDb,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        )
+                    } catch (e: Exception) {
+                        log.error(
+                            "approve: сохранение статуса задания id={} не удалось durationMs={}",
+                            id,
+                            System.currentTimeMillis() - saveStatusStart,
+                            e,
+                        )
+                        return@withDb mapOf("ok" to false, "status" to "error", "error" to "save_failed")
+                    }
+                if (!approved) {
+                    // Задание уже одобрено (гонка выиграна другим запросом) — БД уже в
+                    // состоянии approved, отвечаем accordingly, без ложного «success».
+                    log.warn("approve: задание id={} уже одобрено (гонка апрувов)", id)
+                    return@withDb mapOf("ok" to true, "status" to "already_approved")
                 }
                 mapOf("ok" to true, "status" to "success", "idStatus" to song.idStatus)
             }
@@ -1157,8 +1240,14 @@ class SongEditorController(
             println("[approve/render-demo] создан процесс RENDER_MP4_DEMO для песни ${song.id}")
             println("[approve/render-demo-helper] END OK for songId=${song.id}")
         } catch (e: Exception) {
-            println("[approve/render-demo-helper] EXCEPTION ${e.javaClass.name}: ${e.message}")
-            println("[approve/render-demo] ошибка: ${e.message}")
+            // BR-224: SLF4J со стеком (ADR local-0005) — `println` с одним
+            // `e.message` терял и уровень, и категорию, и стек.
+            log.error("approve: render-demo helper: EXCEPTION songId={}", song.id, e)
         }
+    }
+
+    companion object {
+        /** BR-223: число полос локов апрува (степень двойной параллельности). */
+        private const val APPROVE_LOCKS = 16
     }
 }

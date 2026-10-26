@@ -168,6 +168,31 @@ Pipeline сам выставит 5/6 после успешного рендер�
 препятствует). Проверка `status='active'` сделает новый INSERT,
 если старая строка была `revoked`.
 
+## BR-222/BR-223/BR-224: апрув задания (аудит #336, OpenProject #409)
+
+**Валидация до мутации (BR-222).** Параметр `idStatus` (5 или 6)
+проверяется **до** применения разметки: `song.setAllVoices(...)` сохраняет
+песню в БД, поэтому проверка после него успевала записать маркеры и поднять
+`id_status`, и только потом отвечала `invalid_idstatus`. Контракт —
+`specs/184-approve-status-choice/contracts/approve-endpoint.md`:
+«валидация выполняется до любых записей».
+
+**Атомарный переход статуса (BR-223).** Статус задания пишется
+`SongAssignment.markApprovedIfNotApproved()` — условным
+`UPDATE tbl_song_assignments SET admin_status='approved' … WHERE id = ? AND
+admin_status <> 'approved'`. Ровно один вызов обновляет строку; остальные
+получают `already_approved`. Плюс полосовый лок по `id % 16` в
+`SongEditorController.approve()` — второй параллельный запрос ждёт первый и
+после перечитывания видит `approved`. Раньше защита была check-then-act:
+оба запроса применяли разметку, оба пушили песню на SERVER и оба ставили
+процесс `RENDER_MP4_DEMO` (тяжёлая полоса HEAVY_RENDER).
+
+**Логирование (BR-224).** Сбой push'а на SERVER и сбой фоновой синхронизации
+(`updateRemoteDatabaseFromLocalDatabase`) логируются через SLF4J
+(`log.error(…, e)`) — со стеком. Раньше это был `println` с одним
+`e.message`: в stdout контейнера, без уровня, категории и стека; в фоновом
+потоке throwable вообще не оставался (ADR local-0005).
+
 ## Связанные фичи
 
 - `182-editor-self-assign-tasks` — primary фича (self-assign + race).

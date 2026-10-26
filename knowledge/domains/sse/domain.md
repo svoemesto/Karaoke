@@ -32,6 +32,23 @@ related:
 - `monitorAlerts` — алерты мониторинга.
 - `massSearchSummary` — сводка массового поиска текста (spec 316).
 
+**Контракт payload'а (BR-216, аудит #336, OpenProject #409).** Событие —
+обёртка `{type, data}`, где `type = "recordChange"`, а `data` —
+`RecordChangeMessage` с полями `recordId` / `tableName` / `diffs` (внутри
+`diffs` — `RecordDiff` с полями `recordDiffName` / `recordDiffValueNew`).
+Имя таблицы песен — `tbl_songs` (переименование `tbl_settings` → `tbl_songs`,
+миграция 28). Клиенты, читающие `recordChangeId` / `recordChangeTableName` /
+`recordChangeDiffs`, не получат ничего — таких полей в DTO нет.
+
+Изменения процессов (`tbl_processes`) приходят тем же типом `recordChange`,
+но с **пустым** `diffs` — актуальное состояние задания лежит в `record`
+(`KaraokeProcessDTO`: `name`, `type`, `percentage`, `timeLeftStr`).
+
+Второй получатель — легаси-страница `karaoke-app/.../templates/songs2.html`:
+раньше она подписывалась на STOMP-эндпоинт `/api/message`, которого в
+`karaoke-app` нет, — live-обновления не работали никогда. Теперь страница
+использует тот же SSE-канал `GET /api/subscribe`.
+
 **Архитектурное решение**: SSE, а не WebSocket, потому что:
 
 - Server → Client only (не нужен bidirectional).

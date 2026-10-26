@@ -4,7 +4,9 @@ import com.svoemesto.karaokeapp.model.StatsCacheEntry
 import com.svoemesto.karaokeapp.model.StatsCacheKey
 import org.slf4j.LoggerFactory
 import java.time.Instant
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
 
 /**
  * In-process TTL-кеш для 6 чистых stats-агрегатов
@@ -34,6 +36,9 @@ object StatsCache {
     private val log = LoggerFactory.getLogger(StatsCache::class.java)
 
     private val cache = ConcurrentHashMap<StatsCacheKey, StatsCacheEntry>()
+
+    /** BR-226: ключи, которые сейчас вычисляются (single-flight guard). */
+    private val inflight = ConcurrentHashMap<StatsCacheKey, CompletableFuture<Any>>()
 
     /**
      * Возвращает кешированный `value`, если запись существует и не истекла.
@@ -71,6 +76,69 @@ object StatsCache {
     fun put(key: StatsCacheKey, value: Any) {
         cache[key] = StatsCacheEntry(value, Instant.now().plusSeconds(TTL_SECONDS))
     }
+
+    /**
+     * BR-226 (аудит #336, OpenProject #409): чтение кеша с single-flight.
+     *
+     * Раньше контроллер делал `get` → (промах) → тяжёлый `compute` → `put`.
+     * Два одновременных запроса одного endpoint'а после истечения TTL оба видели
+     * промах и оба выполняли тяжёлый агрегат (`COUNT(*)` по `tbl_events` и
+     * подзапросы) — ровно то, ради чего кеш и вводился (spec 174).
+     * Доменный инвариант caching — «Single-flight guard: только один поток
+     * запускает refresh» (`knowledge/domains/caching/domain.md`).
+     *
+     * Теперь: первый поток, увидевший промах, берёт «ключ в работе» и считает;
+     * остальные ждут его результат (`CompletableFuture`) и НЕ считают заново.
+     * Ошибка вычислителя передаётся ожидающим как исходное исключение (причина
+     * `ExecutionException` разворачивается), чтобы `respondCached` по-прежнему
+     * ловил `SQLException` и отдавал 503.
+     */
+    fun <T> getOrCompute(
+        key: StatsCacheKey,
+        supplier: () -> T,
+    ): T {
+        get(key)?.let {
+            @Suppress("UNCHECKED_CAST")
+            return it as T
+        }
+        val mine = CompletableFuture<Any>()
+        val running = inflight.putIfAbsent(key, mine)
+        if (running != null) {
+            // Кто-то уже считает этот ключ — ждём его результат.
+            return awaitResult(running)
+        }
+        try {
+            val value = supplier()
+            put(key, value as Any)
+            mine.complete(value)
+            return value
+        } catch (e: Throwable) {
+            mine.completeExceptionally(e)
+            throw e
+        } finally {
+            inflight.remove(key, mine)
+        }
+    }
+
+    /** Разворачивает [ExecutionException] до исходной причины (например, `SQLException`). */
+    private fun <T> awaitResult(future: CompletableFuture<Any>): T =
+        try {
+            @Suppress("UNCHECKED_CAST")
+            future.get() as T
+        } catch (e: ExecutionException) {
+            val cause = e.cause
+            if (cause is Exception) throw cause
+            throw e
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw e
+        }
+
+    /**
+     * Ключи, которые сейчас вычисляются (single-flight). Только для диагностики:
+     * в [snapshot] не входит.
+     */
+    fun inflightKeys(): Set<StatsCacheKey> = inflight.keys.toSet()
 
     /**
      * Очищает весь кеш. Зарезервировано под будущую SSE-инвалидацию

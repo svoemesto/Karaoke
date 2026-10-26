@@ -172,7 +172,10 @@ class VkAutoPublishScheduler {
                     append(news.link)
                 }
             }
-        val client = VkApiClient()
+        // BR-154 (аудит #336, OpenProject #409): общий экземпляр клиента —
+        // раньше на каждую новость создавался новый `VkApiClient`, а с ним
+        // новый HTTP-клиент (selector-поток + пул соединений) без закрытия.
+        val client = VkApiClient.shared
         // specs/437 (#161): сбой VK API (сеть / нет прокси) не должен валить @Scheduled-тик.
         // Пост НЕ помечаем опубликованным — попробуем снова на следующем тике.
         val result =

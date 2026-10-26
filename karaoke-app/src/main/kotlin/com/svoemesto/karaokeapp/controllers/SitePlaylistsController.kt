@@ -48,16 +48,31 @@ class SitePlaylistsController {
     fun digest(
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false) filterOwnerId: Long?,
+        // BR-221 (аудит #336, OpenProject #409): серверная пагинация диджеста.
+        // `perPage = 0` (по умолчанию) — полный список (обратная совместимость).
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "0") perPage: Int,
     ): Map<String, Any> =
         withDb(target) { db ->
-            var playlists = SitePlaylist.loadAll(db, KSS_APP, SAC_APP)
-            filterOwnerId?.let { owner -> playlists = playlists.filter { it.ownerId == owner } }
-            // Резолвим владельцев одним проходом (email/имя для отображения).
+            val limit = perPage.coerceAtLeast(0)
+            val offset = if (limit > 0) (page.coerceAtLeast(1) - 1) * limit else 0
+            // BR-220: фильтр по владельцу — в SQL (не в памяти после полной загрузки).
+            val playlists = SitePlaylist.loadList(ownerId = filterOwnerId, limit = limit, offset = offset, database = db, storageService = KSS_APP, storageApiClient = SAC_APP)
+            // BR-220: владельцы — ОДНИМ запросом (`id IN (...)`), а не по SELECT на владельца.
             val owners =
-                playlists
-                    .map { it.ownerId }
-                    .distinct()
-                    .associateWith { SiteUser.getSiteUserById(it, db, KSS_APP, SAC_APP) }
+                SiteUser.loadByIds(
+                    ids = playlists.map { it.ownerId }.distinct(),
+                    database = db,
+                    storageService = KSS_APP,
+                    storageApiClient = SAC_APP,
+                )
+            // BR-220: количество элементов — ОДНИМ агрегатным запросом по всем
+            // плейлистам страницы, а не `COUNT(*)` на каждый плейлист.
+            val itemsCounts =
+                SitePlaylistItem.countItemsByPlaylistIds(
+                    playlistIds = playlists.map { it.id },
+                    database = db,
+                )
             val list =
                 playlists.map { pl ->
                     val owner = owners[pl.ownerId]
@@ -68,13 +83,14 @@ class SitePlaylistsController {
                         "ownerId" to pl.ownerId,
                         "ownerEmail" to (owner?.email ?: ""),
                         "ownerName" to (owner?.displayName ?: ""),
-                        "itemsCount" to SitePlaylistItem.countItems(pl.id, db),
+                        "itemsCount" to (itemsCounts[pl.id] ?: 0),
                         "continuous" to pl.continuous,
                         "repeatMode" to pl.repeatMode,
                         "shuffle" to pl.shuffle,
                     )
                 }
-            mapOf("sitePlaylistsDigest" to list)
+            val totalCount = SitePlaylist.countList(ownerId = filterOwnerId, database = db)
+            mapOf("sitePlaylistsDigest" to list, "totalCount" to totalCount)
         }
 
     @PostMapping("/byId")

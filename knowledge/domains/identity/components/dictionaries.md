@@ -101,6 +101,23 @@ enum, сохранённое как историческое (не соотве�
 2. Без аннотации Jackson сериализует поле как `specialOrder` →
    клиент не получает значение → регресс.
 
+## Пакетная загрузка SiteUser (BR-220/BR-221, аудит #336, OpenProject #409)
+
+`SiteUser` читается из админских диджестов (`/api/siteusers/digest`,
+`/api/siteplaylists/digest`, `/api/songeditor/digest`). Два новых
+помощника в `companion object` модели:
+
+- `SiteUser.loadByIds(ids, …)` — владельцы (плейлистов, заданий) одним
+  запросом `id IN (…)` вместо `getSiteUserById` в цикле (ADR-0001 «пакетная
+  загрузка, не по одной»).
+- `SiteUser.countList(whereArgs, …)` — `COUNT(*)` с тем же набором условий,
+  что и `loadList`; нужен для `totalCount` при серверной пагинации.
+
+Диджесты принимают `page`/`perPage` и отдают `totalCount`; `perPage = 0`
+(по умолчанию) — полный список, как раньше (обратная совместимость).
+`KaraokeDbTable.loadList` получил параметр `orderBy` — без
+детерминированного `ORDER BY` страницы перекрываются.
+
 ## Зависимости | Dependencies
 
 - → `model/SiteUser.kt` — boolean-флаги ролей (`isEditor`,

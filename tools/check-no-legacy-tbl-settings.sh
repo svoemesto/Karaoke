@@ -25,7 +25,12 @@
 #
 # При срабатывании: выводит список «файл:строка» и завершается с кодом 1.
 #
-# Версия: 1.1.0 (Pass 369 + BR-582).
+# Версия: 1.2.0 (Pass 369 + BR-582 + BR-225, OpenProject #409).
+#
+# BR-225: добавлена проверка легаси-документации
+# karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/*.sql — рабочих
+# ad-hoc-запросов админа. Они должны использовать ДЕЙСТВУЮЩЕЕ имя таблицы
+# песен (tbl_songs, миграция 28), а не устаревшее tbl_settings.
 #
 # BR-582 (аудит #336, пакет PKG-S3-30): промежуточные файлы писались в
 # ПРЕДСКАЗУЕМЫЕ пути /tmp/_nocomm.txt и /tmp/_sql.txt. Любой пользователь
@@ -64,7 +69,7 @@ SQL_TABLE_USE='\btbl_settings\b'
 KOTLIN_USE='\btbl_settings\b'
 
 # 1. Новые миграции: deploy/karaoke-db/<NN>_<name>.sql
-echo "[1/5] Проверка новых миграций deploy/karaoke-db/..."
+echo "[1/6] Проверка новых миграций deploy/karaoke-db/..."
 for f in deploy/karaoke-db/*.sql; do
     # Пропускаем саму миграцию переименования и все миграции с номером <= 28
     # (они immutable, выполнены до переименования tbl_settings -> tbl_songs).
@@ -89,7 +94,7 @@ for f in deploy/karaoke-db/*.sql; do
 done
 
 # 2. Recordhash-файлы: deploy/recordhash_*.sql
-echo "[2/5] Проверка recordhash-файлов deploy/recordhash_*.sql..."
+echo "[2/6] Проверка recordhash-файлов deploy/recordhash_*.sql..."
 for f in deploy/recordhash_*.sql; do
     [ -f "$f" ] || continue
     CHECKED=$((CHECKED + 1))
@@ -106,7 +111,7 @@ for f in deploy/recordhash_*.sql; do
 done
 
 # 3. Kotlin: ищем tbl_settings во всех .kt файлах в karaoke-app/, karaoke-web/
-echo "[3/5] Проверка Kotlin-файлов..."
+echo "[3/6] Проверка Kotlin-файлов..."
 # Baseline: допустимые вхождения (как в check-file-permissions.baseline).
 # Нужны для тестов, которые УТВЕРЖДАЮТ отсутствие старого имени: литерал
 # «tbl_settings» в таком тесте — это проверка, а не использование.
@@ -145,7 +150,7 @@ for f in $(find karaoke-app karaoke-web -name "*.kt" -not -path "*/build/*" 2>/d
 done
 
 # 4. Спецификации: проверяем code-blocks ```sql на tbl_settings (там — нарушение).
-echo "[4/5] Проверка code-blockов SQL в спецификациях specs/NNN-*/..."
+echo "[4/6] Проверка code-blockов SQL в спецификациях specs/NNN-*/..."
 for f in specs/*/spec.md specs/*/plan.md specs/*/research.md \
          specs/*/data-model.md specs/*/quickstart.md specs/*/report.md \
          specs/*/contracts/*.md; do
@@ -165,7 +170,7 @@ for f in specs/*/spec.md specs/*/plan.md specs/*/research.md \
 done
 
 # 5. Per-feature документы: docs/features/<slug>.md
-echo "[5/5] Проверка code-blockов SQL в docs/features/*.md..."
+echo "[5/6] Проверка code-blockов SQL в docs/features/*.md..."
 for f in docs/features/*.md; do
     [ -f "$f" ] || continue
     CHECKED=$((CHECKED + 1))
@@ -177,6 +182,28 @@ for f in docs/features/*.md; do
     if grep -nE '\btbl_settings\b' "${SQL_BLOCK_FILE}" > /dev/null 2>&1; then
         echo -e "  ${RED}✗${NC} $f содержит tbl_settings в SQL code-block:"
         grep -nE '\btbl_settings\b' "${SQL_BLOCK_FILE}" | head -5 | sed 's/^/    /'
+        VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+done
+
+# 6. BR-225 (аудит #336, OpenProject #409): легаси-документация —
+#    karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/*.sql.
+#    Это рабочие ad-hoc-запросы админа, а не документация: они должны
+#    соответствовать ДЕЙСТВУЮЩЕЙ схеме (tbl_songs после миграции 28).
+echo "[6/6] Проверка легаси-документации karaoke-app/.../docs/*.sql..."
+LEGACY_DOCS_DIR="karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs"
+for f in "${LEGACY_DOCS_DIR}"/*.sql; do
+    [ -f "$f" ] || continue
+    CHECKED=$((CHECKED + 1))
+    # Комментарии (`--`) допускаются — как и в миграциях.
+    awk '
+        BEGIN{}
+        /^--/ { next }
+        { line=$0; sub(/--.*$/, "", line); print NR": "line }
+    ' "$f" > "${NOCOMM_FILE}"
+    if grep -nE "${SQL_TABLE_USE}" "${NOCOMM_FILE}" > /dev/null 2>&1; then
+        echo -e "  ${RED}✗${NC} $f содержит tbl_settings (вне комментария):"
+        grep -nE "${SQL_TABLE_USE}" "${NOCOMM_FILE}" | head -5 | sed 's/^/    /'
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
 done

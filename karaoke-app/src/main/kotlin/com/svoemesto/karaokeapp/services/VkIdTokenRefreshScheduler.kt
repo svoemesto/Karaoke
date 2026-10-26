@@ -108,7 +108,9 @@ class VkIdTokenRefreshScheduler {
                 minutesUntilExpiry,
             )
             try {
-                val result = VkApiClient().refreshVkIdAccessToken()
+                // BR-154 (аудит #336, OpenProject #409): общий экземпляр клиента —
+                // раньше на каждый тик создавался новый HTTP-клиент без закрытия.
+                val result = VkApiClient.shared.refreshVkIdAccessToken()
                 val newExpiresAt = now.plusSeconds(result.expiresIn).toString()
                 KaraokeProperties.set("vkIdAccessToken", result.accessToken)
                 KaraokeProperties.set("vkIdRefreshToken", result.refreshToken)

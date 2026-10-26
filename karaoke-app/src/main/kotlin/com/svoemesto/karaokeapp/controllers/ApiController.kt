@@ -7954,7 +7954,8 @@ class ApiController(
         try {
             val result =
                 com.svoemesto.karaokeapp.services
-                    .VkApiClient()
+                    .VkApiClient
+                    .shared
                     .refreshVkIdAccessToken()
             val expiresAt =
                 java.time.Instant

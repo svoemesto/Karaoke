@@ -20,7 +20,7 @@ select
     CASE WHEN selTgKaraoke.tg_karaoke is null THEN 0 ELSE selTgKaraoke.tg_karaoke END as tg_kar,
     CASE WHEN selTgLyrics.tg_lyrics is null THEN 0 ELSE selTgLyrics.tg_lyrics END as tg_lyr
 from tbl_events
-left join tbl_settings song on tbl_events.song_id = song.id
+left join tbl_songs song on tbl_events.song_id = song.id
 left join
      (
          select song_id, count(*) as song

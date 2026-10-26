@@ -117,6 +117,53 @@ class SitePlaylist(
                 ).map { it as SitePlaylist }
                 .sorted()
 
+        /**
+         * BR-220/BR-221 (аудит #336, OpenProject #409): плейлисты для админского
+         * диджеста — фильтр по владельцу В SQL и серверная пагинация
+         * (`LIMIT`/`OFFSET`).
+         *
+         * Раньше фильтр по владельцу применялся в памяти после загрузки ВСЕХ
+         * плейлистов, а пагинации не было вовсе — ответ неограничен по размеру.
+         */
+        fun loadList(
+            ownerId: Long?,
+            limit: Int = 0,
+            offset: Int = 0,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SitePlaylist> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SitePlaylist::class,
+                    tableName = TABLE_NAME,
+                    whereList = ownerId?.let { listOf("owner_id=$it") } ?: emptyList(),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    orderBy = "id",
+                ).map { it as SitePlaylist }
+                .sorted()
+
+        /**
+         * BR-221 (аудит #336, OpenProject #409): количество плейлистов под фильтр —
+         * отдельным `COUNT(*)` с тем же набором условий.
+         */
+        fun countList(
+            ownerId: Long?,
+            database: KaraokeConnection,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            val whereSql = ownerId?.let { " WHERE owner_id=$it" } ?: ""
+            val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME$whereSql"
+            connection.createStatement().use { st ->
+                st.executeQuery(sql).use { rs -> if (rs.next()) return rs.getInt("cnt") }
+            }
+            return 0
+        }
+
         fun getById(
             id: Long,
             database: KaraokeConnection,

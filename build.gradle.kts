@@ -84,8 +84,9 @@ println("KaraokeVersion: ${project.version}")
 // Целевой темп сокращения: ≥10%/мес (SC-002 spec.md).
 //
 // ktlint + Dokka применяются ТОЛЬКО к Kotlin-проектам (где применён Kotlin JVM plugin).
-// karaoke-db — legacy Java-проект (см. AGENTS.md), ktlint всё равно на нём работает
-// (Java-исходники попадают под общий линтер), а Dokka — нет (требует Kotlin).
+// Модуль karaoke-db (legacy Java-проект с шаблонным Main) удалён 2026-10-26: он
+// нигде не собирался и не использовался; SQL-скрипты инициализации БД лежат в
+// deploy/karaoke-db/ и к Gradle отношения не имеют.
 subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 

@@ -10,14 +10,17 @@
 ## Что делает
 
 Переводит проект на **Gradle 9.8.2** (актуальная стабильная на 2026-10-26): все
-четыре wrapper'а репозитория, guard версии и контрольной суммы, базовая
-версия в SSoT.
+wrapper'а репозитория, guard версии и контрольной суммы, базовая версия в SSoT.
+
+> Обновление 2026-10-26 (после merge PR #766): модуль `karaoke-db` удалён,
+> wrapper'ов теперь **три** — см.
+> [`docs/features/karaoke-db-module-removal.md`](karaoke-db-module-removal.md).
 
 ## Зачем
 
 В 2025 году Gradle 9.1.0 уже пробовали, но **откатили** на 8.14 — и откат был
-не из-за несовместимости: модульные wrapper'ы (`karaoke-app`, `karaoke-web`,
-`karaoke-db`) остались на 9.1.0 / 7.5.1, а корневой — на 8.14. «Зелёная
+не из-за несовместимости: модульные wrapper'ы (`karaoke-app`, `karaoke-web`)
+остались на 9.1.0, а корневой — на 8.14 (у `karaoke-db` был 7.5.1). «Зелёная
 сборка» в таком состоянии означала разные вещи для CI и для разработчика
 (см. `docs/features/pkg-s3-34.md`).
 
@@ -33,7 +36,6 @@ guard'ом `tools/check-gradle-wrapper.sh`, поэтому обновление 
 | `gradle/wrapper/gradle-wrapper.properties` | 8.14 → 9.8.2, `distributionSha256Sum` — официальная сумма `gradle-9.8.2-bin.zip` |
 | `karaoke-app/gradle/wrapper/gradle-wrapper.properties` | То же |
 | `karaoke-web/gradle/wrapper/gradle-wrapper.properties` | То же |
-| `karaoke-db/gradle/wrapper/gradle-wrapper.properties` | То же |
 | `tools/check-gradle-wrapper.sh` | В таблицу `KNOWN_CHECKSUMS` добавлена сумма 9.8.2; `MIN_VERSION` поднята с `8.14` до `9.8.2` (понижение теперь отлавливается); self-test переведён на базовую версию |
 | `karaoke-app/build.gradle.kts` | `sourceSets.creating { }` → `sourceSets.create("manualTest") { }` (delegate-синтаксис удалён в Gradle 9) |
 | `knowledge/guidelines/architecture-conventions.md` | R-46: минимальная версия `8.14` → `9.8.2` |
@@ -41,8 +43,8 @@ guard'ом `tools/check-gradle-wrapper.sh`, поэтому обновление 
 
 ## Как работает
 
-Guard `tools/check-gradle-wrapper.sh` требует, чтобы все четыре wrapper'а
-указывали на одну версию, чтобы версия не была ниже `MIN_VERSION` и чтобы
+Guard `tools/check-gradle-wrapper.sh` требует, чтобы все три wrapper'а
+(`gradle/`, `karaoke-app/`, `karaoke-web/`) указывали на одну версию, чтобы версия не была ниже `MIN_VERSION` и чтобы
 `distributionSha256Sum` совпадала с официально опубликованной (таблица
 `KNOWN_CHECKSUMS` продублирована в guard'е, чтобы проверка была офлайновой и
 детерминированной; `--online` сверяет её с services.gradle.org).
@@ -52,7 +54,7 @@ Guard `tools/check-gradle-wrapper.sh` требует, чтобы все четы
 
 ## Инварианты
 
-- все четыре wrapper'а — одна версия `9.8.2` и одна официальная сумма;
+- все три wrapper'а — одна версия `9.8.2` и одна официальная сумма;
 - `MIN_VERSION` в guard'е = базовая версия: понижение Gradle отлавливается;
 - `self-test` guard'а проходит: хорошее дерево → PASS, разнобой версий,
   устаревшая версия, отсутствие и неверность суммы → FAIL;

@@ -38,9 +38,10 @@ A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot backend
 - `karaoke-web` — thin Spring Boot module (`implementation(project(":karaoke-app"))`) exposing the
   public-facing website endpoints (song pages, stats, web events) and a websocket config. Reuses
   `karaoke-app`'s DB models and services directly. **Deployed to prod** ([knowledge/system/infra/deploy-overview.md](./knowledge/system/infra/deploy-overview.md)).
-- `karaoke-db` — standalone plain-Java Gradle module containing only `Main.java`; not wired into the
-  app's data access (which talks to Postgres directly via raw JDBC from `karaoke-app`). Legacy/
-  placeholder — don't assume it's load-bearing.
+- `karaoke-db` — **удалён 2026-10-26**: был standalone plain-Java Gradle-модуль-заглушка
+  (единственный класс с текстом «Hello world!»), не был связан с приложением (данные идут
+  напрямую в Postgres через raw JDBC из `karaoke-app`) и нигде не собирался. Не путать с каталогом
+  `deploy/karaoke-db/` — это SQL-скрипты инициализации БД, они остаются.
 - `karaoke-vue` — legacy Vue app, abandoned; only `src/assets` remain, no real source. Not part
   of the build.
 - `webvue3` — the current admin frontend: Vue 3 + Vite, Bootstrap-vue-next, Vuex. This is what's

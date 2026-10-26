@@ -201,12 +201,19 @@ NB: `recordhash` — md5 от канонизированной строки та
   (fail-closed) — «тихого» `null` больше нет;
 - ошибки шифрования/расшифрования логируются через SLF4J (`crypto: encrypt failed
   op=encrypt` / `crypto: decrypt failed op=decrypt`) с throwable; значения и ключи
-  в запись НЕ попадают.
+  в запись НЕ попадают;
+- **fail-fast**: если `CRYPTO_AES_KEY` / `CRYPTO_AES_IV` не заданы в окружении,
+  `Crypto.resolveOrThrow` бросает `CryptoConfigurationException` — сервис без ключа
+  не стартует. Запасного (захардкоженного) ключа в коде больше нет: секрет живёт
+  только в `deploy/do.env` каждого хоста (вне git) и прокидывается в контейнер
+  через `CRYPTO_AES_KEY` / `CRYPTO_AES_IV`;
+- ключ и IV MUST быть **одинаковыми** у `karaoke-app` (шифрует `sqlToInsert`/
+  `sqlToDelete`) и `karaoke-web` (расшифровывает) — это разные хосты, значения
+  синхронизируются вручную; процедура и порядок ротации —
+  [`docs/ops/crypto-key-rotation.md`](../../../../docs/ops/crypto-key-rotation.md).
 
-**Оговорка**: полный отказ приложения на старте при неверном `CRYPTO_AES_KEY`
-(«fail-fast») сознательно НЕ сделан — опечатка в env превратилась бы в
-неподнимающийся контейнер. Вместо этого операции синхронизации падают явно.
-Решение за владельцем (см. `specs/398-pkg-s3-26/report.md`).
+Проверки: `CryptoKeyConfigurationTest` (fail-fast, отсутствие значения ключа в
+production-коде) — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/`.
 
 ## Domain Invariants
 

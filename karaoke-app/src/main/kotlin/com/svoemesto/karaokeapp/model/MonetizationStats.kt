@@ -25,6 +25,12 @@ data class MonetizationSummaryDto(
     val activeManualPremium: Int,
     val activeSponsrPremium: Int,
     val activeSitePremium: Int,
+    // BR-447 (аудит #336, пакет PKG-S3-33, OpenProject #405): ТОЧНОЕ число уникальных
+    // активных премиум-пользователей — объединение трёх источников по OR (все три условия
+    // живут в одной таблице `tbl_site_users`, поэтому union = один COUNT с OR).
+    // Раньше фронт показывал `max` трёх независимых счётчиков и подавал его как точное
+    // число: при непересекающихся источниках это занижение (недобор до `sum − max`).
+    val activePremiumTotal: Int,
     val totalSiteUsers: Int,
 )
 
@@ -61,7 +67,7 @@ data class TopSubscribedSongDto(
  */
 object MonetizationStats {
     /**
-     * Все 11 скаляров одной строкой: один round-trip к БД и согласованный снимок
+     * Все 12 скаляров одной строкой: один round-trip к БД и согласованный снимок
      * (раньше 11 последовательных запросов могли попасть в разные моменты времени).
      * Текст подзапросов повторяет прежние отдельные запросы один в один.
      */
@@ -78,6 +84,7 @@ object MonetizationStats {
             (select count(*) from tbl_site_users where is_premium = true or is_permanent_premium = true) as active_manual_premium,
             (select count(*) from tbl_site_users where sponsr_premium_until is not null and sponsr_premium_until > now()) as active_sponsr_premium,
             (select count(*) from tbl_site_users where site_premium_until is not null and site_premium_until > now()) as active_site_premium,
+            (select count(*) from tbl_site_users where (is_premium = true or is_permanent_premium = true) or (sponsr_premium_until is not null and sponsr_premium_until > now()) or (site_premium_until is not null and site_premium_until > now())) as active_premium_total,
             (select count(*) from tbl_site_users) as total_site_users
         """.trimIndent()
 
@@ -137,6 +144,7 @@ object MonetizationStats {
                 activeManualPremium = rs.getInt("active_manual_premium"),
                 activeSponsrPremium = rs.getInt("active_sponsr_premium"),
                 activeSitePremium = rs.getInt("active_site_premium"),
+                activePremiumTotal = rs.getInt("active_premium_total"),
                 totalSiteUsers = rs.getInt("total_site_users"),
             )
         } finally {

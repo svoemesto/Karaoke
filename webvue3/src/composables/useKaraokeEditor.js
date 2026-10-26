@@ -3,6 +3,10 @@
 // WaveSurfer — оперирует простыми объектами маркеров { uid, time, label, color, position,
 // markertype }. Формат маркеров совместим с публичным редактором karaoke-public и с admin-редактором.
 
+// BR-479 (аудит #336, пакет PKG-S3-33, OpenProject #405): бинарный поиск индекса
+// маркера по времени — общий с полным редактором (SubsEdit) модуль.
+import { findMarkerIndexByTime } from '../utils/markerIndex.js'
+
 // Цвета слоговых маркеров и служебных типов (1:1 с karaoke-public). Используются только при
 // создании нового маркера через addMarker; если маркеры пришли с сервера с уже заданным цветом —
 // этот цвет сохраняется (см. relabelSyllables).
@@ -161,13 +165,27 @@ function stripSpecTagOnlyLines(sourceText) {
 }
 
 // Тег-якоря для syncMarkersFromSpecTags(): для каждого распознанного тега на отдельной строке -
-// после какого ординального индекса splitSyllables(sourceText) он стоит. syllableIndex считается
-// через сам splitSyllables на РЕАЛЬНОМ префиксе обработанных строк, поэтому всегда совпадает с
-// полным результатом.
+// после какого ординального индекса splitSyllables(sourceText) он стоит.
+//
+// BR-457 (аудит #336, пакет PKG-S3-33, OpenProject #405): счётчик слогов
+// накапливается ПОСТРОЧНО (по одному проходу на строку), а не пересчитывается на
+// всём префиксе обработанных строк заново. Прежний вариант делал
+// разбивку на слоги для КАЖДОЙ строки по ВСЕМУ накопленному префиксу —
+// квадратично по числу строк (замер аудита: 200 строк — ~121 мс на один пересчёт), а функция
+// зовётся из watcher'а `sourceText` — то есть на КАЖДОЕ нажатие клавиши в блоке
+// исходного текста.
+//
+// ПОЧЕМУ ПОСТРОЧНО, А НЕ «ОДИН ПРОХОД ПО ВСЕМУ ТЕКСТУ»: разбивка на слоги
+// (splitSyllables) склеивает безгласные фрагменты с соседями по ВСЕМУ списку, и
+// решения «склеить с предыдущим или со следующим» зависят от позиции элемента в
+// списке. При подсчёте по строке эти решения принимаются по списку ЭТОЙ строки —
+// ровно так же, как в прежнем подсчёте по префиксу, у которого хвост совпадал с
+// хвостом последней строки. Разница возможна только для строки, начинающейся с
+// ровно «-_» (склейка с последним слогом предыдущей строки) — редкий крайний
+// случай, где якорь может сместиться на один слог.
 export function specTagAnchors(sourceText) {
   const anchors = []
   const rawLines = sourceText.replace(/\r\n/g, '\n').split('\n')
-  const processedLines = []
   let syllableCount = 0
   rawLines.forEach((line) => {
     const [stripped, tags] = parseSpecTagLine(line)
@@ -182,10 +200,8 @@ export function specTagAnchors(sourceText) {
           })
         }
       })
-      processedLines.push('')
     } else {
-      processedLines.push(line)
-      syllableCount = splitSyllables(processedLines.join('\n')).length
+      syllableCount += splitSyllables(line).length
     }
   })
   return anchors
@@ -337,24 +353,50 @@ export function sortMarkers(markers) {
 }
 
 // Индекс текущего слогового маркера по времени — для подсветки текущего слога.
+//
+// BR-479 (аудит #336, пакет PKG-S3-33, OpenProject #405): прежняя реализация
+// АЛЛОЦИРОВАЛА отфильтрованный массив (`markers.filter(...)`) на КАЖДЫЙ вызов, а
+// вызывается она из computed `curSyllableIndex` — то есть на каждом `timeupdate`
+// WaveSurfer (до ~60 раз в секунду). На песне с ~2000 маркеров это 60 массивов по
+// 2000 элементов в секунду — постоянная нагрузка на сборщик мусора.
+//
+// Теперь — один проход без аллокаций. Отдельный бинарный поиск здесь невозможен:
+// слоговые маркеры — ПОДПОСЛЕДОВАТЕЛЬНОСТЬ в общем массиве (между ними лежат
+// setting/endofline), а не отдельный отсортированный массив. Для полного массива
+// маркеров бинарный поиск применён (см. currentMarkerIndex), а для слогов
+// компонент считает позиции один раз на изменение разметки (см. SongKaraokeEditorView).
 export function currentSyllableIndex(markers, currentTime) {
-  const syl = markers.filter((m) => m.markertype === 'syllables')
   const diff = 0.02
-  if (syl.length > 0 && currentTime < syl[0].time - diff) return -1
-  for (let i = 0; i < syl.length - 1; i++) {
-    if (currentTime >= syl[i].time - diff && currentTime < syl[i + 1].time - diff) return i
+  let count = 0
+  let prevTime = null
+  let firstTime = null
+  let found = -1
+  for (let i = 0; i < markers.length; i++) {
+    const marker = markers[i]
+    if (marker.markertype !== 'syllables') continue
+    if (firstTime === null) firstTime = marker.time
+    if (prevTime !== null && currentTime >= prevTime - diff && currentTime < marker.time - diff) {
+      found = count - 1
+    }
+    prevTime = marker.time
+    count++
   }
-  return syl.length - 1
+  if (count === 0) return -1
+  if (found !== -1) return found
+  // playhead раньше первого слога — «текущего слога» нет.
+  if (currentTime < firstTime - diff) return -1
+  return count - 1
 }
 
 // Индекс текущего маркера среди всех — для подсветки в тексте разметки.
+//
+// BR-479: линейный проход по всем маркерам заменён бинарным поиском
+// (`findMarkerIndexByTime` — тот же алгоритм, что и в полном редакторе SubsEdit:
+// см. webvue3/src/utils/markerIndex.js). Функция зовётся из computed
+// `curMarkerIndex` на каждом `timeupdate` (до ~60 раз в секунду), поэтому O(n)
+// на 2000 маркерах — это ~120 000 сравнений в секунду впустую.
 export function currentMarkerIndex(markers, currentTime) {
-  const diff = 0.02
-  if (markers.length > 0 && currentTime < markers[0].time - diff) return -1
-  for (let i = 0; i < markers.length - 1; i++) {
-    if (currentTime >= markers[i].time - diff && currentTime < markers[i + 1].time - diff) return i
-  }
-  return markers.length - 1
+  return findMarkerIndexByTime(markers, currentTime)
 }
 
 // Переназначает label/color слоговым маркерам по массиву слогов. i-й syllables-маркер получает
@@ -629,6 +671,7 @@ export function buildInlinePlayerData({
   track,
   key,
   bpm,
+  songType,
   _sourceTexts,
   markersPerVoice,
   audioVocalsUrl,
@@ -648,6 +691,13 @@ export function buildInlinePlayerData({
     track: track != null ? track : null,
     key: key || null,
     bpm: bpm != null ? bpm : null,
+    // BR-480 (аудит #336, пакет PKG-S3-33, OpenProject #405): `songType` — часть
+    // контракта `/api/song/{id}/playerdata`. По нему KaraokePlayer решает, что песня
+    // инструментальная/поэтическая, и рисует вместо разметки статичную надпись
+    // (`_isCaptionOnly`). Без него инлайн-превью мини-редактора показывало пустую
+    // караоке-разметку вместо «Инструментальная композиция»/«Поэзия (без музыки)» —
+    // то есть превью расходилось с реальным плеером.
+    songType: songType || null,
     markers: markersPerVoice || [],
     audioAccompanimentUrl,
     audioVocalsUrl,

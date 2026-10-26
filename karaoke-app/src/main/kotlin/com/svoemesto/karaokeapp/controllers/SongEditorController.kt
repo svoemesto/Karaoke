@@ -837,6 +837,12 @@ class SongEditorController(
                 "track" to song.track.takeIf { it > 0 },
                 "key" to song.key.takeIf { it.isNotBlank() },
                 "bpm" to song.bpm,
+                // BR-480 (аудит #336, пакет PKG-S3-33, OpenProject #405): тип песни —
+                // часть контракта `/api/song/{id}/playerdata`. Без него инлайн-превью
+                // мини-редактора (buildInlinePlayerData → KaraokePlayer._isCaptionOnly)
+                // не могло отличить инструменталь/поэзию от обычной песни и рисовало
+                // пустую караоке-разметку вместо статичной надписи.
+                "songType" to song.songType.dbValue,
                 "voiceCount" to markersPerVoice.size,
                 "sourceTexts" to sourceTexts,
                 "markersPerVoice" to markersPerVoice,

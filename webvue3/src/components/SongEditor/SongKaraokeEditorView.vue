@@ -328,7 +328,6 @@ import {
   insertSpecTagAtCursor,
   sortMarkers,
   relabelSyllables,
-  currentSyllableIndex,
   currentMarkerIndex,
   addMarker,
   deleteMarkerAtTime,
@@ -342,6 +341,8 @@ import {
   saveEditorSettings,
 } from '../../composables/useKaraokeEditor'
 import { STATUS_LABELS } from '../../composables/editorStatus'
+// BR-479: бинарный поиск индекса маркера по времени (общий с полным редактором).
+import { findMarkerIndexByTime } from '../../utils/markerIndex.js'
 import KaraokePlayer from '../../player/KaraokePlayer.js'
 import { promisedXMLHttpRequest } from '../../lib/utils'
 
@@ -420,6 +421,8 @@ export default {
     // передача props. Передаём под именем `tonality` и внутри маппим на `data.key` для KaraokePlayer.
     tonality: { type: String, default: null },
     bpm: { type: [Number, null], default: null },
+    // BR-480: тип песни — для инлайн-превью (caption-only режим плеера).
+    songType: { type: String, default: null },
     target: { type: String, default: 'local' },
     sourceTexts: { type: Array, default: () => [] },
     markersPerVoice: { type: Array, default: () => [] },
@@ -505,8 +508,16 @@ export default {
     hasAnyMarkers() {
       return this.voices.some((v) => v.markers.length > 0)
     },
+    // BR-479 (аудит #336, пакет PKG-S3-33, OpenProject #405): позиции слоговых
+    // маркеров считаются ОДИН РАЗ на изменение разметки (computed кэширует), а не
+    // на каждый `timeupdate`. Раньше `currentSyllableIndex` аллоцировал
+    // отфильтрованный массив на каждый кадр (до 60 раз в секунду).
+    syllablesMarkers() {
+      return this.markers.filter((m) => m.markertype === 'syllables')
+    },
     curSyllableIndex() {
-      return currentSyllableIndex(this.markers, this.currentTime)
+      // Бинарный поиск по времени (общий с полным редактором модуль markerIndex.js).
+      return findMarkerIndexByTime(this.syllablesMarkers, this.currentTime)
     },
     curMarkerIndex() {
       return currentMarkerIndex(this.markers, this.currentTime)
@@ -1028,6 +1039,7 @@ export default {
           track: this.track != null ? this.track : null,
           key: this.tonality || null,
           bpm: this.bpm != null ? this.bpm : null,
+          songType: this.songType,
           sourceTexts: this.voices.map((v) => v.sourceText),
           markersPerVoice: this.voices.map((v) => markersToSave(v.markers)),
           audioVocalsUrl: this.voiceUrl,

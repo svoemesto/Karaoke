@@ -43,7 +43,7 @@
           <div class="mp-kpi-icon">🪙</div>
           <div class="mp-kpi-body">
             <div class="mp-kpi-value">{{ activePremiumTotal }}</div>
-            <div class="mp-kpi-label">Активный премиум (из {{ summary.totalSiteUsers }})</div>
+            <div class="mp-kpi-label">{{ activePremiumLabel }}</div>
             <div class="mp-kpi-sub">
               ручной: {{ summary.activeManualPremium }} · Sponsr:
               {{ summary.activeSponsrPremium }} · сайт: {{ summary.activeSitePremium }}
@@ -102,12 +102,41 @@ export default {
     topSongsIsLoading: { type: Boolean, default: false },
   },
   computed: {
+    /**
+     * Число активных премиум-пользователей.
+     *
+     * BR-447 (аудит #336, пакет PKG-S3-33, OpenProject #405): «Активный премиум»
+     * раньше считался как `Math.max` трёх НЕЗАВИСИМЫХ счётчиков. Это НЕ верхняя
+     * оценка (как утверждал комментарий) и не точное число: `max` — нижняя граница
+     * числа уникальных премиум-пользователей (union ≥ max), а при непересекающихся
+     * источниках панель занижала показатель (недобор до `sum − max`).
+     *
+     * Теперь точное число приходит с бэкенда (`activePremiumTotal` — объединение
+     * трёх источников по OR). Если поля нет (старый бэкенд), показывается нижняя
+     * граница, а подпись честно говорит «не менее» (см. activePremiumLabel).
+     */
     activePremiumTotal() {
       const s = this.summary
       if (!s) return 0
-      // Пересечение источников не убираем (юзер может числиться в нескольких сразу) — это верхняя
-      // оценка, не точное число уникальных премиум-пользователей.
-      return Math.max(s.activeManualPremium, s.activeSponsrPremium, s.activeSitePremium)
+      if (typeof s.activePremiumTotal === 'number') return s.activePremiumTotal
+      return Math.max(
+        s.activeManualPremium || 0,
+        s.activeSponsrPremium || 0,
+        s.activeSitePremium || 0,
+      )
+    },
+    /**
+     * Подпись KPI: точное число или честная нижняя граница.
+     *
+     * @returns {string} текст подписи.
+     */
+    activePremiumLabel() {
+      const s = this.summary
+      if (!s) return 'Активный премиум'
+      if (typeof s.activePremiumTotal === 'number') {
+        return `Активный премиум, уникальных (из ${s.totalSiteUsers})`
+      }
+      return `Активный премиум, не менее (из ${s.totalSiteUsers})`
     },
   },
   methods: {

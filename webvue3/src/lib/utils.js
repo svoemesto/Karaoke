@@ -29,6 +29,30 @@ export function createAbortError() {
   return error
 }
 
+// BR-481 (аудит #336, пакет PKG-S3-33, OpenProject #405): конечный таймаут запроса.
+//
+// ДО ПРАВКИ `promisedXMLHttpRequest` не задавал `xhr.timeout` и не обрабатывал
+// `ontimeout`/`onabort`. Если сервер принял соединение, но не ответил (зависший
+// поток бэкенда, потерянный ответ прокси), промис НИКОГДА не завершался: ни
+// resolve, ни reject. Все вызывающие цепочки (в том числе HomeView) оставались
+// в состоянии «ожидание» навсегда, а отмены не было — `xhr` наружу не
+// возвращается. Для `setWebvueProp` это выглядело как «фильтр молча не
+// сохранился».
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30000
+
+/**
+ * Создаёт ошибку таймаута запроса.
+ *
+ * @param {number} timeoutMs — предел ожидания, мс.
+ * @returns {Error} ошибка с именем `TimeoutError`.
+ */
+export function createTimeoutError(timeoutMs) {
+  const error = new Error(`Превышено время ожидания ответа сервера (${timeoutMs} мс)`)
+  error.name = 'TimeoutError'
+  error.timeout = timeoutMs
+  return error
+}
+
 export function promisedXMLHttpRequest(obj) {
   return new Promise((resolve, reject) => {
     let xhr = new XMLHttpRequest()
@@ -47,6 +71,15 @@ export function promisedXMLHttpRequest(obj) {
       )
     }
     xhr.open(obj.method || 'GET', obj.url, true)
+    // BR-481: конечный таймаут. `obj.timeout` позволяет вызывающему задать свой
+    // предел; `0`/`null` отключают таймаут (как в XHR).
+    const timeoutMs =
+      obj.timeout === undefined || obj.timeout === null
+        ? DEFAULT_REQUEST_TIMEOUT_MS
+        : Number(obj.timeout)
+    if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+      xhr.timeout = timeoutMs
+    }
     if (obj.headers === undefined)
       obj.headers = { 'Content-type': 'application/x-www-form-urlencoded' }
     obj.headers['X-Tab-Id'] = getTabId()
@@ -73,6 +106,15 @@ export function promisedXMLHttpRequest(obj) {
       err.responseBody = xhr.response
       reject(err)
     }
+    // BR-481: таймаут — промис ОБЯЗАН завершиться. Раньше запрос, на который
+    // сервер не ответил, висел вечно, и вызывающий ждал его безнадёжно.
+    xhr.ontimeout = () => {
+      reject(createTimeoutError(timeoutMs))
+    }
+    // BR-481: отмена запроса (в т.ч. по AbortSignal) — тоже завершение промиса.
+    xhr.onabort = () => {
+      reject(createAbortError())
+    }
     // specs/315-admin-ui-karaoke-process-v5 (RC-1 iter #3): если передан obj.body — шлём JSON
     // (Content-Type application/json), иначе form-urlencoded (getParamStringToSend). Без этого
     // POST edit/delete/retry с JSON-телом получает Spring 415 Unsupported Media Type.
@@ -90,10 +132,69 @@ export function promisedXMLHttpRequest(obj) {
 // Отказ записи больше не уходит в unhandled rejection: раньше промис игнорировался,
 // и ошибка была видна только как «Unhandled Promise Rejection» в консоли. Теперь
 // промис возвращается, а отказ обрабатывается предупреждением.
-export function setWebvueProp(field, key, value) {
-  if (value === undefined || value === null) value = ''
-  if (field === undefined || field === null) return Promise.resolve(false)
-  return promisedXMLHttpRequest({
+//
+// BR-482 (аудит #336, пакет PKG-S3-33, OpenProject #405): запись фильтра —
+// дебаунс + сериализация по ключу.
+//
+// ДО ПРАВКИ `setWebvueProp` отправлял POST на КАЖДОЕ изменение значения фильтра.
+// Значения фильтров пишутся через computed-сеттер, который срабатывает на
+// каждое нажатие клавиши: при вводе «Песня» уходило 5 POST'ов со значениями
+// «П», «Пе», «Пес», «Песн», «Песня». Бэкенд пишет «слепо» (`WVP.set(key, value)`,
+// без сверки версии), а порядок обработки запросов не гарантирован (параллельные
+// соединения браузера), поэтому итоговое серверное значение могло оказаться
+// промежуточным префиксом («Пес» вместо «Песня»): локально фильтр показывал полное
+// значение, после перезагрузки страницы — усечённое.
+//
+// ПОСЛЕ ПРАВКИ: значения одного ключа пишутся с дебаунсом (промежуточные
+// префиксы не уходят) и строго по очереди (в полёте не бывает двух запросов по
+// одному ключу), а если во время запроса пришло новое значение — оно дописывается
+// следующим. Итоговое серверное значение ВСЕГДА равно последнему клиентскому.
+export const PROP_WRITE_DEBOUNCE_MS = 300
+
+// key -> { timer, value, version, sentVersion, inFlight, waiters }
+const propWriteQueue = new Map()
+
+/**
+ * Разрешает ожидающие промисы записи, версия которых не новее отправленной.
+ *
+ * @param {Object} entry — запись очереди по ключу.
+ * @param {number} sentVersion — версия, которая только что записана (или устарела).
+ * @param {boolean} ok — успешна ли запись.
+ * @returns {void}
+ */
+const resolvePropWaiters = (entry, sentVersion, ok) => {
+  const remaining = []
+  entry.waiters.forEach((waiter) => {
+    if (waiter.version <= sentVersion) {
+      waiter.resolve(ok)
+    } else {
+      remaining.push(waiter)
+    }
+  })
+  entry.waiters = remaining
+}
+
+/**
+ * Отправляет накопленное значение ключа на сервер (одна запись за раз).
+ *
+ * @param {string} key — ключ настройки.
+ * @returns {void}
+ */
+const flushPropWrite = (key) => {
+  const entry = propWriteQueue.get(key)
+  if (!entry) return
+  // Запрос по этому ключу уже в полёте — он допишет самое свежее значение сам.
+  if (entry.inFlight) return
+  if (entry.sentVersion === entry.version) {
+    resolvePropWaiters(entry, entry.sentVersion, true)
+    propWriteQueue.delete(key)
+    return
+  }
+  const version = entry.version
+  const value = entry.value
+  entry.sentVersion = version
+  entry.inFlight = true
+  promisedXMLHttpRequest({
     method: 'POST',
     url: '/api/setwebvueprop',
     params: { key: key, value: value },
@@ -103,6 +204,63 @@ export function setWebvueProp(field, key, value) {
       console.warn(`Не удалось сохранить настройку ${key}:`, error)
       return false
     })
+    .then((ok) => {
+      entry.inFlight = false
+      resolvePropWaiters(entry, version, ok)
+      if (entry.version > entry.sentVersion) {
+        // Во время запроса пришло новое значение — дописываем его следующим.
+        flushPropWrite(key)
+      } else {
+        propWriteQueue.delete(key)
+      }
+    })
+}
+
+/**
+ * Ставит значение настройки в очередь записи (дебаунс + сериализация по ключу).
+ *
+ * @param {string} key — ключ настройки.
+ * @param {string} value — значение.
+ * @returns {Promise<boolean>} true — значение записано (или вытеснено более новым).
+ */
+const enqueuePropWrite = (key, value) => {
+  let entry = propWriteQueue.get(key)
+  if (!entry) {
+    entry = { timer: null, value: '', version: 0, sentVersion: 0, inFlight: false, waiters: [] }
+    propWriteQueue.set(key, entry)
+  }
+  entry.version += 1
+  entry.value = value
+  const promise = new Promise((resolve) => {
+    entry.waiters.push({ version: entry.version, resolve: resolve })
+  })
+  if (entry.timer !== null) clearTimeout(entry.timer)
+  entry.timer = setTimeout(() => {
+    entry.timer = null
+    flushPropWrite(key)
+  }, PROP_WRITE_DEBOUNCE_MS)
+  return promise
+}
+
+/**
+ * Немедленно отправляет отложенные значения настроек (без ожидания дебаунса).
+ *
+ * @returns {void}
+ */
+export function flushPendingPropWrites() {
+  propWriteQueue.forEach((entry, key) => {
+    if (entry.timer !== null) {
+      clearTimeout(entry.timer)
+      entry.timer = null
+    }
+    flushPropWrite(key)
+  })
+}
+
+export function setWebvueProp(field, key, value) {
+  if (value === undefined || value === null) value = ''
+  if (field === undefined || field === null) return Promise.resolve(false)
+  return enqueuePropWrite(key, value)
 }
 
 // BR-379 / BR-426 (аудит #336, пакет PKG-S2-17, OpenProject #380).

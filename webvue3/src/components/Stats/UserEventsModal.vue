@@ -28,6 +28,12 @@
       </div>
       <div class="uem-body">
         <div v-if="isLoading" class="text-center py-4"><BSpinner small /></div>
+        <!-- BR-465 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ загрузки —
+             это не «нет событий». События предыдущего пользователя очищаются
+             перед запросом, а отказ показывается текстом. -->
+        <div v-else-if="error" class="alert alert-danger py-2 px-2 small mb-2">
+          {{ error }}
+        </div>
         <template v-else>
           <div v-if="totalCount > events.length" class="alert alert-warning py-1 px-2 small mb-2">
             Показаны последние {{ events.length }} из {{ totalCount }} событий.
@@ -105,6 +111,8 @@ export default {
     events: { type: Array, default: () => [] },
     totalCount: { type: Number, default: 0 },
     isLoading: { type: Boolean, default: false },
+    // BR-465: текст ошибки загрузки (null — ошибки нет).
+    error: { type: String, default: null },
     cap: { type: Number, default: 2000 },
   },
   emits: ['close'],

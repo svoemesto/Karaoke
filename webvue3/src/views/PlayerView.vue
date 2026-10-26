@@ -55,7 +55,15 @@ onMounted(() => {
     player._offline = true
     window.__kp = player
   }
-  player.init()
+  // BR-478 (аудит #336, пакет PKG-S3-33, OpenProject #405): `init()` — асинхронный
+  // метод. Если страницу покинуть ДО его завершения, `destroy()` (см. onBeforeUnmount)
+  // закрывал только УЖЕ созданный AudioContext, а `init()` продолжал работу: докачивал
+  // стемы и создавал НОВЫЙ AudioContext, который уже никто не закрывал (контекст и
+  // десятки МБ буферов жили до перезагрузки страницы). Теперь `destroy()` ставит флаг
+  // отмены, а `init()` проверяет его после каждого `await` и прерывает загрузку.
+  player.init().catch((e) => {
+    console.error('KaraokePlayer init failed:', e)
+  })
 })
 
 onBeforeUnmount(() => {

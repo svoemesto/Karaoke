@@ -13,7 +13,10 @@
          loadSyncAutoStatusPromise. Без SSE-push (по дизайну, см. spec 235, Q2). -->
     <div class="sync-auto-block">
       <h4>Автозапуск</h4>
-      <div v-if="autoStatus === null" class="sync-auto-empty">
+      <!-- BR-466 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ загрузки
+           статуса показывается явно, а не молчаливо выглядит как «не загружено». -->
+      <div v-if="autoStatusError" class="sync-auto-error">{{ autoStatusError }}</div>
+      <div v-else-if="autoStatus === null" class="sync-auto-empty">
         Статус автозапуска ещё не загружен. Проверьте, что karaoke-app запущен.
       </div>
       <div v-else class="sync-auto-content">
@@ -55,6 +58,9 @@
         </div>
       </div>
     </div>
+    <!-- BR-466: отказ загрузки списка сущностей — текст в таблице, а не пустой
+         <tbody> (неотличимо от «нет сущностей»). -->
+    <div v-if="entitiesError" class="sync-entities-error">{{ entitiesError }}</div>
     <table class="sync-table">
       <thead>
         <tr>
@@ -174,6 +180,13 @@ export default {
     return {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      // BR-464 (аудит #336, пакет PKG-S3-33, OpenProject #405): очередь изменений
+      // флагов ПО СУЩНОСТИ. Ключ — entity.key; значение — цепочка промисов.
+      // Изменения одной сущности выполняются последовательно, иначе ответы
+      // приходили в произвольном порядке, а ответ на ПРЕДЫДУЩИЙ запрос затирал
+      // значение, уже подтверждённое сервером (UI показывал не то право,
+      // которое действует).
+      flagQueues: {},
       ops: [
         { op: 'INSERT', label: 'Доб', title: 'Добавление' },
         { op: 'UPDATE', label: 'Изм', title: 'Изменение' },
@@ -190,9 +203,19 @@ export default {
     autoStatus() {
       return this.$store.getters.getSyncAutoStatus
     },
+    // BR-466: текст ошибки загрузки списка сущностей.
+    entitiesError() {
+      return this.$store.getters.getSyncEntitiesError
+    },
+    // BR-466: текст ошибки загрузки статуса автозапуска.
+    autoStatusError() {
+      return this.$store.getters.getSyncAutoStatusError
+    },
   },
   mounted() {
-    this.$store.dispatch('loadSyncEntitiesPromise')
+    // BR-466: отказ загрузки больше не уходит в unhandled rejection — текст ошибки
+    // кладётся в состояние стора и показывается в таблице.
+    this.$store.dispatch('loadSyncEntitiesPromise').catch(() => {})
     // spec 235: загрузка статуса автозапуска для UI-блока. Без auto-refresh —
     // данные обновляются при F5 (см. Q2 в Clarifications, REST-only by design).
     this.$store.dispatch('loadSyncAutoStatusPromise')
@@ -208,11 +231,28 @@ export default {
     },
     onFlagChange(entity, direction, operation, event) {
       const value = event.target.checked
-      this.$store
-        .dispatch('setSyncFlagPromise', { key: entity.key, direction, operation, value })
+      const flagKey = entity.key
+      const previous = this.flagQueues[flagKey] || Promise.resolve()
+      // BR-464: изменения по сущности выполняются ПОСЛЕДОВАТЕЛЬНО. Ошибка
+      // предыдущей операции не блокирует очередь.
+      const next = previous
+        .catch(() => {})
+        .then(() =>
+          this.$store.dispatch('setSyncFlagPromise', {
+            key: entity.key,
+            direction,
+            operation,
+            value,
+          }),
+        )
         .catch(() => {
-          // откат визуального состояния при ошибке
-          event.target.checked = !value
+          // Откат визуального состояния при ошибке — только если это была
+          // ПОСЛЕДНЯЯ операция по сущности: иначе откат отменил бы более новое
+          // намерение пользователя (оно уже стоит в очереди).
+          if (this.flagQueues[flagKey] === next) {
+            const current = this.entities.find((e) => e.key === entity.key)
+            if (current) event.target.checked = !!current[this.fieldName(direction, operation)]
+          }
           this.customConfirmParams = {
             isAlert: true,
             alertType: 'error',
@@ -222,6 +262,7 @@ export default {
           }
           this.isCustomConfirmVisible = true
         })
+      this.flagQueues[flagKey] = next
     },
     confirmRun(entity, direction) {
       this.customConfirmParams = {
@@ -404,6 +445,20 @@ export default {
 .sync-auto-empty {
   color: #888;
   font-style: italic;
+}
+/* BR-466: отказ загрузки — текст ошибки, а не пустая таблица. */
+.sync-auto-error,
+.sync-entities-error {
+  color: #b00;
+  font-weight: 600;
+}
+.sync-entities-error {
+  border: 1px solid #b00;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 0 0 10px 0;
+  background: #fff4f4;
+  font-size: 13px;
 }
 .sync-auto-content > div {
   margin-bottom: 2px;

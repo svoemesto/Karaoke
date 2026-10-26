@@ -171,6 +171,16 @@
             <span v-if="savedMessage[tpl.key]" class="text-success small ms-2">{{
               savedMessage[tpl.key]
             }}</span>
+            <!-- BR-477 (аудит #336, пакет PKG-S3-33, OpenProject #405): ошибка
+                 сохранения показывается ЛОКАЛЬНО у карточки шаблона. Раньше она
+                 выставляла общий флаг `error`, а разметка прячет за ним весь
+                 редактор (`v-if="!loading && !error"`): после неудачного
+                 сохранения админ терял доступ к полю шаблона и к кнопке
+                 «Сохранить», а несохранённый текст оставался только в памяти
+                 компонента (перезагрузка страницы его отбрасывала). -->
+            <div v-if="tpl.saveError" class="alert alert-danger py-1 small mt-2">
+              {{ tpl.saveError }}
+            </div>
           </div>
         </div>
       </template>
@@ -265,6 +275,8 @@ export default {
         previewLength: 0,
         previewMaxLength: 1024,
         previewTruncated: false,
+        // BR-477: локальная ошибка сохранения (не прячет редактор).
+        saveError: '',
       }))
       return { templates, placeholders: data.placeholders || [] }
     },
@@ -279,6 +291,11 @@ export default {
     },
     saveTemplate(tpl) {
       this.saving = tpl.key
+      // BR-477: ошибка сохранения — ЛОКАЛЬНАЯ (у карточки шаблона). Общий флаг
+      // `error` прячет весь редактор, и после неудачного сохранения повторить
+      // попытку было нельзя без перезагрузки страницы (а перезагрузка
+      // отбрасывала несохранённый текст шаблона).
+      tpl.saveError = ''
       const url = this.platform === 'vk' ? '/api/vk/templates' : '/api/telegram/templates'
       const params = { key: tpl.key, value: tpl.value }
       const request = { method: 'POST', url, params }
@@ -297,12 +314,12 @@ export default {
               this.savedMessage = { ...this.savedMessage, [tpl.key]: '' }
             }, 3000)
           } else {
-            this.error = data.error || 'Ошибка сохранения.'
+            tpl.saveError = data.error || 'Ошибка сохранения.'
           }
         })
         .catch((err) => {
           this.saving = null
-          this.error = err && err.message ? err.message : 'Ошибка сохранения.'
+          tpl.saveError = err && err.message ? err.message : 'Ошибка сохранения.'
         })
     },
     resetToDefault(tpl) {

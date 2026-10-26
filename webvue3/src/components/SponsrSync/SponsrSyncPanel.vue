@@ -59,6 +59,12 @@
     </div>
 
     <div v-if="isLoading" class="sps-loading">Выполняется...</div>
+    <!-- BR-446 (аудит #336, пакет PKG-S3-33, OpenProject #405): отказ запроса виден
+         пользователю. Раньше отказ проглатывался, и панель показывала ПРЕДЫДУЩИЙ
+         успешный результат — ложный успех. -->
+    <div v-if="error" class="sps-error">
+      <div>{{ error }}</div>
+    </div>
     <div v-if="lastResult" class="sps-result" :class="{ 'sps-result-fail': !lastResult.ok }">
       <div>
         Найдено идентификаторов: {{ lastResult.foundIdentifiers }}, сопоставлено пользователей:
@@ -91,6 +97,9 @@ export default {
     },
     lastResult() {
       return this.$store.getters.getSponsrSyncLastResult
+    },
+    error() {
+      return this.$store.getters.getSponsrSyncError
     },
     target: {
       get() {
@@ -184,6 +193,14 @@ export default {
 }
 .sps-loading {
   color: gray;
+}
+.sps-error {
+  border: thin solid darkred;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #ffeaea;
+  color: darkred;
 }
 .sps-result {
   border: thin solid darkgreen;

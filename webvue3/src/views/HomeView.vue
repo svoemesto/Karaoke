@@ -199,6 +199,25 @@ import CustomConfirm from '../components/Common/CustomConfirm.vue'
 import { escapeHtml } from '../utils/escapeHtml.js'
 import FileExplorerModal from '../components/Common/FileExplorer/FileExplorerModal.vue'
 // import { useFileDialog } from '@vueuse/core'
+
+// BR-475 (аудит #336, пакет PKG-S3-33, OpenProject #405): ответ-счётчик проверяется
+// по ФОРМАТУ, а не «не равно строке "0"». Раньше любой ответ, отличный от '0'
+// (в том числе не-число), попадал в подтверждение как «Добавлено записей: N».
+// Допустим только неотрицательное целое (число или его строковая запись).
+const COUNTER_RESPONSE_RE = /^\d+$/
+
+/**
+ * Проверяет, что ответ сервера — счётчик (целое неотрицательное число).
+ *
+ * @param {any} value — тело ответа.
+ * @returns {boolean} true — значение похоже на счётчик.
+ */
+function isCounterResponse(value) {
+  if (typeof value === 'number') return Number.isInteger(value) && value >= 0
+  if (typeof value !== 'string') return false
+  return COUNTER_RESPONSE_RE.test(value.trim())
+}
+
 /**
  * Главная страница админ-SPA: «добавить файлы из папки».
  *
@@ -236,12 +255,39 @@ export default {
     }
   },
   async mounted() {
-    let songAuthors = await this.$store.getters.songAuthors
-    let dicts = await this.$store.getters.dicst
-    this.songAuthors = songAuthors
-    this.dicts = dicts
+    // BR-475: отказ загрузки списков авторов/словарей не должен уходить в
+    // unhandled rejection — страница остаётся рабочей, ошибка попадает в консоль.
+    try {
+      let songAuthors = await this.$store.getters.songAuthors
+      let dicts = await this.$store.getters.dicst
+      this.songAuthors = songAuthors
+      this.dicts = dicts
+    } catch (e) {
+      console.error('Не удалось загрузить справочники главной страницы:', e)
+    }
   },
   methods: {
+    /**
+     * Показывает ошибку пользователю (BR-475).
+     *
+     * Раньше все цепочки `dispatch(...).then(...)` шли без `.catch()`: при отказе
+     * бэкенда промис отклонялся (unhandled rejection), админ не видел ни сообщения,
+     * ни признака отказа — модалка с результатом просто не появлялась.
+     *
+     * @param {string} header — заголовок окна.
+     * @param {string} body — текст ошибки.
+     * @returns {void}
+     */
+    showError(header, body) {
+      this.customConfirmParams = {
+        isAlert: true,
+        alertType: 'error',
+        header: header,
+        body: body,
+        timeout: 15,
+      }
+      this.isCustomConfirmVisible = true
+    },
     getPath(path) {
       this.pathToFolder = path
     },
@@ -257,7 +303,20 @@ export default {
      * для таймаута — сохранённое из KaraokeProperties (backend).
      */
     async addFilesFromFolder() {
-      const defaultTimeout = await this.$store.dispatch('getLyricsSearchTimeout')
+      // BR-475: отказ чтения настройки не должен уходить в unhandled rejection —
+      // показываем ошибку и не открываем диалог с неверным значением по умолчанию.
+      let defaultTimeout = 10
+      try {
+        defaultTimeout = await this.$store.dispatch('getLyricsSearchTimeout')
+      } catch (e) {
+        console.error('Не удалось прочитать паузу между запросами:', e)
+        this.showError(
+          'Добавление файлов из папки',
+          'Не удалось прочитать сохранённую паузу между запросами: ' +
+            (e && e.message ? e.message : e),
+        )
+        return
+      }
       this.customConfirmParams = {
         allowHtml: true,
         header: 'Добавление файлов из папки',
@@ -288,7 +347,15 @@ export default {
             this.isCustomConfirmVisible = true
             return
           }
-          this.$store.dispatch('setLyricsSearchTimeout', timeout)
+          // BR-475: отказ показания настройки не должен уходить в unhandled rejection.
+          this.$store
+            .dispatch('setLyricsSearchTimeout', timeout)
+            .catch((e) =>
+              this.showError(
+                'Пауза между запросами',
+                'Не удалось сохранить настройку: ' + (e && e.message ? e.message : e),
+              ),
+            )
           this.doAddFilesFromFolder(timeout)
         },
       }
@@ -298,6 +365,15 @@ export default {
       this.$store
         .dispatch('createFromFolderPromise', { folder: this.pathToFolder, timeout: timeout })
         .then((data) => {
+          // BR-475: ответ проверяется по формату. Раньше ЛЮБОЙ ответ, отличный от
+          // '0', (в том числе не-число) показывался как «Добавлено записей: N».
+          if (!isCounterResponse(data)) {
+            this.showError(
+              'Добавление файлов из папки',
+              'Сервер вернул неожиданный ответ: ' + (data === undefined ? '(пусто)' : data),
+            )
+            return
+          }
           this.customConfirmParams = {
             allowHtml: true,
             isAlert: true,
@@ -310,6 +386,13 @@ export default {
             timeout: 10,
           }
           this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Добавление файлов из папки: операция не выполнена', e)
+          this.showError(
+            'Добавление файлов из папки',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
         })
     },
     createDzenPicturesForFolder() {
@@ -333,6 +416,13 @@ export default {
             timeout: 10,
           }
           this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Создание картинок: операция не выполнена', e)
+          this.showError(
+            'Создание картинок',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
         })
     },
     copyToStore() {
@@ -388,6 +478,13 @@ export default {
           }
           this.isCustomConfirmVisible = true
         })
+        .catch((e) => {
+          console.error('Обновление хранилища: операция не выполнена', e)
+          this.showError(
+            'Обновление хранилища',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     actualizeVKLinkPictureWeb() {
       this.customConfirmParams = {
@@ -395,7 +492,15 @@ export default {
         body: `Актуализировать VKLinkPictureWeb?`,
         timeout: 10,
         callback: () => {
-          this.$store.dispatch('actualizeVKLinkPictureWebPromise')
+          // BR-475: отказ актуализации VKLinkPictureWeb не должен уходить в unhandled rejection.
+          this.$store
+            .dispatch('actualizeVKLinkPictureWebPromise')
+            .catch((e) =>
+              this.showError(
+                'Актуализация VKLinkPictureWeb',
+                'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+              ),
+            )
         },
       }
       this.isCustomConfirmVisible = true
@@ -464,6 +569,13 @@ export default {
           }
           this.isCustomConfirmVisible = true
         })
+        .catch((e) => {
+          console.error('Подготовка файлов к публикации: операция не выполнена', e)
+          this.showError(
+            'Подготовка файлов к публикации',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     checkLastAlbumYm() {
       this.customConfirmParams = {
@@ -475,7 +587,15 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doCheckLastAlbumYm() {
-      this.$store.dispatch('checkLastAlbumYmPromise')
+      // BR-475: отказ поиска новых альбомов не должен уходить в unhandled rejection.
+      this.$store
+        .dispatch('checkLastAlbumYmPromise')
+        .catch((e) =>
+          this.showError(
+            'Поиск новых альбомов',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          ),
+        )
     },
     updateBpmAndKey() {
       this.customConfirmParams = {
@@ -487,18 +607,36 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doUpdateBpmAndKey() {
-      this.$store.dispatch('updateBpmAndKeyPromise').then((data) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление BPM и KEY',
-          body: `Готово.<hr>
+      this.$store
+        .dispatch('updateBpmAndKeyPromise')
+        .then((data) => {
+          // BR-475: ответ-счётчик проверяется по формату — иначе в подтверждение
+          // попадал любой ответ сервера (в том числе не-число).
+          if (!isCounterResponse(data)) {
+            this.showError(
+              'Обновление BPM и KEY',
+              'Сервер вернул неожиданный ответ: ' + (data === undefined ? '(пусто)' : data),
+            )
+            return
+          }
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Обновление BPM и KEY',
+            body: `Готово.<hr>
                 Обновлено файлов: <strong>${data}</strong>`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Обновление BPM и KEY: операция не выполнена', e)
+          this.showError(
+            'Обновление BPM и KEY',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     updateBpmAndKeyLV() {
       this.customConfirmParams = {
@@ -510,7 +648,15 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doUpdateBpmAndKeyLV() {
-      this.$store.dispatch('updateBpmAndKeyLVPromise')
+      // BR-475: отказ обновления BPM/KEY (LV) не должен уходить в unhandled rejection.
+      this.$store
+        .dispatch('updateBpmAndKeyLVPromise')
+        .catch((e) =>
+          this.showError(
+            'Обновление BPM и KEY (LV)',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          ),
+        )
     },
     markDublicates() {
       this.customConfirmParams = {
@@ -523,20 +669,38 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doMarkDublicates() {
-      this.$store.dispatch('markDublicatesPromise', { author: this.author }).then((data) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: data !== '0' ? 'info' : 'warning',
-          header: 'Поиск дубликатов',
-          body:
-            data !== '0'
-              ? `Найдено дубликатов: <strong>${data}</strong>`
-              : 'Ни одного дубликата не найдено.',
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('markDublicatesPromise', { author: this.author })
+        .then((data) => {
+          // BR-475: ответ-счётчик проверяется по формату (раньше подставлялся
+          // любой ответ, отличный от '0', в том числе не-число).
+          if (!isCounterResponse(data)) {
+            this.showError(
+              'Поиск дубликатов',
+              'Сервер вернул неожиданный ответ: ' + (data === undefined ? '(пусто)' : data),
+            )
+            return
+          }
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: data !== '0' ? 'info' : 'warning',
+            header: 'Поиск дубликатов',
+            body:
+              data !== '0'
+                ? `Найдено дубликатов: <strong>${data}</strong>`
+                : 'Ни одного дубликата не найдено.',
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Поиск дубликатов: операция не выполнена', e)
+          this.showError(
+            'Поиск дубликатов',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     autoAssignOriginalAll() {
       this.customConfirmParams = {
@@ -552,17 +716,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doAutoAssignOriginalAll() {
-      this.$store.dispatch('autoAssignOriginalAllPromise', { author: this.author }).then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Автопривязка оригинала',
-          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('autoAssignOriginalAllPromise', { author: this.author })
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Автопривязка оригинала',
+            body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Автопривязка оригинала: операция не выполнена', e)
+          this.showError(
+            'Автопривязка оригинала',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/283-admin-find-parent: точечный поиск только текстового родителя (без аудио-фазы)
     // для всех песен выбранного автора с root_id=0. По умолчанию (crossAuthor=false) подбор
@@ -609,6 +782,13 @@ export default {
           }
           this.isCustomConfirmVisible = true
         })
+        .catch((e) => {
+          console.error('Поиск родителя: операция не выполнена', e)
+          this.showError(
+            'Поиск родителя',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/283-admin-find-parent: фоновый поиск аудио-родителя (только в семье, по root_id
     // транзитивно) для всех песен выбранного автора с root_id <> 0 И у которых ещё НЕ найден
@@ -644,6 +824,13 @@ export default {
           }
           this.isCustomConfirmVisible = true
         })
+        .catch((e) => {
+          console.error('Поиск аудио-родителя: операция не выполнена', e)
+          this.showError(
+            'Поиск аудио-родителя',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     recalcPlayerReadiness() {
       const scope = this.author
@@ -662,17 +849,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doRecalcPlayerReadiness() {
-      this.$store.dispatch('recalcPlayerReadinessPromise', { author: this.author }).then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Пересчёт готовности плеера',
-          body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('recalcPlayerReadinessPromise', { author: this.author })
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Пересчёт готовности плеера',
+            body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Пересчёт готовности плеера: операция не выполнена', e)
+          this.showError(
+            'Пересчёт готовности плеера',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/015-search-engine-selection: backfill очистки результатов поиска текста для песен,
     // ставших готовыми (статус ≥3) ДО появления автоочистки в Song.saveToDb(). Затрагивает ВСЕ
@@ -692,17 +888,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doDeleteSearchResultsForReadySongs() {
-      this.$store.dispatch('deleteSearchResultsForReadySongsPromise').then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Удаление результатов поиска готовых песен',
-          body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('deleteSearchResultsForReadySongsPromise')
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Удаление результатов поиска готовых песен',
+            body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Удаление результатов поиска готовых песен: операция не выполнена', e)
+          this.showError(
+            'Удаление результатов поиска готовых песен',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/124-news-flags-backfill: одноразовый backfill ПОЛНОГО complete-набора флагов публикации
     // (newsAvailableAnnounced=true, premiumAutoPublishState="COMPLETE" и др.) для уже готовых песен
@@ -727,17 +932,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doBackfillPublishFlags() {
-      this.$store.dispatch('backfillPublishFlagsPromise').then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Backfill флагов публикации (LOCAL)',
-          body: `Операция запущена в фоне.<br>Итог придёт уведомлением с разбивкой по категориям.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('backfillPublishFlagsPromise')
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Backfill флагов публикации (LOCAL)',
+            body: `Операция запущена в фоне.<br>Итог придёт уведомлением с разбивкой по категориям.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Backfill флагов публикации (LOCAL): операция не выполнена', e)
+          this.showError(
+            'Backfill флагов публикации (LOCAL)',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/011-album-song-rename: разовый (идемпотентный) бэкфилл Album из song_author/
     // song_year/song_album существующих песен. Только LOCAL — на SERVER результат попадает
@@ -758,17 +972,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doBackfillAlbumsFromSongs() {
-      this.$store.dispatch('backfillAlbumsFromSongsPromise').then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Заполнение альбомов из песен',
-          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('backfillAlbumsFromSongsPromise')
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Заполнение альбомов из песен',
+            body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Заполнение альбомов из песен: операция не выполнена', e)
+          this.showError(
+            'Заполнение альбомов из песен',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // Одноразовая миграция: раньше sortOrder нумеровался внутри (автор, год), теперь — сквозной
     // по автору (управляется драг-дропом в модалке "Альбомы автора"). Сохраняет текущий видимый
@@ -789,17 +1012,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doNormalizeAlbumSortOrder() {
-      this.$store.dispatch('normalizeAlbumSortOrderPromise').then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Нормализация порядка альбомов',
-          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('normalizeAlbumSortOrderPromise')
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Нормализация порядка альбомов',
+            body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Нормализация порядка альбомов: операция не выполнена', e)
+          this.showError(
+            'Нормализация порядка альбомов',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     delDublicates() {
       this.customConfirmParams = {
@@ -811,20 +1043,38 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doDelDublicates() {
-      this.$store.dispatch('deleteDublicatesPromise').then((data) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: data !== '0' ? 'info' : 'warning',
-          header: 'Удаление дубликатов',
-          body:
-            data !== '0'
-              ? `Удалено дубликатов: <strong>${data}</strong>`
-              : 'Ни одного дубликата не удалено.',
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('deleteDublicatesPromise')
+        .then((data) => {
+          // BR-475: ответ-счётчик проверяется по формату (раньше подставлялся
+          // любой ответ, отличный от '0', в том числе не-число).
+          if (!isCounterResponse(data)) {
+            this.showError(
+              'Удаление дубликатов',
+              'Сервер вернул неожиданный ответ: ' + (data === undefined ? '(пусто)' : data),
+            )
+            return
+          }
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: data !== '0' ? 'info' : 'warning',
+            header: 'Удаление дубликатов',
+            body:
+              data !== '0'
+                ? `Удалено дубликатов: <strong>${data}</strong>`
+                : 'Ни одного дубликата не удалено.',
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Удаление дубликатов: операция не выполнена', e)
+          this.showError(
+            'Удаление дубликатов',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     clearPreDublicates() {
       this.customConfirmParams = {
@@ -836,20 +1086,38 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doClearPreDublicates() {
-      this.$store.dispatch('clearPreDublicatesPromise').then((data) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: data !== '0' ? 'info' : 'warning',
-          header: 'Очистка пре-дубликатов',
-          body:
-            data !== '0'
-              ? `Очищено пре-дубликатов: <strong>${data}</strong>`
-              : 'Ни одного пре-дубликата не очищено.',
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('clearPreDublicatesPromise')
+        .then((data) => {
+          // BR-475: ответ-счётчик проверяется по формату (раньше подставлялся
+          // любой ответ, отличный от '0', в том числе не-число).
+          if (!isCounterResponse(data)) {
+            this.showError(
+              'Очистка пре-дубликатов',
+              'Сервер вернул неожиданный ответ: ' + (data === undefined ? '(пусто)' : data),
+            )
+            return
+          }
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: data !== '0' ? 'info' : 'warning',
+            header: 'Очистка пре-дубликатов',
+            body:
+              data !== '0'
+                ? `Очищено пре-дубликатов: <strong>${data}</strong>`
+                : 'Ни одного пре-дубликата не очищено.',
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Очистка пре-дубликатов: операция не выполнена', e)
+          this.showError(
+            'Очистка пре-дубликатов',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     dictActionAdd() {
       this.customConfirmParams = {
@@ -867,17 +1135,26 @@ export default {
         dictValue: this.dictValue.toLowerCase(),
         dictAction: 'add',
       }
-      this.$store.getters.doTfd(params).then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Добавление слова в словарь',
-          body: `Слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» успешно добавлено в словарь «<strong>${escapeHtml(this.dictType)}</strong>»?`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store.getters
+        .doTfd(params)
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Добавление слова в словарь',
+            body: `Слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» успешно добавлено в словарь «<strong>${escapeHtml(this.dictType)}</strong>»?`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Добавление слова в словарь: операция не выполнена', e)
+          this.showError(
+            'Добавление слова в словарь',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     dictActionRemove() {
       this.customConfirmParams = {
@@ -895,30 +1172,71 @@ export default {
         dictValue: this.dictValue.toLowerCase(),
         dictAction: 'remove',
       }
-      this.$store.getters.doTfd(params).then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Удаление слова из словаря',
-          body: `Слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» успешно удалено из словаря «<strong>${escapeHtml(this.dictType)}</strong>»?`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store.getters
+        .doTfd(params)
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Удаление слова из словаря',
+            body: `Слово «<strong>${escapeHtml(this.dictValue.toLowerCase())}</strong>» успешно удалено из словаря «<strong>${escapeHtml(this.dictType)}</strong>»?`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Удаление слова из словаря: операция не выполнена', e)
+          this.showError(
+            'Удаление слова из словаря',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     autorizeYMstart() {
+      // BR-476 (аудит #336, пакет PKG-S3-33, OpenProject #405): флаг сбрасывается
+      // в `finally` — раньше он снимался ТОЛЬКО в успешной ветке, и при отказе
+      // запроса кнопки «Auth YM 1/2» оставались задизейбленными навсегда
+      // (единственный способ сбросить — успешный ответ на /api/authymstop).
       this.authYmInProgress = true
-      this.$store.dispatch('autorizeYMstartPromise')
+      this.$store
+        .dispatch('autorizeYMstartPromise')
+        .catch((e) => this.showAuthYmError(e))
+        .finally(() => {
+          this.authYmInProgress = false
+        })
     },
     autorizeYMstart2() {
+      // BR-476: см. autorizeYMstart.
       this.authYmInProgress = true
-      this.$store.dispatch('autorizeYMstart2Promise')
+      this.$store
+        .dispatch('autorizeYMstart2Promise')
+        .catch((e) => this.showAuthYmError(e))
+        .finally(() => {
+          this.authYmInProgress = false
+        })
     },
     autorizeYMstop() {
-      this.$store.dispatch('autorizeYMstopPromise').then(() => {
-        this.authYmInProgress = false
-      })
+      // BR-476: флаг сбрасывается при любом исходе, включая отказ запроса.
+      this.$store
+        .dispatch('autorizeYMstopPromise')
+        .catch((e) => this.showAuthYmError(e))
+        .finally(() => {
+          this.authYmInProgress = false
+        })
+    },
+    /**
+     * Показывает ошибку блока «Auth YM» (BR-476).
+     *
+     * @param {any} e — ошибка отклонённого промиса.
+     * @returns {void}
+     */
+    showAuthYmError(e) {
+      console.error('Auth YM: запрос не выполнен', e)
+      this.showError(
+        'Auth YM',
+        'Не удалось выполнить запрос Auth YM: ' + (e && e.message ? e.message : e),
+      )
     },
     customFunction() {
       this.customConfirmParams = {
@@ -934,17 +1252,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doCustomFunction() {
-      this.$store.dispatch('customFunctionPromise').then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Поиск родителей и аудио-родителей',
-          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('customFunctionPromise')
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Поиск родителей и аудио-родителей',
+            body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Поиск родителей и аудио-родителей: операция не выполнена', e)
+          this.showError(
+            'Поиск родителей и аудио-родителей',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/413-sync-audio-descendants (#141): массовая синхронизация аудио-потомков.
     // По образцу customFunction: подтверждение → фоновый запуск → SSE-уведомление по завершении.
@@ -963,20 +1290,29 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doSyncAudioParents() {
-      this.$store.dispatch('syncAudioParentsPromise').then((response) => {
-        const alreadyRunning = response === 'ALREADY_RUNNING'
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: alreadyRunning ? 'warning' : 'info',
-          header: 'Синхронизация аудио-потомков',
-          body: alreadyRunning
-            ? `Уже запущено — дождитесь завершения текущего прохода.`
-            : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('syncAudioParentsPromise')
+        .then((response) => {
+          const alreadyRunning = response === 'ALREADY_RUNNING'
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: alreadyRunning ? 'warning' : 'info',
+            header: 'Синхронизация аудио-потомков',
+            body: alreadyRunning
+              ? `Уже запущено — дождитесь завершения текущего прохода.`
+              : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Синхронизация аудио-потомков: операция не выполнена', e)
+          this.showError(
+            'Синхронизация аудио-потомков',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // specs/277-song-name-censored: подтверждение + запуск фонового реckana
     // tbl_songs.song_name_censored по словарю «Censored».
@@ -994,20 +1330,29 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doRescanAllCensoredNames() {
-      this.$store.dispatch('rescanAllCensoredNamesPromise').then((response) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
-          header: 'Пересканирование цензурированных названий',
-          body:
-            response === 'ALREADY_RUNNING'
-              ? `Уже запущено — дождитесь завершения текущего прогона.`
-              : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('rescanAllCensoredNamesPromise')
+        .then((response) => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+            header: 'Пересканирование цензурированных названий',
+            body:
+              response === 'ALREADY_RUNNING'
+                ? `Уже запущено — дождитесь завершения текущего прогона.`
+                : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Пересканирование цензурированных названий: операция не выполнена', e)
+          this.showError(
+            'Пересканирование цензурированных названий',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     exportAlignmentDataset() {
       this.customConfirmParams = {
@@ -1023,17 +1368,26 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doExportAlignmentDataset() {
-      this.$store.dispatch('exportAlignmentDatasetPromise').then(() => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: 'info',
-          header: 'Экспорт датасета для forced-alignment',
-          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('exportAlignmentDatasetPromise')
+        .then(() => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: 'info',
+            header: 'Экспорт датасета для forced-alignment',
+            body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Экспорт датасета для forced-alignment: операция не выполнена', e)
+          this.showError(
+            'Экспорт датасета для forced-alignment',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // Pass 435 (#159): backfill etag/size в tbl_storage_metadata_cache.
     backfillCacheEtagSize() {
@@ -1052,20 +1406,29 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doBackfillCacheEtagSize() {
-      this.$store.dispatch('backfillCacheEtagSizePromise').then((response) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
-          header: 'Заполнение etag/size кеша хранилища',
-          body:
-            response === 'ALREADY_RUNNING'
-              ? `Уже запущено — дождитесь завершения текущего прогона.`
-              : `Операция запущена в фоне.<br>Прогресс — в логах сервера, итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('backfillCacheEtagSizePromise')
+        .then((response) => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+            header: 'Заполнение etag/size кеша хранилища',
+            body:
+              response === 'ALREADY_RUNNING'
+                ? `Уже запущено — дождитесь завершения текущего прогона.`
+                : `Операция запущена в фоне.<br>Прогресс — в логах сервера, итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Заполнение etag/size кеша хранилища: операция не выполнена', e)
+          this.showError(
+            'Заполнение etag/size кеша хранилища',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
     // Спека #449 (#182): полный прогрев кеша хранилища.
     warmStorageCache() {
@@ -1085,20 +1448,29 @@ export default {
       this.isCustomConfirmVisible = true
     },
     doWarmStorageCache() {
-      this.$store.dispatch('warmStorageCachePromise').then((response) => {
-        this.customConfirmParams = {
-          allowHtml: true,
-          isAlert: true,
-          alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
-          header: 'Прогрев кеша хранилища',
-          body:
-            response === 'ALREADY_RUNNING'
-              ? `Уже запущено — дождитесь завершения текущего прогона.`
-              : `Операция запущена в фоне.<br>Прогресс — в логах сервера, итог придёт уведомлением по завершении.`,
-          timeout: 10,
-        }
-        this.isCustomConfirmVisible = true
-      })
+      this.$store
+        .dispatch('warmStorageCachePromise')
+        .then((response) => {
+          this.customConfirmParams = {
+            allowHtml: true,
+            isAlert: true,
+            alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+            header: 'Прогрев кеша хранилища',
+            body:
+              response === 'ALREADY_RUNNING'
+                ? `Уже запущено — дождитесь завершения текущего прогона.`
+                : `Операция запущена в фоне.<br>Прогресс — в логах сервера, итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+        .catch((e) => {
+          console.error('Прогрев кеша хранилища: операция не выполнена', e)
+          this.showError(
+            'Прогрев кеша хранилища',
+            'Не удалось выполнить операцию: ' + (e && e.message ? e.message : e),
+          )
+        })
     },
   },
 }

@@ -34,6 +34,7 @@
             :track="loadedTrack"
             :tonality="loadedTonality"
             :bpm="loadedBpm"
+            :song-type="loadedSongType"
             :target="target"
             :source-texts="loadedSourceTexts"
             :markers-per-voice="loadedMarkersPerVoice"
@@ -117,6 +118,8 @@ export default {
       loadedTrack: null,
       loadedTonality: null,
       loadedBpm: null,
+      // BR-480: тип песни (instrumental/poetry/song) — нужен инлайн-превью плеера.
+      loadedSongType: null,
       loadedAssignmentId: null,
       loadedSourceTexts: [],
       loadedMarkersPerVoice: [],
@@ -214,6 +217,7 @@ export default {
         this.loadedTrack = body.track || null
         this.loadedTonality = body.key || null
         this.loadedBpm = body.bpm != null ? body.bpm : null
+        this.loadedSongType = body.songType || null
         this.loadedAssignmentId = body.assignmentId || null
         this.loadedSourceTexts = body.sourceTexts || []
         this.loadedMarkersPerVoice = body.markersPerVoice || []

@@ -299,7 +299,7 @@ check_wrappers() {
 
 # --- self-test (фикстуры «до/после») --------------------------------------
 # Фикстуры повторяют layout репозитория: <root>/gradle/wrapper (опорный),
-# <root>/karaoke-app/..., karaoke-web/..., karaoke-db/...
+# <root>/karaoke-app/..., karaoke-web/...
 make_wrapper() {
     local dir="$1" version="$2" sum="$3"
     mkdir -p "$dir/gradle/wrapper"
@@ -315,7 +315,7 @@ make_wrapper() {
     } > "$dir/gradle/wrapper/gradle-wrapper.properties"
 }
 
-# Раскладка «хорошего» дерева: все четыре wrapper'а на одной версии с суммой.
+# Раскладка «хорошего» дерева: все три wrapper'а на одной версии с суммой.
 # Путь wrapper'а — <project_dir>/gradle/wrapper/gradle-wrapper.properties
 # (так устроены и корневой проект, и модули).
 make_good_tree() {
@@ -323,7 +323,6 @@ make_good_tree() {
     make_wrapper "$root" "$version" "$sum"
     make_wrapper "$root/karaoke-app" "$version" "$sum"
     make_wrapper "$root/karaoke-web" "$version" "$sum"
-    make_wrapper "$root/karaoke-db" "$version" "$sum"
 }
 
 self_test() {
@@ -349,7 +348,7 @@ self_test() {
 
     # 2. Разнобой версий → FAIL
     make_good_tree "$tmp/skew" "$MIN_VERSION" "$sum8"
-    make_wrapper "$tmp/skew/karaoke-db" "9.1.0" "$KNOWN_CHECKSUMS_9_1_0"
+    make_wrapper "$tmp/skew/karaoke-web" "9.1.0" "$KNOWN_CHECKSUMS_9_1_0"
     ROOT="$tmp/skew"
     collect_wrappers
     if check_wrappers >/dev/null 2>&1; then
@@ -371,8 +370,8 @@ self_test() {
     fi
 
     # 4. Нет checksum → FAIL
-    make_good_tree "$tmp/nosum" "8.14" "$sum8"
-    make_wrapper "$tmp/nosum/karaoke-db" "8.14" ""
+    make_good_tree "$tmp/nosum" "$MIN_VERSION" "$sum8"
+    make_wrapper "$tmp/nosum/karaoke-web" "$MIN_VERSION" ""
     ROOT="$tmp/nosum"
     collect_wrappers
     if check_wrappers >/dev/null 2>&1; then
@@ -383,8 +382,8 @@ self_test() {
     fi
 
     # 5. Неверная checksum → FAIL
-    make_good_tree "$tmp/badsum" "8.14" "$sum8"
-    make_wrapper "$tmp/badsum/karaoke-db" "8.14" \
+    make_good_tree "$tmp/badsum" "$MIN_VERSION" "$sum8"
+    make_wrapper "$tmp/badsum/karaoke-web" "$MIN_VERSION" \
         "0000000000000000000000000000000000000000000000000000000000000000"
     ROOT="$tmp/badsum"
     collect_wrappers

@@ -139,3 +139,6 @@ playwright-report/
 /re
 /subprocess
 /sys
+
+# Kotlin 2.x: локальный кэш сессий компиляции
+.kotlin/

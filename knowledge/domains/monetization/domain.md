@@ -357,8 +357,5 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 
 ## Changelog
 
-- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): инварианты тарифов
-  (цена, период SITE, единственный default) и детерминированный `getDefault` (BR-219).
-  Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): добавлена секция «Публичные контракты (API)». Автор: agent (Karaoke).

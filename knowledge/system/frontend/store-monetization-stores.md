@@ -88,6 +88,4 @@ AGENTS.md «Синхронизация LOCAL↔SERVER — критичные п�
 
 ## Changelog
 
-- **2026-10-24** (OpenProject #367, аудит #336): `Promotions` — поколение запроса,
-  `promoRulesListTarget`, очистка списка при смене target (BR-407).
 - **Pass 396** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -421,26 +421,24 @@ Per-process force-stop в коде нет: остановка адресуетс
 - `archive/docs/features/approve-pipeline.md` — фича 131: пост-хук
   публикации в Telegram сразу после DONE для RENDER_MP4_DEMO.
 
+## Источник деталей
+
+Подробный разбор контрактов, зафиксированных пакетами аудита:
+
+- [`specs/394-pkg-s3-22/report.md`](../../../../specs/394-pkg-s3-22/report.md) —
+  контракты batch-эндпоинтов (пакетная загрузка, «успех = есть процессы», порог
+  пропуска из одной константы), фоновые операции контроллера
+  (`runBackgroundReported`, запрет сырых `Thread`), контракты `loadList`
+  (фильтр `process_deleted_at IS NULL` + `include_deleted`), видимый сбой
+  восстановления при старте воркера (`deleteDone`/`setWorkingToWaiting` →
+  `Boolean`, лог со стеком, SSE), причины `ERROR` в `process_description`,
+  безопасный срез `filter_limit` (`applyFilterLimit`).
+- [`specs/373-pkg-s2-10/report.md`](../../../../specs/373-pkg-s2-10/report.md) —
+  контракты «один писатель прогресса», атомарный claim (`claimForWorking`),
+  цепочка шагов (`process_chain_id` + `process_order`, остановка при `ERROR`,
+  агрегация статуса песни по завершении цепочки), валидация `process_args`.
+
 ## Changelog
 
-- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-053/055/059/061)**:
-  зафиксированы контракты batch-эндпоинтов (пакетная загрузка, «успех = есть
-  процессы», порог пропуска из одной константы) и фоновых операций контроллера
-  (`runBackgroundReported`, запрет сырых `Thread`). См. `specs/394-pkg-s3-22/report.md`.
-- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-034/036/037)**:
-  зафиксированы контракты `loadList` (фильтр `process_deleted_at IS NULL` +
-  `include_deleted`), видимого сбоя восстановления при старте воркера
-  (`deleteDone`/`setWorkingToWaiting` → `Boolean`, лог со стеком, SSE), причины
-  `ERROR` в `process_description` и безопасного среза `filter_limit`
-  (`applyFilterLimit`). См. `specs/394-pkg-s3-22/report.md`.
-- **2026-10-24, аудит #336 (OpenProject #373, PKG-S2-10, BR-030..BR-033)**:
-  зафиксированы контракты «один писатель прогресса», атомарный claim
-  (`claimForWorking`), цепочка шагов (`process_chain_id` + `process_order`,
-  остановка при `ERROR`, агрегация статуса песни по завершении цепочки) и
-  валидация `process_args`. См. `specs/373-pkg-s2-10/report.md`.
-- **2026-10-24, аудит #336 (OpenProject #364, BR-029)**: зафиксирован контракт
-  проверки кода возврата subprocess (`awaitProcessExit`/`processExitFailure`,
-  таймаут, stderr-хвост, исключение `SHEETSAGE`). Ранее документация уже
-  описывала `exit ≠ 0 → ERROR`, но код этого не делал.
 - **Pass 485** (2026-09-27, spec `485-knowledge-domain-processing`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 341 P1** (2026-09-09): Initial. Автор: agent (Karaoke).

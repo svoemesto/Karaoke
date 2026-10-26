@@ -228,10 +228,6 @@ endpoints возвращают JSON. Гибрид — для статическ�
 
 ## Changelog
 
-- **2026-10-24** (OpenProject #384, аудит BR-003 «xff-first-element»): адрес источника
-  для `DebugDbAccessGuard` и аналитики `doRegisterEvent` определяется по общему правилу
-  `util/ClientIpResolver` (`X-Real-IP` → последний элемент `X-Forwarded-For` → TCP-peer) —
-  подделка `X-Forwarded-For` больше не открывает debug-endpoint и не пишет недостоверный IP.
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 364** (2026-09-09): Initial. Автор: agent (Karaoke).

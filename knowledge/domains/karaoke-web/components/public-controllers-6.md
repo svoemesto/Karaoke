@@ -307,9 +307,5 @@
 
 ## Changelog
 
-- **BR-023** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `POST /tasks/{id}/save` проверяет
-  результат создания черновика, конкурентную вставку доигрывает как upsert, при неудаче отдаёт
-  5xx `save_failed` вместо ложного `200 {"ok":true}`. Автор: agent (Karaoke).
-- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): `GET /{id}/download` отдаёт файл из приватного каталога результатов вместо анонимного чтения `/minio/karaoke/…`. Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 481-485** (2026-09-09): Initial. Автор: agent (Karaoke).

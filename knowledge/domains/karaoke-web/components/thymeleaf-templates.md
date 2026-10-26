@@ -130,6 +130,11 @@ fun main(model: Model, request: HttpServletRequest): String {
   `Song.loadFromDbById(id)`.
 - `statbysong.html` / `webevents.html`: `StatsByEvents`.
 
+**Рендер-тесты**: `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/templates/ThymeleafTemplatesTest.kt`
+проверяет рендер всех шаблонов — в том числе что `statbysong.html` не падает
+на отсутствующем поле DTO, а `main.html` рендерит новость без безопасной
+ссылки заголовком текстом (без `href` и без `window.open`).
+
 ## Hot paths
 
 - Каждое открытие `/`, `/zakroma`, `/song` = Thymeleaf render
@@ -150,11 +155,6 @@ fun main(model: Model, request: HttpServletRequest): String {
 
 ## Changelog
 
-- **BR-500/BR-504** (2026-10-24, OpenProject #378, пакет PKG-S2-15): из `statbysong.html` удалена
-  колонка `cntBoosty` (поля нет в `StatBySongDto`, SpEL ронял всю страницу в 500); `main.html`
-  рендерит ссылку новости только при непустом `link` (модель уже отфильтрована `SafeLink`), иначе —
-  заголовок текстом без `href`/`window.open`. Добавлен рендер-тест шаблонов
-  (`ThymeleafTemplatesTest`). Автор: agent (Karaoke).
 
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 439** (2026-09-09): Initial. Автор: agent (Karaoke).

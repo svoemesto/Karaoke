@@ -615,9 +615,6 @@ issue #53.
 
 ## Changelog
 
-- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): Utils.kt — подтверждение
-  цели синхронизации (BR-251), конечный обход авторов (BR-266); legacy-страницы
-  karaoke-app — пагинация и отказ от мёртвого STOMP (BR-200/201/206/214). Автор: agent (Karaoke).
 - **Pass 341 P3c** (2026-09-09): Initial detailed. Автор: agent (Karaoke).
 
 ## BR-110/BR-112: кэш waveform и страница истории (аудит #336)

@@ -234,9 +234,5 @@ rate limit 60/min per IP (через `RateLimitInterceptor`,
 
 ## Changelog
 
-- **2026-10-24** (спека 557, OpenProject #358, аудит BR-018): формула доступа
-  к плееру заменена — живая проверка права в момент отдачи байт вместо
-  авторизации «по факту владения токеном»; добавлена категория журнала
-  `infra.player.access`.
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 363** (2026-09-09): Initial. Автор: agent (Karaoke).

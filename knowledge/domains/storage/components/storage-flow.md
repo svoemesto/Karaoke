@@ -279,4 +279,3 @@ AtomicBoolean>` в `HealthReport.kt:2393` (per-song, через
 ## Changelog
 
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
-- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): «Поток 4: StemJob» переписан — результаты грузятся в приватный бакет `stemjobs` и передаются в `karaoke-web` по внутреннему каналу `X-Internal-Secret`; presigned-вариант помечен нереализуемым. Автор: agent (Karaoke).

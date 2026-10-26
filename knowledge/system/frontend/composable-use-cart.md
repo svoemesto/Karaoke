@@ -77,8 +77,4 @@ reset()                    // sync — полный сброс (logout / сме�
 
 ## Changelog
 
-- **OpenProject #399** (2026-10-25, аудит #336, `PKG-S3-27`): BR-297 — ответ
-  `toggle` разбирается (`classifyCartToggle`); BR-314 — `loaded` привязан к
-  токену, для анонима корзина не «загружена», добавлен `reset()` и сброс при
-  logout.
 - **Pass 401** (2026-09-09): Initial. Автор: agent (Karaoke).

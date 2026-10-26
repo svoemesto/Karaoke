@@ -68,6 +68,4 @@ state: {
 
 ## Changelog
 
-- **2026-10-24** (OpenProject #367, аудит #336): `ShareLinks` — поколение запроса,
-  `shareLinksDigestTarget`, отзыв по БД строки (BR-409).
 - **Pass 397-399** (2026-09-09): Initial. Автор: agent (Karaoke).

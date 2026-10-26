@@ -202,4 +202,3 @@ private, бакет `karaoke` → public. Ошибка связи с MinIO ло�
 ## Changelog
 
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
-- **Спека 561** (2026-10-24, OpenProject #361, аудит BR-258): описано, кто применяет политику бакетов (`StemJobStoragePolicyInitializer`, старт `karaoke-app`). Автор: agent (Karaoke).

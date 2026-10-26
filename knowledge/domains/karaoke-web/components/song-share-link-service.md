@@ -171,11 +171,6 @@ karaoke-web (в отличие от `PlayerGestureUnlockService`, чьи ток�
 IP ограничено `MAX_TRACKED_CLAIM_IPS`; при рестарте лимит сбрасывается. Аудит
 BR-516 (#378): раньше ключ включал минуту и карта не чистилась — утечка памяти.
 
-## Changelog
-
-- **BR-516** (2026-10-24, OpenProject #378, пакет PKG-S2-15): карта rate-limit claim'ов чистится
-  по TTL (окно в значении, уборка по времени) и ограничена 50 000 IP (fail-closed). Автор: agent (Karaoke).
-
 ## Hot paths
 
 - **Heartbeat** (`/api/public/share/heartbeat`) — каждые ~25 с от

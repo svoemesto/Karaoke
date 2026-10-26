@@ -171,8 +171,6 @@ Telegram Bot API имеет жёсткий rate-limit (1 запрос/сек н�
 
 ## Changelog
 
-- **Пакет PKG-S2-12** (2026-10-24, OpenProject #375, аудит #336): изоляция данных
-  страницы от инструкций в LLM-промпте извлечения текста (BR-227). Автор: agent (Karaoke).
 
 - **Pass 484** (2026-09-27, spec `484-knowledge-domain-integration`): секции приведены к шаблону. Автор: agent (Karaoke).
 - **Pass 437** (2026-09-23, issue #161): Domain Invariant #4 —

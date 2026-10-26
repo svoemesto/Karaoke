@@ -155,18 +155,6 @@ Dockerfile (`FROM scratch` + `RUN exit 1`) пишется в копию, а от
 
 ## Changelog
 
-- **2026-10-24** (OpenProject #379, BR-571): `tools/check-do-sh-guards.sh` — опыт A
-  выполняется на копии `deploy/` во временном каталоге; отслеживаемый
-  `deploy/karaoke-public/Dockerfile` больше не переписывается (прерывание не
-  оставляет мусор в репозитории); добавлена проверка «падение вызвано
-  Dockerfile, а не невалидным тегом».
-- **2026-10-24** (OpenProject #382, BR-551): legacy-копия
-  `deploy/web-server-deploy/deploy/do.sh` — логин переведён на `--password-stdin`
-  (`REGISTRY_HOST`/`REGISTRY_USER`) + проверки кодов возврата; добавлен guard
-  `tools/check-secret-in-argv.sh` (секреты не в argv).
-- **2026-10-22** (OpenProject #327): `npm ci` + cache/retries в Dockerfile'ах
-  webvue3/public; `ARG NODE_IMAGE`/`ARG NGINX_IMAGE` и env-overrides; helper
-  `do_build_frontend_image` с ретраями только при сетевых ошибках.
 - **Pass 540** (2026-10-11): логин переведён на явный сервер + `--password-stdin`,
   добавлены логины в `pull_*`, введено окно dual-push (`DUAL_PUSH`), `demucs` больше
   не тегируется `latest`. issue #286 / wayfinder #274.

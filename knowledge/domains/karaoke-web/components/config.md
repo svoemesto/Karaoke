@@ -255,11 +255,5 @@ karaoke-app сюда не попадает). Авторизацию делает
 
 ## Changelog
 
-- **BR-004** (2026-10-24, OpenProject #378, пакет PKG-S2-15): `WebMvcConfig` больше не мутирует
-  singleton-бин `RateLimitInterceptor` — регистрируются два независимых экземпляра с
-  конструкторными `endpointName`/`limitPerMinute`. Раньше второй `apply` перетирал настройки
-  первого: оба публичных endpoint'а работали с лимитом vk-image и делили общий bucket. Автор: agent (Karaoke).
-- **Спека 564** (2026-10-24, OpenProject #359 + #362): добавлены параметры `publicsettings.internal-secret` (тот же env `SYNC_INTERNAL_SECRET` — новый секрет не заводится) и `captcha.server-key` (env `CAPTCHA_SERVER_KEY`, пусто = «проверка не настроена», регистрация отклоняется). Автор: agent (Karaoke).
-- **Спека 554** (2026-10-24, OpenProject #357): добавлен параметр `sync.internal-secret` (env `SYNC_INTERNAL_SECRET`) — внутренний секрет эндпоинта `POST /changerecords`; пусто = доступ закрыт (fail-safe). Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Автор: agent (Karaoke).

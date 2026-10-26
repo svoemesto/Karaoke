@@ -379,17 +379,18 @@ regex (BR-294). Кроме того, значение словаря подст�
 - [ ] **Nullable-колонки** в БД vs Kotlin-поля — соответствие.
 - [ ] **`fields: Map<SongField, String>`** — все поля где используются.
 
+## Источник деталей
+
+Подробный разбор правок, зафиксированных пакетом аудита, —
+[`specs/394-pkg-s3-22/report.md`](../../../../specs/394-pkg-s3-22/report.md):
+правило «геттеры не пишут и не запускают процессы», миграция формата
+`source_markers` в явную операцию, пустые маркеры больше не роняют
+длительность/рендер, валидация `stringLad`/индекса строя и экранирование HTML,
+лёгкая проекция `Song.loadPublicationDateCandidates` / `PublicationDateCandidate`
+и общий разбор `parsePublishDateTime` для `Song.dateTimePublish`.
+
 ## Changelog
 
-- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-072/076/077/080/081/082/083/085/086)**:
-  зафиксировано правило «геттеры не пишут и не запускают процессы», миграция формата
-  `source_markers` вынесена в явную операцию, пустые маркеры больше не роняют длительность/
-  рендер, добавлена валидация `stringLad`/индекса строя и экранирование HTML. См.
-  `specs/394-pkg-s3-22/report.md`.
-- **2026-10-25, аудит #336 (OpenProject #394, PKG-S3-22, BR-057)**: добавлена
-  лёгкая проекция `Song.loadPublicationDateCandidates` / `PublicationDateCandidate`
-  и общий разбор `parsePublishDateTime` для `Song.dateTimePublish`. См.
-  `specs/394-pkg-s3-22/report.md`.
 - **Pass 547** (2026-10-20, spec `547-drop-empty-song-voices`): добавлен раздел «Нормализация голосов при сохранении» — пустые голоса (кроме первого) удаляются в `saveToDb()`, новые методы `setSourceTextAndMarkers`/`setAllVoices`, чистая нормализация в `VoiceNormalization.kt`. Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 384** (2026-09-09): Initial. Автор: agent (Karaoke).

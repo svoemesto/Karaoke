@@ -119,6 +119,8 @@ class PlayerAccessService(
                     demoRange = null,
                     shareGuest = false,
                     reason = REASON_SONG_SKIPPED,
+                    // id задания сохраняется для диагностики: решение здесь ОТКАЗНОЕ (allowed=false),
+                    // playerdata ничего не отдаёт, подстановки черновика не происходит.
                     assignmentId = assignmentId,
                 )
             }
@@ -137,7 +139,21 @@ class PlayerAccessService(
                     premium -> REASON_PREMIUM
                     else -> REASON_SUBSCRIPTION
                 }
-            return AccessDecision(full = true, demoRange = null, shareGuest = false, reason = reason)
+            return AccessDecision(
+                full = true,
+                demoRange = null,
+                shareGuest = false,
+                reason = reason,
+                // Токен задания редактора живёт и у посетителя со своими правами (публичная песня,
+                // премиум, подписка). Раньше эта ветка возвращалась РАНЬШЕ ветки задания и
+                // теряла assignmentId — тогда playerdata не подставляла черновик задания, и
+                // редактор в онлайн-редакторе видел в плеере опубликованную разметку (для
+                // непрокомпонованной песни — пустую) вместо своей. Все редакторы — постоянные
+                // премиумы, поэтому симптом был у всех: «встроенный плеер не показывает текст»
+                // (жалоба от двух редакторов, 2026-10-26). Подставляем черновик только своего
+                // задания: владение проверено выше (assignmentOwned).
+                assignmentId = if (assignmentOwned) assignmentId else null,
+            )
         }
 
         // Гость по публичной share-ссылке: смотрит плеер, но не экспортирует (FR-008).

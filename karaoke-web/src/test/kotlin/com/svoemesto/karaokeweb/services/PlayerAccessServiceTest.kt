@@ -138,6 +138,48 @@ class PlayerAccessServiceTest {
     }
 
     @Test
+    fun `редактор со своими правами всё равно получает свой черновик`() {
+        // Регрессия (жалоба от двух редакторов, 2026-10-26): «в онлайн-редакторе встроенный
+        // плеер не показывает текст». Все редакторы — постоянные премиумы, поэтому у них
+        // «свои права» срабатывали РАНЬШЕ ветки задания, и решение теряло assignmentId.
+        // playerdata без assignmentId подставляет опубликованную разметку — для песни, текст
+        // которой ещё не опубликован, это пусто (markers: [[]]), и редактор слышит тишину.
+        Mockito.`when`(rightsProvider.isPremium(editorUserId)).thenReturn(true)
+        Mockito.`when`(rightsProvider.isAssignmentOwner(100L, editorUserId, songId)).thenReturn(true)
+        val token = tokenService.issueDirectAccessTokenForAssignment(songId, 100L, editorUserId)
+
+        val decision = service.evaluate(song(), token, null)
+
+        assertTrue(decision.full, "у редактора есть полный доступ")
+        assertEquals(100L, decision.assignmentId, "премиум-редактор должен получить свой черновик, а не опубликованную разметку")
+    }
+
+    @Test
+    fun `публичная песня не отменяет подстановку своего черновика`() {
+        // То же для публичной песни (freelyAvailable) — редактор работает и над общедоступной.
+        Mockito.`when`(rightsProvider.isAssignmentOwner(100L, editorUserId, songId)).thenReturn(true)
+        val token = tokenService.issueDirectAccessTokenForAssignment(songId, 100L, editorUserId)
+
+        val decision = service.evaluate(song(free = true), token, null)
+
+        assertEquals(PlayerAccessService.REASON_SONG_PUBLIC, decision.reason)
+        assertEquals(100L, decision.assignmentId, "своё задание подставляется и при публичной песне")
+    }
+
+    @Test
+    fun `премиум без владения заданием не получает чужой черновик`() {
+        // Обратная сторона правки: assignmentId попадает в решение только для СВОЕГО задания.
+        Mockito.`when`(rightsProvider.isPremium(editorUserId)).thenReturn(true)
+        Mockito.`when`(rightsProvider.isAssignmentOwner(100L, editorUserId, songId)).thenReturn(false)
+        val token = tokenService.issueDirectAccessTokenForAssignment(songId, 100L, editorUserId)
+
+        val decision = service.evaluate(song(), token, null)
+
+        assertTrue(decision.full)
+        assertNull(decision.assignmentId, "чужое задание не подставляется")
+    }
+
+    @Test
     fun `отозванное задание редактора — отказ`() {
         Mockito.`when`(rightsProvider.isAssignmentOwner(100L, editorUserId, songId)).thenReturn(false)
         val token = tokenService.issueDirectAccessTokenForAssignment(songId, 100L, editorUserId)

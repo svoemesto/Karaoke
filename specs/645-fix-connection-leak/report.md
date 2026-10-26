@@ -132,7 +132,7 @@ BUILD SUCCESSFUL
 ### 4.1. Контрактный прогон CI (R-47, `knowledge/guidelines/architecture-conventions.md`)
 
 Список `run:`-команд **извлечён парсингом** `.github/workflows/lint.yml`
-(37 команд), а не по памяти:
+(36 команд), а не по памяти:
 
 ```console
 $ python3 - <<'PY' > /tmp/ci_runs.txt   # извлечение списка
@@ -142,9 +142,13 @@ $ while read -r cmd; do cmd="${cmd//\$\{\{ matrix.spa \}\}/webvue3}"; \
       eval "$cmd" >/tmp/g.out 2>&1 || echo "НЕ-НУЛЕВОЙ: $cmd"; done < /tmp/ci_runs.txt
 ```
 
-Результат: **36 из 37 — OK**, единственная не-нулевая команда на момент первого
-прогона — `python3 tools/check-doc-references.py` (см. § 4.3); после создания
-`report.md` и добавления новых файлов в индекс — се 37 зелёные.
+Итоговый результат (после коммитов): **36 из 36 — OK**, ненулевых нет.
+
+Первый прогон (до создания `report.md` и добавления новых файлов в индекс) дал
+одну ненулевую команду — `python3 tools/check-doc-references.py`: она жаловалась
+на несуществующий на тот момент `report.md` и на неотслеживаемый git'ом
+`RawThreadDbGuard.kt` (инструмент ищет файлы через `git ls-files` — ровно то,
+что видит CI). После создания отчёта и коммита — обе находки исчезли.
 
 ### 4.2. Пять гейтов знаний
 
@@ -159,12 +163,15 @@ $ python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge
 All documentation passes architectural style and structural checks.
 
 $ python3 tools/check-doc-references.py
-Проверено: ссылок 4524, путей 3290, эндпоинтов 366; whitelist: 57 записей.
-НАЙДЕНО: 0 проблем
+Проверено: ссылок 4531, путей 3290, эндпоинтов 366; whitelist: 57 записей.
+OK: битых ссылок, несуществующих путей и эндпоинтов нет.
 
 $ python3 tools/check-ssot-impact.py
 [SSoT] Checking impact surface against base 'origin/master'
-... (новых нарушений нет)
+[1/3] Found 21 changed files (base=origin/master)
+[2/3] Filtered to 6 significant files (excluded 15)
+[3/3] Checked 0 rules; 0 violation(s)
+OK: all matched SSoT-impact rules satisfied.
 ```
 
 ### 4.3. Прочие гейты
@@ -172,15 +179,29 @@ $ python3 tools/check-ssot-impact.py
 | Проверка | Результат |
 |---|---|
 | `bash tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md` | OK (все документы валидны, включая новый `docs/features/fix-connection-leak.md`) |
-| `bash tools/check-kdoc-coverage.sh --strict` | OK |
+| `./gradlew ktlintCheck` | BUILD SUCCESSFUL (после правки двух замечаний `chain-wrapping`/`indent` в новом тестовом файле) |
+| `bash tools/check-kdoc-coverage.sh --strict` | OK — 96.9% (591/610) |
+| `bash tools/check-jsdoc-coverage.sh webvue3` / `karaoke-public` | OK — 98.1% (204/208) |
+| `cd webvue3 && npm run lint:check && npx prettier --check …` | OK |
+| `cd karaoke-public && npm run lint:check && npx prettier --check …` | OK |
 | `bash tools/check-no-jpa-imports.sh --quiet` | OK |
 | `bash tools/check-no-mp4-mentions.sh --quiet` | OK |
 | `bash tools/check-value-placeholders.sh` | OK |
 | `bash tools/check-spec-issue-link.py` | OK |
 | `bash tools/check-direct-commits.sh` (+ `--self-test`) | OK |
 | `git ls-files \| grep -iE '\.env$\|do\.env$\|\.key$\|\.pem$\|\.p12$\|\.pfx$'` | пусто (Constitution VIII.3) |
+| `pre-commit run --all-files` | 33 хука — все Passed (см. примечание ниже) |
 | `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin` | BUILD SUCCESSFUL |
-| `./gradlew :karaoke-app:test :karaoke-web:test` (с `env -u DISPLAY`) | BUILD SUCCESSFUL — см. § 4.4 |
+| `./gradlew :karaoke-web:bootJar :karaoke-app:bootJar` | BUILD SUCCESSFUL |
+| `./gradlew :karaoke-app:test :karaoke-web:test` (с `env -u DISPLAY`) | BUILD SUCCESSFUL — 879 + 212 тестов, 0 падений |
+
+**Примечание про `pre-commit`:** хук `eslint (karaoke-public public SPA)` в первом
+прогоне упал с кодом 2 — не из-за кода, а из-за отсутствия
+`karaoke-public/node_modules` в worktree (ESLint без конфига не стартует).
+После подключения `node_modules` из общего кэша хук проходит. Фронтенд в этой
+задаче **не менялся** (0 файлов в `webvue3/` и `karaoke-public/`), поэтому шаги
+сборки Vite и сборки Docker-образов не выполнялись — они относятся к изменениям
+фронтенда и Dockerfile.
 
 ### 4.4. Полный прогон backend-тестов (SC-002, SC-004)
 
@@ -188,6 +209,8 @@ $ python3 tools/check-ssot-impact.py
 $ env -u DISPLAY ./gradlew :karaoke-app:test :karaoke-web:test --max-workers=2 \
       -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Djava.awt.headless=true
 BUILD SUCCESSFUL
+karaoke-app: tests=879 failures=0 errors=0
+karaoke-web: tests=212 failures=0 errors=0
 ```
 
 Падений из-за исчерпания соединений БД (`sorry, too many clients already`) нет;
@@ -271,9 +294,19 @@ SC-004 требуют живого окружения. Нарушений Кон
 
 Ветка `648-fix-connection-leak-impl` (от `19d1f173`), без push:
 
-- `fix(app): закрыть утечку соединений в фоновых потоках (BR-627)` — код;
-- `test(app): расширить проверку сырых потоков на все файлы с доступом к БД` — тесты;
-- `docs(knowledge): синхронизировать контракт соединения и регламент прогонов` — SSoT + отчёт.
+| Коммит | Содержание |
+|---|---|
+| `adf3a058` | `fix(app): закрыть утечку соединений в фоновых потоках (BR-627, OpenProject #410)` — 6 файлов прикладного кода |
+| `90f7186d` | `test(app): проверка сырых потоков — охват всех файлов с доступом к БД (BR-627)` — 3 тестовых файла |
+| `d370f035` | `docs(knowledge): контракт соединения, эксплуатационная справка и регламент прогонов (BR-627)` — 4 документа `knowledge/`, per-feature документ, артефакты спеки и отчёт |
+
+Итого в ветке: 21 файл, +2244 / −45 строк. Рабочее дерево чистое.
+
+Шаги workflow трекера OpenProject #410: выполнено `claim-issue` (статус
+`In progress`). Шаги `add-comment` / `mark-review` **не выполнялись** — по
+workflow спеки они идут **после merge**, а merge не было (push/PR запрещены
+задачей). Статус трекера оставлен `In progress`; следующий шаг — комментарий с
+этим отчётом и `mark-review` после merge.
 
 ## 10. Ограничения соблюдены
 

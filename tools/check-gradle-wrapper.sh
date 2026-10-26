@@ -117,15 +117,42 @@ online_checksum() {
 # --- сбор wrapper'ов ------------------------------------------------------
 WRAPPERS=()
 
+# Файлы под контролем версий текущего репозитория — ровно то, что видит CI.
+# Такой список не включает ЧУЖИЕ checkout'ы, лежащие внутри репозитория
+# (например, `.worktrees/*` — отдельные git-worktree с собственными
+# gradle-wrapper'ами: без этого фильтра guard ругался на версии, которых
+# в master нет, и блокировал работу в главном checkout'е).
+# Fallback для не-git каталогов (фикстуры self-test): find с исключениями.
 collect_wrappers() {
     WRAPPERS=()
     local f
+    if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        while IFS= read -r f; do
+            [[ -z "$f" ]] && continue
+            [[ "$f" == */gradle/wrapper/gradle-wrapper.properties ]] || continue
+            WRAPPERS+=("$f")
+        done < <(git -C "$ROOT" ls-files 2>/dev/null | LC_ALL=C sort)
+        return 0
+    fi
     while IFS= read -r f; do
         [[ -z "$f" ]] && continue
+        # Пропускаем файлы внутри вложенного git-репозитория (чужой checkout):
+        # его gradle-wrapper'ы — не часть нашей сборки.
+        local d skip=0
+        d="$(dirname "$f")"
+        while [[ "$d" != "$ROOT" && "$d" != "/" ]]; do
+            if [[ -e "$d/.git" ]]; then
+                skip=1
+                break
+            fi
+            d="$(dirname "$d")"
+        done
+        [[ "$skip" -eq 1 ]] && continue
         WRAPPERS+=("${f#"$ROOT"/}")
     done < <(find "$ROOT" -type f -name 'gradle-wrapper.properties' \
         -path '*/gradle/wrapper/*' \
         -not -path '*/build/*' -not -path '*/.gradle/*' -not -path '*/node_modules/*' \
+        -not -path '*/.worktrees/*' -not -path '*/.git/*' \
         | LC_ALL=C sort)
 }
 
@@ -380,7 +407,21 @@ self_test() {
         color_green "✓ self-test: неизвестная версия вне таблицы → код 2 (проверка не выполнена)"
     fi
 
-    # 7. Ни одного wrapper'а → код 2
+    # 8. Чужой вложенный checkout (например, .worktrees/*) — не наш репозиторий:
+    #    его wrapper'ы не проверяются (иначе guard ругался бы на версии,
+    #    которых в master нет, и блокировал работу в главном checkout'е).
+    make_good_tree "$tmp/nested" "8.14" "$sum8"
+    make_wrapper "$tmp/nested/.worktrees/other" "7.5.1" "$KNOWN_CHECKSUMS_7_5_1"
+    ROOT="$tmp/nested"
+    collect_wrappers
+    if check_wrappers >/dev/null 2>&1; then
+        color_green "✓ self-test: вложенный чужой checkout не учитывается → PASS"
+    else
+        color_red "✗ self-test: guard ругается на чужой вложенный checkout"
+        rc=1
+    fi
+
+    # 9. Ни одного wrapper'а → код 2
     local empty
     empty="$(mktemp -d)" || { rc=1; empty=""; }
     if [[ -n "$empty" ]]; then

@@ -3,7 +3,7 @@
 > **Issue**: OpenProject #406 · **Пакет**: `PKG-S3-34` · **Волна**: E ·
 > **Аудит**: #336 · **Severity**: S3 · **Ветка**: `640-pkg-s3-34` ·
 > **Worktree**: `/home/nsa/Karaoke/.worktrees/waveE-s3-34`
-> **Коммит**: `f129315a4b42e88628cfaa5a302e5adeb962116d`
+> **Коммит (реализация)**: `4464309b36f6cd2595caa6bf723ba01509a44bc9` (PR #744 → merge `53c0c5b5`)
 > **Per-feature документ**: [`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md)
 > **SSoT**: [`knowledge/guidelines/architecture-conventions.md` § R-46](../../knowledge/guidelines/architecture-conventions.md),
 > [`knowledge/system/infra/ci-tools.md`](../../knowledge/system/infra/ci-tools.md)
@@ -317,6 +317,26 @@ org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError 
 рапортует `UP-TO-DATE` по закешированным классам и пропускает ошибку
 компиляции.
 
+## Дополнения после merge PR #744
+
+PR #744 смержен в master (`53c0c5b5`). Два дефекта, найденные уже после
+merge, исправлены отдельной веткой (`641-fix-406-report-hash`):
+
+1. **Хэш коммита реализации в отчёте.** Отчёт публиковался до rebase, поэтому
+   в нём стоял хэш «до rebase» (`f129315a…`), которого в истории master нет.
+   Заменён на фактический merged-коммит реализации `4464309b…`.
+2. **Ложные срабатывания `tools/check-gradle-wrapper.sh` на чужих checkout'ах.**
+   Guard собирал список wrapper'ов через `find` по всему каталогу, поэтому в
+   **главном** checkout'е Karaoke (где лежат `.worktrees/*` — отдельные
+   git-worktree с собственными gradle-wrapper'ами) он рапортовал 16
+   «нарушений» из чужих копий: версии 7.5.1/9.1.0 и отсутствие checksum.
+   В CI (свежий checkout) такой ситуации нет, поэтому дефект не проявился.
+   Теперь список берётся из файлов под контролем версий текущего репозитория
+   (`git ls-files` — ровно то, что видит CI); для не-git каталогов (фикстуры
+   `--self-test`) остаётся `find` с исключением вложенных репозиториев и
+   `.worktrees/*`. Добавлена фикстура «вложенный чужой checkout не учитывается»
+   (всего фикстур у guard'а теперь 8).
+
 ## Что за владельцем
 
 1. **Апгрейд Gradle 8.14 → 9.x** — сознательно не сделан: Kotlin 2.2.20
@@ -338,7 +358,7 @@ org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError 
 
 ## Хэши
 
-**Коммит:** `f129315a4b42e88628cfaa5a302e5adeb962116d` (ветка `640-pkg-s3-34`).
+**Коммит (реализация):** `4464309b36f6cd2595caa6bf723ba01509a44bc9` (ветка `640-pkg-s3-34`, PR #744, merge в master — `53c0c5b5`).
 
 **Контрольные суммы файлов (sha256):**
 

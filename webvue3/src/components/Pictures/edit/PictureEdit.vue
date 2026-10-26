@@ -95,7 +95,7 @@
 <script>
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import { escapeHtml } from '../../../utils/escapeHtml.js'
-import { copyToClipboardSafely } from '../../../utils/clipboard.js'
+import { copyTextToClipboard } from '../../../utils/clipboard.js'
 import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
 import { useToast } from 'bootstrap-vue-next'
 import { h } from 'vue'
@@ -220,7 +220,7 @@ export default {
       // Единый хелпер с запасным путём (Clipboard API может быть недоступен или
       // отклонён). Тост показываем в обоих случаях: при отказе копирования в нём
       // сам текст — пользователь скопирует его вручную.
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast(fieldName, value, !copied)
     },
     async pasteFromClipboard(name) {

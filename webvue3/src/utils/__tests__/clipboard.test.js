@@ -1,127 +1,176 @@
-// Контракт копирования в буфер обмена (спека #558, OpenProject #360).
+// Копирование в буфер обмена (админский SPA webvue3).
 //
-// До: админка вызывала `navigator.clipboard.writeText` напрямую. Clipboard API
-// требует secure context и может быть отклонён браузером — тогда вызов бросал
-// TypeError, кнопка молча не работала, пользователь не получал ни копирования,
-// ни сообщения. В легаси-странице песен для этого был запасной путь
-// (`copyToClipboardSafely` + `execCommand`); при удалении страницы запасной путь
-// в SPA не переехал.
+// Контракт тот же, что в публичном SPA (BR-296, karaoke-public/src/utils/clipboard.js):
+// копирование возвращает `true` ТОЛЬКО если текст действительно попал в буфер —
+// либо `navigator.clipboard.writeText()` разрешился, либо `document.execCommand('copy')`
+// вернул `true`. Любой иной исход — `false`, и UI показывает «Скопируйте вручную».
 //
-// После: единый хелпер `copyToClipboardSafely` — сначала Clipboard API, при
-// недоступности или отказе — `execCommand('copy')`; возвращает признак успеха,
-// чтобы вызывающий мог показать текст для ручного копирования.
+// ДО. Админка вызывала `navigator.clipboard.writeText` напрямую: API доступен не
+// везде (нужен secure context, возможен отказ по правам) — прямой вызов бросал
+// TypeError, и кнопка «Скопировать» молча не работала. Запасной путь был только
+// в удалённой легаси-странице песен.
 //
-// Проверяем все четыре ветки:
-//   1. Clipboard API доступен и работает → копирование выполнено, запасной путь
-//      не понадобился;
-//   2. Clipboard API недоступен (нет navigator.clipboard) → сработал запасной путь;
-//   3. Clipboard API есть, но отклонён (отказ по правам) → сработал запасной путь;
-//   4. не сработал ни один путь → возвращается false (вызывающий показывает текст).
+// ПОСЛЕ. Все прямые вызовы в компонентах заменены на общий хелпер
+// `copyTextToClipboard`; UI получает признак успеха и сообщает об отказе.
+//
+// Запуск: cd webvue3 && npm run test:unit
 
-import { test, describe } from 'node:test'
+import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 
-import { copyToClipboardSafely, copyWithExecCommand } from '../clipboard.js'
+import { copyTextToClipboard } from '../clipboard.js'
 
-/** Минимальный документ для запасного пути. */
-function fakeDocument({ execCommandResult = true } = {}) {
+// src/utils/__tests__/ → корень пакета webvue3
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+const APP_ROOT = path.resolve(HERE, '..', '..', '..')
+
+/** Прочитать исходник пакета. */
+function readSource(relativePath) {
+  return readFileSync(path.join(APP_ROOT, relativePath), 'utf8')
+}
+
+/** Минимальный DOM для fallback-ветки. */
+function fakeDocument({ execResult = true, execThrows = false } = {}) {
   const created = []
-  // Журнал созданий — не тот же массив, что и список «живых» узлов: textarea
-  // создаётся и сразу удаляется, и по «живым» узлам это не видно.
-  const createdLog = []
+  const body = {
+    appendChild(node) {
+      created.push(node)
+      node.parentNode = body
+    },
+    removeChild(node) {
+      node.parentNode = null
+    },
+  }
   return {
+    body,
     created,
-    createdLog,
-    body: {
-      appendChild(node) {
-        created.push(node)
-        createdLog.push(node)
-      },
-      removeChild(node) {
-        const index = created.indexOf(node)
-        if (index >= 0) created.splice(index, 1)
-      },
+    execCommand() {
+      if (execThrows) throw new Error('NotAllowedError')
+      return execResult
     },
-    createElement(tag) {
-      return {
-        tag,
-        value: '',
-        style: {},
-        attributes: {},
-        setAttribute(name, value) {
-          this.attributes[name] = value
-        },
-        select() {
-          this.selected = true
-        },
-      }
-    },
-    execCommand(command) {
-      this.lastCommand = command
-      return execCommandResult
+    createElement() {
+      return { value: '', style: {}, select() {} }
     },
   }
 }
 
-describe('copyToClipboardSafely — копирование с запасным путём', () => {
-  test('Clipboard API работает — копирование выполнено, запасной путь не тронут', async () => {
+describe('копирование: результат проверяется', () => {
+  test('navigator.clipboard успешно записал — true', async () => {
     const doc = fakeDocument()
-    let written = null
-    const nav = {
-      clipboard: {
-        writeText: async (text) => {
-          written = text
+    const ok = await copyTextToClipboard('Иванов', {
+      navigator: { clipboard: { writeText: async () => {} } },
+      document: doc,
+    })
+    assert.equal(ok, true)
+  })
+
+  test('clipboard API отсутствует, execCommand вернул true — true', async () => {
+    const doc = fakeDocument({ execResult: true })
+    const ok = await copyTextToClipboard('Иванов', {
+      navigator: {},
+      document: doc,
+    })
+    assert.equal(ok, true)
+  })
+
+  test('clipboard API отклонил, execCommand вернул FALSE — false (буфер пуст)', async () => {
+    const doc = fakeDocument({ execResult: false })
+    const ok = await copyTextToClipboard('Иванов', {
+      navigator: {
+        clipboard: {
+          writeText: async () => {
+            throw new Error('denied')
+          },
         },
       },
-    }
-
-    const ok = await copyToClipboardSafely('Иванов', { navigator: nav, document: doc })
-
-    assert.equal(ok, true, 'копирование должно пройти')
-    assert.equal(written, 'Иванов', 'в буфер должно уйти переданное значение')
-    assert.equal(doc.created.length, 0, 'запасной путь не должен создавать textarea')
+      document: doc,
+    })
+    assert.equal(
+      ok,
+      false,
+      'execCommand вернул false — текст НЕ скопирован, UI не должен говорить «Скопировано»',
+    )
   })
 
-  test('Clipboard API недоступен — срабатывает запасной путь', async () => {
-    const doc = fakeDocument()
-    const nav = {}
-
-    const ok = await copyToClipboardSafely('Песня', { navigator: nav, document: doc })
-
-    assert.equal(ok, true, 'копирование должно пройти через запасной путь')
-    assert.equal(doc.createdLog.length, 1, 'запасной путь должен создавать textarea')
-    assert.equal(doc.createdLog[0].value, 'Песня', 'в textarea должно быть значение')
-    assert.equal(doc.lastCommand, 'copy', 'должен выполняться execCommand copy')
-    assert.equal(doc.created.length, 0, 'textarea после копирования должна убираться')
-  })
-
-  test('Clipboard API отклонён — срабатывает запасной путь', async () => {
-    const doc = fakeDocument()
-    const nav = {
-      clipboard: {
-        writeText: async () => {
-          throw new Error('NotAllowedError')
+  test('clipboard API отклонил, execCommand БРОСИЛ — false', async () => {
+    const doc = fakeDocument({ execThrows: true })
+    const ok = await copyTextToClipboard('Иванов', {
+      navigator: {
+        clipboard: {
+          writeText: async () => {
+            throw new Error('denied')
+          },
         },
       },
+      document: doc,
+    })
+    assert.equal(ok, false)
+  })
+
+  test('нет ни clipboard API, ни execCommand — false (без исключения)', async () => {
+    const ok = await copyTextToClipboard('Иванов', {
+      navigator: {},
+      document: { body: {} },
+    })
+    assert.equal(ok, false)
+  })
+
+  test('пустой текст — false, ничего не копируем', async () => {
+    const doc = fakeDocument()
+    const ok = await copyTextToClipboard('', { navigator: {}, document: doc })
+    assert.equal(ok, false)
+    assert.equal(doc.created.length, 0, 'textarea не должна создаваться для пустого текста')
+  })
+
+  test('textarea убирается из DOM в любом случае', async () => {
+    const doc = fakeDocument({ execResult: false })
+    await copyTextToClipboard('x', { navigator: {}, document: doc })
+    assert.equal(doc.created.length, 1)
+    assert.equal(doc.created[0].parentNode, null, 'textarea обязана быть удалена из DOM')
+  })
+})
+
+describe('контракт исходников: прямых вызовов Clipboard API быть не должно', () => {
+  const components = [
+    'src/components/Songs/edit/SongEdit.vue',
+    'src/components/Pictures/edit/PictureEdit.vue',
+    'src/components/Songs/edit/SearchText.vue',
+    'src/components/Songs/edit/WhisperDebugModal.vue',
+  ]
+
+  test('в компонентах нет прямых вызовов navigator.clipboard.writeText', () => {
+    for (const component of components) {
+      const src = readSource(component)
+      assert.ok(
+        !src.includes('navigator.clipboard.writeText'),
+        `${component}: прямой вызов Clipboard API без обработки — копирование молча не сработает`,
+      )
     }
-
-    const ok = await copyToClipboardSafely('Текст', { navigator: nav, document: doc })
-
-    assert.equal(ok, true, 'копирование должно пройти через запасной путь')
-    assert.equal(doc.lastCommand, 'copy', 'должен выполняться execCommand copy')
   })
 
-  test('оба пути не сработали — возвращается false (текст показывают вручную)', async () => {
-    const doc = fakeDocument({ execCommandResult: false })
-    const nav = {}
-
-    const ok = await copyToClipboardSafely('Текст', { navigator: nav, document: doc })
-
-    assert.equal(ok, false, 'вызывающий должен узнать, что копирование не вышло')
+  test('все компоненты копируют через общий хелпер', () => {
+    for (const component of components) {
+      const src = readSource(component)
+      assert.ok(
+        src.includes('copyTextToClipboard'),
+        `${component}: копирование должно идти через utils/clipboard.js (результат проверяется)`,
+      )
+    }
   })
 
-  test('без документа запасной путь не падает, а возвращает false', () => {
-    const ok = copyWithExecCommand('Текст', undefined)
-    assert.equal(ok, false, 'без DOM копирование невозможно — это не ошибка')
+  test('SongEdit и PictureEdit сообщают пользователю о неудаче копирования', () => {
+    for (const component of [
+      'src/components/Songs/edit/SongEdit.vue',
+      'src/components/Pictures/edit/PictureEdit.vue',
+    ]) {
+      const src = readSource(component)
+      assert.ok(
+        src.includes('!copied'),
+        `${component}: результат копирования должен передаваться в тост (признак !copied)`,
+      )
+    }
   })
 })

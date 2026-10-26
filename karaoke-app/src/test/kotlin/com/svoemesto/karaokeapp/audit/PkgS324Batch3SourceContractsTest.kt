@@ -170,19 +170,43 @@ class PkgS324Batch3SourceContractsTest {
     // ---------------------------------------------------------------- BR-212
 
     @Test
-    fun `BR-212 копирование работает через Clipboard API и показывает результат`() {
+    fun `BR-212 копирование идёт через общий хелпер с запасным путём и показывает результат`() {
         // Легаси-страница songs.html удалена 2026-10-26; копирование живёт в SPA.
         // У легаси-страницы был fallback `copyToClipboardSafely` (Clipboard API доступен
-        // не в каждом контексте) — в SPA своего хелпера нет, копирование идёт через
-        // `navigator.clipboard.writeText`, а результат показывается тостом.
+        // не в каждом контексте) — при её удалении запасной путь в SPA не переехал, и
+        // прямой вызов `navigator.clipboard.writeText` бросал TypeError: кнопка
+        // «Скопировать» молча не работала.
+        //
+        // Теперь копирование идёт через общий хелпер (тот же контракт, что в
+        // публичном SPA — BR-296): Clipboard API, при недоступности или отказе —
+        // execCommand('copy') через скрытое textarea; результат — признак успеха,
+        // который UI показывает пользователю.
         val songEdit = read("webvue3/src/components/Songs/edit/SongEdit.vue")
         assertTrue(
-            songEdit.contains("navigator.clipboard.writeText(value)"),
-            "копирование идёт через Clipboard API (BR-212)",
+            songEdit.contains("copyTextToClipboard(value)"),
+            "копирование идёт через общий хелпер (BR-212)",
+        )
+        assertFalse(
+            songEdit.contains("navigator.clipboard.writeText"),
+            "прямых вызовов Clipboard API без обработки быть не должно (BR-212)",
         )
         assertTrue(
             songEdit.contains("showCopyToClipboardToast("),
             "результат копирования показывается пользователю (BR-212)",
+        )
+        assertTrue(
+            songEdit.contains("!copied"),
+            "тост должен сообщать и об отказе копирования (BR-212)",
+        )
+
+        val helper = read("webvue3/src/utils/clipboard.js")
+        assertTrue(
+            helper.contains("copyWithExecCommand") || helper.contains("execCommand"),
+            "в хелпере должен быть запасной путь копирования (BR-212)",
+        )
+        assertTrue(
+            helper.contains("copyTextToClipboard"),
+            "хелпер должен возвращать признак успеха копирования (BR-212)",
         )
     }
 

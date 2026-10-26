@@ -110,7 +110,7 @@
 <script>
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchTextResultsTable from './SearchTextResultsTable.vue'
-import { copyToClipboardSafely } from '../../../utils/clipboard.js'
+import { copyTextToClipboard } from '../../../utils/clipboard.js'
 
 /**
  * UI для LLM-поиска текста песни и аккордов.
@@ -222,7 +222,7 @@ export default {
     async copyToClipboard(value) {
       // Единый хелпер с запасным путём: Clipboard API доступен не везде
       // (нужен secure context), и раньше здесь был прямой вызов без обработки.
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       if (!copied) {
         console.warn('Не удалось скопировать текст — скопируйте его вручную')
       }

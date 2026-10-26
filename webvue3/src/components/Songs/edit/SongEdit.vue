@@ -2550,7 +2550,7 @@
 <script>
 import SubsEdit from './SubsEdit.vue'
 import { escapeHtml } from '../../../utils/escapeHtml.js'
-import { copyToClipboardSafely } from '../../../utils/clipboard.js'
+import { copyTextToClipboard } from '../../../utils/clipboard.js'
 // BR-124: прямой XHR вместо несуществующего Vuex-action `promisedXMLHttpRequest`.
 import { promisedXMLHttpRequest } from '../../../lib/utils.js'
 // BR-088: очередь автосохранения — вызов во время запроса больше не теряется.
@@ -5295,17 +5295,17 @@ export default {
     },
     async getLinkBoosty() {
       let value = this.linkBoosty
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkBoosty', value, !copied)
     },
     async getLinkSponsrPlay() {
       let value = this.linkSponsrPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkSponsrPlay', value, !copied)
     },
     async openLinkSponsrNew() {
       let value = await this.$store.getters.getSponsrHeader
-      await copyToClipboardSafely(value)
+      await copyTextToClipboard(value)
       // this.showCopyToClipboardToast('getSponsrHeader', value);
       window.open(this.linkSponsrNew, '_blank')
     },
@@ -5352,33 +5352,33 @@ export default {
     },
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader
-      await copyToClipboardSafely(value)
+      await copyTextToClipboard(value)
       // this.showCopyToClipboardToast('getBoostyHeader', value);
       window.open(this.linkBoostyNew, '_blank')
     },
     async getBoostyHeader() {
       let value = await this.$store.getters.getBoostyHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getBoostyHeader', value, !copied)
     },
     async getBoostyBody() {
       let value = await this.$store.getters.getBoostyBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getBoostyBody', value, !copied)
     },
     async getSponsrHeader() {
       let value = await this.$store.getters.getSponsrHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getSponsrHeader', value, !copied)
     },
     async getSponsrBody() {
       let value = await this.$store.getters.getSponsrBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getSponsrBody', value, !copied)
     },
     async getLinkBoostyFiles() {
       let value = this.linkBoostyFiles
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkBoostyFiles', value, !copied)
     },
     openLinkBoostyFiles() {
@@ -5386,29 +5386,29 @@ export default {
     },
     async openLinkBoostyFilesNew() {
       let value = await this.$store.getters.getBoostyFilesHeader
-      await copyToClipboardSafely(value)
+      await copyTextToClipboard(value)
       // this.showCopyToClipboardToast('getBoostyFilesHeader', value);
       window.open(this.linkBoostyNew, '_blank')
     },
     async getBoostyFilesHeader() {
       let value = await this.$store.getters.getBoostyFilesHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getBoostyFilesHeader', value, !copied)
     },
 
     async getLinkVkGroup() {
       let value = this.linkVkGroup
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkVkGroup', value, !copied)
     },
     async getVkGroupBody() {
       let value = await this.$store.getters.getVkGroupBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkGroupBody', value, !copied)
     },
     async getVkGroupBodySponsr() {
       let value = await this.$store.getters.getVkGroupBodySponsr
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkGroupBodySponsr', value, !copied)
     },
     openLinkVkGroup() {
@@ -5417,7 +5417,7 @@ export default {
 
     async getLinkDzenKaraokePlay() {
       let value = this.linkDzenKaraokePlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkDzenKaraokePlay', value, !copied)
     },
     openLinkDzenKaraokePlay() {
@@ -5428,7 +5428,7 @@ export default {
     },
     async getLinkDzenLyricsPlay() {
       let value = this.linkDzenLyricsPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkDzenLyricsPlay', value, !copied)
     },
     openLinkDzenLyricsPlay() {
@@ -5439,7 +5439,7 @@ export default {
     },
     async getLinkDzenChordsPlay() {
       let value = this.linkDzenChordsPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkDzenChordsPlay', value, !copied)
     },
     openLinkDzenChordsPlay() {
@@ -5450,7 +5450,7 @@ export default {
     },
     async getLinkDzenTabsPlay() {
       let value = this.linkDzenTabsPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkDzenTabsPlay', value, !copied)
     },
     openLinkDzenTabsPlay() {
@@ -5461,7 +5461,7 @@ export default {
     },
     async getLinkDzenDemoPlay() {
       let value = this.linkDzenDemoPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkDzenDemoPlay', value, !copied)
     },
     openLinkDzenDemoPlay() {
@@ -5473,58 +5473,58 @@ export default {
 
     async getDzenKaraokeHeader() {
       let value = await this.$store.getters.getDzenKaraokeHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenKaraokeHeader', value, !copied)
     },
     async getDzenKaraokeBody() {
       let value = await this.$store.getters.getDzenKaraokeBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenKaraokeBody', value, !copied)
     },
     async getDzenLyricsHeader() {
       let value = await this.$store.getters.getDzenLyricsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenLyricsHeader', value, !copied)
     },
     async getDzenLyricsBody() {
       let value = await this.$store.getters.getDzenLyricsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenLyricsBody', value, !copied)
     },
     async getDzenChordsHeader() {
       let value = await this.$store.getters.getDzenChordsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenChordsHeader', value, !copied)
     },
     async getDzenChordsBody() {
       let value = await this.$store.getters.getDzenChordsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenChordsBody', value, !copied)
     },
     async getDzenTabsHeader() {
       let value = await this.$store.getters.getDzenTabsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenTabsHeader', value, !copied)
     },
     async getDzenTabsBody() {
       let value = await this.$store.getters.getDzenTabsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenTabsBody', value, !copied)
     },
     async getDzenDemoHeader() {
       let value = await this.$store.getters.getDzenDemoHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenDemoHeader', value, !copied)
     },
     async getDzenDemoBody() {
       let value = await this.$store.getters.getDzenDemoBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getDzenDemoBody', value, !copied)
     },
 
     async getLinkPlKaraokePlay() {
       let value = this.linkPlKaraokePlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkPlKaraokePlay', value, !copied)
     },
     openLinkPlKaraokePlay() {
@@ -5535,7 +5535,7 @@ export default {
     },
     async getLinkPlLyricsPlay() {
       let value = this.linkPlLyricsPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkPlLyricsPlay', value, !copied)
     },
     openLinkPlLyricsPlay() {
@@ -5546,7 +5546,7 @@ export default {
     },
     async getLinkPlChordsPlay() {
       let value = this.linkPlChordsPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkPlChordsPlay', value, !copied)
     },
     openLinkPlChordsPlay() {
@@ -5557,7 +5557,7 @@ export default {
     },
     async getLinkPlTabsPlay() {
       let value = this.linkPlTabsPlay
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkPlTabsPlay', value, !copied)
     },
     openLinkPlTabsPlay() {
@@ -5569,48 +5569,48 @@ export default {
 
     async getPlKaraokeHeader() {
       let value = await this.$store.getters.getPlKaraokeHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlKaraokeHeader', value, !copied)
     },
     async getPlKaraokeBody() {
       let value = await this.$store.getters.getPlKaraokeBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlKaraokeBody', value, !copied)
     },
     async getPlLyricsHeader() {
       let value = await this.$store.getters.getPlLyricsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlLyricsHeader', value, !copied)
     },
     async getPlLyricsBody() {
       let value = await this.$store.getters.getPlLyricsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlLyricsBody', value, !copied)
     },
     async getPlChordsHeader() {
       let value = await this.$store.getters.getPlChordsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlChordsHeader', value, !copied)
     },
     async getPlChordsBody() {
       let value = await this.$store.getters.getPlChordsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlChordsBody', value, !copied)
     },
     async getPlTabsHeader() {
       let value = await this.$store.getters.getPlTabsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlTabsHeader', value, !copied)
     },
     async getPlTabsBody() {
       let value = await this.$store.getters.getPlTabsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getPlTabsBody', value, !copied)
     },
 
     async getLinkVkKaraoke() {
       let value = this.linkVkKaraoke
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkVkKaraoke', value, !copied)
     },
     openLinkVkKaraoke() {
@@ -5618,7 +5618,7 @@ export default {
     },
     async getLinkVkLyrics() {
       let value = this.linkVkLyrics
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkVkLyrics', value, !copied)
     },
     openLinkVkLyrics() {
@@ -5626,7 +5626,7 @@ export default {
     },
     async getLinkVkChords() {
       let value = this.linkVkChords
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkVkChords', value, !copied)
     },
     openLinkVkChords() {
@@ -5634,7 +5634,7 @@ export default {
     },
     async getLinkVkTabs() {
       let value = this.linkVkTabs
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkVkTabs', value, !copied)
     },
     openLinkVkTabs() {
@@ -5642,7 +5642,7 @@ export default {
     },
     async getLinkVkDemo() {
       let value = this.linkVkDemo
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkVkDemo', value, !copied)
     },
     openLinkVkDemo() {
@@ -5651,59 +5651,59 @@ export default {
 
     async getVkKaraokeHeader() {
       let value = await this.$store.getters.getVkKaraokeHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkKaraokeHeader', value, !copied)
     },
 
     async getVkKaraokeBody() {
       let value = await this.$store.getters.getVkKaraokeBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkKaraokeBody', value, !copied)
     },
     async getVkLyricsHeader() {
       let value = await this.$store.getters.getVkLyricsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkLyricsHeader', value, !copied)
     },
     async getVkLyricsBody() {
       let value = await this.$store.getters.getVkLyricsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkLyricsBody', value, !copied)
     },
     async getVkChordsHeader() {
       let value = await this.$store.getters.getVkChordsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkChordsHeader', value, !copied)
     },
     async getVkChordsBody() {
       let value = await this.$store.getters.getVkChordsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkChordsBody', value, !copied)
     },
     async getVkTabsHeader() {
       let value = await this.$store.getters.getVkTabsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkTabsHeader', value, !copied)
     },
     async getVkTabsBody() {
       let value = await this.$store.getters.getVkTabsBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkTabsBody', value, !copied)
     },
     async getVkDemoHeader() {
       let value = await this.$store.getters.getVkDemoHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkDemoHeader', value, !copied)
     },
     async getVkDemoBody() {
       let value = await this.$store.getters.getVkDemoBody
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getVkDemoBody', value, !copied)
     },
 
     async getLinkTelegramKaraoke() {
       let value = this.linkTelegramKaraoke
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkTelegramKaraoke', value, !copied)
     },
     openLinkTelegramKaraoke() {
@@ -5711,7 +5711,7 @@ export default {
     },
     async getLinkTelegramLyrics() {
       let value = this.linkTelegramLyrics
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkTelegramLyrics', value, !copied)
     },
     openLinkTelegramLyrics() {
@@ -5719,7 +5719,7 @@ export default {
     },
     async getLinkTelegramChords() {
       let value = this.linkTelegramChords
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkTelegramChords', value, !copied)
     },
     openLinkTelegramChords() {
@@ -5727,7 +5727,7 @@ export default {
     },
     async getLinkTelegramTabs() {
       let value = this.linkTelegramTabs
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkTelegramTabs', value, !copied)
     },
     openLinkTelegramTabs() {
@@ -5735,7 +5735,7 @@ export default {
     },
     async getLinkTelegramDemo() {
       let value = this.linkTelegramDemo
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkTelegramDemo', value, !copied)
     },
     openLinkTelegramDemo() {
@@ -5744,34 +5744,34 @@ export default {
 
     async getTelegramKaraokeHeader() {
       let value = await this.$store.getters.getTelegramKaraokeHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getTelegramKaraokeHeader', value, !copied)
     },
 
     async getTelegramLyricsHeader() {
       let value = await this.$store.getters.getTelegramLyricsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getTelegramLyricsHeader', value, !copied)
     },
     async getTelegramChordsHeader() {
       let value = await this.$store.getters.getTelegramChordsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getTelegramChordsHeader', value, !copied)
     },
     async getTelegramTabsHeader() {
       let value = await this.$store.getters.getTelegramTabsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getTelegramTabsHeader', value, !copied)
     },
     async getTelegramDemoHeader() {
       let value = await this.$store.getters.getTelegramDemoHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getTelegramDemoHeader', value, !copied)
     },
 
     async getLinkMaxKaraoke() {
       let value = this.linkMaxKaraoke
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkMaxKaraoke', value, !copied)
     },
     openLinkMaxKaraoke() {
@@ -5779,7 +5779,7 @@ export default {
     },
     async getLinkMaxLyrics() {
       let value = this.linkMaxLyrics
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkMaxLyrics', value, !copied)
     },
     openLinkMaxLyrics() {
@@ -5787,7 +5787,7 @@ export default {
     },
     async getLinkMaxChords() {
       let value = this.linkMaxChords
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkMaxChords', value, !copied)
     },
     openLinkMaxChords() {
@@ -5795,7 +5795,7 @@ export default {
     },
     async getLinkMaxTabs() {
       let value = this.linkMaxTabs
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkMaxTabs', value, !copied)
     },
     openLinkMaxTabs() {
@@ -5803,7 +5803,7 @@ export default {
     },
     async getLinkMaxDemo() {
       let value = this.linkMaxDemo
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('linkMaxDemo', value, !copied)
     },
     openLinkMaxDemo() {
@@ -5812,28 +5812,28 @@ export default {
 
     async getMaxKaraokeHeader() {
       let value = await this.$store.getters.getMaxKaraokeHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getMaxKaraokeHeader', value, !copied)
     },
 
     async getMaxLyricsHeader() {
       let value = await this.$store.getters.getMaxLyricsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getMaxLyricsHeader', value, !copied)
     },
     async getMaxChordsHeader() {
       let value = await this.$store.getters.getMaxChordsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getMaxChordsHeader', value, !copied)
     },
     async getMaxTabsHeader() {
       let value = await this.$store.getters.getMaxTabsHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getMaxTabsHeader', value, !copied)
     },
     async getMaxDemoHeader() {
       let value = await this.$store.getters.getMaxDemoHeader
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast('getMaxDemoHeader', value, !copied)
     },
 
@@ -5853,7 +5853,7 @@ export default {
       return this.$store.dispatch('setCurrentSongField', { name: name, value: this.snapshot[name] })
     },
     async copyToClipboard(value, fieldName) {
-      const copied = await copyToClipboardSafely(value)
+      const copied = await copyTextToClipboard(value)
       this.showCopyToClipboardToast(fieldName, value, !copied)
     },
     async pasteFromClipboard(name) {

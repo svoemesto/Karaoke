@@ -1,71 +1,59 @@
-/**
- * Копирование в буфер обмена с запасным путём.
- *
- * **Зачем запасной путь.** Clipboard API (`navigator.clipboard.writeText`) доступен
- * не везде: он требует secure context (https или localhost) и может быть отклонён
- * браузером (нет прав, окно не в фокусе, политика разрешений). Раньше админка
- * вызывала `navigator.clipboard.writeText` напрямую — если API недоступен,
- * вызов бросал `TypeError`, и пользователь не получал ни копирования, ни
- * сообщения: кнопка просто «молча» не работала.
- *
- * Поведение (совпадает с решением, принятым в легаси-странице песен):
- *   1. `navigator.clipboard.writeText` — основной путь;
- *   2. при недоступности API или его отказе — `execCommand('copy')` через скрытое
- *      `textarea` (работает везде, где есть DOM);
- *   3. если и это не вышло — возвращается `false`, вызывающий показывает текст,
- *      чтобы пользователь скопировал его вручную.
- *
- * Функция возвращает признак успеха — это и есть обратная связь для UI.
- *
- * Зависимости (`navigator`, `document`) внедряются параметром: тесты идут на
- * node:test, где DOM нет.
- */
+// Копирование в буфер обмена (админский SPA webvue3).
+//
+// Контракт тот же, что в публичном SPA (karaoke-public/src/utils/clipboard.js):
+// копирование возвращает `true` ТОЛЬКО если текст действительно попал в буфер —
+// либо `navigator.clipboard.writeText()` разрешился, либо `document.execCommand('copy')`
+// вернул `true`. Любой иной исход — `false`, и UI показывает «Скопируйте вручную».
+//
+// ЗАЧЕМ. Clipboard API доступен не везде: требует secure context (https или localhost)
+// и может быть отклонён браузером (нет прав, окно не в фокусе). Прямой вызов
+// `navigator.clipboard.writeText` без обработки бросает TypeError — кнопка
+// «Скопировать» молча не работала, и пользователь не понимал, что делать.
+// Запасной путь (execCommand через скрытое textarea) в админке был только в
+// удалённой легаси-странице песен и при её удалении в SPA не переехал.
+//
+// Модуль без зависимостей — тест запускается node --test без node_modules.
 
 /**
- * Запасной путь: копирование через скрытое `textarea` и `execCommand('copy')`.
+ * Скопировать текст в буфер обмена.
  *
- * @param {string} text текст для копирования
- * @param {Document} [doc] документ (по умолчанию `globalThis.document`)
- * @returns {boolean} удалось ли скопировать
+ * @param {string} text — текст для копирования
+ * @param {object} [deps] — подменяемые зависимости (для тестов): { navigator, document }
+ * @returns {Promise<boolean>} true — текст в буфере; false — копирование не удалось
  */
-export function copyWithExecCommand(text, doc = globalThis.document) {
-  if (!doc || typeof doc.createElement !== 'function') {
-    return false
-  }
-  try {
-    const textarea = doc.createElement('textarea')
-    textarea.value = text
-    textarea.setAttribute('readonly', '')
-    textarea.style.position = 'absolute'
-    textarea.style.left = '-9999px'
-    doc.body.appendChild(textarea)
-    textarea.select()
-    const ok = doc.execCommand ? doc.execCommand('copy') : false
-    doc.body.removeChild(textarea)
-    return ok === true
-  } catch (e) {
-    console.warn('execCommand не удался', e)
-    return false
-  }
-}
+export async function copyTextToClipboard(text, deps = {}) {
+  if (text === null || text === undefined || text === '') return false
 
-/**
- * Копирование текста с запасным путём.
- *
- * @param {string} text текст для копирования
- * @param {{navigator?: object, document?: Document}} [deps] внедряемые зависимости (для тестов)
- * @returns {Promise<boolean>} удалось ли скопировать
- */
-export async function copyToClipboardSafely(text, deps = {}) {
-  const nav = deps.navigator ?? globalThis.navigator
-  const doc = deps.document ?? globalThis.document
+  const nav = deps.navigator !== undefined ? deps.navigator : globalThis.navigator
+  const doc = deps.document !== undefined ? deps.document : globalThis.document
+
+  // Шаг 1 — современный Clipboard API (требует secure context и разрешения).
   if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
     try {
       await nav.clipboard.writeText(text)
       return true
-    } catch (e) {
-      console.warn('clipboard.writeText не удался, пробуем execCommand', e)
+    } catch (_) {
+      // Отказ (нет разрешения, документ не в фокусе, не secure context) — пробуем fallback.
     }
   }
-  return copyWithExecCommand(text, doc)
+
+  // Шаг 2 — fallback через скрытый textarea + execCommand('copy').
+  // ВАЖНО: результат execCommand нужно ПРОВЕРИТЬ — Firefox без разрешения clipboard,
+  // iOS Safari и часть политик браузера возвращают false (а не бросают).
+  if (!doc || !doc.body || typeof doc.execCommand !== 'function') return false
+
+  let textarea = null
+  try {
+    textarea = doc.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    doc.body.appendChild(textarea)
+    textarea.select()
+    return doc.execCommand('copy') === true
+  } catch (_) {
+    return false
+  } finally {
+    if (textarea && textarea.parentNode) textarea.parentNode.removeChild(textarea)
+  }
 }

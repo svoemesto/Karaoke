@@ -17,13 +17,30 @@
 | Слой | Где живёт | Объём |
 |---|---|---|
 | Guard'ы | `tools/check-*.sh`, `tools/check-*.py` | 39 скриптов |
-| CI-джобы | `.github/workflows/lint.yml` | 27 джобов |
+| CI-джобы | `.github/workflows/lint.yml` (GitHub) и `.forgejo/workflows/lint.yml` (Forgejo) | 30 джобов |
 | Pre-commit-хуки | `.pre-commit-config.yaml` | 29 активных хуков |
 | Baseline | `tools/*.baseline` | 5 файлов — известные допустимые нарушения |
 
 Операционные скрипты контура (`tools/tracker*.sh`, `tools/generate-*.sh`,
 `tools/install-tracker.sh`, `tools/auto-kdoc.py`) в CI не вызываются — они
 работают по вызову человека.
+
+## Где исполняется CI (с 2026-10-27)
+
+- **Workflow-файлы**: `.github/workflows/lint.yml` — для GitHub-зеркала;
+  `.forgejo/workflows/lint.yml` — копия для Forgejo с правками под окружение
+  (установка `jq`, абсолютные URL действий, снятый `concurrency`).
+- **Исполнение**: Forgejo Actions; раннер на `nsa-i9` в docker-режиме
+  (`node:22-bookworm`), `docker.sock` монтируется в job-контейнеры для e2e.
+  Раннер зарегистрирован на репозиторий, не на инстанс.
+- **На infra-сервере раннер не живёт**: job-контейнер с `docker.sock` — это
+  root на хосте, а рядом данные Forgejo, Plane и Harbor.
+- **Серверные правила** — только лёгкие: branch protection (прямой push в
+  `master` отклоняется pre-receive hook'ом), обязательное ревью, защита тегов.
+  Статус-чеки **не** обязательны для merge, иначе выключенный `nsa-i9`
+  блокирует работу.
+- **Автозапуск раннера**: cron `@reboot` + watchdog каждые 5 минут; ручной
+  запуск — `start.sh` в каталоге раннера.
 
 ## Границы контура
 

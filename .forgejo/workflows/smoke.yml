@@ -1,0 +1,16 @@
+name: smoke
+on: [push, workflow_dispatch]
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Basic env
+        run: |
+          echo "repo=$GITHUB_REPOSITORY ref=$GITHUB_REF"
+          ls -la | head -5
+      - name: Docker availability
+        run: |
+          docker version 2>&1 | head -5 || echo "docker-unavailable"

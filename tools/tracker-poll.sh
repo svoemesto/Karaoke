@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =====================================================================
-# tools/tracker-poll.sh — polling-сводка задач OpenProject для AI-агента
+# tools/tracker-poll.sh — polling-сводка задач Plane для AI-агента
 # =====================================================================
-# Используется в начале сессии opencode, чтобы узнать какие задачи
-# ждут агента (assignee=ai-agent, status=open) или в работе.
+# Используется в начале сессии, чтобы узнать какие задачи ждут агента
+# (assignee ai-agent, незавершённые) или в работе/на ревью.
 #
 # Использование:
 #   source .env.local-tracker
@@ -12,24 +12,25 @@
 #   bash tools/tracker-poll.sh --quiet      # только сводка (без таблицы)
 #   bash tools/tracker-poll.sh --limit 5    # ограничить вывод
 #
-# Exit codes:
+# Exit codes (сохранены):
 #   0 — есть задачи (найдено N)
-#   1 — есть задачи, но всё ОК (нет открытых)
-#   2 — OpenProject недоступен
-#   3 — token истёк
+#   1 — открытых задач нет (всё закрыто)
+#   2 — Plane недоступен
+#   3 — токен истёк
 #
 # BR-603 (аудит #336, пакет PKG-S3-30): значение по умолчанию для `--assignee`
-# вычислялось ДО `tracker_load_env` (строка 33 против строки 68). В этот момент
-# `.env.local-tracker` ещё не был прочитан, поэтому `TRACKER_AGENT_USER` не
-# был задан и скрипт молча опрашивал «ai-agent» вместо пользователя из env
-# (например «admin»). Теперь значение вычисляется ПОСЛЕ загрузки окружения;
-# явный флаг `--assignee` по-прежнему имеет приоритет.
+# вычислялось ДО `tracker_load_env`. Теперь значение вычисляется ПОСЛЕ
+# загрузки окружения; явный флаг `--assignee` по-прежнему имеет приоритет.
+#
+# Ссылка на задачу в Plane:
+#   {PLANE_URL}/{PLANE_WORKSPACE}/projects/{identifier}/issues/{seq}
 # =====================================================================
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}" && cd .. && pwd)"
+TRACKER_SH="${SCRIPT_DIR}/tracker.sh"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/tracker-lib.sh"
@@ -47,7 +48,7 @@ while [ $# -gt 0 ]; do
         --assignee) ASSIGNEE_OVERRIDE="$2"; shift 2 ;;
         -h|--help)
             cat <<EOF
-tools/tracker-poll.sh — polling-сводка задач OpenProject для AI-агента
+tools/tracker-poll.sh — polling-сводка задач Plane для AI-агента
 
 USAGE:
     bash tools/tracker-poll.sh [OPTIONS]
@@ -63,8 +64,11 @@ EXAMPLES:
     bash tools/tracker-poll.sh --json | jq '.open_count'
 
 ENVIRONMENT (source .env.local-tracker):
-    TRACKER_URL          — базовый URL OpenProject
-    TRACKER_USER/TRACKER_AGENT_USER/TRACKER_API_TOKEN — для CLI
+    PLANE_URL            — базовый URL Plane
+    PLANE_WORKSPACE      — workspace
+    PLANE_AI_TOKEN       — API-токен агента
+    PLANE_PROJECT_ID     — UUID проекта (иначе — по идентификатору)
+    TRACKER_AGENT_USER   — имя участника-агента (default: ai-agent)
 EOF
             exit 0
             ;;
@@ -94,19 +98,18 @@ fi
 
 echoerr() { echo "$@" >&2; }
 
+# Базовый URL задач проекта в Plane (без номера задачи).
+ISSUES_URL="${PLANE_URL}/${PLANE_WORKSPACE}/projects/${PLANE_PROJECT_IDENTIFIER}/issues"
+
 # BR-601: вызов трекера — stdout (данные) и stderr (диагностика) РАЗДЕЛЯЮТСЯ,
-# а код возврата не теряется. Раньше было `2>&1 || true`: текст ошибки
-# трекера попадал в parse_lines и считался «задачами», а `OPEN_CODE=$?`
-# брал код присваивания (всегда 0) → при недоступном OpenProject агент
-# получал «✓ Все задачи закрыты» вместо «трекер недоступен».
-# Документированные коды возврата tracker.sh: 2 — OpenProject недоступен,
-# 3 — токен истёк (tools/tracker.sh:111-112).
+# а код возврата не теряется. Документированные коды возврата tracker.sh:
+# 2 — Plane недоступен, 3 — токен истёк.
 run_tracker() { # $1=имя переменной stdout $2=имя переменной stderr, далее — аргументы tracker.sh
     local out_var="$1" err_var="$2"
     shift 2
     local err_file out err code=0
     err_file="$(mktemp)"
-    out="$(./tools/tracker.sh "$@" 2>"$err_file")" || code=$?
+    out="$("$TRACKER_SH" "$@" 2>"$err_file")" || code=$?
     err="$(cat "$err_file")"
     rm -f "$err_file"
     printf -v "$out_var" '%s' "$out"
@@ -116,19 +119,18 @@ run_tracker() { # $1=имя переменной stdout $2=имя перемен
 
 tracker_failure() { # $1=код возврата tracker.sh $2=stderr → печать и exit
     local code="$1" err="$2"
-    echoerr "Ошибка трекера (код $code): OpenProject недоступен или токен недействителен."
+    echoerr "Ошибка трекера (код $code): Plane недоступен или токен недействителен."
     [ -n "$err" ] && echoerr "$err"
     if [ "$code" = "3" ]; then
-        echoerr "Обновите TRACKER_API_TOKEN в .env.local-tracker (docs/tracker-setup.md)."
+        echoerr "Обновите PLANE_AI_TOKEN в .env.local-tracker (docs/tracker-setup.md)."
         exit 3
     fi
     exit 2
 }
 
-# 1. Открытые задачи (New/In progress/In review)
-# BR-602: `--raw` — TSV без выравнивания `column -t`: колонки разделены
-# табом, поэтому разбор по табу корректен (в human-режиме `column -t`
-# заменяет табы пробелами, и `split("\t")` давал одну колонку).
+# 1. Незавершённые задачи (backlog/unstarted/started), назначенные агенту.
+# BR-602: `--raw` — TSV без выравнивания `column -t` — колонки разделены
+# табом, разбор по табу корректен.
 OPEN_CODE=0
 OPEN_ERR=""
 run_tracker OPEN_LIST OPEN_ERR list-issues --assignee "$ASSIGNEE" --status open --limit "$LIMIT" --raw || OPEN_CODE=$?
@@ -136,7 +138,7 @@ if [ "$OPEN_CODE" -ne 0 ]; then
     tracker_failure "$OPEN_CODE" "$OPEN_ERR"
 fi
 
-# 2. Задачи в работе (In progress, narrow status filter)
+# 2. Задачи на ревью (In review), narrow status filter.
 IN_PROG_CODE=0
 IN_PROG_ERR=""
 run_tracker IN_PROG_LIST IN_PROG_ERR list-issues --assignee "$ASSIGNEE" --status in-review --limit "$LIMIT" --raw || IN_PROG_CODE=$?
@@ -146,7 +148,7 @@ if [ "$IN_PROG_CODE" -ne 0 ]; then
     IN_PROG_LIST=""
 fi
 
-# 3. Задачи за последние 7 дней (для сводки)
+# 3. Недавно закрытые (Done) — для сводки.
 RECENT_CODE=0
 RECENT_ERR=""
 run_tracker RECENT_LIST RECENT_ERR list-issues --assignee "$ASSIGNEE" --status closed --limit 5 --raw || RECENT_CODE=$?
@@ -167,15 +169,18 @@ RECENT_COUNT=$(parse_lines "$RECENT_LIST" | wc -l)
 
 if [ "$MODE" = "json" ]; then
     # JSON-вывод для парсинга. BR-602: источник — TSV (`--raw`), поэтому
-    # разбор по табу; строки без таба (например, текст ошибки в stderr)
-    # отбрасываются, чтобы в JSON не попадали мусорные записи.
+    # разбор по табу; строки без таба отбрасываются, чтобы в JSON не
+    # попадали мусорные записи.
     OPEN_JSON=$(parse_lines "$OPEN_LIST" \
-        | jq -R 'select(contains("\t")) | split("\t") | {id: .[0], subject: .[1], status: .[2]}' 2>/dev/null \
+        | jq -R --arg base "$ISSUES_URL" \
+            'select(contains("\t")) | split("\t") | {id: .[0], subject: .[1], status: .[2], url: ($base + "/" + .[0])}' 2>/dev/null \
         | jq -s '.' 2>/dev/null || echo '[]')
     cat <<EOF
 {
   "polled_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "tracker_url": "${TRACKER_URL}",
+  "tracker_url": "${PLANE_URL}",
+  "workspace": "${PLANE_WORKSPACE}",
+  "project": "${PLANE_PROJECT_IDENTIFIER}",
   "assignee": "${ASSIGNEE}",
   "open_count": ${OPEN_COUNT},
   "in_review_count": ${IN_PROG_COUNT},
@@ -192,37 +197,38 @@ if [ "$MODE" = "quiet" ]; then
 fi
 
 # Human-friendly вывод
-echo "${C_BOLD}${C_BLUE}═══ Tracker poll ═══${C_RESET}"
+echo "${C_BOLD}${C_BLUE}=== Tracker poll ===${C_RESET}"
 echo "${C_BLUE}Время:${C_RESET}     $(date '+%Y-%m-%d %H:%M:%S %Z')"
-echo "${C_BLUE}Tracker:${C_RESET}   ${TRACKER_URL}"
+echo "${C_BLUE}Tracker:${C_RESET}   ${PLANE_URL}"
+echo "${C_BLUE}Проект:${C_RESET}    ${PLANE_WORKSPACE}/${PLANE_PROJECT_IDENTIFIER}"
 echo "${C_BLUE}Assignee:${C_RESET}  ${ASSIGNEE}"
 echo ""
 
 if [ "$OPEN_COUNT" -eq 0 ] && [ "$IN_PROG_COUNT" -eq 0 ]; then
-    echo "${C_GREEN}✓${C_RESET} Все задачи закрыты. Открытых нет."
+    echo "${C_GREEN}[OK]${C_RESET} Открытых задач нет."
     echo ""
 fi
 
 if [ "$OPEN_COUNT" -gt 0 ]; then
-    echo "${C_BOLD}${C_YELLOW}📋 Открытые задачи (${OPEN_COUNT})${C_RESET}"
+    echo "${C_BOLD}${C_YELLOW}[open] Открытые задачи (${OPEN_COUNT})${C_RESET}"
     parse_lines "$OPEN_LIST"
     echo ""
 fi
 
 if [ "$IN_PROG_COUNT" -gt 0 ]; then
-    echo "${C_BOLD}${C_BLUE}🔍 В ревью (${IN_PROG_COUNT})${C_RESET}"
+    echo "${C_BOLD}${C_BLUE}[review] В ревью (${IN_PROG_COUNT})${C_RESET}"
     parse_lines "$IN_PROG_LIST"
     echo ""
 fi
 
 if [ "$RECENT_COUNT" -gt 0 ]; then
-    echo "${C_BOLD}${C_GREEN}✅ Недавно закрытые (${RECENT_COUNT})${C_RESET}"
+    echo "${C_BOLD}${C_GREEN}[done] Недавно закрытые (${RECENT_COUNT})${C_RESET}"
     parse_lines "$RECENT_LIST"
     echo ""
 fi
 
-# Доска
-echo "${C_BLUE}Kanban-доска:${C_RESET} ${TRACKER_URL}/projects/karaoke/boards/10"
+# Доска проекта
+echo "${C_BLUE}Задачи проекта:${C_RESET} ${ISSUES_URL}/"
 echo ""
 echo "${C_BLUE}Команды:${C_RESET}"
 echo "  $ ./tools/tracker.sh list-issues --assignee ${ASSIGNEE} --status open"

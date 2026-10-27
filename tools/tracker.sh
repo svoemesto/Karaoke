@@ -1,33 +1,37 @@
 #!/usr/bin/env bash
 # =====================================================================
-# tools/tracker.sh — главный CLI для OpenProject (AI-агент)
+# tools/tracker.sh — главный CLI трекера (Plane, AI-агент)
 # =====================================================================
 # Подкоманды:
-#   list-projects                                  — список проектов
+#   list-projects                                  — список проектов workspace
 #   list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review]
-#                  [--limit N] [--raw]               — список задач (work packages)
+#                  [--limit N] [--raw]               — список задач
 #   get-issue ID                                   — детали задачи (JSON)
 #   claim-issue ID                                 — назначить на агента + In progress
 #   mark-review ID                                 — перевести в In review (работа готова)
 #   add-comment ID --file FILE                     — добавить markdown-комментарий
-#   close-issue ID                                 — перевести в Closed
+#   close-issue ID                                 — перевести в Done
 #   reopen-issue ID                                — перевести обратно в In progress
 #   create-issue --project-id ID --type-id ID --subject S
 #                 [--description D]                — создать задачу
-#   healthcheck                                    — проверить доступность OpenProject
+#   delete-issue ID                                — удалить задачу (smoke-тест)
+#   healthcheck                                    — проверить доступность Plane
+#
+# ID задачи: `42` (sequence_id проекта), `KARAOKE-42`, `#42`, `op:403`
+# (номер OpenProject — по таблице соответствия), UUID.
 #
 # Использование:
 #   source .env.local-tracker
 #   ./tools/tracker.sh <subcommand> [args...]
 #
 # Workflow:
-#   1. user:    $ tracker create-issue --...          → статус New
-#   2. agent:   $ tracker claim-issue 42              → статус In progress, assignee=ai-agent
+#   1. user:    $ tracker create-issue --...          → состояние New
+#   2. agent:   $ tracker claim-issue 42              → In progress, assignee=ai-agent
 #   3. agent:   # ... работа ...
 #   4. agent:   $ tracker add-comment 42 --file report.md
-#   5. agent:   $ tracker mark-review 42              → статус In review
+#   5. agent:   $ tracker mark-review 42              → In review
 #   6. user:    проверяет работу
-#   7. user:    $ tracker close-issue 42              → статус Closed
+#   7. user:    $ tracker close-issue 42              → Done
 #   или 5'.    $ tracker reopen-issue 42             → вернуть в In progress
 # =====================================================================
 
@@ -39,30 +43,34 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}" && cd .. && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/tracker-lib.sh"
 
-TRACKER_CLI_VERSION="295.2.0"
+TRACKER_CLI_VERSION="296.0.0"
 
 # --- Помощь ---
 tracker_help() {
     cat <<EOF
-tools/tracker.sh v${TRACKER_CLI_VERSION} — CLI для OpenProject (AI-агент)
+tools/tracker.sh v${TRACKER_CLI_VERSION} — CLI трекера Plane (AI-агент)
 
 USAGE:
     ./tools/tracker.sh <subcommand> [args...]
 
 SUBCOMMANDS:
     list-projects
-        Список всех проектов в OpenProject.
+        Список проектов workspace Plane.
 
     list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review] [--limit N] [--raw]
-        Список задач (work packages) с фильтрацией.
+        Список задач проекта с фильтрацией.
         Пример: ./tools/tracker.sh list-issues --assignee ai-agent --status open
-        --raw — TSV без выравнивания `column -t` (для машинного разбора;
+        --status open   — все незавершённые (backlog/unstarted/started);
+        --status closed — завершённые (Done);
+        --status in-review — только состояние In review;
+        --status "<имя>"  — конкретное состояние проекта.
+        --raw — TSV без выравнивания \`column -t\` (для машинного разбора;
           по умолчанию — выровненный человекочитаемый вывод).
 
     get-issue ID
-        Детали задачи в формате JSON.
-        ID — это числовой ID work package (например, 42).
-        Пример: ./tools/tracker.sh get-issue 42
+        Детали задачи в формате JSON (включая комментарии).
+        ID: 42 | KARAOKE-42 | #42 | op:403 | UUID.
+        Пример: ./tools/tracker.sh get-issue KARAOKE-42
 
     claim-issue ID
         Назначить задачу на агента (TRACKER_AGENT_USER) и перевести в In progress.
@@ -70,32 +78,45 @@ SUBCOMMANDS:
     mark-review ID
         Перевести задачу в In review (после публикации отчёта).
         Это сигнал пользователю, что работа завершена и готова к проверке.
+        Состояние In review должно существовать в проекте (группа started);
+        создать его автоматически можно с TRACKER_CREATE_REVIEW_STATE=1.
 
     add-comment ID --file FILE
-        Добавить markdown-комментарий (OpenProject принимает markdown нативно).
+        Добавить комментарий: markdown конвертируется в HTML (Plane хранит HTML),
+        таблицы и блоки кода сохраняются.
         Пример: ./tools/tracker.sh add-comment 42 --file report.md
 
     close-issue ID
-        Перевести задачу в Closed (финал; обычно делает пользователь после ревью).
+        Перевести задачу в Done (финал; обычно делает пользователь после ревью).
 
     reopen-issue ID
         Перевести задачу обратно в In progress (например, если нужно доработать).
 
     create-issue --project-id ID --type-id ID --subject S [--description D]
         Создать задачу.
-        project-id и type-id — числовые ID (получить через list-projects и GET /api/v3/types).
-        Пример: ./tools/tracker.sh create-issue --project-id 1 --type-id 1 --subject "Test task"
+        --project-id — UUID проекта (см. list-projects).
+        --type-id — метка типа: имя (\`type:task\`, можно коротко \`task\`) или UUID.
+        --description — markdown (конвертируется в HTML).
+        Пример: ./tools/tracker.sh create-issue --project-id <uuid> --type-id type:task --subject "Test task"
+
+    delete-issue ID
+        Удалить задачу (используется smoke-тестом; в рабочем цикле не нужен).
 
     healthcheck
-        Проверить доступность OpenProject (без аутентификации, через /api/v3/health_check).
+        Проверить доступность Plane: GET /users/me/ + список задач проекта.
 
 ENVIRONMENT (source .env.local-tracker):
-    TRACKER_URL          — базовый URL OpenProject (например, http://localhost:8080)
-    TRACKER_USER         — username для Basic Auth
-    TRACKER_API_TOKEN    — API token (UI → My Account → Access Tokens → Generate)
-    TRACKER_AGENT_USER   — username агента (default = TRACKER_USER)
-    TRACKER_LOG_LEVEL    — info/debug/error (default info)
+    PLANE_URL            — базовый URL Plane (например, https://tracker.sm-karaoke.ru)
+    PLANE_WORKSPACE      — workspace (например, svoemesto)
+    PLANE_AI_TOKEN       — API-токен агента (заголовок X-API-Key)
+    PLANE_PROJECT_ID     — UUID проекта по умолчанию (необязательно;
+                           иначе проект ищется по PLANE_PROJECT_IDENTIFIER, default KARAOKE)
+    TRACKER_AGENT_USER   — имя участника-агента (default: ai-agent)
+    TRACKER_OP_MAP       — таблица OpenProject → Plane для \`op:403\`
+                           (CSV или JSON; default: knowledge/system/infra/op-plane-mapping.csv)
     TRACKER_HTTP_TIMEOUT — curl timeout в секундах (default 30)
+    TRACKER_HTTP_MIN_INTERVAL — пауза перед каждым запросом, секунды (default 0)
+    TRACKER_LOG_LEVEL    — info/debug/error (default info)
 
 WORKFLOW:
     user  : create-issue → New
@@ -103,12 +124,12 @@ WORKFLOW:
     agent : ... work + report.md ...
     agent : add-comment + mark-review → In review
     user  : review report
-    user  : close-issue → Closed  (или agent: reopen-issue → In progress)
+    user  : close-issue → Done  (или agent: reopen-issue → In progress)
 
 EXIT CODES:
     0 — успех
-    1 — общая ошибка
-    2 — OpenProject недоступен
+    1 — ошибка использования/валидации
+    2 — трекер недоступен (сеть/URL)
     3 — HTTP 401/403 (токен истёк)
     4 — HTTP 429 (rate-limit)
     5 — HTTP 4xx (другие клиентские ошибки)
@@ -207,6 +228,14 @@ case "$SUBCOMMAND" in
             exit 1
         fi
         tracker_reopen_issue "$1"
+        ;;
+
+    delete-issue)
+        if [ $# -ne 1 ]; then
+            echo "${C_RED}ERROR${C_RESET}: usage: tracker.sh delete-issue ID" >&2
+            exit 1
+        fi
+        tracker_delete_issue "$1"
         ;;
 
     create-issue)

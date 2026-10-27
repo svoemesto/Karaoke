@@ -67,3 +67,5 @@ knowledge/system/infra/ci-tools.md	path	pom.xml	honest-gap
 archive/docs/features/songs-table.md	path	songs.html	archived-record
 archive/docs/features/songs-table.md	path	songs2.html	archived-record
 archive/docs/features/songs-table.md	path	area_left_column.html	archived-record
+knowledge/system/infra/harbor-registry.md	endpoint	/api/v2.0/projects	external-not-api
+knowledge/system/infra/ci-tools.md	path	start.sh	host-path

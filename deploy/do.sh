@@ -437,6 +437,49 @@ function do_stop_app() {
 # под `set -e` продолжал деплой, на проде тянулся ПРЕДЫДУЩИЙ образ ":1",
 # скрипт печатал WARN «Image is up to date» и завершался с кодом 0 —
 # оператор видел «Готово», а прод работал на старом образе.
+
+# Harbor (инфра-сервер dub2000): primary-каталог образов проекта.
+# HARBOR_PUSH=1 — dual push: образ уходит и в текущий registry (его тянет прод),
+#   и в Harbor (каталог, UI, retention, робот-аккаунты);
+# HARBOR_PUSH=0 — только текущий registry (поведение до перехода, дефолт).
+# Если Harbor недоступен — WARN, деплой не блокируем: push в наш registry уже состоялся.
+HARBOR_PUSH="${HARBOR_PUSH:-0}"
+HARBOR_HOST="${HARBOR_HOST:-}"
+HARBOR_USER="${HARBOR_USER:-}"
+HARBOR_PASSWORD="${HARBOR_PASSWORD:-}"
+HARBOR_NAMESPACE="${HARBOR_NAMESPACE:-svoemesto}"
+HARBOR_LOGGED_IN=0
+
+function do_harbor_login() {
+  [[ "$HARBOR_PUSH" == "1" ]] || return 0
+  [[ "$HARBOR_LOGGED_IN" == "1" ]] && return 0
+  if [[ -z "$HARBOR_HOST" || -z "$HARBOR_USER" ]]; then
+    echo "WARN: HARBOR_HOST/HARBOR_USER не заданы — push в Harbor пропущен" >&2
+    return 0
+  fi
+  if printf '%s' "${HARBOR_PASSWORD}" | ${DOCKER} login "${HARBOR_HOST}" -u "${HARBOR_USER}" --password-stdin >/dev/null 2>&1; then
+    HARBOR_LOGGED_IN=1
+  else
+    echo "WARN: логин в Harbor не удался — push в Harbor пропущен" >&2
+  fi
+}
+
+# Публикует уже собранный образ в Harbor (dual push). $1 — имя, $2 — тег.
+function do_push_harbor() {
+  [[ "$HARBOR_PUSH" == "1" ]] || return 0
+  do_harbor_login
+  [[ "$HARBOR_LOGGED_IN" == "1" ]] || return 0
+  local name="$1" tag="$2"
+  local dst="${HARBOR_HOST}/${HARBOR_NAMESPACE}/${name}:${tag}"
+  if ! ${DOCKER} tag "${DOCKER_REGISTRY}/${name}:${tag}" "$dst"; then
+    echo "WARN: не удалось проставить тег Harbor для ${name}:${tag}" >&2
+    return 0
+  fi
+  if ! ${DOCKER} push "$dst" >/dev/null 2>&1; then
+    echo "WARN: push в Harbor не прошёл ($dst) — деплой не блокируем" >&2
+  fi
+}
+
 function do_push() {
   echo "Pushing images"
   do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
@@ -445,8 +488,11 @@ function do_push() {
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}" >&2; return 1; }
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-webvue3:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-app "${BUILD_VERSION}"
+  do_push_harbor karaoke-app "${BUILD_VERSION}"
   do_push_hub karaoke-web "${BUILD_VERSION}"
+  do_push_harbor karaoke-web "${BUILD_VERSION}"
   do_push_hub karaoke-webvue3 "${BUILD_VERSION}"
+  do_push_harbor karaoke-webvue3 "${BUILD_VERSION}"
   announce "Pushing!"
 }
 
@@ -455,6 +501,7 @@ function do_push_app() {
   do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-app:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-app "${BUILD_VERSION}"
+  do_push_harbor karaoke-app "${BUILD_VERSION}"
   announce "П+ушинг апп"
 }
 
@@ -463,6 +510,7 @@ function do_push_demucs() {
   do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
   ${DOCKER} image push "$DOCKER_REGISTRY/demucs:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/demucs:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub demucs "${BUILD_VERSION}"
+  do_push_harbor demucs "${BUILD_VERSION}"
   announce "П+ушинг дем+укс"
 }
 
@@ -471,6 +519,7 @@ function do_push_web() {
   do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-web "${BUILD_VERSION}"
+  do_push_harbor karaoke-web "${BUILD_VERSION}"
   announce "П+ушинг веб"
 }
 
@@ -479,6 +528,7 @@ function do_push_webvue3() {
   do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-webvue3:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-webvue3 "${BUILD_VERSION}"
+  do_push_harbor karaoke-webvue3 "${BUILD_VERSION}"
   announce "П+ушинг вебвь+ю"
 }
 
@@ -487,6 +537,7 @@ function do_push_public() {
   do_registry_login || { echo "ERROR: логин в registry не удался — push не выполняем" >&2; return 1; }
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" || { echo "ERROR: push не удался: ${DOCKER_REGISTRY}/karaoke-public:${BUILD_VERSION}" >&2; return 1; }
   do_push_hub karaoke-public "${BUILD_VERSION}"
+  do_push_harbor karaoke-public "${BUILD_VERSION}"
   announce "П+ушинг п+аблик"
 }
 

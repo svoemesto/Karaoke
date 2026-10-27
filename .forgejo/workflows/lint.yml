@@ -147,7 +147,7 @@ jobs:
 
       - name: Upload ktlint reports
         if: always()
-        uses: https://github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: https://github.com/actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v4.6.2
         with:
           name: ktlint-reports
           path: |
@@ -231,7 +231,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: https://github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: https://github.com/actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v4.6.2
         with:
           name: backend-test-reports
           path: |

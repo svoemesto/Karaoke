@@ -37,6 +37,12 @@ MODERN_SPEC_MARKER = "## Knowledge References"
 # Required field markers in the section. The field name appears as `**Issue ID**:` etc.
 REQUIRED_FIELDS = ("Issue ID", "Title", "Workflow")
 
+# Образец значения Issue ID. T4: добавлена форма OpenProject ``op:403``
+# (двоеточие с числом); формы ``KARAOKE-42``, ``42``, ``#42``, ``none``
+# принимались и раньше. Формы ссылок не расширяются дальше — полный URL
+# задаче в поле Issue ID не поддерживается намеренно.
+ISSUE_VALUE_RE = r"([A-Za-z0-9_-]+(?::[0-9]+)?)\b"
+
 # Required commands inside Workflow table.
 REQUIRED_COMMANDS = (
     "tracker.sh claim-issue",
@@ -53,13 +59,19 @@ def extract_issue_id(section: str) -> str | None:
       2. Заголовок: ``### Issue ID`` — значение в той же строке
          (``### Issue ID: 402``) или на следующих непустых строках.
 
+    Значение принимается в формах, которые понимает CLI трекера на Plane:
+      * ``KARAOKE-42`` — ссылка Plane (проект KARAOKE, sequence 42);
+      * ``42`` / ``#42`` — номер задачи (sequence_id) по умолчанию;
+      * ``op:403`` — номер OpenProject (разрешается таблицей соответствия);
+      * ``none`` — задачи нет (спонтанная работа, Workflow не требуется).
+
     BR-596: раньше поддерживался только формат (1) — спека с форматом (2)
     проходила проверку наличия поля, но её Issue ID не извлекался, и
     обязательные Workflow-команды не проверялись (fail-open).
     """
     # 1) Жирный формат.
     match = re.search(
-        r"\*\*\s*Issue ID\s*\*\*\s*:\s*[`']?(?:#?)([A-Za-z0-9_-]+)\b",
+        r"\*\*\s*Issue ID\s*\*\*\s*:\s*[`']?(?:#?)" + ISSUE_VALUE_RE,
         section,
     )
     if match:
@@ -72,7 +84,7 @@ def extract_issue_id(section: str) -> str | None:
 
     # Значение в той же строке (после «:», «-», «—» или просто пробел).
     tail = heading.group(1).lstrip(" \t:-\u2014\u2013")
-    value = re.match(r"[`']?(?:#?)([A-Za-z0-9_-]+)\b", tail)
+    value = re.match(r"[`']?(?:#?)" + ISSUE_VALUE_RE, tail)
     if value:
         return value.group(1)
 
@@ -80,7 +92,7 @@ def extract_issue_id(section: str) -> str | None:
     for line in section[heading.end():].split("\n")[1:]:
         if not line.strip():
             break
-        value = re.match(r"\s*(?:[-*]\s*)?[`']?(?:#?)([A-Za-z0-9_-]+)\b", line)
+        value = re.match(r"\s*(?:[-*]\s*)?[`']?(?:#?)" + ISSUE_VALUE_RE, line)
         if value:
             return value.group(1)
     return None
@@ -153,11 +165,13 @@ def check_spec(spec_path: Path) -> list[str]:
 
 
 def run_self_test() -> int:
-    """Фикстуры «до/после» (BR-596)."""
+    """Фикстуры «до/после» (BR-596, T4)."""
     failures = 0
+    checks = 0
 
     def expect(name: str, section: str, want_issue: str | None) -> None:
-        nonlocal failures
+        nonlocal failures, checks
+        checks += 1
         got = extract_issue_id(section)
         if got != want_issue:
             print(
@@ -187,6 +201,20 @@ def run_self_test() -> int:
         "## Issue ID" + nl + "`#77`" + nl,
         "77",
     )
+    # T4: формы ссылок Plane/OpenProject (секции привязки).
+    expect("Plane KARAOKE-42", "**Issue ID**: KARAOKE-42" + nl, "KARAOKE-42")
+    expect(
+        "Plane KARAOKE-42 в заголовке",
+        "### Issue ID: KARAOKE-42" + nl,
+        "KARAOKE-42",
+    )
+    expect("Plane KARAOKE-42 в обратных кавычках", "**Issue ID**: `KARAOKE-42`" + nl, "KARAOKE-42")
+    expect("OpenProject op:403", "**Issue ID**: op:403" + nl, "op:403")
+    expect(
+        "OpenProject op:403 в заголовке",
+        "### Issue ID: `op:403`" + nl,
+        "op:403",
+    )
     expect("нет поля", "**Title**: x" + nl, None)
 
     # Спека с заголовком должна реально проверять Workflow-команды (BR-596).
@@ -203,6 +231,7 @@ def run_self_test() -> int:
             + "| claim | `tracker.sh claim-issue 402` |" + nl,
             encoding="utf-8",
         )
+        checks += 1
         errs = check_spec(spec)
         # Спека объявляет Issue ID = 402, но содержит только команду claim.
         # Если Workflow-команды реально проверяются — guard обязан сообщить
@@ -220,10 +249,63 @@ def run_self_test() -> int:
             )
             failures += 1
 
+    # T4: ссылка Plane в заголовке тоже требует Workflow-команды.
+    with tempfile.TemporaryDirectory() as tmp:
+        spec = Path(tmp) / "spec.md"
+        spec.write_text(
+            "## Knowledge References" + nl + nl
+            + "- knowledge/" + nl + nl
+            + "## OpenProject Tracking" + nl + nl
+            + "### Issue ID: KARAOKE-42" + nl + nl
+            + "**Title**: x" + nl + nl
+            + "### Workflow" + nl + nl
+            + "| Step | Command |" + nl + "|---|---|" + nl
+            + "| claim | `tracker.sh claim-issue 42` |" + nl,
+            encoding="utf-8",
+        )
+        checks += 1
+        errs = check_spec(spec)
+        missing = [e for e in errs if "missing required command" in e]
+        if missing:
+            print(
+                "  ok   KARAOKE-42 в заголовке: Workflow-команды проверяются "
+                f"({len(missing)} недостающих найдено)"
+            )
+        else:
+            print(
+                "  FAIL KARAOKE-42 в заголовке: Workflow-команды не проверяются (fail-open)",
+                file=sys.stderr,
+            )
+            failures += 1
+
+    # T4: Issue ID = none не требует Workflow (прежнее поведение).
+    with tempfile.TemporaryDirectory() as tmp:
+        spec = Path(tmp) / "spec.md"
+        spec.write_text(
+            "## Knowledge References" + nl + nl
+            + "- knowledge/" + nl + nl
+            + "## OpenProject Tracking" + nl + nl
+            + "**Issue ID**: `none`" + nl + nl
+            + "**Title**: x" + nl + nl
+            + "**Workflow**" + nl + nl
+            + "нет задач" + nl,
+            encoding="utf-8",
+        )
+        checks += 1
+        errs = check_spec(spec)
+        if not errs:
+            print("  ok   Issue ID none: Workflow не требуется")
+        else:
+            print(
+                f"  FAIL Issue ID none: неожиданные ошибки {errs}",
+                file=sys.stderr,
+            )
+            failures += 1
+
     if failures:
-        print(f"SELFTEST FAIL: {failures} фикур не совпали", file=sys.stderr)
+        print(f"SELFTEST FAIL: {failures} из {checks} фикстур не совпали", file=sys.stderr)
         return 1
-    print("SELFTEST OK: 8/8 фикстур совпали")
+    print(f"SELFTEST OK: {checks}/{checks} фикстур совпали")
     return 0
 
 

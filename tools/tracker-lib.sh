@@ -1,57 +1,65 @@
 #!/usr/bin/env bash
 # =====================================================================
-# tools/tracker-lib.sh — общие функции для CLI OpenProject
+# tools/tracker-lib.sh — функции CLI трекера (Plane API v1)
 # =====================================================================
 # Используется через source из tools/tracker.sh и других tracker-скриптов.
 # Не предназначен для прямого вызова.
 #
+# Контракт (см. .scratch/karaoke/wayfinding/tracker-migration/migration/
+# PLANE-CONTRACT.md и docs/tracker-setup.md):
+#   - авторизация: заголовок X-API-Key: $PLANE_AI_TOKEN (токен не попадает
+#     в argv — curl получает его через stdin, `--config -`, как в BR-605);
+#   - TRACKER_URL остаётся экспортированной и равен PLANE_URL (для
+#     обратной совместимости со старым tracker-poll/документами);
+#   - ID задачи принимается как: `42` (sequence_id проекта по умолчанию),
+#     `KARAOKE-42` (полная ссылка) или `op:403` (номер OpenProject —
+#     разрешается по таблице соответствия TRACKER_OP_MAP);
+#   - коды выхода: 0 успех, 1 ошибка использования/валидации, 2 трекер
+#     недоступен, 3 401/403, 4 429, 5 прочие 4xx, 6 5xx;
+#   - 429: пауза (Retry-After, иначе нарастающий backoff) и повтор,
+#     а не мгновенный цикл.
+#
 # Содержит:
-#   - tracker_load_env()    — загрузка .env.local-tracker + валидация
-#   - tracker_require_tools() — проверка curl, jq, bash
-#   - tracker_log_audit()   — JSON-логирование в logs/tracker-agent.log
-#   - tracker_http_request() — HTTP wrapper с retry на 429
-#   - tracker_md_to_text()  — простой markdown конвертер для комментариев
-#   - tracker_healthcheck() — GET /health_check
-#   - tracker_list_projects() — GET /api/v3/projects
-#   - tracker_get_issue()  — GET /api/v3/work_packages/{id}
-#   - tracker_create_issue() — POST /api/v3/work_packages
-#   - tracker_list_issues() — GET /api/v3/work_packages?filter
-#   - tracker_claim_issue() — PATCH /api/v3/work_packages/{id} (assignee + status)
-#   - tracker_add_comment() — POST /api/v3/work_packages/{id}/activities
-#   - tracker_close_issue() — PATCH /api/v3/work_packages/{id} (status → closed)
-#   - tracker_reopen_issue() — PATCH /api/v3/work_packages/{id} (status → open)
+#   - tracker_load_env()        — загрузка .env.local-tracker + валидация
+#   - tracker_require_tools()   — проверка curl, jq (+ python3 для markdown)
+#   - tracker_log_audit()       — JSON-логирование в logs/tracker-agent.log
+#   - tracker_http_request()    — HTTP wrapper с retry на 429
+#   - tracker_md_to_text()      — markdown → HTML (Plane принимает HTML)
+#   - tracker_healthcheck()     — GET /users/me/ + GET .../issues/?per_page=1
+#   - tracker_list_projects()   — GET /workspaces/{ws}/projects/
+#   - tracker_list_issues()     — GET .../issues/ + фильтрация на клиенте
+#   - tracker_get_issue()       — GET .../issues/{id}/ + комментарии
+#   - tracker_create_issue()    — POST .../issues/
+#   - tracker_claim_issue()     — PATCH .../issues/{id}/ (assignee + In progress)
+#   - tracker_add_comment()     — POST .../issues/{id}/comments/
+#   - tracker_close_issue()     — PATCH .../issues/{id}/ (state → Done)
+#   - tracker_mark_review()     — PATCH .../issues/{id}/ (state → In review)
+#   - tracker_reopen_issue()    — PATCH .../issues/{id}/ (state → In progress)
+#   - tracker_delete_issue()    — DELETE .../issues/{id}/ (для smoke-теста)
 #
-# BR-604 (аудит #336, пакет PKG-S3-30): ветка «соединение не установлено»
-# была НЕДОСТИЖИМА. `curl -w "%{http_code}" ... || echo "000"` при ошибке
-# соединения печатал в stdout "000" (из -w) И добавлял ещё "000" из `||` —
-# получалось "000000", что не совпадало ни с одной веткой `case`. Guard
-# сообщал «неожиданный HTTP статус 000000» и возвращал 5 вместо 2.
-# Теперь код возврата curl проверяется явно, а статус приводится к "000".
-#
-# BR-614 (аудит #336, пакет PKG-S3-30): ошибка записи аудит-лога полностью
-# проглатывалась (`|| true` на mkdir и на echo) — при недоступном каталоге
-# лога не было ни ошибки, ни следа. Теперь в stderr печатается предупреждение
-# (один раз за сессию, не на каждый вызов).
+# BR-611: библиотека ПОДКЛЮЧАЕТСЯ через `source` — она не имеет права
+# менять настройки вызывающего шелла. Каждый вызывающий скрипт задаёт
+# режим шелла сам:
+#   - tracker.sh, tracker-poll.sh, tracker-smoke-test.sh → `set -euo pipefail`
+#   - tracker-bootstrap.sh, tracker-implement-done.sh    → `set -uo pipefail`
+# Библиотека использует только локальные проверки кодов возврата.
 # =====================================================================
 
-# BR-611: библиотека ПОДКЛЮЧАЕТСЯ через `source` — она не имеет права
-# менять настройки вызывающего шелла. Раньше здесь стояло `set -euo pipefail`,
-# и `source tracker-lib.sh` включал errexit обратно в скриптах, которые
-# явно его отключают (tools/tracker-bootstrap.sh, tools/tracker-implement-done.sh:
-# `set -uo pipefail`) и строят на этом свой контракт кодов возврата (0/1/2).
-# Теперь каждый вызывающий скрипт задаёт режим шелла сам:
-#   - tracker.sh, tracker-poll.sh, tracker-spec-for-issue.sh → `set -euo pipefail`
-#   - tracker-bootstrap.sh, tracker-implement-done.sh      → `set -uo pipefail`
-# Библиотека использует только локальные проверки кодов возврата.
-
 # --- Константы ---
-TRACKER_LIB_VERSION="295.2.0"
+TRACKER_LIB_VERSION="296.0.0"
 TRACKER_LOG_FILE_DEFAULT="${REPO_ROOT:-/home/nsa/Karaoke}/logs/tracker-agent.log"
 TRACKER_HTTP_RETRIES=3
-TRACKER_HTTP_BACKOFFS=(2 4 8)  # секунды
+TRACKER_HTTP_BACKOFFS=(2 4 8)  # секунды, если сервер не прислал Retry-After
 
 # BR-614: предупреждение о недоступности аудит-лога печатается ОДИН раз.
 TRACKER_AUDIT_WARNED=0
+
+# Кэши метаданных в рамках одного процесса (каждый вызов tracker.sh —
+# отдельный процесс, но list-issues/claim делают по несколько запросов).
+TRACKER_PROJECT_ID_CACHE="${TRACKER_PROJECT_ID_CACHE:-}"
+TRACKER_STATES_JSON_CACHE="${TRACKER_STATES_JSON_CACHE:-}"
+TRACKER_LABELS_JSON_CACHE="${TRACKER_LABELS_JSON_CACHE:-}"
+TRACKER_MEMBERS_JSON_CACHE="${TRACKER_MEMBERS_JSON_CACHE:-}"
 
 # --- Цвета (если TTY) ---
 if [ -t 1 ]; then
@@ -81,11 +89,14 @@ tracker_load_env() {
     source "$env_file"
     set +a
 
-    # Валидация обязательных переменных
+    # Убираем завершающий слэш у PLANE_URL, иначе в путях будет `//api/v1`.
+    PLANE_URL="${PLANE_URL%/}"
+
+    # Валидация обязательных переменных Plane.
     local missing=()
-    [ -z "${TRACKER_URL:-}" ] && missing+=("TRACKER_URL")
-    [ -z "${TRACKER_USER:-}" ] && missing+=("TRACKER_USER")
-    [ -z "${TRACKER_API_TOKEN:-}" ] && missing+=("TRACKER_API_TOKEN")
+    [ -z "${PLANE_URL:-}" ] && missing+=("PLANE_URL")
+    [ -z "${PLANE_WORKSPACE:-}" ] && missing+=("PLANE_WORKSPACE")
+    [ -z "${PLANE_AI_TOKEN:-}" ] && missing+=("PLANE_AI_TOKEN")
 
     if [ ${#missing[@]} -gt 0 ]; then
         echo "${C_RED}ERROR${C_RESET}: обязательные переменные не заданы в ${env_file}: ${missing[*]}" >&2
@@ -93,17 +104,26 @@ tracker_load_env() {
     fi
 
     # Defaults
-    TRACKER_AGENT_USER="${TRACKER_AGENT_USER:-$TRACKER_USER}"
+    TRACKER_AGENT_USER="${TRACKER_AGENT_USER:-ai-agent}"
     TRACKER_LOG_LEVEL="${TRACKER_LOG_LEVEL:-info}"
     TRACKER_HTTP_TIMEOUT="${TRACKER_HTTP_TIMEOUT:-30}"
+    # Необязательная пауза перед каждым HTTP-запросом (секунды, дробные
+    # допустимы). Нужна smoke-тесту и ручным прогонам, чтобы не упираться
+    # в лимит Plane (60 запросов/мин на пользователя).
+    TRACKER_HTTP_MIN_INTERVAL="${TRACKER_HTTP_MIN_INTERVAL:-0}"
+    # Идентификатор проекта по умолчанию (KARAOKE); используется, когда
+    # PLANE_PROJECT_ID не задан в окружении.
+    PLANE_PROJECT_IDENTIFIER="${PLANE_PROJECT_IDENTIFIER:-KARAOKE}"
+    # Таблица соответствия OpenProject → Plane для формы `op:403`.
+    TRACKER_OP_MAP="${TRACKER_OP_MAP:-${REPO_ROOT:-.}/knowledge/system/infra/op-plane-mapping.csv}"
+    # Идентификаторы состояний/меток проекта (необязательный кэш T3/T5).
+    TRACKER_PLANE_IDS="${TRACKER_PLANE_IDS:-${REPO_ROOT:-.}/knowledge/system/infra/plane-ids.json}"
     LOG_FILE="${LOG_FILE:-${TRACKER_LOG_FILE_DEFAULT}}"
 
-    # IMPORTANT: OpenProject Basic Auth принимает только username='apikey' и
-    # password=TRACKER_API_TOKEN. См. OpenProject::Authentication::Strategies::Warden::UserBasicAuth.
-    # TRACKER_USER используется ТОЛЬКО для фильтра и отображения (whoami),
-    # а в Authorization header передаётся 'apikey'/'*' как username.
-    TRACKER_BASIC_USERNAME="apikey"
-    TRACKER_BASIC_PASSWORD="$TRACKER_API_TOKEN"
+    # TRACKER_URL — обратная совместимость: часть скриптов и документации
+    # читает его. На Plane это тот же базовый URL, что и PLANE_URL.
+    TRACKER_URL="${PLANE_URL}"
+    export TRACKER_URL
 }
 
 # =====================================================================
@@ -187,53 +207,48 @@ tracker_log_audit() {
 # =====================================================================
 # tracker_http_request — HTTP wrapper с retry на 429 + аудит-логирование
 # =====================================================================
+# $1 method, $2 endpoint (относительно /api/v1), $3 body, $4 имя команды.
+# В stdout — тело ответа. В stderr — диагностика. Код возврата — контракт.
 tracker_http_request() {
     local method="$1"
     local endpoint="$2"
     local body="${3:-}"
     local cmd_name="${4:-http}"
 
-    local url="${TRACKER_URL}${endpoint}"
+    local url="${PLANE_URL%/}/api/v1${endpoint}"
     local start_ts end_ts duration_ms http_status attempt retry_count=0
-    local response response_file
+    local response_file headers_file
     response_file=$(mktemp)
-    trap "rm -f '$response_file'" RETURN
+    headers_file=$(mktemp)
+    trap "rm -f '$response_file' '$headers_file'" RETURN
 
-    # OpenProject Basic Auth принимает username='apikey' и password=API-токен
-    # (см. UserBasicAuth warden-strategy). TRACKER_USER используется только
-    # для whoami/log; в Authorization header всегда идёт 'apikey'.
-    #
-    # BR-605 (OpenProject #382): заголовок Authorization НЕ передаётся через
-    # argv. Раньше было `-H "Authorization: Basic ${auth_header}"` — base64 от
-    # admin-токена трекера виден в `ps -eo args` ЛЮБОМУ пользователю машины.
-    # Теперь curl получает заголовок через stdin (`--config -`), в argv остаются
-    # только флаги и URL.
-    local auth_header
-    auth_header=$(printf '%s:%s' "$TRACKER_BASIC_USERNAME" "$TRACKER_BASIC_PASSWORD" | base64 -w 0)
+    # Пауза перед запросом, если задана (защита от 429 при серийных вызовах).
+    if [ "${TRACKER_HTTP_MIN_INTERVAL}" != "0" ] && [ "${TRACKER_HTTP_MIN_INTERVAL}" != "" ]; then
+        sleep "$TRACKER_HTTP_MIN_INTERVAL"
+    fi
 
     for attempt in $(seq 1 $((TRACKER_HTTP_RETRIES + 1))); do
         start_ts=$(date +%s%N)
 
-        # BR-604: код возврата curl проверяется явно. Раньше `|| echo "000"`
-        # дописывал "000" к уже напечатанному curl'ом "000" (из -w) — выходило
-        # "000000", и ветка «соединение не установлено» была недостижима.
+        # Токен НЕ передаётся через argv (BR-605): только через stdin в
+        # curl --config -, иначе PAT виден в `ps -eo args` любому юзеру.
         local curl_rc=0
         if [ -n "$body" ]; then
-            http_status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+            http_status=$(curl -sS -D "$headers_file" -o "$response_file" -w "%{http_code}" \
                 --config - \
                 -X "$method" \
                 --max-time "$TRACKER_HTTP_TIMEOUT" \
                 -H "Content-Type: application/json" \
                 -H "Accept: application/json" \
-                --data-raw "$body" \
-                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"") || curl_rc=$?
+                --data-binary "$body" \
+                "$url" 2>/dev/null <<<"header = \"X-API-Key: ${PLANE_AI_TOKEN}\"") || curl_rc=$?
         else
-            http_status=$(curl -sS -o "$response_file" -w "%{http_code}" \
+            http_status=$(curl -sS -D "$headers_file" -o "$response_file" -w "%{http_code}" \
                 --config - \
                 -X "$method" \
                 --max-time "$TRACKER_HTTP_TIMEOUT" \
                 -H "Accept: application/json" \
-                "$url" 2>/dev/null <<<"header = \"Authorization: Basic ${auth_header}\"") || curl_rc=$?
+                "$url" 2>/dev/null <<<"header = \"X-API-Key: ${PLANE_AI_TOKEN}\"") || curl_rc=$?
         fi
 
         # При недоступном сервере статус всегда приводим к "000".
@@ -252,25 +267,30 @@ tracker_http_request() {
                 ;;
             401|403)
                 tracker_log_audit "$cmd_name" "${method} ${endpoint}" "$http_status" "$duration_ms" "Authentication failed" "$retry_count"
-                echo "${C_RED}ERROR${C_RESET}: TRACKER_API_TOKEN истёк или отозван. Обновите токен в .env.local-tracker" >&2
-                echo "  Создать новый: UI → My Account → Access Tokens → Generate" >&2
+                echo "${C_RED}ERROR${C_RESET}: PLANE_AI_TOKEN истёк или отозван. Обновите токен в .env.local-tracker" >&2
+                echo "  Создать новый: Plane → Workspace settings → API tokens" >&2
                 return 3
                 ;;
             429)
                 if [ $retry_count -lt $TRACKER_HTTP_RETRIES ]; then
+                    local retry_after
+                    retry_after=$(awk -F': *' 'tolower($1)=="retry-after"{gsub("\r", "", $2); print $2}' "$headers_file" 2>/dev/null | tail -1)
                     local backoff=${TRACKER_HTTP_BACKOFFS[$retry_count]}
-                    echo "${C_YELLOW}WARN${C_RESET}: HTTP 429, retry $((retry_count + 1))/${TRACKER_HTTP_RETRIES} через ${backoff}s..." >&2
+                    if [[ "${retry_after}" =~ ^[0-9]+$ ]] && [ "${retry_after}" -gt 0 ]; then
+                        backoff=$((retry_after > 60 ? 60 : retry_after))
+                    fi
+                    echo "${C_YELLOW}WARN${C_RESET}: HTTP 429 (лимит Plane), retry $((retry_count + 1))/${TRACKER_HTTP_RETRIES} через ${backoff}s..." >&2
                     sleep "$backoff"
                     retry_count=$((retry_count + 1))
                     continue
                 fi
                 tracker_log_audit "$cmd_name" "${method} ${endpoint}" "$http_status" "$duration_ms" "Rate limit exhausted" "$retry_count"
-                echo "${C_RED}ERROR${C_RESET}: OpenProject API rate-limit, попробуйте позже или уменьшите частоту polling" >&2
+                echo "${C_RED}ERROR${C_RESET}: Plane API rate-limit (60 запросов/мин), попробуйте позже или уменьшите частоту polling" >&2
                 return 4
                 ;;
             4*)
                 local err_msg
-                err_msg=$(jq -r '.message // .error // empty' "$response_file" 2>/dev/null | head -3 | paste -sd ';' -)
+                err_msg=$(jq -r '.error_message // .message // .error // empty' "$response_file" 2>/dev/null | head -3 | paste -sd ';' -)
                 tracker_log_audit "$cmd_name" "${method} ${endpoint}" "$http_status" "$duration_ms" "${err_msg:-Client error}" "$retry_count"
                 echo "${C_RED}ERROR${C_RESET}: HTTP ${http_status} ${method} ${endpoint}" >&2
                 [ -n "$err_msg" ] && echo "  $err_msg" >&2
@@ -278,12 +298,12 @@ tracker_http_request() {
                 ;;
             5*)
                 tracker_log_audit "$cmd_name" "${method} ${endpoint}" "$http_status" "$duration_ms" "Server error" "$retry_count"
-                echo "${C_RED}ERROR${C_RESET}: OpenProject вернула ${http_status}, попробуйте позже" >&2
+                echo "${C_RED}ERROR${C_RESET}: Plane ответил ${http_status}, попробуйте позже" >&2
                 return 6
                 ;;
             000)
                 tracker_log_audit "$cmd_name" "${method} ${endpoint}" "000" "$duration_ms" "Connection failed" "$retry_count"
-                echo "${C_RED}ERROR${C_RESET}: OpenProject недоступен по ${TRACKER_URL}, проверьте \`docker ps | grep openproject\`" >&2
+                echo "${C_RED}ERROR${C_RESET}: Plane недоступен по ${PLANE_URL}, проверьте сеть/URL (PLANE_URL)" >&2
                 return 2
                 ;;
             *)
@@ -296,93 +316,608 @@ tracker_http_request() {
 }
 
 # =====================================================================
-# tracker_md_to_text — markdown → plain text (для комментариев)
+# tracker_md_to_text — markdown → HTML
 # =====================================================================
-# OpenProject поддерживает markdown в комментариях напрямую, поэтому
-# просто читаем файл и отправляем как есть.
-# =====================================================================
+# Plane не принимает markdown: и `description_html`, и `comment_html` —
+# это HTML. Историческое имя функции сохранено (её вызывают снаружи), но
+# результат — HTML. Основной конвертер — python3 + markdown (те же
+# расширения, что у переноса T3: таблицы, fenced code, списки). Без
+# python3/markdown — деградация до экранированных абзацев, без падения.
 tracker_md_to_text() {
     local md_file="$1"
     if [ ! -f "$md_file" ]; then
         echo "${C_RED}ERROR${C_RESET}: файл не найден: $md_file" >&2
         return 1
     fi
-    cat "$md_file"
+
+    if command -v python3 >/dev/null 2>&1 && python3 -c 'import markdown' >/dev/null 2>&1; then
+        python3 - "$md_file" <<'PY'
+import sys
+
+import markdown
+
+with open(sys.argv[1], encoding="utf-8") as fh:
+    text = fh.read()
+print(markdown.markdown(
+    text,
+    extensions=["fenced_code", "tables", "sane_lists", "nl2br"],
+))
+PY
+        return $?
+    fi
+
+    # Fallback: экранирование и абзацы. Форматирование теряется, но текст
+    # не превращается в HTML-инъекцию и команда остаётся рабочей.
+    awk '
+        BEGIN { buf = "" }
+        {
+            line = $0
+            gsub(/&/, "\\&amp;", line)
+            gsub(/</, "\\&lt;", line)
+            gsub(/>/, "\\&gt;", line)
+            if (line ~ /^[[:space:]]*$/) {
+                if (buf != "") { print "<p>" buf "</p>"; buf = "" }
+            } else {
+                buf = (buf == "" ? line : buf " " line)
+            }
+        }
+        END { if (buf != "") print "<p>" buf "</p>" }
+    ' "$md_file"
 }
 
 # =====================================================================
-# tracker_healthcheck — GET /health_check (без auth)
+# tracker_ws / tracker_project_id / tracker_project_path
 # =====================================================================
-tracker_healthcheck() {
-    local start_ts end_ts duration_ms http_status response
-    local url="${TRACKER_URL}/health_check"
-    response=$(mktemp)
-    trap "rm -f '$response'" RETURN
+tracker_ws() {
+    printf '%s' "${PLANE_WORKSPACE}"
+}
 
-    start_ts=$(date +%s%N)
-    # BR-604: тот же принцип — код возврата curl проверяется, статус "000".
-    local curl_rc=0
-    http_status=$(curl -sS -o "$response" -w "%{http_code}" --max-time "$TRACKER_HTTP_TIMEOUT" "$url" 2>/dev/null) || curl_rc=$?
-    if [ "${curl_rc}" -ne 0 ] || ! [[ "${http_status}" =~ ^[0-9]{3}$ ]]; then
-        http_status="000"
-    fi
-    end_ts=$(date +%s%N)
-    duration_ms=$(( (end_ts - start_ts) / 1000000 ))
-
-    tracker_log_audit "healthcheck" "GET /health_check" "$http_status" "$duration_ms" "" 0
-
-    if [ "$http_status" = "200" ]; then
-        echo "${C_GREEN}OK${C_RESET}: OpenProject UP at ${TRACKER_URL} (response: ${duration_ms}ms)"
+# tracker_project_id — UUID проекта по умолчанию.
+tracker_project_id() {
+    if [ -n "${TRACKER_PROJECT_ID_CACHE}" ]; then
+        printf '%s' "${TRACKER_PROJECT_ID_CACHE}"
         return 0
     fi
 
-    echo "${C_RED}FAIL${C_RESET}: OpenProject unavailable at ${TRACKER_URL} (HTTP ${http_status})" >&2
-    return 1
+    local pid="${PLANE_PROJECT_ID:-}"
+
+    if [ -z "$pid" ] && [ -f "${TRACKER_PLANE_IDS}" ]; then
+        pid=$(jq -r '.project_id // empty' "$TRACKER_PLANE_IDS" 2>/dev/null || true)
+    fi
+
+    if [ -z "$pid" ]; then
+        local resp
+        resp=$(tracker_http_request GET "/workspaces/$(tracker_ws)/projects/?per_page=100" "" "resolve-project") || return $?
+        pid=$(printf '%s' "$resp" | jq -r --arg i "${PLANE_PROJECT_IDENTIFIER}" \
+            '[.results[]? | select(((.identifier // "") | ascii_downcase) == ($i | ascii_downcase))][0].id // empty')
+    fi
+
+    if [ -z "$pid" ]; then
+        echo "${C_RED}ERROR${C_RESET}: проект '${PLANE_PROJECT_IDENTIFIER}' не найден в workspace '$(tracker_ws)'" >&2
+        echo "  Задайте PLANE_PROJECT_ID в .env.local-tracker (UUID проекта)" >&2
+        return 5
+    fi
+
+    TRACKER_PROJECT_ID_CACHE="$pid"
+    printf '%s' "$pid"
+}
+
+# tracker_project_path — префикс путей API для проекта.
+tracker_project_path() {
+    local pid
+    pid=$(tracker_project_id) || return $?
+    printf '/workspaces/%s/projects/%s' "$(tracker_ws)" "$pid"
 }
 
 # =====================================================================
-# tracker_list_projects — GET /api/v3/projects
+# Метаданные проекта: состояния, метки, участники
+# =====================================================================
+tracker_states_json() {
+    if [ -n "${TRACKER_STATES_JSON_CACHE}" ]; then
+        printf '%s' "${TRACKER_STATES_JSON_CACHE}"
+        return 0
+    fi
+    local pp resp
+    pp=$(tracker_project_path) || return $?
+    resp=$(tracker_http_request GET "${pp}/states/?per_page=100" "" "states") || return $?
+    TRACKER_STATES_JSON_CACHE=$(printf '%s' "$resp" | jq -c 'if type == "array" then . else (.results // []) end')
+    printf '%s' "${TRACKER_STATES_JSON_CACHE}"
+}
+
+tracker_labels_json() {
+    if [ -n "${TRACKER_LABELS_JSON_CACHE}" ]; then
+        printf '%s' "${TRACKER_LABELS_JSON_CACHE}"
+        return 0
+    fi
+    local pp resp
+    pp=$(tracker_project_path) || return $?
+    resp=$(tracker_http_request GET "${pp}/labels/?per_page=100" "" "labels") || return $?
+    TRACKER_LABELS_JSON_CACHE=$(printf '%s' "$resp" | jq -c 'if type == "array" then . else (.results // []) end')
+    printf '%s' "${TRACKER_LABELS_JSON_CACHE}"
+}
+
+tracker_members_json() {
+    if [ -n "${TRACKER_MEMBERS_JSON_CACHE}" ]; then
+        printf '%s' "${TRACKER_MEMBERS_JSON_CACHE}"
+        return 0
+    fi
+    local resp
+    resp=$(tracker_http_request GET "/workspaces/$(tracker_ws)/members/?per_page=100" "" "members") || return $?
+    TRACKER_MEMBERS_JSON_CACHE=$(printf '%s' "$resp" | jq -c 'if type == "array" then . else (.results // []) end')
+    printf '%s' "${TRACKER_MEMBERS_JSON_CACHE}"
+}
+
+# tracker_state_id_by_name <имя> [группа] — UUID состояния или пусто.
+tracker_state_id_by_name() {
+    local name="$1"
+    local group="${2:-}"
+    local states
+    states=$(tracker_states_json) || return $?
+    printf '%s' "$states" | jq -r --arg n "$name" --arg g "$group" \
+        '[.[] | select((.name // "") == $n and ($g == "" or (.group // "") == $g))][0].id // empty'
+}
+
+# tracker_state_name_by_id <uuid> — имя состояния или пусто.
+tracker_state_name_by_id() {
+    local id="$1"
+    local states
+    states=$(tracker_states_json) || return $?
+    printf '%s' "$states" | jq -r --arg i "$id" \
+        '[.[] | select(.id == $i)][0].name // empty'
+}
+
+# tracker_label_id <имя|uuid> — UUID метки.
+# Принимает `type task`, `type:task`, `task` или UUID.
+tracker_label_id() {
+    local ref="$1"
+    local labels
+    labels=$(tracker_labels_json) || return $?
+
+    if [[ "$ref" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+        printf '%s' "$ref"
+        return 0
+    fi
+
+    local id
+    id=$(printf '%s' "$labels" | jq -r --arg r "$ref" '
+        [.[] | select(((.name // "") == $r) or ((.name // "") == ("type:" + $r)))][0].id // empty')
+    if [ -z "$id" ]; then
+        echo "${C_RED}ERROR${C_RESET}: метка '${ref}' не найдена в проекте" >&2
+        echo "  Доступные: $(printf '%s' "$labels" | jq -r '[.[].name] | join(", ")')" >&2
+        return 5
+    fi
+    printf '%s' "$id"
+}
+
+# tracker_member_id <uuid|display_name|email> — UUID участника workspace.
+tracker_member_id() {
+    local ref="$1"
+    if [[ "$ref" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+        printf '%s' "$ref"
+        return 0
+    fi
+
+    local members id
+    members=$(tracker_members_json) || return $?
+    id=$(printf '%s' "$members" | jq -r --arg r "$ref" '
+        [.[] | select((((.display_name // "") | ascii_downcase) == ($r | ascii_downcase))
+                      or (((.email // "") | ascii_downcase) == ($r | ascii_downcase)))][0].id // empty')
+    if [ -z "$id" ]; then
+        echo "${C_RED}ERROR${C_RESET}: участник '${ref}' не найден в workspace '$(tracker_ws)'" >&2
+        echo "  Участники: $(printf '%s' "$members" | jq -r '[.[].display_name] | join(", ")')" >&2
+        return 5
+    fi
+    printf '%s' "$id"
+}
+
+# tracker_member_name <uuid> — display_name или сам uuid.
+tracker_member_name() {
+    local id="$1"
+    local members name
+    members=$(tracker_members_json 2>/dev/null) || { printf '%s' "$id"; return 0; }
+    name=$(printf '%s' "$members" | jq -r --arg i "$id" \
+        '[.[] | select(.id == $i)][0].display_name // empty')
+    printf '%s' "${name:-$id}"
+}
+
+# =====================================================================
+# Соответствие OpenProject → Plane (форма `op:403`)
+# =====================================================================
+# tracker_map_lookup <op|seq> <ключ> — issue_id (UUID) или пусто.
+# Поддерживаются CSV (по умолчанию knowledge/system/infra/op-plane-mapping.csv)
+# и JSON вида {"<op_id>": {"issue_id": ..., "sequence_id": ...}}.
+tracker_map_lookup() {
+    local mode="$1"
+    local key="$2"
+    local map_file="${TRACKER_OP_MAP}"
+
+    [ -f "$map_file" ] || return 0
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        return 0
+    fi
+
+    python3 - "$map_file" "$mode" "$key" <<'PY' 2>/dev/null || true
+import csv
+import json
+import sys
+
+path, mode, key = sys.argv[1], sys.argv[2], sys.argv[3]
+rows = {}
+
+if path.endswith(".json"):
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    for op_id, value in data.items():
+        if isinstance(value, dict):
+            rows[str(op_id)] = (value.get("issue_id") or value.get("plane_id"),
+                                value.get("sequence_id"))
+        else:
+            rows[str(op_id)] = (value, None)
+else:
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            op_id = (row.get("op_id") or row.get("op") or row.get("openproject_id")
+                     or row.get("openproject"))
+            plane_id = (row.get("plane_id") or row.get("issue_id")
+                        or row.get("plane_uuid") or row.get("issue"))
+            seq = row.get("sequence_id") or row.get("plane_seq") or row.get("seq")
+            if op_id:
+                rows[str(op_id)] = (plane_id, seq)
+
+if mode == "op":
+    value = rows.get(key, (None, None))[0]
+else:
+    value = next((v[0] for v in rows.values() if str(v[1]) == str(key)), None)
+print(value or "")
+PY
+}
+
+# =====================================================================
+# tracker_find_issue_by_sequence — UUID по sequence_id (скан страниц)
+# =====================================================================
+# Фильтры списка задач этого инстанса Plane игнорируются (проверено:
+# ?assignees=/?state=/?priority= не сужают выдачу), поэтому и поиск, и
+# list-issues фильтруют выдачу на клиенте.
+tracker_find_issue_by_sequence() {
+    local seq="$1"
+    local pp cursor="" pages=0 resp id
+
+    pp=$(tracker_project_path) || return $?
+
+    while :; do
+        local query="per_page=100"
+        if [ -n "$cursor" ]; then
+            query="${query}&cursor=$(printf '%s' "$cursor" | jq -sRr @uri)"
+        fi
+        resp=$(tracker_http_request GET "${pp}/issues/?${query}" "" "resolve-issue") || return $?
+        id=$(printf '%s' "$resp" | jq -r --argjson s "$seq" \
+            '[(if type == "array" then .[] else (.results // [])[] end) | select(.sequence_id == $s)][0].id // empty')
+        if [ -n "$id" ]; then
+            printf '%s' "$id"
+            return 0
+        fi
+
+        [ "$(printf '%s' "$resp" | jq -r '.next_page_results // false')" = "true" ] || break
+        cursor=$(printf '%s' "$resp" | jq -r '.next_cursor // empty')
+        [ -n "$cursor" ] || break
+        pages=$((pages + 1))
+        [ $pages -lt 20 ] || break
+    done
+
+    echo "${C_RED}ERROR${C_RESET}: задача KARAOKE-${seq} не найдена в проекте" >&2
+    return 5
+}
+
+# =====================================================================
+# tracker_resolve_issue_id — ссылка → UUID задачи
+# =====================================================================
+# Принимает `42`, `KARAOKE-42`, `#42`, UUID, `op:403`.
+tracker_resolve_issue_id() {
+    local ref="$1"
+
+    if [[ "$ref" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+        printf '%s' "$ref"
+        return 0
+    fi
+
+    if [[ "$ref" =~ ^[Oo][Pp]:([0-9]+)$ ]]; then
+        local op_id="${BASH_REMATCH[1]}"
+        local mapped
+        mapped=$(tracker_map_lookup op "$op_id")
+        if [ -z "$mapped" ]; then
+            echo "${C_RED}ERROR${C_RESET}: OpenProject #${op_id} не найден в таблице соответствия" >&2
+            echo "  TRACKER_OP_MAP=${TRACKER_OP_MAP} (CSV или JSON; см. docs/tracker-setup.md)" >&2
+            return 1
+        fi
+        printf '%s' "$mapped"
+        return 0
+    fi
+
+    local seq=""
+    if [[ "$ref" =~ ^[Kk][Aa][Rr][Aa][Oo][Kk][Ee]-?([0-9]+)$ ]]; then
+        seq="${BASH_REMATCH[1]}"
+    elif [[ "$ref" =~ ^#?([0-9]+)$ ]]; then
+        seq="${BASH_REMATCH[1]}"
+    else
+        echo "${C_RED}ERROR${C_RESET}: неверный ID задачи: '${ref}'" >&2
+        echo "  Ожидается: 42 | KARAOKE-42 | #42 | op:403 | UUID" >&2
+        return 1
+    fi
+
+    # Сначала таблица соответствия (без запросов к API), затем скан списка.
+    local mapped
+    mapped=$(tracker_map_lookup seq "$seq")
+    if [ -n "$mapped" ]; then
+        printf '%s' "$mapped"
+        return 0
+    fi
+
+    tracker_find_issue_by_sequence "$seq"
+}
+
+# =====================================================================
+# tracker_healthcheck — GET /users/me/ + GET .../issues/?per_page=1
+# =====================================================================
+tracker_healthcheck() {
+    local me pp resp who
+    local start_ts end_ts duration_ms
+
+    start_ts=$(date +%s%N)
+    me=$(tracker_http_request GET "/users/me/" "" "healthcheck-me") || return $?
+    pp=$(tracker_project_path) || return $?
+    resp=$(tracker_http_request GET "${pp}/issues/?per_page=1" "" "healthcheck-issues") || return $?
+    end_ts=$(date +%s%N)
+    duration_ms=$(( (end_ts - start_ts) / 1000000 ))
+
+    who=$(printf '%s' "$me" | jq -r '.display_name // .email // "unknown"')
+
+    echo "${C_GREEN}OK${C_RESET}: Plane UP at ${PLANE_URL} (user: ${who}, workspace: $(tracker_ws), response: ${duration_ms}ms)"
+    return 0
+}
+
+# =====================================================================
+# tracker_list_projects — GET /workspaces/{ws}/projects/
 # =====================================================================
 tracker_list_projects() {
-    local response
-    response=$(tracker_http_request GET "/api/v3/projects?pageSize=100" "" "list-projects")
+    local cursor="" pages=0 resp out="[]"
 
-    echo "$response" | jq -r '
+    while :; do
+        local query="per_page=100"
+        if [ -n "$cursor" ]; then
+            query="${query}&cursor=$(printf '%s' "$cursor" | jq -sRr @uri)"
+        fi
+        resp=$(tracker_http_request GET "/workspaces/$(tracker_ws)/projects/?${query}" "" "list-projects") || return $?
+        out=$(printf '%s' "$resp" | jq -c --argjson acc "$out" '$acc + (if type == "array" then . else (.results // []) end)') || return 5
+        [ "$(printf '%s' "$resp" | jq -r '.next_page_results // false')" = "true" ] || break
+        cursor=$(printf '%s' "$resp" | jq -r '.next_cursor // empty')
+        [ -n "$cursor" ] || break
+        pages=$((pages + 1))
+        [ $pages -lt 10 ] || break
+    done
+
+    printf '%s' "$out" | jq -r '
         ["ID", "IDENTIFIER", "NAME", "CREATED"] as $headers |
-        ($headers, (._embedded.elements[]? | [
-            (.id | tostring),
-            .identifier,
-            .name,
-            .createdAt
-        ])) | @tsv
+        ($headers, (.[] | [.id, (.identifier // "-"), (.name // "-"), (.created_at // "-")])) | @tsv
     ' | column -t -s $'\t'
 }
 
 # =====================================================================
-# tracker_get_issue — GET /api/v3/work_packages/{id}
+# tracker_list_issues — список задач проекта
 # =====================================================================
-tracker_get_issue() {
-    local id="$1"
-    local response
-    response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "get-issue")
+# Аргументы (позиционные, как в старом CLI):
+#   $1 project_id (UUID; пусто — проект по умолчанию)
+#   $2 assignee   (display_name/email/UUID; пусто — все)
+#   $3 status     (open|closed|in-review|<имя состояния>; пусто — все)
+#   $4 limit
+#   $5 raw        (1 — TSV без `column -t`)
+tracker_list_issues() {
+    local project_id="${1:-}"
+    local assignee="${2:-}"
+    local status="${3:-}"
+    local limit="${4:-50}"
+    local raw="${5:-0}"
 
-    echo "$response" | jq '{
-        id: .id,
-        subject: .subject,
-        description: .description.raw,
-        type: .type,
-        status: (.status.title // .status.name // "unknown"),
-        priority: (.priority.title // .priority.name // "Normal"),
-        assignee: (.assignee.name // null),
-        author: (.author.name // null),
-        createdAt: .createdAt,
-        updatedAt: .updatedAt,
-        project: (.project.title // .project.name)
-    }'
+    local pid pp
+    if [ -n "$project_id" ]; then
+        pid="$project_id"
+    else
+        pid=$(tracker_project_id) || return $?
+    fi
+    pp="/workspaces/$(tracker_ws)/projects/${pid}"
+
+    local states labels members
+    states=$(tracker_states_json) || return $?
+    labels=$(tracker_labels_json) || return $?
+
+    local allowed_json="[]"
+    case "$status" in
+        ""|all|"*")
+            allowed_json="[]"
+            ;;
+        open|to_do|"To Do")
+            allowed_json=$(printf '%s' "$states" | jq -c \
+                '[.[] | select((.group // "") != "completed" and (.group // "") != "cancelled") | .id]')
+            ;;
+        closed|done|"Done"|"Closed")
+            allowed_json=$(printf '%s' "$states" | jq -c \
+                '[.[] | select((.group // "") == "completed") | .id]')
+            ;;
+        in-review|in_review)
+            # Состояние In review появляется только после первого mark-review
+            # (тикет 16). Если его ещё нет — задач в нём нет: пустой список,
+            # а не ошибка (poll не должен шуметь до первого mark-review).
+            local rid
+            rid=$(printf '%s' "$states" | jq -r '[.[] | select(.name == "In review")][0].id // empty')
+            if [ -z "$rid" ]; then
+                if [ "$raw" = "1" ]; then
+                    printf 'ID\tSUBJECT\tSTATUS\tASSIGNEE\tTYPE\n'
+                else
+                    printf 'ID\tSUBJECT\tSTATUS\tASSIGNEE\tTYPE\n' | column -t -s $'\t'
+                fi
+                return 0
+            fi
+            allowed_json=$(jq -cn --arg i "$rid" '[$i]')
+            ;;
+        *)
+            local sid
+            sid=$(printf '%s' "$states" | jq -r --arg s "$status" \
+                '[.[] | select((.name // "") == $s)][0].id // empty')
+            if [ -z "$sid" ]; then
+                echo "${C_RED}ERROR${C_RESET}: состояние '${status}' не найдено в проекте" >&2
+                echo "  Доступные: $(printf '%s' "$states" | jq -r '[.[].name] | join(", ")')" >&2
+                return 5
+            fi
+            allowed_json=$(jq -cn --arg i "$sid" '[$i]')
+            ;;
+    esac
+
+    local assignee_id=""
+    if [ -n "$assignee" ]; then
+        assignee_id=$(tracker_member_id "$assignee") || return $?
+    fi
+
+    local state_map member_map label_map
+    state_map=$(printf '%s' "$states" | jq -c 'map({key: .id, value: .name}) | from_entries')
+    label_map=$(printf '%s' "$labels" | jq -c 'map({key: .id, value: .name}) | from_entries')
+    members=$(tracker_members_json) || return $?
+    member_map=$(printf '%s' "$members" | jq -c 'map({key: .id, value: .display_name}) | from_entries')
+
+    local rows_file
+    rows_file=$(mktemp)
+
+    local cursor="" pages=0 resp count=0
+    while :; do
+        local query="per_page=100"
+        if [ -n "$cursor" ]; then
+            query="${query}&cursor=$(printf '%s' "$cursor" | jq -sRr @uri)"
+        fi
+        resp=$(tracker_http_request GET "${pp}/issues/?${query}" "" "list-issues") || { rm -f "$rows_file"; return $?; }
+
+        printf '%s' "$resp" | jq -r \
+            --argjson allowed "$allowed_json" \
+            --arg aid "$assignee_id" \
+            --argjson states "$state_map" \
+            --argjson members "$member_map" \
+            --argjson labels "$label_map" '
+            (if type == "array" then .[] else (.results // [])[] end) as $r
+            | select(($allowed | length) == 0 or ($allowed | index($r.state)) != null)
+            | select($aid == "" or (([$r.assignees[]?] | index($aid)) != null))
+            | [ ($r.sequence_id | tostring),
+                (($r.name // "-") | gsub("[\t\n\r]"; " ")),
+                ($states[$r.state] // "-"),
+                (([$r.assignees[]? | $members[.] // "-"] | join(","))
+                    | if . == "" then "unassigned" else . end),
+                (([$r.labels[]? | $labels[.] // empty | select(startswith("type:")) | ltrimstr("type:")][0]) // "-")
+              ] | @tsv
+        ' >> "$rows_file" || { rm -f "$rows_file"; return 5; }
+
+        count=$(wc -l < "$rows_file")
+        [ "$count" -ge "$limit" ] && break
+
+        [ "$(printf '%s' "$resp" | jq -r '.next_page_results // false')" = "true" ] || break
+        cursor=$(printf '%s' "$resp" | jq -r '.next_cursor // empty')
+        [ -n "$cursor" ] || break
+        pages=$((pages + 1))
+        [ $pages -lt 20 ] || break
+    done
+
+    {
+        printf 'ID\tSUBJECT\tSTATUS\tASSIGNEE\tTYPE\n'
+        head -n "$limit" "$rows_file"
+    } | if [ "$raw" = "1" ]; then
+            cat
+        else
+            column -t -s $'\t'
+        fi
+
+    rm -f "$rows_file"
+    return 0
 }
 
 # =====================================================================
-# tracker_create_issue — POST /api/v3/work_packages
+# tracker_issue_comments_json — комментарии задачи (JSON-массив)
+# =====================================================================
+tracker_issue_comments_json() {
+    local id="$1"
+    local pp cursor="" pages=0 resp out="[]"
+
+    pp=$(tracker_project_path) || return $?
+
+    while :; do
+        local query="per_page=100"
+        if [ -n "$cursor" ]; then
+            query="${query}&cursor=$(printf '%s' "$cursor" | jq -sRr @uri)"
+        fi
+        resp=$(tracker_http_request GET "${pp}/issues/${id}/comments/?${query}" "" "issue-comments") || return $?
+        out=$(printf '%s' "$resp" | jq -c --argjson acc "$out" '$acc + (if type == "array" then . else (.results // []) end)') || return 5
+        [ "$(printf '%s' "$resp" | jq -r '.next_page_results // false')" = "true" ] || break
+        cursor=$(printf '%s' "$resp" | jq -r '.next_cursor // empty')
+        [ -n "$cursor" ] || break
+        pages=$((pages + 1))
+        [ $pages -lt 10 ] || break
+    done
+
+    printf '%s' "$out"
+}
+
+# =====================================================================
+# tracker_get_issue — JSON задачи + комментарии (совместимые поля)
+# =====================================================================
+tracker_get_issue() {
+    local ref="$1"
+    local id pp resp comments states labels members url
+
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
+
+    resp=$(tracker_http_request GET "${pp}/issues/${id}/" "" "get-issue") || return $?
+    comments=$(tracker_issue_comments_json "$id") || return $?
+    states=$(tracker_states_json) || return $?
+    labels=$(tracker_labels_json) || return $?
+    members=$(tracker_members_json) || return $?
+
+    url="${PLANE_URL}/${PLANE_WORKSPACE}/projects/${PLANE_PROJECT_IDENTIFIER}/issues/$(printf '%s' "$resp" | jq -r '.sequence_id')"
+
+    local state_map label_map member_map
+    state_map=$(printf '%s' "$states" | jq -c 'map({key: .id, value: .name}) | from_entries')
+    label_map=$(printf '%s' "$labels" | jq -c 'map({key: .id, value: .name}) | from_entries')
+    member_map=$(printf '%s' "$members" | jq -c 'map({key: .id, value: .display_name}) | from_entries')
+
+    printf '%s' "$resp" | jq \
+        --argjson comments "$comments" \
+        --argjson states "$state_map" \
+        --argjson labels "$label_map" \
+        --argjson members "$member_map" \
+        --arg url "$url" '
+        {
+            id: .id,
+            key: ("KARAOKE-" + (.sequence_id | tostring)),
+            sequence_id: .sequence_id,
+            subject: .name,
+            description: (.description_html // ""),
+            description_html: (.description_html // ""),
+            type: (([.labels[]? | $labels[.] // empty | select(startswith("type:")) | ltrimstr("type:")][0]) // "-"),
+            status: ($states[.state] // .state // "unknown"),
+            priority: (.priority // "none"),
+            assignee: (([.assignees[]? | $members[.] // empty] | join(",")) | if . == "" then null else . end),
+            author: ($members[.created_by] // .created_by),
+            createdAt: .created_at,
+            updatedAt: .updated_at,
+            project: .project,
+            url: $url,
+            comments: ($comments | map({
+                id: .id,
+                author: ($members[.actor] // .actor),
+                createdAt: .created_at,
+                body_html: (.comment_html // "")
+            }))
+        }'
+}
+
+# =====================================================================
+# tracker_create_issue — POST .../issues/
 # =====================================================================
 tracker_create_issue() {
     local project_id="$1"
@@ -390,202 +925,85 @@ tracker_create_issue() {
     local subject="$3"
     local description="${4:-}"
 
-    local payload
-    payload=$(jq -n \
-        --argjson pid "$project_id" \
-        --argjson tid "$type_id" \
-        --arg subj "$subject" \
-        --arg desc "$description" \
-        '{
-            subject: $subj,
-            description: {raw: $desc, format: "markdown"},
-            _links: {
-                project: {href: ("/api/v3/projects/" + ($pid | tostring))},
-                type: {href: ("/api/v3/types/" + ($tid | tostring))}
-            }
-        }')
-
-    local response
-    response=$(tracker_http_request POST "/api/v3/work_packages" "$payload" "create-issue")
-
-    local new_id
-    new_id=$(echo "$response" | jq -r '.id')
-
-    echo "${C_GREEN}OK${C_RESET}: work package #${new_id} created"
-}
-
-# =====================================================================
-# tracker_list_issues — GET /api/v3/work_packages с фильтром
-# =====================================================================
-# OpenProject использует фильтры через query params:
-#   filters=[{"assignee":{"operator":"=","values":["admin"]}},{"status":{"operator":"o"}}]
-# =====================================================================
-tracker_list_issues() {
-    local project_id="${1:-}"
-    local assignee="${2:-}"
-    local status="${3:-}"  # "open" | "closed" | пустое (все)
-    local limit="${4:-50}"
-    local raw="${5:-0}"    # BR-602: 1 — TSV без выравнивания `column -t`
-
-    # Строим массив фильтров
-    local filters_array="[]"
-    if [ -n "$assignee" ]; then
-        # assignee: OpenProject API принимает только ID пользователя (число).
-        # Если передан login, делаем resolve через /api/v3/users?search=<login>.
-        local assignee_id="$assignee"
-        if ! [[ "$assignee" =~ ^[0-9]+$ ]]; then
-            local user_resp
-            user_resp=$(tracker_http_request GET "/api/v3/users?search=${assignee}&pageSize=1" "" "list-issues-resolve-user")
-            assignee_id=$(echo "$user_resp" | jq -r '._embedded.elements[0].id // empty')
-            if [ -z "$assignee_id" ]; then
-                echo "${C_RED}ERROR${C_RESET}: пользователь '${assignee}' не найден (для assignee нужен login существующего юзера)" >&2
-                return 5
-            fi
-        fi
-        filters_array=$(echo "$filters_array" | jq --argjson a "$assignee_id" \
-            '. + [{"assignee":{"operator":"=","values":[$a]}}]')
-    fi
+    local pid pp label_uuid desc_html=""
     if [ -n "$project_id" ]; then
-        filters_array=$(echo "$filters_array" | jq --argjson pid "$project_id" \
-            '. + [{"project":{"operator":"=","values":[$pid]}}]')
-    fi
-    # Status filter: "open" → operator "o" (open work packages), "closed" → "c"
-    if [ -n "$status" ]; then
-        local op
-        case "$status" in
-            open|to_do|"To Do"|"In Progress") op="o"; filter_values="[]" ;;
-            closed|done|"Done"|"Closed") op="c"; filter_values="[]" ;;
-            in-review|in_review|"In review")
-                # Явный фильтр по статусу "In review" (status_id="9")
-                op="="
-                local status_id
-                status_id=$(tracker_http_request GET "/api/v3/statuses" "" "list-issues-resolve-status" \
-                    | jq -r '._embedded.elements[] | select(.name == "In review") | .id' | head -1)
-                filter_values="[\"$status_id\"]"
-                ;;
-            "In specification"|"Specified"|"Scheduled")
-                op="="
-                local status_id
-                status_id=$(tracker_http_request GET "/api/v3/statuses" "" "list-issues-resolve-status" \
-                    | jq -r "._embedded.elements[] | select(.name == \"$status\") | .id" | head -1)
-                filter_values="[\"$status_id\"]"
-                ;;
-            *) op="o"; filter_values="[]" ;;  # default open
-        esac
-        filters_array=$(echo "$filters_array" | jq \
-            --arg op "$op" \
-            --argjson values "$filter_values" \
-            '. + [{"status":{"operator":$op,"values":$values}}]')
-    fi
-
-    # URL-encode: JSON → compact → percent-encode (фильтр содержит
-    # [ ] { } " которые curl иначе парсит как glob-range).
-    local filters_encoded
-    filters_encoded=$(printf '%s' "$filters_array" | jq -c '.' | jq -sRr @uri)
-
-    local response
-    response=$(tracker_http_request GET "/api/v3/work_packages?filters=${filters_encoded}&pageSize=${limit}" "" "list-issues")
-
-    # Парсим и выводим
-    # BR-602: по умолчанию — выровненный `column -t` вывод (человекочитаемый).
-    # С `--raw` отдаём настоящий TSV (колонки разделены табом) — этот режим
-    # нужен машинным потребителям: `column -t` заменяет табы пробелами, и
-    # разбор по табу не работает.
-    if [[ "$raw" == "1" ]]; then
-        echo "$response" | jq -r '
-            ["ID", "SUBJECT", "STATUS", "ASSIGNEE", "TYPE"] as $headers |
-            ($headers, (._embedded.elements[]? | [
-                (.id | tostring),
-                (.subject // "-"),
-                (._links.status.title // .status.title // .status.name // "-"),
-                (._links.assignee.title // .assignee.name // "unassigned"),
-                (._links.type.title // .type.title // .type.name // "-")
-            ])) | @tsv
-        '
+        pid="$project_id"
     else
-        echo "$response" | jq -r '
-            ["ID", "SUBJECT", "STATUS", "ASSIGNEE", "TYPE"] as $headers |
-            ($headers, (._embedded.elements[]? | [
-                (.id | tostring),
-                (.subject // "-"),
-                (._links.status.title // .status.title // .status.name // "-"),
-                (._links.assignee.title // .assignee.name // "unassigned"),
-                (._links.type.title // .type.title // .type.name // "-")
-            ])) | @tsv
-        ' | column -t -s $'\t'
+        pid=$(tracker_project_id) || return $?
     fi
+    pp="/workspaces/$(tracker_ws)/projects/${pid}"
+
+    label_uuid=$(tracker_label_id "$type_id") || return $?
+
+    if [ -n "$description" ]; then
+        local tmp_md
+        tmp_md=$(mktemp)
+        printf '%s' "$description" > "$tmp_md"
+        desc_html=$(tracker_md_to_text "$tmp_md") || { rm -f "$tmp_md"; return 1; }
+        rm -f "$tmp_md"
+    fi
+
+    # Plane отвечает 400 на пустой description_html — поле добавляется
+    # только когда описание реально есть.
+    local payload resp seq uuid
+    if [ -n "$desc_html" ]; then
+        payload=$(jq -n \
+            --arg name "$subject" \
+            --arg html "$desc_html" \
+            --arg label "$label_uuid" \
+            '{name: $name, description_html: $html, priority: "medium", labels: [$label]}')
+    else
+        payload=$(jq -n \
+            --arg name "$subject" \
+            --arg label "$label_uuid" \
+            '{name: $name, priority: "medium", labels: [$label]}')
+    fi
+
+    resp=$(tracker_http_request POST "${pp}/issues/" "$payload" "create-issue") || return $?
+
+    seq=$(printf '%s' "$resp" | jq -r '.sequence_id // empty')
+    uuid=$(printf '%s' "$resp" | jq -r '.id // empty')
+
+    if [ -z "$uuid" ]; then
+        echo "${C_RED}ERROR${C_RESET}: Plane не вернул id созданной задачи" >&2
+        return 6
+    fi
+
+    echo "${C_GREEN}OK${C_RESET}: issue KARAOKE-${seq} created (#${seq}, id: ${uuid})"
 }
 
 # =====================================================================
-# tracker_claim_issue — назначить на агента + перевести в "In progress"
+# tracker_claim_issue — assignee + состояние In progress
 # =====================================================================
 tracker_claim_issue() {
-    local id="$1"
+    local ref="$1"
+    local id pp agent_id state_id
 
-    # Получаем текущий статус + assignee
-    local response current_status current_assignee_link
-    response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "claim-issue-get")
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
 
-    current_status=$(echo "$response" | jq -r '._embedded.status.name // ._links.status.title // "unknown"')
-    current_assignee_link=$(echo "$response" | jq -r '._links.assignee.href // empty')
+    agent_id=$(tracker_member_id "${TRACKER_AGENT_USER}") || return $?
 
-    echo "DEBUG: #${id} current status='${current_status}'" >&2
-
-    # Получаем ID пользователя-агента через /api/v3/users?search=username
-    local agent_id
-    # ВАЖНО: поиск в OpenProject нечёткий. На запрос «ai-agent» он может
-    # вернуть другого пользователя — наблюдалось, что возвращался id=7
-    # вместо id=6 (ai-agent). Тот пользователь не член проекта, и claim
-    # падал с 422 «The chosen user is not allowed to be 'Assignee'» —
-    # ошибка выглядит как нехватка прав, хотя дело в неверном id.
-    # Поэтому login фильтруется явно, а не берётся elements[0].
-    agent_id=$(tracker_http_request GET "/api/v3/users?search=${TRACKER_AGENT_USER}&pageSize=100" "" "claim-issue-user-search" \
-        | jq -r --arg u "${TRACKER_AGENT_USER}" \
-                '._embedded.elements[] | select(.login == $u) | .id' | head -1)
-
-    if [ -z "$agent_id" ]; then
-        echo "${C_RED}ERROR${C_RESET}: пользователь ${TRACKER_AGENT_USER} не найден по точному login" >&2
+    state_id=$(tracker_state_id_by_name "In progress") || return $?
+    if [ -z "$state_id" ]; then
+        echo "${C_RED}ERROR${C_RESET}: состояние 'In progress' не найдено в проекте" >&2
         return 5
     fi
 
-    # Находим статус "In progress"
-    local in_progress_status_id
-    in_progress_status_id=$(tracker_http_request GET "/api/v3/statuses" "" "claim-issue-statuses" \
-        | jq -r '._embedded.elements[] | select(.name == "In progress" or .title == "In progress") | .id' | head -1)
-
-    if [ -z "$in_progress_status_id" ]; then
-        echo "${C_RED}ERROR${C_RESET}: статус 'In progress' не найден в проекте" >&2
-        return 5
-    fi
-
-    # PATCH для обновления assignee и status
     local payload
-    payload=$(jq -n \
-        --argjson agent_id "$agent_id" \
-        --argjson status_id "$in_progress_status_id" \
-        '{
-            lockVersion: 0,
-            _links: {
-                assignee: {href: ("/api/v3/users/" + ($agent_id | tostring))},
-                status: {href: ("/api/v3/statuses/" + ($status_id | tostring))}
-            }
-        }')
+    payload=$(jq -n --arg a "$agent_id" --arg s "$state_id" \
+        '{assignees: [$a], state: $s}')
 
-    # Сначала делаем GET чтобы узнать lockVersion
-    local lock_version
-    lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
-    payload=$(echo "$payload" | jq --argjson lv "$lock_version" '.lockVersion = $lv')
+    tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "claim-issue" >/dev/null || return $?
 
-    tracker_http_request PATCH "/api/v3/work_packages/${id}" "$payload" "claim-issue-patch" >/dev/null
-
-    echo "${C_GREEN}OK${C_RESET}: #${id} claimed by ${TRACKER_AGENT_USER} (status: In progress)"
+    echo "${C_GREEN}OK${C_RESET}: #${ref} claimed by ${TRACKER_AGENT_USER} (status: In progress)"
 }
 
 # =====================================================================
-# tracker_add_comment — POST /api/v3/work_packages/{id}/activities
+# tracker_add_comment — POST .../issues/{id}/comments/
 # =====================================================================
 tracker_add_comment() {
-    local id="$1"
+    local ref="$1"
     local file="$2"
 
     if [ ! -f "$file" ]; then
@@ -593,152 +1011,142 @@ tracker_add_comment() {
         return 1
     fi
 
-    # OpenProject принимает markdown в комментариях
-    local comment_text
-    comment_text=$(tracker_md_to_text "$file")
+    local id pp comment_html payload resp comment_id body_length
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
 
-    local payload
-    payload=$(jq -n --arg ct "$comment_text" '{
-        comment: {raw: $ct, format: "markdown"}
-    }')
+    comment_html=$(tracker_md_to_text "$file") || return 1
 
-    local response
-    response=$(tracker_http_request POST "/api/v3/work_packages/${id}/activities" "$payload" "add-comment")
+    payload=$(jq -n --arg html "$comment_html" '{comment_html: $html}')
+    resp=$(tracker_http_request POST "${pp}/issues/${id}/comments/" "$payload" "add-comment") || return $?
 
-    local comment_id body_length
-    comment_id=$(echo "$response" | jq -r '.id // "?"')
+    comment_id=$(printf '%s' "$resp" | jq -r '.id // "?"')
     body_length=$(wc -c < "$file")
 
-    echo "${C_GREEN}OK${C_RESET}: comment added to #${id} (id: ${comment_id}, length: ${body_length} chars)"
+    echo "${C_GREEN}OK${C_RESET}: comment added to #${ref} (id: ${comment_id}, html: ${#comment_html} bytes, md: ${body_length} bytes)"
 }
 
 # =====================================================================
-# tracker_close_issue — PATCH status → "Closed"
+# tracker_close_issue — состояние Done
 # =====================================================================
 tracker_close_issue() {
-    local id="$1"
+    local ref="$1"
+    local id pp resp current_name state_id
 
-    # Получаем текущий статус + lockVersion
-    local response current_status lock_version
-    response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "close-issue-get")
-    current_status=$(echo "$response" | jq -r '._embedded.status.name // ._links.status.title // "unknown"')
-    lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
 
-    if [ "$current_status" = "Closed" ]; then
-        echo "${C_YELLOW}WARN${C_RESET}: #${id} уже в статусе Closed" >&2
+    resp=$(tracker_http_request GET "${pp}/issues/${id}/" "" "close-issue-get") || return $?
+    current_name=$(tracker_state_name_by_id "$(printf '%s' "$resp" | jq -r '.state')") || return $?
+
+    if [ "$current_name" = "Done" ]; then
+        echo "${C_YELLOW}WARN${C_RESET}: #${ref} уже в состоянии Done" >&2
         return 0
     fi
 
-    # Находим ID статуса "Closed"
-    local closed_status_id
-    closed_status_id=$(tracker_http_request GET "/api/v3/statuses" "" "close-issue-statuses" \
-        | jq -r '._embedded.elements[] | select(.name == "Closed" or .title == "Closed") | .id' | head -1)
-
-    if [ -z "$closed_status_id" ]; then
-        echo "${C_RED}ERROR${C_RESET}: статус 'Closed' не найден в проекте" >&2
+    state_id=$(tracker_state_id_by_name "Done") || return $?
+    if [ -z "$state_id" ]; then
+        echo "${C_RED}ERROR${C_RESET}: состояние 'Done' не найдено в проекте" >&2
         return 5
     fi
 
     local payload
-    payload=$(jq -n \
-        --argjson lv "$lock_version" \
-        --argjson sid "$closed_status_id" \
-        '{
-            lockVersion: $lv,
-            _links: {
-                status: {href: ("/api/v3/statuses/" + ($sid | tostring))}
-            }
-        }')
+    payload=$(jq -n --arg s "$state_id" '{state: $s}')
+    tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "close-issue" >/dev/null || return $?
 
-    tracker_http_request PATCH "/api/v3/work_packages/${id}" "$payload" "close-issue-patch" >/dev/null
-
-    echo "${C_GREEN}OK${C_RESET}: #${id} closed"
+    echo "${C_GREEN}OK${C_RESET}: #${ref} closed"
 }
 
 # =====================================================================
-# tracker_mark_review — PATCH status → "In review"
+# tracker_mark_review — состояние In review
 # =====================================================================
-# Используется агентом после публикации отчёта: сигнал пользователю, что
-# работа завершена и готова к проверке. Если пользователь согласен — он
-# вызывает close-issue; если нет — reopen-issue.
-# =====================================================================
+# Решение тикета 16: «работа готова к проверке» — отдельное состояние
+# In review (группа started). Если в проекте его ещё нет — создаётся
+# здесь (повторный вызов находит существующее).
 tracker_mark_review() {
-    local id="$1"
+    local ref="$1"
+    local id pp resp current_name state_id
 
-    local response current_status lock_version
-    response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "mark-review-get")
-    current_status=$(echo "$response" | jq -r '._embedded.status.name // ._links.status.title // "unknown"')
-    lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
 
-    if [ "$current_status" = "In review" ]; then
-        echo "${C_YELLOW}WARN${C_RESET}: #${id} уже в статусе In review" >&2
+    resp=$(tracker_http_request GET "${pp}/issues/${id}/" "" "mark-review-get") || return $?
+    current_name=$(tracker_state_name_by_id "$(printf '%s' "$resp" | jq -r '.state')") || return $?
+
+    if [ "$current_name" = "In review" ]; then
+        echo "${C_YELLOW}WARN${C_RESET}: #${ref} уже в состоянии In review" >&2
         return 0
     fi
 
-    # Находим ID статуса "In review"
-    local review_status_id
-    review_status_id=$(tracker_http_request GET "/api/v3/statuses" "" "mark-review-statuses" \
-        | jq -r '._embedded.elements[] | select(.name == "In review" or .title == "In review") | .id' | head -1)
-
-    if [ -z "$review_status_id" ]; then
-        echo "${C_RED}ERROR${C_RESET}: статус 'In review' не найден (выполните: tools/tracker-install.sh bootstrap-board)" >&2
-        return 5
+    state_id=$(tracker_state_id_by_name "In review") || return $?
+    if [ -z "$state_id" ]; then
+        # По умолчанию состояние НЕ создаётся: tools на этом этапе не меняют
+        # настройки проекта. Включить автосоздание можно осознанно —
+        # TRACKER_CREATE_REVIEW_STATE=1 (решение тикета 16: группа started).
+        if [ "${TRACKER_CREATE_REVIEW_STATE:-0}" != "1" ]; then
+            echo "${C_RED}ERROR${C_RESET}: состояние 'In review' не найдено в проекте" >&2
+            echo "  Создайте его один раз: Plane → проект → States → + State 'In review' (группа Started)," >&2
+            echo "  либо повторите с TRACKER_CREATE_REVIEW_STATE=1 (тогда состояние создаст CLI)." >&2
+            return 5
+        fi
+        local create_payload create_resp
+        create_payload=$(jq -n '{name: "In review", group: "started", color: "#f59e0b"}')
+        create_resp=$(tracker_http_request POST "${pp}/states/" "$create_payload" "mark-review-create-state") || return $?
+        state_id=$(printf '%s' "$create_resp" | jq -r '.id // empty')
+        if [ -z "$state_id" ]; then
+            echo "${C_RED}ERROR${C_RESET}: не удалось создать состояние 'In review'" >&2
+            return 5
+        fi
+        # Кэш метаданных устарел — сбрасываем.
+        TRACKER_STATES_JSON_CACHE=""
     fi
 
     local payload
-    payload=$(jq -n \
-        --argjson lv "$lock_version" \
-        --argjson sid "$review_status_id" \
-        '{
-            lockVersion: $lv,
-            _links: {
-                status: {href: ("/api/v3/statuses/" + ($sid | tostring))}
-            }
-        }')
+    payload=$(jq -n --arg s "$state_id" '{state: $s}')
+    tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "mark-review" >/dev/null || return $?
 
-    tracker_http_request PATCH "/api/v3/work_packages/${id}" "$payload" "mark-review-patch" >/dev/null
-
-    echo "${C_GREEN}OK${C_RESET}: #${id} → In review (готов к проверке пользователем)"
+    echo "${C_GREEN}OK${C_RESET}: #${ref} → In review (готов к проверке пользователем)"
 }
 
 # =====================================================================
-# tracker_reopen_issue — PATCH status → "In progress" (или "New")
+# tracker_reopen_issue — состояние In progress (fallback New)
 # =====================================================================
 tracker_reopen_issue() {
-    local id="$1"
+    local ref="$1"
+    local id pp state_id
 
-    local response lock_version
-    response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "reopen-issue-get")
-    lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
 
-    # Находим ID статуса "In progress" (приоритет) или "New"
-    local status_id
-    status_id=$(tracker_http_request GET "/api/v3/statuses" "" "reopen-issue-statuses" \
-        | jq -r '._embedded.elements[] | select(.name == "In progress" or .title == "In progress") | .id' | head -1)
-
-    if [ -z "$status_id" ]; then
-        # Fallback на "New"
-        status_id=$(tracker_http_request GET "/api/v3/statuses" "" "reopen-issue-statuses-2" \
-            | jq -r '._embedded.elements[] | select(.name == "New" or .title == "New") | .id' | head -1)
+    state_id=$(tracker_state_id_by_name "In progress") || return $?
+    if [ -z "$state_id" ]; then
+        state_id=$(tracker_state_id_by_name "New") || return $?
     fi
-
-    if [ -z "$status_id" ]; then
-        echo "${C_RED}ERROR${C_RESET}: статус для reopen не найден" >&2
+    if [ -z "$state_id" ]; then
+        echo "${C_RED}ERROR${C_RESET}: состояние для reopen ('In progress'/'New') не найдено" >&2
         return 5
     fi
 
     local payload
-    payload=$(jq -n \
-        --argjson lv "$lock_version" \
-        --argjson sid "$status_id" \
-        '{
-            lockVersion: $lv,
-            _links: {
-                status: {href: ("/api/v3/statuses/" + ($sid | tostring))}
-            }
-        }')
+    payload=$(jq -n --arg s "$state_id" '{state: $s}')
+    tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "reopen-issue" >/dev/null || return $?
 
-    tracker_http_request PATCH "/api/v3/work_packages/${id}" "$payload" "reopen-issue-patch" >/dev/null
+    echo "${C_GREEN}OK${C_RESET}: #${ref} reopened"
+}
 
-    echo "${C_GREEN}OK${C_RESET}: #${id} reopened"
+# =====================================================================
+# tracker_delete_issue — DELETE .../issues/{id}/
+# =====================================================================
+# Нужен smoke-тесту: тестовая задача удаляется, а не закрывается, чтобы
+# не засорять проект (и не попадать в отчёты сверки T3).
+tracker_delete_issue() {
+    local ref="$1"
+    local id pp
+
+    id=$(tracker_resolve_issue_id "$ref") || return $?
+    pp=$(tracker_project_path) || return $?
+
+    tracker_http_request DELETE "${pp}/issues/${id}/" "" "delete-issue" >/dev/null || return $?
+
+    echo "${C_GREEN}OK${C_RESET}: #${ref} deleted"
 }

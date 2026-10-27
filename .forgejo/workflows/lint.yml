@@ -1,0 +1,866 @@
+# GitHub Actions: lint enforcement
+#
+# Прогоняет ktlint, ESLint (baseline-aware) и Prettier (strict) на каждый
+# push в master и pull request. Per-feature документы проверяются на
+# структуру и (в offline-режиме) на корректность Markdown-ссылок.
+#
+# Начиная с BR-507 (P-78-01) workflow не только линтует, но и СОБИРАЕТ
+# бэкенд и прогоняет его unit-тесты: до этого PR с некомпилируемым
+# Kotlin-кодом или с упавшим тестом проходил CI и мержился в master
+# (ловила только ручная проверка на деплое).
+#
+# Начиная с BR-508 (P-78-02) все сторонние actions закреплены по SHA
+# коммита с комментарием версии. Плавающий тег (`actions/checkout@v4`)
+# можно перенаправить на другой коммит в чужом репозитории — CI
+# исполнит новый код без изменения нашего репозитория и без ревью.
+# Guard: tools/check-actions-pinned.sh (джоб actions-pinned-guard).
+# Обновление SHA — отдельным PR, при необходимости через Dependabot
+# (решение владельца).
+#
+# См. также:
+#   - CONTRIBUTING.md (раздел «Поток разработки»)
+#   - archive/docs/features/ci-lint-enforcement.md (per-feature документ, FR-009)
+#   - .pre-commit-config.yaml (локальные хуки, идентичный набор правил)
+#
+# Кэширование:
+#   - Gradle: setup-java (v4.x) cache=gradle (путь берётся из GRADLE_USER_HOME
+#     джобы — см. backend-build/backend-test; AGENTS.md Tier-1 «Gradle»)
+#   - npm:    setup-node (v4.x) cache=npm (per-SPA package-lock.json)
+#
+# Триггеры:
+#   - push в master (post-merge sanity-check)
+#   - pull_request в master (gate перед merge)
+#
+# Concurrency: отменяет более старые запуски для той же ветки,
+# чтобы не тратить минуты CI впустую при force-push.
+
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # === Guard: actions закреплены по SHA коммита (BR-508, PKG-S3-19) ===
+  # Плавающий тег (`actions/checkout@v4`) можно перенаправить на другой
+  # коммит в чужом репозитории — CI исполнит новый код без ревью.
+  # Guard требует полный SHA (40 hex) + комментарий версии; обновление
+  # SHA — отдельным PR (Dependabot — решение владельца).
+  actions-pinned-guard:
+    name: actions pinned by SHA (BR-508)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check actions pinned by commit SHA
+        run: bash tools/check-actions-pinned.sh
+
+      - name: Self-test guard (до/после)
+        run: bash tools/check-actions-pinned.sh --self-test
+
+  # === Guard: мусор в корне репозитория ===
+  # Осколки shell-редиректов (`... > os`) — файлы с именами стандартных модулей
+  # Python в корне. Попадали в коммиты пакета PKG-S3-22 (аудит #336, #394):
+  # `git add -A` забирал их молча, ~23 МБ каждый. Ignored-правила .gitignore
+  # от этого не спасают (обходятся `git add -f`) — поэтому отдельный guard.
+  root-junk-guard:
+    name: root junk files (BR-394)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check no redirect artifacts in repo root
+        run: bash tools/check-root-junk.sh
+
+  # === Guard: конфигурация сборки (BR-499/BR-527/BR-528/BR-529/BR-530, OP #406) ===
+  # Аудит #336, волна E, пакет PKG-S3-34 (модуль «прочее»). Пять записей об
+  # одном: конфигурация сборки в репозитории расходилась сама с собой и
+  # ничего не проверяла по целостности.
+  #   BR-499 — три разных gradle-wrapper'а (8.14 / 9.1.0 / 7.5.1): CI и
+  #     deploy/do.sh собирают корневым wrapper'ом (8.14), а разработчик в
+  #     каталоге модуля запускает другой Gradle. Теперь версия одна и не ниже
+  #     минимума, на котором зелёная CI-сборка.
+  #   BR-528 — ни в одном wrapper'е не было `distributionSha256Sum`: Gradle
+  #     распаковывал дистрибутив (~130 МБ) без проверки целостности.
+  #   BR-527 — явный пин `jackson-databind:2.14.2` перебивал BOM Spring Boot
+  #     (2.19.2): в артефакте лежал смешанный стек Jackson.
+  #   BR-529 — `-XX:HeapDumpPath=/tmp/gradle-heap.hprof`: полный дамп кучи в
+  #     общем /tmp с правами 0644 (в дампе — System.getenv(), т.е. секреты).
+  #   BR-530 — мёртвый блок `dependencies` в корневом build.gradle.kts и
+  #     `pom.xml` в корне (второй, неиспользуемый build-дескриптор).
+  # Коды возврата guard'ов: 0 — успех, 1 — нарушение, 2 — проверка не
+  # выполнена (правило пакета #402).
+  build-config-guard:
+    name: build config guard (BR-499/BR-527/BR-528/BR-529/BR-530)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check gradle-wrapper (единая версия + checksum)
+        run: bash tools/check-gradle-wrapper.sh
+
+      - name: Self-test gradle-wrapper guard (до/после)
+        run: bash tools/check-gradle-wrapper.sh --self-test
+
+      - name: Check build config (Jackson / дампы кучи / мёртвый конфиг)
+        run: bash tools/check-build-config.sh
+
+      - name: Self-test build config guard (до/после)
+        run: bash tools/check-build-config.sh --self-test
+
+      - name: Check heap-dump helper (каталог 700, файл дампа 600)
+        run: bash tools/gradle-heap-dump.sh --self-test
+
+  # === Backend: ktlint (Kotlin/Java) ===
+  # Baseline-aware: новые нарушения валят, старые (из baseline) — нет.
+  # См. build.gradle.kts: ktlint-gradle 12.x автоматически читает
+  # config/ktlint/baseline-<module>.xml для каждого subproject.
+  backend-lint:
+    name: ktlint (Kotlin/Java)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup JDK 17
+        uses: https://github.com/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Run ktlintCheck (baseline-aware)
+        run: ./gradlew ktlintCheck --no-daemon --stacktrace
+
+      - name: Upload ktlint reports
+        if: always()
+        uses: https://github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ktlint-reports
+          path: |
+            **/build/reports/ktlint/
+            **/build/reports/ktlintMainSourceSetCheck/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # === Backend: сборка (BR-507, P-78-01) ===
+  # До появления этого джоба workflow только ЛИНТЕРОВАЛ код: PR с
+  # некомпилируемым Kotlin-кодом проходил CI и мержился в master.
+  # Команды — те же, что локально (AGENTS.md § «Обязательная проверка
+  # после изменения»), с явным GRADLE_USER_HOME (AGENTS.md Tier-1, R-372).
+  # Секреты не нужны, деплой/контейнеры не задействованы.
+  backend-build:
+    name: backend build (Kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Тот же приём, что и локально: Gradle User Home вне read-only
+      # $HOME. В CI — внутри рабочего каталога; setup-java@v4 (cache=gradle)
+      # берёт путь кэша из этой же переменной, поэтому кэш и сборка
+      # используют один каталог.
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup JDK 17
+        uses: https://github.com/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Compile backend
+        # AGENTS.md § «Обязательная проверка после изменения», шаг 1.
+        run: ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel --no-daemon
+
+      - name: Package backend (bootJar)
+        # AGENTS.md § «Обязательная проверка после изменения», шаг 3
+        # (+ :karaoke-app:bootJar — как в deploy/do.sh: gradle build jars).
+        run: ./gradlew :karaoke-app:bootJar :karaoke-web:bootJar --parallel --no-daemon
+
+  # === Backend: unit-тесты (BR-507, P-78-01) ===
+  # Те же тесты, что гоняются локально: `./gradlew karaoke-app:test`
+  # (DEVELOPMENT.md § Build & run). Тесты, требующие живых внешних
+  # сервисов, помечены @Disabled (Pass 465) — см. DEVELOPMENT.md.
+  backend-test:
+    name: backend unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup JDK 17
+        uses: https://github.com/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Install ffmpeg (обязателен для Mp3TrimmerTest)
+        # BR-512 (пакет #388): тест обрезки mp3 больше не помечается skipped, если
+        # бинарника нет, — он ПАДАЕТ с внятным сообщением. На runner'е ffmpeg не
+        # предустановлен, поэтому устанавливаем явно (ffprobe приходит в составе
+        # ffmpeg). Без этого шага джоба backend-test падала бы на первом же прогоне.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
+      - name: Run backend unit tests
+        # Локально: GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew \
+        #   :karaoke-app:test :karaoke-web:test
+        run: ./gradlew :karaoke-app:test :karaoke-web:test --parallel --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: https://github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-test-reports
+          path: |
+            **/build/test-results/test/*.xml
+            **/build/reports/tests/test/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # === Frontend: ESLint (baseline-aware) + Prettier (strict) ===
+  # Matrix по двум SPA. Каждый SPA прогоняется независимо, чтобы
+  # падение в одном не маскировало успех в другом.
+  frontend-lint:
+    name: ESLint + Prettier (${{ matrix.spa }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        spa: [webvue3, karaoke-public]
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install jq (нужен check-eslint-baseline.sh; в образе runner'а нет)
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq jq
+
+      - name: Setup Node 22 (LTS)
+        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.spa }}/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: ${{ matrix.spa }}
+        run: npm ci --no-audit --no-fund
+
+      - name: ESLint (baseline-aware)
+        # tools/check-eslint-baseline.sh сравнивает текущие нарушения
+        # с .eslint-baseline.json: если есть новые — exit 1.
+        # Запускается из корня репо (не из SPA), т.к. baseline-скрипт
+        # ожидает относительный путь к SPA-каталогу как аргумент.
+        working-directory: .
+        run: bash tools/check-eslint-baseline.sh ${{ matrix.spa }}
+
+      - name: Prettier --check (strict, без baseline)
+        # Prettier — non-functional формат. Любое несоответствие
+        # исправляется одной командой:
+        #   cd ${{ matrix.spa }} && npm run format
+        working-directory: ${{ matrix.spa }}
+        run: npx prettier --check "src/**/*.{vue,js,ts,json}"
+
+  # === Frontend: сборка SPA (BR-507, P-78-01) ===
+  # До этого джоба workflow только ЛИНТЕРОВАл фронтенд: PR с не собирающимся
+  # SPA (ошибка импорта, битый vite-конфиг, несовместимая версия зависимости)
+  # проходил CI и мержился в master — падало только при ручном деплое.
+  # Команда — та же, что локально (AGENTS.md § «Обязательная проверка после
+  # изменения», шаг 4): `cd <spa> && npm run build`.
+  frontend-build:
+    name: frontend build (${{ matrix.spa }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        spa: [webvue3, karaoke-public]
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 22 (LTS)
+        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.spa }}/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: ${{ matrix.spa }}
+        run: npm ci --no-audit --no-fund
+
+      - name: Build SPA (vite)
+        # R-375: npm run только из каталога фронта (cd <spa> && npm run ...).
+        working-directory: ${{ matrix.spa }}
+        run: npm run build
+
+  # === Экранирование текста подтверждений (спека #558, OP #360, BR-123) ===
+  # Общий компонент подтверждения админки по умолчанию выводит текст как
+  # ТЕКСТ; сырая разметка принимается только при явном `allowHtml: true`.
+  # Guard проверяет три инварианта (R1/R2/R3) и умеет «падать на коде до
+  # правки» — см. tools/check-confirm-escape-fixtures.sh.
+  confirm-escape-guard:
+    name: confirm escape guard (BR-123)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check confirm text escaping
+        # python3 tools/check-confirm-escape.py — находит места, где
+        # пользовательские данные попадают в текст подтверждения как разметка.
+        run: python3 tools/check-confirm-escape.py
+
+      - name: Check guard behaviour before/after the fix
+        # Фикстуры: уязвимый снимок кода → отказ, исправленный → успех.
+        run: bash tools/check-confirm-escape-fixtures.sh
+
+  # === Unit-тесты webvue3 (встроенный раннер Node) ===
+  # Спека #558: escapeHtml.test.js — регресс-контроль «выдача совпадает с
+  # базовой линией + 0 двойных экранирований» (прецедент спеки #215).
+  webvue3-unit-tests:
+    name: unit tests (webvue3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 22 (LTS)
+        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webvue3/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: webvue3
+        run: npm ci --no-audit --no-fund
+
+      - name: node --test
+        # R-375: npm run только из каталога фронта (cd webvue3 && npm run ...).
+        run: cd webvue3 && npm run test:unit
+
+  # === Unit-тесты karaoke-public (встроенный раннер Node) ===
+  # BR-523 / PKG-S3-02 (аудит #336, OpenProject #387): тесты публичного SPA
+  # (node --test, 5+ файлов в src/**/__tests__/) не запускались НИ В ОДНОМ
+  # джобе — регрессия (например, тихая поломка formatText) проходила молча.
+  # Теперь у пакета есть скрипт `npm run test:unit` и джоб, который его зовёт.
+  karaoke-public-unit-tests:
+    name: unit tests (karaoke-public)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 22 (LTS)
+        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: karaoke-public/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: karaoke-public
+        run: npm ci --no-audit --no-fund
+
+      - name: node --test
+        # R-375: npm run только из каталога фронта (cd karaoke-public && npm run ...).
+        run: cd karaoke-public && npm run test:unit
+
+  # === Guard: тест экранирования метки комментария (BR-523) ===
+  # Проверяет, что регрессионный тест «взведён» (падает на уязвимом снимке
+  # кода и проходит на исправленном) и что его skip-состояние соответствует
+  # состоянию production-кода. Фикстуры «до/после» — tools/fixtures/marker-escape/.
+  marker-escape-guard:
+    name: marker escape guard (BR-523)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 22 (LTS)
+        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Check marker escaping test (до/после)
+        run: bash tools/check-marker-escape-guard.sh
+
+  # === Guard: секреты не передаются через argv (BR-551/BR-552/BR-605, OP #382) ===
+  # Секрет в argv виден любому пользователю машины (`ps -eo args`,
+  # /proc/<pid>/cmdline). Джоб ловит `docker exec -e PGPASSWORD=…`,
+  # `docker login --password …`, `curl -H "Authorization: …"`, `curl -u user:pass`,
+  # пароль в строке подключения и пароль в URL — в deploy/, tools/, specs/.
+  # Baseline: tools/check-secret-in-argv.baseline (известные legacy-нарушения
+  # вне пакета #382). Безопасные формы (PGPASSWORD в окружении,
+  # --password-stdin, `curl --config -`, .pgpass) нарушением не считаются.
+  secret-in-argv-guard:
+    name: secret in argv guard (BR-551/BR-552/BR-605)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check secret in argv
+        run: bash tools/check-secret-in-argv.sh
+
+      - name: Self-test правил guard'а
+        # Каждое правило обязано ловить «плохой» пример и не ловить «хороший».
+        run: bash tools/check-secret-in-argv.sh --self-test
+
+  # === Guard: нет chmod с правом записи для всех (BR-115/BR-247, OP #407) ===
+  # `chmod 666`/`777` даёт запись любому локальному пользователю и любому
+  # контейнеру с тем же томом: подмена опубликованных картинок и кража
+  # токенов из Karaoke.properties. Нужны 644 (файл), 755 (каталог),
+  # 600 (секреты) — в JVM, без внешнего chmod.
+  # Baseline: tools/check-file-permissions.baseline (legacy-места других
+  # пакетов #336: BR-271/#397 и записи вне пакетов). Новые нарушения не
+  # допускаются.
+  file-permissions-guard:
+    name: file permissions guard (BR-115/BR-247)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check world-writable chmod
+        run: bash tools/check-file-permissions.sh
+
+      - name: Self-test правил guard'а
+        run: bash tools/check-file-permissions.sh --self-test
+
+  # === E2E публичного сайта (BR-525) ===
+  # Раньше e2e не выполнялись в CI вообще — расхождение «код в master» vs
+  # «образ на сервере» обнаруживалось только вручную (прецедент #200–#203).
+  # Джоб собирает образ karaoke-public из репозитория (R-04/R-05: nginx:stable
+  # + node:22-alpine), поднимает его и прогоняет Playwright.
+  karaoke-public-e2e:
+    name: e2e (karaoke-public)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 22 (LTS)
+        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: karaoke-public/package-lock.json
+
+      - name: Build karaoke-public image (R-04/R-05)
+        # Базовые образы из приватного registry (sm-karaoke.ru) в CI недоступны,
+        # поэтому собираем с публичных образов, разрешённых правилами:
+        # R-04 — nginx:stable, R-05 — node:22-alpine.
+        run: |
+          docker build \
+            -f deploy/karaoke-public/Dockerfile \
+            --build-arg NODE_IMAGE=node:22-alpine \
+            --build-arg NGINX_IMAGE=nginx:stable \
+            -t karaoke-public:e2e .
+
+      - name: Start karaoke-public container
+        # Конфиг без проксирования /api на karaoke-web (его в CI нет) —
+        # см. karaoke-public/e2e/nginx-e2e.conf.
+        run: |
+          docker run -d --name karaoke-public-e2e -p 7907:7907 \
+            -v "$PWD/karaoke-public/e2e/nginx-e2e.conf:/etc/nginx/nginx.conf:ro" \
+            karaoke-public:e2e
+
+      - name: npm ci (clean install)
+        working-directory: karaoke-public
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        working-directory: karaoke-public
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright e2e (blocking)
+        # Дымовая проверка «контракт развёртывания» (@smoke, BR-524) не
+        # блокирует CI — она подтверждает, что редактор собрался и отдан.
+        working-directory: karaoke-public
+        env:
+          E2E_BASE_URL: http://localhost:7907
+        run: npx playwright test --grep-invert @smoke
+
+      - name: Playwright e2e (smoke, BR-524 — не блокирует CI)
+        working-directory: karaoke-public
+        env:
+          E2E_BASE_URL: http://localhost:7907
+        continue-on-error: true
+        run: npx playwright test --grep @smoke
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker logs karaoke-public-e2e
+
+  # === Docs: структура per-feature + Markdown-ссылки ===
+  # Не блокер-уровень, но даёт быстрый сигнал о сломанной документации.
+  # lychee запускается в --offline: проверяет только локальные файлы,
+  # не делает HEAD-запросы к внешним URL (что в CI часто падает на
+  # блокировке IP-диапазонов GitHub).
+  docs-lint:
+    name: Docs (structure + offline links)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: lychee (offline links check)
+        uses: https://github.com/lycheeverse/lychee-action@22134d37a1fff6c2974df9c92a7c7e1e86a08f9c # v1.9.0
+        with:
+          args: >-
+            --offline
+            --no-progress
+            --exclude-loopback
+            --exclude-mail
+            --accept 200,203,206,301,302,303,304,307,308,403,429
+            docs/features/
+            archive/docs/features/
+            CONTRIBUTING.md
+
+      - name: Check per-feature doc structure
+        # 6 обязательных секций + slug == имя файла + Status ∈ {active, deprecated, experimental}.
+        # Подробности: contracts/per-feature-doc.md, tools/check-feature-doc.sh.
+        # Проверяются ОБА каталога — живые документы (docs/features/) и
+        # архив (archive/docs/features/). Раньше CI проверял только один
+        # каталог, поэтому нарушения FR-009 в живых per-feature документах
+        # не ловились (BR-510, P-78-04).
+        run: bash tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md
+
+  # === Baseline stats (informational) ===
+  # Не валит CI. Публикует текущие счётчики baseline как summary —
+  # можно посмотреть в GitHub UI на странице запуска.
+  baseline-stats:
+    name: Baseline stats (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      - name: Print baseline stats
+        run: bash tools/baseline-stats.sh
+
+  # === KDoc coverage ===
+  # Constitution Principle VI / FR-006 (NON-NEGOTIABLE): CI MUST падать
+  # при недостаточном покрытии KDoc. Порог — 50% (см. tools/check-kdoc-coverage.sh);
+  # текущее фактическое покрытие ~97%, так что --strict здесь не блокер, а гарантия.
+  kdoc-coverage:
+    name: KDoc coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check KDoc coverage (strict, ≥50%)
+        run: bash tools/check-kdoc-coverage.sh --strict
+
+  # === JSDoc coverage ===
+  # Constitution Principle VI / FR-006 (NON-NEGOTIABLE): CI MUST падать
+  # при недостаточном покрытии JSDoc. Порог — 50% (см. tools/check-jsdoc-coverage.sh);
+  # текущее фактическое покрытие 100%.
+  jsdoc-coverage:
+    name: JSDoc coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check JSDoc coverage (strict, ≥50%)
+        run: bash tools/check-jsdoc-coverage.sh --strict
+
+  # === Knowledge SSoT impact (Living Documentation v2) ===
+  # Knowledge (knowledge/) — Single Source of Truth (SSoT).
+  # Этот job проверяет, что изменения в коде (karaoke-app, karaoke-web,
+  # webvue3, karaoke-public), требующие обновления SSoT (по .ssot-map.yml),
+  # сопровождаются синхронным изменением соответствующих файлов в
+  # knowledge/. Реализует принцип "Living Documentation" из AGENTS.md.
+  # Конвенция: tools/check-ssot-impact.py + .ssot-map.yml.
+  # Если .ssot-map.yml не содержит правил для изменённого файла —
+  # check проходит (advisory); если содержит — требуется соответствующее
+  # изменение в knowledge/.
+  ssot-impact:
+    name: Knowledge SSoT impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Нужна история для git diff master...HEAD.
+          fetch-depth: 50
+
+      - name: Setup Python (для YAML парсинга)
+        uses: https://github.com/actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Check SSoT impact
+        # Default base — origin/master (см. tools/check-ssot-impact.py).
+        # Если файла .ssot-map.yml нет — check проходит (no-op).
+        run: python3 tools/check-ssot-impact.py
+
+  # === Knowledge SSoT structure (Living Documentation v2) ===
+  # Knowledge (knowledge/) — Single Source of Truth (SSoT) проекта Karaoke.
+  # Спецификации 322, 326-333 мигрировали с livedocs/ на knowledge/.
+  # Этот job гарантирует, что любое изменение кода, требующее обновления
+  # документации, сопровождается синхронным обновлением knowledge/.
+  # Подробности: knowledge/README.md, ADR-0007-adopt-knowledge-as-ssot.
+  knowledge-structure:
+    name: Knowledge SSoT structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Полная история обязательна для шага «No direct commits to master»
+          # ниже: при shallow clone (fetch-depth по умолчанию = 1)
+          # remote-tracking ref origin/master недоступен → `git log` отдаёт
+          # пустоту → счётчик DIRECT_COMMITS всегда 0 → guard «final safety
+          # net» никогда не падал (BR-509, P-78-03).
+          # fetch-depth: 0 — actions/checkout тянет ВСЕ ветки
+          # (+refs/heads/*:refs/remotes/origin/*), поэтому origin/master
+          # существует и в сборке pull_request.
+          fetch-depth: 0
+
+      - name: Check Knowledge structure
+        # Проверяет: обязательные директории (system/domains/adr/epics/
+        # guidelines/public/templates), README каждого слоя, наличие 9
+        # доменов, ≥1 ADR, cross-link в knowledge/README.md на каждый
+        # домен (Linking Protocol L3 → L2 → L1), frontmatter в
+        # domain.md файлах.
+        run: bash tools/check-knowledge-structure.sh
+
+      - name: Check no legacy tbl_settings references
+        # Прецедент (Pass 369, 2026-09-11): агент в specs/369 взял имя
+        # таблицы `tbl_settings` из устаревших recordhash-файлов, не
+        # проверив реальное состояние БД. Таблица была переименована в
+        # tbl_songs в миграции 28 (28_rename_settings_to_songs.sql).
+        # Скрипт падает, если новые файлы используют tbl_settings вне
+        # комментариев и исторических миграций.
+        run: bash tools/check-no-legacy-tbl-settings.sh
+
+      - name: Check recordhash consistency (BR-533/540/541/553)
+        # Аудит #336, волна C, пакет PKG-DB-RECORDHASH (OpenProject #363).
+        # Sync-движок сравнивает строки LOCAL↔SERVER ТОЛЬКО по recordhash
+        # (KaraokeDbTable.getListHashes), поэтому цена ошибки в формуле высокая:
+        #   * колонка модели не входит в md5 → изменение не считается расхождением
+        #     и на другую БД не уезжает (тихая потеря синхронизации);
+        #   * «голое» имя колонки в теле триггера → ERROR: column "..." does not exist
+        #     на первой же записи (CREATE FUNCTION это не ловит);
+        #   * колонка, которую пишет Song.getSqlToInsert(sync=true), отсутствует в
+        #     tbl_songs_sync → падает INSERT и не уезжает ни одна песня батча.
+        # Проверки: (1) NEW-префикс во всех триггерных функциях deploy/;
+        # (2) канонические deploy/recordhash_*.sql покрывают все @KaraokeDbTableField
+        # своих моделей и совпадают с собственным бэкфиллом;
+        # (3) tbl_songs_sync содержит все колонки INSERT из Song.kt.
+        run: python3 tools/check-recordhash-consistency.py
+
+      - name: Check Knowledge cross-links
+        # Проверяет относительные пути ../X.md и related: в knowledge/
+        # (исключая adr/, который может содержать legacy ссылки на
+        # архивную livedocs/, и templates/ с плейсхолдерами).
+        run: bash tools/check-knowledge-cross-links.sh
+
+      - name: Lint knowledge (markdown style)
+        # tools/lint-knowledge.py — проверка эмодзи, обязательных
+        # секций шаблона (для domain/component), structural integrity
+        # (L2 → L1 linking для каждого домена).
+        # Pass 347: baseline режим — ранее известные violations
+        # (накопившийся tech debt Phase 002, ~309 fingerprint(s))
+        # suppress'ятся через config/knowledge/baseline-knowledge-lint.txt.
+        # Локально: запускать напрямую (без baseline) для прогона всех
+        # правил. Чтобы уменьшить baseline: фиксить violations и
+        # регенерировать через --generate-baseline.
+        run: python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt
+
+      - name: Check documentation references (Pass 491)
+        # tools/check-doc-references.py — относительные .md-ссылки, пути к
+        # файлам кода и /api-эндпоинты в knowledge/, docs/, archive/docs/;
+        # в specs/ — только ссылки (спеки фиксируют прошлое состояние кода).
+        # Ловит то, что не видел check-knowledge-cross-links.sh (он проверяет
+        # другой класс ссылок). Осознанные исключения —
+        # config/knowledge/doc-references-whitelist.txt.
+        run: python3 tools/check-doc-references.py
+
+      - name: Lint spec ↔ OpenProject link (Pass 349)
+        # tools/check-spec-issue-link.py — проверяет, что каждая "modern" спека
+        # (Phase-002+, с секцией "## Knowledge References") содержит обязательную
+        # секцию "## OpenProject Tracking" с Issue ID + Workflow команды
+        # (`tracker.sh claim-issue`, `add-comment`, `mark-review`).
+        # Старые спеки без "## Knowledge References" — grandfathered (Pass 349 amendment).
+        # Это governance gate, введённый потому, что OpenProject #69 был закрыт без
+        # отчёта (governance failure — work выполнен, claim/mark-review пропущены).
+        # Полный workflow: см. AGENTS.md § Issue-tracker OpenProject.
+        run: python3 tools/check-spec-issue-link.py
+
+      - name: No direct commits to master (Pass 353, final safety net)
+        # GitHub branch protection (server-side, admin-enforced) — primary defense.
+        # Этот CI step — final safety net: detect any direct commit that somehow
+        # slipped through (e.g., admin bypass before protection was enabled, force-push,
+        # or any future bypass). Если на master есть НЕ merge-commit — CI fail.
+        # Прецедент: 2026-09-09, спека #354 — agent закоммитил напрямую в master
+        # после мержа PR #452, owner поймал.
+        #
+        # BR-509 (аудит #336, OpenProject #409): инлайн-шаг заменён скриптом
+        # tools/check-direct-commits.sh. Причина: `git log --pretty=format:... | wc -l`
+        # занижал счётчик на ЕДИНИЦУ (вывод `format:` не заканчивается переводом
+        # строки) — ОДИН прямой коммит давал DIRECT_COMMITS=0, и guard НИКОГДА
+        # не падал. Скрипт считает через `git rev-list --count`, умеет `--self-test`
+        # («до/после» на фикстуре) и различает нарушение (1) и «проверка не
+        # выполнена» (2) — по правилу пакета #402.
+        run: bash tools/check-direct-commits.sh
+
+      - name: Self-test guard'а прямых коммитов (до/после)
+        # Фикстура: корректная история (только merge-коммиты) → PASS;
+        # подсовытый прямой коммит → FAIL с ненулевым кодом.
+        run: bash tools/check-direct-commits.sh --self-test
+
+  # === docker-image-tags guard (Pass 379, R-04, R-05, wayfinder #106) ===
+  # Локальный guard-скрипт enforce'ит R-04 (nginx:stable) + R-05 (node:22-alpine).
+  # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
+  # (Pass 372-375 guards опущены намеренно: они падают в CI runner'е,
+  #  требуют отдельного governance-PR для починки.)
+  docker-image-tags-guard:
+    name: docker-image-tags guard (Pass 379, R-04, R-05)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: docker-image-tags guard (Pass 379, R-04, R-05, wayfinder #106)
+        # Ловит FROM nginx:/FROM node: с запрещёнными тегами (nginx:alpine, nginx:latest,
+        # node:alpine, node:latest, node:lts). Source-of-truth:
+        # knowledge/guidelines/architecture-conventions.md L20-21,
+        # CLAUDE.md § TOP-10 ловушек (п.3 nginx:alpine, п.4 node:latest).
+        run: bash tools/check-docker-image-tags.sh --quiet
+
+  # === no-jpa-imports guard (Pass 379, R-07, wayfinder #105) ===
+  # Локальный guard-скрипт enforce'ит R-07 (JPA/Hibernate запрет, Constitution II).
+  # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
+  no-jpa-imports-guard:
+    name: no-jpa-imports guard (Pass 379, R-07)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: no-jpa-imports guard (Pass 379, R-07)
+        # Ловит импорты JPA/Hibernate в .kt/.java исходниках karaoke-app и karaoke-web.
+        # Constitution Principle II «Сырой JDBC + дифф по хэшам (NON-NEGOTIABLE)».
+        run: bash tools/check-no-jpa-imports.sh --quiet
+
+  # === @Value placeholder guard (2026-10-24, волна A) ===
+  # Ловит `@Value($$"{свойство}")` без '$' внутри кавычек: в Kotlin такая запись
+  # компилируется в литерал `{свойство}`, Spring внедряет текст, и сравнение
+  # секретов всегда ложно (на проде отклонялась синхронизация и капча).
+  value-placeholders-guard:
+    name: "Value placeholders guard (@Value in Kotlin sources)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: "Value placeholders guard (@Value in Kotlin sources)"
+        run: bash tools/check-value-placeholders.sh
+
+  # === no-mp4-mentions guard (Pass 379, R-11, wayfinder #107) ===
+  # Локальный guard-скрипт enforce'ит R-11 (MP4/скачивание запрет по оферте).
+  no-mp4-mentions-guard:
+    name: no-mp4-mentions guard (Pass 379, R-11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: no-mp4-mentions guard (Pass 379, R-11)
+        # Ловит упоминания \bmp4\b и `скачивани` в production коде по оферте
+        # «доступ только онлайн». Baseline: tools/check-no-mp4-mentions.baseline.
+        run: bash tools/check-no-mp4-mentions.sh --quiet
+
+  # === personal-fixtures guard (2026-10-25, BR-526/BR-531, аудит #336, #398) ===
+  # Не даёт вернуться бытовым файлам, один раз уже попавшим в боевой jar:
+  # PII-подобный образец запроса ЕГРН в каталогах ресурсов и MLT-фикстуры
+  # с абсолютными личными путями. Baseline: tools/check-no-personal-fixtures.baseline.
+  personal-fixtures-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: no-personal-fixtures guard (BR-526/BR-531)
+        run: bash tools/check-no-personal-fixtures.sh --quiet
+
+  # === security-headers guard (2026-10-24, BR-558, аудит #336, OpenProject #372) ===
+  # Прод-nginx публичного сайта (sm-karaoke.ru) обязан отдавать заголовки
+  # безопасности. Guard статически разбирает deploy/prod-single-host/80to8897 и
+  # проверяет: (1) каждый server-блок объявляет X-Frame-Options /
+  # X-Content-Type-Options / Referrer-Policy (+ Strict-Transport-Security для
+  # TLS-сервера) с флагом `always`; (2) location'ы, у которых есть свои
+  # add_header (в nginx такие блоки НЕ наследуют серверные заголовки),
+  # объявляют нужные заголовки явно либо помечены явным исключением.
+  # Регламент: knowledge/guidelines/security-headers.md.
+  security-headers-guard:
+    name: security headers guard (BR-558)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: security headers guard (BR-558)
+        run: python3 tools/check-security-headers.py

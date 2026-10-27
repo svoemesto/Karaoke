@@ -1,27 +1,27 @@
 # Karaoke Project Guidelines (Claude Code)
 
-> **Версия**: 1.6.1 | **Pass 381** (в Pass 380 указан неверный путь эндпоинтов
-> очереди — `GET /api/process/stop` отдаёт 404).
-> 95 строк. Cross-references only. **Single source of truth**: `AGENTS.md` v3.4.1.
+> **Версия**: 1.7.0 | **2026-10-27** (рабочий трекер — Plane; OpenProject
+> остаётся локально для ручных задач).
+> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.6.0.
 
-## 🚦 Все правила — в AGENTS.md v3.4.1
+## 🚦 Все правила — в AGENTS.md v3.6.0
 
 - **MUST #0 Knowledge-first pre-flight** → `AGENTS.md` Tier-1.
 - **Hard Gates (Pass 372-375, 358, 353)** → `AGENTS.md` Tier-1.
-- **OpenProject workflow** → `AGENTS.md` Tier-1.
+- **Plane workflow** (трекер — Plane, OpenProject — локальный архив) → `AGENTS.md` Tier-1.
 - **Каталог guards (R-04, R-05, R-07, R-08, R-11, R-32, R-43, R-44, IX.3)** → `AGENTS.md` Tier-2.
 - **TOP-11 ловушек** → `architecture-conventions.md` § «Ловушки».
 - **Build / Deploy / Containers** → `AGENTS.md` Tier-1 (Pass 372-375).
 - **Knowledge SSoT** → `AGENTS.md` Tier-1 + `knowledge/README.md`.
 - **Machine-specific exceptions** → `AGENTS.md` Tier-1 (таблица nsa-i9/dev-pc + Pass 380/381: очередь `KaraokeProcess` перед перезапуском `karaoke-app`, Pass 381 — верный путь эндпоинтов).
 - **Subagent isolation** → `AGENTS.md` Tier-1.
-- **Процесс wayfinder → исполнение** (карты/тикеты — в OpenProject, speckit в субагенте, маленькая задача — решение владельца) → `AGENTS.md` Tier-1.
+- **Процесс wayfinder → исполнение** (карты/тикеты — в Plane, speckit в субагенте, маленькая задача — решение владельца) → `AGENTS.md` Tier-1.
 
 ## 🚦 Рекомендации для Claude Code (не дублируют AGENTS.md)
 
 1. **При старте сессии**: `cat AGENTS.md | head -100` — знать обязательные правила.
 2. **Перед правкой кода фичи**: обновить `docs/features/<slug>.md` (FR-009).
-3. **Перед commit**: 7 проверок из AGENTS.md v3.4.1 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
+3. **Перед commit**: 7 проверок из AGENTS.md v3.6.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
 4. **При отладке**: сначала `docker logs`, потом гипотезы (Pass 358).
 5. **Если grep по `knowledge/` ничего не нашёл**: зафиксировать в `spec.md` явно «Searched: ... → no relevant docs».
 
@@ -48,18 +48,23 @@
 | Стратегия роста | `docs/strategy/growth.md` |
 | Логи прода, диагностика | `docs/ops/log-correlation.md` |
 | Changelog PR | `docs/architecture-notes.md` |
+| Трекер проекта (Plane) | `docs/tracker-setup.md`, `knowledge/system/infra/tracker.md` |
 | Настройка Claude Code | `docs/claude-code-setup.md` |
 
 ## 🚦 Ключевые правила (Claude Code-specific)
 
 - **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
-- **Secrets**: НЕ коммитить. См. AGENTS.md v3.4.1 § «Hard Gate: Secrets».
+- **Secrets**: НЕ коммитить. См. AGENTS.md v3.6.0 § «Hard Gate: Secrets».
 - **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
 - **Force-push в main/master**: нельзя.
 - **`git commit --no-verify`**: только в крайнем случае.
 
 ## Changelog
 
+- **1.7.0** (2026-10-27, T5 карты `tracker-migration`): синхронизация с
+  `AGENTS.md` v3.6.0 — рабочий трекер Plane, OpenProject остаётся локальным
+  архивом для ручных задач; ссылки на `docs/tracker-setup.md` и
+  `knowledge/system/infra/tracker.md`.
 - **1.6.1** (Pass 381, 2026-09-30): синхронизация с `AGENTS.md` v3.4.1 — Pass 380
   больше не указывает нерабочий путь `/api/process/stop`; эндпоинты очереди
   доступны напрямую на `:8898`.

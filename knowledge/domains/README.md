@@ -103,6 +103,9 @@ knowledge/domains/<name>/
   - `ci-tools.md` — tools/ (Pass 353).
   - `deploy-overview.md` — deploy/ (Pass 354).
   - `do-sh.md` — главный entry point (Pass 355).
+  - `registry.md` — Zot на прод-хосте: локальный кэш и зеркало Harbor (2026-10-27).
+  - `harbor-registry.md` — Harbor: основной каталог образов, роботы, репликация (2026-10-27).
+  - `external-infra.md` — infra-сервер: Forgejo/Plane/Harbor, бэкапы, мониторинг (2026-10-27).
   - `specs-catalog.md`, `specs-catalog-detailed.md` — specs/ (Pass 358, 374).
   - `pre-commit-config.md` — pre-commit хуки (Pass 359).
   - `dev-pc-exception.md` — Pass 282 dev-pc (Pass 360).

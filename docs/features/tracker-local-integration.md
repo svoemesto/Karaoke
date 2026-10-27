@@ -1,13 +1,21 @@
 # Feature: Локальный issue-tracker для AI-агента (spec 295, OpenProject)
 
-> **Status**: active
+> **Status**: deprecated
 > **Feature Key**: tracker-local-integration
-> **Last Updated**: 2026-10-24
+> **Last Updated**: 2026-10-28
+> **Заменено**: рабочий трекер — Plane (`tracker.sm-karaoke.ru`, проект
+> `KARAOKE`); см. [tracker-setup.md](../../docs/tracker-setup.md) и
+> `knowledge/system/infra/tracker.md`. OpenProject остаётся локальным
+> архивом для ручных задач (ADR `local-0012`, решение `06`).
 > **Spec**: [specs/295-jira-local-integration/spec.md](../../specs/295-jira-local-integration/spec.md)
 > **Created**: 2026-09-02
 > **История**: Pass 295, v295.2.0 — миграция с Jira DC на OpenProject.
 
-## Что делает
+## Что делает (историческое: OpenProject)
+
+> Раздел описывает период до 2026-10-27. Актуальный трекер — Plane; команды
+> `tools/tracker.sh` теперь работают против Plane с теми же именами и кодами
+> выхода.
 
 Локальный **OpenProject Community Edition** в Docker-контейнере для
 двусторонней интеграции пользователь ↔ AI-агент через work packages (задачи).

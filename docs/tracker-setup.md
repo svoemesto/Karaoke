@@ -1,224 +1,223 @@
-# Tracker Setup — пошаговое руководство (OpenProject)
+# Tracker Setup — пошаговое руководство (Plane)
 
-**Версия**: 1.1 (Pass 295, rev. — auto-bootstrap + apikey)
-**Связанные документы**: [`specs/295-jira-local-integration/spec.md`](../specs/295-jira-local-integration/spec.md), [`docs/features/tracker-local-integration.md`](features/tracker-local-integration.md)
+**Версия**: 2.0 (2026-10-27, карта `tracker-migration`, тикет T5)
+**Связанные документы**: [`knowledge/system/infra/tracker.md`](../knowledge/system/infra/tracker.md),
+[`knowledge/system/infra/op-plane-mapping.md`](../knowledge/system/infra/op-plane-mapping.md),
+[`knowledge/adr/local-0012-plane-tracker-migration.md`](../knowledge/adr/local-0012-plane-tracker-migration.md),
+[`docs/features/tracker-local-integration.md`](features/tracker-local-integration.md)
 
 ## Что это
 
-Локальный **OpenProject** Community Edition для AI-агента. OpenProject — это
-open-source альтернатива Jira (полностью бесплатная, без лицензионных
-ограничений, MIT-лицензия).
+Рабочий трекер проекта Karaoke — **Plane Community Edition 1.4.2** на
+infra-сервере (`https://tracker.sm-karaoke.ru`). Владелец заводит задачи в
+веб-интерфейсе Plane, AI-агент через CLI (`tools/tracker.sh`) забирает их,
+выполняет, публикует отчёт-комментарий и переводит задачу в ревью.
 
-Пользователь заводит work packages (задачи) в OpenProject UI, AI-агент
-через CLI (`tools/tracker.sh`) забирает их, выполняет и публикует
-отчёт-комментарий с автоматическим закрытием.
+Локальный **OpenProject** остаётся на `nsa-i9` как архив и инструмент для
+ручных задач: read-only и выключение не планируются (решение `06` карты
+`tracker-migration`). Два трекера сосуществуют, автоматической синхронизации
+между ними нет; номера Plane и OpenProject не совпадают, соответствие —
+таблица `op-plane-mapping.csv`.
 
-## Почему OpenProject, а не Jira
+## Трекер и доступ
 
-Из спецификации 295 (`.jira-archived/`) сначала планировалось использовать
-Jira Data Center, но:
-- Atlassian блокирует регистрацию evaluation-license для пользователей из РФ/РБ.
-- Jira DC без license работает в read-only mode через 30 дней.
+| Параметр | Значение |
+|---|---|
+| UI и API | `https://tracker.sm-karaoke.ru` |
+| Workspace | `svoemesto` |
+| Проект | `Karaoke`, identifier `KARAOKE`, id `6148f3ac-5f36-4f1b-91fc-01fe7cc8f435` |
+| Участники | `nsa-svoemesto` (владелец проекта), `ai-agent` (владелец автоматизации) |
+| Аутентификация API | заголовок `X-API-Key: <PAT>` |
+| Ссылка на задачу | `https://tracker.sm-karaoke.ru/svoemesto/projects/karaoke/issues/<seq>` |
 
-OpenProject — drop-in замена:
-- Полностью бесплатный (MIT-лицензия).
-- REST API v3 с теми же операциями (CRUD для work packages).
-- Поддерживает agile-доски, workflow, custom fields, attachments.
-- Self-hosted через Docker.
+Перенесённые данные (2026-10-27): 297 задач, 638 комментариев, 8 вложений,
+39 sub-issues, 12 связей `follows`. Метки типов и состояния перенесены, см.
+ниже.
 
-## Требования
+### Переменные окружения
 
-- Linux x86_64 (Ubuntu 22.04+, Debian 11+, RHEL 9+).
-- Docker 20.10+ с Docker Compose v2.
-- Bash 4.4+, `curl`, `jq` 1.6+, `openssl`.
-- ≥8 GB свободной RAM, ≥5 GB диска (образ OpenProject ~2 GB).
+Файл `.env.local-tracker` лежит в корне репозитория и **не** версионируется
+(`.gitignore`). Токены в репозиторий и в отчёты не попадают.
 
-## Этап 1: Установка (одной командой)
+| Ключ | Назначение |
+|---|---|
+| `PLANE_URL` | `https://tracker.sm-karaoke.ru` |
+| `PLANE_WORKSPACE` | `svoemesto` |
+| `PLANE_AI_TOKEN` | PAT пользователя `ai-agent` (label `karaoke-migration`), рабочий токен агента |
+| `PLANE_PROJECT_ID` | id проекта `Karaoke`; необязателен — при отсутствии проект определяется по identifier `KARAOKE` |
+| `TRACKER_URL` | оставлен для обратной совместимости (`tools/tracker-poll.sh` строит ссылки) |
 
-### 1.1 Запустить install-tracker.sh
+Старые `TRACKER_API_TOKEN` и `TRACKER_USER` относятся к OpenProject и
+инструментами больше не используются; файл не чистим, чтобы не потерять
+доступ к архиву.
 
-```bash
-cd /home/nsa/Karaoke
-bash tools/install-tracker.sh            # bootstrap + запустить (без smoke)
-# либо
-bash tools/install-tracker.sh --smoke    # bootstrap + end-to-end smoke-test
-```
+### Выпуск PAT
 
-Скрипт автоматически:
+1. Войти в Plane пользователем, от имени которого должен работать агент
+   (`ai-agent`).
+2. Настройки пользователя → **API tokens** → создать токен, label
+   `karaoke-migration`.
+3. Положить значение в `PLANE_AI_TOKEN` в `.env.local-tracker`.
+4. Проверить: `GET /api/v1/users/me/` возвращает `ai-agent`.
 
-1. Создаёт `.env.local-tracker` (если нет) с авто-сгенерированными секретами
-   `TRACKER_DB_PASSWORD` (32 base64 символа) и `TRACKER_SECRET_KEY_BASE`
-   (openssl rand -hex 64).
-2. Находит свободный порт для OpenProject UI (8080 → 7082 → 7083 → 7084 → 8082)
-   и обновляет `TRACKER_URL` / `TRACKER_HOST` в `.env.local-tracker`.
-3. Запускает `docker compose -f deploy/tracker-docker-compose.yml up -d`,
-   передавая `.env.local-tracker` через `--env-file`.
-4. Ждёт healthcheck OpenProject (`/health_check`) до 10 минут.
-5. Через `rails runner` создаёт (или обновляет) пользователя `ai-agent` с
-   правами admin и генерирует для него новый API-токен; **записывает plain
-   токен в `.env.local-tracker`**.
-6. (опционально, по флагу `--smoke`) прогоняет `tracker-smoke-test.sh`.
-
-> **Ключевой момент**: CLI использует Basic Auth с username=`apikey`
-> и password=`TRACKER_API_TOKEN` (см. OpenProject warden-стратегию
-> `UserBasicAuth`). `TRACKER_USER` используется только как login для
-> фильтров и логов whoami.
-
-### 1.2 Проверка
+## Проверка доступа
 
 ```bash
 cd /home/nsa/Karaoke
-source .env.local-tracker            # подгрузить TRACKER_URL и токен
-./tools/tracker.sh healthcheck       # OK: OpenProject UP at http://localhost:8080
-./tools/tracker.sh list-projects     # таблица проектов (id, identifier, name)
+set -a && . ./.env.local-tracker && set +a
+
+./tools/tracker.sh healthcheck       # GET /users/me/ + GET .../issues/?per_page=1
+./tools/tracker.sh list-projects     # проекты workspace svoemesto
 ./tools/tracker.sh list-issues --assignee ai-agent --status open
 ```
 
-### 1.3 (опционально) Создать проект karaoke
+`healthcheck` отвечает `0`, если Plane доступен и токен принят. Коды ошибок —
+в разделе «Коды выхода».
 
-Если ещё нет — через UI:
-1. Projects → **+ Create project** → Name: `Karaoke`, Identifier: `karaoke`.
-2. В Members добавить `ai-agent` с ролью **Member** (и **Administrator**, если
-   хотите делегировать админство).
+## Задачи и нумерация
 
-Либо через rails-runner (по аналогии с install-tracker.sh):
-```bash
-docker exec openproject bash -c "cd /app && bundle exec rails runner '
-Project.where(identifier: \"karaoke\").first_or_initialize.tap do |p|
-  p.name = \"Karaoke\"
-  p.identifier = \"karaoke\"
-  p.templated = false
-  p.public = true
-  p.enabled_module_names = Project.default_enabled_modules
-  p.save!
-end
-'"
-```
+Plane нумерует задачи внутри проекта: `KARAOKE-<sequence_id>`, начиная с 1.
+Номера Plane **не совпадают** с номерами OpenProject. Команды принимают
+идентификатор в трёх формах:
 
-### 1.4 (опционально) Настроить backup systemd-timer
+| Форма | Пример | Как разрешается |
+|---|---|---|
+| номер Plane | `42` | `sequence_id` в проекте по умолчанию |
+| полная ссылка | `KARAOKE-42` | проект и `sequence_id` из ссылки |
+| номер OpenProject | `op:403` | через `knowledge/system/infra/op-plane-mapping.csv` |
 
-```bash
-mkdir -p ~/.config/systemd/user
-cp /home/nsa/Karaoke/deploy/tracker-db-backup.{service,timer} ~/.config/systemd/user/
+Соответствие «номер OpenProject → номер Plane → uuid» — в таблице
+`op-plane-mapping.csv` (297 строк, см. `op-plane-mapping.md`). Правило ссылок:
+**новые ссылки — на Plane**, старые `OpenProject #NNN` в текстах не
+переписываются.
 
-systemctl --user daemon-reload
-systemctl --user enable --now tracker-db-backup.timer
+## Состояния
 
-systemctl --user list-timers | grep tracker
-# Должен показать next run завтра в 03:00
-```
+В проекте пять состояний. Четыре перенесены из OpenProject, пятое введено для
+рабочего цикла (`mark-review`).
 
-Cron-вариант для систем без systemd-user:
-```bash
-# crontab -e
-0 3 * * * /home/nsa/Karaoke/deploy/tracker-db-backup.sh >> ~/.local/share/tracker-backup.log 2>&1
-```
+| Состояние | Группа Plane | Смысл |
+|---|---|---|
+| `New` | unstarted (default) | новая задача, исполнителя нет |
+| `In progress` | started | в работе (`claim-issue`, `reopen-issue`) |
+| `In review` | started | работа готова, ждёт проверки владельца (`mark-review`) |
+| `Done` | completed | принято владельцем (`close-issue`) |
+| `Cancelled` | cancelled | отклонено, не будет делаться |
 
-### 1.5 Kanban-доска «AI Pipeline» + workflow status «In review»
+Перенесённые задачи в `In review` не попадают: оно появляется только из
+`mark-review`. Идентификаторы состояний — в
+`.scratch/karaoke/wayfinding/tracker-migration/migration/plane-ids.json`
+(локальный артефакт миграции, вне git).
 
-`install-tracker.sh` автоматически (если проект `karaoke` уже существует) вызывает
-`tools/tracker-bootstrap-board.sh`, который:
+## Метки
 
-1. **Переименовывает** стандартный статус «In testing» (id=9) → «In review» —
-   пауза между окончанием работы агента и проверкой пользователем.
-2. **Создаёт Kanban-доску** «AI Pipeline» в проекте Karaoke с 6 колонками:
+Восемь меток: семь типов плюс признак wayfinder.
 
-| Колонка | Фильтр OpenProject |
-|---------|---------------------|
-| New | `status_id=1, assigned_to_id=<ai-agent>` |
-| In specification | `status_id=2, assigned_to_id=<ai-agent>` |
-| Specified | `status_id=3, assigned_to_id=<ai-agent>` |
-| In progress | `status_id=7, assigned_to_id=<ai-agent>` |
-| **In review** | `status_id=9, assigned_to_id=<ai-agent>` |
-| Closed | `status_id=12, assigned_to_id=<ai-agent>` |
+| Метка | Смысл | Проставлено при переносе |
+|---|---|---|
+| `type:bug` | дефект | — |
+| `type:feature` | новая функциональность | — |
+| `type:epic` | крупный переход через несколько доменов | — |
+| `type:task` | обычная задача | 294 |
+| `type:user-story` | пользовательская история | — |
+| `type:milestone` | веха | 3 |
+| `type:phase` | фаза | — |
+| `wayfinder` | карта решений или её тикет | 126 задач (все с префиксом `[wayfinder:*]`) |
 
-3. **Добавляет workflow-transitions** для статуса «In review» (для всех типов × ролей):
-   - `New → In review`
-   - `In progress → In review`
-   - `Specified → In review`
-   - `In review → In progress` (вернуть на доработку)
-   - `In review → Closed` (финал после ревью)
-   - `Closed → In review` (опциональный возврат)
+Пять меток типов существуют как словарь для новых задач: в OpenProject было
+7 определений типа, фактически использовались два (`Task`, `Milestone`).
 
-Если нужно пересоздать доску позже:
+## Приоритеты
 
-```bash
-bash tools/tracker-bootstrap-board.sh
-```
+Plane принимает `urgent|high|medium|low|none`. Все перенесённые задачи —
+`medium`: в OpenProject был единственный приоритет `Normal`.
 
-Открыть доску: <http://localhost:8080/projects/karaoke/boards/10>
+## Команды CLI
 
-## Этап 2: Использование
+`tools/tracker.sh` — единственная точка входа; `tools/tracker-lib.sh` —
+библиотека функций, напрямую не вызывается.
 
-### Создать задачу в UI
+| Команда | Что делает |
+|---|---|
+| `healthcheck` | `GET /users/me/` + `GET .../issues/?per_page=1` |
+| `list-projects` | проекты workspace |
+| `list-issues [--project-id ID] [--assignee USER] [--status open\|closed\|in-review] [--limit N] [--raw]` | список задач; `--status` отображается на состояния: `open` → `New` + `In progress`, `closed` → `Done` + `Cancelled`, `in-review` → `In review`; `--raw` — TSV для парсинга |
+| `get-issue ID` | JSON задачи вместе с комментариями |
+| `claim-issue ID` | assignee `ai-agent` + состояние `In progress` |
+| `add-comment ID --file FILE` | markdown-файл → `comment_html`, комментарий в задачу |
+| `mark-review ID` | состояние `In review` |
+| `close-issue ID` | состояние `Done` |
+| `reopen-issue ID` | состояние `In progress` |
+| `create-issue --project-id ID --type-id TYPE --subject S [--description D]` | создать задачу; `--type-id` — имя метки (`type:task`) или её uuid |
 
-1. Открыть <http://localhost:8080/projects/karaoke>.
-2. **+ Create new work package** → Type `Task`.
-3. Subject: `<краткое название>`.
-4. Description: `<детали>`. Если задача сложная и требует спецификации —
-   пользователь не пишет спеку сразу, а агент создаёт её автоматически
-   (см. `tracker-spec-for-issue.sh` ниже).
-5. Assignee: `ai-agent`.
-6. Save → получить числовой ID (например, `42`).
+`--assignee` принимает email или display name пользователя (`ai-agent`);
+CLI сам разрешает его в uuid участника проекта.
 
-### Polling при старте сессии opencode
+## Коды выхода
 
-В начале каждой сессии агент **обязан** выполнить `tools/tracker-poll.sh`,
-чтобы увидеть:
+Единые для всех подкоманд `tools/tracker.sh`:
+
+| Код | Значение |
+|---|---|
+| `0` | успех |
+| `1` | ошибка использования или валидации (неизвестная подкоманда, нет аргумента, неизвестная метка) |
+| `2` | трекер недоступен (сеть, DNS, 5xx после ретраев) |
+| `3` | `401` / `403` — токен отсутствует, истёк или отозван |
+| `4` | `429` — превышен лимит запросов |
+| `5` | прочие `4xx` (например, неизвестный id задачи) |
+| `6` | прочие `5xx` |
+
+`tools/tracker-poll.sh` использует свои четыре кода: `0` — есть открытые
+задачи, `1` — открытых нет, `2` — трекер недоступен, `3` — токен истёк.
+
+## Рабочий цикл (4 шага)
+
+Обязательный порядок для задачи, у которой есть Issue ID (`AGENTS.md`,
+Tier-1 «Plane Workflow»). `<ID>` — номер Plane или `KARAOKE-<номер>`.
+
+1. **Claim** — `./tools/tracker.sh claim-issue <ID>` до первой строки кода:
+   задача закрепляется за агентом и переходит в `In progress`.
+2. **Add comment** — `./tools/tracker.sh add-comment <ID> --file <report.md>`
+   после merge, до ревью: отчёт «что сделано / файлы / проверки» живёт
+   комментарием задачи, а не только в PR.
+3. **Mark review** — `./tools/tracker.sh mark-review <ID>`: задача уходит в
+   `In review`.
+4. **Close** — `./tools/tracker.sh close-issue <ID>` после ревью владельца:
+   задача уходит в `Done`.
+
+Если владелец вернул задачу на доработку — `reopen-issue <ID>` переводит её
+обратно в `In progress`.
+
+## Polling
+
+В начале сессии агент выполняет `tools/tracker-poll.sh`, чтобы увидеть
+открытые задачи, задачи в ревью и недавно закрытые:
 
 ```bash
 cd /home/nsa/Karaoke
-source .env.local-tracker
-
+set -a && . ./.env.local-tracker && set +a
 bash tools/tracker-poll.sh
 ```
 
-Пример вывода:
-
-```
-═══ Tracker poll ═══
-Время:     2026-09-02 15:35:50 +0300
-Tracker:   http://localhost:8080
-Assignee:  ai-agent
-
-📋 Открытые задачи (2)
-42  test-mark-review-183444  -      unassigned  -
-47  Fix memory leak in cache  New    ai-agent    -
-
-🔍 В ревью (0)
-
-✅ Недавно закрытые (3)
-43  test-flow-183542          Closed   ai-agent  -
-46  Refactor admin panel      Closed   ai-agent  -
-
-Kanban-доска: http://localhost:8080/projects/karaoke/boards/10
-```
+Источник данных — `tracker.sh list-issues --raw` (TSV, колонки через таб),
+поэтому `id` / `subject` / `status` разбираются корректно. Без `--raw`
+продюсер выравнивает колонки через `column -t` (пробелы), и разбор по табу
+даёт одну колонку.
 
 Опции:
 
-- `--json` — JSON для парсинга в другие скрипты. Источник данных —
-  `tracker.sh list-issues --raw` (TSV, колонки разделены табом), поэтому
-  `id` / `subject` / `status` заполнены корректно. Без `--raw` продюсер
-  выравнивает колонки через `column -t` (разделитель — пробел), и разбор
-  по табу даёт одну колонку. Пример элемента массива `open`:
-
-  ```json
-  { "id": "390", "subject": "[#336] S3: guards/CI/tools (S3, 7)", "status": "New" }
-  ```
-
-- `--quiet` — только статистика для cron / системных служб.
+- `--json` — JSON для других скриптов; элементы вида
+  `{ "id": "42", "subject": "...", "status": "New" }`.
+- `--quiet` — только статистика для cron / systemd-timer.
 - `--limit N` — ограничить количество задач.
-- `--assignee USER` — изменить фильтр (default = `$TRACKER_AGENT_USER`).
+- `--assignee USER` — другой фильтр исполнителя (по умолчанию
+  `TRACKER_AGENT_USER`, то есть `ai-agent`).
 
-Exit codes:
-- `0` — есть открытые задачи.
-- `1` — открытых нет (всё сделано).
-- `2` — OpenProject недоступен.
-- `3` — токен истёк.
+Ссылки на задачи строятся как
+`{PLANE_URL}/{workspace}/projects/{identifier}/issues/{seq}`; для обратной
+совместимости база берётся из `TRACKER_URL`, если `PLANE_URL` не задан.
 
-### Polling через cron / systemd-timer (опционально)
-
-Если нужны регулярные опросы, можно настроить таймер каждые 5 минут:
+Регулярный опрос (опционально):
 
 ```bash
 # ~/.local/bin/tracker-poll-cron.sh
@@ -234,185 +233,122 @@ echo "[$(date -Iseconds)] $(bash tools/tracker-poll.sh --quiet 2>&1)" \
 */5 * * * * bash ~/.local/bin/tracker-poll-cron.sh
 ```
 
-### Полный workflow (user → agent → user → closed)
+## Спека из задачи
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│ 1. user  http://localhost:8080/projects/karaoke → +Task          │
-│           assignee = ai-agent, save → work package #42 created      │
-└──────────────────────────────────────────────────────────────────────┘
-                                ↓
-┌──────────────────────────────────────────────────────────────────────┐
-│ 2. agent  bash tools/tracker-poll.sh  видит #42                    │
-│           • bash tools/tracker-spec-for-issue.sh 42                 │
-│             → создаёт specs/045-foo/spec.md + tasks.md             │
-│             → добавляет комментарий в #42 со ссылкой                │
-│           • cd specs/045-foo && заполняет User Stories / FR / AC   │
-│           • bash tools/tracker.sh claim-issue 42                    │
-│             → assignee=ai-agent, status = "In progress"            │
-└──────────────────────────────────────────────────────────────────────┘
-                                ↓
-┌──────────────────────────────────────────────────────────────────────┐
-│ 3. agent  ... реализация по tasks.md (commit/PR)                  │
-│           • bash tools/tracker.sh add-comment 42 --file REPORT.md   │
-│             → публикует markdown-отчёт (Что сделано/Файлы/...)    │
-│           • bash tools/tracker.sh mark-review 42                   │
-│             → status = "In review" (готов к проверке)             │
-└──────────────────────────────────────────────────────────────────────┘
-                                ↓
-┌──────────────────────────────────────────────────────────────────────┐
-│ 4. user   Открывает доску / work package #42 / PR                  │
-│           • Проверяет работу                                         │
-│           • Если всё ОК:                                            │
-│             bash tools/tracker.sh close-issue 42                    │
-│             → status = "Closed"                                     │
-│           • Если нужна доработка:                                   │
-│             bash tools/tracker.sh reopen-issue 42                   │
-│             → status = "In progress" → agent видит в poll           │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-### Создание спеки из work package
-
-Если задача в OpenProject нетривиальная и требует полноценной спецификации
-(для архивации, для git-PR, для повторного использования в будущем),
-агент вызывает:
+Нетривиальная задача превращается в спеку тем же способом, что и раньше:
 
 ```bash
-bash tools/tracker-spec-for-issue.sh <WORK_PACKAGE_ID>
+bash tools/tracker-spec-for-issue.sh <ID>
 ```
 
-Что произойдёт:
+Скрипт читает `subject` и `description` через `get-issue`, генерирует
+kebab-case slug, находит следующий свободный номер спек, создаёт
+`specs/NNN-<slug>/spec.md` и `tasks.md` и добавляет в задачу комментарий со
+ссылкой на спеку. Дальше — обычный цикл из четырёх шагов.
 
-1. Скрипт прочитает `subject` + `description` work package через
-   `tracker.sh get-issue`.
-2. Сгенерирует slug в kebab-case: `Fix memory leak in cache` → `fix-memory-leak-in-cache`.
-3. Найдёт следующий свободный номер спек (`045` на 2026-09-02, например).
-4. Создаст каталог `specs/045-fix-memory-leak-in-cache/` с:
-   - `spec.md` — frontmatter (work_package, created, source) + исходное
-     описание + чек-лист «что нужно сделать».
-   - `tasks.md` — заготовка чек-листа (Research / Design / Implementation /
-     Verification / Close).
-5. Добавит markdown-комментарий в work package со ссылкой на спеку.
+Опции: `--force` — перезаписать существующий каталог спеки (осторожно).
 
-После этого агент работает по обычному workflow (см. выше).
+Коды выхода: `0` — спека создана, `1` — задача не найдена, `2` — каталог уже
+существует, `3` — ошибка `tracker.sh`.
 
-Опции:
-- `--force` — перезаписать существующий каталог спеки (осторожно).
-
-Exit codes:
-- `0` — спека создана.
-- `1` — work package не найден.
-- `2` — каталог уже существует (use `--force`).
-- `3` — ошибка tracker.sh.
-
-## Wayfinding в OpenProject (карты решений)
+## Wayfinding в Plane
 
 Процесс команды «wayfinder → исполнение» (живые инструкции:
 `~/.dsh/romario-team/wayfinding-operations.md`; скилл `wayfinder` включается
-вручную) в проекте Karaoke выражается через OpenProject. Локальные
-`issues_NNNN.md` здесь **не ведутся** — это адаптация командной раскладки под наш
-трекер: семантика карты, тикетов, claim/frontier и тумана та же.
+вручную) в проекте Karaoke выражается задачами Plane. Локальные
+`issues_NNNN.md` здесь **не ведутся**: семантика карты, тикетов,
+claim/frontier и тумана сохраняется, меняется только носитель.
 
 ### Как выражаются карта и тикеты
 
-| Понятие wayfinder | В OpenProject |
+| Понятие wayfinder | В Plane |
 |---|---|
-| Карта усилия (map) | Work package в проекте `karaoke` (id 3), тип `Task` (id 1), тема `[wayfinder] <усилие>` |
-| Тело карты (Destination / Notes / Decisions so far / Not yet specified / Out of scope) | описание этого work package |
-| Тикет-решение | отдельный work package `Task`: тема — название решения, первая строка описания `Map: #<ID карты>`, далее блоки Type / Status / Blocked by / Question / Answer |
-| Зависимости (`Blocked by`) | строки `Blocked by: #N, #M` в описании тикета; проверяются чтением этих work packages (relations не заводим) |
-| `OPEN` | статус `New` (id 1) без assignee |
-| `CLAIMED` | `In progress` (id 7) + assignee (`claim-issue`) |
-| `RESOLVED` | `Closed` (id 12) + комментарий-ответ |
+| Карта усилия (map) | родительская задача проекта `KARAOKE`, тема `[wayfinder:map] <усилие>` |
+| Тело карты (Destination / Notes / Decisions so far / Not yet specified / Out of scope) | описание этой задачи |
+| Тикет-решение | sub-issue карты: тема `[wayfinder:<type>] <вопрос>`, первая строка описания — `Map: KARAOKE-<seq>` |
+| Зависимости (`Blocked by`) | строка `Blocked by: KARAOKE-N, KARAOKE-M` в описании тикета; проверяется чтением этих задач, отдельные relations для зависимостей не заводятся |
+| `OPEN` | состояние `New`, исполнителя нет |
+| `CLAIMED` | `In progress` + assignee (`claim-issue`) |
+| `RESOLVED` | `Done` + комментарий-ответ |
+
+Метка `wayfinder` стоит и на карте, и на её тикетах. Иерархия — штатная
+связь parent/child Plane (sub-issues): в перенесённых данных 39 задач имеют
+родителя, четыре закрытые карты и открытая карта перенесены вместе с детьми.
+Связи `follows` из OpenProject перенесены отдельными relations (12 штук) —
+это исторический порядок задач, а не способ задавать зависимости тикетов.
 
 ### Операции
 
 ```bash
 # 1. Карта усилия (одна на усилие; создаёт лид)
-bash tools/tracker.sh create-issue --project-id 3 --type-id 1 \
-     --subject "[wayfinder] <усилие>" --description "<тело карты>"
+bash tools/tracker.sh create-issue --project-id "$PLANE_PROJECT_ID" \
+     --type-id type:task --subject "[wayfinder:map] <усилие>" \
+     --description "<тело карты>"
 
-# 2. Тикет-решение — один work package на вопрос (первая строка описания: Map: #N)
-bash tools/tracker.sh create-issue --project-id 3 --type-id 1 \
-     --subject "<вопрос — это имя тикета>" --description "Map: #N ..."
+# 2. Тикет-решение — один sub-issue на вопрос
+#    (первая строка описания: Map: KARAOKE-<seq>; parent задаётся в UI)
+bash tools/tracker.sh create-issue --project-id "$PLANE_PROJECT_ID" \
+     --type-id type:task --subject "[wayfinder:grilling] <вопрос>" \
+     --description "Map: KARAOKE-<seq> ..."
 
 # 3. Claim
-bash tools/tracker.sh claim-issue <ID>
+bash tools/tracker.sh claim-issue KARAOKE-<seq>
 
-# 4. Frontier: открытые work packages проекта + чтение кандидатов
-bash tools/tracker.sh list-issues --project-id 3 --status open
-bash tools/tracker.sh get-issue <ID>        # Map: #N, Blocked by, assignee
+# 4. Frontier: открытые задачи проекта + чтение кандидатов
+bash tools/tracker.sh list-issues --status open
+bash tools/tracker.sh get-issue KARAOKE-<seq>   # Map, Blocked by, assignee
 
 # 5. Разрешение: ответ комментарием + закрытие
-bash tools/tracker.sh add-comment <ID> --file answer.md
-bash tools/tracker.sh close-issue <ID>
+bash tools/tracker.sh add-comment KARAOKE-<seq> --file answer.md
+bash tools/tracker.sh close-issue KARAOKE-<seq>
 ```
 
 Правила: одна сессия — не больше одного тикета; ответ живёт комментарием,
 артефакты — ссылками; в `Decisions so far` карты добавляется суть решения и
-`#ID` тикета; туман и «вне скоупа» — разделами тела карты.
+`KARAOKE-<seq>` тикета; туман и «вне скоупа» — разделами тела карты.
 
 ### Переход к исполнению
 
 Классификация остатка работы (большая/маленькая) — **решает владелец**
-(`AGENTS.md` § «Hard Gate — Процесс: wayfinder → исполнение»). Маленькая: владелец
-выбирает — лид делает сам или через спеку. Большая: issue-задача work package
-(`create-issue`) → `speckit-specify` → спека уходит владельцу → **СТОП** → по слову
-владельца долгоживущий субагент ведёт `speckit-plan → speckit-tasks →
-speckit-analyze → speckit-implement`, лид ревьюит каждый шаг по фактам с диска →
-после merge штатные 4 шага OpenProject-workflow (см. выше: `add-comment` →
-`mark-review` → ревью владельца → `close-issue`).
+(`AGENTS.md` § «Hard Gate — Процесс: wayfinder → исполнение»). Маленькая:
+владелец выбирает — лид делает сам или через спеку. Большая: issue-задача в
+Plane (`create-issue`) → `speckit-specify` → спека уходит владельцу →
+**СТОП** → по слову владельца долгоживущий субагент ведёт `speckit-plan →
+speckit-tasks → speckit-analyze → speckit-implement`, лид ревьюит каждый шаг
+по фактам с диска → после merge штатные 4 шага Plane-workflow (`add-comment`
+→ `mark-review` → ревью владельца → `close-issue`).
 
-## Troubleshooting
+## Диагностика
 
-| Проблема | Решение |
-|----------|---------|
-| OpenProject не стартует 10+ минут | `docker logs openproject --tail 100` — смотреть ошибки. Обычно: Postgres ещё не healthy или `TRACKER_SECRET_KEY_BASE` короче требуемого (должен быть 128 hex). |
-| Порт 8080 занят | `install-tracker.sh` автоматически выберет 7082/7083/7084 (см. `ATTEMPT_PORTS` в скрипте). |
-| `401 Unauthorized` | `TRACKER_API_TOKEN` в `.env.local-tracker` отозван или устарел. Пересоздайте: удалите токен в БД или запустите `install-tracker.sh` (он переустановит токен через rails-runner). |
-| `429 Too Many Requests` | CLI автоматически retry с backoff 2s/4s/8s. Если постоянно — уменьшить частоту polling. |
-| Пустой `list-issues --assignee ai-agent` | assignee — это **login**, CLI сам резолвит в id; проверьте что пользователь существует: `docker exec openproject-db psql -U openproject -d openproject -c "SELECT id, login FROM users"` |
-| `lock_version conflict` при PATCH | OpenProject требует актуальный `lockVersion`; CLI сам делает re-GET и retry (до 3 попыток). Если стабильно — кто-то активно правит задачу параллельно. |
-| HTTP 400 `bad range specification in URL` | Баг curl: фильтры должны быть URL-encoded (CLI делает это автоматически); если вы запускаете curl вручную — используйте `jq -sRr @uri` или `--data-urlencode`. |
-| Postgres не подключается | `docker logs openproject-db` — проверить пароль в `.env.local-tracker` совпадает с compose. |
-| Бэкап не работает | `journalctl --user -u tracker-db-backup.service` (systemd) или `cat ~/.local/share/tracker-backup.log` (cron). |
-| `tracker-postgres-data` volume заполнился | Проверьте `docker system df`; OpenProject создаёт attachments в `openproject-data` — посмотрите размер через `du -sh /var/lib/docker/volumes/openproject-data/`. |
+| Проблема | Причина и решение |
+|---|---|
+| `401 Unauthorized` | `PLANE_AI_TOKEN` отсутствует, истёк или отозван. Перевыпустить PAT в Plane и обновить `.env.local-tracker`; код выхода `3`. |
+| `403 Forbidden` | Пользователь токена не участник workspace или проекта. Добавить `ai-agent` в проект `Karaoke` (роль Member). |
+| `429 Too Many Requests` | Лимит Plane — 60 запросов в минуту на пользователя. CLI делает паузу по `Retry-After` и повторяет; при постоянном 429 — уменьшить частоту polling, не долбить API в цикле. |
+| Пустой `list-issues --assignee ai-agent` | Исполнитель не назначен ни одной задаче либо пользователь не участник проекта. Проверить участников проекта и поле `assignees` у задачи. |
+| `get-issue 42` открывает чужую задачу | Номер — `sequence_id` **внутри проекта** `KARAOKE`. Проверить, что `PLANE_PROJECT_ID` указывает на проект Karaoke. |
+| `op:403` не разрешается | Нет таблицы `knowledge/system/infra/op-plane-mapping.csv` или в ней нет строки. Смотреть `op-plane-mapping.md` § «Как читать». |
+| `project not found` | Идентификатор проекта — identifier `KARAOKE` в верхнем регистре; uuid проекта берётся из `PLANE_PROJECT_ID`. |
+| Вложение не загружается | Поле вложения в API — `asset`, MIME ограничен белым списком (`text/csv` проходит, `application/csv` — нет). |
+| `mark-review` вернул ошибку состояния | Состояние `In review` должно существовать в проекте (группа `started`). Список состояний — `GET .../states/`. |
 
-## Управление
+## OpenProject: локальный архив
 
-```bash
-# Остановить
-cd /home/nsa/Karaoke/deploy
-docker compose -f tracker-docker-compose.yml stop
+OpenProject (`openproject/community:13` + `openproject-db` на `nsa-i9`)
+остаётся рабочим инструментом для ручных задач. Read-only и выключение не
+планируются; удаление — отдельным решением позже. Контейнеры описаны в
+`deploy/tracker-docker-compose.yml`, установка и bootstrap — исторический
+`tools/install-tracker.sh`.
 
-# Запустить снова
-docker compose -f tracker-docker-compose.yml start
-
-# Полностью удалить контейнеры (данные СОХРАНЯЮТСЯ в volumes)
-docker compose -f tracker-docker-compose.yml down
-
-# Удалить ВСЁ включая данные (ОСТОРОЖНО!)
-docker compose -f tracker-docker-compose.yml down -v
-
-# Логи
-docker logs openproject --tail 100 -f
-docker logs openproject-db --tail 100 -f
-
-# Восстановление из pg_dump
-docker compose -f tracker-docker-compose.yml stop openproject
-docker compose -f tracker-docker-compose.yml exec openproject-db \
-    pg_restore -U openproject -d openproject --clean --if-exists \
-    /backups/tracker-YYYY-MM-DD.dump
-docker compose -f tracker-docker-compose.yml start openproject
-```
+Дрейф между трекерами не синхронизируется: задача, заведённая в OpenProject,
+не появится в Plane, и наоборот. Для старых номеров действует таблица
+соответствия; для новых задач — только Plane.
 
 ## Что дальше
 
-- Прочитать [`specs/295-jira-local-integration/spec.md`](../specs/295-jira-local-integration/spec.md)
-  для общего контекста и Success Criteria.
-- Прочитать [`docs/features/tracker-local-integration.md`](features/tracker-local-integration.md) —
-  архитектурная сводка, компоненты, workflow.
-- Настроить polling (cron / systemd-timer для автоматического
-  `list-issues` + `claim-issue`).
-- Изучить OpenProject REST API v3: <https://www.openproject.org/docs/api/introduction/>.
+- Прочитать [`knowledge/system/infra/tracker.md`](../knowledge/system/infra/tracker.md) —
+  состояние инфраструктуры трекера, состав данных, ограничения.
+- Прочитать [`knowledge/system/infra/op-plane-mapping.md`](../knowledge/system/infra/op-plane-mapping.md) —
+  как пользоваться таблицей соответствия.
+- При ручных запросах сверяться с API Plane v1: `https://tracker.sm-karaoke.ru/api/v1/`,
+  заголовок `X-API-Key`.

@@ -151,6 +151,10 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T053 Семантика индикатора: `lastOutcome()` — первый прогон со статусом `success`/`failure` (cancelled пропускается), `badgeState()` на нём; синяя точка (`--dsw-alias-brand-primary`) плюс пульс при активном прогоне, красная точка (`--dsw-alias-state-error-primary`) главнее; цвета — на токенах темы
 - [x] T054 Тесты и документы индикатора: `[cancelled, cancelled, failure] → failure`, `[cancelled, success] → idle`, только `cancelled → idle`, `[running] → running`, `[running, failure] → failure`, разметка кнопки; `package.json` → 0.4.0, README, `knowledge/system/infra/ci-tools.md`, `report.md`, спека FR-010
 
+- [x] T055 Развести память и витрину: `historyLimit` (20, 5..100, ≥ `runsLimit`) в конфиге; буфер и снимок по `historyLimit`; витрина `runsLimit` в панели, popover и `forgejo_ci_status` по умолчанию; `maxItems` в полной схеме до 100, `schemaVersion` остаётся 1
+- [x] T056 Тесты: буфер держит 20; снимок отдаёт больше 5; индикатор видит исход за пределами первых пяти (12 записей, `failure` в конце → `failure`); tool по умолчанию отдаёт 5, по `runs: 20` — всю историю; панель показывает 5 из 20; конфиг `historyLimit` (границы и связь с `runsLimit`)
+- [x] T057 Документы: `package.json` → 0.5.0; README (два параметра и зачем); `contracts/tools.md` (пределы); `data-model.md`; спека FR-004/FR-010; `report.md` — находка с числами
+
 ---
 
 ## Dependencies (порядок исполнения)

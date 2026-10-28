@@ -137,6 +137,13 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T042 Заполнить `specs/670-forgejo-ci-plugin/report.md` (что проверено, чем, что осталось за границей, `schemaVersion` и rev клиентского артефакта) и опубликовать в трекер: `add-comment KARAOKE-305` → `mark-review`
 - [x] T043 Убрать временные артефакты: `/tmp/forgejo-askpass.sh`, локальные временные файлы проверок; убедиться, что значение токена не осталось ни в одном файле рабочей копии
 
+## Phase 8: Изменение формы входа (слово владельца 2026-10-28)
+
+- [x] T046 Обновить контракт в `spec.md`: FR-010 (кнопка в верхней панели с индикатором, видна без сессии), FR-011 (popover с прогонами и раннером, Esc/клик вне, «открыть полностью» на страницу), сценарии US1; пометка «изменено словом владельца 2026-10-28»
+- [x] T047 Кнопка в `conversation.header.leading` (single-слот, регистрация без `id/order/label`) с индикатором `failure`/`running`; регистрация в `sidebar.panellist` удалена целиком
+- [x] T048 Popover в `shell.overlay` (`id: forgejo-ci-popover`, order 90): `position: fixed` по `getBoundingClientRect` якоря, прижатие к вьюпорту, пересчёт на `resize`/`scroll`, закрытие по Esc и клику вне, «открыть полностью» → `layout.selectPanel('forgejo-ci')`; состояние в модульном сторе, слушатели и таймеры снимаются `ctx.effect`
+- [x] T049 Страница в `main` сохранена; `package.json` → 0.2.0; README, `knowledge/system/infra/ci-tools.md` и `report.md` обновлены; тесты `test/entry.test.mjs` (13: регистрации, позиционирование, машина состояний, бейдж, подписка)
+
 ---
 
 ## Dependencies (порядок исполнения)

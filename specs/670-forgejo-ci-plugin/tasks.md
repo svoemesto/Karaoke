@@ -134,7 +134,7 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T040 [P] Добавить запись о плагине в `knowledge/system/infra/ci-tools.md` (раздел операционных инструментов: что это, где живёт, как включить, какие ограничения) — ветка `670-forgejo-ci-plugin`, PR в Karaoke
 - [x] T041 Приёмка после установки по `specs/670-forgejo-ci-plugin/quickstart.md` §4: перезагрузка страницы, панель/бейдж/**живой toast** (#36 `running → cancelled`, 163 с; владелец видел тихое уведомление за ~15 с), DevTools — токена нет; результат — в `specs/670-forgejo-ci-plugin/report.md`
 - [x] T045 Проверить SC-007/FR-018 снятием: `plugin_manager` отключает плагин → иконка, панель и toast'ы исчезают без перезагрузки процесса и без ошибок в консоли; включение возвращает всё на место; результат — в `report.md`
-- [ ] T042 Заполнить `specs/670-forgejo-ci-plugin/report.md` (что проверено, чем, что осталось за границей, `schemaVersion` и rev клиентского артефакта) и опубликовать в трекер: `add-comment KARAOKE-305` → `mark-review`
+- [x] T042 Заполнить `specs/670-forgejo-ci-plugin/report.md` (что проверено, чем, что осталось за границей, `schemaVersion` и rev клиентского артефакта) и опубликовать в трекер: `add-comment KARAOKE-305` → `mark-review`
 - [x] T043 Убрать временные артефакты: `/tmp/forgejo-askpass.sh`, локальные временные файлы проверок; убедиться, что значение токена не осталось ни в одном файле рабочей копии
 
 ---

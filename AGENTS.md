@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.7.0 | **Last updated**: 2026-10-28 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.7.1 | **Last updated**: 2026-10-28 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -145,7 +145,13 @@
 OpenProject принимается только с префиксом `op:403` и разрешается через
 `knowledge/system/infra/op-plane-mapping.csv`.
 
-**Rule (как понимать «Задача N»)**: когда владелец говорит «Задача N» или
+**Failure** (Pass 349): OpenProject #69 без workflow → отчёт задним числом.
+**Enforcement**: `tools/check-spec-issue-link.py` + manual review.
+**Source**: `docs/tracker-setup.md`, ADR `knowledge/adr/local-0012-plane-tracker-migration.md`.
+
+### Как понимать «Задача N»
+
+Когда владелец говорит «Задача N» или
 «задача N в трекере», речь о задаче **KARAOKE-N** проекта Karaoke в Plane:
 `https://tracker.sm-karaoke.ru/svoemesto/browse/KARAOKE-N/`. Агент открывает её
 через `tracker.sh get-issue N` и работает с ней.
@@ -164,10 +170,6 @@ OpenProject принимается только с префиксом `op:403` �
 `specs/307-*` → работа сделана не над той задачей.
 **Enforcement**: manual review; номер вне диапазона Plane — уточнить у владельца.
 **Source**: `docs/tracker-setup.md` § «Задачи и нумерация».
-
-**Failure** (Pass 349): OpenProject #69 без workflow → отчёт задним числом.
-**Enforcement**: `tools/check-spec-issue-link.py` + manual review.
-**Source**: `docs/tracker-setup.md`, ADR `knowledge/adr/local-0012-plane-tracker-migration.md`.
 
 ## Tier-1: Hard Gate — Git — CI-gate для master ⛔
 
@@ -318,6 +320,9 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.7.1** (2026-10-28): правило «Задача N» оформлено подразделом `###` внутри
+  Plane Workflow (не отдельной главой), возвращён блок Failure/Source
+  четырёхшагового правила; в `CLAUDE.md` исправлена ссылка на версию.
 - **3.7.0** (2026-10-28): закреплено, что «Задача N» / «задача N в трекере» —
   это `KARAOKE-N` в Plane (`.../browse/KARAOKE-N/`), а не work package
   OpenProject и не каталог `specs/NNN-*`; исключения — `op:N` и «spec N».

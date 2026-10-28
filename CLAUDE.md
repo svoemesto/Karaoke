@@ -2,7 +2,7 @@
 
 > **Версия**: 1.8.0 | **2026-10-28** (рабочий трекер — Plane; OpenProject
 > остаётся локально для ручных задач).
-> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.6.0.
+> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.7.0.
 
 ## 🚦 Все правила — в AGENTS.md v3.7.0
 
@@ -65,7 +65,7 @@
   «Задача N» / «задача N в трекере» = `KARAOKE-N` в Plane, `op:N` и «spec N» —
   другие сущности.
 - **1.7.0** (2026-10-27, T5 карты `tracker-migration`): синхронизация с
-  `AGENTS.md` v3.6.0 — рабочий трекер Plane, OpenProject остаётся локальным
+  `AGENTS.md` v3.7.0 — рабочий трекер Plane, OpenProject остаётся локальным
   архивом для ручных задач; ссылки на `docs/tracker-setup.md` и
   `knowledge/system/infra/tracker.md`.
 - **1.6.1** (Pass 381, 2026-09-30): синхронизация с `AGENTS.md` v3.4.1 — Pass 380

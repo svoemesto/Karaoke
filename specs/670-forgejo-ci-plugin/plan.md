@@ -117,8 +117,9 @@ lib/
 ├── snapshot.js         # сборка снимка: слияние API + буфер, статус раннера, stale
 ├── runs.js             # нормализация прогона: duration (нс→с), ссылка из index_in_repo
 ├── buffer.js           # кольцевой буфер прогонов при пурже
-├── forgejo.js          # HTTP-клиент: fetch, таймауты, маппинг 403/404/5xx
-└── config.js           # дефолты + валидация конфига (без schemastery)
+├── forgejo.js          # HTTP-клиент: fetch, таймауты, маппинг 403/4xx/5xx в enum error
+├── config.js           # дефолты + валидация конфига (без schemastery)
+└── tools.js            # определения forgejo_ci_status / forgejo_ci_wait (чистые, тестируемые)
 test/
 ├── runs.test.mjs
 ├── buffer.test.mjs

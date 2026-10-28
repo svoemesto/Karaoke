@@ -188,6 +188,10 @@ NEEDS CLARIFICATION: **нет**.
 Порядок жёсткий: 1 → 2 → 3 → 4 → 5 → 6. Фаза 6 включает PR в Karaoke
 (`knowledge/system/infra/ci-tools.md` + `docs/features/forgejo-ci-plugin.md`).
 
+Трекер: `KARAOKE-305` (Plane, `In progress`, assignee `ai-agent` — claim выполнен
+2026-10-28). После merge фазы 6 — `report.md` → `tools/tracker.sh add-comment
+KARAOKE-305 --file specs/670-forgejo-ci-plugin/report.md` → `mark-review`.
+
 ## Risks & Mitigations
 
 | Риск | Проявление | Мера |

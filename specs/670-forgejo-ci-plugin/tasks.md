@@ -144,6 +144,10 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T048 Popover в `shell.overlay` (`id: forgejo-ci-popover`, order 90): `position: fixed` по `getBoundingClientRect` якоря, прижатие к вьюпорту, пересчёт на `resize`/`scroll`, закрытие по Esc и клику вне, «открыть полностью» → `layout.selectPanel('forgejo-ci')`; состояние в модульном сторе, слушатели и таймеры снимаются `ctx.effect`
 - [x] T049 Страница в `main` сохранена; `package.json` → 0.2.0; README, `knowledge/system/infra/ci-tools.md` и `report.md` обновлены; тесты `test/entry.test.mjs` (13: регистрации, позиционирование, машина состояний, бейдж, подписка)
 
+- [x] T050 Спека: FR-010 — кнопка в правой части шапки сессии (`conversation.session.header.utilities`, order 90), ограничение session-scope и закрытие popover при размонтировании; сценарии US1 поправлены, SC не тронуты
+- [x] T051 Клиент: регистрация перенесена в `conversation.session.header.utilities` (`id: forgejo-ci`, `order: 90`), `conversation.header.leading` освобождён; unmount-эффект кнопки закрывает popover и снимает слушатели; тест на размонтирование в `test/entry.test.mjs`
+- [x] T052 Документы: `package.json` → 0.3.0; README (кнопка справа в шапке); `knowledge/system/infra/ci-tools.md`; `report.md` — второй пункт изменения формы
+
 ---
 
 ## Dependencies (порядок исполнения)

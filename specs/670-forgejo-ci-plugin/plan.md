@@ -119,12 +119,16 @@ lib/
 ├── buffer.js           # кольцевой буфер прогонов при пурже
 ├── forgejo.js          # HTTP-клиент: fetch, таймауты, маппинг 403/4xx/5xx в enum error
 ├── config.js           # дефолты + валидация конфига (без schemastery)
-└── tools.js            # определения forgejo_ci_status / forgejo_ci_wait (чистые, тестируемые)
+├── tools.js            # определения forgejo_ci_status / forgejo_ci_wait (чистые, тестируемые)
+└── state.schema.json   # копия контракта снимка (источник правды — specs/.../contracts/),
+                        #   расхождение ловит test/schema.test.mjs
 test/
 ├── runs.test.mjs
 ├── buffer.test.mjs
 ├── snapshot.test.mjs
 ├── config.test.mjs     # дефолты, валидация tokenRef, отказ на мусор
+├── tools.test.mjs      # выбор прогона, таймаут, ошибки wait (инъекция clock)
+├── schema.test.mjs     # required-поля, enum ошибок, schemaVersion, совпадение с оригиналом
 └── secret.test.mjs     # значение секрета не попадает в сериализуемый снимок
 locale/{ru,en}.json     # meta.title/description + строки панели
 icon.svg

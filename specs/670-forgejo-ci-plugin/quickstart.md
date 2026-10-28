@@ -30,6 +30,9 @@ node --test            # ожидается: все тесты pass, 0 fail
 | `test/buffer.test.mjs` | пурж: буфер отдаёт последние 5 даже когда API вернул 1; обновление существующего `id` не дублирует; вытеснение по `id` |
 | `test/snapshot.test.mjs` | `stale` после 45 с без успеха; `queue-stuck` после 10 мин без активности; `jobs: null` при завершённом последнем прогоне и заполнен при `running`; `lastOkAt` не теряется при ошибке |
 | `test/secret.test.mjs` | `JSON.stringify(snapshot)` не содержит значения тестового токена ни в одном поле |
+| `test/config.test.mjs` | дефолты при пустом конфиге; отказ на мусорный `tokenRef`, `pollMs < 5000`, `runsLimit` вне 1..20, относительный `routePath` |
+| `test/tools.test.mjs` | выбор самого нового прогона; уже терминальный → `waitedSec: 0`; таймаут → `timedOut: true`; неизвестный `runId` → ошибка со списком id; `timeoutSec > 600` → `timeout-too-long` |
+| `test/schema.test.mjs` | `buildSnapshot()` содержит все `required`-поля схемы; `enum` поля `error` совпадает со словарём `lib/forgejo.js`; `schemaVersion` — целое ≥ 1; копия схемы совпадает с оригиналом по `required` и `enum` |
 
 ## 2. Маршрут состояния (host живёт)
 
@@ -64,6 +67,7 @@ PY
    ~10 с `timedOut: true` и текущий статус.
 5. `forgejo_ci_wait` с `{"runId": 1}` — ошибка `unknown-run` со списком
    известных id.
+6. В обоих ответах есть `stale` и `lastOkAt` (FR-008), значение токена — нет.
 
 ## 4. Живой GUI (человек)
 

@@ -10,7 +10,9 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 
 **Prerequisites**: план принят лидом 2026-10-28 с четырьмя правками (A: честная
 гранулярность `wait`; B: полный снимок + бюджет ≤ 8 КБ; C: буфер в памяти и
-фраза в README; D: перечислимый `enum error`).
+фраза в README; D: перечислимый `enum error`). Задачи приняты вторым ревью
+2026-10-28: метка `fromCache` в UI (T022), копия контракта с тестом (T044),
+проверка снятия плагина (T045).
 
 **Path conventions**:
 
@@ -51,8 +53,9 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [ ] T013 [P] Написать `repo/test/buffer.test.mjs`: API вернул 1 прогон, буфер отдаёт 5; повторная вставка того же `id` не дублирует и обновляет `durationSec`; вытеснение по `id`; пустой ответ API не стирает буфер
 - [ ] T014 Написать `repo/lib/snapshot.js`: `buildSnapshot({runs, tasks, runner, now, ...})` — порядок и обрезка до `runsLimit`, `stale` по `staleAfterMs`, `lastOkAt`, `lastActivityAt = max(runs.updatedAt, tasks.runStartedAt)`, состояние раннера (`running`/`idle`/`queue-stuck`/`offline`/`stale`), гейт `jobs` (только при активном последнем прогоне), `error` из enum
 - [ ] T015 [P] Написать `repo/test/snapshot.test.mjs`: `stale` после 45 с; `queue-stuck` после 10 мин без активности; `running` при активных задачах; `offline` при пустом списке раннеров; `jobs: null` у завершённого последнего прогона; `jobs` заполнен при `running`; `lastOkAt` не теряется при ошибке; `active` из API не выходит наружу
-- [ ] T016 Написать `repo/lib/forgejo.js`: `fetch` с таймаутом 5 с и `AbortSignal`; маппинг ошибок в enum (`token-missing` — нет значения ссылки, `forbidden` — 403, `network` — таймаут/отказ, `http-4xx`, `http-5xx`); заголовок `Authorization` только в исходящем запросе, в тексты ошибок и логи не попадает
+- [ ] T016 Написать `repo/lib/forgejo.js`: `fetch` с таймаутом 5 с и `AbortSignal`; маппинг ошибок в enum (`token-missing` — нет значения ссылки, `forbidden` — 403, `network` — таймаут/отказ, `http-4xx`, `http-5xx`); только GET-запросы, ни одной операции записи (FR-017); заголовок `Authorization` только в исходящем запросе, в тексты ошибок и логи не попадает
 - [ ] T017 [P] Написать `repo/test/secret.test.mjs`: `JSON.stringify(buildSnapshot(...))` с подставленным тестовым токеном не содержит его ни в одном поле; объект ошибки `forgejo.js` не содержит значения токена
+- [ ] T044 [P] Скопировать контракт в плагин: `repo/lib/state.schema.json` — байт-в-байт копия `specs/670-forgejo-ci-plugin/contracts/state.schema.json` (в шапке обоих файлов — строка «источник правды»); написать `repo/test/schema.test.mjs`: читает `repo/lib/state.schema.json`, проверяет, что `buildSnapshot()` содержит все `required`-поля, что значения `enum` поля `error` совпадают со словарём `lib/forgejo.js`, и что `schemaVersion` — целое ≥ 1. Без зависимостей: `assert` по прочитанному JSON, не полноценный валидатор. *(ID сохранён из ревью лида, чтобы не перенумеровывать 45 задач; выполняется в Phase 2, до гейта T018.)*
 - [ ] T018 Прогнать `cd repo && node --test` — все тесты зелёные (гейт для всех следующих фаз)
 
 ---
@@ -71,7 +74,7 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [ ] T022 [US1] Добавить в `repo/client.js` страницу в `main` (`key: forgejo-ci`): таблица прогонов (номер, ref, событие, статус, длительность), строка раннера, строка «сейчас бегут …» (только когда она не `null`), ссылки `html_url` в новой вкладке; прогон с `fromCache: true` получает видимую метку «из кеша» с `title` «Forgejo больше не отдаёт этот прогон» (FR-004)
 - [ ] T023 [US1] Добавить в `repo/client.js` иконку в `sidebar.panellist` (`id: forgejo-ci`, `order: 100`, `size×size`): красная точка при `failure` последнего завершённого прогона, пульс при `running`, `label` через локаль
 - [ ] T024 [US1] Добавить в `repo/client.js` опрос `fetch('/forgejo-ci/state')` раз в `pollMs` с `AbortController` и полной очисткой на размонтировании (FR-018: ни одного таймера после снятия)
-- [ ] T025 [US1] Проверить US1: `node --test`; после установки (T037, делает лид) — `curl /forgejo-ci/state`, occupant `forgejo-ci` в `sidebar.panellist`, панель в живом GUI
+- [ ] T025 [US1] Проверить US1: `node --test`; после установки (T039, делает лид) — `curl /forgejo-ci/state`, occupant `forgejo-ci` в `sidebar.panellist`, панель в живом GUI
 
 ---
 
@@ -84,7 +87,7 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 `timedOut: true`.
 
 - [ ] T026 [US2] Написать `repo/lib/tools.js`: `statusTool(getSnapshot)` — параметры `{runs?: 1..20}`, ответ = снимок с обрезанным `runs` (только массив), `output.schema` — из `repo/lib/state.schema.json` (копия контракта, источник правды — `specs/670-forgejo-ci-plugin/contracts/state.schema.json`), `render` — короткая строка для карточки
-- [ ] T027 [US2] Добавить в `repo/lib/tools.js` `waitTool(getSnapshot, clock)` — `{runId?, timeoutSec?}` (10..600, по умолчанию 300), ожидание по кешу с проверкой раз в 1 с, реакция ≤ `pollMs + 1 с` (в описании tool'а — честная формулировка, не «за секунду»), `waitedSec` в реальных секундах, отмена по `AbortSignal` без утечки таймера, ошибки `unknown-run` (со списком известных id), `no-runs`, `timeout-too-long`
+- [ ] T027 [US2] Добавить в `repo/lib/tools.js` `waitTool(getSnapshot, clock)` — `{runId?, timeoutSec?}` (10..600, по умолчанию 300), ожидание по кешу с проверкой раз в 1 с, реакция ≤ `pollMs + 1 с` (в описании tool'а — честная формулировка, не «за секунду»), `waitedSec` в реальных секундах, отмена по `AbortSignal` без утечки таймера, ошибки `unknown-run` (со списком известных id), `no-runs`, `timeout-too-long`; в ответе — `stale` и `lastOkAt` (FR-008), как у `forgejo_ci_status`
 - [ ] T028 [P] [US2] Написать `repo/test/tools.test.mjs` на инъекции `clock`: выбор самого нового прогона при `runId` отсутствующем; прогон уже терминален → `waitedSec: 0`; истечение таймаута → `timedOut: true` и текущий статус; неизвестный `runId` → форма ошибки со списком id; `timeoutSec > 600` → `timeout-too-long`
 - [ ] T029 [US2] Зарегистрировать оба tool'а в `repo/index.js` внутри `ctx.effect`, `timeoutMs: 620000`, `isConcurrencySafe: () => true`, английские описания (status — дешёвый, wait — экономит цикл опросов)
 - [ ] T030 [US2] Проверить US2 по `specs/670-forgejo-ci-plugin/quickstart.md` §3: пять сценариев вызовов + отсутствие токена в ответах; создать `specs/670-forgejo-ci-plugin/report.md` (каркас с заголовками «Что проверено», «Чем проверено», «За границей», «Отклонения»), если его нет, и записать результат туда
@@ -130,10 +133,9 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [ ] T039 Подготовить и записать в отчёт точную команду установки (`plugin_manager install_bundle` с абсолютным путём клона) и **остановиться** — установку выполняет лид, подтверждает `application: applied`
 - [ ] T040 [P] Добавить запись о плагине в `knowledge/system/infra/ci-tools.md` (раздел операционных инструментов: что это, где живёт, как включить, какие ограничения) — ветка `670-forgejo-ci-plugin`, PR в Karaoke
 - [ ] T041 Приёмка после установки по `specs/670-forgejo-ci-plugin/quickstart.md` §4: перезагрузка страницы, панель/бейдж/toast, DevTools — токена нет; при отсутствии панели — сообщить лиду для пересборки web-артефактов и повторить; результат — в `specs/670-forgejo-ci-plugin/report.md`
+- [ ] T045 Проверить SC-007/FR-018 снятием: `plugin_manager` отключает плагин → иконка, панель и toast'ы исчезают без перезагрузки процесса и без ошибок в консоли; включение возвращает всё на место; результат — в `report.md`
 - [ ] T042 Заполнить `specs/670-forgejo-ci-plugin/report.md` (что проверено, чем, что осталось за границей, `schemaVersion` и rev клиентского артефакта) и опубликовать в трекер: `add-comment KARAOKE-305` → `mark-review`
 - [ ] T043 Убрать временные артефакты: `/tmp/forgejo-askpass.sh`, локальные временные файлы проверок; убедиться, что значение токена не осталось ни в одном файле рабочей копии
-- [ ] T044 [P] Скопировать контракт в плагин: `repo/lib/state.schema.json` — байт-в-байт копия `specs/670-forgejo-ci-plugin/contracts/state.schema.json` (в шапке обоих файлов — строка «источник правды»); написать `repo/test/schema.test.mjs`: читает `repo/lib/state.schema.json`, проверяет, что `buildSnapshot()` содержит все `required`-поля, что значения `enum` поля `error` совпадают со словарём `lib/forgejo.js`, и что `schemaVersion` — целое ≥ 1. Без зависимостей: `assert` по прочитанному JSON, не полноценный валидатор
-- [ ] T045 Проверить SC-007/FR-018 снятием: `plugin_manager` отключает плагин → иконка, панель и toast'ы исчезают без перезагрузки процесса и без ошибок в консоли; включение возвращает всё на место; результат — в `report.md`
 
 ---
 
@@ -141,20 +143,24 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 
 ```text
 Phase 1 (T001–T007)
-   └── Phase 2 (T008–T018)         # гейт: node --test зелёный
+   └── Phase 2 (T008–T017, T044 → T018)   # копия контракта, затем гейт node --test
          ├── Phase 3 US1 (T019–T025)   # host + панель; US2 нужен его сервис
          │     └── Phase 4 US2 (T026–T030)
          │           └── Phase 5 US3 (T031–T033)   # toast поверх того же опроса
          │                 └── Phase 6 US4 (T034–T036)
-         └── Phase 7 (T037–T043)   # T039 — СТОП: установка делает лид
+         └── Phase 7 (T037–T043, T045)   # T039 — СТОП: установка делает лид
 ```
 
 - **US1 → US2**: tool'ы читают снимок, который собирает сервис US1; логика
   tool'ов (`lib/tools.js`) пишется параллельно с US1, но регистрация и проверка —
   после него.
-- **US3, US4** — надстройки над опросом US1; отдельного host-кода не требуют.
+- **US3** — надстройка над опросом US1, отдельного host-кода не требует;
+  **US4** трогает и host (маппинг `error` в `index.js`, T034), и client (T035).
 - **T039 — жёсткая остановка**: дальше T041 нельзя, пока лид не подтвердил
   `application: applied`.
+- **Порядок Phase 7 после установки**: T041 (приёмка) → T045 (снятие/возврат,
+  SC-007) → T042 (отчёт и трекер) → T043 (уборка). Отчёт пишется последним,
+  чтобы включить в него результат проверки снятия.
 
 ## Parallel opportunities
 

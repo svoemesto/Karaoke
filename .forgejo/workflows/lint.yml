@@ -58,7 +58,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check actions pinned by commit SHA
         run: bash tools/check-actions-pinned.sh
@@ -77,7 +77,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check no redirect artifacts in repo root
         run: bash tools/check-root-junk.sh
@@ -106,7 +106,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check gradle-wrapper (единая версия + checksum)
         run: bash tools/check-gradle-wrapper.sh
@@ -133,10 +133,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup JDK 17
-        uses: https://github.com/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -147,7 +147,7 @@ jobs:
 
       - name: Upload ktlint reports
         if: always()
-        uses: https://github.com/actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v4.6.2
+        uses: https://data.forgejo.org/actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v4.6.2
         with:
           name: ktlint-reports
           path: |
@@ -174,10 +174,10 @@ jobs:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup JDK 17
-        uses: https://github.com/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -204,10 +204,10 @@ jobs:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup JDK 17
-        uses: https://github.com/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -231,7 +231,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: https://github.com/actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v4.6.2
+        uses: https://data.forgejo.org/actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v4.6.2
         with:
           name: backend-test-reports
           path: |
@@ -253,7 +253,7 @@ jobs:
         spa: [webvue3, karaoke-public]
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install jq (нужен check-eslint-baseline.sh; в образе runner'а нет)
         run: |
@@ -261,7 +261,7 @@ jobs:
           apt-get install -y -qq jq
 
       - name: Setup Node 22 (LTS)
-        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -302,10 +302,10 @@ jobs:
         spa: [webvue3, karaoke-public]
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -331,7 +331,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check confirm text escaping
         # python3 tools/check-confirm-escape.py — находит места, где
@@ -351,10 +351,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -379,10 +379,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -406,10 +406,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
 
@@ -430,7 +430,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check secret in argv
         run: bash tools/check-secret-in-argv.sh
@@ -453,7 +453,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check world-writable chmod
         run: bash tools/check-file-permissions.sh
@@ -472,10 +472,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 22 (LTS)
-        uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -538,7 +538,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: lychee (offline links check)
         uses: https://github.com/lycheeverse/lychee-action@22134d37a1fff6c2974df9c92a7c7e1e86a08f9c # v1.9.0
@@ -572,7 +572,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
@@ -590,7 +590,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check KDoc coverage (strict, ≥50%)
         run: bash tools/check-kdoc-coverage.sh --strict
@@ -605,7 +605,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check JSDoc coverage (strict, ≥50%)
         run: bash tools/check-jsdoc-coverage.sh --strict
@@ -626,13 +626,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Нужна история для git diff master...HEAD.
           fetch-depth: 50
 
       - name: Setup Python (для YAML парсинга)
-        uses: https://github.com/actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        uses: https://data.forgejo.org/actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
@@ -656,7 +656,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Полная история обязательна для шага «No direct commits to master»
           # ниже: при shallow clone (fetch-depth по умолчанию = 1)
@@ -772,7 +772,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: docker-image-tags guard (Pass 379, R-04, R-05, wayfinder #106)
         # Ловит FROM nginx:/FROM node: с запрещёнными тегами (nginx:alpine, nginx:latest,
@@ -790,7 +790,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: no-jpa-imports guard (Pass 379, R-07)
         # Ловит импорты JPA/Hibernate в .kt/.java исходниках karaoke-app и karaoke-web.
@@ -807,7 +807,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: "Value placeholders guard (@Value in Kotlin sources)"
         run: bash tools/check-value-placeholders.sh
@@ -820,7 +820,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: no-mp4-mentions guard (Pass 379, R-11)
         # Ловит упоминания \bmp4\b и `скачивани` в production коде по оферте
@@ -836,7 +836,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: no-personal-fixtures guard (BR-526/BR-531)
         run: bash tools/check-no-personal-fixtures.sh --quiet
@@ -856,7 +856,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: security headers guard (BR-558)
         run: python3 tools/check-security-headers.py

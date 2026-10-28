@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://git.sm-karaoke.ru/svoemesto/dsh-forgejo-ci/contracts/state.schema.json",
+  "title": "Forgejo CI snapshot",
+  "description": "Единственный контракт между host-половиной плагина, клиентской панелью и tool'ом forgejo_ci_status. Собирается host'ом, отдаётся по GET /forgejo-ci/state и в ответе tool'а без изменений.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "stale", "lastOkAt", "error", "repo", "runner", "runs", "jobs"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Версия формы. Растёт при несовместимом изменении; клиент рисует только известную версию."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Когда снимок собран (ISO 8601, UTC)."
+    },
+    "stale": {
+      "type": "boolean",
+      "description": "true, если данные старше staleAfterMs или последний опрос Forgejo упал."
+    },
+    "lastOkAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Время последнего успешного опроса Forgejo; null, если успеха не было ни разу."
+    },
+    "error": {
+      "type": ["string", "null"],
+      "enum": [null, "token-missing", "auth", "network", "unexpected"],
+      "description": "Причина деградации. token-missing — ссылка на секрет не резолвится; auth — Forgejo ответил 403; network — таймаут/отказ соединения; unexpected — прочее."
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "name", "url"],
+      "properties": {
+        "owner": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "state", "lastActivityAt", "queue"],
+      "properties": {
+        "name": { "type": ["string", "null"], "description": "Имя раннера из actions/runners; null, если список пуст." },
+        "version": { "type": ["string", "null"] },
+        "state": {
+          "type": "string",
+          "enum": ["running", "idle", "queue-stuck", "offline", "stale"],
+          "description": "Вычисляемое состояние. Значение active из API наружу не выходит: это регистрация, а не работа."
+        },
+        "lastActivityAt": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "max(runs[].updatedAt, tasks[].runStartedAt); null, если активности не наблюдалось."
+        },
+        "queue": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["running", "waiting"],
+          "properties": {
+            "running": { "type": "integer", "minimum": 0 },
+            "waiting": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "maxItems": 20,
+      "description": "Не более runsLimit (по умолчанию 5), свежие сверху. Объединение ответа API и кольцевого буфера.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "number", "ref", "event", "status", "durationSec", "createdAt", "updatedAt", "url", "fromCache"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "number": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "index_in_repo: из него строится ссылка, не из id."
+          },
+          "ref": { "type": "string" },
+          "event": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["waiting", "running", "success", "failure", "cancelled", "unknown"]
+          },
+          "durationSec": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "description": "Секунды; из duration в наносекундах. null у незавершённых."
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "url": { "type": "string", "format": "uri" },
+          "fromCache": {
+            "type": "boolean",
+            "description": "true, если прогон уже не отдаётся API (пурж) и взят из кольцевого буфера."
+          }
+        }
+      }
+    },
+    "jobs": {
+      "description": "Живая очередь последнего прогона. null, если последний прогон не running/waiting (у завершённого прогона actions/tasks держит устаревшие running).",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["running", "waiting", "names"],
+          "properties": {
+            "running": { "type": "integer", "minimum": 0 },
+            "waiting": { "type": "integer", "minimum": 0 },
+            "names": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Имена задач в статусе running; панель показывает первые 3, остальные — в подсказке."
+            }
+          }
+        }
+      ]
+    }
+  }
+}

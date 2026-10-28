@@ -139,10 +139,12 @@ jobs:
         uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
-          java-version: '17'
+          # Точная версия, а не '17': иначе setup-java идёт в github.com за
+          # манифестом версий и падает на ECONNRESET (прогон #62, ktlint).
+          java-version: '17.0.21+9'
           cache: gradle
-          # Образ раннера содержит tarball Temurin: setup-java распаковывает его
-          # локально вместо скачивания ~190 МБ с github.com на каждом джобе.
+          # Образ раннера содержит tarball Temurin этой версии: распаковка
+          # локальная, без скачивания ~190 МБ на каждом джобе.
           jdkFile: /opt/temurin17.tar.gz
 
       - name: Run ktlintCheck (baseline-aware)
@@ -183,10 +185,12 @@ jobs:
         uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
-          java-version: '17'
+          # Точная версия, а не '17': иначе setup-java идёт в github.com за
+          # манифестом версий и падает на ECONNRESET (прогон #62, ktlint).
+          java-version: '17.0.21+9'
           cache: gradle
-          # Образ раннера содержит tarball Temurin: setup-java распаковывает его
-          # локально вместо скачивания ~190 МБ с github.com на каждом джобе.
+          # Образ раннера содержит tarball Temurin этой версии: распаковка
+          # локальная, без скачивания ~190 МБ на каждом джобе.
           jdkFile: /opt/temurin17.tar.gz
 
       - name: Compile backend
@@ -216,10 +220,12 @@ jobs:
         uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
-          java-version: '17'
+          # Точная версия, а не '17': иначе setup-java идёт в github.com за
+          # манифестом версий и падает на ECONNRESET (прогон #62, ktlint).
+          java-version: '17.0.21+9'
           cache: gradle
-          # Образ раннера содержит tarball Temurin: setup-java распаковывает его
-          # локально вместо скачивания ~190 МБ с github.com на каждом джобе.
+          # Образ раннера содержит tarball Temurin этой версии: распаковка
+          # локальная, без скачивания ~190 МБ на каждом джобе.
           jdkFile: /opt/temurin17.tar.gz
 
       - name: Install ffmpeg (обязателен для Mp3TrimmerTest)

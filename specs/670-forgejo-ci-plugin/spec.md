@@ -12,31 +12,31 @@
 
 ### Идентификация
 
-- **Issue ID**: `none` — спека спонтанная, заведена по слову владельца
-  (2026-10-28: «сначала спека») из wayfinder-карты
+- **Issue ID**: `KARAOKE-305` (Plane, workspace `svoemesto`, проект `KARAOKE`;
+  id `6ccd6949-bd73-4c58-897c-8d4ea0902767`). Заведена по слову владельца
+  2026-10-28 («задачу в Plane заводи и действуй») из wayfinder-карты
   [`forgejo-ci-plugin`](../../.scratch/karaoke/wayfinding/forgejo-ci-plugin/map.md).
-  Execution-issue в трекере (Plane) заводится по слову владельца после ревью
-  спеки; до этого claim/mark-review не применяются.
+  Claim выполнен до первой строки кода: `ai-agent`, статус `In progress`.
 - **Title**: Плагин DSH «Forgejo CI»: прогоны, раннер, tool'ы, бейдж и уведомления.
-- **Created in OpenProject**: не создавался.
+- **Created in Plane**: 2026-10-28.
+- **Код**: отдельный репозиторий `svoemesto/dsh-forgejo-ci` (приватный, создан
+  2026-10-28, `main`), рабочая копия —
+  `.scratch/karaoke/forgejo-ci-plugin/repo/`.
 
 ### Workflow (NON-NEGOTIABLE при наличии Issue ID)
 
 | Шаг | Команда | Когда | Кто |
 |---|---|---|---|
-| 1. **Claim** | `bash tools/tracker.sh claim-issue <ID>` | ПЕРЕД первой строкой кода спеки. | Agent |
-| 2. **Pre-flight Knowledge** | `spec.md § Knowledge References` | Согласно Constitution Principle IX. | Agent |
+| 1. **Claim** | `source .env.local-tracker && bash tools/tracker.sh claim-issue KARAOKE-305` | ПЕРЕД первой строкой кода спеки. **Выполнено 2026-10-28** (`In progress`, assignee `ai-agent`). | Agent |
+| 2. **Pre-flight Knowledge** | `spec.md § Knowledge References` | Согласно Constitution Principle IX. **Выполнено** (7 ссылок, маркер `.specify/.preflight-forgejo-ci-plugin.ok`). | Agent |
 | 3. **Work** | код, tests, knowledge updates | `/speckit-implement` | Agent |
-| 4. **Add comment с отчётом** | `bash tools/tracker.sh add-comment <ID> --file specs/670-forgejo-ci-plugin/report.md` | После merge. Файл `report.md` — REQUIRED. | Agent |
-| 5. **Mark review** | `bash tools/tracker.sh mark-review <ID>` | После публикации комментария. | Agent |
-| 6. **Close** | `bash tools/tracker.sh close-issue <ID>` | После ревью владельцем. | Agent или Owner |
-
-При `Issue ID = none` шаги 1, 4, 5, 6 не выполняются до появления issue.
+| 4. **Add comment с отчётом** | `bash tools/tracker.sh add-comment KARAOKE-305 --file specs/670-forgejo-ci-plugin/report.md` | После merge. Файл `report.md` — REQUIRED. | Agent |
+| 5. **Mark review** | `bash tools/tracker.sh mark-review KARAOKE-305` | После публикации комментария. | Agent |
+| 6. **Close** | `bash tools/tracker.sh close-issue KARAOKE-305` | После ревью владельцем. | Agent или Owner |
 
 ### Проверки (validation)
 
-- `tools/check-spec-issue-link.py` — секция и поля на месте; при `none` проверка
-  issue-link скипается.
+- `tools/check-spec-issue-link.py` — секция и поля на месте.
 
 ## Knowledge References *(MANDATORY — see Constitution Principle IX)*
 

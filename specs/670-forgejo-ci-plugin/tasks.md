@@ -159,6 +159,9 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T059 Документация HMR исправлена по факту: правка клиента — перезагрузка страницы, правка host-кода — `set_bundle` off/on (HMR на пакете не срабатывает); README и `knowledge/system/infra/ci-tools.md`
 - [x] T060 `package.json` → 0.5.1; спека FR-001/FR-011 (страница = вся история, popover = витрина); `report.md` — пятая правка с числами 1749 Б/5 → 3603 Б/12
 
+- [x] T061 Сортировка по рангу: `rankOf`/`compareRuns` в `lib/runs.js` (активные → с исходом → отменённые, внутри — по `id` убыв.), `buildSnapshot` сортирует и режет `historyLimit` **после** сортировки; `lastOutcome` в клиенте — по максимальному `id` среди исходов; описание `forgejo_ci_status` дополнено порядком
+- [x] T062 Тесты и документы порядка: смешанный список → `[running, failure, cancelled]`, только `cancelled` — по `id`, `lastOutcome` независим от позиции, витрина 5 берёт полезные, tool отдаёт тот же порядок; `package.json` → 0.6.0; спека FR-001 и сценарий US1, `data-model.md`, `contracts/tools.md`, README, `report.md`
+
 ---
 
 ## Dependencies (порядок исполнения)

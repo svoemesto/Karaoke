@@ -28,8 +28,8 @@
     },
     "error": {
       "type": ["string", "null"],
-      "enum": [null, "token-missing", "auth", "network", "unexpected"],
-      "description": "Причина деградации. token-missing — ссылка на секрет не резолвится; auth — Forgejo ответил 403; network — таймаут/отказ соединения; unexpected — прочее."
+      "enum": [null, "token-missing", "forbidden", "network", "http-4xx", "http-5xx"],
+      "description": "Причина деградации; перечислимое поле — панель выбирает текст по значению, опечатка не должна давать пустой экран. token-missing — ссылка на секрет не резолвится (FR-015); forbidden — Forgejo ответил 403 на запрос с токеном; network — таймаут/отказ соединения; http-4xx / http-5xx — прочие ответы Forgejo."
     },
     "repo": {
       "type": "object",

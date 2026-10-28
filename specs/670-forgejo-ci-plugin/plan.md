@@ -80,7 +80,7 @@ Forgejo может быть недоступен — деградация в `st
 | III. Двух-БД синхронизация | не применим | PASS (n/a) |
 | IV. Async-очередь с stdout | не применим — фоновых процессов нет | PASS (n/a) |
 | V. Два фронтенда | не применим — интерфейс живёт в Web GUI DSH | PASS (n/a) |
-| VI. Code Standards (FR-006/007/009) | **применим частично**: ktlint/ESLint к JS-плагину не относятся, но JSDoc на публичные функции и per-feature документ — да | PASS при выполнении: JSDoc в `lib/`, `docs/features/forgejo-ci-plugin.md` в том же PR Karaoke |
+| VI. Code Standards (FR-006/007/009) | **применим частично**: ktlint/ESLint к JS-плагину не относятся | PASS при выполнении: JSDoc в `lib/`; запись в `knowledge/system/infra/ci-tools.md` (SSoT) в PR Karaoke. **Per-feature документ не заводится** — код вне репозитория Karaoke, guard `check-feature-doc.sh` его не проверит, а документ сгниёт |
 | VII. Cross-Machine Setup | не применим — локальных AI-конфигов не добавляем | PASS (n/a) |
 | VIII. Секреты и git-гигиена | **применим полностью** | PASS: токен только из хранилища секретов, в обоих репозиториях `git ls-files \| grep -iE '\.env$\|\.key$\|\.pem$'` → пусто, значение не логируется и не отдаётся |
 | IX. Knowledge-first | **применим** | PASS: pre-flight выполнен при specify (7 ссылок, маркер `.specify/.preflight-forgejo-ci-plugin.ok`); правка `knowledge/system/infra/ci-tools.md` — в PR Karaoke |
@@ -123,6 +123,7 @@ test/
 ├── runs.test.mjs
 ├── buffer.test.mjs
 ├── snapshot.test.mjs
+├── config.test.mjs     # дефолты, валидация tokenRef, отказ на мусор
 └── secret.test.mjs     # значение секрета не попадает в сериализуемый снимок
 locale/{ru,en}.json     # meta.title/description + строки панели
 icon.svg
@@ -185,8 +186,10 @@ NEEDS CLARIFICATION: **нет**.
 | 5. Client-половина | `12` | `client.js`: иконка+бейдж, панель, toast | живой GUI |
 | 6. Установка и приёмка | `13` | установка в профиль, проверка, доки | чек-лист `13` + `knowledge/` PR |
 
-Порядок жёсткий: 1 → 2 → 3 → 4 → 5 → 6. Фаза 6 включает PR в Karaoke
-(`knowledge/system/infra/ci-tools.md` + `docs/features/forgejo-ci-plugin.md`).
+Порядок жёсткий: 1 → 2 → 3 → 4 → 5 → 6. Фаза 6 включает PR в Karaoke —
+**только** запись в `knowledge/system/infra/ci-tools.md`; README и
+`PROVENANCE.md` плагина (с разделом «Известные ограничения») живут в репозитории
+плагина, per-feature документ Karaoke не заводится (решение лида 2026-10-28).
 
 Трекер: `KARAOKE-305` (Plane, `In progress`, assignee `ai-agent` — claim выполнен
 2026-10-28). После merge фазы 6 — `report.md` → `tools/tracker.sh add-comment
@@ -206,20 +209,19 @@ KARAOKE-305 --file specs/670-forgejo-ci-plugin/report.md` → `mark-review`.
 | Долгий `forgejo_ci_wait` | зависание вызова | `timeoutMs: 620000` у определения, собственный таймаут ≤ 600 с, отмена по AbortSignal |
 | Ссылка ведёт не туда | 404 в Forgejo | ссылка из `index_in_repo`, не из `id` (тест `runs.test.mjs`) |
 
-## Open Questions (нужно решение лида)
+## Resolved by lead (2026-10-28)
 
-1. **Установка плагина**: `plugin_manager install_bundle` требует approval,
-   который в моей сессии отклоняется автоматически. Кто ставит — лид или
-   владелец? Мне нужен либо запуск из сессии с approval, либо подтверждение,
-   что фаза 6 делается вами.
-2. **Пересборка web-артефактов**: клиентская половина — один файл в формате
-   `__ModuleLoader__`, сборки не требует; но если загрузчик профиля не увидит
-   новый `dsh.client` без пересборки shell, нужен `pnpm run dev:web` из
-   `/home/nsa/deepseek-harness`. Подтвердите, что фазу 6 можно делать с этой
-   пересборкой (это не изменение кода Karaoke, но это работа с чекаутом DSH).
-3. **`docs/features/forgejo-ci-plugin.md`** — заводим как обычный per-feature
-   документ Karaoke (это исполнение FR-009 для «фичи», у которой код в другом
-   репозитории)? Мой план исходит из «да».
+| Вопрос | Решение |
+|---|---|
+| Кто устанавливает плагин | **Лид**. Я готовлю пакет и одну точную команду, довожу до состояния «устанавливается одной командой» и останавливаюсь перед установкой; лид ставит, подтверждает `application: applied`, и только потом я продолжаю приёмку |
+| Пересборка web-артефактов | **Лид**: `pnpm run dev:web` идёт из его сессии, а не из субагентской (долгая общая сборка). Если после перезагрузки панели нет — лид пересобирает и сообщает результат |
+| `docs/features/forgejo-ci-plugin.md` | **Не заводим**. Вместо него: README + `PROVENANCE.md` в репозитории плагина (там же «Известные ограничения») + запись в `knowledge/system/infra/ci-tools.md` в PR Karaoke |
+
+Внесено лидом также: гранулярность `forgejo_ci_wait` формулируется честно (≤ `pollMs` + 1 с);
+полный снимок в `forgejo_ci_status` принят (бюджет ≤ 8 КБ при `runsLimit: 5`);
+`error` в схеме — перечислимый enum с разделением `token-missing` / `forbidden`;
+в тесты добавлен `config.test.mjs`; правило `schemaVersion` зафиксировано в
+[contracts/tools.md](contracts/tools.md).
 
 ## Complexity Tracking
 

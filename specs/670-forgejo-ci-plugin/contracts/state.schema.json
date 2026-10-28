@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://git.sm-karaoke.ru/svoemesto/dsh-forgejo-ci/contracts/state.schema.json",
+  "title": "Forgejo CI snapshot",
+  "description": "Единственный контракт между host-половиной плагина, клиентской панелью и tool'ом forgejo_ci_status. ИСТОЧНИК ПРАВДЫ — этот файл (specs/670-forgejo-ci-plugin/contracts/state.schema.json); в репозитории плагина лежит его копия repo/lib/state.schema.json, расхождение ловит test/schema.test.mjs. schemaVersion 2: счётчики задач переехали в строку прогона (jobs), у раннера больше нет queue, у прогона появились etaSec/etaBasis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "stale",
+    "lastOkAt",
+    "error",
+    "repo",
+    "runner",
+    "runs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 2,
+      "description": "Версия формы. 2 — счётчики задач в строке прогона, ETA, у раннера нет queue."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Когда снимок собран (ISO 8601, UTC)."
+    },
+    "stale": {
+      "type": "boolean",
+      "description": "true, если данные старше staleAfterMs или последний опрос Forgejo упал."
+    },
+    "lastOkAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Время последнего успешного опроса Forgejo; null, если успеха не было ни разу."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        null,
+        "token-missing",
+        "forbidden",
+        "network",
+        "http-4xx",
+        "http-5xx"
+      ],
+      "description": "Причина деградации; перечислимое поле — панель выбирает текст по значению, опечатка не должна давать пустой экран. token-missing — ссылка на секрет не резолвится (FR-015); forbidden — Forgejo ответил 403 на запрос с токеном; network — таймаут/отказ соединения; http-4xx / http-5xx — прочие ответы Forgejo."
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "name",
+        "url"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "state",
+        "lastActivityAt"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Имя раннера из actions/runners; null, если список пуст."
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "idle",
+            "queue-stuck",
+            "offline",
+            "stale"
+          ],
+          "description": "Вычисляемое состояние. Значение active из API наружу не выходит: это регистрация, а не работа."
+        },
+        "lastActivityAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "max(runs[].updatedAt, tasks[].runStartedAt); null, если активности не наблюдалось."
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "maxItems": 100,
+      "description": "Не более historyLimit (5..100, по умолчанию 20). История шире витрины: панель, popover и tool по умолчанию показывают первые runsLimit (5), а индикатор считается по всей истории. Порядок: активные → с исходом → отменённые, внутри группы свежие сверху. История режется после сортировки.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "number",
+          "ref",
+          "event",
+          "status",
+          "durationSec",
+          "createdAt",
+          "updatedAt",
+          "url",
+          "fromCache",
+          "jobs",
+          "etaSec",
+          "etaBasis"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "number": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "index_in_repo: из него строится ссылка, не из id."
+          },
+          "ref": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "running",
+              "success",
+              "failure",
+              "cancelled",
+              "unknown"
+            ]
+          },
+          "durationSec": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Секунды; из duration в наносекундах. null у незавершённых."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fromCache": {
+            "type": "boolean",
+            "description": "true, если прогон уже не отдаётся API (пурж) и взят из кольцевого буфера."
+          },
+          "jobs": {
+            "description": "Счётчики задач ЭТОГО прогона (сгруппированы по run_number из actions/tasks). null — по прогону строк нет. total — число джобов workflow; null, если файл недоступен.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "running",
+                  "waiting",
+                  "done",
+                  "total"
+                ],
+                "properties": {
+                  "running": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "waiting": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "done": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Задачи в success/failure/cancelled."
+                  },
+                  "total": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "description": "Сколько джобов объявлено в workflow; null — файл недоступен."
+                  }
+                }
+              }
+            ]
+          },
+          "etaSec": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Оценка остатка в секундах; null, если основы нет (меньше двух завершённых прогонов и нет прогресса по задачам)."
+          },
+          "etaBasis": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              null,
+              "history",
+              "progress"
+            ],
+            "description": "На чём построена оценка: медиана длительностей завершённых прогонов или прогресс по задачам; null — оценки нет."
+          }
+        }
+      }
+    }
+  }
+}

@@ -167,6 +167,8 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T065 ETA: `etaSec`/`etaBasis` по медиане истории (≥2 замера) или по прогрессу (≥3 done, ≥60 с, известный `total`), иначе `null`; тесты всех ветвей
 - [x] T066 Схемы v2 и клиент: `schemaVersion` = 2 в полной схеме и проекции, плашка о расхождении; строка прогона «9 из 27» и «≈7 мин», popover и страница одинаково; `package.json` → 0.7.0; README («что значит каждое число»), data-model, contracts, `knowledge/ci-tools.md`, report
 
+- [x] T067 Рецидив `trustedTasks`: у терминального прогона `running`/`waiting` в счётчиках всегда 0, `done` — только терминальные задачи; активный прогон считается как есть. Тесты: 19 «бегущих» у `failure` → `0/0/10`, `cancelled` с остатками → 0, активный `5 running + 2 done` → «7 из 27», инвариант по всем терминальным статусам; `data-model.md`, README, `report.md`
+
 ---
 
 ## Dependencies (порядок исполнения)

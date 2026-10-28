@@ -643,10 +643,7 @@ jobs:
           # Нужна история для git diff master...HEAD.
           fetch-depth: 50
 
-      - name: Setup Python (для YAML парсинга)
-        uses: https://data.forgejo.org/actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.11'
+      # Python 3.11 + PyYAML уже в образе раннера — setup-python не нужен.
 
       - name: Install PyYAML (в образе раннера уже есть)
         run: python3 -c "import yaml; print('pyyaml', yaml.__version__)" || pip install pyyaml

@@ -169,6 +169,10 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 
 - [x] T067 Рецидив `trustedTasks`: у терминального прогона `running`/`waiting` в счётчиках всегда 0, `done` — только терминальные задачи; активный прогон считается как есть. Тесты: 19 «бегущих» у `failure` → `0/0/10`, `cancelled` с остатками → 0, активный `5 running + 2 done` → «7 из 27», инвариант по всем терминальным статусам; `data-model.md`, README, `report.md`
 
+- [x] T068 Строка прогона: `waiting` без задач показывает «в очереди» вместо пустого счётчика; `waiting` с задачами — обычный «N из 27»
+- [x] T069 Общий backlog раннера: четвёртый эндпоинт `GET /actions/runners/jobs`, агрегат `runner.queue {running, waiting}`, ошибка → `queue: null` без staleness; клиент «очередь CI: N ждут / M идут» с оговоркой про устаревшие статусы
+- [x] T070 Схема v3 и документы: `schemaVersion` = 3 (полная схема и проекция), `contracts/tools.md`; README «в очереди» и «очередь CI»; `data-model.md` — RunnerQueue и инвариант; `report.md` — правка с причиной (#50); `package.json` → 0.8.0
+
 ---
 
 ## Dependencies (порядок исполнения)

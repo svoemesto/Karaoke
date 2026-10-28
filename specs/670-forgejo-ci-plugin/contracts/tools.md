@@ -1,6 +1,6 @@
 # Контракты: маршрут состояния и два tool'а
 
-Три интерфейса, один снимок. **Текущая версия — 2** (счётчики задач в строке прогона, `etaSec`/`etaBasis`, у раннера нет `queue`). `output.schema` обоих tool'ов — `repo/lib/output.schema.json`: та же структура, спроецированная в подмножество JSON Schema, которое принимает харнесс (`type`/`oneOf`/`properties`/`required`/`additionalProperties`/`items`/`enum`/`const` + аннотации; без `$schema`/`$id`/`format`/`minLength`/`minimum`/`maxItems` и без массивов в `type`). Источник правды для структуры — `repo/lib/state.schema.json`. **Правило версии**: любое изменение формы снимка
+Три интерфейса, один снимок. **Текущая версия — 3** (счётчики задач в строке прогона, `etaSec`/`etaBasis`, `runner.queue` — общий backlog из `actions/runners/jobs`; в версии 2 `queue` не было). `output.schema` обоих tool'ов — `repo/lib/output.schema.json`: та же структура, спроецированная в подмножество JSON Schema, которое принимает харнесс (`type`/`oneOf`/`properties`/`required`/`additionalProperties`/`items`/`enum`/`const` + аннотации; без `$schema`/`$id`/`format`/`minLength`/`minimum`/`maxItems` и без массивов в `type`). Источник правды для структуры — `repo/lib/state.schema.json`. **Правило версии**: любое изменение формы снимка
 (добавление, удаление, переименование поля или значения enum) увеличивает
 `schemaVersion` на 1 и правит `state.schema.json`, клиент и оба tool'а в одном
 коммите; клиент рисует только известную версию, на неизвестной показывает

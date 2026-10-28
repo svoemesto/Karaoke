@@ -139,8 +139,13 @@ jobs:
         uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
-          java-version: '17'
+          # Точная версия, а не '17': иначе setup-java идёт в github.com за
+          # манифестом версий и падает на ECONNRESET (прогон #62, ktlint).
+          java-version: '17.0.21+9'
           cache: gradle
+          # Образ раннера содержит tarball Temurin этой версии: распаковка
+          # локальная, без скачивания ~190 МБ на каждом джобе.
+          jdkFile: /opt/temurin17.tar.gz
 
       - name: Run ktlintCheck (baseline-aware)
         run: ./gradlew ktlintCheck --no-daemon --stacktrace
@@ -180,8 +185,13 @@ jobs:
         uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
-          java-version: '17'
+          # Точная версия, а не '17': иначе setup-java идёт в github.com за
+          # манифестом версий и падает на ECONNRESET (прогон #62, ktlint).
+          java-version: '17.0.21+9'
           cache: gradle
+          # Образ раннера содержит tarball Temurin этой версии: распаковка
+          # локальная, без скачивания ~190 МБ на каждом джобе.
+          jdkFile: /opt/temurin17.tar.gz
 
       - name: Compile backend
         # AGENTS.md § «Обязательная проверка после изменения», шаг 1.
@@ -210,8 +220,13 @@ jobs:
         uses: https://data.forgejo.org/actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
-          java-version: '17'
+          # Точная версия, а не '17': иначе setup-java идёт в github.com за
+          # манифестом версий и падает на ECONNRESET (прогон #62, ktlint).
+          java-version: '17.0.21+9'
           cache: gradle
+          # Образ раннера содержит tarball Temurin этой версии: распаковка
+          # локальная, без скачивания ~190 МБ на каждом джобе.
+          jdkFile: /opt/temurin17.tar.gz
 
       - name: Install ffmpeg (обязателен для Mp3TrimmerTest)
         # BR-512 (пакет #388): тест обрезки mp3 больше не помечается skipped, если
@@ -257,6 +272,7 @@ jobs:
 
       - name: Install jq (нужен check-eslint-baseline.sh; в образе runner'а нет)
         run: |
+          command -v jq >/dev/null && jq --version && exit 0
           apt-get update -qq
           apt-get install -y -qq jq
 
@@ -496,9 +512,17 @@ jobs:
         # Конфиг без проксирования /api на karaoke-web (его в CI нет) —
         # см. karaoke-public/e2e/nginx-e2e.conf.
         run: |
-          docker run -d --name karaoke-public-e2e -p 7907:7907 \
-            -v "$PWD/karaoke-public/e2e/nginx-e2e.conf:/etc/nginx/nginx.conf:ro" \
-            karaoke-public:e2e
+          # Контейнер живёт в общем docker демона между прогонами: без уборки
+          # следующий джоб падает на Conflict ("name already in use").
+          docker rm -f karaoke-public-e2e 2>/dev/null || true
+          # Хост-порт 7907 занят боевым karaoke-public — берём свободный.
+          docker run -d --name karaoke-public-e2e -p 17907:7907 karaoke-public:e2e
+          # Конфиг кладём через docker cp, а не -v: путь workspace живёт внутри
+          # job-контейнера, а демон общий — хост такого пути не видит.
+          docker cp "$PWD/karaoke-public/e2e/nginx-e2e.conf" karaoke-public-e2e:/etc/nginx/nginx.conf
+          docker exec karaoke-public-e2e nginx -s reload
+          sleep 1
+          docker logs karaoke-public-e2e 2>&1 | tail -5
 
       - name: npm ci (clean install)
         working-directory: karaoke-public
@@ -512,20 +536,29 @@ jobs:
         # Дымовая проверка «контракт развёртывания» (@smoke, BR-524) не
         # блокирует CI — она подтверждает, что редактор собрался и отдан.
         working-directory: karaoke-public
-        env:
-          E2E_BASE_URL: http://localhost:7907
-        run: npx playwright test --grep-invert @smoke
+        run: |
+          # localhost внутри job-контейнера — это он сам; опубликованный порт
+          # живёт на хосте, поэтому идём через шлюз docker-сети.
+          GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
+          export E2E_BASE_URL="http://${GATEWAY}:17907"
+          echo "E2E_BASE_URL=$E2E_BASE_URL"
+          npx playwright test --grep-invert @smoke
 
       - name: Playwright e2e (smoke, BR-524 — не блокирует CI)
         working-directory: karaoke-public
-        env:
-          E2E_BASE_URL: http://localhost:7907
         continue-on-error: true
-        run: npx playwright test --grep @smoke
+        run: |
+          GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
+          export E2E_BASE_URL="http://${GATEWAY}:17907"
+          npx playwright test --grep @smoke
 
       - name: Container logs (on failure)
         if: failure()
-        run: docker logs karaoke-public-e2e
+        run: docker logs karaoke-public-e2e || true
+
+      - name: Cleanup container
+        if: always()
+        run: docker rm -f karaoke-public-e2e 2>/dev/null || true
 
   # === Docs: структура per-feature + Markdown-ссылки ===
   # Не блокер-уровень, но даёт быстрый сигнал о сломанной документации.
@@ -575,7 +608,9 @@ jobs:
         uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install jq
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+        run: |
+          command -v jq >/dev/null && jq --version && exit 0
+          sudo apt-get update -qq && sudo apt-get install -y -qq jq
 
       - name: Print baseline stats
         run: bash tools/baseline-stats.sh
@@ -631,13 +666,10 @@ jobs:
           # Нужна история для git diff master...HEAD.
           fetch-depth: 50
 
-      - name: Setup Python (для YAML парсинга)
-        uses: https://data.forgejo.org/actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.11'
+      # Python 3.11 + PyYAML уже в образе раннера — setup-python не нужен.
 
-      - name: Install PyYAML
-        run: pip install pyyaml
+      - name: Install PyYAML (в образе раннера уже есть)
+        run: python3 -c "import yaml; print('pyyaml', yaml.__version__)" || pip install pyyaml
 
       - name: Check SSoT impact
         # Default base — origin/master (см. tools/check-ssot-impact.py).

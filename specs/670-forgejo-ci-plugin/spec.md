@@ -16,7 +16,8 @@
 - **Issue ID**: `KARAOKE-305` (Plane, workspace `svoemesto`, проект `KARAOKE`;
   id `6ccd6949-bd73-4c58-897c-8d4ea0902767`). Заведена по слову владельца
   2026-10-28 («задачу в Plane заводи и действуй») из wayfinder-карты
-  [`forgejo-ci-plugin`](../../.scratch/karaoke/wayfinding/forgejo-ci-plugin/map.md).
+  `forgejo-ci-plugin` (локальный артефакт `.scratch/karaoke/wayfinding/` — в
+  репозиторий не входит, поэтому ссылкой не оформляется).
   Claim выполнен до первой строки кода: `ai-agent`, статус `In progress`.
 - **Title**: Плагин DSH «Forgejo CI»: прогоны, раннер, tool'ы, бейдж и уведомления.
 - **Created in Plane**: 2026-10-28.

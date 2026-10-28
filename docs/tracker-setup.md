@@ -1,6 +1,6 @@
 # Tracker Setup — пошаговое руководство (Plane)
 
-**Версия**: 2.0 (2026-10-27, карта `tracker-migration`, тикет T5)
+**Версия**: 2.1 (2026-10-28, конвенция «Задача N» — `KARAOKE-N`)
 **Связанные документы**: [`knowledge/system/infra/tracker.md`](../knowledge/system/infra/tracker.md),
 [`knowledge/system/infra/op-plane-mapping.md`](../knowledge/system/infra/op-plane-mapping.md),
 [`knowledge/adr/local-0012-plane-tracker-migration.md`](../knowledge/adr/local-0012-plane-tracker-migration.md),
@@ -90,6 +90,28 @@ Plane нумерует задачи внутри проекта: `KARAOKE-<seque
 `op-plane-mapping.csv` (297 строк, см. `op-plane-mapping.md`). Правило ссылок:
 **новые ссылки — на Plane**, старые `OpenProject #NNN` в текстах не
 переписываются.
+
+### Как понимать «Задача N»
+
+Если владелец говорит «Задача 307» или «задача 307 в трекере», это всегда
+задача **`KARAOKE-307`** проекта Karaoke в Plane. Правило общее: «Задача N»
+означает `KARAOKE-N` при **любом** N (307 — просто пример). Адрес:
+
+```
+https://tracker.sm-karaoke.ru/svoemesto/browse/KARAOKE-<N>/
+```
+
+Проверка и работа — `./tools/tracker.sh get-issue 307` (или `KARAOKE-307`).
+
+| В речи | Что это | Куда идти |
+|---|---|---|
+| «Задача 307», «задача 307 в трекере» | `KARAOKE-307` в Plane | `get-issue 307` |
+| «OpenProject #307», «op:307» | work package #307 старого трекера | `op-plane-mapping.csv` |
+| «spec 307», «спека 307» | каталог `specs/307-*` | файл в репозитории |
+
+Номер берётся из диапазона Plane, а не из OpenProject: после переноса это
+разные числа. Если номер не существует в Plane — уточнить у владельца, не
+подставлять «похожую» задачу.
 
 ## Состояния
 

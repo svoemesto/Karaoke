@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.6.0 | **Last updated**: 2026-10-27 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.7.0 | **Last updated**: 2026-10-28 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -144,6 +144,26 @@
 `<ID>` — номер Plane (`42`) или полная ссылка (`KARAOKE-42`); номер
 OpenProject принимается только с префиксом `op:403` и разрешается через
 `knowledge/system/infra/op-plane-mapping.csv`.
+
+**Rule (как понимать «Задача N»)**: когда владелец говорит «Задача N» или
+«задача N в трекере», речь о задаче **KARAOKE-N** проекта Karaoke в Plane:
+`https://tracker.sm-karaoke.ru/svoemesto/browse/KARAOKE-N/`. Агент открывает её
+через `tracker.sh get-issue N` и работает с ней.
+
+| В речи | Что это | Куда идти |
+|---|---|---|
+| «Задача 307», «задача 307 в трекере» | `KARAOKE-307` в Plane | `tracker.sh get-issue 307` |
+| «OpenProject #307», «op:307» | work package #307 старого трекера | `op-plane-mapping.csv` |
+| «spec 307», «спека 307» | каталог `specs/307-*` | файл в репозитории |
+
+`N` — **любой** номер задачи Plane; `307` в таблице взят только как пример.
+Диапазон существующих номеров — `./tools/tracker.sh list-issues --limit 1`
+(последний `sequence_id`) или строка задачи в Plane.
+
+**Failure**: «Задача 307» понята как OpenProject #307 или как каталог
+`specs/307-*` → работа сделана не над той задачей.
+**Enforcement**: manual review; номер вне диапазона Plane — уточнить у владельца.
+**Source**: `docs/tracker-setup.md` § «Задачи и нумерация».
 
 **Failure** (Pass 349): OpenProject #69 без workflow → отчёт задним числом.
 **Enforcement**: `tools/check-spec-issue-link.py` + manual review.
@@ -298,6 +318,9 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.7.0** (2026-10-28): закреплено, что «Задача N» / «задача N в трекере» —
+  это `KARAOKE-N` в Plane (`.../browse/KARAOKE-N/`), а не work package
+  OpenProject и не каталог `specs/NNN-*`; исключения — `op:N` и «spec N».
 - **3.6.0** (2026-10-27, карта `tracker-migration`, тикет T5): рабочий трекер —
   **Plane** (`tracker.sm-karaoke.ru`, workspace `svoemesto`, проект `KARAOKE`).
   Секция «OpenProject Workflow» стала «Plane Workflow» (те же 4 шага, команды

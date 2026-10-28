@@ -1,10 +1,10 @@
 # Karaoke Project Guidelines (Claude Code)
 
-> **Версия**: 1.7.0 | **2026-10-27** (рабочий трекер — Plane; OpenProject
+> **Версия**: 1.8.0 | **2026-10-28** (рабочий трекер — Plane; OpenProject
 > остаётся локально для ручных задач).
 > 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.6.0.
 
-## 🚦 Все правила — в AGENTS.md v3.6.0
+## 🚦 Все правила — в AGENTS.md v3.7.0
 
 - **MUST #0 Knowledge-first pre-flight** → `AGENTS.md` Tier-1.
 - **Hard Gates (Pass 372-375, 358, 353)** → `AGENTS.md` Tier-1.
@@ -21,7 +21,7 @@
 
 1. **При старте сессии**: `cat AGENTS.md | head -100` — знать обязательные правила.
 2. **Перед правкой кода фичи**: обновить `docs/features/<slug>.md` (FR-009).
-3. **Перед commit**: 7 проверок из AGENTS.md v3.6.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
+3. **Перед commit**: 7 проверок из AGENTS.md v3.7.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
 4. **При отладке**: сначала `docker logs`, потом гипотезы (Pass 358).
 5. **Если grep по `knowledge/` ничего не нашёл**: зафиксировать в `spec.md` явно «Searched: ... → no relevant docs».
 
@@ -54,13 +54,16 @@
 ## 🚦 Ключевые правила (Claude Code-specific)
 
 - **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
-- **Secrets**: НЕ коммитить. См. AGENTS.md v3.6.0 § «Hard Gate: Secrets».
+- **Secrets**: НЕ коммитить. См. AGENTS.md v3.7.0 § «Hard Gate: Secrets».
 - **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
 - **Force-push в main/master**: нельзя.
 - **`git commit --no-verify`**: только в крайнем случае.
 
 ## Changelog
 
+- **1.8.0** (2026-10-28, PR «Задача N»): синхронизация с `AGENTS.md` v3.7.0 —
+  «Задача N» / «задача N в трекере» = `KARAOKE-N` в Plane, `op:N` и «spec N» —
+  другие сущности.
 - **1.7.0** (2026-10-27, T5 карты `tracker-migration`): синхронизация с
   `AGENTS.md` v3.6.0 — рабочий трекер Plane, OpenProject остаётся локальным
   архивом для ручных задач; ссылки на `docs/tracker-setup.md` и

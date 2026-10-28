@@ -512,6 +512,9 @@ jobs:
         # Конфиг без проксирования /api на karaoke-web (его в CI нет) —
         # см. karaoke-public/e2e/nginx-e2e.conf.
         run: |
+          # Контейнер живёт в общем docker демона между прогонами: без уборки
+          # следующий джоб падает на Conflict ("name already in use").
+          docker rm -f karaoke-public-e2e 2>/dev/null || true
           docker run -d --name karaoke-public-e2e -p 7907:7907 \
             -v "$PWD/karaoke-public/e2e/nginx-e2e.conf:/etc/nginx/nginx.conf:ro" \
             karaoke-public:e2e
@@ -541,7 +544,11 @@ jobs:
 
       - name: Container logs (on failure)
         if: failure()
-        run: docker logs karaoke-public-e2e
+        run: docker logs karaoke-public-e2e || true
+
+      - name: Cleanup container
+        if: always()
+        run: docker rm -f karaoke-public-e2e 2>/dev/null || true
 
   # === Docs: структура per-feature + Markdown-ссылки ===
   # Не блокер-уровень, но даёт быстрый сигнал о сломанной документации.

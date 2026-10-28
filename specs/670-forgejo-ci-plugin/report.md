@@ -1,8 +1,9 @@
 # Report — плагин «Forgejo CI» (KARAOKE-305)
 
-**Статус**: код и тесты готовы; приёмка в живом GUI и снятие/возврат — за лидом.
+**Статус**: код, тесты и приёмка в живом Web GUI пройдены; единственный остаток —
+живой toast на следующем реальном прогоне (тестами покрыт).
 **Спека**: [spec.md](spec.md) · **План**: [plan.md](plan.md) · **Задачи**: [tasks.md](tasks.md)
-**Код**: репозиторий `svoemesto/dsh-forgejo-ci` (ветка `main`).
+**Код**: репозиторий `svoemesto/dsh-forgejo-ci` (ветка `main`, 27 файлов).
 
 ## Итог по фазам
 
@@ -15,63 +16,63 @@
 | Фикс схемы | `lib/output.schema.json` — проекция в подмножество харнесса | `aeda7c8` |
 | US3+US4 | toast'ы в `shell.overlay`, экраны деградации | `aa0119b` |
 
-Итог тестов: **`node --test → exit=0, 84 pass, 0 fail`** (12 файлов: config, runs,
-buffer, snapshot, schema, secret, output-schema, tools, toast + служебные).
+Итог тестов: **`node --test → exit=0, 84 pass, 0 fail`** (12 файлов).
 
-## Что проверено фактами
+## Что проверено фактами (живая система)
 
-| Проверка | Чем | Результат |
-|---|---|---|
-| Чистая логика | `node --test` в репозитории плагина | 84/84, exit=0 |
-| Схема снимка | `test/schema.test.mjs`, дрейф-чек по `FORGEJO_CI_SPEC_SCHEMA` | копия совпадает с источником правды |
-| `output.schema` | `test/output-schema.test.mjs` + `assertSupportedJsonSchema` из харнесса | оба tool'а проходят валидатор |
-| Маршрут | `curl http://127.0.0.1:3080/forgejo-ci/state` (лид, после установки) | **200**, 633 байта, 1.8 мс, `stale:false`, `runner idle`, прогон #33 `durationSec 643` |
-| Не-GET | `POST` на маршрут | **405** `{"error":"method-not-allowed"}` |
-| Tool'ы | прогон на живом снимке (лид) | `status` → 1 прогон, `stale:false`, `runner idle`; `wait(399)` → `status:'failure'`, `waitedSec:0`; `wait(12345)` → `unknown-run` со списком id |
-| Регистрация host | `plugin_manager` | `application: applied`, `warnings: []` |
-| Слоты | `Slots.listSubTree` (лид) | `sidebar.panellist` → `{id:"forgejo-ci", order:100}`; `main` → `{key:"forgejo-ci"}` |
-| Слот toast'ов | песочница браузерного модуля (11 тестов) | `shell.overlay` → `{id:"forgejo-ci-toasts", order:100}`; подтверждение после перезагрузки страницы — за лидом |
+| Проверка | Результат |
+|---|---|
+| Установка | `application: applied`, `warnings: []`, `dsh-forgejo-ci 0.1.0 <- link:…/repo`. Первая попытка падала на `output.schema`; после проекции в подмножество активация проходит с первого переключения бандла |
+| Маршрут | `GET /forgejo-ci/state` → **200**, 633 байта, 1.8 мс, `Cache-Control: no-store`, `stale:false`, `error:null`, `runner {nsa-i9, v6.4.0, idle, lastActivityAt 07:01:35Z, queue 0/0}`, `runs [{399, #33, failure, durationSec 643, fromCache:false}]`, `jobs:null` |
+| Не-GET | `POST` и `DELETE` → **405** |
+| Слоты | `sidebar.panellist` → `{id:"forgejo-ci", order:100, active:true}`; `main` → ключ `forgejo-ci`; **`shell.overlay` → `{id:"forgejo-ci-toasts", order:100, active:true}`** (появился после перезагрузки страницы владельцем — новый клиентский бандл загрузился) |
+| Tool'ы | `forgejo_ci_status` и `forgejo_ci_wait` в `Tool.listTools`; `status` → 1 прогон, `stale:false`, render `1 run · last #33 failure 10:43 · nsa-i9 idle`; `wait(399)` → `{run:{…, durationSec 643}, timedOut:false, waitedSec:0, stale:false, lastOkAt}`; `wait(12345)` → `unknown-run … known run ids: 399` |
+| Деградация (SC-004) | `apply()` с `baseUrl=http://127.0.0.1:9` → `{stale:true, error:"network", lastOkAt:null, runs:0, runnerState:"stale"}`, исключений нет |
+| Снятие/возврат (T045) | `set_bundle enabled:false` → маршрут **404**, оба tool'а исчезли из `Tool.listTools`, `application: applied`; `enabled:true` → маршрут **200**, данные на месте. Клиентские следы (иконка/панель/toast) исчезают при следующей загрузке страницы — поведение харнесса, не дефект |
+| Гигиена (T043) | временный `GIT_ASKPASS` удалён; значения `FORGEJO_CI_TOKEN` нет в `repo/`, `specs/670-…`, `knowledge/`, `cordis.patch.yml` профиля; `git ls-files` по секрет-маскам пуст |
 
 ## Критерии: факт против требования
 
 | Критерий | Чем подтверждён |
 |---|---|
-| FR-001 прогоны с полями | `runs.js` + `snapshot.js` + `runs.test.mjs`; маршрут отдаёт #33 с `durationSec: 643` и ссылкой из `index_in_repo` |
-| FR-002 состояние раннера | `snapshot.test.mjs` (5 состояний, `active` наружу не выходит); маршрут: `runner.state: "idle"` при `active` из API |
+| FR-001 прогоны с полями | маршрут отдаёт #33 с `durationSec: 643` и ссылкой из `index_in_repo`; `runs.test.mjs` |
+| FR-002 состояние раннера | маршрут: `runner.state:"idle"` при `active` из API; `snapshot.test.mjs` (5 состояний) |
 | FR-003 опрос ≤15 с, настраиваемо | `pollMs` в конфиге (валидация ≥5000), таймер через `ctx.effect` |
 | FR-004 сохранение при пурже + метка | `buffer.test.mjs`; UI-метка «из кеша» с `title` |
-| FR-005 «сейчас бегут» только при активном | `snapshot.test.mjs` (регресс: 19 устаревших `running` → `jobs: null`, `queue 0/0`) |
-| FR-006 статус из кеша <2 с | `tools.test.mjs`; живой вызов лида |
-| FR-007 ожидание с таймаутом | `tools.test.mjs` (уже завершён → 0 с; таймаут → `timedOut: true`, не ошибка) |
-| FR-008 `stale`/`lastOkAt` в ответах | оба tool'а возвращают поля контракта (`tools.test.mjs`) |
-| FR-009 ошибка неизвестного прогона | `unknown-run` + `knownRunIds` (тест и живой вызов) |
-| FR-010 иконка + индикаторы | `client.js`: точка при `failure`, пульс при `running` |
-| FR-011 переход в Forgejo по клику | строки таблицы и toast — `<a target="_blank" rel="noopener noreferrer">` |
-| FR-012 правила уведомлений | `toast.test.mjs`: падение 8 с, успех 3 с, ≤3 на экране, 1 в 5 с |
-| FR-013 без уведомления о старом прогоне | `toast.test.mjs`: первый снимок только запоминает |
-| FR-014 деградация без падения | `snapshot.test.mjs`; `forgejo.js` возвращает enum вместо исключений |
+| FR-005 «сейчас бегут» только при активном | регресс в `snapshot.test.mjs`: 19 устаревших `running` → `jobs:null`, `queue 0/0` |
+| FR-006 статус из кеша <2 с | живой вызов `status`; `tools.test.mjs` |
+| FR-007 ожидание с таймаутом | `wait(399)` → `waitedSec:0`; тесты на таймаут → `timedOut:true`, не ошибка |
+| FR-008 `stale`/`lastOkAt` в ответах | оба tool'а вернули поля в живом вызове |
+| FR-009 ошибка неизвестного прогона | `wait(12345)` → `unknown-run` со списком id |
+| FR-010 иконка + индикаторы | панель подтверждена владельцем; бейдж — `client.js` + песочница |
+| FR-011 переход в Forgejo по клику | `<a target="_blank" rel="noopener noreferrer">` в строках и toast'ах |
+| FR-012 правила уведомлений | **подтверждено тестами** (`toast.test.mjs`: 8 с/3 с, ≤3, 1 в 5 с); живьём будет проверено на следующем прогоне |
+| FR-013 без уведомления о старом прогоне | **подтверждено тестами** (первый снимок только запоминает; #33 не всплыл) |
+| FR-014 деградация без падения | живой прогон с `baseUrl=127.0.0.1:9` → `stale`, без исключений |
 | FR-015 «токен не настроен» ≠ «нет доступа» | `classifyStatus` + разные тексты и экраны в панели |
-| FR-016 токен не утекает | `secret.test.mjs`, `schema.test.mjs`; маршрут значения не содержит |
+| FR-016 токен не утекает | `secret.test.mjs`, `schema.test.mjs`; гигиена T043 |
 | FR-017 никаких операций записи | `forgejo.js` — только GET; в коде нет POST/PUT/PATCH/DELETE |
-| FR-018 снятие без перезапуска | `toastStore.dispose` + `ctx.effect`; проверка снятия — за лидом |
+| FR-018 снятие без перезапуска | `enabled:false` → 404 и оба tool'а исчезли; `enabled:true` → 200 |
 | SC-001 ≤15 с до уведомления | интервал опроса 15 с + отрисовка из кеша |
-| SC-002 один вызов вместо серии | `forgejo_ci_wait` (живой вызов: `waitedSec:0` на завершённом) |
-| SC-003 <2 с ответ | кеш + отрисовка; замер маршрута 1.8 мс |
-| SC-004 панель при `stale` | `snapshot.test.mjs` + экраны US4 |
-| SC-005 0 вхождений токена | `secret.test.mjs`; `git ls-files` по секрет-маскам пуст |
-| SC-006 подтверждение владельцем | **ожидается**: панель после перезагрузки страницы |
-| SC-007 0 следов после отключения | **ожидается**: прогон снятия/возврата (T045) |
+| SC-002 один вызов вместо серии | `wait(399)` отвечает сразу вместо цикла `curl` |
+| SC-003 <2 с ответ | замер маршрута 1.8 мс, статус из кеша |
+| SC-004 панель при `stale` | живой прогон с недоступным Forgejo: `stale:true`, `error:"network"` |
+| SC-005 0 вхождений токена | поиск значения по артефактам — пусто; `git ls-files` по маскам пуст |
+| SC-006 подтверждение владельцем | владелец: **«Вижу»** (панель в живом GUI) |
+| SC-007 0 следов после отключения | маршрут 404, tool'ы исчезли; возврат → 200 и данные на месте |
 
-## Что осталось (не делалось намеренно)
+## Что осталось
 
-1. **Перезагрузка страницы** владельцем — без неё браузер работает на старом
-   бандле: `shell.overlay` ещё не содержит `forgejo-ci-toasts`.
-2. **Живой toast** — нужен прогон, который завершится при открытой странице;
-   текущий #33 терминален и по гейту FR-013 уведомления не даёт.
-3. **Снятие/возврат плагина** (T045) — делает лид через `plugin_manager`.
-4. **Подтверждение владельцем** панели (SC-006).
-5. **Трекер**: `add-comment KARAOKE-305` → `mark-review` — после приёмки (T042).
-6. **Уборка** временного `GIT_ASKPASS` (T043).
+**Одно**: живой toast на реальном прогоне. В Forgejo сейчас один прогон #33, он
+терминален, и гейт FR-013 правильно не показывает о нём уведомление. Появление
+toast'а будет проверено на следующем реальном прогоне при открытой панели;
+логика (переход, дедуп, потолки, авто-скрытие, dispose) покрыта 11 тестами
+в песочнице браузерного модуля.
+
+Отдельно, как поведение харнесса: клиентские следы плагина (иконка, панель,
+toast) исчезают при следующей загрузке страницы — host-часть снимается сразу
+(маршрут 404, tool'ы удалены), но браузер продолжает работать на уже
+загруженном бандле до перезагрузки.
 
 ## Отклонения и честные находки
 
@@ -96,12 +97,12 @@ buffer, snapshot, schema, secret, output-schema, tools, toast + служебны
 
 ## Документация
 
-- `knowledge/system/infra/ci-tools.md` — раздел «Плагин `dsh-forgejo-ci`»:
-  где живёт код, как включить, токен (`FORGEJO_CI_TOKEN`, read-only), маршрут,
-  tool'ы, деградация, ограничения. `tools/lint-knowledge.py` → OK;
-  `tools/check-knowledge-structure.sh` → 9/9; cross-links → 757/757.
+`knowledge/system/infra/ci-tools.md` — раздел «Плагин `dsh-forgejo-ci`»: где
+живёт код, включение, токен (`FORGEJO_CI_TOKEN`, read-only), маршрут, tool'ы,
+деградация, ограничения. `tools/lint-knowledge.py` → OK;
+`tools/check-knowledge-structure.sh` → 9/9; cross-links → 757/757.
 
-## Известные ограничения (перенесены в README плагина)
+## Известные ограничения (в README плагина)
 
 - история прогонов живёт в памяти процесса; после перезапуска DSH пуста;
 - разбивки «прогон → джобы» нет; строка очереди — только последний активный

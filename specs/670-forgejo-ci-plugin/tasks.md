@@ -30,13 +30,13 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 
 **Purpose**: пакет, который вообще может быть установлен; никакой логики.
 
-- [ ] T001 Создать `repo/package.json`: `name: dsh-forgejo-ci`, `type: module`, `exports` (`.`, `./client`, `./locale/*.json`, `./icon`, `./package.json`), `dsh.bundle.patch: ./cordis.patch.yml`, `dsh.client.platform: web`, `files`, `engines.node >= 22`
-- [ ] T002 Заполнить `repo/cordis.patch.yml`: одна строка `id: forgejo-ci`, `name: dsh-forgejo-ci`, `config` с дефолтами (`baseUrl`, `repo`, `tokenRef`, `pollMs: 15000`, `runsLimit: 5`, `staleAfterMs: 45000`, `queueStuckAfterMs: 600000`, `routePath: /forgejo-ci/state`) — **без секретов**
-- [ ] T003 [P] Написать `repo/README.md`: назначение, таблица конфига, раздел «Известные ограничения» с фразой «после перезапуска DSH история прогонов пуста; Forgejo хранит историю недолго», раздел «Как установить»
-- [ ] T004 [P] Написать `repo/PROVENANCE.md`: откуда взята форма пакета (`git-branch-chip`, `skills-plugins-viewer`), что изменено, что скопировано без изменений
-- [ ] T005 [P] Создать `repo/locale/ru.json` и `repo/locale/en.json`: `meta.title`, `meta.description` + строки панели (заголовки, статусы, «сейчас бегут», «данные устарели», «токен не настроен», «нет доступа к репозиторию», toast-тексты)
-- [ ] T006 [P] Нарисовать `repo/icon.svg`: оригинальная иконка «терминал/CI» 24×24, `currentColor`, без внешних ссылок
-- [ ] T007 [P] Добавить `repo/.gitignore`: `node_modules/`, `.env`, `*.log`, `coverage/`
+- [x] T001 Создать `repo/package.json`: `name: dsh-forgejo-ci`, `type: module`, `exports` (`.`, `./client`, `./locale/*.json`, `./icon`, `./package.json`), `dsh.bundle.patch: ./cordis.patch.yml`, `dsh.client.platform: web`, `files`, `engines.node >= 22`
+- [x] T002 Заполнить `repo/cordis.patch.yml`: одна строка `id: forgejo-ci`, `name: dsh-forgejo-ci`, `config` с дефолтами (`baseUrl`, `repo`, `tokenRef`, `pollMs: 15000`, `runsLimit: 5`, `staleAfterMs: 45000`, `queueStuckAfterMs: 600000`, `routePath: /forgejo-ci/state`) — **без секретов**
+- [x] T003 [P] Написать `repo/README.md`: назначение, таблица конфига, раздел «Известные ограничения» с фразой «после перезапуска DSH история прогонов пуста; Forgejo хранит историю недолго», раздел «Как установить»
+- [x] T004 [P] Написать `repo/PROVENANCE.md`: откуда взята форма пакета (`git-branch-chip`, `skills-plugins-viewer`), что изменено, что скопировано без изменений
+- [x] T005 [P] Создать `repo/locale/ru.json` и `repo/locale/en.json`: `meta.title`, `meta.description` + строки панели (заголовки, статусы, «сейчас бегут», «данные устарели», «токен не настроен», «нет доступа к репозиторию», toast-тексты)
+- [x] T006 [P] Нарисовать `repo/icon.svg`: оригинальная иконка «терминал/CI» 24×24, `currentColor`, без внешних ссылок
+- [x] T007 [P] Добавить `repo/.gitignore`: `node_modules/`, `.env`, `*.log`, `coverage/`
 
 ---
 
@@ -45,18 +45,18 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 **Purpose**: всё рискованное, что можно проверить без DSH и сети. Пока этот
 блок не зелёный, host- и client-половины не начинаются.
 
-- [ ] T008 Написать `repo/lib/config.js`: дефолты, нормализация и валидация (`tokenRef` по `/^[A-Za-z_][A-Za-z0-9_]*$/`, `pollMs >= 5000`, `runsLimit` 1..20, `routePath` абсолютный без хвостового `/`, `baseUrl` http(s)); JSDoc на экспортах
-- [ ] T009 [P] Написать `repo/test/config.test.mjs`: дефолты при пустом конфиге; отказ на мусорный `tokenRef`, отрицательный `pollMs`, `runsLimit: 0` и `: 21`, относительный `routePath`
-- [ ] T010 Написать `repo/lib/runs.js`: `normalizeRun()` — `duration` нс→с (округление), `url` из `index_in_repo` (fallback — из `html_url`), нулевая метка `1970-01-01` → `null`, незнакомый статус → `unknown`, белый список полей (никакого копирования объекта API)
-- [ ] T011 [P] Написать `repo/test/runs.test.mjs`: 331000000000 → 331; ждущий прогон → `durationSec: null`; `id 398 / index 32` → ссылка `/actions/runs/32`; `started: 1970-01-01` → `null`; лишние поля из API не попадают в результат
-- [ ] T012 Написать `repo/lib/buffer.js`: кольцевой буфер ёмкостью `runsLimit`; `merge(apiRuns)` — объединение по `id`, обновление без дублей, вытеснение старого, пометка `fromCache: true` для прогонов, отсутствующих в ответе API
-- [ ] T013 [P] Написать `repo/test/buffer.test.mjs`: API вернул 1 прогон, буфер отдаёт 5; повторная вставка того же `id` не дублирует и обновляет `durationSec`; вытеснение по `id`; пустой ответ API не стирает буфер
-- [ ] T014 Написать `repo/lib/snapshot.js`: `buildSnapshot({runs, tasks, runner, now, ...})` — порядок и обрезка до `runsLimit`, `stale` по `staleAfterMs`, `lastOkAt`, `lastActivityAt = max(runs.updatedAt, tasks.runStartedAt)`, состояние раннера (`running`/`idle`/`queue-stuck`/`offline`/`stale`), гейт `jobs` (только при активном последнем прогоне), `error` из enum
-- [ ] T015 [P] Написать `repo/test/snapshot.test.mjs`: `stale` после 45 с; `queue-stuck` после 10 мин без активности; `running` при активных задачах; `offline` при пустом списке раннеров; `jobs: null` у завершённого последнего прогона; `jobs` заполнен при `running`; `lastOkAt` не теряется при ошибке; `active` из API не выходит наружу
-- [ ] T016 Написать `repo/lib/forgejo.js`: `fetch` с таймаутом 5 с и `AbortSignal`; маппинг ошибок в enum (`token-missing` — нет значения ссылки, `forbidden` — 403, `network` — таймаут/отказ, `http-4xx`, `http-5xx`); только GET-запросы, ни одной операции записи (FR-017); заголовок `Authorization` только в исходящем запросе, в тексты ошибок и логи не попадает
-- [ ] T017 [P] Написать `repo/test/secret.test.mjs`: `JSON.stringify(buildSnapshot(...))` с подставленным тестовым токеном не содержит его ни в одном поле; объект ошибки `forgejo.js` не содержит значения токена
+- [x] T008 Написать `repo/lib/config.js`: дефолты, нормализация и валидация (`tokenRef` по `/^[A-Za-z_][A-Za-z0-9_]*$/`, `pollMs >= 5000`, `runsLimit` 1..20, `routePath` абсолютный без хвостового `/`, `baseUrl` http(s)); JSDoc на экспортах
+- [x] T009 [P] Написать `repo/test/config.test.mjs`: дефолты при пустом конфиге; отказ на мусорный `tokenRef`, отрицательный `pollMs`, `runsLimit: 0` и `: 21`, относительный `routePath`
+- [x] T010 Написать `repo/lib/runs.js`: `normalizeRun()` — `duration` нс→с (округление), `url` из `index_in_repo` (fallback — из `html_url`), нулевая метка `1970-01-01` → `null`, незнакомый статус → `unknown`, белый список полей (никакого копирования объекта API)
+- [x] T011 [P] Написать `repo/test/runs.test.mjs`: 331000000000 → 331; ждущий прогон → `durationSec: null`; `id 398 / index 32` → ссылка `/actions/runs/32`; `started: 1970-01-01` → `null`; лишние поля из API не попадают в результат
+- [x] T012 Написать `repo/lib/buffer.js`: кольцевой буфер ёмкостью `runsLimit`; `merge(apiRuns)` — объединение по `id`, обновление без дублей, вытеснение старого, пометка `fromCache: true` для прогонов, отсутствующих в ответе API
+- [x] T013 [P] Написать `repo/test/buffer.test.mjs`: API вернул 1 прогон, буфер отдаёт 5; повторная вставка того же `id` не дублирует и обновляет `durationSec`; вытеснение по `id`; пустой ответ API не стирает буфер
+- [x] T014 Написать `repo/lib/snapshot.js`: `buildSnapshot({runs, tasks, runner, now, ...})` — порядок и обрезка до `runsLimit`, `stale` по `staleAfterMs`, `lastOkAt`, `lastActivityAt = max(runs.updatedAt, tasks.runStartedAt)`, состояние раннера (`running`/`idle`/`queue-stuck`/`offline`/`stale`), гейт `jobs` (только при активном последнем прогоне), `error` из enum
+- [x] T015 [P] Написать `repo/test/snapshot.test.mjs`: `stale` после 45 с; `queue-stuck` после 10 мин без активности; `running` при активных задачах; `offline` при пустом списке раннеров; `jobs: null` у завершённого последнего прогона; `jobs` заполнен при `running`; `lastOkAt` не теряется при ошибке; `active` из API не выходит наружу
+- [x] T016 Написать `repo/lib/forgejo.js`: `fetch` с таймаутом 5 с и `AbortSignal`; маппинг ошибок в enum (`token-missing` — нет значения ссылки, `forbidden` — 403, `network` — таймаут/отказ, `http-4xx`, `http-5xx`); только GET-запросы, ни одной операции записи (FR-017); заголовок `Authorization` только в исходящем запросе, в тексты ошибок и логи не попадает
+- [x] T017 [P] Написать `repo/test/secret.test.mjs`: `JSON.stringify(buildSnapshot(...))` с подставленным тестовым токеном не содержит его ни в одном поле; объект ошибки `forgejo.js` не содержит значения токена
 - [x] T044 [P] Скопировать контракт в плагин: `repo/lib/state.schema.json` — байт-в-байт копия `specs/670-forgejo-ci-plugin/contracts/state.schema.json` (в шапке обоих файлов — строка «источник правды»); написать `repo/test/schema.test.mjs`: читает `repo/lib/state.schema.json`, проверяет, что `buildSnapshot()` содержит все `required`-поля, что значения `enum` поля `error` совпадают со словарём `lib/forgejo.js`, и что `schemaVersion` — целое ≥ 1. Без зависимостей: `assert` по прочитанному JSON, не полноценный валидатор. *(ID сохранён из ревью лида, чтобы не перенумеровывать 45 задач; выполняется в Phase 2, до гейта T018.)*
-- [ ] T018 Прогнать `cd repo && node --test` — все тесты зелёные (гейт для всех следующих фаз)
+- [x] T018 Прогнать `cd repo && node --test` — все тесты зелёные (гейт для всех следующих фаз)
 
 ---
 

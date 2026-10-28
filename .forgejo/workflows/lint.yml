@@ -515,9 +515,14 @@ jobs:
           # Контейнер живёт в общем docker демона между прогонами: без уборки
           # следующий джоб падает на Conflict ("name already in use").
           docker rm -f karaoke-public-e2e 2>/dev/null || true
-          docker run -d --name karaoke-public-e2e -p 7907:7907 \
-            -v "$PWD/karaoke-public/e2e/nginx-e2e.conf:/etc/nginx/nginx.conf:ro" \
-            karaoke-public:e2e
+          # Хост-порт 7907 занят боевым karaoke-public — берём свободный.
+          docker run -d --name karaoke-public-e2e -p 17907:7907 karaoke-public:e2e
+          # Конфиг кладём через docker cp, а не -v: путь workspace живёт внутри
+          # job-контейнера, а демон общий — хост такого пути не видит.
+          docker cp "$PWD/karaoke-public/e2e/nginx-e2e.conf" karaoke-public-e2e:/etc/nginx/nginx.conf
+          docker exec karaoke-public-e2e nginx -s reload
+          sleep 1
+          docker logs karaoke-public-e2e 2>&1 | tail -5
 
       - name: npm ci (clean install)
         working-directory: karaoke-public
@@ -531,16 +536,21 @@ jobs:
         # Дымовая проверка «контракт развёртывания» (@smoke, BR-524) не
         # блокирует CI — она подтверждает, что редактор собрался и отдан.
         working-directory: karaoke-public
-        env:
-          E2E_BASE_URL: http://localhost:7907
-        run: npx playwright test --grep-invert @smoke
+        run: |
+          # localhost внутри job-контейнера — это он сам; опубликованный порт
+          # живёт на хосте, поэтому идём через шлюз docker-сети.
+          GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
+          export E2E_BASE_URL="http://${GATEWAY}:17907"
+          echo "E2E_BASE_URL=$E2E_BASE_URL"
+          npx playwright test --grep-invert @smoke
 
       - name: Playwright e2e (smoke, BR-524 — не блокирует CI)
         working-directory: karaoke-public
-        env:
-          E2E_BASE_URL: http://localhost:7907
         continue-on-error: true
-        run: npx playwright test --grep @smoke
+        run: |
+          GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
+          export E2E_BASE_URL="http://${GATEWAY}:17907"
+          npx playwright test --grep @smoke
 
       - name: Container logs (on failure)
         if: failure()

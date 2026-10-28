@@ -227,12 +227,16 @@ jobs:
           # локальная, без скачивания ~190 МБ на каждом джобе.
           jdkFile: /opt/temurin17.tar.gz
 
-      - name: Install ffmpeg (обязателен для Mp3TrimmerTest)
-        # BR-512 (пакет #388): тест обрезки mp3 больше не помечается skipped, если
-        # бинарника нет, — он ПАДАЕТ с внятным сообщением. На runner'е ffmpeg не
-        # предустановлен, поэтому устанавливаем явно (ffprobe приходит в составе
-        # ffmpeg). Без этого шага джоба backend-test падала бы на первом же прогоне.
+      - name: ffmpeg (в образе уже есть, apt — только если нет)
+        # BR-512 (пакет #388): без ffmpeg тест обрезки mp3 падает. В CI-образе
+        # ffmpeg/ffprobe уже установлены, поэтому apt-get update нужен только
+        # при отсутствии бинарника — иначе это лишние 37 с в каждом прогоне.
         run: |
+          if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
+            ffmpeg -version | head -1
+            ffprobe -version | head -1
+            exit 0
+          fi
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
           ffmpeg -version | head -1

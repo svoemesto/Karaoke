@@ -148,6 +148,9 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T051 Клиент: регистрация перенесена в `conversation.session.header.utilities` (`id: forgejo-ci`, `order: 90`), `conversation.header.leading` освобождён; unmount-эффект кнопки закрывает popover и снимает слушатели; тест на размонтирование в `test/entry.test.mjs`
 - [x] T052 Документы: `package.json` → 0.3.0; README (кнопка справа в шапке); `knowledge/system/infra/ci-tools.md`; `report.md` — второй пункт изменения формы
 
+- [x] T053 Семантика индикатора: `lastOutcome()` — первый прогон со статусом `success`/`failure` (cancelled пропускается), `badgeState()` на нём; синяя точка (`--dsw-alias-brand-primary`) плюс пульс при активном прогоне, красная точка (`--dsw-alias-state-error-primary`) главнее; цвета — на токенах темы
+- [x] T054 Тесты и документы индикатора: `[cancelled, cancelled, failure] → failure`, `[cancelled, success] → idle`, только `cancelled → idle`, `[running] → running`, `[running, failure] → failure`, разметка кнопки; `package.json` → 0.4.0, README, `knowledge/system/infra/ci-tools.md`, `report.md`, спека FR-010
+
 ---
 
 ## Dependencies (порядок исполнения)

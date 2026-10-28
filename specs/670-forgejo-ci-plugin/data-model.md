@@ -20,9 +20,32 @@
 | `createdAt` / `updatedAt` | ISO string | `created` / `updated` | — |
 | `url` | string | `html_url` | если пусто — собирается из `number` |
 | `fromCache` | boolean | вычисляется | `true`, если прогон уже не отдаётся API (пурж), а взят из буфера |
+| `jobs` | RunJobs \| null | `run_number` из `actions/tasks` | счётчики задач этого прогона |
+| `etaSec` / `etaBasis` | integer \| null / `history` \| `progress` \| null | вычисляется | остаток только с основой |
 
 Валидация: `id` — целое > 0; `number` — целое ≥ 0; `status` — непустая строка;
 `url` — абсолютный `http(s)`; `durationSec` — целое ≥ 0 или `null`.
+
+### RunJobs (счётчики задач прогона)
+
+| Поле | Тип | Источник |
+|---|---|---|
+| `running` | integer | задачи прогона в статусе `running` |
+| `waiting` | integer | задачи прогона в статусе `waiting` |
+| `done` | integer | задачи в `success`/`failure`/`cancelled` |
+| `total` | integer \| null | число джобов в workflow-файле; null — файл недоступен |
+
+Группировка — по `run_number` из `actions/tasks` (эндпоинт отдаёт задачи многих
+прогонов сразу). `jobs: null` — по прогону строк нет. На экране числитель —
+`done + running`, но не больше `total`: в API бывают повторы по `attempt`.
+
+### ETA прогона
+
+`etaSec`/`etaBasis` — только у активного прогона и только с основой:
+`history` — медиана `durationSec` двух и более завершённых прогонов минус
+прошедшее время; `progress` — при `done ≥ 3`, `elapsed ≥ 60 с` и известном
+`total`: `elapsed / done × (total − done − running)`. Иначе `null` — выдуманное
+время запрещено.
 
 ### RunnerState (вычисляемое состояние раннера)
 

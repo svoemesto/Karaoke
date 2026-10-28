@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://git.sm-karaoke.ru/svoemesto/dsh-forgejo-ci/contracts/state.schema.json",
   "title": "Forgejo CI snapshot",
-  "description": "Единственный контракт между host-половиной плагина, клиентской панелью и tool'ом forgejo_ci_status. ИСТОЧНИК ПРАВДЫ — этот файл (specs/670-forgejo-ci-plugin/contracts/state.schema.json); в репозитории плагина лежит его копия repo/lib/state.schema.json, расхождение ловит test/schema.test.mjs.",
+  "description": "Единственный контракт между host-половиной плагина, клиентской панелью и tool'ом forgejo_ci_status. ИСТОЧНИК ПРАВДЫ — этот файл (specs/670-forgejo-ci-plugin/contracts/state.schema.json); в репозитории плагина лежит его копия repo/lib/state.schema.json, расхождение ловит test/schema.test.mjs. schemaVersion 2: счётчики задач переехали в строку прогона (jobs), у раннера больше нет queue, у прогона появились etaSec/etaBasis.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,14 +13,13 @@
     "error",
     "repo",
     "runner",
-    "runs",
-    "jobs"
+    "runs"
   ],
   "properties": {
     "schemaVersion": {
       "type": "integer",
-      "const": 1,
-      "description": "Версия формы. Растёт при несовместимом изменении; клиент рисует только известную версию."
+      "const": 2,
+      "description": "Версия формы. 2 — счётчики задач в строке прогона, ETA, у раннера нет queue."
     },
     "generatedAt": {
       "type": "string",
@@ -84,8 +83,7 @@
         "name",
         "version",
         "state",
-        "lastActivityAt",
-        "queue"
+        "lastActivityAt"
       ],
       "properties": {
         "name": {
@@ -119,31 +117,13 @@
           ],
           "format": "date-time",
           "description": "max(runs[].updatedAt, tasks[].runStartedAt); null, если активности не наблюдалось."
-        },
-        "queue": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "running",
-            "waiting"
-          ],
-          "properties": {
-            "running": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "waiting": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
         }
       }
     },
     "runs": {
       "type": "array",
       "maxItems": 100,
-      "description": "Не более historyLimit (5..100, по умолчанию 20), свежие сверху. История шире витрины: панель, popover и tool по умолчанию показывают первые runsLimit (5), а индикатор на кнопке считается по всей истории — иначе серия отмен вытесняет реальный исход из окна.",
+      "description": "Не более historyLimit (5..100, по умолчанию 20). История шире витрины: панель, popover и tool по умолчанию показывают первые runsLimit (5), а индикатор считается по всей истории. Порядок: активные → с исходом → отменённые, внутри группы свежие сверху. История режется после сортировки.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -157,7 +137,10 @@
           "createdAt",
           "updatedAt",
           "url",
-          "fromCache"
+          "fromCache",
+          "jobs",
+          "etaSec",
+          "etaBasis"
         ],
         "properties": {
           "id": {
@@ -209,43 +192,70 @@
           "fromCache": {
             "type": "boolean",
             "description": "true, если прогон уже не отдаётся API (пурж) и взят из кольцевого буфера."
+          },
+          "jobs": {
+            "description": "Счётчики задач ЭТОГО прогона (сгруппированы по run_number из actions/tasks). null — по прогону строк нет. total — число джобов workflow; null, если файл недоступен.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "running",
+                  "waiting",
+                  "done",
+                  "total"
+                ],
+                "properties": {
+                  "running": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "waiting": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "done": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Задачи в success/failure/cancelled."
+                  },
+                  "total": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "description": "Сколько джобов объявлено в workflow; null — файл недоступен."
+                  }
+                }
+              }
+            ]
+          },
+          "etaSec": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Оценка остатка в секундах; null, если основы нет (меньше двух завершённых прогонов и нет прогресса по задачам)."
+          },
+          "etaBasis": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              null,
+              "history",
+              "progress"
+            ],
+            "description": "На чём построена оценка: медиана длительностей завершённых прогонов или прогресс по задачам; null — оценки нет."
           }
         }
       }
-    },
-    "jobs": {
-      "description": "Живая очередь последнего прогона. null, если последний прогон не running/waiting (у завершённого прогона actions/tasks держит устаревшие running).",
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "running",
-            "waiting",
-            "names"
-          ],
-          "properties": {
-            "running": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "waiting": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "names": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Имена задач в статусе running; панель показывает первые 3, остальные — в подсказке."
-            }
-          }
-        }
-      ]
     }
   }
 }

@@ -162,6 +162,11 @@ description: "Task list — плагин DSH «Forgejo CI» (670)"
 - [x] T061 Сортировка по рангу: `rankOf`/`compareRuns` в `lib/runs.js` (активные → с исходом → отменённые, внутри — по `id` убыв.), `buildSnapshot` сортирует и режет `historyLimit` **после** сортировки; `lastOutcome` в клиенте — по максимальному `id` среди исходов; описание `forgejo_ci_status` дополнено порядком
 - [x] T062 Тесты и документы порядка: смешанный список → `[running, failure, cancelled]`, только `cancelled` — по `id`, `lastOutcome` независим от позиции, витрина 5 берёт полезные, tool отдаёт тот же порядок; `package.json` → 0.6.0; спека FR-001 и сценарий US1, `data-model.md`, `contracts/tools.md`, README, `report.md`
 
+- [x] T063 Баг пульса: кольцо рисуется только при `running`; `failure` — только красная точка, `idle`/`queue-stuck`/`offline`/`stale` — без пульса; тест на разметку и FR-010
+- [x] T064 Счётчики задач в строке прогона: группировка `actions/tasks` по `run_number`, `jobs {running, waiting, done, total}` у прогона, у раннера нет `queue`; `lib/workflow.js` (contents API → base64 → счёт `jobs:`, кэш 1 ч, ошибка → `total: null`); `total: null` не делает снимок stale
+- [x] T065 ETA: `etaSec`/`etaBasis` по медиане истории (≥2 замера) или по прогрессу (≥3 done, ≥60 с, известный `total`), иначе `null`; тесты всех ветвей
+- [x] T066 Схемы v2 и клиент: `schemaVersion` = 2 в полной схеме и проекции, плашка о расхождении; строка прогона «9 из 27» и «≈7 мин», popover и страница одинаково; `package.json` → 0.7.0; README («что значит каждое число»), data-model, contracts, `knowledge/ci-tools.md`, report
+
 ---
 
 ## Dependencies (порядок исполнения)

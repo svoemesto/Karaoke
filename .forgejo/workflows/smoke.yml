@@ -1,0 +1,16 @@
+name: Smoke
+on:
+  workflow_dispatch: {}
+jobs:
+  tools:
+    name: smoke (тулчейн из образа)
+    runs-on: ubuntu-latest
+    steps:
+      - name: versions
+        run: |
+          java -version 2>&1 | head -1
+          node --version
+          python3 -c "import yaml; print('pyyaml', yaml.__version__)"
+          jq --version
+          docker --version
+          command -v sudo

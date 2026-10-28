@@ -141,6 +141,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+          # Образ раннера содержит tarball Temurin: setup-java распаковывает его
+          # локально вместо скачивания ~190 МБ с github.com на каждом джобе.
+          jdkFile: /opt/temurin17.tar.gz
 
       - name: Run ktlintCheck (baseline-aware)
         run: ./gradlew ktlintCheck --no-daemon --stacktrace
@@ -182,6 +185,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+          # Образ раннера содержит tarball Temurin: setup-java распаковывает его
+          # локально вместо скачивания ~190 МБ с github.com на каждом джобе.
+          jdkFile: /opt/temurin17.tar.gz
 
       - name: Compile backend
         # AGENTS.md § «Обязательная проверка после изменения», шаг 1.
@@ -212,6 +218,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+          # Образ раннера содержит tarball Temurin: setup-java распаковывает его
+          # локально вместо скачивания ~190 МБ с github.com на каждом джобе.
+          jdkFile: /opt/temurin17.tar.gz
 
       - name: Install ffmpeg (обязателен для Mp3TrimmerTest)
         # BR-512 (пакет #388): тест обрезки mp3 больше не помечается skipped, если
@@ -257,6 +266,7 @@ jobs:
 
       - name: Install jq (нужен check-eslint-baseline.sh; в образе runner'а нет)
         run: |
+          command -v jq >/dev/null && jq --version && exit 0
           apt-get update -qq
           apt-get install -y -qq jq
 
@@ -575,7 +585,9 @@ jobs:
         uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install jq
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+        run: |
+          command -v jq >/dev/null && jq --version && exit 0
+          sudo apt-get update -qq && sudo apt-get install -y -qq jq
 
       - name: Print baseline stats
         run: bash tools/baseline-stats.sh
@@ -636,8 +648,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PyYAML
-        run: pip install pyyaml
+      - name: Install PyYAML (в образе раннера уже есть)
+        run: python3 -c "import yaml; print('pyyaml', yaml.__version__)" || pip install pyyaml
 
       - name: Check SSoT impact
         # Default base — origin/master (см. tools/check-ssot-impact.py).

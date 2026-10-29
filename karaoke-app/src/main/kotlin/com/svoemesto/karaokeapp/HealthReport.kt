@@ -1064,10 +1064,31 @@ data class HealthReport(
                             }
                         } else { // Файла нет в удалённом хранилище
 
-                            canBeResolved = false
-                            healthReportStatus = FATAL_ERROR
-                            problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
-                            solutionText = "Невозможно автоматически решить эту проблему. '$storageFileName'"
+                            // 674: если файла нет нигде, но его можно создать из родителя
+                            // (mp3 из flac, стем из источника), предлагаем создание, а не
+                            // «невозможно решить». После создания следующий пересчёт HR
+                            // покажет загрузку в хранилища.
+                            val typeToCreate = karaokeProcessTypesToCreate
+                            if (canCreate && typeToCreate != null) {
+                                canBeResolved = true
+                                healthReportStatus = ERROR
+                                problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
+                                solutionText = "Создать файл: $typeToCreate"
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        song = song,
+                                        action = typeToCreate,
+                                        doWait = true,
+                                        prior = 0,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                    )
+                                }
+                            } else {
+                                canBeResolved = false
+                                healthReportStatus = FATAL_ERROR
+                                problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
+                                solutionText = "Невозможно автоматически решить эту проблему. '$storageFileName'"
+                            }
                         }
                     }
                 }
@@ -1476,10 +1497,29 @@ data class HealthReport(
                             }
                         } else { // Файла нет в удалённом хранилище
 
-                            canBeResolved = false
-                            healthReportStatus = FATAL_ERROR
-                            problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
-                            solutionText = "Невозможно автоматически решить эту проблему"
+                            // 674: файла нет нигде, но его можно создать из родителя — предлагаем
+                            // создание вместо «невозможно решить».
+                            val typeToCreate = karaokeProcessTypesToCreate
+                            if (canCreate && typeToCreate != null) {
+                                canBeResolved = true
+                                healthReportStatus = ERROR
+                                problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
+                                solutionText = "Создать файл: $typeToCreate"
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        song = song,
+                                        action = typeToCreate,
+                                        doWait = true,
+                                        prior = 0,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                    )
+                                }
+                            } else {
+                                canBeResolved = false
+                                healthReportStatus = FATAL_ERROR
+                                problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
+                                solutionText = "Невозможно автоматически решить эту проблему"
+                            }
                         }
                     }
                 }

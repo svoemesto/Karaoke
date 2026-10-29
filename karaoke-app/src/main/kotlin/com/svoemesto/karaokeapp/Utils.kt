@@ -4595,6 +4595,11 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
     val sourceDuration = AudioProbe.durationMs(song.fileAbsolutePath)
     val findings = ArtifactIntegrity.verifyDemucsStems(song, typeEnum, sourceDuration)
     if (findings.isEmpty()) {
+        // 674: импорт/ремонт мог оставить song_ms = 0 (HR показывает «нет длительности»).
+        // Длительность источника уже известна — записываем её, не полагаясь на ручной пересчёт.
+        if (song.ms <= 0L && (sourceDuration ?: 0L) > 0L) {
+            song.refreshDurationMsFromAudioFile()
+        }
         deleteScopeDir(scopeId)
         return true
     }

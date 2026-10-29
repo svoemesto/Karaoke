@@ -250,6 +250,12 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
    order = 0`; безголовая цепочка (`chain_id` указывает на несуществующую строку) → голова =
    минимальный `order`; битые строки логируются. Идемпотентно, вызывается в `KaraokeProcessWorker.start()`
    рядом с `deleteDone`/`setWorkingToWaiting` (`KaraokeProcessWorker.kt:712-713`).
+10. **`withoutControl` (SYMLINK) не отменяет кортежные инварианты.** Сейчас `SYMLINK` ставит
+    `withoutControl = true` (`KaraokeProcess.kt:1901`), и `save()` пропускает
+    `stopChainSiblingsOnError` и агрегат песни (`:375-403`). В кортежной модели остановка соседей и
+    порядок не могут зависеть от этого флага: `failTuple` вызывается исполнителем кортежа, а не
+    `save()`; `withoutControl` остаётся только флагом подавления per-step агрегата статуса песни и
+    «шумного» прогресса. Он не влияет на выбор головы, `firstRunnableStep`, resume и нормализацию.
 
 ### P2. Исполнение кортежа (`KaraokeProcessWorker.kt`, `tuple/TupleExecutor.kt`, `tuple/TupleStore.kt`)
 
@@ -279,6 +285,21 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
    а не на каждом шаге: промежуточный пересчёт HR провоцирует новые постановки, пока кортеж жив.
 8. `runStep` сохраняет `redirectErrorStream(true)` и проверку exit code до `DONE`
    (`ProcessExitWiringTest` остаётся зелёным); лог шага — как сейчас (`PATH_TO_LOGS`).
+9. **JDBC-жизненный цикл потока кортежа (ADR `local-0009`,
+   `knowledge/adr/local-0009-thread-local-connection-lifecycle.md`).** Поток кортежа — одноразовый
+   (на кортеж), thread-local соединение `KaraokeConnection` закрывается **один раз** в `finally`
+   после всего цикла шагов; это уже есть в `KaraokeProcessThread.run()`
+   (`KaraokeProcessWorker.kt:511-513`) и должно сохраниться при выносе в `TupleExecutor`.
+   Канон для новых потоков — `startOneShotThread` (`services/OneShotThread.kt:47-81`); здесь поток
+   остаётся наследником `Thread` (нужны `forceStopped`/`osProcess` для force-stop), поэтому
+   контракт «close в `finally`» закрепляется явно и тестом `TupleThreadLifecycleTest`:
+   close вызван ровно один раз на кортеж (не на шаг), после последнего шага, и второй кортеж
+   на новом потоке закрывает своё соединение (утечки нет).
+10. **`withoutControl` в исполнителе.** `failTuple`/`completeTuple` срабатывают независимо от
+    `withoutControl`; `withoutControl` не отключает `markDone`/`markError`/resume и не разрешает
+    исполнителю взять шаг `N+1` после сбоя `N`. Тест `TupleWithoutControlTest`: кортеж с шагом
+    `withoutControl=true` при сбое останавливается целиком, порядок шагов соблюдён, повторный
+    запуск продолжает с первого не-`DONE`.
 
 ### P3. Изоляция временных ресурсов (`tuple/TupleScope.kt`, `Constants.kt`, `model/Song.kt`)
 
@@ -293,10 +314,15 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
 3. `Song.argsKeyBpmFinder`: `$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/{scope}/`, `file.flac`,
    `result_key_bpm_finder.json`, контейнер `--name=keybpmfinder-{scope}`, `rm -rf` только своего
    scoped-каталога (`Song.kt:2292`), финальный шаг получает `scopeId={scope}`.
-4. SHEETSAGE/SHEETSAGE2: `source.wav`, `output/*` — в `.../{scope}/` (новый корень
-   `PATH_TO_TEMP_SHEETSAGE_FOLDER` в `Constants.kt`), `-o output/{scope}/output`; `rm -f` только
-   своих файлов; `mv` — из своего каталога. Проверить фактическое поведение
-   `~/sheetsage/sheetsage.sh` (пишет ли он в cwd-относительный `output/output`) — см. риски.
+4. **SHEETSAGE/SHEETSAGE2 — задача-спайк с приёмкой (не «риск»).** Целевое состояние:
+   `source.wav` и `output/*` — в `.../{scope}/` (новый корень `PATH_TO_TEMP_SHEETSAGE_FOLDER` в
+   `Constants.kt`), `-o output/<scope>/output`; `rm -f` только своих файлов; `mv` — из своего каталога.
+   Спайк (P7, `SheetsageScopeSpikeIT`, на копии, не на проде): запустить два прогона с разными
+   `scopeId` и выяснить, куда реально пишет `~/sheetsage/sheetsage.sh` (аргумент `-o` vs cwd).
+   Если скрипт пишет cwd-относительно — запускать шаг с `ProcessBuilder.directory(scopeDir)`.
+   **Критерий приёмки спайка:** два параллельных прогона не видят файлов друг друга;
+   `rm -f` одного не уносит файлы другого; результат каждого лежит в своём `scope`-каталоге.
+   Без выполнения спайка пункт считается невыполненным, а не «проверенным по коду».
 5. `finalizeDemucs` и `getKeyBpmFromFile` получают `scopeId` из параметров; удаляют
    `deleteRecursively(scopeDir)`, не корень (`Utils.kt:4596,4600`).
 6. `killRunningDockerContainers` (`Utils.kt:4236-4297`) — фильтры имён с учётом новых:
@@ -368,6 +394,14 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
    default 1), пишет одну audit-запись на кортеж. Одиночный `ERROR` — как сейчас.
 4. `webvue3` (`ProcessesTable.vue`, `store.js`, `ProcessEditModal`): колонка «Шаг k из N», состояние
    кортежа, причина ошибки в строке; фильтр по `chainState`. Никаких новых страниц.
+5. **Фильтр `DONE` и история не ломаются `purgeFinishedTuples`.** Проверка (P7,
+   `AdminDoneFilterTest` + ручной сценарий `quickstart.md` §4): (а) `status=DONE` возвращает ровно
+   те `DONE`-строки, что есть в БД, — как и до фичи; (б) терминальные строки живого кортежа
+   (`DONE`-голова + `WAITING`-шаги) остаются видны и раскрываются как кортеж; (в) история
+   завершённого кортежа удаляется при старте/новой постановке ровно так же, как раньше её удалял
+   `deleteDone` (поведение не ухудшается); (г) `tbl_processes_audit` purge не затрагивает.
+   Если оператор ожидает более долгую историю `DONE`, чем сейчас, — это отдельное решение
+   (retention), в этой спеке не меняется.
 
 ### P7. Тесты (`karaoke-app/src/test`, `karaoke-app/src/manualTest`)
 
@@ -389,15 +423,27 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
     sidecar → key/bpm не применяются; чужой sidecar → не применяются; пустой `key`/`bpm=0` → ошибка.
   - `TupleJanitorTest` (`@TempDir`) — старый осиротевший каталог удалён, каталог живого кортежа цел,
     корень цел.
+  - `TupleThreadLifecycleTest` (ADR `local-0009`) — `FakeKaraokeConnection`: за двухшаговый кортеж
+    `closeThreadConnection()` вызван ровно один раз, после последнего шага; второй кортеж на новом
+    потоке закрывает своё соединение; per-step закрытий нет. Плюс source-contract проверка, что
+    `finally { … closeThreadConnection() }` оборачивает весь цикл кортежа
+    (`KaraokeProcessWorker.kt:511-513`).
+  - `TupleWithoutControlTest` — `withoutControl=true` (SYMLINK) не отменяет fail-fast, порядок шагов и
+    resume; сбой шага останавливает кортеж целиком.
+  - `AdminDoneFilterTest` — `status=DONE` и top-level выдача после `purgeFinishedTuples`: живой
+    кортеж с `DONE`-головой виден, завершённый удалён так же, как при `deleteDone`, audit не задет.
   - `ProcessExitWiringTest` — существующий инвариант остаётся зелёным.
 - **Integration (manualTest, на копиях)**: `TupleIsolationIT` — порт сценария
   `.scratch/wf308/exp/queue.py` на Kotlin: два кортежа `DEMUCS2` в одном лейне, stub-`docker`,
   реальные `Song.argsDemucs2` argv, `InMemoryTupleStore` + `TupleExecutor`; ожидания: у каждого
   кортежа свои стемы, длительности совпадают со своим источником, чужого каталога/конфликта имён нет,
   `cannot stat` отсутствует.
+  - `SheetsageScopeSpikeIT` — два прогона `SHEETSAGE` с разными `scopeId` на копиях: каталоги не
+    пересекаются, `rm -f` не уносит чужое, `-o`/cwd проверены; при cwd-относительной записи шаг
+    запускается с `ProcessBuilder.directory(scopeDir)` (критерий приёмки — P3 п.4).
 - **E2E (manualTest, вручную на стенде на копиях 8 песен)**: `KortegeE2E` — сценарий
   `quickstart.md` §3; проверка содержимого `ffprobe` + key/bpm, повторный прогон без изменений,
-  рестарт посреди кортежа.
+  рестарт посреди кортежа, измерение SC-001 по артефактам (см. §Риски п.1).
 
 ### P8. Документация и SSoT (после реализации, в том же PR)
 
@@ -433,7 +479,7 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
 | FR-001 кортеж как единица | P1 (SQL головы), P2 (цикл шагов) | `TupleSchedulerSqlTest`, `TupleIsolationIT` |
 | FR-002 лейн занят кортежем | P2 (поток лейна = кортеж) | `TupleIsolationIT`, e2e |
 | FR-003 шаги последовательны | P2 (claim + next только после DONE) | `TupleSchedulerSqlTest`, e2e |
-| FR-004 изоляция времянок | P3 (`scopeId`, `{scope}`) | `TupleScopeTest`, `TupleIsolationIT` |
+| FR-004 изоляция времянок | P3 (`scopeId`, `{scope}`) | `TupleScopeTest`, `TupleIsolationIT`, `SheetsageScopeSpikeIT` |
 | FR-005 уборка владельцем + janitor | P3 (`finalize` только свой каталог, `TupleJanitor`) | `TupleJanitorTest`, `TupleScopeTest` |
 | FR-006 одиночное = кортеж из 1 шага | P1 (`markAsHead`), P2 (цикл 1 итерация) | `TupleRecoveryTest`, e2e |
 | FR-007 fail-fast + причина | P2 (`failTuple`), P4 (причина) | `TupleFailureTest`, e2e SC-007 |
@@ -444,10 +490,10 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
 | FR-012 обнаружение чужих артефактов | P4 (`ArtifactIntegrity.verifySong`) | `ArtifactVerificationTest`, e2e SC-005 |
 | FR-013 ремонт + запись после проверки | P5 (repair service), P4 (sidecar) | e2e ремонт 8 песен |
 | FR-014 ежедневная проверка без правок | P5 (`ArtifactIntegrityScheduler`) | manualTest отчёта, review |
-| FR-015 наблюдаемость кортежа | P6 (DTO/UI) | ручная проверка админки, `webvue3` build |
+| FR-015 наблюдаемость кортежа | P6 (DTO/UI) | ручная проверка админки, `AdminDoneFilterTest`, `webvue3` build |
 | FR-016 исчерпание попыток видно | P2/P4 (без второго retry) | `TupleFailureTest` |
 | FR-017 two-DB sync не ломается | D13 (схема не меняется) | `SyncRegistry`-инвариант тестом, review |
-| FR-018 stop/forceStop не ломают resume | P2 (stop/forceStop) | `TupleRecoveryTest`, e2e SC-008 |
+| FR-018 stop/forceStop не ломают resume | P2 (stop/forceStop) | `TupleRecoveryTest`, `TupleWithoutControlTest`, `TupleThreadLifecycleTest`, e2e SC-008 |
 
 **SC**: SC-001/SC-002 — e2e на 8 песнях; SC-003 — `TupleFailureTest` + e2e «искусственно сломанный шаг»;
 SC-004 — e2e повторный прогон (0 изменений, 0 новых кортежей); SC-005 — ежедневная проверка после
@@ -466,10 +512,13 @@ SC-008 — e2e рестарт посреди кортежа.
 
 ## Риски и открытые вопросы (к лиду/владельцу — не блокируют план)
 
-1. **CPU-retry как отдельный кортеж.** Исходный кортеж завершается `ERROR` (причина — «поставлен
-   повтор»), артефакт создаёт retry-кортеж. Это соответствует FR-007/FR-009, но SC-001
-   («100% кортежей доходят до конца») следует мерить по артефактам, а не по строкам `ERROR`.
-   Нужно подтверждение формулировки приёмки.
+1. **CPU-retry как отдельный кортеж и измерение SC-001** (трактовка согласована с лидом
+   2026-10-29; это трактовка измерения, не правка FR/SC). Исходный кортеж завершается `ERROR`
+   (причина — «поставлен повтор»), артефакт создаёт retry-кортеж. Формулировка приёмки:
+   **«каждая песня получает свои стемы и свой key/bpm; допускается один автоматический CPU-retry,
+   отражённый в отчёте; строка `ERROR` исходного кортежа не считается провалом приёмки, если
+   retry-кортеж довёл артефакты до проверенного результата»**. В e2e (`quickstart.md` §3) SC-001
+   измеряется по артефактам и по отчёту, а не по строкам `ERROR`.
 2. **SHEETSAGE**: скрипт `~/sheetsage/sheetsage.sh` вызывается с `-o output/output` и может писать
    в каталог относительно cwd, а не `source.wav`. Изоляция по `scopeId` требует проверки на месте
    (не на проде): при реализации — прогон на копии и, при необходимости, запуск с `cwd` =

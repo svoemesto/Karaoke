@@ -167,6 +167,12 @@ default 24).
 - **I-11.** Терминальные строки живого кортежа не удаляются ни `createProcess`, ни `deleteDone`.
 - **I-12.** После рестарта/остановки кортеж продолжается с первого не-`DONE` шага; строки не остаются
   в `WORKING`/`CREATING` без живого обработчика.
+- **I-13.** Поток кортежа одноразовый: thread-local соединение `KaraokeConnection` закрывается
+  **один раз** в `finally` после всего цикла шагов, не на каждом шаге (ADR `local-0009`,
+  `KaraokeProcessWorker.kt:511-513`); каждый кортеж — новый поток.
+- **I-14.** `withoutControl` (у `SYMLINK`) не влияет на остановку кортежа, порядок шагов и resume;
+  он подавляет только per-step агрегат статуса песни и «шумный» прогресс. `markDone`/`markError`
+  и `process_status` пишутся независимо от флага.
 
 ---
 
@@ -199,6 +205,11 @@ ArtifactIntegrity(probe)
 ```
 
 `TupleOutcome` = `DONE` | `FAILED(reason)` | `STOPPED` (force-stop) — используется пост-хуками и SSE.
+
+`KaraokeProcessThread` остаётся наследником `Thread` (force-stop нужны `forceStopped`/`osProcess`),
+но оборачивает **весь** цикл кортежа в `try/finally`, где `database.closeThreadConnection()`
+вызывается один раз (ADR `local-0009`); цикл шагов не создаёт новых потоков и не переиспользует
+поток между кортежами.
 
 ---
 

@@ -41,6 +41,9 @@ export DOCKER_CONFIG="${DOCKER_CONFIG:-$(dirname "$(git rev-parse --path-format=
 | `TupleFailureTest` | ненулевой код → весь кортеж `ERROR`, причина в `process_description`, оставшиеся шаги не исполняются, второй retry не ставится | FR-007/009/016 |
 | `ArtifactVerificationTest` | ±0.5 с; отсутствие/чужой sidecar → key/bpm не применяются; `bpm=0`/пустой `key` → ошибка | FR-008/012/013 |
 | `TupleJanitorTest` | старый осиротевший каталог удалён; каталог живого кортежа и корень целы | FR-005 |
+| `TupleThreadLifecycleTest` | поток кортежа одноразовый: `closeThreadConnection()` вызван ровно один раз за кортеж (не на шаг), после последнего шага; второй кортеж закрывает своё соединение; `finally` вокруг цикла сохранён (ADR `local-0009`) | FR-018 |
+| `TupleWithoutControlTest` | `withoutControl=true` (`SYMLINK`) не отменяет fail-fast, порядок и resume: сбой останавливает весь кортеж, следующий шаг не стартует | FR-003/007/018 |
+| `AdminDoneFilterTest` | `status=DONE` и top-level выдача после `purgeFinishedTuples`: `DONE`-голова живого кортежа видна, завершённый кортеж удалён как при `deleteDone`, `tbl_processes_audit` не задет | FR-010/015 |
 
 Линтеры и сборка (обязательно перед PR):
 
@@ -75,6 +78,18 @@ ffmpeg -v error -y -i "$S/2026 (03) [Сектор Газа] - Бомж (Live Т�
 - в логах нет `cannot stat` / `cannot remove` / `already in use`;
 - каталоги обоих кортежей удалены их финальными шагами; корень `tmp` цел.
 
+### 2.1 Спайк SHEETSAGE (обязателен до приёмки P3 п.4)
+
+```bash
+# два прогона на копиях с разными scopeId; реальные пути зависят от реализации
+./gradlew :karaoke-app:manualTest --tests "com.svoemesto.karaokeapp.tuple.SheetsageScopeSpikeIT"
+```
+
+Критерий приёмки: два параллельных прогона не видят файлов друг друга; `rm -f` одного не уносит файлы
+другого; результат каждого лежит в своём `scope`-каталоге. Если `~/sheetsage/sheetsage.sh` пишет
+cwd-относительно — шаг запускается с `ProcessBuilder.directory(scopeDir)`; это фиксируется в P3 п.4.
+Без выполненного спайка пункт считается невыполненным, а не «проверенным по коду».
+
 Примечание: если `docker` недоступен, stub-`docker` кладётся в `PATH` теста; реальные образы
 `demucs`/`keybpmfinder` в integration не используются.
 
@@ -105,6 +120,12 @@ done
 # key/bpm и sidecar
 cat "<rootFolder>/<song> [key].json"; cat "<rootFolder>/<song> [key].json.meta"
 ```
+
+**Измерение SC-001 (согласовано с лидом 2026-10-29).** Приёмка:
+«каждая песня получает свои стемы и свой key/bpm; допускается один автоматический CPU-retry,
+отражённый в отчёте; строка `ERROR` исходного кортежа не считается провалом приёмки, если
+retry-кортеж довёл артефакты до проверенного результата». Считать по артефактам и отчёту
+(таблица `song → стемы → key/bpm → проверка`), а не по числу строк `ERROR` в `tbl_processes`.
 
 Ожидаемо (SC-001/SC-002/SC-003/SC-007):
 
@@ -156,6 +177,11 @@ curl -s http://localhost:7906/api/admin/artifacts/integrity
    `GET /api/admin/processes/{id}`.
 4. `POST /api/admin/processes/{id}/retry` на `ERROR`-шаге кортежа: весь кортеж возвращается в
    `WAITING`, приоритет восстановлен, в audit — одна запись на кортеж.
+5. **Фильтр `DONE` и история после purge**: `GET /api/admin/processes?status=DONE` возвращает
+   ровно те `DONE`-строки, что есть в БД (как до фичи); живой кортеж с `DONE`-головой виден и
+   раскрывается; завершённый кортеж удаляется при старте/новой постановке так же, как раньше это
+   делал `deleteDone`; `tbl_processes_audit` не затронут. Если оператор ожидает более долгую
+   историю `DONE`, это отдельное решение (retention) — в спеке не меняется.
 
 ## 5. Откат
 

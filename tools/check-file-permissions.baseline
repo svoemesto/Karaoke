@@ -59,22 +59,22 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:6a5ed20f58fea5d9  
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:6b1d40bb3b26efe5  # [kotlin-chmod] runCommand(listOf("chmod", "777", pathToTagFolder720Karaoke))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:700806815edf8534  # [kotlin-chmod] runCommand(listOf("chmod", "777", fileText.parent))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:7821053cacc46c1a  # [kotlin-chmod] runCommand(listOf("chmod", "777", pathToTagFolder))
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:7c8852e78f5bc1d1  # [kotlin-chmod] listOf("chmod", "777", scopedTmp),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:8d759a898501d5da  # [kotlin-chmod] runCommand(listOf("chmod", "666", filePath))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:df617515092e692d  # [kotlin-chmod] runCommand(listOf("chmod", "666", destFile.absolutePath))
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:ef109a76484f8b78  # [kotlin-chmod] runCommand(listOf("chmod", "777", fileName))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:f4833f4159bc4256  # [kotlin-chmod] runCommand(listOf("chmod", "666", fileName))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt:074187f8b982e94c  # [kotlin-chmod] runCommand(listOf("chmod", "666", targetPath))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt:074187f8b982e94c  # [kotlin-chmod] runCommand(listOf("chmod", "666", targetPath))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt:f4833f4159bc4256  # [kotlin-chmod] runCommand(listOf("chmod", "666", fileName))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt:1ceb5d60a44336fd  # [kotlin-chmod] runCommand(listOf("chmod", "666", fName))
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:0a029586fd955b56  # [kotlin-chmod] listOf("chmod", "777", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:4c486c088acdd8e8  # [kotlin-chmod] listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:50f4d39433fdd71f  # [kotlin-chmod] listOf("chmod", "777", pathToResultedModel),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:616c13289c2ed43d  # [kotlin-chmod] listOf("chmod", "666", otherNameFlac.rightFileName()),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:880ecf80340ddf90  # [kotlin-chmod] listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:abd9a90c34158ec8  # [kotlin-chmod] listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:a37654f78478c011  # [kotlin-chmod] listOf("chmod", "777", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:ac8baea08d258027  # [kotlin-chmod] listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:aedbdea9c49f0434  # [kotlin-chmod] listOf("chmod", "666", bassNameFlac.rightFileName()),
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:b62ac706fec7a787  # [kotlin-chmod] listOf("chmod", "777", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt:c9c4fc9523a4646d  # [kotlin-chmod] listOf("chmod", "666", drumsNameFlac.rightFileName()),
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/propertiesfiledictionary/PropertiesFileDictionary.kt:2e44f9d600fac697  # [kotlin-chmod] runCommand(listOf("chmod", "666", pathToFile()))
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/cleanup/CleanupJournal.kt:93ae8d56b0d751ae  # [kotlin-chmod] if (isNew) runCommand(listOf("chmod", "666", path.toString()), ignoreErrors = true)

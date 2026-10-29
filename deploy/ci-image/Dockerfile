@@ -6,7 +6,7 @@
 # docker CLI), лежит здесь и переиспользуется.
 #
 # Сборка и публикация — см. README.md рядом.
-FROM node:22-bookworm
+FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       openjdk-17-jdk-headless \
@@ -17,6 +17,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH=${JAVA_HOME}/bin:${PATH}
+
+# Node 22 — из официального tarball: базовый образ debian (glibc нужен JDK и
+# Chromium), а правило R-05 разрешает node:22-alpine, который для этого не годится.
+ARG NODE_VERSION=22.23.4
+RUN set -eux; \
+    curl -fsSL -o /tmp/node.tar.xz "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"; \
+    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
+    rm -f /tmp/node.tar.xz; \
+    node --version && npm --version
 
 # docker CLI (клиент, без демона): e2e-джоб вызывает docker build/run через
 # смонтированный docker.sock. BuildKit обязателен — Dockerfile проекта

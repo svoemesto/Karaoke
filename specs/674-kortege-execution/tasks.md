@@ -178,7 +178,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/TupleFailureTest.kt`: ненулевой код →
   весь кортеж `ERROR`, причина в `process_description`, следующий шаг не стартует, второй retry
   не ставится (`retriedOnCpu=true`)
-- [ ] T026 [P] [US2] `ArtifactVerificationTest` в
+- [x] T026 [P] [US2] `ArtifactVerificationTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/ArtifactVerificationTest.kt`:
   ±0.5 с; отсутствие/чужой sidecar → key/bpm не применяются; `bpm=0`/пустой `key` → ошибка
 - [x] T027 [P] [US2] `TupleWithoutControlTest` в
@@ -282,7 +282,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ### Tests for User Story 4
 
-- [ ] T048 [P] [US4] `AdminDoneFilterTest` в
+- [x] T048 [P] [US4] `AdminDoneFilterTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/AdminDoneFilterTest.kt`:
   `status=DONE` и top-level выдача после `purgeFinishedTuples`; `DONE`-голова живого кортежа видна;
   завершённый удалён как при `deleteDone`; `tbl_processes_audit` не задет
@@ -301,7 +301,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `ERROR`-шаги кортежа → `WAITING`, приоритет кортежа, одна audit-запись); статусы и audit —
   **строго через `inTransaction(connection)`** (BR-168: `PkgS323Batch4SourceContractsTest` считает
   транзакционные блоки в админ-сервисе)
-- [ ] T053 [P] [US4] `webvue3/src/components/Processes/ProcessesTable.vue` и
+- [x] T053 [P] [US4] `webvue3/src/components/Processes/ProcessesTable.vue` и
   `webvue3/src/components/Processes/store.js`: колонка «Шаг k из N», состояние кортежа, причина,
   фильтр `chainState`
 - [ ] T054 [US4] Ручная проверка админки (SC-007) на
@@ -325,7 +325,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [x] T059 [P] `knowledge/domains/catalog/components/dictionaries.md` — SSoT-gate после правки
   `model/Song.kt` (`.ssot-map.yml:41-43`)
 - [x] T060 [P] `docs/architecture-notes.md` — запись о PR
-- [ ] T061 Полная проверка из AGENTS.md (`karaoke-app/build.gradle.kts`, `webvue3/package.json`):
+- [x] T061 Полная проверка из AGENTS.md (`karaoke-app/build.gradle.kts`, `webvue3/package.json`):
   `GRADLE_USER_HOME=... ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`,
   `:karaoke-app:ktlintCheck`, `:karaoke-web:bootJar`,
   `cd webvue3 && npm run lint && npm run build && npm run format:check`, а также полный

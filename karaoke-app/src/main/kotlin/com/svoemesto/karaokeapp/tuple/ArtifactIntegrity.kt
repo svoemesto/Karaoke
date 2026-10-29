@@ -125,18 +125,62 @@ object ArtifactIntegrity {
         return result
     }
 
+    /** Снимок стема для чистой проверки (инъекция в тестах вместо ffprobe/File). */
+    data class StemProbe(
+        val path: String,
+        val exists: Boolean,
+        val size: Long,
+        val durationMs: Long?,
+        val lastModified: Long,
+    )
+
+    /**
+     * Чистая классификация стемов: пустой список — всё подтверждено.
+     * Допуск 500 мс и свежесть относительно источника — контракт FR-008.
+     */
+    fun classifyStems(
+        stems: List<StemProbe>,
+        sourceDurationMs: Long?,
+        sourceMtime: Long,
+    ): List<IntegrityFinding> {
+        val result = mutableListOf<IntegrityFinding>()
+        stems.forEach { stem ->
+            if (!stem.exists || stem.size == 0L) {
+                result += IntegrityFinding(0, KIND_MISSING_STEM, stem.path)
+                return@forEach
+            }
+            if (sourceDurationMs == null) {
+                result += IntegrityFinding(0, KIND_FOREIGN_DURATION, stem.path, "source unreadable")
+                return@forEach
+            }
+            if (stem.durationMs == null || kotlin.math.abs(stem.durationMs - sourceDurationMs) > TOLERANCE_MS) {
+                result +=
+                    IntegrityFinding(
+                        0,
+                        KIND_FOREIGN_DURATION,
+                        stem.path,
+                        "${sourceDurationMs}ms",
+                        "${stem.durationMs ?: "?"}ms",
+                    )
+            }
+            if (sourceMtime > 0 && stem.lastModified < sourceMtime) {
+                result += IntegrityFinding(0, KIND_STALE_ARTIFACT, stem.path)
+            }
+        }
+        return result
+    }
+
     /** Проверка «стемы этого кортежа подтверждены» (используется финализатором демукса). */
     fun verifyDemucsStems(
         song: Song,
         demucsType: KaraokeProcessTypes,
         sourceDurationMs: Long?,
     ): List<IntegrityFinding> {
-        val result = mutableListOf<IntegrityFinding>()
         val source = File(song.fileAbsolutePath)
-        if (sourceDurationMs == null || !source.exists()) {
-            return listOf(IntegrityFinding(song.id, KIND_FOREIGN_DURATION, song.fileAbsolutePath, "source unreadable"))
+        if (!source.exists()) {
+            return listOf(IntegrityFinding(song.id, KIND_FOREIGN_DURATION, song.fileAbsolutePath, "source missing"))
         }
-        val stems =
+        val paths =
             buildList {
                 add(song.accompanimentNameFlac)
                 add(song.vocalsNameFlac)
@@ -146,28 +190,19 @@ object ArtifactIntegrity {
                     add(song.otherNameFlac)
                 }
             }
-        stems.forEach { path ->
-            val file = File(path)
-            if (!file.exists() || file.length() == 0L) {
-                result += IntegrityFinding(song.id, KIND_MISSING_STEM, path)
-                return@forEach
+        val probes =
+            paths.map { path ->
+                val file = File(path)
+                StemProbe(
+                    path = path,
+                    exists = file.exists(),
+                    size = if (file.exists()) file.length() else 0L,
+                    durationMs = if (file.exists()) AudioProbe.durationMs(path) else null,
+                    lastModified = if (file.exists()) file.lastModified() else 0L,
+                )
             }
-            val duration = AudioProbe.durationMs(path)
-            if (duration == null || kotlin.math.abs(duration - sourceDurationMs) > TOLERANCE_MS) {
-                result +=
-                    IntegrityFinding(
-                        song.id,
-                        KIND_FOREIGN_DURATION,
-                        path,
-                        "${sourceDurationMs}ms",
-                        "${duration ?: "?"}ms",
-                    )
-            }
-            if (file.lastModified() < source.lastModified()) {
-                result += IntegrityFinding(song.id, KIND_STALE_ARTIFACT, path)
-            }
-        }
-        return result
+        return classifyStems(probes, sourceDurationMs, source.lastModified())
+            .map { it.copy(songId = song.id) }
     }
 
     /** Отчёт в файл `PATH_TO_LOGS/artifact-integrity/<date>.json` (без правок артефактов). */

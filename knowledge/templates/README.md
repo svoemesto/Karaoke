@@ -10,6 +10,12 @@
 - Новых **компонентов** → [`component.md`](component.md).
 - Новых **ADR** → [`adr.md`](adr.md).
 - Новых **эпиков** → [`epic.md`](epic.md).
+- Новых **per-feature документов** (профиль B, продуктовый слой) →
+  [`product-feature.md`](product-feature.md). Это шаблон **второго профиля**:
+  6 обязательных секций FR-009, `slug` == имя файла,
+  `status ∈ {active, deprecated, experimental}`. Проверяет его
+  [`tools/check-feature-doc.sh`](../../tools/check-feature-doc.sh) — не линтер
+  профиля A.
 
 ## Конвенция использования
 

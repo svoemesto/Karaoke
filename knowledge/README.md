@@ -20,6 +20,7 @@ Karaoke. Описывает **текущее состояние** системы
 | [`guidelines/`](guidelines/) | Стандартные паттерны и ограничения. |
 | [`public/`](public/) | Человеко-читаемые проекции внутренней документации. |
 | [`templates/`](templates/) | Шаблоны для новых доменов, компонентов, ADR и эпиков. |
+| [`product/`](product/) | Продуктовый слой — per-feature документы (профиль B, FR-009). **Структурная категория, НЕ домен.** |
 
 ## Домены
 
@@ -62,6 +63,26 @@ Karaoke. Описывает **текущее состояние** системы
 
 Нарушение этого протокола — критический архитектурный регресс.
 
+### Две ветки SSoT
+
+В `knowledge/` живут **две** ветки документации. Они равноправны по статусу
+(обе — SSoT), но устроены по-разному:
+
+| | **Профиль A — компонент** | **Профиль B — per-feature документ** |
+|---|---|---|
+| Где | `knowledge/domains/<домен>/components/<компонент>.md` | `knowledge/product/features/<slug>.md` |
+| Что описывает | компонент домена: ответственность, интерфейсы, инварианты | фичу целиком: зачем, как работает, ловушки (FR-009) |
+| Шаблон | [`templates/component.md`](templates/component.md) | [`templates/product-feature.md`](templates/product-feature.md) |
+| Обязательные секции | по шаблону компонента | 6 секций FR-009: «Что делает», «Зачем», «Как работает», «Инварианты», «Известные ловушки», «Ссылки» |
+| Проверяет | `tools/lint-knowledge.py` + `check-knowledge-structure.sh` | `tools/check-feature-doc.sh` (секции, `slug` == имя файла, `status`) |
+| Linking Protocol L3 → L2 → L1 | **применяется** | **не применяется** — продуктовый слой не домен |
+| Индекс | [`domains/README.md`](domains/README.md) | [`product/README.md`](product/README.md) |
+
+**Продуктовая ветка — категория, а не домен.** Она не раскладывается по
+16 доменам: часть per-feature документов относится сразу к нескольким.
+Переход `docs/features/` → `knowledge/product/features/` состоялся 2026-10-29
+(ADR-0011, спека 675).
+
 ## Шаблоны и линтер
 
 - Новые файлы **обязаны** использовать шаблоны из `knowledge/templates/`.
@@ -74,7 +95,8 @@ Karaoke. Описывает **текущее состояние** системы
 основан на этой документации.
 
 1. **Initialize**: прочитай `knowledge/README.md` → `domains/README.md` →
-   определи домен/эпик/ADR, к которому относится задача.
+   определи домен/эпик/ADR, к которому относится задача. Если задача — про
+   фичу целиком, подключи ветку `knowledge/product/README.md`.
 2. **Analyze**: прочитай `domain.md` целевого домена, чтобы понять
    Ubiquitous Language, и связанные ADR.
 3. **Work in isolation**: инструменты/скрипты/временные файлы — вне `knowledge/`.
@@ -103,10 +125,100 @@ Karaoke. Описывает **текущее состояние** системы
    `knowledge/epics/` заводится только для **стратегических** переходов,
    затрагивающих несколько specs; связь `EPIC-XXX → specs/N, M, K`
    указывается явно в секции «Roadmap & Steps».
-5. **`docs/` не трогаем.** В корне проекта `docs/` исторически
-   содержит `api/`, `features/`, `ops/`, `architecture-notes.md`,
-   `tracker-setup.md`. Они остаются на своих местах и **не мигрируют**
-   в `knowledge/`.
+5. **Слой `docs` слит в `knowledge/` (ADR-0011, 2026-10-29).** Второго
+   слоя проектной документации больше нет: `knowledge/` — единственный SSoT,
+   каталог `docs` запрещён guard'ом `tools/check-no-docs-dir.sh` (CI обеих
+   копий workflow + pre-commit). Продуктовая ветка `knowledge/product/` —
+   **структурная категория, а не домен**: Linking Protocol L3 → L2 → L1 на
+   неё не применяется, свои 6 секций (FR-009) и свой guard
+   (`tools/check-feature-doc.sh`). Старые адреса — в разделе «Бывшие пути»
+   ниже.
+
+## Бывшие пути
+
+Справочник для внешних потребителей (агенты, старые письма, отчёты): **было →
+стало** для всех **73** материалов слоя `docs/`, включая удалённые и свёрнутые.
+Отдельный файл-редирект не заводится — иначе получился бы второй источник
+правды о путях.
+
+| Было | Стало | Что стало с материалом |
+|---|---|---|
+| `docs/api/README.md` | `knowledge/guidelines/kdoc-jsdoc.md` | перенесён |
+| `docs/architecture-notes.md` | `archive/docs/architecture-notes.md` | перенесён в архив |
+| `docs/features/admin-home-adaptive-columns.md` | `knowledge/product/features/admin-home-adaptive-columns.md` | перенесён |
+| `docs/features/admin-web-client-robustness.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/alignment-ml.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/app-resilience-pkg-s2-11.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/author-filter-datalist.md` | `knowledge/product/features/author-filter-datalist.md` | перенесён |
+| `docs/features/client-ip-resolution.md` | `knowledge/product/features/client-ip-resolution.md` | перенесён |
+| `docs/features/close-gesture-token-paywall.md` | `knowledge/product/features/close-gesture-token-paywall.md` | перенесён |
+| `docs/features/complete-song-rename.md` | `knowledge/product/features/complete-song-rename.md` | перенесён |
+| `docs/features/deploy-hardening.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/drop-empty-song-voices.md` | `knowledge/product/features/drop-empty-song-voices.md` | перенесён |
+| `docs/features/escape-confirm-user-data.md` | `knowledge/product/features/escape-confirm-user-data.md` | перенесён |
+| `docs/features/fix-connection-leak.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/gradle-9-upgrade.md` | `knowledge/guidelines/architecture-conventions.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/idempotent-path-sanitize.md` | `knowledge/product/features/idempotent-path-sanitize.md` | перенесён |
+| `docs/features/internal-secret-sync.md` | `knowledge/product/features/internal-secret-sync.md` | перенесён |
+| `docs/features/karaoke-db-module-removal.md` | `knowledge/guidelines/architecture-conventions.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/kortege-execution.md` | `knowledge/product/features/kortege-execution.md` | перенесён |
+| `docs/features/pagination-filter-admin-tables.md` | `knowledge/product/features/pagination-filter-admin-tables.md` | перенесён |
+| `docs/features/pkg-err-stats-zero.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s2-10-data-integrity.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s2-12-audit-fixes.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s2-14-audit-fixes.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-22-audit-fixes.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-23.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-24.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-25.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-26.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-27.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-28.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-29.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-30.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-31.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-32.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-33.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-34.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/pkg-s3-35.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/playlist-membership.md` | `knowledge/product/features/playlist-membership.md` | перенесён |
+| `docs/features/private-docker-registry.md` | `knowledge/system/infra/registry.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/process-bulk-actions.md` | `knowledge/product/features/process-bulk-actions.md` | перенесён |
+| `docs/features/process-exit-code-check.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/public-api-exposure.md` | `knowledge/product/features/public-api-exposure.md` | перенесён |
+| `docs/features/public-settings-perimeter.md` | `knowledge/product/features/public-settings-perimeter.md` | перенесён |
+| `docs/features/publications-filters.md` | `knowledge/product/features/publications-filters.md` | перенесён |
+| `docs/features/rows-per-page.md` | `knowledge/product/features/rows-per-page.md` | перенесён |
+| `docs/features/search-text-extract-btn.md` | `knowledge/product/features/search-text-extract-btn.md` | перенесён |
+| `docs/features/security-headers.md` | `knowledge/product/features/security-headers.md` | перенесён |
+| `docs/features/song-air-access.md` | `knowledge/product/features/song-air-access.md` | перенесён |
+| `docs/features/song-artifact-cleanup.md` | `knowledge/product/features/song-artifact-cleanup.md` | перенесён |
+| `docs/features/song-edit-and-censored.md` | `knowledge/system/frontend/webvue3-audit-invariants.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/sql-injection-hardening.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/stemjob-private-bucket.md` | `knowledge/domains/storage/domain.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/storage-metadata-cache.md` | `knowledge/domains/storage/components/storage-api-client.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/subscription-payment-idempotency.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/sync-audio-descendants.md` | `knowledge/domains/catalog/components/audio-descendant-sync.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/sync-resilience.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/target-scoped-admin-requests.md` | `knowledge/system/frontend/target-request-guard.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/telegram-auto-publish.md` | `knowledge/domains/publishing/components/publishing-services.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/tonality-bpm-songs-table.md` | `knowledge/product/features/tonality-bpm-songs-table.md` | перенесён |
+| `docs/features/tracker-local-integration.md` | `knowledge/system/infra/tracker.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/vk-id-admin-perimeter.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/web-data-integrity.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/web-render-safety.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/webui-state-integrity.md` | `knowledge/system/infra/audit-336-registry.md` | свёрнут в реестр аудита (BR-коды и карточка пакета) |
+| `docs/features/zakroma-albums-by-author.md` | `knowledge/domains/catalog/components/album-entity.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/features/zakroma-tiles-sort-order.md` | `knowledge/domains/catalog/components/dictionaries.md` | свёрнут (содержимое перенесено в компонент-приёмник) |
+| `docs/governance/knowledge-first.md` | `knowledge/guidelines/knowledge-first.md` | перенесён |
+| `docs/ops/crypto-key-rotation.md` | `knowledge/guidelines/runbooks/crypto-key-rotation.md` | перенесён |
+| `docs/ops/forgejo-access.md` | `knowledge/guidelines/runbooks/forgejo-access.md` | перенесён |
+| `docs/ops/log-correlation.md` | `knowledge/guidelines/runbooks/log-correlation.md` | перенесён |
+| `docs/ops/prod-config-delivery.md` | `knowledge/guidelines/runbooks/prod-config-delivery.md` | перенесён |
+| `docs/tracker-setup.md` | `knowledge/guidelines/runbooks/tracker-setup.md` | перенесён |
+
+Полные описания свёрнутых материалов — в git-истории: `git log --follow
+knowledge/system/infra/audit-336-registry.md`.
 
 ## Связанные документы
 

@@ -19,7 +19,7 @@
 ### Документация
 
 - [ ] Если меняется код **одной из 9 ключевых подсистем** (FR-004), соответствующий
-      per-feature документ в `docs/features/` обновлён/создан в этом же PR
+      per-feature документ в `knowledge/product/features/` обновлён/создан в этом же PR
       (FR-009).
 - [ ] Ссылки на ключевые классы в per-feature документе обновлены и
       валидны (`./tools/verify-kotlin-refs.sh`).
@@ -35,8 +35,8 @@
 
 ### Документ-линк-чекер
 
-- [ ] `./tools/verify-doc-links.sh docs/features/ CONTRIBUTING.md` — 0 errors.
-- [ ] `./tools/check-feature-doc.sh docs/features/*.md` — 0 errors.
+- [ ] `./tools/verify-doc-links.sh knowledge/product/features/ knowledge/ CONTRIBUTING.md` — 0 errors.
+- [ ] `./tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md` — 0 errors.
 
 ### Миграции БД (FR-013, см. `.specify/memory/constitution.md` §III)
 
@@ -53,14 +53,14 @@
       `knowledge/domains/<domain>/components/*.md` обновлены/созданы в этом же PR.
 - [ ] Если меняется C4 уровень (новый контейнер/компонент) — соответствующий
       документ в `knowledge/system/` обновлён.
-- [ ] Если добавляется новая фича — per-feature документ `docs/features/<slug>.md`
+- [ ] Если добавляется новая фича — per-feature документ `knowledge/product/features/<slug>.md`
       создан по [контракту per-feature-doc](../specs/001-code-standards-docs/contracts/per-feature-doc.md)
       (6 обязательных секций, шапка `Status`/`Feature Key`/`Last Updated`).
 - [ ] `bash tools/check-knowledge-structure.sh` — **9/9 PASS**.
 - [ ] `bash tools/check-knowledge-cross-links.sh` — **0 broken**.
 - [ ] `python3 tools/lint-knowledge.py` — 0 violations (без `--baseline`).
 - [ ] `python3 tools/check-doc-references.py` — 0 битых ссылок/путей/эндпоинтов.
-- [ ] `bash tools/check-feature-doc.sh docs/features/*.md` — все документы валидны.
+- [ ] `bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md` — все документы валидны.
 - [ ] `bash tools/validate-mermaid.sh` — 0 issues (если есть mermaid-блоки).
 - [ ] `bash tools/test-livedocs.sh` — все self-tests PASS.
 
@@ -71,7 +71,7 @@
 
 ### KDoc / JSDoc (FR-006)
 
-- [ ] Новые/изменённые публичные API имеют KDoc/JSDoc с `@see docs/features/<slug>.md`.
+- [ ] Новые/изменённые публичные API имеют KDoc/JSDoc с `@see knowledge/product/features/<slug>.md`.
 - [ ] `./tools/generate-docs.sh` отработал без ошибок.
 
 ## Как тестировать

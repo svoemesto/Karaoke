@@ -14,21 +14,21 @@
 
 | # | Файл | # | Файл |
 |---|---|---|---|
-| 1 | `admin-home-adaptive-columns.md` | 14 | `kortege-execution.md` |
-| 2 | `author-filter-datalist.md` | 15 | `pagination-filter-admin-tables.md` |
-| 3 | `client-ip-resolution.md` | 16 | `playlist-membership.md` |
-| 4 | `close-gesture-token-paywall.md` | 17 | `private-docker-registry.md` ⚠ |
-| 5 | `complete-song-rename.md` | 18 | `process-bulk-actions.md` |
-| 6 | `deploy-hardening.md` ⚠ | 19 | `public-api-exposure.md` |
-| 7 | `drop-empty-song-voices.md` | 20 | `public-settings-perimeter.md` |
-| 8 | `escape-confirm-user-data.md` | 21 | `publications-filters.md` |
-| 9 | `gradle-9-upgrade.md` ⚠ | 22 | `rows-per-page.md` |
-| 10 | `idempotent-path-sanitize.md` | 23 | `search-text-extract-btn.md` |
-| 11 | `internal-secret-sync.md` | 24 | `security-headers.md` |
-| 12 | `karaoke-db-module-removal.md` ⚠ | 25 | `song-air-access.md` |
-| 13 | | | `song-artifact-cleanup.md` |
+| 1 | `admin-home-adaptive-columns.md` | 12 | `pagination-filter-admin-tables.md` |
+| 2 | `author-filter-datalist.md` | 13 | `playlist-membership.md` |
+| 3 | `client-ip-resolution.md` | 14 | `process-bulk-actions.md` |
+| 4 | `close-gesture-token-paywall.md` | 15 | `public-api-exposure.md` |
+| 5 | `complete-song-rename.md` | 16 | `public-settings-perimeter.md` |
+| 6 | `drop-empty-song-voices.md` | 17 | `publications-filters.md` |
+| 7 | `escape-confirm-user-data.md` | 18 | `rows-per-page.md` |
+| 8 | `idempotent-path-sanitize.md` | 19 | `search-text-extract-btn.md` |
+| 9 | `internal-secret-sync.md` | 20 | `security-headers.md` |
+| 10 | `kortege-execution.md` | 21 | `song-air-access.md` |
+| 11 | | | `song-artifact-cleanup.md` |
 
-⚠ — 4 файла с особым **содержательным** решением (D4), см. § 1.4. Постановка файла (перенос) — по FR-003 и Notes карты п. 2; расхождение с ответом 324 § 5 зафиксировано в [research.md § 3.1](../research.md#31-число-документов-в-продуктовой-ветке-26-fr-003-против-22-d4--d6--вопрос-лидувладельца) и требует решения лида.
+**21 файл** — по решению владельца 2026-10-29 (FR-003): четыре инфраструктурных документа
+(`deploy-hardening.md`, `gradle-9-upgrade.md`, `karaoke-db-module-removal.md`,
+`private-docker-registry.md`) в продуктовую ветку **не входят** — см. § 1.4.
 
 ### 1.2. Пакеты аудита #336 — 30 файлов → `knowledge/system/infra/audit-336-registry.md` (свёртка)
 
@@ -69,14 +69,16 @@
 
 **Правило**: уникальные BR-коды мост-файлов идут в реестр аудита, **а не** в продуктовую ветку (FR-018: BR-258, BR-541, BR-601).
 
-### 1.4. Содержательные решения по 4 помеченным файлам (D4)
+### 1.4. Четыре инфраструктурных документа — свёртка (D4, принято владельцем 2026-10-29)
 
-| Файл | Решение по содержанию | Целевое место |
+В продуктовую ветку **не входят** (FR-003: 21 + `tonality` = 22):
+
+| Файл | Решение | Целевое место |
 |---|---|---|
-| `private-docker-registry.md` | содержимое уже зеркалится — дубли **не создаются** | `knowledge/system/infra/registry.md` + `harbor-registry.md` + `deploy-overview.md` (существуют) |
-| `gradle-9-upgrade.md` | уникально только «история отката с 9.1.0» | `knowledge/guidelines/architecture-conventions.md` § R-46 + `knowledge/system/infra/ci-tools.md` |
-| `karaoke-db-module-removal.md` | уникально обоснование (мёртвый класс «Hello world!», свой build и wrapper на 7.5.1) | `knowledge/guidelines/architecture-conventions.md` + `knowledge/system/infra/ci-tools.md` |
-| `deploy-hardening.md` | 31 BR-код (PKG-S2-08) — в реестр; фактическая часть (бэкапы БД, секреты, TLS, экспозиция портов, ротация логов) — в компонент | `knowledge/system/infra/audit-336-registry.md` + `knowledge/system/infra/deploy-overview.md` |
+| `private-docker-registry.md` | **удалить** — содержимое уже зеркалится | `knowledge/system/infra/registry.md` + `harbor-registry.md` + `deploy-overview.md` (существуют) |
+| `gradle-9-upgrade.md` | **свернуть** — уникально только «история отката с 9.1.0» | `knowledge/guidelines/architecture-conventions.md` § R-46 + `knowledge/system/infra/ci-tools.md` |
+| `karaoke-db-module-removal.md` | **свернуть** — уникально обоснование (мёртвый класс «Hello world!», свой build и wrapper на 7.5.1) | `knowledge/guidelines/architecture-conventions.md` + `knowledge/system/infra/ci-tools.md` |
+| `deploy-hardening.md` | **в реестр аудита** — 31 BR-код (PKG-S2-08); фактическая часть (бэкапы БД, секреты, TLS, экспозиция портов, ротация логов) — в компонент | `knowledge/system/infra/audit-336-registry.md` + `knowledge/system/infra/deploy-overview.md` |
 
 ---
 
@@ -200,6 +202,6 @@
 | M-2 | Ни один файл не теряет содержимое: сворачиваемое переносится в компонент-приёмник, удаляемое — полное зеркало, кодовое — в реестр |
 | M-3 | Перенос выполняется через `git mv` ⇒ `git log --follow` показывает исходную историю (FR-019, SC-011) |
 | M-4 | Все 510 уникальных BR-кодов присутствуют в реестре (SC-002) |
-| M-5 | `knowledge/product/features/` содержит 26 документов, каждый проходит `check-feature-doc.sh` (SC-004) |
+| M-5 | `knowledge/product/features/` содержит 22 документа, каждый проходит `check-feature-doc.sh` (SC-004) |
 | M-6 | Ни одна ссылка на перемещаемый файл не остаётся устаревшей; уже битые — починены (FR-014, SC-003) |
 | M-7 | В корневых правилах и инструментах нет упоминаний `docs/`, кроме раздела «Бывшие пути» и таблицы соответствия (FR-021, SC-007) |

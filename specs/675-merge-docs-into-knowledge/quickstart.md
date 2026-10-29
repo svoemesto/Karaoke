@@ -71,13 +71,13 @@ echo "код возврата: $?"          # ожидается: 0
 
 ---
 
-## 3. Сценарий «26 per-feature документов» (SC-004, FR-003)
+## 3. Сценарий «22 per-feature документа» (SC-004, FR-003)
 
 ```bash
 cd /home/nsa/Karaoke
 
 # 3.1. Количество
-ls knowledge/product/features/*.md | wc -l        # ожидается: 26
+ls knowledge/product/features/*.md | wc -l        # ожидается: 22
 
 # 3.2. Полный набор секций FR-009 для каждого
 bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md
@@ -87,7 +87,7 @@ echo "код возврата: $?"                            # ожидаетс
 python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt
 ```
 
-**Что это доказывает**: FR-003 и SC-004 — все 26 документов соответствуют FR-009.
+**Что это доказывает**: FR-003 и SC-004 — все 22 документа соответствуют FR-009.
 
 ---
 
@@ -290,7 +290,7 @@ git ls-tree -r --name-only 3fb7c8bf docs/ | wc -l        # ожидается: 7
 
 # 12.2. Сколько из них куда-то легло
 #      — в продуктовую ветку
-ls knowledge/product/features/*.md | wc -l                 # ожидается: 26
+ls knowledge/product/features/*.md | wc -l                 # ожидается: 22
 #      — в runbook'и
 ls knowledge/guidelines/runbooks/*.md | grep -v README | wc -l   # ожидается: 5
 #      — реестр содержит BR-коды всех пакетов

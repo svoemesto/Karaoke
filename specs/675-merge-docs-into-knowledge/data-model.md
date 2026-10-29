@@ -17,7 +17,7 @@ knowledge/                                   ── корень SSoT (един�
 ├── domains/  system/  guidelines/  adr/     ── АРХИТЕКТУРНАЯ ветка (профиль A)
 │   ├── product/                             ── ПРОДУКТОВАЯ ветка (профиль B)
 │   │   ├── README.md                        ── индекс ветки + правило границы
-│   │   └── features/<slug>.md               ── 26 per-feature документов (FR-009)
+│   │   └── features/<slug>.md               ── 22 per-feature документа (FR-009)
 │   ├── guidelines/runbooks/<slug>.md        ── 5 runbook'ов
 │   ├── guidelines/kdoc-jsdoc.md             ── правила KDoc/JSDoc
 │   ├── guidelines/knowledge-first.md        ── enforcement MUST #0
@@ -40,7 +40,7 @@ knowledge/                                   ── корень SSoT (един�
 | Место | `knowledge/product/` |
 | Родитель | `knowledge/README.md` (канон термина) |
 | Индекс | `knowledge/product/README.md` |
-| Содержимое | `features/<slug>.md` (26 документов) |
+| Содержимое | `features/<slug>.md` (22 документа) |
 | Проверка | `tools/check-feature-doc.sh`, `tools/check-knowledge-structure.sh` (наличие каталога + README) |
 | Linking Protocol | **не применяется** (L3→L2→L1 — только для `knowledge/domains/**`) |
 
@@ -67,7 +67,7 @@ knowledge/                                   ── корень SSoT (един�
 
 | # | Инвариант |
 |---|---|
-| I-5 | Все 26 документов имеют полный набор шести секций FR-009 |
+| I-5 | Все 22 документа имеют полный набор шести секций FR-009 |
 | I-6 | `slug` документа == имя файла |
 | I-7 | `status` ∈ {active, deprecated, experimental} |
 | I-8 | Содержимое перенесённого документа не меняется при переносе (кроме пересчёта относительных ссылок) |
@@ -203,7 +203,7 @@ ADR-0007 ──superseded_by(частично)──► ADR-0011
 
 | Отношение | Кардинальность | Следствие |
 |---|---|---|
-| E1 → E2 | 1 : 26 | индекс `knowledge/product/README.md` перечисляет 26 документов |
+| E1 → E2 | 1 : 22 | индекс `knowledge/product/README.md` перечисляет 22 документа |
 | E4 → BR-код | 1 : 510 | каждый код — ровно одна строка реестра |
 | E6 → старый путь | 1 : 73 | полное покрытие слоя `docs/` |
 | E7a → корень | 1 : 1 | проверка «нет `docs/`» — по дереву |
@@ -297,7 +297,7 @@ ADR-0007 ──superseded_by(частично)──► ADR-0011
 | Устаревший каталог | `knowledge/system/infra/per-feature-docs.md` | — | удаление |
 | Генератор API | `docs/api/dokka/`, `docs/api/typedoc-*/` | `build/api-docs/` (gitignored) | перенастройка |
 
-Итого по `docs/features/`: 25 + 1 + 7 + 2 + 30 = **65**; плюс `docs/ops/` 4 + корень 2 + `api/` 1 + `governance/` 1 = **73** ✓ (SC-009).
+Итого по `docs/features/`: 21 (продуктовые) + 4 (инфраструктурные: 1 удаление + 2 свёртки + 1 в реестр) + 1 (перенос `tonality`) + 7 (свёртка мостов) + 2 (удаление мостов) + 30 (пакеты аудита) = **65**; плюс `docs/ops/` 4 + корень 2 + `api/` 1 + `governance/` 1 = **73** ✓ (SC-009).
 
 ---
 

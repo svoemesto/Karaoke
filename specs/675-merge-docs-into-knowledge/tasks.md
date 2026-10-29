@@ -20,10 +20,11 @@ FR-012 (фикстуры guard'а), FR-013 (проверка синхронно�
 приоритета), чтобы каждая история проверялась независимо. Внутри историй — порядок фаз плана
 P1…P7.
 
-**⚠️ Ограничение на формулировки**: число пер-фичеурных документов продуктовой ветки **не
-фиксируется** в задачах. Решение владельца (26 или 22) вынесено в отдельную помеченную задачу
-**T025**; все остальные задачи говорят «пер-фичеурные документы продуктовой ветки». Правка
-базовой линии = правка одной задачи.
+**Базовое число пер-фичеурных документов продуктовой ветки**: **22** (21 продуктовый +
+`tonality-bpm-songs-table`) — решение владельца от 2026-10-29, зафиксировано в спеке
+(FR-003, SC-004, коммит `47f31bb6`). Четыре инфраструктурных документа в продуктовую ветку
+**не входят** — они сворачиваются в `knowledge/system/infra/` и в реестр аудита (задача
+**T025**). В самих задачах число нигде не дублируется: оно живёт в спеке и в T025.
 
 ---
 
@@ -68,42 +69,46 @@ P1…P7.
 
 **Соответствует плану**: P1 (перенос).
 
-- [ ] T008 [P] Перенести `git mv` пер-фичеурные документы продуктовой ветки из `docs/features/` в `knowledge/product/features/<slug>.md` (кроме четырёх инфраструктурных — см. T025); список — [contracts/migration-map.md § 1.1](./contracts/migration-map.md)
+- [ ] T008 [P] Перенести `git mv` 21 продуктовый пер-фичеурный документ из `docs/features/` в `knowledge/product/features/<slug>.md` (четыре инфраструктурных в перенос **не** входят — T025); перечень — [contracts/migration-map.md § 1.1](./contracts/migration-map.md) и таблица переноса спеки («`docs/features/` — продуктовые | 21»)
 - [ ] T009 [P] Перенести `git mv` `docs/features/tonality-bpm-songs-table.md` → `knowledge/product/features/tonality-bpm-songs-table.md` (продуктовое решение: колонки Ton/BPM)
 - [ ] T010 [P] Перенести `git mv` четыре операционных рецепта `docs/ops/crypto-key-rotation.md`, `docs/ops/forgejo-access.md`, `docs/ops/log-correlation.md`, `docs/ops/prod-config-delivery.md` → `knowledge/guidelines/runbooks/`
 - [ ] T011 [P] Перенести `git mv` `docs/tracker-setup.md` → `knowledge/guidelines/runbooks/tracker-setup.md` (формат runbook'а «How to: …»)
 - [ ] T012 [P] Перенести `git mv` `docs/api/README.md` → `knowledge/guidelines/kdoc-jsdoc.md`
 - [ ] T013 [P] Перенести `git mv` `docs/governance/knowledge-first.md` → `knowledge/guidelines/knowledge-first.md`
 - [ ] T014 [P] Перенести `git mv` `docs/architecture-notes.md` → `archive/docs/architecture-notes.md` (существующие 43 файла `archive/docs/**` не трогать)
-- [ ] T015 Наполнить `knowledge/system/infra/audit-336-registry.md` содержимым 30 пакетов аудита #336: карточка каждого пакета (имя, волна, состав, что исправлено, куда легло зеркало) + все 510 уникальных BR-кодов с колонками «код · суть дефекта (одна строка) · компонент-зеркало · пакет»; **после** наполнения удалить 30 исходных файлов `docs/features/` (свёртка в реестр); перечень — [contracts/migration-map.md § 1.2](./contracts/migration-map.md)
+- [ ] T015 Наполнить `knowledge/system/infra/audit-336-registry.md`: карточки 30 пакетов аудита #336 **и** карточка пакета PKG-S2-08 из `deploy-hardening` (T025) — по каждому пакету: имя, волна, состав, что исправлено, куда легло зеркало; + таблица **всех 510 уникальных BR-кодов** с колонками «код · суть дефекта (одна строка) · компонент-зеркало · пакет». **Коды собираются из всех 65 файлов `docs/features/`, а не только из 30 пакетов:** BR-коды есть также в 8 продуктовых документах (`client-ip-resolution`, `close-gesture-token-paywall`, `escape-confirm-user-data`, `internal-secret-sync`, `public-api-exposure`, `public-settings-perimeter`, `security-headers`, `song-air-access`) и в 5 мост-файлах (`stemjob-private-bucket`, `target-scoped-admin-requests`, `telegram-auto-publish`, `tracker-local-integration`, `zakroma-tiles-sort-order`) — иначе часть кодов потеряется (FR-011, SC-002). **После** наполнения удалить 30 исходных файлов пакетов из `docs/features/` (свёртка в реестр); перечень — [contracts/migration-map.md § 1.2](./contracts/migration-map.md)
 - [ ] T016 Свёртка семи мост-файлов — дописать уникальное содержание в компоненты-приёмники: `storage-metadata-cache` → `knowledge/domains/storage/components/storage-api-client.md` + `knowledge/domains/caching/components/web-caches.md`; `stemjob-private-bucket` → `knowledge/domains/storage/domain.md` + `knowledge/domains/storage/components/storage-flow.md` + `knowledge/domains/karaoke-web/components/internal-stem-job-controller.md`; `tracker-local-integration` → `knowledge/adr/0008-tracker-openproject-migration.md` + `knowledge/system/infra/tracker.md` + `knowledge/adr/local-0012-plane-tracker-migration.md`; `zakroma-tiles-sort-order` → `knowledge/system/infra/sql-migrations.md` + `knowledge/domains/persistence/domain.md` + `knowledge/domains/catalog/components/dictionaries.md`; `zakroma-albums-by-author` → `knowledge/domains/catalog/components/album-entity.md` + `knowledge/adr/local-0007-zakroma-album-id-in-stream-dto.md`; `telegram-auto-publish` → `knowledge/domains/publishing/components/publishing-services.md` + `knowledge/domains/processing/components/schedulers.md`; `song-edit-and-censored` → `knowledge/system/frontend/webvue3-audit-invariants.md` + `knowledge/domains/catalog/components/remaining-models.md` + `knowledge/domains/publishing/components/publishing-services.md`; **BR-258, BR-541, BR-601** → реестр аудита
 - [ ] T017 Удалить два мост-файла-полных-зеркала: `docs/features/sync-audio-descendants.md` (зеркало — `knowledge/domains/catalog/components/audio-descendant-sync.md`) и `docs/features/target-scoped-admin-requests.md` (зеркало — `knowledge/system/frontend/target-request-guard.md`)
-- [ ] T018 Удалить `knowledge/system/infra/per-feature-docs.md` и переписать три ссылки на него: `knowledge/domains/README.md:115` (строка каталога `knowledge/system/infra/*` — «`per-feature-docs.md` — docs/features/ (Pass 380)»; заменить на каталог продуктовой ветки), `knowledge/system/infra/pre-commit-config.md:183`, `knowledge/system/infra/ci-tools.md:414` — **⚠️ FR-016 читается как «список 16 доменов не меняется»; техническая правка одной строки :115 обязательна по FR-014/SC-003 (иначе остаётся ссылка на удалённый файл). Реестр доменов в `knowledge/domains/README.md` не дополняется — см. § «Открытые вопросы к лиду»**
+- [ ] T018 Удалить `knowledge/system/infra/per-feature-docs.md` и переписать три ссылки на него: `knowledge/domains/README.md:115` (строка каталога `knowledge/system/infra/*` — «`per-feature-docs.md` — docs/features/ (Pass 380)»; заменить на каталог продуктовой ветки), `knowledge/system/infra/pre-commit-config.md:183`, `knowledge/system/infra/ci-tools.md:414` — **граница FR-016 уточнена владельцем 2026-10-29: реестр 16 доменов (список доменов) в `knowledge/domains/README.md` не меняется, но каталог файлов `knowledge/system/infra/*` в том же файле обновляется в части удалённых документов — иначе остаётся ссылка на несуществующий файл, что запрещает FR-014/SC-003. Продуктовым слоем реестр доменов не дополняется (D19)**
 - [ ] T019 **В том же коммите**, что и перенос (T008–T018), перенастроить точки вызова `tools/check-feature-doc.sh` на новые пути: `.forgejo/workflows/lint.yml:603`, `.github/workflows/lint.yml:562`, `.pre-commit-config.yaml:325` (`entry`) и `:328` (`files`) — иначе glob по несуществующему каталогу не раскроется и pre-commit упадёт
-- [ ] T020 Переписать внутренние ссылки перенесённых документов: пересчёт **от нового места** (цели внутри `knowledge/` — кратчайшая относительная форма `../../domains/x.md` без повторения `knowledge/`; наружу — `../../../tools/…`), а не замена подстроки — [contracts/migration-map.md § 3.3](./contracts/migration-map.md)
-- [ ] T021 Вычислить и записать в реестр раздел «Коды без зеркала» — **после** переноса (значение ≤ 267, измерено до миграции); инвентарь кодов остаётся 510
-- [ ] T022 Заполнить `knowledge/product/README.md` перечнем перенесённых пер-фичеурных документов продуктовой ветки (без указания числа — см. T025)
-- [ ] T023 Проверка фазы: `git ls-files docs/` = 0; `test -d docs` ложно; `bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md` — код 0; `git log --follow --oneline knowledge/product/features/kortege-execution.md` показывает исходные коммиты `docs/features/…` (SC-011)
-- [ ] T024 Проверка фазы: `bash tools/check-knowledge-structure.sh` — код 0; `python3 tools/check-doc-references.py` — код 0; `pre-commit run --all-files` — все хуки Passed
+- [ ] T020 Переписать внутренние ссылки **перенесённых** документов (22 файла `knowledge/product/features/`, 5 runbook'ов, `knowledge/guidelines/kdoc-jsdoc.md`, `knowledge/guidelines/knowledge-first.md`): пересчёт **от нового места** (цели внутри `knowledge/` — кратчайшая относительная форма `../../domains/x.md` без повторения `knowledge/`; наружу — `../../../tools/…`), а не замена подстроки — [contracts/migration-map.md § 3.3](./contracts/migration-map.md). **Граница с T026:** T020 — только внутри перенесённых файлов, T026 — по остальным файлам `knowledge/`
+- [ ] T021 Вычислить и записать в реестр раздел «Коды без зеркала» — **после** переноса и после T025 (значение вычисляется на итоговом дереве; до миграции измерено 267, после переноса 21 продуктового документа — меньше); инвентарь кодов остаётся 510
+- [ ] T022 Заполнить `knowledge/product/README.md` перечнем перенесённых пер-фичеурных документов продуктовой ветки (21 продуктовый + `tonality-bpm-songs-table`)
+- [ ] T023 Проверка фазы: `git ls-files docs/` = 0; `test -d docs` ложно; `ls knowledge/product/features/*.md | wc -l` = 22 (FR-003); `bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md` — код 0; `git log --follow --oneline knowledge/product/features/kortege-execution.md` показывает исходные коммиты `docs/features/…` (SC-001, SC-004, SC-011)
+- [ ] T024 Проверка фазы: `bash tools/check-knowledge-structure.sh` — код 0; `python3 tools/check-doc-references.py` — код 0; `pre-commit run --all-files` — все хуки Passed (SC-006)
 
 **Checkpoint**: слой `docs/` перенесён, содержимое не потеряно, реестр наполнен — правила и
 инструменты можно переводить на новые пути.
 
 ---
 
-## Phase 2.5: Задача с ожиданием решения владельца (26 или 22)
+## Phase 2.5: Свёртка четырёх инфраструктурных документов
 
-**Purpose**: судьба четырёх инфраструктурных пер-фичеурных документов — единственный открытый
-вопрос контракта. **Спека (FR-003, SC-004) и ответ 324 § 5 несовместимы**; решение принимает
-владелец.
+**Purpose**: четыре инфраструктурных пер-фичеурных документа **не входят** в продуктовую
+ветку — они сворачиваются в `knowledge/system/infra/` и в реестр аудита (решение тикета карты
+KARAOKE-324 § 5, подтверждено владельцем 2026-10-29).
 
-**⚠️ ВАЖНО**: задача **не выполняется** до решения владельца. Число пер-фичеурных документов
-продуктовой ветки нигде в наборе задач не зафиксировано.
+**✅ РЕШЕНО владельцем 2026-10-29**: базовая линия продуктовой ветки — **22** пер-фичеурных
+документа (21 продуктовый + `tonality-bpm-songs-table`). Спека приведена в соответствие
+(FR-003, SC-004, коммит `47f31bb6`).
 
-- [ ] T025 ⛔ **РЕШЕНИЕ ВЛАДЕЛЬЦА ОЖИДАЕТСЯ (26 или 22)** — судьба `docs/features/deploy-hardening.md`, `docs/features/gradle-9-upgrade.md`, `docs/features/karaoke-db-module-removal.md`, `docs/features/private-docker-registry.md`
-      - **Вариант A (базовая линия плана, «26»)**: все четыре переносятся `git mv` в `knowledge/product/features/` без изменений; дополнительно — уникальное содержание `gradle-9-upgrade` (история отката с 9.1.0) и `karaoke-db-module-removal` (мёртвый класс «Hello world!», свой build и wrapper на 7.5.1) → `knowledge/guidelines/architecture-conventions.md` § R-46 + `knowledge/system/infra/ci-tools.md`; 31 BR-код `deploy-hardening` (PKG-S2-08) → карточка пакета + коды в `knowledge/system/infra/audit-336-registry.md`, фактическая часть (бэкапы БД, секреты, TLS, экспозиция портов, ротация логов) → `knowledge/system/infra/deploy-overview.md`; содержимое `private-docker-registry` дубли не создаёт (зеркала — `knowledge/system/infra/registry.md` + `harbor-registry.md` + `deploy-overview.md`)
-      - **Вариант B («22»)**: `private-docker-registry.md` удалить (зеркало полное), `gradle-9-upgrade.md` и `karaoke-db-module-removal.md` свернуть в `architecture-conventions.md` + `ci-tools.md`, `deploy-hardening.md` → реестр аудита + `deploy-overview.md`; **требует правки FR-003 и SC-004 спеки — только по слову владельца**
-      - Проверка после любого варианта: `bash tools/check-feature-doc.sh knowledge/product/features/*.md` — код 0; `grep -c "BR-" knowledge/system/infra/audit-336-registry.md` не уменьшился; `git ls-files docs/` = 0
+- [ ] T025 Свёртка четырёх инфраструктурных документов — `docs/features/deploy-hardening.md`, `docs/features/gradle-9-upgrade.md`, `docs/features/karaoke-db-module-removal.md`, `docs/features/private-docker-registry.md`
+      - **`private-docker-registry.md` — удалить**: содержимое уже зеркалится в `knowledge/system/infra/registry.md` + `knowledge/system/infra/harbor-registry.md` + `knowledge/system/infra/deploy-overview.md` (существуют); уникального содержания нет
+      - **`gradle-9-upgrade.md` — свернуть**: уникально только «история отката с 9.1.0» → `knowledge/guidelines/architecture-conventions.md` § R-46 + `knowledge/system/infra/ci-tools.md` (версия 9.8.2, единый wrapper и контрольные суммы уже зафиксированы)
+      - **`karaoke-db-module-removal.md` — свернуть**: уникально обоснование (мёртвый класс «Hello world!», свой build и wrapper на 7.5.1) → `knowledge/guidelines/architecture-conventions.md` + `knowledge/system/infra/ci-tools.md` (факт «четвёртый wrapper удалён» уже есть)
+      - **`deploy-hardening.md` — в реестр аудита**: 31 BR-код (PKG-S2-08) → карточка пакета + коды в `knowledge/system/infra/audit-336-registry.md` (совместно с T015); фактическая часть (бэкапы БД, секреты, TLS, экспозиция портов, ротация логов) → `knowledge/system/infra/deploy-overview.md`
+      - Ни один из четырёх не переносится в `knowledge/product/features/` ⇒ продуктовая ветка содержит 21 продуктовый документ + `tonality-bpm-songs-table` (FR-003)
+      - Проверка: `ls knowledge/product/features/*.md | wc -l` = 22; `bash tools/check-feature-doc.sh knowledge/product/features/*.md` — код 0; `grep -c "BR-" knowledge/system/infra/audit-336-registry.md` не уменьшился; `git ls-files docs/` = 0; `grep -rn "private-docker-registry\|gradle-9-upgrade\|karaoke-db-module-removal\|deploy-hardening" knowledge/ --include=*.md` — только ссылки на новые места
 
 ---
 
@@ -120,7 +125,7 @@ P1…P7.
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] Переписать ссылки в `knowledge/` — 104 упоминания в 38 файлах: markdown-ссылки и текстовые упоминания на перемещаемые файлы; ссылки на удаляемый `per-feature-docs.md` и сворачиваемые мост-файлы → на компоненты-приёмники по [contracts/migration-map.md § 1.3](./contracts/migration-map.md)
+- [ ] T026 [P] [US1] Переписать ссылки в **остальных** файлах `knowledge/` (38 файлов по карте ссылок — вне перенесённых документов из T020): markdown-ссылки и текстовые упоминания на перемещаемые файлы; ссылки на удаляемый `per-feature-docs.md` и сворачиваемые мост-файлы → на компоненты-приёмники по [contracts/migration-map.md § 1.3](./contracts/migration-map.md)
 - [ ] T027 [P] [US1] Переписать markdown-ссылки в `specs/` — 104 ссылки в 52 файлах; **текстовые упоминания `docs/` не трогать** (политика проекта)
 - [ ] T028 [P] [US1] Переписать `@see` в KDoc/JSDoc — 74 в 51 файле (karaoke-app 36, webvue3 17, karaoke-web 13, karaoke-public 8) → `knowledge/product/features/<slug>.md`
 - [ ] T029 [P] [US1] Перенастроить `tools/check-doc-references.py:44` (`ROOTS` — убрать `"docs"`) и `:54` (`GENERATED_PREFIXES` → `("build/api-docs/",)`)
@@ -133,8 +138,8 @@ P1…P7.
 - [ ] T036 [US1] Обновить обе копии workflow — таргеты lychee на `knowledge/product/features/` + `archive/docs/features/` + `CONTRIBUTING.md`: `.forgejo/workflows/lint.yml:592-593` и `.github/workflows/lint.yml:551-552`
 - [ ] T037 [US1] Обновить контрактный тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS335SourceContractsTest.kt:288,294,299` под новые пути — **тест остаётся**, фиксирует «оба каталога проверяются»
 - [ ] T038 [US1] Обновить документацию вызова: `tools/README.md:22` и `PR_DESCRIPTION.md:131`
-- [ ] T039 [US1] Проверка US1: [quickstart.md § 1](./quickstart.md) (слой `docs/` исчез), § 3 (пер-фичеурные документы), § 5 (0 битых ссылок) — все коды 0; `bash tools/verify-doc-links.sh` — код 0 (требует `lychee`)
-- [ ] T040 [US1] Проверка US1: сверка «до/после» по всем материалам слоя — `git ls-tree -r --name-only 3fb7c8bf docs/ | wc -l` = 73, и каждый старый путь присутствует в справочнике «Бывшие пути» ([quickstart.md § 9](./quickstart.md)); 0 неучтённых (SC-009)
+- [ ] T039 [US1] Проверка US1: [quickstart.md § 1](./quickstart.md) (слой `docs/` исчез), § 3 (пер-фичеурные документы: `ls knowledge/product/features/*.md | wc -l` = 22, FR-003), § 5 (0 битых ссылок) — все коды 0; `bash tools/verify-doc-links.sh` — код 0 (требует `lychee`) (SC-001, SC-003)
+- [ ] T040 [US1] Проверка US1: сверка «до/после» по всем материалам слоя — `git ls-tree -r --name-only 3fb7c8bf docs/ | wc -l` = 73, и каждый старый путь присутствует в справочнике «Бывшие пути» ([quickstart.md § 9](./quickstart.md)); 0 неучтённых (SC-009, SC-010)
 
 **Checkpoint**: US1 полностью функциональна — второй слой документации отсутствует, материалы
 доступны и связаны.
@@ -189,7 +194,7 @@ P1…P7.
 
 - [ ] T054 [P] [US3] Обновить `AGENTS.md`: Tier-2 R-32 → `knowledge/product/features/<slug>.md`; § «Plane Workflow» source → `knowledge/guidelines/runbooks/tracker-setup.md`; § «Диагностика через docker logs» source → `knowledge/guidelines/runbooks/log-correlation.md`; Tier-1 «Процесс wayfinder» source → `knowledge/guidelines/runbooks/tracker-setup.md`; запись в Changelog; версия 3.7.1 → **3.7.2** (PATCH — меняются пути, не смысл)
 - [ ] T055 [P] [US3] Обновить `CLAUDE.md`: таблица «Где искать что» — per-feature → `knowledge/product/features/<slug>.md`; стратегия → `archive/docs/strategy/growth.md` + `archive/docs/strategy/growth-audit.md`; логи прода → `knowledge/guidelines/runbooks/log-correlation.md`; трекер → `knowledge/guidelines/runbooks/tracker-setup.md`; changelog PR → `archive/docs/architecture-notes.md`; строку «Настройка Claude Code» (`docs/claude-code-setup.md` — файла нет) → текст без ссылки; запись в Changelog; версия 1.8.1 → **1.8.2**
-- [ ] T056 [US3] Обновить `.specify/memory/constitution.md`: § VI FR-006 (`@see docs/features/<slug>.md` → `knowledge/product/features/<slug>.md`) и FR-009 (путь); § VII и § Governance 1 (ссылки на несуществующие `docs/onboarding.md`, `docs/claude-code-setup.md`, `docs/architecture-notes-archive.md` → текст без ссылки; `docs/architecture-notes.md` → `archive/docs/architecture-notes.md`); § VIII (`docs/migration-prod-server.md` — нет → текст без ссылки); § IX (`docs/governance/knowledge-first.md` → `knowledge/guidelines/knowledge-first.md`); **Sync Impact Report** в HTML-комментарии в начале файла; версия 2.4.0 → **2.4.1** (PATCH — смысл правил не меняется)
+- [ ] T056 [US3] Обновить `.specify/memory/constitution.md`: § VI FR-006 (строка 84: `@see docs/features/<slug>.md` → `knowledge/product/features/<slug>.md`) и FR-009 (путь); § VII (строки 103–104: ссылки на несуществующие `docs/onboarding.md`, `docs/claude-code-setup.md` → текст без ссылки; `docs/architecture-notes.md` → `archive/docs/architecture-notes.md`); § VIII (строка 131: `docs/migration-prod-server.md` — нет → текст без ссылки); § IX (строка 148: `docs/governance/knowledge-first.md` → `knowledge/guidelines/knowledge-first.md`); § Governance 1 (строки 278, 280–281: `docs/architecture-notes-archive.md` → текст без ссылки; `docs/onboarding.md`/`docs/claude-code-setup.md` → текст без ссылки; `docs/architecture-notes.md` → `archive/docs/architecture-notes.md`); § Governance 5 (строка 304: `docs/architecture-notes.md` → `archive/docs/architecture-notes.md`); **Sync Impact Report** в HTML-комментарии в начале файла; версия 2.4.0 → **2.4.1** (PATCH — смысл правил не меняется)
 - [ ] T057 [P] [US3] Обновить `.github/PULL_REQUEST_TEMPLATE.md` — 6 упоминаний `docs/`; чеклист FR-009 указывает `knowledge/product/features/<slug>.md`
 - [ ] T058 [P] [US3] Обновить `DEVELOPMENT.md` (5 упоминаний) и `README.md` (3 упоминания) — ссылки на перемещаемые файлы
 - [ ] T059 [US3] Добавить в `tools/lint-knowledge.py` **явный комментарий** рядом с `SECTION_EXEMPTIONS`: `knowledge/product/` обслуживается guard'ем FR-009, обход линтера туда не расширяется; убрать ссылку на несуществующий `docs/operations/knowledge-lint-baseline.md` (строка 16) — **исключения не расширять**
@@ -265,7 +270,7 @@ P1…P7.
 - [ ] T080 [P] Заменить копии рантайм-скиллов симлинками на канон: `.dsh/skills/managing-living-docs/` → `.agents/skills/managing-living-docs`, `.dsh/skills/audit-living-docs/` → `.agents/skills/audit-living-docs` (ранг 100 перекрывает ранг 200 ⇒ без этого правка git-версии не действует); каталог `.dsh/` — gitignored, в коммит не входит
 - [ ] T081 [P] Проверить синхронизацию скиллов: `sha256sum .agents/skills/managing-living-docs/SKILL.md .dsh/skills/managing-living-docs/SKILL.md` — совпадают; `ls -l .dsh/skills/managing-living-docs` — симлинк; `grep -n "architecture-notes" .agents/skills/audit-living-docs/SKILL.md` → `archive/docs/architecture-notes.md`
 - [ ] T082 [P] Проверить, что read-only-зеркала **не тронуты**: `sha256sum ~/.dsh/skills/managing-living-docs/SKILL.md` = `767b61dc…a63ae3`; `git -C /home/nsa/agents-team-srv status --porcelain .agents/skills/` — пусто; `~/.dsh/romario-team/**` не изменён
-- [ ] T083 Полный локальный прогон по [quickstart.md § 13](./quickstart.md) — все коды 0: `check-no-docs-dir.sh`, `check-ci-workflow-sync.sh`, `check-audit-registry.py`, `check-knowledge-structure.sh`, `check-knowledge-cross-links.sh`, `lint-knowledge.py`, `check-doc-references.py`, `check-feature-doc.sh`, `verify-doc-links.sh`
+- [ ] T083 Полный локальный прогон по [quickstart.md § 13](./quickstart.md) — все коды 0: `check-no-docs-dir.sh`, `check-ci-workflow-sync.sh`, `check-audit-registry.py`, `check-knowledge-structure.sh`, `check-knowledge-cross-links.sh`, `lint-knowledge.py`, `check-doc-references.py`, `check-feature-doc.sh`, `verify-doc-links.sh` (SC-006, SC-008)
 - [ ] T084 Проверка гигиены: `git ls-files | grep -iE '\.env$|do\.env$|\.key$|\.pem$|\.p12$|\.pfx$'` — пусто; `git ls-files docs/` = 0; `git ls-files archive/docs/ | wc -l` — выросло только на `architecture-notes.md`
 - [ ] T085 Прогнать `pre-commit run --all-files` — все хуки Passed; прогнать скилл `kara-post-edit` (правки кода — только docstring'и `@see`)
 - [ ] T086 Собрать коммиты PR по порядку плана (перенос → ссылки → инструменты → правила → guard → ADR) с понятными сообщениями — ревью идёт по частям; merge-гейт — зелёный финальный CI
@@ -280,9 +285,15 @@ P1…P7.
 
 - **Setup (Phase 1)**: без зависимостей — можно начинать сразу
 - **Foundational (Phase 2)**: зависит от Setup — **блокирует все истории** (пути, на которые
-  указывают ссылки, инструменты и правила, появляются здесь)
-- **Phase 2.5 (решение владельца)**: независима от Setup/Foundational по файлам, но **блокирует**
-  завершение US1/US3 (число документов) — выполняется после решения владельца
+  указывают ссылки, инструменты и правила, появляются здесь). Внутри фазы порядок исполнения:
+  **T008–T014 → T016–T018 → T025 → T015 → T019–T022 → T023 → T024** (T025 — свёртка четырёх
+  инфраструктурных документов — выполняется **до** T015: карточка PKG-S2-08 идёт в тот же
+  реестр; и **до** T022: перечень в `knowledge/product/README.md` должен отражать итоговый
+  состав продуктовой ветки)
+- **Phase 2.5 (свёртка четырёх инфраструктурных документов)**: решение владельца принято
+  2026-10-29 (базовая линия — 22), ожидания нет; задача T025 реализуется **до** T022 (перечень
+  в `knowledge/product/README.md`) и до T019 (перенастройка вызовов `check-feature-doc.sh`) —
+  иначе индекс и гейт считают несуществующие документы
 - **User Stories (Phase 3+)**: все зависят от завершения Foundational; US2, US3, US4, US5 — между
   собой независимы и могут идти параллельно (разные файлы), кроме общих правок workflow и
   pre-commit (T036, T047, T048, T049, T070, T071) — их выполнять **последовательно**
@@ -361,7 +372,7 @@ Task: "Реализовать tools/check-ci-workflow-sync.sh"
 
 1. Phase 1: Setup
 2. Phase 2: Foundational (CRITICAL — блокирует все истории)
-3. Phase 2.5: решение владельца по T025
+3. Phase 2.5: свёртка четырёх инфраструктурных документов (T025 — решение владельца принято 2026-10-29)
 4. Phase 3: User Story 1
 5. **СТОП и ПРОВЕРКА**: [quickstart.md § 1, § 3, § 5, § 9, § 12](./quickstart.md) — коды 0
 6. Демо: `git ls-files docs/` = 0, материалы доступны по новым путям
@@ -431,21 +442,22 @@ Task: "Реализовать tools/check-ci-workflow-sync.sh"
 
 ---
 
-## Открытые вопросы к лиду (не блокируют старт реализации)
+## Открытые вопросы к лиду — все закрыты 2026-10-29
 
-1. **Судьба четырёх инфраструктурных пер-фичеурных документов (26 или 22)** — задача **T025**.
-   Спека (FR-003, SC-004) и ответ 324 § 5 несовместимы; решение владельца. До решения T025 не
-   выполняется, число документов нигде в задачах не зафиксировано.
-2. **FR-016 vs FR-014 на одной строке `knowledge/domains/README.md:115`** — FR-016 требует, чтобы
-   `knowledge/domains/README.md` не изменялся; FR-014/SC-003 требуют, чтобы не осталось ссылки на
-   удаляемый `knowledge/system/infra/per-feature-docs.md`. План трактует FR-016 как «реестр доменов
-   (список 16 доменов) не меняется» и правит **только** строку :115 (каталог `knowledge/system/infra/*`),
-   не дополняя реестр продуктовым слоем (D19). Альтернатива — не трогать файл и оставить устаревшую
-   ссылку, что ломает SC-003. Требуется подтверждение трактовки.
-3. **Промежуточные коммиты PR дадут красный CI** — guard'ы включаются в фазе US2 (T047–T049),
-   а `docs/` исчезает в фазе Foundational. Компромисс осознанный (ревьюимость важнее зелёного
-   промежуточного состояния); мержается только финальный коммит по зелёному CI. Если лид
-   предпочитает «guard сразу с переносом» — T043/T047/T048 переносятся в фазу Foundational.
+1. ~~**Судьба четырёх инфраструктурных пер-фичеурных документов (26 или 22)**~~ — **решено
+   2026-10-29 (владелец)**: базовая линия — **22** пер-фичеурных документа (21 продуктовый +
+   `tonality-bpm-songs-table`); четыре инфраструктурных документа в продуктовую ветку не
+   входят и сворачиваются в `knowledge/system/infra/` + реестр аудита (FR-003, SC-004, коммит
+   `47f31bb6`). Реализация — задача **T025**; ожидание снято.
+2. ~~**FR-016 vs FR-014 на одной строке `knowledge/domains/README.md:115`**~~ — **решено
+   2026-10-29 (владелец)**: граница FR-016 уточнена — **реестр 16 доменов** (список доменов) не
+   меняется, **каталог файлов `knowledge/system/infra/*`** в том же файле обновляется в части
+   удалённых и перенесённых документов (иначе остаётся ссылка на несуществующий файл, что
+   запрещает FR-014/SC-003). Продуктовым слоем реестр доменов не дополняется (D19).
+   Реализация — задача **T018**.
+3. ~~**Промежуточные коммиты PR дадут красный CI**~~ — **решено 2026-10-29 (лид)**: принимается
+   текущий компромисс — guard'ы в фазе US2 (T043, T047, T048 остаются на месте), `docs/`
+   исчезает в фазе Foundational; мержается только финальный коммит по зелёному CI.
 
 ---
 
@@ -453,8 +465,9 @@ Task: "Реализовать tools/check-ci-workflow-sync.sh"
 
 - [P] — разные файлы, нет зависимостей
 - [Story] — соответствие пользовательской истории спеки для трассируемости
-- **T025 — единственное место, где число пер-фичеурных документов может быть названо**; в
-  остальных задачах формулировка «пер-фичеурные документы продуктовой ветки»
+- **T025 — единственное место, где судьба четырёх инфраструктурных документов описана
+  явно**; число пер-фичеурных документов продуктовой ветки живёт в спеке (FR-003) и в T025,
+  в остальных задачах формулировка «пер-фичеурные документы продуктовой ветки»
 - **Не трогать**: `~/.dsh/skills/**`, `~/.dsh/romario-team/**`, `/home/nsa/agents-team-srv/**`,
   существующие `archive/docs/**` (кроме добавления `architecture-notes.md`), `livedocs/**`,
   сравнительные таблицы generic ↔ Karaoke в скиллах

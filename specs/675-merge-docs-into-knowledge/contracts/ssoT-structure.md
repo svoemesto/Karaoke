@@ -46,7 +46,7 @@
 
 | Поле | Значение |
 |---|---|
-| Где | `knowledge/product/features/*.md` — **26 файлов** |
+| Где | `knowledge/product/features/*.md` — **22 файла** |
 | Шаблон | `knowledge/templates/product-feature.md` (новый) |
 | Секции | `## Что делает` / `## Зачем` / `## Как работает` / `## Инварианты` / `## Известные ловушки` / `## Ссылки` |
 | Проверка | `tools/check-feature-doc.sh` |
@@ -57,11 +57,11 @@
 
 1. Шаблон `knowledge/templates/product-feature.md` содержит 6 секций, правило «slug == имя файла», допустимые значения `status` и краткое назначение профиля.
 2. `knowledge/templates/README.md` описывает `product-feature.md` как шаблон **второго профиля** и ссылается на него (FR-005).
-3. `knowledge/product/README.md` — индекс ветки: перечень 26 документов, правило границы «что пишется в продуктовую ветку, а что — в компонент домена» (FR-004).
+3. `knowledge/product/README.md` — индекс ветки: перечень 22 документов, правило границы «что пишется в продуктовую ветку, а что — в компонент домена» (FR-004).
 4. Формат per-feature **не конвертируется** в профиль A (форматы несовместимы: «Зачем» и «Известные ловушки» аналогов в профиле A не имеют).
 5. Правило FR-009 сохраняется: «при правке кода MUST обновить per-feature документ в том же PR»; **меняется путь** (D17) — см. C6.
 
-**Состав 26 документов** — 25 продуктовых (`docs/features/`, группа а.1 инвентаря) + `tonality-bpm-songs-table` (мост-файл с продуктовым решением, D6). Полный поимённый список — [migration-map.md § 1](./migration-map.md).
+**Состав 22 документов** — 21 продуктовый (`docs/features/`, группа а.1 инвентаря за вычетом четырёх инфраструктурных) + `tonality-bpm-songs-table` (мост-файл с продуктовым решением, D6). Четыре инфраструктурных документа в ветку **не входят** — свёртка в `knowledge/system/infra/` + реестр аудита (решение владельца 2026-10-29, FR-003). Полный поимённый список — [migration-map.md § 1](./migration-map.md).
 
 ---
 
@@ -70,7 +70,7 @@
 | Файл | Роль | Обязательное содержимое |
 |---|---|---|
 | `knowledge/README.md` | канон SSoT | таблица «Структура» со строкой `product/`; подсекция «Две ветки SSoT» с таблицей двух профилей; обновлённый Karaoke-override п. 5; раздел «Бывшие пути»; расширенный шаг Initialize протокола агента (FR-006) |
-| `knowledge/product/README.md` | индекс продуктовой ветки | перечень 26 документов + правило границы с компонентами домена (FR-004) |
+| `knowledge/product/README.md` | индекс продуктовой ветки | перечень 22 документов + правило границы с компонентами домена (FR-004) |
 | `knowledge/guidelines/README.md` | индекс guidelines | строка `knowledge-first.md` (enforcement MUST #0) в «Структуре»; `kdoc-jsdoc.md` переезжает из «Планируемого наполнения» в «Структуру»; термин «runbook» вместо «playbook» (D19) |
 | `knowledge/guidelines/runbooks/README.md` | индекс runbook'ов | 5 runbook'ов; термин «runbook» |
 | `knowledge/system/infra/governance-docs.md` | каталог governance-документов | 10 несуществующих `docs/*.md` убраны; строка per-feature → `knowledge/product/features/<slug>.md`; добавлены `knowledge/guidelines/knowledge-first.md`, `knowledge/guidelines/kdoc-jsdoc.md`, `knowledge/guidelines/runbooks/`, `knowledge/product/README.md`, `knowledge/system/infra/audit-336-registry.md`; раздел «Archive» без изменений (FR-010) |

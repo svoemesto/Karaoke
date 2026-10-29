@@ -921,6 +921,13 @@ data class HealthReport(
                                     ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                             }
                         if (storageActualityOf(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                            circuitLog.warn(
+                                "probe=storage_mismatch bucket={} fileName={} local={} remote={}",
+                                storageBucketName,
+                                storageFileName,
+                                probeDescription(localInfo),
+                                probeDescription(remoteInfo),
+                            )
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = STORAGE_MISMATCH_PROBLEM_TEXT
@@ -1357,6 +1364,13 @@ data class HealthReport(
                                 storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
                             }
                         if (storageActualityOf(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                            circuitLog.warn(
+                                "probe=storage_mismatch bucket={} fileName={} local={} remote={}",
+                                storageBucketName,
+                                storageFileName,
+                                probeDescription(localInfo),
+                                probeDescription(remoteInfo),
+                            )
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = STORAGE_MISMATCH_PROBLEM_TEXT
@@ -3421,3 +3435,12 @@ internal fun storageActualityOf(
         (local as? StorageFileInfoProbe.Known)?.info,
         (remote as? StorageFileInfoProbe.Known)?.info,
     )
+
+/** 674: диагностика расхождения — какие именно probe-значения сравнивались. */
+internal fun probeDescription(probe: StorageFileInfoProbe?): String =
+    when (probe) {
+        null -> "null"
+        is StorageFileInfoProbe.Known -> "known(size=${probe.info.size}, etag=${probe.info.etag})"
+        is StorageFileInfoProbe.Missing -> "missing"
+        is StorageFileInfoProbe.Unknown -> "unknown(${probe.reason})"
+    }

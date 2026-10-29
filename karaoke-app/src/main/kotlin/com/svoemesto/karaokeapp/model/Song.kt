@@ -2278,7 +2278,7 @@ class Song(
         return Pair(
             listOf(
                 listOf("mkdir", "-p", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
-                listOf("chmod", "777", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
+                listOf("chmod", "775", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}/$tmpFileName.flac"),
                 listOf("docker", "run", "--rm") + cpuFlags +
                     listOf(
@@ -2289,7 +2289,7 @@ class Song(
                     ),
                 listOf(
                     "mv",
-                    "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/result_key_bpm_finder.json",
+                    "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}/result_key_bpm_finder.json",
                     pathToFileKeyBpmFinder.rightFileName(),
                 ),
                 listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
@@ -2319,7 +2319,7 @@ class Song(
                 listOf("mkdir", "-p", pathToResultedModel),
                 listOf("chmod", "777", pathToResultedModel),
                 listOf("mkdir", "-p", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
-                listOf("chmod", "777", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
+                listOf("chmod", "775", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName.flac"),
                 listOf("docker", "run", "--rm", "-i", "--name=demucs-${TupleScope.TOKEN}") + gpuFlags + cpuFlags +
                     listOf(
@@ -2355,7 +2355,7 @@ class Song(
                 listOf("mkdir", "-p", pathToResultedModel),
                 listOf("chmod", "777", pathToResultedModel),
                 listOf("mkdir", "-p", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
-                listOf("chmod", "777", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
+                listOf("chmod", "775", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName.flac"),
                 listOf("docker", "run", "--rm", "-i", "--name=demucs-${TupleScope.TOKEN}") + gpuFlags + cpuFlags +
                     listOf(

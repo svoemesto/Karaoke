@@ -3,7 +3,7 @@ id: 0007-adopt-knowledge-as-ssot
 title: "Принять knowledge/ как Single Source of Truth (Living Documentation v2)"
 status: Accepted
 supersedes: null
-superseded_by: null
+superseded_by: 0011-merge-docs-into-knowledge
 date: 2026-09-08
 modules:
   - documentation

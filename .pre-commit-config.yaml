@@ -337,7 +337,30 @@ repos:
         entry: python3 tools/check-doc-references.py
         language: system
         pass_filenames: false
-        files: '^(knowledge|docs|archive/docs)/.*\.md$'
+        files: '^(knowledge|archive/docs)/.*\.md$'
+        stages: [pre-commit]
+
+      # === Guard: второй слой документации (docs/) запрещён ===
+      # Слияние docs/ в knowledge/ (ADR-0011, FR-012, SC-001): knowledge/ —
+      # единственный слой проектной документации. Guard ловит возврат каталога
+      # docs/ и на диске, и среди отслеживаемых файлов.
+      - id: no-docs-dir
+        name: no docs/ directory (second documentation layer is forbidden)
+        entry: bash tools/check-no-docs-dir.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # === Guard: две копии CI-workflow содержат одинаковый набор гейтов ===
+      # .forgejo/ и .github/ — копии одного workflow; расхождение означает,
+      # что одна из копий проверяет меньше (FR-013).
+      - id: ci-workflow-sync
+        name: CI workflow copies are in sync (same gate set)
+        entry: bash tools/check-ci-workflow-sync.sh
+        language: system
+        pass_filenames: false
+        always_run: true
         stages: [pre-commit]
 
       # === Kotlin: @Value не должен терять плейсхолдер ===

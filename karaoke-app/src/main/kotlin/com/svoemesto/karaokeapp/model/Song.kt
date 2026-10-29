@@ -6816,7 +6816,7 @@ class Song(
                 val argsDescription: MutableList<String> = mutableListOf()
 
                 if (deleteOldBeforeCopy) {
-                    args.add(listOf("rm", destinationFilePathAndName))
+                    args.add(listOf("rm", "-f", destinationFilePathAndName))
                     argsDescription.add("Delete old file")
                 }
 

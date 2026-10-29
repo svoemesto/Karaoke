@@ -921,6 +921,13 @@ data class HealthReport(
                                     ?: StorageFileInfo(storageBucketName, storageFileName, "", -1L)
                             }
                         if (storageActualityOf(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                            circuitLog.warn(
+                                "probe=storage_mismatch bucket={} fileName={} local={} remote={}",
+                                storageBucketName,
+                                storageFileName,
+                                probeDescription(localInfo),
+                                probeDescription(remoteInfo),
+                            )
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = STORAGE_MISMATCH_PROBLEM_TEXT
@@ -1064,10 +1071,31 @@ data class HealthReport(
                             }
                         } else { // Файла нет в удалённом хранилище
 
-                            canBeResolved = false
-                            healthReportStatus = FATAL_ERROR
-                            problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
-                            solutionText = "Невозможно автоматически решить эту проблему. '$storageFileName'"
+                            // 674: если файла нет нигде, но его можно создать из родителя
+                            // (mp3 из flac, стем из источника), предлагаем создание, а не
+                            // «невозможно решить». После создания следующий пересчёт HR
+                            // покажет загрузку в хранилища.
+                            val typeToCreate = karaokeProcessTypesToCreate
+                            if (canCreate && typeToCreate != null) {
+                                canBeResolved = true
+                                healthReportStatus = ERROR
+                                problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
+                                solutionText = "Создать файл: $typeToCreate"
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        song = song,
+                                        action = typeToCreate,
+                                        doWait = true,
+                                        prior = 0,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                    )
+                                }
+                            } else {
+                                canBeResolved = false
+                                healthReportStatus = FATAL_ERROR
+                                problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
+                                solutionText = "Невозможно автоматически решить эту проблему. '$storageFileName'"
+                            }
                         }
                     }
                 }
@@ -1336,6 +1364,13 @@ data class HealthReport(
                                 storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
                             }
                         if (storageActualityOf(localInfo, remoteInfo) == StorageActuality.MISMATCH) {
+                            circuitLog.warn(
+                                "probe=storage_mismatch bucket={} fileName={} local={} remote={}",
+                                storageBucketName,
+                                storageFileName,
+                                probeDescription(localInfo),
+                                probeDescription(remoteInfo),
+                            )
                             healthReportStatus = WARNING
                             canBeResolved = false
                             problemText = STORAGE_MISMATCH_PROBLEM_TEXT
@@ -1476,10 +1511,29 @@ data class HealthReport(
                             }
                         } else { // Файла нет в удалённом хранилище
 
-                            canBeResolved = false
-                            healthReportStatus = FATAL_ERROR
-                            problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
-                            solutionText = "Невозможно автоматически решить эту проблему"
+                            // 674: файла нет нигде, но его можно создать из родителя — предлагаем
+                            // создание вместо «невозможно решить».
+                            val typeToCreate = karaokeProcessTypesToCreate
+                            if (canCreate && typeToCreate != null) {
+                                canBeResolved = true
+                                healthReportStatus = ERROR
+                                problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
+                                solutionText = "Создать файл: $typeToCreate"
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        song = song,
+                                        action = typeToCreate,
+                                        doWait = true,
+                                        prior = 0,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                    )
+                                }
+                            } else {
+                                canBeResolved = false
+                                healthReportStatus = FATAL_ERROR
+                                problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
+                                solutionText = "Невозможно автоматически решить эту проблему"
+                            }
                         }
                     }
                 }
@@ -3381,3 +3435,12 @@ internal fun storageActualityOf(
         (local as? StorageFileInfoProbe.Known)?.info,
         (remote as? StorageFileInfoProbe.Known)?.info,
     )
+
+/** 674: диагностика расхождения — какие именно probe-значения сравнивались. */
+internal fun probeDescription(probe: StorageFileInfoProbe?): String =
+    when (probe) {
+        null -> "null"
+        is StorageFileInfoProbe.Known -> "known(size=${probe.info.size}, etag=${probe.info.etag})"
+        is StorageFileInfoProbe.Missing -> "missing"
+        is StorageFileInfoProbe.Unknown -> "unknown(${probe.reason})"
+    }

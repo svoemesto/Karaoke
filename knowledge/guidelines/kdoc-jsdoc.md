@@ -153,34 +153,34 @@ KDoc. Список для следующих итераций.
 
 ### karaoke-app (P1)
 
-- [x] `KaraokeProcessWorker` (`KaraokeProcessWorker.kt`) — главный воркер ✅ 2026-07-20
-- [x] `KaraokeProcessThread` (класс в `KaraokeProcessWorker.kt`) — обёртка subprocess ✅ 2026-07-20
-- [x] `Song` (`model/Song.kt`, переименовано из `Settings`/`Settings.kt` — specs/011-album-song-rename) — главная сущность ✅ 2026-07-20
-- [x] `Settings.loadListFromDb` / `Settings.saveToDb` — критичные методы ✅ 2026-07-20
-- [x] `KaraokeDbTable.save` / `KaraokeDbTable.loadList` — reflection-loader ✅ 2026-07-20
-- [x] `Connection.local` / `Connection.remote` / `Connection.virtual` — фабрики БД ✅ 2026-07-20
-- [x] `SyncTarget<T>` (`sync/SyncTarget.kt`) — generic sync ✅ 2026-07-20
-- [x] `MltGenerator.generate` (`mlt/MltGenerator.kt`) — генератор MLT ✅ 2026-07-20
-- [x] `SseNotificationService.send` (`services/SseNotificationService.kt`) — broadcast/adress ✅ 2026-07-20
-- [x] `LyricsFinderService.findLyrics` (`llm/LyricsFinderService.kt`) ✅ 2026-07-20
-- [x] `KaraokeStorageService.upload` (`services/KaraokeStorageService.kt`) ✅ 2026-07-20
-- [x] `MonitoringService.run` (`monitor/MonitoringService.kt`) ✅ 2026-07-20
-- [x] `MainController` (`controllers/MainController.kt`) — базовый KDoc ✅ 2026-07-20
+- [x] `KaraokeProcessWorker` (`KaraokeProcessWorker.kt`) — главный воркер — 2026-07-20
+- [x] `KaraokeProcessThread` (класс в `KaraokeProcessWorker.kt`) — обёртка subprocess — 2026-07-20
+- [x] `Song` (`model/Song.kt`, переименовано из `Settings`/`Settings.kt` — specs/011-album-song-rename) — главная сущность — 2026-07-20
+- [x] `Settings.loadListFromDb` / `Settings.saveToDb` — критичные методы — 2026-07-20
+- [x] `KaraokeDbTable.save` / `KaraokeDbTable.loadList` — reflection-loader — 2026-07-20
+- [x] `Connection.local` / `Connection.remote` / `Connection.virtual` — фабрики БД — 2026-07-20
+- [x] `SyncTarget<T>` (`sync/SyncTarget.kt`) — generic sync — 2026-07-20
+- [x] `MltGenerator.generate` (`mlt/MltGenerator.kt`) — генератор MLT — 2026-07-20
+- [x] `SseNotificationService.send` (`services/SseNotificationService.kt`) — broadcast/adress — 2026-07-20
+- [x] `LyricsFinderService.findLyrics` (`llm/LyricsFinderService.kt`) — 2026-07-20
+- [x] `KaraokeStorageService.upload` (`services/KaraokeStorageService.kt`) — 2026-07-20
+- [x] `MonitoringService.run` (`monitor/MonitoringService.kt`) — 2026-07-20
+- [x] `MainController` (`controllers/MainController.kt`) — базовый KDoc — 2026-07-20
 - [ ] **Pass 2**: ручной KDoc для Settings, KaraokeProcessWorker, SyncTarget,
   MLT-генератор (заменить авто-генерацию на качественный)
 
 ### karaoke-web (P2)
 
-- [x] `MainController.main` (`karaoke-web/controllers/MainController.kt`) ✅ 2026-07-20
-- [x] `PublicApiController.stats` (`karaoke-web/controllers/PublicApiController.kt`) ✅ 2026-07-20
-- [x] `PublicPlayerController.stemsReady` (`karaoke-web/controllers/PublicPlayerController.kt`) ✅ 2026-07-20
+- [x] `MainController.main` (`karaoke-web/controllers/MainController.kt`) — 2026-07-20
+- [x] `PublicApiController.stats` (`karaoke-web/controllers/PublicApiController.kt`) — 2026-07-20
+- [x] `PublicPlayerController.stemsReady` (`karaoke-web/controllers/PublicPlayerController.kt`) — 2026-07-20
 
 ### webvue3 (P2)
 
-- [x] `SongsTable.vue` — главная таблица ✅ 2026-07-20
-- [x] `Songs/store.js` — Vuex-модуль песен ✅ 2026-07-20
-- [x] `SyncTable.vue` — sync UI ✅ 2026-07-20
-- [x] `SitePlaylistsTable.vue` ✅ 2026-07-20
+- [x] `SongsTable.vue` — главная таблица — 2026-07-20
+- [x] `Songs/store.js` — Vuex-модуль песен — 2026-07-20
+- [x] `SyncTable.vue` — sync UI — 2026-07-20
+- [x] `SitePlaylistsTable.vue` — 2026-07-20
 - [ ] `AuthorsTable.vue`, `PicturesTable.vue`, `ProcessesTable.vue`
 - [ ] `SiteUsersTable.vue`, `DictionariesTable.vue`
 - [ ] `StatsView.vue` — статистика
@@ -188,8 +188,8 @@ KDoc. Список для следующих итераций.
 
 ### karaoke-public (P3)
 
-- [x] `HomeView.vue` — главная страница ✅ 2026-07-20
-- [x] `PlayerView.vue` — караоке-плеер ✅ 2026-07-20
+- [x] `HomeView.vue` — главная страница — 2026-07-20
+- [x] `PlayerView.vue` — караоке-плеер — 2026-07-20
 - [ ] `SongView.vue` — страница песни
 - [ ] Composables: реальные файлы — `karaoke-public/src/composables/useAuthBootstrap.js`, `usePlayerAccess.js`, `usePlaylistPlayer.js`, `usePlayerReadiness.js`, `useShareLink.js`; в `webvue3/src/composables/` — `useKaraokeEditor.js`
 

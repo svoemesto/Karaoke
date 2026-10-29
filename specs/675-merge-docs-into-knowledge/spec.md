@@ -61,7 +61,7 @@
 - [`knowledge/templates/adr.md`](../../knowledge/templates/adr.md) — формат нового ADR; [`knowledge/templates/component.md`](../../knowledge/templates/component.md) — профиль A; [`knowledge/templates/README.md`](../../knowledge/templates/README.md) — правила шаблонов и lint-policy.
 - [`knowledge/guidelines/runbooks/README.md`](../../knowledge/guidelines/runbooks/README.md) — формат runbook'а («How to: …», Контекст / Шаги / Проверка / Rollback); целевой каталог для `docs/ops/`.
 - [`knowledge/guidelines/README.md`](../../knowledge/guidelines/README.md) — индекс guidelines; уже запланирован перенос гайда по KDoc/JSDoc из `docs/api/README.md`.
-- [`knowledge/system/infra/per-feature-docs.md`](../../knowledge/system/infra/per-feature-docs.md) — устаревший каталог per-feature документов (7 вместо 65) — удаляется.
+- `knowledge/system/infra/per-feature-docs.md` (прочитан 2026-10-29 до миграции; после слияния — [`knowledge/product/README.md`](../../knowledge/product/README.md)) — устаревший каталог per-feature документов (7 вместо 65) — удаляется.
 - [`knowledge/system/infra/governance-docs.md`](../../knowledge/system/infra/governance-docs.md) — каталог governance-документов с 10 несуществующими ссылками — переписывается.
 - [`knowledge/system/infra/tracker.md`](../../knowledge/system/infra/tracker.md) — источник деталей по трекеру; `docs/tracker-setup.md` становится runbook'ом.
 - [`knowledge/domains/catalog/components/audio-descendant-sync.md`](../../knowledge/domains/catalog/components/audio-descendant-sync.md), [`knowledge/system/frontend/target-request-guard.md`](../../knowledge/system/frontend/target-request-guard.md) — зеркала мост-файлов, которые удаляются.

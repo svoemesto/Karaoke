@@ -40,6 +40,8 @@
 | Уникальных BR-кодов в слое `docs/features/` | **510** (в 43 файлах из 65) |
 | Из них в 18 файлах `pkg-*.md` | 385 |
 | Из них только в остальных 47 файлах (8 продуктовых документов + 5 мост-файлов + прочие) | **125** |
+| Кодов, встречающихся только в `knowledge/` (не в слое `docs/features/`) — § 6 | **41** |
+| Зарегистрировано в реестре всего | **551** |
 | Кодов с зеркалом в `knowledge/` | **248** |
 | Кодов без зеркала (список в § 5) | **262** |
 | Пакетов аудита #336 (карточки в § 4) | **37** |
@@ -1133,4 +1135,56 @@
 - **PKG-S3-20**: BR-489, BR-490
 
 - **PKG-S3-30**: BR-573, BR-575, BR-576, BR-577, BR-579, BR-580, BR-582, BR-583, BR-585, BR-586, BR-596, BR-597, BR-598, BR-600, BR-603, BR-604, BR-606, BR-607, BR-608, BR-609, BR-610, BR-612, BR-613, BR-614
+
+## 6. Коды аудита, встречающиеся только в `knowledge/`
+
+Эти коды были найдены аудитом #336 (и связанными аудитами), но **никогда не
+были в слое `docs/features/`** — они жили и живут только в компонентах домена,
+ADR и guidelines. Реестр § 3 собирался из слоя `docs/features/`, поэтому они в
+него не попали; FR-015 требует, чтобы код, упомянутый в `knowledge/`, был
+зарегистрирован. Зеркало у всех — они встречаются в `knowledge/`.
+
+| Код | Зеркало | Суть (по первому упоминанию) | Упоминаний |
+|---|---|---|---|
+| BR-006 | [adr/local-0009-thread-local-connection-lifecycle.md](../../adr/local-0009-thread-local-connection-lifecycle.md) | &#124; BR-006 &#124; karaoke-web/.../EventsBuffer.kt &#124; connection.close() в finally (поток Tomcat / @Scheduled) &#124; закрытия нет — кеш потока сохранён &#124; | 5 |
+| BR-027 | [adr/local-0009-thread-local-connection-lifecycle.md](../../adr/local-0009-thread-local-connection-lifecycle.md) | &#124; BR-027 &#124; karaoke-web/.../PublicSettingsWebController.kt &#124; connection.close() в finally (поток Tomcat) &#124; закрытия нет — кеш потока сохранён &#124; | 3 |
+| BR-038 | [adr/local-0009-thread-local-connection-lifecycle.md](../../adr/local-0009-thread-local-connection-lifecycle.md) | &#124; BR-038 &#124; karaoke-app/.../KaraokeProcessWorker.kt &#124; поток очереди doStart не закрывал соединение &#124; startOneShotThread → закрытие в finally &#124; | 4 |
+| BR-060 | [adr/local-0009-thread-local-connection-lifecycle.md](../../adr/local-0009-thread-local-connection-lifecycle.md) | &#124; BR-060 &#124; karaoke-app/.../ApiController.kt (+ SyncAudioDescendants, Utils) &#124; 12 сырых thread { … } без закрытия &#124; startOneShotThread → закрытие в fin | 3 |
+| BR-115 | [domains/catalog/components/pictures.md](../../domains/catalog/components/pictures.md) | 644, каталог публикации — 755 (BR-115, OpenProject #407). Раньше было | 2 |
+| BR-116 | [adr/local-0009-thread-local-connection-lifecycle.md](../../adr/local-0009-thread-local-connection-lifecycle.md) | &#124; BR-116 &#124; karaoke-app/.../ChatController.kt &#124; db.getConnection()?.close() в finally (поток Tomcat) &#124; закрытия нет — кеш потока сохранён &#124; | 3 |
+| BR-150 | [domains/integration/domain.md](../../domains/integration/domain.md) | под локом, — иначе два параллельных вызова публиковали дубли (BR-150) | 1 |
+| BR-151 | [domains/integration/domain.md](../../domains/integration/domain.md) | runCatching (BR-151, BR-152) | 1 |
+| BR-152 | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | runCatching (BR-151, BR-152) | 3 |
+| BR-153 | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | VkNetworkException — так же, как в прямой ветке (BR-153) | 3 |
+| BR-155 | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | &#124; BR-149…BR-153, BR-155…BR-160 &#124; PkgS323Batch2SourceContractsTest, PkgS323Batch3SourceContractsTest &#124; | 1 |
+| BR-170 | [domains/health/domain.md](../../domains/health/domain.md) | (FR-012) (BR-170) | 3 |
+| BR-179 | [domains/catalog/domain.md](../../domains/catalog/domain.md) | не выглядит как NPE. BR-179 | 1 |
+| BR-181 | [domains/catalog/domain.md](../../domains/catalog/domain.md) | имени — иначе у проигравшей песни не появлялась обложка. BR-181 | 2 |
+| BR-183 | [domains/catalog/domain.md](../../domains/catalog/domain.md) | ручное экранирование в вызывающих запрещено. BR-183 | 2 |
+| BR-184 | [domains/persistence/domain.md](../../domains/persistence/domain.md) | create-or-get, где пустой список приводил к созданию дубликата. BR-184 | 2 |
+| BR-186 | [domains/catalog/domain.md](../../domains/catalog/domain.md) | а не по SELECT'у на автора. BR-186 | 1 |
+| BR-190 | [domains/editorial/domain.md](../../domains/editorial/domain.md) | BR-190 | 1 |
+| BR-191 | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | ### Формат даты и времени публикации (BR-191, аудит #336, пакет PKG-S3-24) | 2 |
+| BR-194 | [domains/identity/components/dictionaries.md](../../domains/identity/components/dictionaries.md) | ### Флаг приветственного сообщения премиума (BR-194, аудит #336, пакет PKG-S3-24) | 1 |
+| BR-196 | [domains/editorial/domain.md](../../domains/editorial/domain.md) | (StatsByEvents.normalizeStatsPaging). BR-196 | 1 |
+| BR-198 | [domains/processing/domain.md](../../domains/processing/domain.md) | проходят вместе. BR-198 | 2 |
+| BR-247 | [domains/processing/components/karaoke-properties.md](../../domains/processing/components/karaoke-properties.md) | (encodePropertiesMap()); после записи файл имеет права 600 (BR-247, #407) | 2 |
+| BR-283 | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | &#124; BR-283 &#124; Ошибка удаления объекта из REMOTE гасилась println внутри лямбды — UI показывал «исправлено», объект оставался &#124; deleteRemoteFileOrThrow: S | 2 |
+| BR-284 | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | &#124; BR-284 &#124; Исключение в одном действии обрывало весь каскад: остальные действия не выполнялись, финальный пересчёт и SSE не уходили &#124; Каждое действие  | 4 |
+| BR-288 | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | &#124; BR-288 &#124; karaoke-app/.../CacheEtagSizeBackfill.kt &#124; Ошибка выборки строк кеша пробрасывается (SSE error), а не превращается в пустой список с сообще | 1 |
+| BR-290 | [domains/rendering/components/mlt-generator.md](../../domains/rendering/components/mlt-generator.md) | ### Голос без непустых по времени линий (BR-290, #398) | 1 |
+| BR-291 | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | &#124; infra.crypto.config &#124; karaoke-app/.../services/KaraokeAppService.kt (cryptoLog) &#124; Проверка конфигурации AES при старте: неверная длина CRYPTO_AES_KE | 2 |
+| BR-292 | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | &#124; infra.converter &#124; karaoke-app/.../Converter.kt (converterLog) &#124; Разбор настроек голосов/цветов/шрифтов: усечённая строка настройки, поле без значени | 2 |
+| BR-315 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | &#124; karaoke-public/src/utils/__tests__/requestGuard.test.js &#124; BR-300, BR-315, BR-321: поколения запросов &#124; | 1 |
+| BR-334 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | &#124; karaoke-public/src/utils/__tests__/loadState.test.js &#124; BR-318, BR-322, BR-323, BR-334, BR-341, BR-343, BR-346: «пусто» ≠ «ошибка» &#124; | 1 |
+| BR-341 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | &#124; karaoke-public/src/utils/__tests__/loadState.test.js &#124; BR-318, BR-322, BR-323, BR-334, BR-341, BR-343, BR-346: «пусто» ≠ «ошибка» &#124; | 1 |
+| BR-343 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | &#124; karaoke-public/src/utils/__tests__/loadState.test.js &#124; BR-318, BR-322, BR-323, BR-334, BR-341, BR-343, BR-346: «пусто» ≠ «ошибка» &#124; | 1 |
+| BR-344 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | &#124; karaoke-public/src/utils/__tests__/searchPagination.test.js &#124; BR-344, BR-345: восстановление среза и разные флаги ошибок &#124; | 1 |
+| BR-345 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | &#124; karaoke-public/src/utils/__tests__/searchPagination.test.js &#124; BR-344, BR-345: восстановление среза и разные флаги ошибок &#124; | 1 |
+| BR-524 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | Решения, зафиксированные BR-524 и BR-525 | 2 |
+| BR-525 | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | Решения, зафиксированные BR-524 и BR-525 | 2 |
+| BR-540 | [domains/persistence/domain.md](../../domains/persistence/domain.md) | Инварианты формулы (аудит #336, BR-540/541/553/533, OpenProject #363) | 2 |
+| BR-551 | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | ### Секреты не передаются через argv (BR-551/BR-552/BR-605, OpenProject #382) | 4 |
+| BR-571 | [system/infra/do-sh.md](../../system/infra/do-sh.md) | ## Guard деплой-пути: tools/check-do-sh-guards.sh (OpenProject #379, BR-571) | 1 |
+| BR-628 | [system/infra/sql-migrations.md](../../system/infra/sql-migrations.md) | &#124; 57 &#124; authors_unique_author &#124; UNIQUE-индекс на tbl_authors.author (BR-628) &#124; | 1 |
 

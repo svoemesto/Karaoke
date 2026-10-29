@@ -353,6 +353,17 @@ repos:
         stages: [pre-commit]
 
       # === Guard: две копии CI-workflow содержат одинаковый набор гейтов ===
+      # === Guard: реестр аудита #336 соответствует knowledge/ ===
+      # FR-015: код, упомянутый в knowledge/, обязан быть в реестре, а код из
+      # реестра — иметь зеркало или быть помеченным «без зеркала».
+      - id: audit-registry
+        name: audit registry matches knowledge (BR codes)
+        entry: python3 tools/check-audit-registry.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # .forgejo/ и .github/ — копии одного workflow; расхождение означает,
       # что одна из копий проверяет меньше (FR-013).
       - id: ci-workflow-sync

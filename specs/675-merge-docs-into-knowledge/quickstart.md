@@ -96,9 +96,10 @@ python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-l
 ```bash
 cd /home/nsa/Karaoke
 
-# 4.1. Уникальных BR-кодов в реестре — 510
+# 4.1. Уникальных BR-кодов в реестре — 551
+#     (510 из слоя docs/features/ + 41, встречающихся только в knowledge/ — § 6)
 grep -ohE "\bBR-[0-9]+\b" knowledge/system/infra/audit-336-registry.md | sort -u | wc -l
-# ожидается: 510
+# ожидается: 551
 
 # 4.2. Guard «BR-код ↔ компонент»
 python3 tools/check-audit-registry.py

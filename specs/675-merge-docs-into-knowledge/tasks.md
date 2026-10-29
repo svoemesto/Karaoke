@@ -224,16 +224,16 @@ KARAOKE-324 § 5, подтверждено владельцем 2026-10-29).
 
 ### Tests for User Story 4 (обязательны — FR-015)
 
-- [ ] T068 [P] [US4] Создать фикстуры `tools/fixtures/audit-registry/orphan-code/` (компонент с `BR-999`, которого нет в реестре), `tools/fixtures/audit-registry/lost-code/` (код в реестре, отсутствующий в `knowledge/` и не помеченный «без зеркала»), `tools/fixtures/audit-registry/consistent/` (код в реестре + код в компоненте + помеченный «без зеркала»)
-- [ ] T069 [US4] Реализовать `tools/check-audit-registry.py` — CLI-контракт [contracts/guards.md C3](./contracts/guards.md): правило A «BR-код в `knowledge/**` (кроме реестра) есть в реестре», правило B «код реестра есть в `knowledge/**` либо помечен «без зеркала»»; коды 0 / 1 / 2
+- [x] T068 [P] [US4] Создать фикстуры `tools/fixtures/audit-registry/orphan-code/` (компонент с `BR-999`, которого нет в реестре), `tools/fixtures/audit-registry/lost-code/` (код в реестре, отсутствующий в `knowledge/` и не помеченный «без зеркала»), `tools/fixtures/audit-registry/consistent/` (код в реестре + код в компоненте + помеченный «без зеркала»)
+- [x] T069 [US4] Реализовать `tools/check-audit-registry.py` — CLI-контракт [contracts/guards.md C3](./contracts/guards.md): правило A «BR-код в `knowledge/**` (кроме реестра) есть в реестре», правило B «код реестра есть в `knowledge/**` либо помечен «без зеркала»»; коды 0 / 1 / 2
 
 ### Implementation for User Story 4
 
-- [ ] T070 [US4] Подключить guard «BR-код ↔ компонент» в оба workflow: `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — джоб структуры Knowledge
-- [ ] T071 [US4] Подключить guard в `.pre-commit-config.yaml` — hook `audit-registry`
-- [ ] T072 [US4] Проверка фикстур: `python3 tools/check-audit-registry.py --root tools/fixtures/audit-registry/orphan-code` → код 1; `--root .../lost-code` → код 1; `--root .../consistent` → код 0
-- [ ] T073 [US4] Сверить инвентарь: `grep -ohE "\bBR-[0-9]+\b" knowledge/system/infra/audit-336-registry.md | sort -u | wc -l` = 510 (SC-002); перепроверить, что BR-258, BR-541, BR-601 присутствуют (FR-018)
-- [ ] T074 [US4] Проверка US4: `python3 tools/check-audit-registry.py` (на реальном дереве) — код 0; [quickstart.md § 4](./quickstart.md) — коды 0
+- [x] T070 [US4] Подключить guard «BR-код ↔ компонент» в оба workflow: `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — джоб структуры Knowledge
+- [x] T071 [US4] Подключить guard в `.pre-commit-config.yaml` — hook `audit-registry`
+- [x] T072 [US4] Проверка фикстур: `python3 tools/check-audit-registry.py --root tools/fixtures/audit-registry/orphan-code` → код 1; `--root .../lost-code` → код 1; `--root .../consistent` → код 0
+- [x] T073 [US4] Сверить инвентарь: `grep -ohE "\bBR-[0-9]+\b" knowledge/system/infra/audit-336-registry.md | sort -u | wc -l` = **551** (510 из слоя `docs/features/` — SC-002 + 41 код, встречающихся только в `knowledge/`, § 6 реестра); перепроверить, что BR-258, BR-541, BR-601 присутствуют (FR-018)
+- [x] T074 [US4] Проверка US4: `python3 tools/check-audit-registry.py` (на реальном дереве) — код 0; [quickstart.md § 4](./quickstart.md) — коды 0
 
 **Checkpoint**: US4 полностью функциональна — ни один BR-код не потерян.
 

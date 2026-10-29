@@ -686,6 +686,12 @@ jobs:
         # domain.md файлах.
         run: bash tools/check-knowledge-structure.sh
 
+      - name: Check audit registry (BR-код ↔ компонент)
+        # Реестр аудита #336 — единственный носитель BR-кодов. Guard проверяет:
+        # код, упомянутый в knowledge/, обязан быть в реестре, а код из реестра —
+        # иметь зеркало или быть помеченным «без зеркала» (FR-015).
+        run: python3 tools/check-audit-registry.py
+
       - name: Check no legacy tbl_settings references
         # Прецедент (Pass 369, 2026-09-11): агент в specs/369 взял имя
         # таблицы `tbl_settings` из устаревших recordhash-файлов, не

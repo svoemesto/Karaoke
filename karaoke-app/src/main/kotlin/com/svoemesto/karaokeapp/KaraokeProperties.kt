@@ -2657,12 +2657,9 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "queue.integrity.enabled",
             defaultValue = false,
-            description = "Ежедневная проверка целостности артефактов (report-only) (674, FR-014)",
-        ),
-        KaraokeProperty(
-            key = "queue.integrity.cron",
-            defaultValue = "0 0 4 * * *",
-            description = "Cron ежедневной проверки целостности артефактов (674, FR-014)",
+            description =
+                "Ежедневная проверка целостности артефактов (report-only; 674, FR-014). " +
+                    "Расписание — Spring-свойство karaoke.integrity.cron, по умолчанию 0 0 4 * * *",
         ),
         // specs/544-song-artifact-cleanup: флаги автоуборки артефактов песни (FR-011).
         // cleanupEnabled=false по умолчанию — поведение идентично сегодняшнему, пока

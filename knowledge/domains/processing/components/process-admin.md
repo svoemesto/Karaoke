@@ -176,3 +176,7 @@ Sync для маленьких объов (до 100), async для больши�
 (оконные агрегаты по `process_chain_id`, без N+1). Retry `ERROR`-шага кортежа переводит в
 `WAITING` все `ERROR`-шаги кортежа и восстанавливает приоритет головы — одной транзакцией
 (`inTransaction`, BR-168).
+
+Ежедневная проверка целостности включается `queue.integrity.enabled` (KaraokeProperties, по умолчанию
+false), расписание — Spring-свойство `karaoke.integrity.cron` (`0 0 4 * * *`); отдельного ключа
+`queue.integrity.cron` нет.

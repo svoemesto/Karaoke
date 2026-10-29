@@ -48,11 +48,14 @@
 - T046/T047/T062/T063 — ремонт и e2e на 8 песнях, замер SC-006: нужен стенд с копиями и отдельной БД.
 - T054 — ручная проверка админки в браузере (UI собран, но стенд не поднимался).
 
+Пошаговый список для стендового прогона — `specs/674-kortege-execution/stand-checklist.md`.
+
 ## Отклонения
 
 - `PkgS325Batch2SourceContractsTest` (BR-260) обновлён под `createChain` (инварианты сохранены).
-- `ArtifactIntegrityScheduler`: cron через Spring-свойство `karaoke.integrity.cron`, включение —
-  `queue.integrity.enabled`; скан — песни с DONE-процессами DEMUCS/KEY_BPM.
+- `ArtifactIntegrityScheduler`: включение — `queue.integrity.enabled`, расписание — Spring-свойство
+  `karaoke.integrity.cron` (единственный ключ cron; `queue.integrity.cron` из KaraokeProperties удалён);
+  скан — песни с DONE-процессами DEMUCS/KEY_BPM.
 - `SidecarBackfillService` — дополнительный эндпоинт сверх исходного tasks.md (следствие риска
   легаси без отпечатка), спека не менялась.
 - `deleteDone` сохранён по имени (семантика purge).

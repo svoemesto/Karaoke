@@ -590,7 +590,7 @@ jobs:
             --exclude-mail
             --accept 200,203,206,301,302,303,304,307,308,403,429
             knowledge/product/features/
-            archive/docs/features/
+            knowledge/
             CONTRIBUTING.md
 
       - name: Check per-feature doc structure

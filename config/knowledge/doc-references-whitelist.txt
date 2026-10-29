@@ -69,9 +69,3 @@ archive/docs/features/songs-table.md	path	songs2.html	archived-record
 archive/docs/features/songs-table.md	path	area_left_column.html	archived-record
 knowledge/system/infra/harbor-registry.md	endpoint	/api/v2.0/projects	external-not-api
 knowledge/system/infra/ci-tools.md	path	start.sh	host-path
-archive/docs/features/README.md	link	../../../docs/architecture-notes.md	archived-record
-archive/docs/features/guest-share-link.md	link	../../../docs/architecture-notes.md	archived-record
-archive/docs/features/news-publish-backfill.md	link	../../../docs/architecture-notes.md	archived-record
-archive/docs/features/seo-html-for-bots.md	link	../../../docs/architecture-notes.md	archived-record
-archive/docs/features/site-traffic-resilience.md	link	../../../docs/architecture-notes.md	archived-record
-archive/docs/features/zakroma-stream-progress.md	link	../../../docs/architecture-notes.md	archived-record

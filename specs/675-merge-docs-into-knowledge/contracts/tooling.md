@@ -141,14 +141,23 @@ bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/fea
 | Скрипт | `tools/verify-doc-links.sh` |
 |---|---|
 | Было | `TARGETS=("docs/features/" "CONTRIBUTING.md" "docs/")` |
-| Стало | `TARGETS=("knowledge/product/features/" "CONTRIBUTING.md")` |
+| Стало | `TARGETS=("knowledge/product/features/" "knowledge/" "CONTRIBUTING.md")` |
+
+Перевод таргетов — один-в-один, по смыслу каждого:
+
+| Было | Стало | Почему |
+|---|---|---|
+| `docs/features/` | `knowledge/product/features/` | продуктовая ветка переехала |
+| `docs/` (весь слой документации) | `knowledge/` (весь SSoT-слой) | «слой целиком → слой целиком»; при этом охват вырос — нашлись 2 реальные битые ссылки с неверной глубиной (`knowledge/guidelines/code-style.md`, `knowledge/public/onboarding.md`), обе починены |
+| `CONTRIBUTING.md` | `CONTRIBUTING.md` | без изменений |
 
 **Инварианты**
 
 | # | Инвариант |
 |---|---|
 | T-14 | Каталог `docs/` из таргетов убирается — иначе lychee будет проверять несуществующий путь |
-| T-15 | Обе копии workflow получают одинаковый набор таргетов lychee |
+| T-15 | Обе копии workflow получают **тот же** набор таргетов, что и дефолт скрипта: `knowledge/product/features/`, `knowledge/`, `CONTRIBUTING.md`. Архивный слой (`archive/docs/features/`) из проверки ссылок убран — он вне скоупа карты, его структуру проверяет отдельный джоб `check-feature-doc.sh` по `archive/docs/features/*.md` |
+| T-15a | Исключение lychee `--exclude 'knowledge/templates/components/'` — ровно одна иллюстративная ссылка в шаблоне `knowledge/templates/domain.md` (файла-примера `components/component-name.md` не существует by design; аналог reason `illustrative` в whitelist'е `check-doc-references.py`). Широкий шаблон `knowledge/templates/` не применяется: он маскировал бы ещё 12 живых ссылок на реальные файлы шаблонов |
 
 ---
 

@@ -1,0 +1,22 @@
+name: one-karaoke-public-unit-tests
+'on':
+  workflow_dispatch: {}
+jobs:
+  karaoke-public-unit-tests:
+    name: unit tests (karaoke-public)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - name: Checkout
+      uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+    - name: Setup Node 22 (LTS)
+      uses: https://data.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22.23.4
+        cache: npm
+        cache-dependency-path: karaoke-public/package-lock.json
+    - name: npm ci (clean install)
+      working-directory: karaoke-public
+      run: npm ci --no-audit --no-fund
+    - name: node --test
+      run: cd karaoke-public && npm run test:unit

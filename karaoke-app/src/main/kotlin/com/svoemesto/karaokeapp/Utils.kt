@@ -4612,7 +4612,7 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
         val prep =
             listOf(
                 listOf("mkdir", "-p", scopedTmp),
-                listOf("chmod", "777", scopedTmp),
+                listOf("chmod", "775", scopedTmp),
                 listOf("cp", song.fileAbsolutePath.rightFileName(), "$scopedTmp/file.flac"),
             )
         val retryProcess = KaraokeProcess(song.database)

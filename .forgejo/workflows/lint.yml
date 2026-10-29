@@ -602,13 +602,13 @@ jobs:
         # не ловились (BR-510, P-78-04).
         run: bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md
 
-      - name: Guard: каталога docs/ нет
+      - name: "Guard: каталога docs/ нет"
         # Второй слой проектной документации запрещён: knowledge/ — единственный
         # слой проектной документации (ADR-0011, FR-012, SC-001).
         # Проверяются и отслеживаемые файлы в docs/, и сам каталог на диске.
         run: bash tools/check-no-docs-dir.sh
 
-      - name: Guard: синхронность двух копий workflow
+      - name: "Guard: синхронность двух копий workflow"
         # .forgejo/ и .github/ обязаны содержать одинаковый набор гейтовых
         # команд — иначе одна из копий проверяет меньше (FR-013, SC-005).
         run: bash tools/check-ci-workflow-sync.sh

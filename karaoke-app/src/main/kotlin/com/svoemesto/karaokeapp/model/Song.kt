@@ -2289,7 +2289,7 @@ class Song(
                     ),
                 listOf(
                     "mv",
-                    "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/result_key_bpm_finder.json",
+                    "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}/result_key_bpm_finder.json",
                     pathToFileKeyBpmFinder.rightFileName(),
                 ),
                 listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),

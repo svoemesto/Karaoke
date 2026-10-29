@@ -548,18 +548,18 @@ jobs:
             --exclude-loopback
             --exclude-mail
             --accept 200,203,206,301,302,303,304,307,308,403,429
-            docs/features/
+            knowledge/product/features/
             archive/docs/features/
             CONTRIBUTING.md
 
       - name: Check per-feature doc structure
         # 6 обязательных секций + slug == имя файла + Status ∈ {active, deprecated, experimental}.
         # Подробности: contracts/per-feature-doc.md, tools/check-feature-doc.sh.
-        # Проверяются ОБА каталога — живые документы (docs/features/) и
+        # Проверяются ОБА каталога — живые документы (knowledge/product/features/) и
         # архив (archive/docs/features/). Раньше CI проверял только один
         # каталог, поэтому нарушения FR-009 в живых per-feature документах
         # не ловились (BR-510, P-78-04).
-        run: bash tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md
+        run: bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md
 
   # === Baseline stats (informational) ===
   # Не валит CI. Публикует текущие счётчики baseline как summary —

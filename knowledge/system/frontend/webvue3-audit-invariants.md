@@ -397,6 +397,31 @@ secure context (https или localhost) и может быть отклонён 
 переехал — кнопка «Скопировать» молча не работала там, где Clipboard API
 недоступен или отклонён.
 
+### 35. Поле, которое UI шлёт, бэкенд обязан принимать — и это проверяется
+
+Симптом класса багов (фикс #52 OpenProject): редактор правит поле «Censored» в
+`SongEdit.vue`, видит тост «Изменения сохранены», но после перезагрузки значение
+не сохранилось. Root cause: на UI было `v-model="song.songNameCensored"`, а в
+`ApiController.songs2Update` не оказалось соответствующего `@RequestParam
+songNameCensored` — Spring Web **молча** отбрасывает неизвестный query-параметр.
+
+Защита от целого класса багов (UI шлёт X — бэкенд не принимает):
+
+- **Контракт приёма**: `ApiController.songs2Update` принимает параметры
+  централизованно, а не поштучным списком `@RequestParam`; отсутствие ключа в
+  `Map<String, String>` трактуется как «не менять поле» (эквивалент
+  `@RequestParam(required = false)`); пустая строка (`""`) — **явная** перезапись
+  значения; нестроковый параметр с невалидным значением → HTTP 400
+  «Invalid value for param X: … is not a number».
+- **Покрытие UI↔backend**: каждое `v-model="song.X"` в `SongEdit.vue` покрыто
+  `fieldLookup`, `directSetters`, `specialCaseKeys` или обоснованным
+  whitelist-исключением. Guard `tools/check-songedit-field-coverage.sh` завершается
+  `OK: N/N полей покрыты` и подключён в pre-commit и CI.
+- **Покрытие endpoint-пар**: `tools/check-endpoint-field-coverage.sh` проверяет все
+  пары из `tools/endpoint-pairs.yml`.
+- Baseline-механизм автозаполнения `song_name_censored` (через
+  `songName.censored(database)` при пустом значении) сохранён в маппере.
+
 ## Зависимости
 
 - $\rightarrow$ `frontend/vuex-patterns.md` — контракт мутаций и actions.

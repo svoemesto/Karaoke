@@ -322,10 +322,10 @@ repos:
       # ни локально, ни в CI (BR-510, P-78-04).
       - id: check-feature-doc
         name: check per-feature document structure
-        entry: bash -c './tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md'
+        entry: bash -c './tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md'
         language: system
         pass_filenames: false
-        files: '^(archive/)?docs/features/.*\.md$'
+        files: '^(knowledge/product/features|archive/docs/features)/.*\.md$'
         stages: [pre-commit]
 
       # === Markdown: ссылки и упоминания файлов/эндпоинтов в текущей документации ===

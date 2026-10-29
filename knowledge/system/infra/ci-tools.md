@@ -411,8 +411,10 @@ CI исполняется раннером вне DSH, поэтому в спи�
   приёмки и вендоринга.
 - **[do-sh.md](do-sh.md)** — `deploy/do.sh` и её guard'ы; контейнеры
   перезапускаются только через `do.sh`.
-- **[per-feature-docs.md](per-feature-docs.md)** — структура per-feature
-  документов, которую проверяет `tools/check-feature-doc.sh`.
+- **[../../product/README.md](../../product/README.md)** — индекс продуктовой
+  ветки и структура per-feature документов, которую проверяет
+  `tools/check-feature-doc.sh`; шаблон профиля B —
+  [../../templates/product-feature.md](../../templates/product-feature.md).
 - **[deploy-overview.md](deploy-overview.md)** — раскладка `deploy/`, к которой
   относятся guard'ы R-04/R-05.
 - **[architecture-conventions.md](../../guidelines/architecture-conventions.md)** —

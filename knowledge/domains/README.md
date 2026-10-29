@@ -112,7 +112,7 @@ knowledge/domains/<name>/
   - `pre-commit-config.md` — pre-commit хуки (Pass 359).
   - `dev-pc-exception.md` — Pass 282 dev-pc (Pass 360).
   - `governance-docs.md` — CONTRIBUTING, DEVELOPMENT, constitution (Pass 376).
-  - `per-feature-docs.md` — docs/features/ (Pass 380).
+  - `audit-336-registry.md` — реестр BR-кодов аудита #336 (2026-10-29).
   - `sql-migrations.md` — deploy/karaoke-db/*.sql (Pass 381).
 
 ## Структурный долг: закрыт (2026-09-27, spec `487-knowledge-lint-zero`)

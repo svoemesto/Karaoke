@@ -25,7 +25,8 @@ check_dir() {
 
 echo "[1/9] Проверка структуры (директории + манифесты)..."
 for d in knowledge/system knowledge/domains knowledge/adr knowledge/epics \
-         knowledge/guidelines knowledge/public knowledge/templates; do
+         knowledge/guidelines knowledge/public knowledge/templates \
+         knowledge/product; do
   check_dir "$d"
 done
 for f in knowledge/README.md \
@@ -35,12 +36,13 @@ for f in knowledge/README.md \
          knowledge/epics/README.md \
          knowledge/guidelines/README.md \
          knowledge/public/README.md \
-         knowledge/templates/README.md; do
+         knowledge/templates/README.md \
+         knowledge/product/README.md; do
   check_file "$f"
 done
 
-echo "[2/9] Проверка шаблонов (templates/ — domain, component, adr, epic)..."
-for t in domain.md component.md adr.md epic.md; do
+echo "[2/9] Проверка шаблонов (templates/ — domain, component, adr, epic, product-feature)..."
+for t in domain.md component.md adr.md epic.md product-feature.md; do
   check_file "knowledge/templates/$t"
 done
 

@@ -48,6 +48,21 @@
 Каждые 6 часов: срок сертификата, заполнение дисков, статус контейнеров,
 свежесть бэкапа. Пишет в journal; внешних оповещений нет (решение владельца).
 
+## Доступ агентов к Forgejo
+
+Креды Forgejo (токен и SSH-ключ) вынесены за пределы checkout'а, чтобы их
+видели все агенты и worktree на `nsa-i9`:
+
+- `/home/nsa/.config/karaoke/forgejo.env` (600) — `FJ_URL`, `FJ_USER`,
+  `FJ_TOKEN`, `FJ_SSH_KEY`;
+- `/home/nsa/.config/karaoke/id_ed25519` (600) — ключ, зарегистрирован в
+  Forgejo как `nsa-i9 agents (shared key)`;
+- git credential helper в `~/.gitconfig` для `https://git.sm-karaoke.ru`.
+
+Подробности и команды — `docs/ops/forgejo-access.md`. Каталог
+`.scratch/karaoke/infra-dub2000/` — артефакт одного checkout'а, на него
+полагаться нельзя.
+
 ## Зависимости
 
 - → **host-nginx dub2000**: TLS и маршрутизация трёх доменов.

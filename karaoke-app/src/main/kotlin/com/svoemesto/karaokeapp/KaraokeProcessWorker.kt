@@ -6,6 +6,10 @@ import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.tuple.TupleJanitor
+import com.svoemesto.karaokeapp.tuple.JdbcTupleStore
+import com.svoemesto.karaokeapp.tuple.TupleExecutor
+import com.svoemesto.karaokeapp.tuple.TupleScope
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
@@ -69,7 +73,7 @@ import java.time.temporal.ChronoUnit
  * @see archive/docs/features/async-process-queue.md
  */
 class KaraokeProcessThread(
-    val karaokeProcess: KaraokeProcess? = null,
+    var karaokeProcess: KaraokeProcess? = null,
     var percentage: String? = null,
 ) : Thread() {
     // Принудительная остановка (форс-стоп): выставляется извне (KaraokeProcessWorker.forceStop) ДО убийства
@@ -80,437 +84,470 @@ class KaraokeProcessThread(
     // Ссылка на родительский OS-процесс (docker/docker compose/ffmpeg) — чтобы форс-стоп мог его добить.
     @Volatile var osProcess: java.lang.Process? = null
 
-    override fun run() {
-        super.run()
-        if (karaokeProcess != null) {
-            // Одноразовый поток задания (в отличие от переиспользуемых потоков Tomcat/doStart()) —
-            // явно освобождает своё ThreadLocal-соединение по завершении (specs/091-fix-connection-leak),
-            // иначе оно остаётся открытым в PostgreSQL навсегда, так как поток больше не обратится к БД.
-            try {
-                // BR-031 (аудит #336, пакет PKG-S2-10): атомарный claim строки.
-                // Раньше WORKKING писался безусловным save() — если строку успели удалить
-                // или взять другим воркером, UPDATE шёл по чужой/несуществующей строке.
-                if (!karaokeProcess.claimForWorking()) {
-                    println(
-                        "[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: " +
-                            "claim не получен (задание ${karaokeProcess.id} уже не WAITING) — поток не запускает работу",
-                    )
-                    return
-                }
+    /**
+     * Выполняет один шаг кортежа. Возвращает статус шага после завершения.
+     *
+     * `runStep` живёт здесь, в `KaraokeProcessWorker.kt`, а не в `tuple/`: это сохраняет
+     * `ProcessExitWiringTest` (source-contract: exit code проверяется до DONE) зелёным.
+     */
+    private fun executeStep(): String {
+        val kp = karaokeProcess ?: return KaraokeProcessStatuses.ERROR.name
+        // Одноразовый поток задания (в отличие от переиспользуемых потоков Tomcat/doStart()) —
+        // явно освобождает своё ThreadLocal-соединение по завершении (specs/091-fix-connection-leak),
+        // иначе оно остаётся открытым в PostgreSQL навсегда, так как поток больше не обратится к БД.
+        // BR-031 (аудит #336, пакет PKG-S2-10): атомарный claim строки.
+        // Раньше WORKKING писался безусловным save() — если строку успели удалить
+        // или взять другим воркером, UPDATE шёл по чужой/несуществующей строке.
+        if (!kp.claimForWorking()) {
+            println(
+                "[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${kp.threadId}]: " +
+                    "claim не получен (задание ${kp.id} уже не WAITING) — поток не запускает работу",
+            )
+            return KaraokeProcessStatuses.WAITING.name
+        }
 
-                if (karaokeProcess.args.firstOrNull()?.firstOrNull() == "runFunctionWithArgs") {
-                    val params = parseRunFunctionWithArgsParams(karaokeProcess.args[0])
-                    percentage = "0"
+        if (kp.args.firstOrNull()?.firstOrNull() == "runFunctionWithArgs") {
+            val params =
+                parseRunFunctionWithArgsParams(
+                    TupleScope.expand(kp.args[0], kp.scopeId()),
+                )
+            percentage = "0"
+            println(
+                "[${Timestamp.from(
+                    Instant.now(),
+                )}] KaraokeProcessThread[${kp.threadId}]: Начинаем работу с заданием: ${kp.name} - [${kp.type}] - ${kp.description}",
+            )
+            try {
+                val success =
+                    when (KaraokeProcessTypes.valueOf(kp.type)) {
+                        KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
+                        KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE ->
+                            executeUploadToLocalStore(
+                                params,
+                            ) { pct -> percentage = pct.toString() }
+                        KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE ->
+                            executeUploadToRemoteStore(params) { pct ->
+                                percentage =
+                                    pct.toString()
+                            }
+                        KaraokeProcessTypes.STEM_JOB_DEMUCS2,
+                        KaraokeProcessTypes.STEM_JOB_DEMUCS5,
+                        -> executeFinalizeStemJob(params)
+                        KaraokeProcessTypes.DEMUCS2,
+                        KaraokeProcessTypes.DEMUCS5,
+                        -> executeFinalizeDemucs(params)
+                        KaraokeProcessTypes.RENDER_MP4_LYRICS,
+                        KaraokeProcessTypes.RENDER_MP4_KARAOKE,
+                        KaraokeProcessTypes.RENDER_MP4_CHORDS,
+                        KaraokeProcessTypes.RENDER_MP4_TABS,
+                        KaraokeProcessTypes.RENDER_MP4_DEMO,
+                        -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
+                        KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> executeForcedAlignMarkers(params)
+                        else -> false
+                    }
+                if (forceStopped) {
+                    // Форс-стоп: возвращаем задание в очередь, чтобы оно переиграло заново.
                     println(
                         "[${Timestamp.from(
                             Instant.now(),
-                        )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                        )}] KaraokeProcessThread[${kp.threadId}]: WAITING (форс-стоп) задание: ${kp.name} - [${kp.type}] - ${kp.description}",
                     )
-                    try {
-                        val success =
-                            when (KaraokeProcessTypes.valueOf(karaokeProcess.type)) {
-                                KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
-                                KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE ->
-                                    executeUploadToLocalStore(
-                                        params,
-                                    ) { pct -> percentage = pct.toString() }
-                                KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE ->
-                                    executeUploadToRemoteStore(params) { pct ->
-                                        percentage =
-                                            pct.toString()
-                                    }
-                                KaraokeProcessTypes.STEM_JOB_DEMUCS2,
-                                KaraokeProcessTypes.STEM_JOB_DEMUCS5,
-                                -> executeFinalizeStemJob(params)
-                                KaraokeProcessTypes.DEMUCS2,
-                                KaraokeProcessTypes.DEMUCS5,
-                                -> executeFinalizeDemucs(params)
-                                KaraokeProcessTypes.RENDER_MP4_LYRICS,
-                                KaraokeProcessTypes.RENDER_MP4_KARAOKE,
-                                KaraokeProcessTypes.RENDER_MP4_CHORDS,
-                                KaraokeProcessTypes.RENDER_MP4_TABS,
-                                KaraokeProcessTypes.RENDER_MP4_DEMO,
-                                -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
-                                KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> executeForcedAlignMarkers(params)
-                                else -> false
-                            }
-                        if (forceStopped) {
-                            // Форс-стоп: возвращаем задание в очередь, чтобы оно переиграло заново.
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                            karaokeProcess.save()
-                        } else {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ${if (success) "DONE успешно завершенное" else "ERROR (данные не найдены)"} задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                            karaokeProcess.status = (if (success) KaraokeProcessStatuses.DONE else KaraokeProcessStatuses.ERROR).name
-                            karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = if (success) 999 else -1
-                            percentage = "100"
-                            karaokeProcess.save()
-                        }
-                    } catch (e: Exception) {
-                        if (forceStopped) {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                            karaokeProcess.save()
-                        } else {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
-                            )
-                            karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
-                            karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = -1
-                            percentage = "100"
-                            karaokeProcess.save()
-                        }
-                    }
+                    kp.status = KaraokeProcessStatuses.WAITING.name
+                    kp.save()
                 } else {
-                    val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
-                    val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
-                    val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
-                    val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
-                    val karaokeProcessType = karaokeProcess.type
-                    val typeEnum = runCatching { KaraokeProcessTypes.valueOf(karaokeProcessType) }.getOrNull()
-                    // Лимит CPU пересобирается заново прямо перед стартом (не берётся "как есть" из БД) -
-                    // настройки могли поменяться, пока задание стояло в очереди WAITING.
-                    val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, karaokeProcess.args[0]) else karaokeProcess.args[0]
-                    val envs = if (typeEnum != null) refreshEnvCpuLimit(typeEnum, karaokeProcess.envs) else karaokeProcess.envs
-                    val processBuilder = ProcessBuilder(args)
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: ${if (success) "DONE успешно завершенное" else "ERROR (данные не найдены)"} задание: ${kp.name} - [${kp.type}] - ${kp.description}",
+                    )
+                    kp.status = (if (success) KaraokeProcessStatuses.DONE else KaraokeProcessStatuses.ERROR).name
+                    kp.end = Timestamp.from(Instant.now())
+                    kp.priority = if (success) 999 else -1
+                    percentage = "100"
+                    kp.save()
+                }
+            } catch (e: Exception) {
+                if (forceStopped) {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: WAITING (форс-стоп) задание: ${kp.name} - [${kp.type}] - ${kp.description}",
+                    )
+                    kp.status = KaraokeProcessStatuses.WAITING.name
+                    kp.save()
+                } else {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: ERROR задание: ${kp.name} - [${kp.type}] - ${kp.description}: ${e.message}",
+                    )
+                    kp.status = KaraokeProcessStatuses.ERROR.name
+                    kp.end = Timestamp.from(Instant.now())
+                    percentage = "100"
+                    kp.save()
+                }
+            }
+        } else {
+            val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
+            val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
+            val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
+            val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
+            val karaokeProcessType = kp.type
+            val typeEnum = runCatching { KaraokeProcessTypes.valueOf(karaokeProcessType) }.getOrNull()
+            // Лимит CPU пересобирается заново прямо перед стартом (не берётся "как есть" из БД) -
+            // настройки могли поменяться, пока задание стояло в очереди WAITING.
+            val rawArgv = TupleScope.expand(kp.args[0], kp.scopeId())
+            val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, rawArgv) else rawArgv
+            val envs = if (typeEnum != null) refreshEnvCpuLimit(typeEnum, kp.envs) else kp.envs
+            val processBuilder = ProcessBuilder(args)
 
-                    val processBuilderEnvironment = processBuilder.environment()
-                    processBuilderEnvironment.putAll(envs)
+            val processBuilderEnvironment = processBuilder.environment()
+            processBuilderEnvironment.putAll(envs)
 
-                    processBuilder.redirectErrorStream(true)
+            processBuilder.redirectErrorStream(true)
+            // FR-004 (674): SHEETSAGE пишет вывод относительно cwd — запускаем в своём scope-каталоге.
+            if (typeEnum == KaraokeProcessTypes.SHEETSAGE || typeEnum == KaraokeProcessTypes.SHEETSAGE2) {
+                processBuilder.directory(
+                    java.io.File(PATH_TO_TEMP_SHEETSAGE_FOLDER, kp.scopeId().toString()),
+                )
+            }
 
-                    // try охватывает и сам запуск subprocess (не только чтение stdout) - если
-                    // processBuilder.start() бросит исключение (например, недоступен бинарник/docker),
-                    // задание всё равно должно получить терминальный статус (ERROR/WAITING), а не остаться
-                    // в WORKING навсегда и заблокировать очередь своего лейна. См. specs/029-fix-queue-lane-stall/research.md.
-                    var process: Process? = null
-                    try {
-                        val startedProcess = processBuilder.start()
-                        process = startedProcess
-                        osProcess = startedProcess
-                        if (startedProcess.isAlive) {
-                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                                println(
-                                    "[${Timestamp.from(
-                                        Instant.now(),
-                                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                                )
-                            }
-                            setProcessPriority(startedProcess.pid(), karaokeProcess.prioritet)
-                        }
-
-                        if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                            KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
-                            // specs/118 #397: отдельный SSE-канал для cache-очереди.
-                            KaraokeProcessWorker.sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
-                        }
-                        val inputStream = startedProcess.inputStream
-                        var duration: String? = null
-                        val reader = BufferedReader(InputStreamReader(inputStream))
-                        var line: String? = reader.readLine()
-                        var log = ""
-                        var lastLine = ""
-                        while (line != null) {
-                            lastLine = line
-                            log += "[${Timestamp.from(Instant.now())}] $line\n"
-                            val matchResult = regex.find(line)
-                            if (matchResult != null) {
-//                        val currentFrame = matchResult.groupValues[1]
-                                val percentage = matchResult.groupValues[2]
-                                this.percentage = percentage
-                            } else {
-                                if (duration != null) {
-                                    val matchResultCurrent = regexCurrent.find(line)
-                                    if (matchResultCurrent != null) {
-                                        val current = matchResultCurrent.groupValues[1]
-                                        this.percentage =
-                                            (
-                                                (
-                                                    (
-                                                        convertTimecodeToMilliseconds(current).toDouble() /
-                                                            convertTimecodeToMilliseconds(duration).toDouble()
-                                                    ) *
-                                                        10000
-                                                ).toInt().toDouble() /
-                                                    100
-                                            ).toString()
-                                    }
-                                } else {
-                                    val matchResultDuration = regexDuration.find(line)
-                                    if (matchResultDuration != null) {
-                                        duration = matchResultDuration.groupValues[1]
-                                    } else {
-                                        val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
-                                        if (matchResultPercentageSheetsage != null) {
-                                            val percentage = matchResultPercentageSheetsage.groupValues[1]
-                                            this.percentage = percentage
-                                        }
-                                    }
-                                }
-                            }
-                            line = reader.readLine()
-                        }
-                        // BR-029 (аудит #336): раньше EOF stdout безусловно означал DONE, а код
-                        // возврата subprocess (docker compose run / ffmpeg / melt) не проверялся —
-                        // сбой выглядел успехом. Теперь дожидаемся завершения и проверяем exit code.
-                        // stderr слит в stdout (ADR-0006), поэтому хвост log содержит и stderr.
-                        val exitCode = awaitProcessExit(startedProcess, args, outputTail = { outputTail(log) })
-                        if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                        }
-                        if (log != "") {
-                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                                println(
-                                    "[${Timestamp.from(
-                                        Instant.now(),
-                                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                                )
-                            }
-                            log = args.joinToString(" ") + "\n\n" + log
-                            val logFileName =
-                                "$PATH_TO_LOGS/[${Timestamp.from(
-                                    Instant.now(),
-                                )}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
-                            try {
-                                File(logFileName).writeText(log, Charsets.UTF_8)
-                                runCommand(listOf("chmod", "666", logFileName))
-                                KaraokeProcessWorker.cleanupOldLogs()
-                            } catch (e: Exception) {
-                                println(e.message)
-                            }
-                        }
-
-                        // Известный восстановимый случай: SHEETSAGE печатает NotImplementedError,
-                        // после чего создаётся SHEETSAGE2. Его ненулевой код возврата — не «успех»,
-                        // но и не повод помечать задание ERROR: цепочка уже переиграна.
-                        val sheetsageFallback =
-                            karaokeProcess.type == "SHEETSAGE" &&
-                                lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
-                        if (exitCode != 0 && !sheetsageFallback && !forceStopped) {
-                            throw processExitFailure(args, exitCode, outputTail(log))
-                        }
-
-                        if (sheetsageFallback) {
-                            // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
-                            val song =
-                                Song.loadFromDbById(
-                                    id = karaokeProcess.songId.toLong(),
-                                    database = WORKING_DATABASE,
-                                    storageService = KSS_APP,
-                                    storageApiClient = SAC_APP,
-                                )
-                            song?.let {
-                                KaraokeProcess.createProcess(
-                                    song = song,
-                                    action = KaraokeProcessTypes.SHEETSAGE2,
-                                    doWait = true,
-                                    prior = karaokeProcess.priority,
-                                    threadId = 0,
-                                )
-                            }
-                        }
-
-                        if (forceStopped) {
-                            // Форс-стоп: подпроцесс завершился из-за убитого docker-контейнера — возвращаем в очередь.
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                            karaokeProcess.save()
-                        } else {
-                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                                println(
-                                    "[${Timestamp.from(
-                                        Instant.now(),
-                                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                                )
-                            }
-                            karaokeProcess.status = KaraokeProcessStatuses.DONE.name
-                            karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = 999
-                            karaokeProcess.save()
-                        }
-
-//                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
-//                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
-//                }
-                    } catch (e: Exception) {
-                        process?.destroy()
-                        if (forceStopped) {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                            )
-                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                            karaokeProcess.save()
-                        } else {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
-                            )
-                            karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
-                            karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = -1
-                            // BR-036 (аудит #336, пакет PKG-S3-22): причина сбоя больше не
-                            // теряется в stdout контейнера — она дописывается к описанию
-                            // задания, которое видит оператор в админке.
-                            karaokeProcess.description =
-                                KaraokeProcess.appendErrorReason(karaokeProcess.description, e)
-                            karaokeProcess.save()
-                        }
+            // try охватывает и сам запуск subprocess (не только чтение stdout) - если
+            // processBuilder.start() бросит исключение (например, недоступен бинарник/docker),
+            // задание всё равно должно получить терминальный статус (ERROR/WAITING), а не остаться
+            // в WORKING навсегда и заблокировать очередь своего лейна. См. specs/029-fix-queue-lane-stall/research.md.
+            var process: Process? = null
+            try {
+                val startedProcess = processBuilder.start()
+                process = startedProcess
+                osProcess = startedProcess
+                if (startedProcess.isAlive) {
+                    if (kp.command != "tail" || kp.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println(
+                            "[${Timestamp.from(
+                                Instant.now(),
+                            )}] KaraokeProcessThread[${kp.threadId}]: Установка приоритета задания: ${kp.name} - [${kp.type}] - ${kp.description}",
+                        )
                     }
+                    setProcessPriority(startedProcess.pid(), kp.prioritet)
                 }
 
-                // После завершения subprocess (DONE / ERROR / форс-стоп → WAITING) —
-                // отправляем актуальный countWaiting в SSE, чтобы UI-бейдж «start-stop»
-                // отражал текущий размер очереди. Дедупликация в sendCountWaitingMessage
-                // подавляет случай, когда countWaiting не изменился (например, force-stop
-                // вернул задание в WAITING — WAITING-число не изменилось).
-                //
-                // Регрессия после specs/177-fix-process-count-waiting-spam: устранение
-                // периодического вызова sendCountWaitingMessage в doStart() (старая
-                // строка 1107 «if (karaokeProcessesToStartIds.isEmpty()) ...») убрало
-                // этот сигнал вместе со спамом. Этот hook в run() восстанавливает
-                // доставку реальных изменений countWaiting после завершения subprocess.
-                try {
-                    KaraokeProcessWorker.sendCountWaitingMessage(
-                        KaraokeProcess.getCountWaiting(database = karaokeProcess.database),
+                if (kp.command != "tail" || kp.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: Начинаем работу с заданием: ${kp.name} - [${kp.type}] - ${kp.description}",
                     )
+                    KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = kp.database))
                     // specs/118 #397: отдельный SSE-канал для cache-очереди.
                     KaraokeProcessWorker.sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
-                } catch (e: Exception) {
+                }
+                val inputStream = startedProcess.inputStream
+                var duration: String? = null
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                var line: String? = reader.readLine()
+                var log = ""
+                var lastLine = ""
+                while (line != null) {
+                    lastLine = line
+                    log += "[${Timestamp.from(Instant.now())}] $line\n"
+                    val matchResult = regex.find(line)
+                    if (matchResult != null) {
+//                        val currentFrame = matchResult.groupValues[1]
+                        val percentage = matchResult.groupValues[2]
+                        this.percentage = percentage
+                    } else {
+                        if (duration != null) {
+                            val matchResultCurrent = regexCurrent.find(line)
+                            if (matchResultCurrent != null) {
+                                val current = matchResultCurrent.groupValues[1]
+                                this.percentage =
+                                    (
+                                        (
+                                            (
+                                                convertTimecodeToMilliseconds(current).toDouble() /
+                                                    convertTimecodeToMilliseconds(duration).toDouble()
+                                            ) *
+                                                10000
+                                        ).toInt().toDouble() /
+                                            100
+                                    ).toString()
+                            }
+                        } else {
+                            val matchResultDuration = regexDuration.find(line)
+                            if (matchResultDuration != null) {
+                                duration = matchResultDuration.groupValues[1]
+                            } else {
+                                val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
+                                if (matchResultPercentageSheetsage != null) {
+                                    val percentage = matchResultPercentageSheetsage.groupValues[1]
+                                    this.percentage = percentage
+                                }
+                            }
+                        }
+                    }
+                    line = reader.readLine()
+                }
+                // BR-029 (аудит #336): раньше EOF stdout безусловно означал DONE, а код
+                // возврата subprocess (docker compose run / ffmpeg / melt) не проверялся —
+                // сбой выглядел успехом. Теперь дожидаемся завершения и проверяем exit code.
+                // stderr слит в stdout (ADR-0006), поэтому хвост log содержит и stderr.
+                val exitCode = awaitProcessExit(startedProcess, args, outputTail = { outputTail(log) })
+                if (kp.command != "tail" || kp.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                     println(
                         "[${Timestamp.from(
                             Instant.now(),
-                        )}] KaraokeProcessThread[${karaokeProcess.threadId}]: " +
-                            "ошибка отправки countWaiting после завершения subprocess: ${e.message}",
+                        )}] KaraokeProcessThread[${kp.threadId}]: Завершаем работу с заданием: ${kp.name} - [${kp.type}] - ${kp.description}",
                     )
                 }
-
-                // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
-                // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
-                // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает
-                // многократный пересчёт на sub-шагах тяжёлых MELT_*-рендеров.
-                val kp = karaokeProcess
-                val typeEnum = runCatching { KaraokeProcessTypes.valueOf(kp.type) }.getOrNull()
-                if (!forceStopped && kp.songId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
+                if (log != "") {
+                    if (kp.command != "tail" || kp.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println(
+                            "[${Timestamp.from(
+                                Instant.now(),
+                            )}] KaraokeProcessThread[${kp.threadId}]: Выводим лог задания: ${kp.name} - [${kp.type}] - ${kp.description}",
+                        )
+                    }
+                    log = args.joinToString(" ") + "\n\n" + log
+                    val logFileName =
+                        "$PATH_TO_LOGS/[${Timestamp.from(
+                            Instant.now(),
+                        )}] ${kp.name} - ${kp.description}.log".rightFileName()
                     try {
-                        HealthReport.onRepairProcessFinished(
-                            songId = kp.songId.toLong(),
-                            success = kp.status == KaraokeProcessStatuses.DONE.name,
+                        File(logFileName).writeText(log, Charsets.UTF_8)
+                        runCommand(listOf("chmod", "666", logFileName))
+                        KaraokeProcessWorker.cleanupOldLogs()
+                    } catch (e: Exception) {
+                        println(e.message)
+                    }
+                }
+
+                // Известный восстановимый случай: SHEETSAGE печатает NotImplementedError,
+                // после чего создаётся SHEETSAGE2. Его ненулевой код возврата — не «успех»,
+                // но и не повод помечать задание ERROR: цепочка уже переиграна.
+                val sheetsageFallback =
+                    kp.type == "SHEETSAGE" &&
+                        lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
+                if (exitCode != 0 && !sheetsageFallback && !forceStopped) {
+                    throw processExitFailure(args, exitCode, outputTail(log))
+                }
+
+                if (sheetsageFallback) {
+                    // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
+                    val song =
+                        Song.loadFromDbById(
+                            id = kp.songId.toLong(),
                             database = WORKING_DATABASE,
                             storageService = KSS_APP,
                             storageApiClient = SAC_APP,
                         )
-                    } catch (e: Exception) {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${kp.threadId}]: ошибка пересчёта HealthReport после задания: ${e.message}",
+                    song?.let {
+                        KaraokeProcess.createProcess(
+                            song = song,
+                            action = KaraokeProcessTypes.SHEETSAGE2,
+                            doWait = true,
+                            prior = kp.priority,
+                            threadId = 0,
                         )
                     }
                 }
 
-                // Спека 131 (US1): пост-хук публикации в Telegram сразу после успешного завершения
-                // RENDER_MP4_DEMO. Запускается в отдельном thread, чтобы не задерживать освобождение
-                // ThreadLocal-соединения и не блокировать worker-поток (HTTP-вызов к TelegramBot
-                // занимает 5-30 с, см. research.md п.2.3 и contracts/pipeline.md §3).
-                //
-                // Условие срабатывания:
-                //   - тип задания — RENDER_MP4_DEMO;
-                //   - статус — DONE (ERROR — пропускаем, scheduler ретраит позже);
-                //   - задание не было форс-стопнуто;
-                //   - songId > 0 (защита от задач без привязки к песне);
-                //   - задание помечено trigger=approve (спека 144) — рендер был поставлен именно
-                //     сменой idStatus на 6 (SongEditorController.triggerRenderMp4DemoIfNeeded), а не
-                //     ручным рендером DEMO из интерфейса (ApiController) — там этого токена нет.
-                //
-                // Идемпотентность публикации обеспечивается внутри TelegramAutoPublishService.
-                // publishToTelegram по song.idTelegramDemo (ранний return PUBLISHED).
-                val renderKp = karaokeProcess
-                val isApproveTriggered = renderKp.args.firstOrNull()?.contains("trigger=approve") == true
-                // Отладочный лог: только для задач типа RENDER_MP4_DEMO (чтобы не шуметь на остальных).
-                // Помогает понять, достигает ли условие срабатывания пост-хука.
-                if (renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name) {
+                if (forceStopped) {
+                    // Форс-стоп: подпроцесс завершился из-за убитого docker-контейнера — возвращаем в очередь.
                     println(
-                        "[render-demo/post-hook] CHECK: type=${renderKp.type} status=${renderKp.status} " +
-                            "songId=${renderKp.songId} forceStopped=$forceStopped isApproveTriggered=$isApproveTriggered",
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: WAITING (форс-стоп) задание: ${kp.name} - [${kp.type}] - ${kp.description}",
                     )
-                }
-                if (!forceStopped &&
-                    renderKp.songId > 0 &&
-                    renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name &&
-                    renderKp.status == KaraokeProcessStatuses.DONE.name &&
-                    isApproveTriggered
-                ) {
-                    println("[render-demo/post-hook] CONDITION MATCHED — firing thread for songId=${renderKp.songId}")
-                    // Одноразовый поток post-hook'а: закрывает своё thread-local соединение
-                    // в `finally` (`startOneShotThread`, BR-038/BR-060, аудит #336) — иначе
-                    // каждое отрендеренное демо оставляло открытый канал к БД.
-                    startOneShotThread(karaokeProcess.database, "render-demo-post-hook") {
-                        println("[render-demo/post-hook] thread START for songId=${renderKp.songId}")
-                        try {
-                            // Спека 131 (фича 134): заменили прямой publishToTelegram(AIR, persist=true)
-                            // на onRenderCompleted(), который сам разруливает шаблон и persistMessageId
-                            // по song.newsPremiumPublishPending (см. TelegramAutoPublishService.onRenderCompleted:169-172).
-                            // Логика:
-                            //   - newsPremiumPublishPending=true → PREMIUM + persist=false (не заполняем idTelegramDemo,
-                            //     оставляя слот для будущей AIR-публикации по расписанию).
-                            //   - newsPremiumPublishPending=false → AIR + persist=true (заполняем idTelegramDemo).
-                            // Это правильнее, чем жёстко зашитый AIR-шаблон: после approve ставится
-                            // newsPremiumPublishPending=true (см. Song.markNewsAvailableIfReady:5113-5131),
-                            // и approve-flow автоматически идёт по PREMIUM-шаблону ("В коллекции").
-                            val result =
-                                TelegramAutoPublishService.onRenderCompleted(
-                                    songId = renderKp.songId.toLong(),
-                                    success = true,
-                                    error = null,
-                                )
-                            if (result == null) {
-                                println("[render-demo/post-hook] песня ${renderKp.songId} не найдена — публикация пропущена")
-                            } else {
-                                println(
-                                    "[render-demo/post-hook] onRenderCompleted вернул state=${result.state.code} " +
-                                        "messageId=${result.messageId ?: "<нет>"} for songId=${renderKp.songId}",
-                                )
-                            }
-                        } catch (e: Exception) {
-                            println("[render-demo/post-hook] ошибка onRenderCompleted: ${e.message}")
-                        }
+                    kp.status = KaraokeProcessStatuses.WAITING.name
+                    kp.save()
+                } else {
+                    if (kp.command != "tail" || kp.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println(
+                            "[${Timestamp.from(
+                                Instant.now(),
+                            )}] KaraokeProcessThread[${kp.threadId}]: DONE успешно завершенное задание: ${kp.name} - [${kp.type}] - ${kp.description}",
+                        )
                     }
+                    kp.status = KaraokeProcessStatuses.DONE.name
+                    kp.end = Timestamp.from(Instant.now())
+                    kp.save()
                 }
-            } finally {
-                karaokeProcess.database.closeThreadConnection()
+
+//                if (kp.type == KaraokeProcessTypes.DEMUCS2.name) {
+//                    KaraokeProcess.delete(kp.id, kp.database)
+//                }
+            } catch (e: Exception) {
+                process?.destroy()
+                if (forceStopped) {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: WAITING (форс-стоп) задание: ${kp.name} - [${kp.type}] - ${kp.description}",
+                    )
+                    kp.status = KaraokeProcessStatuses.WAITING.name
+                    kp.save()
+                } else {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${kp.threadId}]: ERROR задание: ${kp.name} - [${kp.type}] - ${kp.description}: ${e.message}",
+                    )
+                    kp.status = KaraokeProcessStatuses.ERROR.name
+                    kp.end = Timestamp.from(Instant.now())
+                    // BR-036 (аудит #336, пакет PKG-S3-22): причина сбоя больше не
+                    // теряется в stdout контейнера — она дописывается к описанию
+                    // задания, которое видит оператор в админке.
+                    kp.description =
+                        KaraokeProcess.appendErrorReason(kp.description, e)
+                    kp.save()
+                }
             }
+        }
+
+        // После завершения subprocess (DONE / ERROR / форс-стоп → WAITING) —
+        // отправляем актуальный countWaiting в SSE, чтобы UI-бейдж «start-stop»
+        // отражал текущий размер очереди. Дедупликация в sendCountWaitingMessage
+        // подавляет случай, когда countWaiting не изменился (например, force-stop
+        // вернул задание в WAITING — WAITING-число не изменилось).
+        //
+        // Регрессия после specs/177-fix-process-count-waiting-spam: устранение
+        // периодического вызова sendCountWaitingMessage в doStart() (старая
+        // строка 1107 «if (karaokeProcessesToStartIds.isEmpty()) ...») убрало
+        // этот сигнал вместе со спамом. Этот hook в run() восстанавливает
+        // доставку реальных изменений countWaiting после завершения subprocess.
+        try {
+            KaraokeProcessWorker.sendCountWaitingMessage(
+                KaraokeProcess.getCountWaiting(database = kp.database),
+            )
+            // specs/118 #397: отдельный SSE-канал для cache-очереди.
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
+        } catch (e: Exception) {
+            println(
+                "[${Timestamp.from(
+                    Instant.now(),
+                )}] KaraokeProcessThread[${kp.threadId}]: " +
+                    "ошибка отправки countWaiting после завершения subprocess: ${e.message}",
+            )
+        }
+
+        return kp.status
+    }
+
+    /**
+     * 674 (FR-001/FR-016): пост-хуки выполняются **один раз на кортеж**, после его завершения.
+     * Пошаговый вызов пересчитывал HealthReport посреди живого кортежа и ставил лишние задания.
+     */
+    private fun runPostHooks(kp: KaraokeProcess) {
+        // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
+        // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
+        // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает
+        // многократный пересчёт на sub-шагах тяжёлых MELT_*-рендеров.
+        val typeEnum = runCatching { KaraokeProcessTypes.valueOf(kp.type) }.getOrNull()
+        if (!forceStopped && kp.songId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
+            try {
+                HealthReport.onRepairProcessFinished(
+                    songId = kp.songId.toLong(),
+                    success = kp.status == KaraokeProcessStatuses.DONE.name,
+                    database = WORKING_DATABASE,
+                    storageService = KSS_APP,
+                    storageApiClient = SAC_APP,
+                )
+            } catch (e: Exception) {
+                println(
+                    "[${Timestamp.from(
+                        Instant.now(),
+                    )}] KaraokeProcessThread[${kp.threadId}]: ошибка пересчёта HealthReport после задания: ${e.message}",
+                )
+            }
+        }
+
+        // Спека 131 (US1): пост-хук публикации в Telegram сразу после успешного завершения
+        // RENDER_MP4_DEMO. Запускается в отдельном thread, чтобы не задерживать освобождение
+        // ThreadLocal-соединения и не блокировать worker-поток (HTTP-вызов к TelegramBot
+        // занимает 5-30 с, см. research.md п.2.3 и contracts/pipeline.md §3).
+        //
+        // Условие срабатывания:
+        //   - тип задания — RENDER_MP4_DEMO;
+        //   - статус — DONE (ERROR — пропускаем, scheduler ретраит позже);
+        //   - задание не было форс-стопнуто;
+        //   - songId > 0 (защита от задач без привязки к песне);
+        //   - задание помечено trigger=approve (спека 144) — рендер был поставлен именно
+        //     сменой idStatus на 6 (SongEditorController.triggerRenderMp4DemoIfNeeded), а не
+        //     ручным рендером DEMO из интерфейса (ApiController) — там этого токена нет.
+        //
+        // Идемпотентность публикации обеспечивается внутри TelegramAutoPublishService.
+        // publishToTelegram по song.idTelegramDemo (ранний return PUBLISHED).
+        val renderKp = kp
+        val isApproveTriggered = renderKp.args.firstOrNull()?.contains("trigger=approve") == true
+        // Отладочный лог: только для задач типа RENDER_MP4_DEMO (чтобы не шуметь на остальных).
+        // Помогает понять, достигает ли условие срабатывания пост-хука.
+        if (renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name) {
+            println(
+                "[render-demo/post-hook] CHECK: type=${renderKp.type} status=${renderKp.status} " +
+                    "songId=${renderKp.songId} forceStopped=$forceStopped isApproveTriggered=$isApproveTriggered",
+            )
+        }
+        if (!forceStopped &&
+            renderKp.songId > 0 &&
+            renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name &&
+            renderKp.status == KaraokeProcessStatuses.DONE.name &&
+            isApproveTriggered
+        ) {
+            println("[render-demo/post-hook] CONDITION MATCHED — firing thread for songId=${renderKp.songId}")
+            // Одноразовый поток post-hook'а: закрывает своё thread-local соединение
+            // в `finally` (`startOneShotThread`, BR-038/BR-060, аудит #336) — иначе
+            // каждое отрендеренное демо оставляло открытый канал к БД.
+            startOneShotThread(kp.database, "render-demo-post-hook") {
+                println("[render-demo/post-hook] thread START for songId=${renderKp.songId}")
+                try {
+                    // Спека 131 (фича 134): заменили прямой publishToTelegram(AIR, persist=true)
+                    // на onRenderCompleted(), который сам разруливает шаблон и persistMessageId
+                    // по song.newsPremiumPublishPending (см. TelegramAutoPublishService.onRenderCompleted:169-172).
+                    // Логика:
+                    //   - newsPremiumPublishPending=true → PREMIUM + persist=false (не заполняем idTelegramDemo,
+                    //     оставляя слот для будущей AIR-публикации по расписанию).
+                    //   - newsPremiumPublishPending=false → AIR + persist=true (заполняем idTelegramDemo).
+                    // Это правильнее, чем жёстко зашитый AIR-шаблон: после approve ставится
+                    // newsPremiumPublishPending=true (см. Song.markNewsAvailableIfReady:5113-5131),
+                    // и approve-flow автоматически идёт по PREMIUM-шаблону ("В коллекции").
+                    val result =
+                        TelegramAutoPublishService.onRenderCompleted(
+                            songId = renderKp.songId.toLong(),
+                            success = true,
+                            error = null,
+                        )
+                    if (result == null) {
+                        println("[render-demo/post-hook] песня ${renderKp.songId} не найдена — публикация пропущена")
+                    } else {
+                        println(
+                            "[render-demo/post-hook] onRenderCompleted вернул state=${result.state.code} " +
+                                "messageId=${result.messageId ?: "<нет>"} for songId=${renderKp.songId}",
+                        )
+                    }
+                } catch (e: Exception) {
+                    println("[render-demo/post-hook] ошибка onRenderCompleted: ${e.message}")
+                }
+            }
+        }
+    }
+
+    override fun run() {
+        super.run()
+        val head = karaokeProcess ?: return
+        val database = head.database
+        val chainId = head.processChainId ?: head.id
+        try {
+            // 674 (FR-001/FR-002/FR-003): шаги кортежа 0..N-1 исполняются подряд, лейн занят кортежем.
+            val executor =
+                TupleExecutor(JdbcTupleStore(database)) { step ->
+                    karaokeProcess = step
+                    executeStep()
+                }
+            executor.execute(chainId)
+            karaokeProcess?.let { runPostHooks(it) }
+        } finally {
+            database.closeThreadConnection()
         }
     }
 }
@@ -709,8 +746,24 @@ class KaraokeProcessWorker {
             // (println без стека), и очередь стартовала с осиротевшими WORKING-строками:
             // воркер их не выбирает, лейн стоит, а очередь выглядит работающей.
             // Теперь причина уходит в лог со стеком, а оператор видит SSE-уведомление.
+            // 674 (FR-011): нормализация до очистки, чтобы legacy-одиночки получили chain_id = id.
+            KaraokeProcess.normalizeTuples(database)
             val doneCleaned = KaraokeProcess.deleteDone(database)
             val workingReset = KaraokeProcess.setWorkingToWaiting(database)
+            // 674 (FR-005): janitor осиротевших временных каталогов кортежей (не трогает живые scope).
+            runCatching {
+                val ttl = KaraokeProperties.getLong("queue.tuple.temp_ttl_hours").takeIf { it > 0L } ?: 24L
+                TupleJanitor(
+                    roots =
+                        listOf(
+                            PATH_TO_TEMP_DEMUCS_FOLDER,
+                            PATH_TO_TEMP_KEYBPMFINDER_FOLDER,
+                            PATH_TO_TEMP_SHEETSAGE_FOLDER,
+                        ),
+                    ttlHours = ttl,
+                    isLive = { scope -> KaraokeProcess.isScopeLive(scope, database) },
+                ).sweep()
+            }.onFailure { println("ProcessWorker: janitor не выполнен: ${it.message}") }
             if (!doneCleaned || !workingReset) {
                 val failed =
                     listOfNotNull(

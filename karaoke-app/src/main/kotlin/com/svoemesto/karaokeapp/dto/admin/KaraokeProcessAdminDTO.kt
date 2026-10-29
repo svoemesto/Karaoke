@@ -33,6 +33,14 @@ data class KaraokeProcessAdminDTO(
     val startedAt: Timestamp?,
     val endedAt: Timestamp?,
     val recordhash: String?,
+    // 674 (FR-015): вычисляемое состояние кортежа (не хранится в БД).
+    val chainId: Long? = null,
+    val chainStepIndex: Int = 0,
+    val chainStepsTotal: Int = 1,
+    val chainState: String = "WAITING",
+    val chainFailedStep: Int? = null,
+    val chainReason: String? = null,
+    val progress: Double = 0.0,
 )
 
 /**

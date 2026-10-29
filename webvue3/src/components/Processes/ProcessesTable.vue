@@ -109,6 +109,14 @@
         <template #cell(description)="data">
           <div class="fld-description" v-text="data.value" />
         </template>
+        <template #cell(chainStepIndex)="data">
+          <div class="fld-chain">
+            шаг {{ Number(data.item.chainStepIndex || 0) + 1 }}/{{ data.item.chainStepsTotal || 1 }}
+            ·
+            {{ data.item.chainState || '' }}
+            <span v-if="data.item.chainReason" :title="data.item.chainReason">!</span>
+          </div>
+        </template>
 
         <template #cell(type)="data">
           <div class="fld-type" v-text="data.value" />
@@ -315,6 +323,17 @@ export default {
           style: {
             minWidth: '50px',
             maxWidth: '50px',
+            textAlign: 'left',
+            fontSize: 'small',
+          },
+        },
+        {
+          key: 'chainStepIndex',
+          sortable: false,
+          label: 'Кортеж',
+          style: {
+            minWidth: '120px',
+            maxWidth: '160px',
             textAlign: 'left',
             fontSize: 'small',
           },

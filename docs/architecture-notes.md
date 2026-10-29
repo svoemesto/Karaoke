@@ -502,3 +502,11 @@
 > одном файле (`webvue3/src/components/Songs/SongsTable.vue`),
 > никаких изменений backend'а, SQL, БД. См. `specs/082-songs-root-tooltip/`
 > (report.md), `docs/architecture-notes.md` (эта запись).
+
+
+## 674-kortege-execution (2026-10-29)
+
+Кортеж — единица исполнения очереди: планировщик выбирает кортеж и его первый шаг, поток
+исполняет шаги подряд; `scopeId` изолирует временные каталоги и контейнеры; сбой — fail-fast
+всего кортежа; успех подтверждается длительностью стемов и sidecar-отпечатком key/bpm;
+`tbl_processes` без схемных изменений (FR-017). Подробности — `docs/features/kortege-execution.md`.

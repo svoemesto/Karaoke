@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.tuple.TupleSchedulerSql
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -114,6 +115,32 @@ class KaraokeProcess(
 
     @KaraokeDbTableField(name = "process_deleted_at")
     var processDeletedAt: Timestamp? = null
+
+    /** Владелец временных ресурсов кортежа: `process_chain_id ?: id` (FR-004). */
+    fun scopeId(): Long = processChainId ?: id
+
+    /** argv шага с развёрнутым `{scope}` (FR-004). */
+    fun expandedArgs(): List<String> {
+        val argv = args.firstOrNull() ?: return emptyList()
+        return com.svoemesto.karaokeapp.tuple.TupleScope
+            .expand(argv, scopeId())
+    }
+
+    /** Помечает одиночную строку головой кортежа (`chain_id = id`, `order = 0`, FR-006). */
+    fun markAsHead(): Int {
+        val connection = database.getConnection() ?: return 0
+        return try {
+            connection
+                .prepareStatement("UPDATE tbl_processes SET process_chain_id = id, process_order = 0 WHERE id = ?")
+                .use { ps ->
+                    ps.setLong(1, id)
+                    ps.executeUpdate()
+                }
+        } catch (e: Exception) {
+            println("[${Timestamp.from(Instant.now())}] WARN process.head_mark_failed: processId=$id: ${e.message}")
+            0
+        }
+    }
 
     override fun toDTO(): KaraokeProcessDTO =
         KaraokeProcessDTO(
@@ -378,6 +405,17 @@ class KaraokeProcess(
             if (status == KaraokeProcessStatuses.ERROR.name && processChainId != null) {
                 stopChainSiblingsOnError()
             }
+            // FR-001/FR-016 (674): приоритет — свойство кортежа. Терминальное значение ставится
+            // всему кортежу только когда он завершён, а не на каждом промежуточном шаге.
+            val terminalNow =
+                status == KaraokeProcessStatuses.DONE.name || status == KaraokeProcessStatuses.ERROR.name
+            if (terminalNow && processChainId != null && !hasPendingChainSiblings()) {
+                setChainPriority(
+                    chainId = processChainId!!,
+                    priority = if (status == KaraokeProcessStatuses.ERROR.name) -1 else 999,
+                    database = database,
+                )
+            }
             // BR-030/BR-032 (аудит #336, пакет PKG-S2-10): терминальный статус шага цепочки
             // больше не агрегируется в песню, пока цепочка не завершена. Раньше DONE первого
             // шага сразу выставлял песне DONE, хотя 720p/симлинки ещё не сделаны.
@@ -515,7 +553,7 @@ class KaraokeProcess(
         val connection = database.getConnection() ?: return false
         val sql =
             "SELECT 1 FROM tbl_processes WHERE process_chain_id = ? AND id <> ? " +
-                "AND process_status IN (?, ?, ?) LIMIT 1"
+                "AND process_status IN (?, ?, ?) AND process_deleted_at IS NULL LIMIT 1"
         return try {
             connection.prepareStatement(sql).use { ps ->
                 ps.setLong(1, chainId)
@@ -543,17 +581,19 @@ class KaraokeProcess(
         val chainId = processChainId ?: return 0
         val connection = database.getConnection() ?: return 0
         val sql =
-            "UPDATE tbl_processes SET process_status = ?, " +
+            "UPDATE tbl_processes SET process_status = ?, process_end = ?, " +
                 "process_description = COALESCE(process_description, '') || ? " +
-                "WHERE process_chain_id = ? AND id <> ? AND process_status IN (?, ?)"
+                "WHERE process_chain_id = ? AND id <> ? AND process_status IN (?, ?) " +
+                "AND process_deleted_at IS NULL"
         return try {
             connection.prepareStatement(sql).use { ps ->
                 ps.setString(1, KaraokeProcessStatuses.ERROR.name)
-                ps.setString(2, " [цепочка остановлена: ошибка шага $id]")
-                ps.setLong(3, chainId)
-                ps.setLong(4, id)
-                ps.setString(5, KaraokeProcessStatuses.WAITING.name)
-                ps.setString(6, KaraokeProcessStatuses.CREATING.name)
+                ps.setTimestamp(2, Timestamp.from(Instant.now()))
+                ps.setString(3, " [цепочка остановлена: ошибка шага $id]")
+                ps.setLong(4, chainId)
+                ps.setLong(5, id)
+                ps.setString(6, KaraokeProcessStatuses.WAITING.name)
+                ps.setString(7, KaraokeProcessStatuses.CREATING.name)
                 ps.executeUpdate()
             }
         } catch (e: Exception) {
@@ -713,7 +753,10 @@ class KaraokeProcess(
             }
             var statement: Statement? = null
             var rs: ResultSet? = null
-            val sql = "select count(*) as cnt from tbl_processes where process_status = 'WAITING' and process_command <> 'tail'"
+            // 674 (FR-015): «в очереди» — число живых кортежей, а не строк-шагов.
+            val sql =
+                "select count(distinct coalesce(process_chain_id, id)) as cnt from tbl_processes " +
+                    "where process_status = 'WAITING' and process_deleted_at IS NULL"
             var result = 0L
 
             try {
@@ -813,12 +856,7 @@ class KaraokeProcess(
                     println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                     return false
                 }
-                val sql = "DELETE FROM tbl_processes WHERE process_status = ?"
-                val ps = connection.prepareStatement(sql)
-                ps.setString(1, "DONE")
-                ps.executeUpdate()
-                ps.close()
-                return true
+                return purgeFinishedTuples(database)
             } catch (e: Exception) {
                 logger.error("KaraokeProcess: не удалось удалить DONE-задания при старте воркера", e)
                 return false
@@ -826,15 +864,210 @@ class KaraokeProcess(
         }
 
         /**
-         * Возвращает осиротевшие `WORKING`-задания в `WAITING` при старте воркера.
+         * 674 (FR-005/FR-010): удалить только **полностью завершённые** кортежи (все строки `DONE`).
          *
-         * BR-036 (аудит #336, пакет PKG-S3-22): сбой этого шага оставлял строки в `WORKING` —
-         * воркер их не выбирает (`getProcessesToStart` берёт только `WAITING`), лейн стоит,
-         * а очередь при этом выглядит работающей. Теперь исключение логируется со стеком,
-         * а вызывающий получает `false` и сигналит в SSE/мониторинг.
-         *
-         * @return `true` — сброс выполнен; `false` — сбой БД, `WORKING`-строки могли остаться.
+         * Публичное имя вызывающего (`deleteDone`) сохранено ради существующих call-sites; семантика
+         * отличается от старой (раньше удалялись все `DONE`-строки, включая головы живых кортежей).
+         * `ERROR`-кортежи сохраняются для admin-retry.
          */
+        fun purgeFinishedTuples(database: KaraokeConnection): Boolean {
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                return false
+            }
+            return try {
+                connection
+                    .prepareStatement(
+                        "DELETE FROM tbl_processes p " +
+                            "WHERE p.process_chain_id IS NOT NULL " +
+                            "AND NOT EXISTS (SELECT 1 FROM tbl_processes s " +
+                            "WHERE s.process_chain_id = p.process_chain_id AND s.process_status <> 'DONE')",
+                    ).use { ps -> ps.executeUpdate() }
+                true
+            } catch (e: Exception) {
+                logger.error("KaraokeProcess: не удалось удалить завершённые кортежи", e)
+                false
+            }
+        }
+
+        /** 674 (FR-011): идемпотентная нормализация строк очереди к кортежной модели. */
+        fun normalizeTuples(database: KaraokeConnection): Int {
+            val connection = database.getConnection() ?: return 0
+            var changed = 0
+            return try {
+                changed +=
+                    connection
+                        .prepareStatement(
+                            "UPDATE tbl_processes SET process_chain_id = id, process_order = 0 " +
+                                "WHERE process_chain_id IS NULL",
+                        ).use { it.executeUpdate() }
+                changed +=
+                    connection
+                        .prepareStatement(
+                            "UPDATE tbl_processes SET process_status = 'WAITING', process_end = NULL, " +
+                                "process_percentage = 0, process_percentage_str = '' " +
+                                "WHERE process_status IN ('WORKING', 'CREATING')",
+                        ).use { it.executeUpdate() }
+                // 674 (FR-003/FR-007): кортеж с ERROR-шагом не должен доигрывать WAITING-шаги.
+                changed +=
+                    connection
+                        .prepareStatement(
+                            "UPDATE tbl_processes SET process_status = 'ERROR', process_end = NOW(), " +
+                                "process_description = COALESCE(process_description, '') || " +
+                                "' [восстановление 674: кортеж содержит ошибку]' " +
+                                "WHERE process_status IN ('WAITING', 'CREATING') " +
+                                "AND process_chain_id IN (" +
+                                "SELECT DISTINCT process_chain_id FROM tbl_processes " +
+                                "WHERE process_status = 'ERROR' AND process_chain_id IS NOT NULL)",
+                        ).use { it.executeUpdate() }
+                // Безголовые цепочки (голова удалена старым deleteDone): голова = шаг с минимальным order.
+                val headless = mutableListOf<Long>()
+                connection
+                    .prepareStatement(
+                        "SELECT DISTINCT p.process_chain_id FROM tbl_processes p " +
+                            "WHERE p.process_chain_id IS NOT NULL " +
+                            "AND NOT EXISTS (SELECT 1 FROM tbl_processes h WHERE h.id = p.process_chain_id)",
+                    ).use { ps ->
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) headless += rs.getLong(1)
+                        }
+                    }
+                headless.forEach { chainId ->
+                    val headRow =
+                        connection
+                            .prepareStatement(
+                                "SELECT id FROM tbl_processes WHERE process_chain_id = ? " +
+                                    "ORDER BY process_order, id LIMIT 1",
+                            ).use { ps ->
+                                ps.setLong(1, chainId)
+                                ps.executeQuery().use { rs -> if (rs.next()) rs.getLong(1) else null }
+                            } ?: return@forEach
+                    connection
+                        .prepareStatement("UPDATE tbl_processes SET process_chain_id = id WHERE id = ?")
+                        .use { ps ->
+                            ps.setLong(1, headRow)
+                            ps.executeUpdate()
+                        }
+                    changed++
+                }
+                println(
+                    "[${Timestamp.from(Instant.now())}] KaraokeProcess: нормализовано строк кортежей: $changed " +
+                        "(chainless/working/creating/headless)",
+                )
+                changed
+            } catch (e: Exception) {
+                logger.error("KaraokeProcess: не удалось нормализовать кортежи", e)
+                changed
+            }
+        }
+
+        /** 674 (FR-005): есть ли у scope живые строки (для janitor — не удалять чужое/живое). */
+        fun isScopeLive(
+            scopeId: Long,
+            database: KaraokeConnection,
+        ): Boolean {
+            val connection = database.getConnection() ?: return true
+            return try {
+                connection
+                    .prepareStatement(
+                        "SELECT 1 FROM tbl_processes WHERE (id = ? OR process_chain_id = ?) " +
+                            "AND process_status IN ('WAITING', 'WORKING', 'CREATING') " +
+                            "AND process_deleted_at IS NULL LIMIT 1",
+                    ).use { ps ->
+                        ps.setLong(1, scopeId)
+                        ps.setLong(2, scopeId)
+                        ps.executeQuery().use { rs -> rs.next() }
+                    }
+            } catch (e: Exception) {
+                true
+            }
+        }
+
+        /** 674 (FR-016): приоритет — свойство кортежа. */
+        fun setChainPriority(
+            chainId: Long,
+            priority: Int,
+            database: KaraokeConnection,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            return try {
+                connection
+                    .prepareStatement("UPDATE tbl_processes SET process_priority = ? WHERE process_chain_id = ?")
+                    .use { ps ->
+                        ps.setInt(1, priority)
+                        ps.setLong(2, chainId)
+                        ps.executeUpdate()
+                    }
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] WARN process.chain_priority_failed: chain=$chainId: ${e.message}")
+                0
+            }
+        }
+
+        /** Первый исполняемый (`WAITING`) шаг кортежа — resume с первого не-`DONE`. */
+        fun firstRunnableStep(
+            chainId: Long,
+            database: KaraokeConnection,
+        ): KaraokeProcess? {
+            val connection = database.getConnection() ?: return null
+            return try {
+                connection.prepareStatement(TupleSchedulerSql.FIRST_RUNNABLE_STEP).use { ps ->
+                    ps.setLong(1, chainId)
+                    ps.executeQuery().use { rs ->
+                        if (!rs.next()) return null
+                        KaraokeProcess(database).also { process ->
+                            process.id = rs.getLong("id")
+                            process.name = rs.getString("process_name")
+                            process.status = rs.getString("process_status")
+                            process.order = rs.getInt("process_order")
+                            process.priority = rs.getInt("process_priority")
+                            process.command = rs.getString("process_command")
+                            process.args = convertJsonToArgs(rs.getString("process_args"))
+                            process.envs = convertJsonToEnvs(rs.getString("process_envs"))
+                            process.description = rs.getString("process_description")
+                            process.songId = rs.getInt("song_id")
+                            process.type = rs.getString("process_type")
+                            process.start = rs.getTimestamp("process_start")
+                            process.end = rs.getTimestamp("process_end")
+                            process.prioritet = rs.getInt("process_prioritet")
+                            process.withoutControl = rs.getBoolean("without_control")
+                            process.threadId = rs.getInt("thread_id")
+                            process.processChainId = rs.getLong("process_chain_id").takeIf { !rs.wasNull() }
+                            process.processDeletedAt = rs.getTimestamp("process_deleted_at")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] WARN process.first_runnable_failed: chain=$chainId: ${e.message}")
+                null
+            }
+        }
+
+        /**
+         * 674: единое создание цепочки/кортежа. Голова вставляется первой, её id — `process_chain_id`;
+         * одиночная строка помечается головой (`chain_id = id`, `order = 0`).
+         */
+        fun createChain(processes: List<KaraokeProcess>): Long? {
+            if (processes.isEmpty()) return null
+            if (processes.size == 1) {
+                val head = createDbInstance(processes[0]) ?: return null
+                head.markAsHead()
+                return head.id
+            }
+            val head = createDbInstance(processes.first()) ?: return null
+            head.processChainId = head.id
+            head.order = 0
+            head.saveChainId()
+            processes.drop(1).forEachIndexed { index, child ->
+                child.processChainId = head.id
+                child.order = index + 1
+            }
+            createDbInstance(processes.drop(1))
+            return head.id
+        }
+
+        /** BR-036: вернуть осиротевшие WORKING/CREATING в WAITING при старте; false — сбой БД. */
         fun setWorkingToWaiting(database: KaraokeConnection): Boolean {
             println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
 
@@ -846,13 +1079,10 @@ class KaraokeProcess(
                 }
                 val sql =
                     "UPDATE tbl_processes SET " +
-                        "process_status = ? " +
-                        "WHERE process_status = ?"
-                val ps = connection.prepareStatement(sql)
-                ps.setString(1, "WAITING")
-                ps.setString(2, "WORKING")
-                ps.executeUpdate()
-                ps.close()
+                        "process_status = 'WAITING', process_end = NULL, " +
+                        "process_percentage = 0, process_percentage_str = '' " +
+                        "WHERE process_status IN ('WORKING', 'CREATING')"
+                connection.prepareStatement(sql).use { ps -> ps.executeUpdate() }
                 return true
             } catch (e: Exception) {
                 logger.error("KaraokeProcess: не удалось сбросить WORKING → WAITING при старте воркера", e)
@@ -1066,21 +1296,7 @@ class KaraokeProcess(
             var rs: ResultSet? = null
 //            val sql = "SELECT * FROM tbl_processes WHERE process_status = 'WAITING' ORDER BY process_priority, process_order, id LIMIT 1;"
 
-            val sql =
-                """
-                SELECT *
-                FROM (
-                    SELECT *,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY thread_id
-                               ORDER BY process_priority, process_order, id
-                           ) AS rn
-                    FROM tbl_processes
-                    WHERE process_status = 'WAITING'
-                      AND process_deleted_at IS NULL
-                ) ranked
-                WHERE rn = 1;
-                """.trimIndent()
+            val sql = TupleSchedulerSql.SELECT_TUPLE_HEADS
 
             try {
                 statement = connection.createStatement()
@@ -1178,7 +1394,14 @@ class KaraokeProcess(
                 if (args.containsKey("song_id")) addNumeric("song_id", args["song_id"])
                 if (args.containsKey("process_type")) where.add("process_type = ?", args["process_type"])
                 if (args.containsKey("process_prioritet")) addNumeric("process_prioritet", args["process_prioritet"])
-                if (args.containsKey("filter_notail")) where.raw("process_command <> 'tail'")
+                if (args.containsKey("filter_notail")) {
+                    // 674 (FR-015): «без хвоста» — первый исполняемый шаг кортежа, а не отдельная строка.
+                    where.raw(
+                        "process_order = (SELECT MIN(s.process_order) FROM tbl_processes s " +
+                            "WHERE s.process_chain_id = tbl_processes.process_chain_id " +
+                            "AND s.process_status = 'WAITING' AND s.process_deleted_at IS NULL)",
+                    )
+                }
                 if (args.containsKey("thread_id")) addNumeric("thread_id", args["thread_id"])
                 // BR-037 (аудит #336, пакет PKG-S3-22): soft-deleted задания
                 // (`process_deleted_at <> NULL`) больше НЕ возвращаются по умолчанию.
@@ -1293,6 +1516,23 @@ class KaraokeProcess(
             return result.take(limit)
         }
 
+        /** 674: удалить все строки кортежа (терминальные, не живые — вызывается после single-flight). */
+        fun deleteChain(
+            chainId: Long,
+            database: KaraokeConnection,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            return try {
+                connection.prepareStatement("DELETE FROM tbl_processes WHERE process_chain_id = ?").use { ps ->
+                    ps.setLong(1, chainId)
+                    ps.executeUpdate()
+                }
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] WARN process.chain_delete_failed: chain=$chainId: ${e.message}")
+                0
+            }
+        }
+
         fun delete(
             id: Long,
             database: KaraokeConnection,
@@ -1357,17 +1597,26 @@ class KaraokeProcess(
             // шаг ещё не записал WORKING, второй вызов удалял его строку — поток работал
             // «в никуда»; (2) у выполняющейся цепочки удалялись WAITING-шаги 2..N.
             // Активное задание = single-flight (return 0), пересоздаём только терминальные.
-            var hasActive = false
-            existedProcesses.forEach { existedProcess ->
-                when (existedProcess.status) {
-                    KaraokeProcessStatuses.WORKING.name,
-                    KaraokeProcessStatuses.WAITING.name,
-                    KaraokeProcessStatuses.CREATING.name,
-                    -> hasActive = true
-                    else -> delete(existedProcess.id, song.database)
+            // 674 (FR-010): single-flight по кортежу. Живой кортеж блокирует постановку целиком,
+            // его терминальные строки (включая DONE-голову) не удаляются; удаляются только
+            // полностью завершённые кортежи.
+            val hasActive =
+                existedProcesses.any {
+                    it.processDeletedAt == null &&
+                        it.status in
+                        setOf(
+                            KaraokeProcessStatuses.WORKING.name,
+                            KaraokeProcessStatuses.WAITING.name,
+                            KaraokeProcessStatuses.CREATING.name,
+                        )
                 }
-            }
             if (hasActive) return 0
+            existedProcesses
+                .map { it.processChainId ?: it.id }
+                .distinct()
+                .forEach { chainId ->
+                    deleteChain(chainId, song.database)
+                }
 
             // specs/126-key-from-file (#126, OpenProject): если для KEY_BPM_FROM_FILE файл
             // `<songFile> [key].json` уже есть, НЕ создаём процесс — применяем key/bpm
@@ -2274,27 +2523,9 @@ class KaraokeProcess(
                 return 0
             }
 
-            val separatedProcesses = separate(karaokeProcess)
-            if (separatedProcesses.size <= 1) {
-                return createDbInstance(separatedProcesses)[0]?.id ?: 0
-            }
-
-            // BR-032 (аудит #336, пакет PKG-S2-10): цепочка — единица исполнения. Головной
-            // шаг вставляем первым и берём его id как process_chain_id, остальные шаги
-            // получают тот же chain id и номер шага в process_order. Воркер выбирает
-            // WAITING по (priority, order, id), поэтому шаг N+1 не стартует, пока N не DONE.
-            val head = createDbInstance(listOf(separatedProcesses.first())).firstOrNull() ?: return 0
-            val chainId = head.id
-            head.processChainId = chainId
-            head.order = 0
-            head.saveChainId()
-            val rest = separatedProcesses.drop(1)
-            rest.forEachIndexed { index, child ->
-                child.processChainId = chainId
-                child.order = index + 1
-            }
-            createDbInstance(rest)
-            return head.id
+            // 674 (FR-001/FR-006): кортеж — единица исполнения; одиночное задание — кортеж из
+            // одного шага (голова с chain_id = id, order = 0).
+            return createChain(separate(karaokeProcess)) ?: 0
         }
 
         fun separate(parentProcess: KaraokeProcess): List<KaraokeProcess> {

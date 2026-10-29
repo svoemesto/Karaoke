@@ -167,3 +167,16 @@ Sync для маленьких объов (до 100), async для больши�
 ## Changelog
 
 - **Pass 347** (2026-09-09): Initial. Автор: agent (Karaoke).
+
+## Состояние кортежа в админке (674, FR-015)
+
+Список `/api/admin/processes` с `topLevelOnly` показывает голову кортежа
+(`process_chain_id = id` или `NULL`). DTO дополнен вычисляемыми полями `chainId`,
+`chainStepIndex`, `chainStepsTotal`, `chainState`, `chainFailedStep`, `chainReason`, `progress`
+(оконные агрегаты по `process_chain_id`, без N+1). Retry `ERROR`-шага кортежа переводит в
+`WAITING` все `ERROR`-шаги кортежа и восстанавливает приоритет головы — одной транзакцией
+(`inTransaction`, BR-168).
+
+Ежедневная проверка целостности включается `queue.integrity.enabled` (KaraokeProperties, по умолчанию
+false), расписание — Spring-свойство `karaoke.integrity.cron` (`0 0 4 * * *`); отдельного ключа
+`queue.integrity.cron` нет.

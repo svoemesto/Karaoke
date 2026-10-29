@@ -2643,6 +2643,24 @@ val listKaraokeProperties =
         KaraokeProperty(key = "ui.listening_history.rows_per_page", defaultValue = 500, description = "Количество строк на странице в таблице «История прослушиваний» (передаётся как pageSize в /api/listeninghistory/digest)"),
         KaraokeProperty(key = "ui.processes.rows_per_page", defaultValue = 50, description = "Количество строк на странице в таблице «Процессы» (передаётся как limit в /api/admin/processes)"),
         KaraokeProperty(key = "ui.news.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Новости»"),
+        // specs/674-kortege-execution: кортежное исполнение и проверка целостности.
+        KaraokeProperty(
+            key = "queue.tuple.temp_ttl_hours",
+            defaultValue = 24,
+            description = "TTL (часы) осиротевших временных каталогов кортежа для janitor (674, FR-005)",
+        ),
+        KaraokeProperty(
+            key = "queue.tuple.janitor_interval_minutes",
+            defaultValue = 60,
+            description = "Интервал запуска janitor временных каталогов кортежа, минуты (674, FR-005)",
+        ),
+        KaraokeProperty(
+            key = "queue.integrity.enabled",
+            defaultValue = false,
+            description =
+                "Ежедневная проверка целостности артефактов (report-only; 674, FR-014). " +
+                    "Расписание — Spring-свойство karaoke.integrity.cron, по умолчанию 0 0 4 * * *",
+        ),
         // specs/544-song-artifact-cleanup: флаги автоуборки артефактов песни (FR-011).
         // cleanupEnabled=false по умолчанию — поведение идентично сегодняшнему, пока
         // владелец не включит уборку осознанно. cleanupDryRun=true по умолчанию — даже

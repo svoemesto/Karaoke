@@ -346,15 +346,15 @@ class PkgS325Batch2SourceContractsTest {
     fun `BR-260 статус WORKING ставится только после успешной вставки шага`() {
         val source = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt")
         val workIndex = source.indexOf("job.status = StemJobStatus.WORKING")
-        val createIndex = source.indexOf("KaraokeProcess.createDbInstance(separated)")
+        val createIndex = source.indexOf("KaraokeProcess.createChain(separated)")
         assertTrue(workIndex > 0 && createIndex > 0, "BR-260: не найдены строки постановки шага")
         assertTrue(
             createIndex < workIndex,
             "BR-260: WORKING должен ставиться ПОСЛЕ успешной вставки шага",
         )
         assertTrue(
-            source.contains("if (created == null)"),
-            "BR-260: результат createDbInstance должен проверяться",
+            source.contains("if (createdChainId == null)"),
+            "BR-260: результат createChain должен проверяться",
         )
         val processing = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobProcessing.kt")
         assertTrue(

@@ -1734,7 +1734,7 @@ class KaraokeProcess(
                                 listOf("chmod", "666", song.pathToStoreFileLyrics),
                                 listOf("mkdir", "-p", song.pathToFolder720Lyrics),
                                 listOf("chmod", "777", song.pathToFolder720Lyrics),
-                                listOf("rm", song.pathToFile720Lyrics),
+                                listOf("rm", "-f", song.pathToFile720Lyrics),
                                 cpulimitPrefix(cpuPercentMeltLyrics) +
                                     listOf(
                                         "ffmpeg",
@@ -1883,7 +1883,7 @@ class KaraokeProcess(
                                 listOf("chmod", "666", song.pathToStoreFileKaraoke),
                                 listOf("mkdir", "-p", song.pathToFolder720Karaoke),
                                 listOf("chmod", "777", song.pathToFolder720Karaoke),
-                                listOf("rm", song.pathToFile720Karaoke),
+                                listOf("rm", "-f", song.pathToFile720Karaoke),
                                 cpulimitPrefix(cpuPercentMeltKaraoke) +
                                     listOf(
                                         "ffmpeg",
@@ -2261,7 +2261,7 @@ class KaraokeProcess(
 //                        args = listOf(
 //                            listOf("mkdir", "-p", song.pathToFolderMP3Karaoke),
 //                            listOf("chmod", "777", song.pathToFolderMP3Karaoke),
-//                            listOf("rm", song.pathToFileMP3Karaoke),
+//                            listOf("rm", "-f", song.pathToFileMP3Karaoke),
 //                            listOf(
 //                                "ffmpeg",
 //                                "-i",
@@ -2283,7 +2283,7 @@ class KaraokeProcess(
 //                        args = listOf(
 //                            listOf("mkdir", "-p", song.pathToFolderMP3Lyrics),
 //                            listOf("chmod", "777", song.pathToFolderMP3Lyrics),
-//                            listOf("rm", song.pathToFileMP3Lyrics),
+//                            listOf("rm", "-f", song.pathToFileMP3Lyrics),
 //                            listOf(
 //                                "ffmpeg",
 //                                "-i",
@@ -2304,7 +2304,7 @@ class KaraokeProcess(
                         description = "MP3 ACCOMPANIMENT"
                         args =
                             listOf(
-                                listOf("rm", song.accompanimentNameMp3),
+                                listOf("rm", "-f", song.accompanimentNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
@@ -2325,7 +2325,7 @@ class KaraokeProcess(
                         description = "MP3 VOCAL"
                         args =
                             listOf(
-                                listOf("rm", song.vocalsNameMp3),
+                                listOf("rm", "-f", song.vocalsNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
@@ -2346,7 +2346,7 @@ class KaraokeProcess(
                         description = "MP3 DRUMS"
                         args =
                             listOf(
-                                listOf("rm", song.drumsNameMp3),
+                                listOf("rm", "-f", song.drumsNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
@@ -2367,7 +2367,7 @@ class KaraokeProcess(
                         description = "MP3 BASS"
                         args =
                             listOf(
-                                listOf("rm", song.bassNameMp3),
+                                listOf("rm", "-f", song.bassNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
@@ -2388,7 +2388,7 @@ class KaraokeProcess(
                         description = "MP3 OTHER"
                         args =
                             listOf(
-                                listOf("rm", song.otherNameMp3),
+                                listOf("rm", "-f", song.otherNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",

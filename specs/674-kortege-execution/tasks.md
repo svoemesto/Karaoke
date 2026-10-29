@@ -336,7 +336,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   копиях 8 песен: SC-001 (по артефактам), SC-002, SC-003, SC-005, SC-007, SC-008; записать результат
 - [ ] T063 Замер SC-006 на копиях 8 песен до/после, допуск +20% (сценарий
   `specs/674-kortege-execution/quickstart.md` §3); записать в отчёт
-- [ ] T064 Финальная гигиена репозитория (`specs/674-kortege-execution/`, `.gitignore`): `git status`,
+- [x] T064 Финальная гигиена репозитория (`specs/674-kortege-execution/`, `.gitignore`): `git status`,
   отсутствие секретов и временных файлов; `report.md` не требуется до merge (появится после PR)
 - [x] T065 [P] `SyncTargetContractTest` (FR-017) в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/SyncTargetContractTest.kt`:

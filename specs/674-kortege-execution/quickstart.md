@@ -44,6 +44,9 @@ export DOCKER_CONFIG="${DOCKER_CONFIG:-$(dirname "$(git rev-parse --path-format=
 | `TupleThreadLifecycleTest` | поток кортежа одноразовый: `closeThreadConnection()` вызван ровно один раз за кортеж (не на шаг), после последнего шага; второй кортеж закрывает своё соединение; `finally` вокруг цикла сохранён (ADR `local-0009`) | FR-018 |
 | `TupleWithoutControlTest` | `withoutControl=true` (`SYMLINK`) не отменяет fail-fast, порядок и resume: сбой останавливает весь кортеж, следующий шаг не стартует | FR-003/007/018 |
 | `AdminDoneFilterTest` | `status=DONE` и top-level выдача после `purgeFinishedTuples`: `DONE`-голова живого кортежа видна, завершённый кортеж удалён как при `deleteDone`, `tbl_processes_audit` не задет | FR-010/015 |
+| `ArtifactIntegrityTest` | все виды находок `verifySong` (`missingStem`, `foreignDuration`, `staleArtifact`, `missingSidecar`, `sidecarMismatch`, `emptyKeyBpm`), правок нет | FR-012/014 |
+| `AdminTupleContractTest` | `topLevelOnly` содержит `process_chain_id = id`; DTO содержит `chainState`/`chainStepIndex`/`progress` | FR-015 |
+| `SyncTargetContractTest` | `SyncRegistry.all` не содержит `tbl_processes`; `recordhash_processes.sql` не менялся; `tools/check-recordhash-consistency.py` зелёный | FR-017 |
 
 Линтеры и сборка (обязательно перед PR):
 
@@ -167,6 +170,12 @@ curl -s http://localhost:7906/api/admin/artifacts/integrity
 Ожидаемо: после ремонта отчёт целостности — `findingsTotal = 0`; до ремонта — находки
 `foreignDuration`/`sidecarMismatch` для 30390/30391 (чужие стемы/key-bpm, `01-repro.md` §3.1–3.3);
 ежедневная проверка ничего не правит.
+
+**Проверка FR-014 (ежедневный отчёт):** дождаться срабатывания `queue.integrity.cron` (или
+`queue.integrity.enabled=true` + временный cron на стенде) и убедиться, что (а) появился файл
+`PATH_TO_LOGS/artifact-integrity/<date>.json`, (б) `GET /api/admin/artifacts/integrity` отдаёт тот же
+отчёт, (в) mtime и содержимое артефактов песни **не изменились** (проверка молча не правит),
+(г) находки видны оператору (SSE/эндпоинт).
 
 ## 4. Админка (FR-015, SC-007)
 

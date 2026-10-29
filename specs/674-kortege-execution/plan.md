@@ -160,6 +160,7 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/
 │   ├── TupleExecutor.kt               # цикл шагов 0..N-1, fail-fast, force-stop, resume
 │   ├── TupleStore.kt                  # интерфейс состояния кортежа (JDBC-реализация + fake)
 │   ├── TupleSchedulerSql.kt           # SQL выбора головы кортежа и первый не-DONE шаг
+│   ├── AudioProbe.kt                  # ffprobe-длительность для проверки содержимого
 │   ├── TupleJanitor.kt                # уборка осиротевших scope-каталогов по TTL
 │   └── ArtifactIntegrity.kt           # проверка содержимого + отчёт (разовый ремонт/ежедневно)
 ├── services/ArtifactIntegrityScheduler.kt        # @Scheduled ежедневная проверка (report-only)
@@ -235,9 +236,12 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
 5. **`setWorkingToWaiting`** — добавить `CREATING → WAITING` (мёртвый статус, `03-semantics.md` §5.5)
    и сброс `process_end`/`process_percentage*` для возвращённых строк; то же для
    `setWorkingToWaitingForThread`.
-6. **`deleteDone` → `purgeFinishedTuples`**: удалять только кортежи, все строки которых `DONE`
-   (и одиночные `DONE`), никогда — терминальные строки кортежа с незавершёнными шагами.
-   `ERROR`-кортежи сохраняются для admin-retry.
+6. **`deleteDone` сохраняет публичное имя, меняется семантика** (`purgeFinishedTuples` внутри):
+   удалять только кортежи, все строки которых `DONE` (и одиночные `DONE`), никогда — терминальные
+   строки кортежа с незавершёнными шагами. `ERROR`-кортежи сохраняются для admin-retry.
+   Имя не переименовываем: `deleteDone` вызывают `controllers/ApiController.kt:6428`,
+   `controllers/MainController.kt:338` и тест `PkgS322ProcessTest.kt:162` — переименование дало бы
+   regression-компиляцию вне спеки.
 7. **`createProcess` single-flight** — по кортежу: если у `(song, type, thread)` есть живой кортеж
    (`WAITING/WORKING/CREATING` в любой строке) — `return 0`, ничего не удаляя; удаляются только
    полностью терминальные кортежи. (Сейчас удаляются `DONE`-строки до проверки `hasActive` —
@@ -283,8 +287,12 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
 7. Пост-хуки (`HealthReport.onRepairProcessFinished`, Telegram после `RENDER_MP4_DEMO`,
    `sendCountWaitingMessage`) — один раз на кортеж, в конце (`KaraokeProcessWorker.kt:419-510`),
    а не на каждом шаге: промежуточный пересчёт HR провоцирует новые постановки, пока кортеж жив.
-8. `runStep` сохраняет `redirectErrorStream(true)` и проверку exit code до `DONE`
-   (`ProcessExitWiringTest` остаётся зелёным); лог шага — как сейчас (`PATH_TO_LOGS`).
+8. `runStep` **остаётся в `KaraokeProcessWorker.kt`** (не переносится в `tuple/`): `TupleExecutor`
+   получает его как `stepRunner: (KaraokeProcess) -> StepResult`. Так `ProcessExitWiringTest`
+   (source-contract: `awaitProcessExit` → `processExitFailure` → `DONE`, `redirectErrorStream(true)`)
+   остаётся зелёным **без правки теста**. В новом пакете `tuple/` запрещены сырые
+   `thread { }`/`Thread { }` — `OneShotThreadWiringTest`/`RawThreadDbGuard` сканируют весь
+   прикладной код и падают на одноразовом потоке в файле, обращающемся к БД.
 9. **JDBC-жизненный цикл потока кортежа (ADR `local-0009`,
    `knowledge/adr/local-0009-thread-local-connection-lifecycle.md`).** Поток кортежа — одноразовый
    (на кортеж), thread-local соединение `KaraokeConnection` закрывается **один раз** в `finally`
@@ -387,8 +395,8 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
    (сейчас `IS NULL`, головы новых кортежей невидимы — `03-semantics.md` §6.2).
 2. DTO + SQL: `chainId`, `chainStepIndex` (номер текущего/последнего шага), `chainStepsTotal`,
    `chainState` (агрегат: `WAITING/WORKING/ERROR/DONE` по строкам кортежа), `chainFailedStep`
-   (шаг, на котором упал кортеж). Считать одним запросом через `LEFT JOIN` агрегата по
-   `process_chain_id` (без N+1).
+   (шаг, на котором упал кортеж), `progress` (процент текущего шага). Считать одним запросом через
+   `LEFT JOIN` агрегата по `process_chain_id` (без N+1).
 3. `retryProcess` — tuple-aware: для строки кортежа retry переводит в `WAITING` **все** `ERROR`-шаги
    кортежа и восстанавливает приоритет кортежа (значение из головы; если голова утрачена —
    default 1), пишет одну audit-запись на кортеж. Одиночный `ERROR` — как сейчас.
@@ -432,7 +440,15 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
     resume; сбой шага останавливает кортеж целиком.
   - `AdminDoneFilterTest` — `status=DONE` и top-level выдача после `purgeFinishedTuples`: живой
     кортеж с `DONE`-головой виден, завершённый удалён так же, как при `deleteDone`, audit не задет.
-  - `ProcessExitWiringTest` — существующий инвариант остаётся зелёным.
+  - `ArtifactIntegrityTest` — все виды находок `verifySong`, правок нет.
+  - `AdminTupleContractTest` — `topLevelOnly` содержит `process_chain_id = id`, DTO содержит
+    `chainState`/`chainStepIndex`/`progress`.
+  - `SyncTargetContractTest` (FR-017) — `SyncRegistry.all` не содержит `tbl_processes`;
+    `deploy/recordhash_processes.sql` не менялся; `tools/check-recordhash-consistency.py` зелёный.
+  - **Регресс существующих тестов** (полный `:karaoke-app:test`): `ProcessExitWiringTest`,
+    `OneShotThreadWiringTest` + `OneShotThreadTest`, `PkgS322ProcessTest`,
+    `PkgS323Batch4SourceContractsTest` (админ-servis, BR-168), `PkgS322SecurityTest` — обязаны
+    остаться зелёными (см. P2 п.8 и P1 п.6).
 - **Integration (manualTest, на копиях)**: `TupleIsolationIT` — порт сценария
   `.scratch/wf308/exp/queue.py` на Kotlin: два кортежа `DEMUCS2` в одном лейне, stub-`docker`,
   реальные `Song.argsDemucs2` argv, `InMemoryTupleStore` + `TupleExecutor`; ожидания: у каждого
@@ -492,7 +508,7 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
 | FR-014 ежедневная проверка без правок | P5 (`ArtifactIntegrityScheduler`) | manualTest отчёта, review |
 | FR-015 наблюдаемость кортежа | P6 (DTO/UI) | ручная проверка админки, `AdminDoneFilterTest`, `webvue3` build |
 | FR-016 исчерпание попыток видно | P2/P4 (без второго retry) | `TupleFailureTest` |
-| FR-017 two-DB sync не ломается | D13 (схема не меняется) | `SyncRegistry`-инвариант тестом, review |
+| FR-017 two-DB sync не ломается | D13 (схема не меняется) | `SyncTargetContractTest`, `tools/check-recordhash-consistency.py`, review |
 | FR-018 stop/forceStop не ломают resume | P2 (stop/forceStop) | `TupleRecoveryTest`, `TupleWithoutControlTest`, `TupleThreadLifecycleTest`, e2e SC-008 |
 
 **SC**: SC-001/SC-002 — e2e на 8 песнях; SC-003 — `TupleFailureTest` + e2e «искусственно сломанный шаг»;

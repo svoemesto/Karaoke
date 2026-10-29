@@ -65,11 +65,14 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [ ] T005 [P] Определить `TupleStore` (интерфейс) и `JdbcTupleStore` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleStore.kt`:
   `firstRunnable`, `claim`, `nextWaiting`, `markDone`, `markError`, `markWaiting`,
-  `completeTuple`, `failTuple` (тонкая обёртка над `claimForWorking`/`save`)
+  `completeTuple`, `failTuple`, `aggregateState` (тонкая обёртка над `claimForWorking`/`save`)
 - [ ] T006 Заменить `getProcessesToStart` на выбор голов в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt` (SQL из T004,
   KDoc по контракту), добавить `firstRunnableStep(chainId)`
-- [ ] T007 Реализовать `normalizeTuples()` и `purgeFinishedTuples()` в `KaraokeProcess.kt`:
+- [ ] T007 Реализовать `normalizeTuples()` и `purgeFinishedTuples()` в `KaraokeProcess.kt`
+  (публичное имя `deleteDone(database)` сохраняется и делегирует в purge — его вызывают
+  `controllers/ApiController.kt:6428`, `controllers/MainController.kt:338` и
+  `PkgS322ProcessTest.kt:162`):
   `chainless → chain_id=id/order 0`; безголовая цепочка → голова = min `order`;
   `CREATING → WAITING`; `WORKING → WAITING` со сбросом `end`/`percentage*`;
   удаление только полностью `DONE`-кортежей. Вызвать в `KaraokeProcessWorker.start()`
@@ -112,39 +115,46 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `karaoke-app/src/manualTest/kotlin/com/svoemesto/karaokeapp/tuple/TupleIsolationIT.kt`:
   порт `.scratch/wf308/exp/queue.py` на Kotlin (`InMemoryTupleStore` + `TupleExecutor`,
   stub-`docker`, реальные argv `Song.argsDemucs2`), два кортежа в одном лейне
+- [ ] T014 [P] [US1] `TupleJanitorTest` в
+  `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/TupleJanitorTest.kt`: старый
+  осиротевший каталог удалён, каталог живого кортежа и корень целы, TTL уважается, удаление
+  fail-open (ошибка не роняет цикл)
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] `TupleScope` в
+- [ ] T015 [US1] `TupleScope` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleScope.kt`: `SCOPE_TOKEN="{scope}"`,
   `scopeId(chainId, stepId)`, `expand(argv, scopeId)`, `scopeDir(root, scopeId)`
-- [ ] T015 [P] [US1] `model/Song.kt`: `argsDemucs2`/`argsDemucs5`/`argsDemucs2RetryCpu`/
+- [ ] T016 [P] [US1] `model/Song.kt`: `argsDemucs2`/`argsDemucs5`/`argsDemucs2RetryCpu`/
   `argsDemucs5RetryCpu` — пути `.../tmp/{scope}/file*.flac`, контейнер `demucs-{scope}`,
   `scopeId={scope}` в финальном шаге
-- [ ] T016 [P] [US1] `model/Song.kt`: `argsKeyBpmFinder` — каталог `.../tmp/{scope}/`,
+- [ ] T017 [P] [US1] `model/Song.kt`: `argsKeyBpmFinder` — каталог `.../tmp/{scope}/`,
   контейнер `keybpmfinder-{scope}`, `rm -rf` только своего каталога, `scopeId={scope}`
-- [ ] T017 [US1] SHEETSAGE-спайк + изоляция: новый `PATH_TO_TEMP_SHEETSAGE_FOLDER` в
+- [ ] T018 [US1] SHEETSAGE-спайк + изоляция: новый `PATH_TO_TEMP_SHEETSAGE_FOLDER` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt`, правки
   `KaraokeProcess.kt` (SHEETSAGE/SHEETSAGE2: `.../{scope}/source.wav`, `-o` в свой каталог,
   `rm -f` своих файлов); при cwd-относительной записи — `ProcessBuilder.directory(scopeDir)`.
-  Критерий — `SheetsageScopeSpikeIT` (T037)
-- [ ] T018 [US1] `TupleExecutor` в
+  Критерий — `SheetsageScopeSpikeIT` (T038)
+- [ ] T019 [US1] `TupleExecutor` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleExecutor.kt`: цикл
-  `claim → runStep → markDone → nextWaiting`, `null` → `completeTuple`, ошибка → `markError`+
-  `failTuple`, `forceStopped` → `markWaiting`; `stepsTotal`/`stepIndex` для прогресса
-- [ ] T019 [US1] `KaraokeProcessWorker.kt`: `KaraokeProcessThread` — поток кортежа
-  (`chainId`, `var karaokeProcess`, `stepIndex`/`stepsTotal`), цикл из T018, обновление
+  `claim → stepRunner → markDone → nextWaiting`, `null` → `completeTuple`, ошибка → `markError`+
+  `failTuple`, `forceStopped` → `markWaiting`; `stepsTotal`/`stepIndex` для прогресса.
+  `stepRunner` — это `runStep` **в `KaraokeProcessWorker.kt`** (не переносится в `tuple/`), чтобы
+  `ProcessExitWiringTest` остался зелёным без правки. В `tuple/` запрещены сырые
+  `thread { }`/`Thread { }` (`OneShotThreadWiringTest`)
+- [ ] T020 [US1] `KaraokeProcessWorker.kt`: `KaraokeProcessThread` — поток кортежа
+  (`chainId`, `var karaokeProcess`, `stepIndex`/`stepsTotal`), цикл из T019, обновление
   `threadsMap` на каждом шаге, `finally { database.closeThreadConnection() }` вокруг всего цикла
-- [ ] T020 [US1] `KaraokeProcess.kt`: `getCountWaiting` — `COUNT(DISTINCT process_chain_id)` по
+- [ ] T021 [US1] `KaraokeProcess.kt`: `getCountWaiting` — `COUNT(DISTINCT process_chain_id)` по
   `WAITING`; `filter_notail` в `loadList` — на уровне кортежей; синхронизировать
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/LaneStalledCheck.kt`
-- [ ] T021 [US1] `TupleJanitor` в
+- [ ] T022 [US1] `TupleJanitor` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleJanitor.kt` + вызов при старте
   и по `queue.tuple.janitor_interval_minutes` в `KaraokeProcessWorker.kt`; TTL
   `queue.tuple.temp_ttl_hours`, живые кортежи и корни не трогать
-- [ ] T022 [US1] `Utils.kt`: `killRunningDockerContainers` — фильтры `name=^demucs-`,
+- [ ] T023 [US1] `Utils.kt`: `killRunningDockerContainers` — фильтры `name=^demucs-`,
   `name=^keybpmfinder-` (+ переходно точные старые имена)
-- [ ] T023 [US1] Прогнать `TupleIsolationIT` и `TupleThreadLifecycleTest`; зафиксировать базовое
+- [ ] T024 [US1] Прогнать `TupleIsolationIT` и `TupleThreadLifecycleTest`; зафиксировать базовое
   время обработки пачки (SC-006) в прогоне по `specs/674-kortege-execution/quickstart.md` §2–3
 
 **Checkpoint**: US1 работает независимо — кортеж исполняется целиком, изоляция подтверждена.
@@ -152,6 +162,9 @@ single-flight/resume/janitor/проверку содержимого, integratio
 ---
 
 ## Phase 4: User Story 2 — Сбой виден, а не замаскирован (Priority: P1)
+
+**Depends on**: US1 (T019–T020 — `TupleExecutor` и поток кортежа). Реализацию US2 раньше US1
+не начинать; тесты T025–T027 допустимо писать сразу после Foundational.
 
 **Goal**: любой ненулевой код шага → весь кортеж `ERROR` с причиной; успех подтверждается
 содержимым (длительность стема, key/bpm из своего файла); один CPU-retry.
@@ -161,36 +174,36 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ### Tests for User Story 2
 
-- [ ] T024 [P] [US2] `TupleFailureTest` в
+- [ ] T025 [P] [US2] `TupleFailureTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/TupleFailureTest.kt`: ненулевой код →
   весь кортеж `ERROR`, причина в `process_description`, следующий шаг не стартует, второй retry
   не ставится (`retriedOnCpu=true`)
-- [ ] T025 [P] [US2] `ArtifactVerificationTest` в
+- [ ] T026 [P] [US2] `ArtifactVerificationTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/ArtifactVerificationTest.kt`:
   ±0.5 с; отсутствие/чужой sidecar → key/bpm не применяются; `bpm=0`/пустой `key` → ошибка
-- [ ] T026 [P] [US2] `TupleWithoutControlTest` в
+- [ ] T027 [P] [US2] `TupleWithoutControlTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/TupleWithoutControlTest.kt`:
   `withoutControl=true` не отменяет fail-fast, порядок и resume
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] `KaraokeProcess.kt`: `failTuple` — все не-`DONE` шаги → `ERROR` с причиной,
+- [ ] T028 [US2] `KaraokeProcess.kt`: `failTuple` — все не-`DONE` шаги → `ERROR` с причиной,
   `process_end`, `priority=-1` всему кортежу; расширить `stopChainSiblingsOnError` фильтром
   `process_deleted_at`; `hasPendingChainSiblings` — тот же фильтр
-- [ ] T028 [US2] `Utils.kt`: `AudioProbe.durationMs(path)` (всегда `ffprobe`, таймаут, `null` при
+- [ ] T029 [US2] `Utils.kt`: `AudioProbe.durationMs(path)` (всегда `ffprobe`, таймаут, `null` при
   ошибке) — новый файл `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/AudioProbe.kt`
-- [ ] T029 [US2] `Utils.kt`: `executeFinalizeDemucs` — проверки существования/длины/длительности/
+- [ ] T030 [US2] `Utils.kt`: `executeFinalizeDemucs` — проверки существования/длины/длительности/
   свежести; при провале — один CPU-retry отдельным кортежем (T008) с собственным `cp` источника,
   исчерпание — `*.rejected-<timestamp>` + удаление своего scope-каталога, `false`
-- [ ] T030 [US2] `Utils.kt`: `executeGetKeyBpmFromFile` — `scopeId` из параметров, проверка
+- [ ] T031 [US2] `Utils.kt`: `executeGetKeyBpmFromFile` — `scopeId` из параметров, проверка
   sidecar-отпечатка, `key`/`bpm` пустые → `false`, запись через `saveToDbLocked()` только после
   проверки; `model/Song.kt`: `getKeyBpmFromFile` без перезапуска `argsKeyBpmFinder`,
   `applyKeyBpmFromFileIfExists` — проверка sidecar
-- [ ] T031 [P] [US2] `KaraokeProcess.kt`: `FF_MP3_*` — `rm` → `rm -f`
-- [ ] T032 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleExecutor.kt` и
+- [ ] T032 [P] [US2] `KaraokeProcess.kt`: `FF_MP3_*` — `rm` → `rm -f`
+- [ ] T033 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleExecutor.kt` и
   `KaraokeProcess.kt`: `failTuple`/`completeTuple` независимы от `withoutControl`; `save()`-гейт
   не влияет на `markDone`/`markError`; обновить KDoc
-- [ ] T033 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt`:
+- [ ] T034 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt`:
   пост-хуки (`HealthReport.onRepairProcessFinished`, Telegram, `sendCountWaiting`) — один раз на
   кортеж; причина сбоя в `process_description` и SSE
 
@@ -200,6 +213,8 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ## Phase 5: User Story 3 — Повторный запуск и ремонт не портят готовое (Priority: P2)
 
+**Depends on**: US1 (`scopeId`, уборка) и US2 (fail-fast для retry).
+
 **Goal**: повтор не создаёт дублей и не удаляет живое; ремонт перегенерирует по содержимому;
 рестарт продолжает с первого не-`DONE`; ежедневная проверка только сообщает.
 
@@ -207,48 +222,48 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ### Tests for User Story 3
 
-- [ ] T034 [P] [US3] `SingleFlightTest` в
+- [ ] T035 [P] [US3] `SingleFlightTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/SingleFlightTest.kt`: живой кортеж →
   `SKIP`; `DONE`-строка живого кортежа не удаляется; завершённый кортеж → `CREATE`
-- [ ] T035 [P] [US3] `TupleRecoveryTest` в
+- [ ] T036 [P] [US3] `TupleRecoveryTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/TupleRecoveryTest.kt`: resume с первого
   не-`DONE`; `CREATING→WAITING`; безголовая цепочка получает голову; soft-deleted сосед не
   подвешивает кортеж
-- [ ] T036 [P] [US3] `ArtifactIntegrityTest` в
+- [ ] T037 [P] [US3] `ArtifactIntegrityTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/ArtifactIntegrityTest.kt`:
   все виды находок (`missingStem`, `foreignDuration`, `staleArtifact`, `missingSidecar`,
   `sidecarMismatch`, `emptyKeyBpm`), правок нет
-- [ ] T037 [P] [US3] `SheetsageScopeSpikeIT` в
+- [ ] T038 [P] [US3] `SheetsageScopeSpikeIT` в
   `karaoke-app/src/manualTest/kotlin/com/svoemesto/karaokeapp/tuple/SheetsageScopeSpikeIT.kt`
-  (критерий спайка из T017)
+  (критерий спайка из T018)
 
 ### Implementation for User Story 3
 
-- [ ] T038 [US3] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt`:
+- [ ] T039 [US3] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt`:
   `createProcess` single-flight по кортежу: живой кортеж → `return 0` без удалений; удаление только
   полностью `DONE`-кортежей; `KEY_BPM` skip только при подтверждённом sidecar
-- [ ] T039 [US3] `Utils.kt`/`KaraokeProcess.kt`: CPU-retry — отдельный кортеж через `createChain`,
+- [ ] T040 [US3] `Utils.kt`/`KaraokeProcess.kt`: CPU-retry — отдельный кортеж через `createChain`,
   свой `scopeId`, свой `cp` источника, `retriedOnCpu=true`, ровно один
-- [ ] T040 [US3] Recovery-края в `KaraokeProcess.kt`: `setWorkingToWaitingForThread` со сбросом
+- [ ] T041 [US3] Recovery-края в `KaraokeProcess.kt`: `setWorkingToWaitingForThread` со сбросом
   `end`/прогресса; обработка soft-deleted кортежа (все шаги удалены → лог, лейн не блокируется)
-- [ ] T041 [US3] `ArtifactIntegrity.verifySong` в
+- [ ] T042 [US3] `ArtifactIntegrity.verifySong` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/ArtifactIntegrity.kt`
   (read-only, контракт `contracts/artifact-verification.md` §6)
-- [ ] T042 [US3] `SongArtifactRepairService` в
+- [ ] T043 [US3] `SongArtifactRepairService` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SongArtifactRepairService.kt`:
   `dryRun=true` по умолчанию, постановка `DEMUCS2/5` + `KEY_BPM_FROM_FILE` в лейн 1, приоритет 0
-- [ ] T043 [US3] `ArtifactAdminController` в
+- [ ] T044 [US3] `ArtifactAdminController` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ArtifactAdminController.kt`:
   `POST /api/admin/artifacts/repair`, `GET /api/admin/artifacts/integrity` (контракт
   `contracts/admin-api.md` §4–5)
-- [ ] T044 [US3] `ArtifactIntegrityScheduler` в
+- [ ] T045 [US3] `ArtifactIntegrityScheduler` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/ArtifactIntegrityScheduler.kt`:
   `@Scheduled` по `queue.integrity.cron`, отчёт в `PATH_TO_LOGS/artifact-integrity/<date>.json`,
   последний отчёт в памяти, SSE-уведомление, **без правок**
-- [ ] T045 [US3] Разовый ремонт 8 песен 30390–30397 на стенде по
+- [ ] T046 [US3] Разовый ремонт 8 песен 30390–30397 на стенде по
   `specs/674-kortege-execution/quickstart.md` §3.5: `dryRun=true` → подтверждение находок →
   `dryRun=false`; после — отчёт целостности `findingsTotal=0` (SC-005)
-- [ ] T046 [US3] e2e повторного прогона (SC-004) по `specs/674-kortege-execution/quickstart.md` §3.3:
+- [ ] T047 [US3] e2e повторного прогона (SC-004) по `specs/674-kortege-execution/quickstart.md` §3.3:
   0 изменений готовых артефактов, 0 новых кортежей
 
 **Checkpoint**: US1–US3 работают; ремонт и повтор не портят готовое.
@@ -257,6 +272,8 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ## Phase 6: User Story 4 — Оператор видит, где идёт кортеж (Priority: P3)
 
+**Depends on**: US1 и US2 (реальные `chainState` и причина сбоя).
+
 **Goal**: в админке видно песню, шаг k из N, состояние кортежа и причину сбоя; retry — по кортежу.
 
 **Independent Test**: открыть админку во время выполнения кортежа; после сбоя — причина; retry
@@ -264,27 +281,27 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ### Tests for User Story 4
 
-- [ ] T047 [P] [US4] `AdminDoneFilterTest` в
+- [ ] T048 [P] [US4] `AdminDoneFilterTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/AdminDoneFilterTest.kt`:
   `status=DONE` и top-level выдача после `purgeFinishedTuples`; `DONE`-голова живого кортежа видна;
   завершённый удалён как при `deleteDone`; `tbl_processes_audit` не задет
-- [ ] T048 [P] [US4] Source-contract тест админских маршрутов/фильтра в
+- [ ] T049 [P] [US4] Source-contract тест админских маршрутов/фильтра в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/AdminTupleContractTest.kt`:
   `topLevelOnly` содержит `process_chain_id = id`, DTO содержит `chainState`/`chainStepIndex`
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] `services/KaraokeProcessAdminService.kt`: `topLevelOnly` →
+- [ ] T050 [US4] `services/KaraokeProcessAdminService.kt`: `topLevelOnly` →
   `(process_chain_id IS NULL OR process_chain_id = id)`; агрегат кортежа одним запросом
   (`LEFT JOIN`), фильтр `chainState`
-- [ ] T050 [US4] `dto/admin/KaraokeProcessAdminDTO.kt`: `chainId`, `chainStepIndex`,
-  `chainStepsTotal`, `chainState`, `chainFailedStep`, `chainReason`
-- [ ] T051 [US4] `services/KaraokeProcessAdminService.kt`: `retryProcess` — tuple-aware (все
+- [ ] T051 [US4] `dto/admin/KaraokeProcessAdminDTO.kt`: `chainId`, `chainStepIndex`,
+  `chainStepsTotal`, `chainState`, `chainFailedStep`, `chainReason`, `progress`
+- [ ] T052 [US4] `services/KaraokeProcessAdminService.kt`: `retryProcess` — tuple-aware (все
   `ERROR`-шаги кортежа → `WAITING`, приоритет кортежа, одна audit-запись)
-- [ ] T052 [P] [US4] `webvue3/src/components/Processes/ProcessesTable.vue` и
+- [ ] T053 [P] [US4] `webvue3/src/components/Processes/ProcessesTable.vue` и
   `webvue3/src/components/Processes/store.js`: колонка «Шаг k из N», состояние кортежа, причина,
   фильтр `chainState`
-- [ ] T053 [US4] Ручная проверка админки (SC-007) на
+- [ ] T054 [US4] Ручная проверка админки (SC-007) на
   `webvue3/src/components/Processes/ProcessesTable.vue`: причина сбоя без чтения логов,
   шаг/прогресс, tuple-retry; `cd webvue3 && npm run lint && npm run build`
 
@@ -294,27 +311,34 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] `docs/features/kortege-execution.md` — per-feature документ (FR-009) + `@see` из KDoc
-- [ ] T055 [P] `knowledge/domains/processing/components/async-process-queue.md` — переписать факты
+- [ ] T055 [P] `docs/features/kortege-execution.md` — per-feature документ (FR-009) + `@see` из KDoc
+- [ ] T056 [P] `knowledge/domains/processing/components/async-process-queue.md` — переписать факты
   (кортеж, голова/шаги, scope, janitor, recovery, single-flight, приоритет) и 17 расхождений из
   `03-semantics.md` §10
-- [ ] T056 [P] `knowledge/domains/processing/domain.md` — термин «кортеж», инварианты, таблица лейнов
-- [ ] T057 [P] `knowledge/domains/processing/components/key-bpm-from-file.md` и
+- [ ] T057 [P] `knowledge/domains/processing/domain.md` — термин «кортеж», инварианты, таблица лейнов
+- [ ] T058 [P] `knowledge/domains/processing/components/key-bpm-from-file.md` и
   `knowledge/domains/processing/components/process-admin.md` — sidecar, запрет тихого успеха,
   поля кортежа в админке, tuple-retry
-- [ ] T058 [P] `knowledge/domains/catalog/components/dictionaries.md` — SSoT-gate после правки
+- [ ] T059 [P] `knowledge/domains/catalog/components/dictionaries.md` — SSoT-gate после правки
   `model/Song.kt` (`.ssot-map.yml:41-43`)
-- [ ] T059 [P] `docs/architecture-notes.md` — запись о PR
-- [ ] T060 Полная проверка из AGENTS.md (`karaoke-app/build.gradle.kts`, `webvue3/package.json`):
+- [ ] T060 [P] `docs/architecture-notes.md` — запись о PR
+- [ ] T061 Полная проверка из AGENTS.md (`karaoke-app/build.gradle.kts`, `webvue3/package.json`):
   `GRADLE_USER_HOME=... ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`,
   `:karaoke-app:ktlintCheck`, `:karaoke-web:bootJar`,
-  `cd webvue3 && npm run lint && npm run build && npm run format:check`
-- [ ] T061 Прогнать `quickstart.md` §3 целиком на копиях 8 песен: SC-001 (по артефактам), SC-002,
-  SC-003, SC-005, SC-007, SC-008; записать результат
-- [ ] T062 Замер SC-006 на копиях 8 песен до/после, допуск +20% (сценарий
+  `cd webvue3 && npm run lint && npm run build && npm run format:check`, а также полный
+  `:karaoke-app:test` — обязательно зелёные существующие регресс-тесты `ProcessExitWiringTest`,
+  `OneShotThreadWiringTest` (+ `OneShotThreadTest`), `PkgS322ProcessTest`,
+  `PkgS323Batch4SourceContractsTest` (BR-168, админ-сервис), `PkgS322SecurityTest`
+- [ ] T062 Прогнать `quickstart.md` §3 целиком (включая §3.5 — ежедневный отчёт FR-014) на
+  копиях 8 песен: SC-001 (по артефактам), SC-002, SC-003, SC-005, SC-007, SC-008; записать результат
+- [ ] T063 Замер SC-006 на копиях 8 песен до/после, допуск +20% (сценарий
   `specs/674-kortege-execution/quickstart.md` §3); записать в отчёт
-- [ ] T063 Финальная гигиена репозитория (`specs/674-kortege-execution/`, `.gitignore`): `git status`,
+- [ ] T064 Финальная гигиена репозитория (`specs/674-kortege-execution/`, `.gitignore`): `git status`,
   отсутствие секретов и временных файлов; `report.md` не требуется до merge (появится после PR)
+- [ ] T065 [P] `SyncTargetContractTest` (FR-017) в
+  `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/SyncTargetContractTest.kt`:
+  `SyncRegistry.all` не содержит `tbl_processes`; модель `KaraokeProcess` не добавляет колонок;
+  `deploy/recordhash_processes.sql` не менялся; `tools/check-recordhash-consistency.py` зелёный
 
 ---
 
@@ -330,16 +354,17 @@ single-flight/resume/janitor/проверку содержимого, integratio
 ### User Story Dependencies
 
 - **US1 (P1)**: после Foundational; независима. Даёт MVP.
-- **US2 (P1)**: после Foundational; использует `TupleExecutor`/`TupleStore` из US1 (T018),
-  но проверяется своими тестами до интеграции с US1-путями.
-- **US3 (P2)**: после Foundational; зависит от fail-fast (US2) для retry и от `scopeId` (US1)
-  для уборки; тесты `SingleFlightTest`/`TupleRecoveryTest` независимы.
-- **US4 (P3)**: после Foundational и US1–US2 (нужны реальные `chainState`/причины); UI-правки
+- **US2 (P1)**: **после US1** — реализация (T028–T034) опирается на `TupleExecutor`/`TupleStore`
+  и поток кортежа из US1 (T019–T020). Тесты T025–T027 можно писать сразу после Foundational, но
+  запускать реализацию US2 раньше US1 нельзя: без цикла шагов fail-fast некуда встроить.
+- **US3 (P2)**: после US1 и US2 — зависит от `scopeId` (US1) для уборки/retry и от fail-fast
+  (US2) для постановки повтора; тесты `SingleFlightTest`/`TupleRecoveryTest` можно писать раньше.
+- **US4 (P3)**: после US1 и US2 — нужны реальные `chainState` и причина сбоя; UI-правки
   независимы от остальных.
 
 ### Within Each User Story
 
-- Тесты (T011–T013, T024–T026, T034–T037, T047–T048) — до реализации, должны падать.
+- Тесты (T011–T014, T025–T027, T035–T038, T048–T049) — до реализации, должны падать.
 - Модель/интерфейсы → сервис → интеграция.
 - Каждая история заканчивается своим checkpoint-прогоном.
 
@@ -348,11 +373,12 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - Setup: T002, T003 — параллельно.
 - Foundational: T004, T005, T009, T010 — параллельно (разные файлы); T006–T008 — последовательно
   (правят `KaraokeProcess.kt`).
-- US1: T011–T013 — параллельно; T015/T016 — параллельно; T014 → T018 → T019 последовательно.
-- US2: T024–T026 — параллельно; T028/T031 — параллельно; T027 → T029 → T030 → T032 → T033.
-- US3: T034–T037 — параллельно; T038–T044 — по зависимостям (T042/T043 зависят от T041).
-- US4: T047/T048 — параллельно; T049–T051 последовательно; T052 параллельно с бэкендом.
-- Polish: T054–T059 — параллельно.
+- US1: T011–T014 — параллельно (тесты); T016/T017 — параллельно (построители);
+  T015 → T019 → T020 — последовательно.
+- US2: T025–T027 — параллельно; T029/T032 — параллельно; T028 → T030 → T031 → T033 → T034.
+- US3: T035–T038 — параллельно; T039–T045 — по зависимостям (T043/T044 зависят от T042).
+- US4: T048/T049 — параллельно; T050–T052 последовательно; T053 параллельно с бэкендом.
+- Polish: T055–T060 — параллельно.
 
 ---
 
@@ -376,7 +402,7 @@ Task: "argsKeyBpmFinder со scope в karaoke-app/src/main/kotlin/com/svoemesto/
 ### MVP First (User Story 1)
 
 1. Phase 1 (T001–T003) → Phase 2 (T004–T010).
-2. Phase 3 (T011–T023): кортеж исполняется целиком, изоляция подтверждена.
+2. Phase 3 (T011–T024): кортеж исполняется целиком, изоляция подтверждена.
 3. **STOP and VALIDATE**: `TupleIsolationIT` + админский список (без UI-правок) на стенде.
 4. MVP готов, если пачка 8 песен даёт свои стемы без чужих.
 

@@ -4238,6 +4238,15 @@ fun applyLiveCpuLimitToRunningProcesses() {
 // одновременно может быть несколько (edit-рендеры на разных threadId), поэтому убиваем ВСЕ найденные.
 // Убийство контейнера закрывает stdout родительского CLI (docker/docker compose) → поток чтения
 // разблокируется; контейнеры "--rm" удаляются сами.
+/** 674: id контейнеров по docker-фильтру (общий помощник kill/ps). */
+private fun dockerContainerIds(filter: String): List<String> =
+    runCommand(
+        listOf("docker", "ps", "--filter", filter, "--format", "{{.ID}}"),
+        ignoreErrors = true,
+    ).lineSequence()
+        .filter { it.isNotBlank() }
+        .toList()
+
 fun killRunningDockerContainers() {
     val dockerTypes =
         setOf(
@@ -4269,14 +4278,13 @@ fun killRunningDockerContainers() {
                     ).lineSequence()
                         .filter { it.isNotBlank() }
                         .toList()
-                KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> listOf("demucs")
+                // 674 (FR-004): имена контейнеров теперь scope-специфичны; убиваем по префиксу,
+                // плюс переходно — старые точные имена на время выкатки.
+                KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 ->
+                    dockerContainerIds("name=^demucs-") + dockerContainerIds("name=^demucs$")
                 KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
-                    runCommand(
-                        listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"),
-                        ignoreErrors = true,
-                    ).lineSequence()
-                        .filter { it.isNotBlank() }
-                        .toList()
+                    dockerContainerIds("ancestor=svoemestodev/keybpmfinder:latest") +
+                        dockerContainerIds("name=^keybpmfinder-")
                 KaraokeProcessTypes.STEM_JOB_DEMUCS2, KaraokeProcessTypes.STEM_JOB_DEMUCS5 ->
                     // Per-job имя (stemjob-{id}), а не фиксированное, как у DEMUCS2/DEMUCS5 — ищем по префиксу,
                     // может быть >1 (лейн один, но защититься от гонки не помешает).

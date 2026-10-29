@@ -6,6 +6,11 @@
 registry.sm-karaoke.ru/svoemesto/ci-node22-jdk17:1
 ```
 
+База — `debian:bookworm-slim`: правило R-05 (`check-docker-image-tags.sh`)
+разрешает для node только `22-alpine`, а alpine не годится — JDK и Chromium
+требуют glibc. Поэтому Node 22 ставится из официального tarball, а не из
+`node:`-образа.
+
 Содержит всё, что раньше скачивалось на каждом прогоне: node 22, JDK 17
 (Temurin + toolcache для `setup-java`), python3 + PyYAML, jq, sudo, ffmpeg,
 docker CLI + buildx, iproute2, Playwright chromium 1.63.0, дистрибутив

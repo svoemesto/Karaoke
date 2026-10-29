@@ -2,6 +2,10 @@
 
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.tuple.AudioProbe
+import com.svoemesto.karaokeapp.tuple.KeyBpmSidecar
+import com.svoemesto.karaokeapp.tuple.TupleScope
+
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
@@ -2216,12 +2220,8 @@ class Song(
         }
 
     fun getKeyBpmFromFile(reFind: Boolean = false): Pair<String, Int> {
-        if (reFind || !File(pathToFileKeyBpmFinder).exists()) {
-            val (args, envs) = argsKeyBpmFinder()
-            args.forEach { arg ->
-                runCommand(args = arg, skipRunFunctionWithArgs = true, envs = envs)
-            }
-        }
+        // 674 (FR-001/FR-004): шаг не перезапускает keybpmfinder синхронно — это нарушало бы
+        // кортежность и изоляцию scope. Отсутствие файла — ошибка шага, а не скрытый перезапуск.
         // BR-085 (аудит #336, пакет PKG-S3-22): нечитаемый/недописанный `<file> [key].json`
         // ронял шаг цепочки исключением (`Json.decodeFromString` без try/catch). Теперь —
         // уже существующий безопасный разбор `parseKeyBpmFileOrNull`: при неудаче `WARN`
@@ -2255,6 +2255,10 @@ class Song(
         val data =
             parseKeyBpmFileOrNull(pathToFileKeyBpmFinder)
                 ?: return false
+        // 674 (FR-012/FR-013): применяем только файл, чей sidecar-отпечаток совпадает с источником.
+        val sidecar = KeyBpmSidecar.read(pathToFileKeyBpmFinder) ?: return false
+        val sourceDuration = AudioProbe.durationMs(fileAbsolutePath) ?: refreshDurationMsFromAudioFile()
+        if (!sidecar.matches(fileAbsolutePath, sourceDuration)) return false
 
         fields[SongField.KEY] = data.key!!
         fields[SongField.BPM] = data.bpm!!.toString()
@@ -2273,13 +2277,13 @@ class Song(
         val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.KEY_BPM_FROM_FILE))
         return Pair(
             listOf(
-                listOf("mkdir", "-p", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-                listOf("chmod", "777", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/$tmpFileName.flac"),
+                listOf("mkdir", "-p", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
+                listOf("chmod", "777", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
+                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}/$tmpFileName.flac"),
                 listOf("docker", "run", "--rm") + cpuFlags +
                     listOf(
                         "-v",
-                        "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER:/input",
+                        "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}:/input",
                         "svoemestodev/keybpmfinder:latest",
                         "/input/$tmpFileName.flac",
                     ),
@@ -2289,8 +2293,8 @@ class Song(
                     pathToFileKeyBpmFinder.rightFileName(),
                 ),
                 listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
-                listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-                listOf("runFunctionWithArgs", "getKeyBpmFromFile", "songId=$id"),
+                listOf("rm", "-rf", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/${TupleScope.TOKEN}"),
+                listOf("runFunctionWithArgs", "getKeyBpmFromFile", "songId=$id", "scopeId=${TupleScope.TOKEN}"),
             ),
             mapOf("DOCKER_API_VERSION" to "1.53"),
         )
@@ -2314,23 +2318,23 @@ class Song(
             listOf(
                 listOf("mkdir", "-p", pathToResultedModel),
                 listOf("chmod", "777", pathToResultedModel),
-                listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
-                listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
-                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
-                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + cpuFlags +
+                listOf("mkdir", "-p", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
+                listOf("chmod", "777", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
+                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName.flac"),
+                listOf("docker", "run", "--rm", "-i", "--name=demucs-${TupleScope.TOKEN}") + gpuFlags + cpuFlags +
                     listOf(
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/input",
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/output",
                         "svoemestodev/demucs:latest",
                         "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac -device $device''",
                     ),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-                listOf("runFunctionWithArgs", "finalizeDemucs", "songId=$id", "demucsType=DEMUCS2", "threadId=$threadId"),
+                listOf("runFunctionWithArgs", "finalizeDemucs", "songId=$id", "demucsType=DEMUCS2", "threadId=$threadId", "scopeId=${TupleScope.TOKEN}"),
             ),
             mapOf("DOCKER_API_VERSION" to "1.53"),
         )
@@ -2350,29 +2354,29 @@ class Song(
             listOf(
                 listOf("mkdir", "-p", pathToResultedModel),
                 listOf("chmod", "777", pathToResultedModel),
-                listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
-                listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
-                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
-                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + cpuFlags +
+                listOf("mkdir", "-p", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
+                listOf("chmod", "777", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"),
+                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName.flac"),
+                listOf("docker", "run", "--rm", "-i", "--name=demucs-${TupleScope.TOKEN}") + gpuFlags + cpuFlags +
                     listOf(
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/input",
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/output",
                         "svoemestodev/demucs:latest",
                         "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac -device $device''",
                     ),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
                 listOf("chmod", "666", drumsNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-bass.flac", bassNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-bass.flac", bassNameFlac.rightFileName()),
                 listOf("chmod", "666", bassNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
                 listOf("chmod", "666", otherNameFlac.rightFileName()),
-                listOf("runFunctionWithArgs", "finalizeDemucs", "songId=$id", "demucsType=DEMUCS5", "threadId=$threadId"),
+                listOf("runFunctionWithArgs", "finalizeDemucs", "songId=$id", "demucsType=DEMUCS5", "threadId=$threadId", "scopeId=${TupleScope.TOKEN}"),
             ),
             mapOf("DOCKER_API_VERSION" to "1.53"),
         )
@@ -2391,18 +2395,18 @@ class Song(
         val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.DEMUCS2))
         return Pair(
             listOf(
-                listOf("docker", "run", "--rm", "-i", "--name=demucs") + cpuFlags +
+                listOf("docker", "run", "--rm", "-i", "--name=demucs-${TupleScope.TOKEN}") + cpuFlags +
                     listOf(
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/input",
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/output",
                         "svoemestodev/demucs:latest",
                         "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac -device cpu''",
                     ),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
                 listOf(
                     "runFunctionWithArgs",
@@ -2410,6 +2414,7 @@ class Song(
                     "songId=$id",
                     "demucsType=DEMUCS2",
                     "threadId=$threadId",
+                    "scopeId=${TupleScope.TOKEN}",
                     "retriedOnCpu=true",
                 ),
             ),
@@ -2425,24 +2430,24 @@ class Song(
         val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.DEMUCS5))
         return Pair(
             listOf(
-                listOf("docker", "run", "--rm", "-i", "--name=demucs") + cpuFlags +
+                listOf("docker", "run", "--rm", "-i", "--name=demucs-${TupleScope.TOKEN}") + cpuFlags +
                     listOf(
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/input",
                         "-v",
-                        "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                        "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}:/data/output",
                         "svoemestodev/demucs:latest",
                         "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac -device cpu''",
                     ),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
                 listOf("chmod", "666", drumsNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-bass.flac", bassNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-bass.flac", bassNameFlac.rightFileName()),
                 listOf("chmod", "666", bassNameFlac.rightFileName()),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
                 listOf("chmod", "666", otherNameFlac.rightFileName()),
                 listOf(
                     "runFunctionWithArgs",
@@ -2450,6 +2455,7 @@ class Song(
                     "songId=$id",
                     "demucsType=DEMUCS5",
                     "threadId=$threadId",
+                    "scopeId=${TupleScope.TOKEN}",
                     "retriedOnCpu=true",
                 ),
             ),

@@ -6,6 +6,8 @@ import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.tuple.TupleJanitor
+import com.svoemesto.karaokeapp.tuple.TupleScope
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
@@ -99,7 +101,10 @@ class KaraokeProcessThread(
                 }
 
                 if (karaokeProcess.args.firstOrNull()?.firstOrNull() == "runFunctionWithArgs") {
-                    val params = parseRunFunctionWithArgsParams(karaokeProcess.args[0])
+                    val params =
+                        parseRunFunctionWithArgsParams(
+                            TupleScope.expand(karaokeProcess.args[0], karaokeProcess.scopeId()),
+                        )
                     percentage = "0"
                     println(
                         "[${Timestamp.from(
@@ -172,7 +177,6 @@ class KaraokeProcessThread(
                             )
                             karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
                             karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = -1
                             percentage = "100"
                             karaokeProcess.save()
                         }
@@ -186,7 +190,8 @@ class KaraokeProcessThread(
                     val typeEnum = runCatching { KaraokeProcessTypes.valueOf(karaokeProcessType) }.getOrNull()
                     // Лимит CPU пересобирается заново прямо перед стартом (не берётся "как есть" из БД) -
                     // настройки могли поменяться, пока задание стояло в очереди WAITING.
-                    val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, karaokeProcess.args[0]) else karaokeProcess.args[0]
+                    val rawArgv = TupleScope.expand(karaokeProcess.args[0], karaokeProcess.scopeId())
+                    val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, rawArgv) else rawArgv
                     val envs = if (typeEnum != null) refreshEnvCpuLimit(typeEnum, karaokeProcess.envs) else karaokeProcess.envs
                     val processBuilder = ProcessBuilder(args)
 
@@ -194,6 +199,12 @@ class KaraokeProcessThread(
                     processBuilderEnvironment.putAll(envs)
 
                     processBuilder.redirectErrorStream(true)
+                    // FR-004 (674): SHEETSAGE пишет вывод относительно cwd — запускаем в своём scope-каталоге.
+                    if (typeEnum == KaraokeProcessTypes.SHEETSAGE || typeEnum == KaraokeProcessTypes.SHEETSAGE2) {
+                        processBuilder.directory(
+                            java.io.File(PATH_TO_TEMP_SHEETSAGE_FOLDER, karaokeProcess.scopeId().toString()),
+                        )
+                    }
 
                     // try охватывает и сам запуск subprocess (не только чтение stdout) - если
                     // processBuilder.start() бросит исключение (например, недоступен бинарник/docker),
@@ -354,7 +365,6 @@ class KaraokeProcessThread(
                             }
                             karaokeProcess.status = KaraokeProcessStatuses.DONE.name
                             karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = 999
                             karaokeProcess.save()
                         }
 
@@ -379,7 +389,6 @@ class KaraokeProcessThread(
                             )
                             karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
                             karaokeProcess.end = Timestamp.from(Instant.now())
-                            karaokeProcess.priority = -1
                             // BR-036 (аудит #336, пакет PKG-S3-22): причина сбоя больше не
                             // теряется в stdout контейнера — она дописывается к описанию
                             // задания, которое видит оператор в админке.
@@ -709,8 +718,24 @@ class KaraokeProcessWorker {
             // (println без стека), и очередь стартовала с осиротевшими WORKING-строками:
             // воркер их не выбирает, лейн стоит, а очередь выглядит работающей.
             // Теперь причина уходит в лог со стеком, а оператор видит SSE-уведомление.
+            // 674 (FR-011): нормализация до очистки, чтобы legacy-одиночки получили chain_id = id.
+            KaraokeProcess.normalizeTuples(database)
             val doneCleaned = KaraokeProcess.deleteDone(database)
             val workingReset = KaraokeProcess.setWorkingToWaiting(database)
+            // 674 (FR-005): janitor осиротевших временных каталогов кортежей (не трогает живые scope).
+            runCatching {
+                val ttl = KaraokeProperties.getLong("queue.tuple.temp_ttl_hours").takeIf { it > 0L } ?: 24L
+                TupleJanitor(
+                    roots =
+                        listOf(
+                            PATH_TO_TEMP_DEMUCS_FOLDER,
+                            PATH_TO_TEMP_KEYBPMFINDER_FOLDER,
+                            PATH_TO_TEMP_SHEETSAGE_FOLDER,
+                        ),
+                    ttlHours = ttl,
+                    isLive = { scope -> KaraokeProcess.isScopeLive(scope, database) },
+                ).sweep()
+            }.onFailure { println("ProcessWorker: janitor не выполнен: ${it.message}") }
             if (!doneCleaned || !workingReset) {
                 val failed =
                     listOfNotNull(

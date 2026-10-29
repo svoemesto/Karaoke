@@ -20,6 +20,10 @@ const val PATH_TO_TEMP_DEMUCS_FOLDER = "/sm-karaoke/system/demucs-docker/tmp"
 const val PATH_TO_TEMP_STEMJOB_FOLDER = "/sm-karaoke/system/stemjob-docker/tmp"
 const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-docker/tmp"
 
+// specs/674-kortege-execution (FR-004): временный корень SHEETSAGE с подкаталогом scopeId
+// вместо фиксированных source.wav / output/output, общих для всех кортежей.
+const val PATH_TO_TEMP_SHEETSAGE_FOLDER = "/sm-karaoke/system/sheetsage/tmp"
+
 // Этап 1 (MVP) рендера видео mp4 из онлайн-плеера ("Рендер видео MP4 из онлайн-
 // плеера") — PNG-секвенция и промежуточный mp4 для визуальной сверки с эталонным MLT-рендером.
 // Не встроено в очередь KaraokeProcess/done_files на этом этапе — см. PlayerMp4RenderService.

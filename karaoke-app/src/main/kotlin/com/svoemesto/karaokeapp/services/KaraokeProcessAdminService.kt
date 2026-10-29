@@ -115,7 +115,21 @@ class KaraokeProcessAdminService(
                last_update AS updatedAt,
                process_start AS startedAt,
                process_end AS endedAt,
-               recordhash
+               process_percentage AS progress,
+               recordhash,
+               COUNT(*) OVER (PARTITION BY process_chain_id) AS chainStepsTotal,
+               MAX(CASE WHEN process_status = 'WORKING' THEN 1 ELSE 0 END)
+                   OVER (PARTITION BY process_chain_id) AS hasWorking,
+               MAX(CASE WHEN process_status = 'WAITING' THEN 1 ELSE 0 END)
+                   OVER (PARTITION BY process_chain_id) AS hasWaiting,
+               MAX(CASE WHEN process_status = 'ERROR' THEN 1 ELSE 0 END)
+                   OVER (PARTITION BY process_chain_id) AS hasError,
+               MAX(CASE WHEN process_status = 'WORKING' THEN process_order END)
+                   OVER (PARTITION BY process_chain_id) AS workingOrder,
+               MAX(CASE WHEN process_status = 'ERROR' THEN process_order END)
+                   OVER (PARTITION BY process_chain_id) AS failedOrder,
+               MAX(CASE WHEN process_status = 'ERROR' THEN process_description END)
+                   OVER (PARTITION BY process_chain_id) AS chainReason
         FROM tbl_processes
         """.trimIndent()
 
@@ -198,8 +212,9 @@ class KaraokeProcessAdminService(
             where += "process_chain_id = ?"
             params += filters.parentId
         } else if (filters.chainId == null && filters.topLevelOnly) {
-            // top-level: только head-процессы (process_chain_id IS NULL)
-            where += "process_chain_id IS NULL"
+            // 674 (FR-015): голова кортежа имеет process_chain_id = id — показываем и её,
+            // и legacy-строки без цепочки.
+            where += "(process_chain_id IS NULL OR process_chain_id = id)"
         }
 
         val whereSql = if (where.isEmpty()) "" else " WHERE ${where.joinToString(" AND ")}"
@@ -484,26 +499,35 @@ class KaraokeProcessAdminService(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Cannot connect to database ${database.name}",
                 )
-        val sql =
-            "UPDATE tbl_processes SET process_status = ? WHERE id = ? AND process_status = ? AND process_deleted_at IS NULL"
-        connection.prepareStatement(sql).use { ps ->
-            ps.setString(1, KaraokeProcessStatuses.WAITING.name)
-            ps.setInt(2, id)
-            ps.setString(3, KaraokeProcessStatuses.ERROR.name)
-            ps.executeUpdate()
+        // 674 (FR-016): retry — по кортежу; статусы и audit в одной транзакции (BR-168).
+        val chainId = current.processChainId ?: id.toLong()
+        inTransaction(connection) {
+            val headPriority =
+                connection.prepareStatement("SELECT process_priority FROM tbl_processes WHERE id = ?").use { ps ->
+                    ps.setLong(1, chainId)
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getInt(1) else 1 }
+                }
+            val sql =
+                "UPDATE tbl_processes SET process_status = ?, process_end = NULL, process_priority = ? " +
+                    "WHERE process_chain_id = ? AND process_status = ? AND process_deleted_at IS NULL"
+            connection.prepareStatement(sql).use { ps ->
+                ps.setString(1, KaraokeProcessStatuses.WAITING.name)
+                ps.setInt(2, headPriority)
+                ps.setLong(3, chainId)
+                ps.setString(4, KaraokeProcessStatuses.ERROR.name)
+                ps.executeUpdate()
+            }
+            insertAudit(
+                connection,
+                id,
+                actor,
+                "RETRY",
+                mapOf("status" to KaraokeProcessStatuses.ERROR.name, "chainId" to chainId),
+                mapOf("status" to KaraokeProcessStatuses.WAITING.name),
+            )
         }
 
-        // Audit RETRY (FR-015)
-        insertAudit(
-            connection,
-            id,
-            actor,
-            "RETRY",
-            mapOf("status" to KaraokeProcessStatuses.ERROR.name),
-            mapOf("status" to KaraokeProcessStatuses.WAITING.name),
-        )
-
-        return loadProcess(id, database) ?: current
+        return loadProcess(chainId.toInt(), database) ?: current
     }
 
     /**
@@ -1037,6 +1061,22 @@ class KaraokeProcessAdminService(
             startedAt = rs.getTimestamp("startedAt"),
             endedAt = rs.getTimestamp("endedAt"),
             recordhash = rs.getString("recordhash"),
+            chainId = rs.getLong("processChainId").takeIf { !rs.wasNull() } ?: rs.getInt("id").toLong(),
+            chainStepIndex =
+                (rs.getObject("workingOrder") as? Number)?.toInt()
+                    ?: (rs.getObject("failedOrder") as? Number)?.toInt()
+                    ?: rs.getInt("order"),
+            chainStepsTotal = (rs.getObject("chainStepsTotal") as? Number)?.toInt() ?: 1,
+            chainState =
+                when {
+                    rs.getInt("hasWorking") == 1 -> KaraokeProcessStatuses.WORKING.name
+                    rs.getInt("hasWaiting") == 1 -> KaraokeProcessStatuses.WAITING.name
+                    rs.getInt("hasError") == 1 -> KaraokeProcessStatuses.ERROR.name
+                    else -> KaraokeProcessStatuses.DONE.name
+                },
+            chainFailedStep = (rs.getObject("failedOrder") as? Number)?.toInt(),
+            chainReason = rs.getString("chainReason"),
+            progress = rs.getDouble("progress"),
         )
 
     /** Текущие значения редактируемых полей (для audit diff). */

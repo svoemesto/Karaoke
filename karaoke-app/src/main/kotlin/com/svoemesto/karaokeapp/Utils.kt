@@ -1,5 +1,10 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.tuple.ArtifactIntegrity
+import com.svoemesto.karaokeapp.tuple.AudioProbe
+import com.svoemesto.karaokeapp.tuple.KeyBpmSidecar
+import com.svoemesto.karaokeapp.tuple.TupleScope
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.GsonBuilder
 import com.microsoft.playwright.Browser
@@ -4455,10 +4460,24 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
         )
             ?: return false
     val (key, bpm) = song.getKeyBpmFromFile(reFind = false)
+    if (key.isBlank() || bpm <= 0) {
+        println("[${Timestamp.from(Instant.now())}] keybpm: пустые key/bpm (songId=$songId) — шаг ERROR")
+        return false
+    }
+    // 674 (FR-013): key/bpm пишутся только после проверки происхождения файла.
+    val scopeId = params["scopeId"]?.toLongOrNull() ?: 0L
+    val sourceDuration = AudioProbe.durationMs(song.fileAbsolutePath) ?: song.refreshDurationMsFromAudioFile()
+    val existing = KeyBpmSidecar.read(song.pathToFileKeyBpmFinder)
+    if (existing != null && !existing.matches(song.fileAbsolutePath, sourceDuration)) {
+        println("[${Timestamp.from(Instant.now())}] keybpm: sidecar не совпадает с источником (songId=$songId) — шаг ERROR")
+        return false
+    }
+    KeyBpmSidecar.write(
+        song.pathToFileKeyBpmFinder,
+        KeyBpmSidecar.forSource(song.fileAbsolutePath, sourceDuration, scopeId),
+    )
     song.fields[SongField.KEY] = key
     song.fields[SongField.BPM] = bpm.toString()
-    // specs/357-folder-import-overwrite (FR-140): KEY_BPM_FROM_FILE — ffmpeg-декод + ML между
-    // load и save, десятки секунд. Параллельный SongEdit мог обновить поля. saveToDbLocked() защищает.
     song.saveToDbLocked()
     return true
 }
@@ -4551,6 +4570,7 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
     val demucsType = params["demucsType"] ?: return false
     val threadId = params["threadId"]?.toIntOrNull() ?: KaraokeProcess.THREAD_LANE_HEAVY_RENDER
     val retriedOnCpu = params["retriedOnCpu"]?.toBoolean() ?: false
+    val scopeId = params["scopeId"]?.toLongOrNull() ?: 0L
     val song =
         Song.loadFromDbById(
             id = songId,
@@ -4560,45 +4580,70 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
             storageApiClient = SAC_APP,
         )
             ?: return false
+    val typeEnum = runCatching { KaraokeProcessTypes.valueOf(demucsType) }.getOrNull() ?: return false
 
-    val stemFiles =
-        if (demucsType == KaraokeProcessTypes.DEMUCS5.name) {
-            listOf(song.accompanimentNameFlac, song.vocalsNameFlac, song.drumsNameFlac, song.bassNameFlac, song.otherNameFlac)
-        } else {
-            listOf(song.accompanimentNameFlac, song.vocalsNameFlac)
-        }
-    val missingStems = stemFiles.any { !File(it).exists() || File(it).length() == 0L }
+    // 674 (FR-008): успех подтверждается содержимым — длина/свежесть каждого стема против источника.
+    val sourceDuration = AudioProbe.durationMs(song.fileAbsolutePath)
+    val findings = ArtifactIntegrity.verifyDemucsStems(song, typeEnum, sourceDuration)
+    if (findings.isEmpty()) {
+        deleteScopeDir(scopeId)
+        return true
+    }
 
-    if (missingStems) {
-        val tempFlac = File("$PATH_TO_TEMP_DEMUCS_FOLDER/file.flac")
-        if (!retriedOnCpu && tempFlac.exists() && tempFlac.length() > 0L) {
-            val (retryArgs, retryEnvs) =
-                if (demucsType == KaraokeProcessTypes.DEMUCS5.name) {
-                    song.argsDemucs5RetryCpu(threadId)
-                } else {
-                    song.argsDemucs2RetryCpu(threadId)
-                }
-            val retryProcess = KaraokeProcess(song.database)
-            retryProcess.name = "[${song.author}] - [${song.album}] - «${song.songName}»"
-            retryProcess.status = KaraokeProcessStatuses.WAITING.name
-            retryProcess.priority = 1
-            retryProcess.command = ""
-            retryProcess.type = demucsType
-            retryProcess.songId = song.id.toInt()
-            retryProcess.threadId = threadId
-            retryProcess.description = "Демукс ${if (demucsType == KaraokeProcessTypes.DEMUCS5.name) "5" else "2"} (повтор без GPU)"
-            retryProcess.args = retryArgs
-            retryProcess.envs = retryEnvs
-            KaraokeProcess.createDbInstance(KaraokeProcess.separate(retryProcess))
-            return false
-        }
-
-        File(PATH_TO_TEMP_DEMUCS_FOLDER).deleteRecursively()
+    val sourceAlive = File(song.fileAbsolutePath).exists() && File(song.fileAbsolutePath).length() > 0L
+    if (!retriedOnCpu && sourceAlive) {
+        // Один автоматический повтор без GPU; самодостаточен: сам копирует источник в свой scope.
+        val (retryArgs, retryEnvs) =
+            if (typeEnum == KaraokeProcessTypes.DEMUCS5) {
+                song.argsDemucs5RetryCpu(threadId)
+            } else {
+                song.argsDemucs2RetryCpu(threadId)
+            }
+        val scopedTmp = "$PATH_TO_TEMP_DEMUCS_FOLDER/${TupleScope.TOKEN}"
+        val prep =
+            listOf(
+                listOf("mkdir", "-p", scopedTmp),
+                listOf("chmod", "777", scopedTmp),
+                listOf("cp", song.fileAbsolutePath.rightFileName(), "$scopedTmp/file.flac"),
+            )
+        val retryProcess = KaraokeProcess(song.database)
+        retryProcess.name = "[${song.author}] - [${song.album}] - «${song.songName}»"
+        retryProcess.status = KaraokeProcessStatuses.WAITING.name
+        retryProcess.priority = 1
+        retryProcess.command = ""
+        retryProcess.type = demucsType
+        retryProcess.songId = song.id.toInt()
+        retryProcess.threadId = threadId
+        retryProcess.description = "Демукс ${if (typeEnum == KaraokeProcessTypes.DEMUCS5) "5" else "2"} (повтор без GPU)"
+        retryProcess.args = prep + retryArgs
+        retryProcess.envs = retryEnvs
+        KaraokeProcess.createChain(KaraokeProcess.separate(retryProcess))
+        println(
+            "[${Timestamp.from(Instant.now())}] finalizeDemucs: стемы не подтверждены (${findings.size} находок), " +
+                "поставлен повтор без GPU songId=$songId",
+        )
         return false
     }
 
-    File(PATH_TO_TEMP_DEMUCS_FOLDER).deleteRecursively()
-    return true
+    // Исчерпание повтора: чужие/битые стемы не удаляем безвозвратно — переименовываем.
+    val stamp = SimpleDateFormat("yyyyMMdd-HHmmss").format(Date())
+    findings.forEach { finding ->
+        val file = File(finding.artifact)
+        if (file.exists()) {
+            val rejected = File("${file.absolutePath}.rejected-$stamp")
+            if (file.renameTo(rejected)) {
+                println("[${Timestamp.from(Instant.now())}] finalizeDemucs: артефакт отложен (${finding.kind}): ${rejected.name}")
+            }
+        }
+    }
+    deleteScopeDir(scopeId)
+    return false
+}
+
+/** 674 (FR-005): удаляет только каталог своего scope, никогда — общий корень. */
+private fun deleteScopeDir(scopeId: Long) {
+    if (scopeId <= 0L) return
+    runCatching { File(PATH_TO_TEMP_DEMUCS_FOLDER, scopeId.toString()).deleteRecursively() }
 }
 
 fun executeUploadToLocalStore(

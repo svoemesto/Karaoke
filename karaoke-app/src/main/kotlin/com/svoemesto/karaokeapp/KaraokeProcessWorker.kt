@@ -431,6 +431,14 @@ class KaraokeProcessThread(
             )
         }
 
+        return kp.status
+    }
+
+    /**
+     * 674 (FR-001/FR-016): пост-хуки выполняются **один раз на кортеж**, после его завершения.
+     * Пошаговый вызов пересчитывал HealthReport посреди живого кортежа и ставил лишние задания.
+     */
+    private fun runPostHooks(kp: KaraokeProcess) {
         // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
         // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
         // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает
@@ -522,7 +530,6 @@ class KaraokeProcessThread(
                 }
             }
         }
-        return kp.status
     }
 
     override fun run() {
@@ -538,6 +545,7 @@ class KaraokeProcessThread(
                     executeStep()
                 }
             executor.execute(chainId)
+            karaokeProcess?.let { runPostHooks(it) }
         } finally {
             database.closeThreadConnection()
         }

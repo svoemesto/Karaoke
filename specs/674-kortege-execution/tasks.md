@@ -77,7 +77,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `CREATING → WAITING`; `WORKING → WAITING` со сбросом `end`/`percentage*`;
   удаление только полностью `DONE`-кортежей. Вызвать в `KaraokeProcessWorker.start()`
   (`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:712-713`)
-- [ ] T008 Единое создание цепочек: `markAsHead()` и `createChain(...)` в `KaraokeProcess.kt`;
+- [x] T008 Единое создание цепочек: `markAsHead()` и `createChain(...)` в `KaraokeProcess.kt`;
   перевести `createProcess` (одиночный путь), `Utils.kt` (CPU-retry),
   `StemJobPollScheduler.kt`, `StemJobProcessing.kt` на `createChain`
 - [x] T009 [P] Тестовая инфраструктура: `InMemoryTupleStore` в
@@ -145,7 +145,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [x] T020 [US1] `KaraokeProcessWorker.kt`: `KaraokeProcessThread` — поток кортежа
   (`chainId`, `var karaokeProcess`, `stepIndex`/`stepsTotal`), цикл из T019, обновление
   `threadsMap` на каждом шаге, `finally { database.closeThreadConnection() }` вокруг всего цикла
-- [ ] T021 [US1] `KaraokeProcess.kt`: `getCountWaiting` — `COUNT(DISTINCT process_chain_id)` по
+- [x] T021 [US1] `KaraokeProcess.kt`: `getCountWaiting` — `COUNT(DISTINCT process_chain_id)` по
   `WAITING`; `filter_notail` в `loadList` — на уровне кортежей; синхронизировать
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/LaneStalledCheck.kt`
 - [x] T022 [US1] `TupleJanitor` в
@@ -203,7 +203,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [x] T033 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleExecutor.kt` и
   `KaraokeProcess.kt`: `failTuple`/`completeTuple` независимы от `withoutControl`; `save()`-гейт
   не влияет на `markDone`/`markError`; обновить KDoc
-- [ ] T034 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt`:
+- [x] T034 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt`:
   пост-хуки (`HealthReport.onRepairProcessFinished`, Telegram, `sendCountWaiting`) — один раз на
   кортеж; причина сбоя в `process_description` и SSE
 
@@ -222,14 +222,14 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ### Tests for User Story 3
 
-- [ ] T035 [P] [US3] `SingleFlightTest` в
+- [x] T035 [P] [US3] `SingleFlightTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/SingleFlightTest.kt`: живой кортеж →
   `SKIP`; `DONE`-строка живого кортежа не удаляется; завершённый кортеж → `CREATE`
-- [ ] T036 [P] [US3] `TupleRecoveryTest` в
+- [x] T036 [P] [US3] `TupleRecoveryTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/TupleRecoveryTest.kt`: resume с первого
   не-`DONE`; `CREATING→WAITING`; безголовая цепочка получает голову; soft-deleted сосед не
   подвешивает кортеж
-- [ ] T037 [P] [US3] `ArtifactIntegrityTest` в
+- [x] T037 [P] [US3] `ArtifactIntegrityTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/ArtifactIntegrityTest.kt`:
   все виды находок (`missingStem`, `foreignDuration`, `staleArtifact`, `missingSidecar`,
   `sidecarMismatch`, `emptyKeyBpm`), правок нет

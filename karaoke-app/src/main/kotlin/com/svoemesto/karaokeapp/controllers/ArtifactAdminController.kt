@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.services.ArtifactIntegrityScheduler
+import com.svoemesto.karaokeapp.services.SidecarBackfillService
 import com.svoemesto.karaokeapp.services.SongArtifactRepairService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 class ArtifactAdminController(
     private val repairService: SongArtifactRepairService,
     private val integrityScheduler: ArtifactIntegrityScheduler,
+    private val sidecarBackfill: SidecarBackfillService,
 ) {
     data class RepairRequest(
         val songIds: List<Long> = emptyList(),
@@ -48,6 +50,26 @@ class ArtifactAdminController(
                 ),
             )
         }
+    }
+
+    data class BackfillRequest(
+        val songIds: List<Long> = emptyList(),
+        val dryRun: Boolean = true,
+    )
+
+    @PostMapping("/backfill-sidecar")
+    fun backfillSidecar(
+        @RequestBody request: BackfillRequest,
+    ): ResponseEntity<Any> {
+        if (request.songIds.isEmpty() || request.songIds.size > 100) {
+            return ResponseEntity.badRequest().body(mapOf("error" to "songIds: 1..100"))
+        }
+        return ResponseEntity.ok(
+            mapOf(
+                "dryRun" to request.dryRun,
+                "results" to sidecarBackfill.run(request.songIds, request.dryRun),
+            ),
+        )
     }
 
     @GetMapping("/integrity")

@@ -111,8 +111,8 @@ class StemJobPollScheduler {
         // шага в очереди: `loadWaiting` его больше не возвращал, `loadPendingCleanup`
         // не забирал, автовосстановления не было. Пользователь видел «в работе»
         // до алерта `StemJobsStuckCheck` через 30 минут.
-        val created = KaraokeProcess.createDbInstance(separated)
-        if (created == null) {
+        val createdChainId = KaraokeProcess.createChain(separated)
+        if (createdChainId == null) {
             failJob(job, "Не удалось поставить шаг демукса в очередь (LOCAL-БД недоступна или отказ вставки)")
             tempFolder.deleteRecursively()
             ackRawFileConsumed(job.id)

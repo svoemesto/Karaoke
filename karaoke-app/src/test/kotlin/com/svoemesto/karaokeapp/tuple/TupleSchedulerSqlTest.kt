@@ -42,9 +42,9 @@ class TupleSchedulerSqlTest {
     @Test
     fun `первый исполняемый шаг — минимальный order среди WAITING`() {
         val first = TupleSchedulerSql.FIRST_RUNNABLE_STEP
-        assertTrue(first.contains("process_chain_id = ?"))
+        assertTrue(first.contains("p.process_chain_id = ?"))
         assertTrue(first.contains("process_status = 'WAITING'"))
-        assertTrue(first.contains("ORDER BY process_order"))
-        assertTrue(first.contains("process_deleted_at IS NULL"))
+        assertTrue(first.contains("ORDER BY p.process_order"))
+        assertTrue(first.contains("p.process_deleted_at IS NULL"))
     }
 }

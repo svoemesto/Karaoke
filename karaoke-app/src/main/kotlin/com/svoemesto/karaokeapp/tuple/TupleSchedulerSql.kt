@@ -68,11 +68,18 @@ object TupleSchedulerSql {
     /** Первый исполняемый шаг конкретного кортежа (для resume и тестов). */
     val FIRST_RUNNABLE_STEP: String =
         """
-        SELECT * FROM tbl_processes
-        WHERE process_chain_id = ?
-          AND process_status = 'WAITING'
-          AND process_deleted_at IS NULL
-        ORDER BY process_order
+        SELECT * FROM tbl_processes p
+        WHERE p.process_chain_id = ?
+          AND p.process_status = 'WAITING'
+          AND p.process_deleted_at IS NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM tbl_processes e
+              WHERE e.process_chain_id = p.process_chain_id
+                AND e.process_order < p.process_order
+                AND e.process_status <> 'DONE'
+                AND e.process_deleted_at IS NULL
+          )
+        ORDER BY p.process_order
         LIMIT 1
         """.trimIndent()
 

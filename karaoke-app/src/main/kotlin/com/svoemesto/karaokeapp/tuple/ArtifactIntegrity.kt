@@ -34,6 +34,9 @@ object ArtifactIntegrity {
     const val KIND_FOREIGN_DURATION = "foreignDuration"
     const val KIND_STALE_ARTIFACT = "staleArtifact"
     const val KIND_MISSING_SIDECAR = "missingSidecar"
+
+    /** 674: легаси `[key].json` без отпечатка — не ошибка и не «чужое», отдельная строка отчёта. */
+    const val KIND_LEGACY_NO_SIDECAR = "legacyNoSidecar"
     const val KIND_SIDECAR_MISMATCH = "sidecarMismatch"
     const val KIND_EMPTY_KEY_BPM = "emptyKeyBpm"
 
@@ -102,7 +105,8 @@ object ArtifactIntegrity {
         if (keyJson.exists()) {
             val sidecar = KeyBpmSidecar.read(song.pathToFileKeyBpmFinder)
             if (sidecar == null) {
-                result += IntegrityFinding(song.id, KIND_MISSING_SIDECAR, keyJson.absolutePath)
+                // Легаси без отпечатка: не считаем чужим и не правим; отдельная строка отчёта.
+                result += IntegrityFinding(song.id, KIND_LEGACY_NO_SIDECAR, keyJson.absolutePath)
             } else if (!sidecar.matches(song.fileAbsolutePath, sourceDuration)) {
                 result +=
                     IntegrityFinding(

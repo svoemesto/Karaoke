@@ -191,7 +191,7 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
                 // `createDbInstance` мог вернуть `null` (сбой вставки), а значение
                 // отбрасывалось — задание оставалось `WORKING` без продолжения
                 // (и без автовосстановления).
-                val retryCreated = KaraokeProcess.createDbInstance(KaraokeProcess.separate(retryProcess))
+                val retryCreated = KaraokeProcess.createChain(KaraokeProcess.separate(retryProcess))
                 if (retryCreated == null) {
                     job.status = StemJobStatus.ERROR
                     job.errorMessage = "Не удалось поставить повторную попытку демукса (без GPU) в очередь"

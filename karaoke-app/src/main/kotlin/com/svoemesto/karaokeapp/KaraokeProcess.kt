@@ -909,6 +909,18 @@ class KaraokeProcess(
                                 "process_percentage = 0, process_percentage_str = '' " +
                                 "WHERE process_status IN ('WORKING', 'CREATING')",
                         ).use { it.executeUpdate() }
+                // 674 (FR-003/FR-007): кортеж с ERROR-шагом не должен доигрывать WAITING-шаги.
+                changed +=
+                    connection
+                        .prepareStatement(
+                            "UPDATE tbl_processes SET process_status = 'ERROR', process_end = NOW(), " +
+                                "process_description = COALESCE(process_description, '') || " +
+                                "' [восстановление 674: кортеж содержит ошибку]' " +
+                                "WHERE process_status IN ('WAITING', 'CREATING') " +
+                                "AND process_chain_id IN (" +
+                                "SELECT DISTINCT process_chain_id FROM tbl_processes " +
+                                "WHERE process_status = 'ERROR' AND process_chain_id IS NOT NULL)",
+                        ).use { it.executeUpdate() }
                 // Безголовые цепочки (голова удалена старым deleteDone): голова = шаг с минимальным order.
                 val headless = mutableListOf<Long>()
                 connection
@@ -1382,7 +1394,14 @@ class KaraokeProcess(
                 if (args.containsKey("song_id")) addNumeric("song_id", args["song_id"])
                 if (args.containsKey("process_type")) where.add("process_type = ?", args["process_type"])
                 if (args.containsKey("process_prioritet")) addNumeric("process_prioritet", args["process_prioritet"])
-                if (args.containsKey("filter_notail")) where.raw("process_command <> 'tail'")
+                if (args.containsKey("filter_notail")) {
+                    // 674 (FR-015): «без хвоста» — первый исполняемый шаг кортежа, а не отдельная строка.
+                    where.raw(
+                        "process_order = (SELECT MIN(s.process_order) FROM tbl_processes s " +
+                            "WHERE s.process_chain_id = tbl_processes.process_chain_id " +
+                            "AND s.process_status = 'WAITING' AND s.process_deleted_at IS NULL)",
+                    )
+                }
                 if (args.containsKey("thread_id")) addNumeric("thread_id", args["thread_id"])
                 // BR-037 (аудит #336, пакет PKG-S3-22): soft-deleted задания
                 // (`process_deleted_at <> NULL`) больше НЕ возвращаются по умолчанию.

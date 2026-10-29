@@ -59,7 +59,7 @@ import kotlin.reflect.jvm.isAccessible
  * @property storageApiClient HTTP-клиент для remote-операций — DI через конструктор.
  * @property id первичный ключ (`0L` означает «новая запись, ещё не в БД»).
  * @see archive/docs/features/dual-db-sync.md
- * @see docs/architecture-notes-archive.md «reflection-loader и nullable-колонки»
+ * @see archive/docs/architecture-notes.md «reflection-loader и nullable-колонки»
  */
 interface KaraokeDbTable {
     val database: KaraokeConnection

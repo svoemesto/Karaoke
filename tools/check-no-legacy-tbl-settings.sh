@@ -170,8 +170,8 @@ for f in specs/*/spec.md specs/*/plan.md specs/*/research.md \
 done
 
 # 5. Per-feature документы: docs/features/<slug>.md
-echo "[5/6] Проверка code-blockов SQL в docs/features/*.md..."
-for f in docs/features/*.md; do
+echo "[5/6] Проверка code-blockов SQL в knowledge/product/features/*.md..."
+for f in knowledge/product/features/*.md; do
     [ -f "$f" ] || continue
     CHECKED=$((CHECKED + 1))
     awk '

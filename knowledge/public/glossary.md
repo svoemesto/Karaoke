@@ -128,6 +128,15 @@
 | **Demucs** | ML-модель стем-сепарации | [processing](../domains/processing/domain.md) |
 | **Sheetsage** | ML-модель key/BPM/chords | [processing](../domains/processing/domain.md) |
 
+## Продуктовый слой (product layer)
+
+| Термин | Определение | Источник |
+| --- | --- | --- |
+| **Продуктовый слой** | Ветка SSoT `knowledge/product/` — per-feature документы. **Структурная категория, НЕ домен**: не раскладывается по 16 доменам, Linking Protocol L3 → L2 → L1 на неё не применяется | [product](../product/README.md) |
+| **Per-feature документ** | Документ про фичу целиком (профиль B, FR-009): 6 обязательных секций, `slug` == имя файла, `status ∈ {active, deprecated, experimental}`. Проверяет `tools/check-feature-doc.sh` | [product](../product/README.md), [шаблон](../templates/product-feature.md) |
+| **Runbook** | Операционная процедура для типовой задачи в `knowledge/guidelines/runbooks/`: заголовок «How to: …», контекст, шаги, проверка, rollback | [runbooks](../guidelines/runbooks/README.md) |
+| **Реестр аудита** | `knowledge/system/infra/audit-336-registry.md` — единственный носитель BR-кодов аудита #336 (510 кодов): таблица «код · суть дефекта · зеркало · пакет», карточки пакетов и раздел «Коды без зеркала» | [audit-336-registry](../system/infra/audit-336-registry.md) |
+
 ## Связанные документы
 
 - [README.md](../README.md) — главная SSoT-карта.

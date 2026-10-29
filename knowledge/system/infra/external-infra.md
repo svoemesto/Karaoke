@@ -59,7 +59,7 @@
   Forgejo как `nsa-i9 agents (shared key)`;
 - git credential helper в `~/.gitconfig` для `https://git.sm-karaoke.ru`.
 
-Подробности и команды — `docs/ops/forgejo-access.md`. Каталог
+Подробности и команды — `knowledge/guidelines/runbooks/forgejo-access.md`. Каталог
 `.scratch/karaoke/infra-dub2000/` — артефакт одного checkout'а, на него
 полагаться нельзя.
 

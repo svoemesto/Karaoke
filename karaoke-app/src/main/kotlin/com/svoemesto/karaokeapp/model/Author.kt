@@ -86,7 +86,7 @@ class Author(
      * "Отдельные песни разных авторов" в конце Закромов.
      *
      * @see specs/008-special-orders/spec.md
-     * @see docs/strategy/growth.md (H1.20, M-23)
+     * @see archive/docs/strategy/growth.md (H1.20, M-23)
      */
     @KaraokeDbTableField(name = "is_special_order")
     var isSpecialOrder: Boolean = false
@@ -450,7 +450,7 @@ class Author(
          *   Пустой список — допустимый ответ (нет подходящих в БД).
          *
          * @see specs/286-author-song-counts-cache FR-006
-         * @see docs/features/author-song-counts-cache.md
+         * @see knowledge/domains/caching/components/author-cache.md
          */
         fun loadAuthorTilesWithCounts(
             onlyPublished: Boolean,
@@ -677,7 +677,7 @@ data class AuthorAliasMatch(
  * @property isSpecialOrder флаг "по спецзаказу" (1-2 песни, не вся дискография).
  *
  * @see specs/286-author-song-counts-cache FR-006
- * @see docs/features/author-song-counts-cache.md
+ * @see knowledge/domains/caching/components/author-cache.md
  */
 data class AuthorTileRow(
     val id: Long,

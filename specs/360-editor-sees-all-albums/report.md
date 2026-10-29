@@ -74,8 +74,8 @@
 - [data-model.md](data-model.md) — справка по затронутым сущностям.
 - [contracts/albums-tiles-authorization.md](contracts/albums-tiles-authorization.md) — delta-контракт API.
 - [quickstart.md](quickstart.md) — пошаговая валидация (UI + curl + regression).
-- [docs/features/zakroma-albums-by-author.md](../../docs/features/zakroma-albums-by-author.md) — обновлён секцией «Bugfix #76 (Pass 361)».
-- [docs/architecture-notes.md](../../docs/architecture-notes.md) — запись «Pass 361».
+- [knowledge/domains/catalog/components/album-entity.md](../../knowledge/domains/catalog/components/album-entity.md) — обновлён секцией «Bugfix #76 (Pass 361)».
+- [archive/docs/architecture-notes.md](../../archive/docs/architecture-notes.md) — запись «Pass 361».
 - [knowledge/domains/catalog/domain.md](../../knowledge/domains/catalog/domain.md) — ссылка на `360-editor-sees-all-albums`.
 - [specs/017-editor-status-bypass/spec.md](../017-editor-status-bypass/spec.md) — прецедент: bypass `id_status >= 6` для песен/закромов/поиска.
 - [specs/356-zakroma-albums-by-author/spec.md](../356-zakroma-albums-by-author/spec.md) — спека-источник контракта bypass для альбомов.

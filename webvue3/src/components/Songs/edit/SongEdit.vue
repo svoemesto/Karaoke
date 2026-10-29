@@ -2223,7 +2223,7 @@
               окна бесплатного доступа. Не путать с «Всегда бесплатно» (free)
               — это разные флаги, хранятся независимо. Приоритет в логике
               доступа: сначала free=true, потом freeAfterOnAir=true.
-              @see docs/features/song-air-access.md
+              @see knowledge/product/features/song-air-access.md
             -->
             <div class="label-medium">Не снимать с эфира:</div>
             <button

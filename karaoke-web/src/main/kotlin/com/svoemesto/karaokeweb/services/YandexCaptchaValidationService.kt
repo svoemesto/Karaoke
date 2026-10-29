@@ -23,7 +23,7 @@ import org.springframework.web.reactive.function.client.bodyToMono
  * Значение серверного ключа не логируется и не возвращается наружу.
  *
  * @see archive/docs/features/async-process-queue.md
- * @see docs/features/public-settings-perimeter.md
+ * @see knowledge/product/features/public-settings-perimeter.md
  */
 @Service
 class YandexCaptchaValidationService(

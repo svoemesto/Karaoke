@@ -76,7 +76,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 **Failure**: Нарушение → потеря данных при импорте (issue #53: `!`/`?`
 молча удалялись → файлы не находились).
 
-**Reference**: `docs/features/idempotent-path-sanitize.md`.
+**Reference**: `knowledge/product/features/idempotent-path-sanitize.md`.
 
 **Enforcement**: `tools/check-no-mp4-mentions.sh` baseline (125 записей legacy).
 
@@ -181,7 +181,7 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
 `tools/gradle-heap-dump.sh --self-test` (эмпирическая проверка прав 700/600).
 Джоб `build-config-guard` в `.github/workflows/lint.yml`, pre-commit-хуки
 `gradle-wrapper-guard` и `build-config-guard`. Per-feature документ —
-[`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md).
+[`knowledge/system/infra/audit-336-registry.md`](../system/infra/audit-336-registry.md).
 
 ### R-47 — Проверки пакета не равны CI: контрактный прогон перед PR
 
@@ -461,6 +461,25 @@ OpenProject в `tools/tracker-lib.sh`).
    нарушения (в CI, где checkout свежий, этого нет). Правило: список файлов
    для проверки — из `git ls-files` (ровно то, что видит CI) либо с явным
    исключением вложенных репозиториев.
+
+### История версий Gradle и удалённый модуль `karaoke-db` (R-46)
+
+**Откат 9.1.0 (2025).** Gradle **9.1.0** уже пробовали и **откатили** на 8.14 —
+откат оказался неудачным: часть wrapper'ов осталась на 9.1.0, корневой ушёл на
+8.14, а у модуля `karaoke-db` был **7.5.1**. Три версии Gradle в одном
+репозитории — тот разнобой, который R-46 и запрещает. Отсюда и правило
+«версия не ниже `9.8.2`»: `8.14` тоже собирался, но базовой версией проекта
+стала `9.8.2` (2026-10-26).
+
+**Модуль `karaoke-db` (удалён 2026-10-26).** Это был модуль-заглушка, созданный
+шаблоном `gradle init`: единственный класс с текстом «Hello world!», собственный
+`build.gradle.kts` и **собственный wrapper** на 7.5.1. Он был одним из источников
+«разнобоя версий», а guard'ы и SSoT описывали «четыре wrapper'а». Удалён целиком
+(модуль, wrapper, класс-заглушка); guard `tools/check-gradle-wrapper.sh` переведён
+с четырёх wrapper'ов на три, его self-test-фикстуры («разнобой версий», «нет
+checksum», «неверная checksum») переведены с `karaoke-db` на `karaoke-web`.
+Комментарий «legacy Java-проект» в корневом `build.gradle.kts` заменён на
+указание, что модуль удалён и к Gradle не относится.
 
 ## Когда добавлять правило
 

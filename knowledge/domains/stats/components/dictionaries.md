@@ -120,7 +120,7 @@ fun computeFunnel(): FunnelStats {
 }
 ```
 
-**Использование**: `docs/strategy/growth.md` (baseline-funnel для
+**Использование**: `archive/docs/strategy/growth.md` (архив; baseline-funnel для
 отслеживания роста).
 
 > **[WARN] Поправка 2026-09-27: эндпоинта `/api/admin/stats/funnel` (и типа

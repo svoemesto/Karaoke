@@ -25,13 +25,13 @@ Boot бэкенд.
 | [constitution.md](./.specify/memory/constitution.md) | Непреложные принципы проекта |
 | [**Knowledge (SSoT)**](./knowledge/README.md) | **ПЕРВЫЙ источник знаний** — SDD/DDD/C4 (домены, компоненты, ADR) |
 | [knowledge/domains/README.md](./knowledge/domains/README.md) | Карта доменов и их компонентов |
-| [docs/architecture-notes.md](./docs/architecture-notes.md) | Датированный changelog архитектуры |
+| [archive/docs/architecture-notes.md](archive/docs/architecture-notes.md) | Датированный changelog архитектуры |
 | [knowledge/adr/](./knowledge/adr/README.md) | Architecture Decision Records (включая `local-*`) |
 | [archive/docs/strategy/growth.md](./archive/docs/strategy/growth.md) | Стратегия роста (воронка: visitor → registration → premium) |
 | [knowledge/public/onboarding.md](./knowledge/public/onboarding.md) | Настройка новой машины разработчика |
 | [knowledge/system/infra/](./knowledge/system/infra/) | Операционные how-to (деплой, миграции, CI) |
 | [archive/docs/features/](./archive/docs/features/) | Legacy per-feature документы (FR-017 спеки 189) |
-| [docs/api/](./docs/api/) | Build artifacts: KDoc/JSDoc |
+| [build/api-docs/](./build/api-docs/) | Build artifacts: KDoc/JSDoc (генерируются, вне git) |
 
 **AI-агент: начни с [knowledge/README.md](./knowledge/README.md) → [knowledge/domains/README.md](./knowledge/domains/README.md).**
 
@@ -42,7 +42,7 @@ Boot бэкенд.
 | `python3 tools/auto-kdoc.py` | Генерирует базовый KDoc (описание + `@see`) для Kotlin-классов без KDoc |
 | `python3 tools/auto-jsdoc.py` | То же для JS/Vue |
 | `python3 tools/auto-kdoc-quality.py` | Проверяет качество сгенерированного KDoc |
-| `bash tools/generate-docs.sh` | Генерирует HTML-документацию (Dokka + typedoc) в `docs/api/` |
+| `bash tools/generate-docs.sh` | Генерирует HTML-документацию (Dokka + typedoc) в `build/api-docs/` |
 | `bash tools/check-kdoc-coverage.sh`, `bash tools/check-jsdoc-coverage.sh` | Покрытие KDoc/JSDoc (гейт) |
 | `bash tools/verify-kotlin-refs.sh` | Проверяет ссылки на Kotlin-сущности в документации |
 

@@ -2669,7 +2669,7 @@ export default {
      * Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если проход уже идёт.
      * @returns {Promise<string>}
      * @see specs/413-sync-audio-descendants/spec.md
-     * @see docs/features/sync-audio-descendants.md
+     * @see knowledge/domains/catalog/components/audio-descendant-sync.md
      */
     syncAudioParentsPromise() {
       let request = { method: 'POST', url: '/api/utils/syncaudioparents' }
@@ -2988,7 +2988,7 @@ export default {
       // не находит элемент, currentResult становится строкой, и UI не
       // обновляется (пункт остаётся серым, textarea пустая). Админ видит
       // изменения только после перезагрузки модалки.
-      // @see docs/features/search-text-extract-btn.md (OP#51)
+      // @see knowledge/product/features/search-text-extract-btn.md (OP#51)
       return promisedXMLHttpRequest(request).then((data) => JSON.parse(data))
     },
     findOriginalForSong(ctx) {

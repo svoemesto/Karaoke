@@ -42,6 +42,8 @@ Living Documentation — Single Source of Truth (SSoT) для проекта.
 | Governance | `CLAUDE.md == AGENTS.md` (симметрия) | **намеренно разные** (см. AGENTS.md § Karaoke-overrides) |
 | Git workflow | человек коммитит | **агент делает полный цикл** (см. AGENTS.md) |
 | Base branch | `develop`/`staging`/`master` | **только `master`** |
+| Per-feature документы (профиль B) | нет отдельного профиля | `knowledge/product/features/<slug>.md` — 6 секций FR-009, свой guard `tools/check-feature-doc.sh` |
+| Второй слой документации | `docs/` рядом с `knowledge/` | **запрещён**: каталог `docs` слит в `knowledge/` (ADR-0011), guard `tools/check-no-docs-dir.sh` |
 
 - **Не запускать `bootstrap-living-docs`** — SSoT в Karaoke уже развёрнут
   на `knowledge/`. Навык подключён как общий и нужен только для новых проектов;
@@ -89,6 +91,10 @@ Living Documentation — Single Source of Truth (SSoT) для проекта.
   → Обнови `knowledge/public/`.
 - **Guidelines**: вводит ли это новую конвенцию или изменяет style?
   → Обнови `knowledge/guidelines/`.
+- **Продуктовая проекция**: меняет ли это поведение фичи целиком (не одного
+  компонента)? → Обнови `knowledge/product/features/<slug>.md` — это вторая
+  ветка SSoT, **не домен**: Linking Protocol L3 → L2 → L1 на неё не
+  применяется, у неё свои 6 секций (FR-009).
 - **ADR**: фиксирует ли это архитектурное решение? → Создай новый ADR
   в `knowledge/adr/` (через `knowledge/templates/adr.md`).
 
@@ -123,6 +129,9 @@ bash tools/check-knowledge-structure.sh
 
 # 2. Cross-links
 bash tools/check-knowledge-cross-links.sh
+
+# 2a. Per-feature документы (профиль B, FR-009)
+bash tools/check-feature-doc.sh knowledge/product/features/*.md
 
 # 3. Markdown style (эмодзи, mandatory headers, L2 → L1 linking)
 python3 tools/lint-knowledge.py
@@ -161,6 +170,8 @@ gh pr merge --merge  # БЕЗ --delete-branch
 - [ ] Шаблоны использованы для новых файлов.
 - [ ] `bash tools/check-knowledge-structure.sh` PASS.
 - [ ] `bash tools/check-knowledge-cross-links.sh` PASS.
+- [ ] `bash tools/check-feature-doc.sh knowledge/product/features/*.md` PASS (если затронут продуктовый слой).
+- [ ] Если затронута фича целиком — обновлён `knowledge/product/features/<slug>.md`.
 - [ ] `python3 tools/lint-knowledge.py` PASS.
 - [ ] CI (все 9 проверок в `Knowledge SSoT structure`) PASS.
 - [ ] Commit через feature-ветку + PR + CI + merge.

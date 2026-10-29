@@ -49,7 +49,7 @@ import java.time.Instant
  * Контракт формата WARN/INFO сообщений — см. `specs/288-prod-diagnostics-logging/contracts/log-format.md`.
  * Конвенция логирования (SLF4J + key=value + категория для grep) — см. local-0005.
  *
- * @see livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md
+ * @see knowledge/adr/local-0005-structured-logging-karaoke-app.md
  * @see specs/288-prod-diagnostics-logging/contracts/log-format.md
  */
 object ProdContainerCheck : MonitorCheck {

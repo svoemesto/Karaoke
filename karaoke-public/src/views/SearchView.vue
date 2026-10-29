@@ -477,7 +477,7 @@ export default {
       // Vue 3 использует Proxy-реактивность: прямое присваивание нового ключа
       // в реактивный объект триггерит обновление. this.$set не существует
       // в Vue 3 (TypeError: this.$set is not a function).
-      // @see docs/features/search-text-extract-btn.md (OP#51)
+      // @see knowledge/product/features/search-text-extract-btn.md (OP#51)
       this.imageErrors[`${song.id}:${kind}`] = true
     },
     // —— Бизнес-логика показа иконок (как в прежней реализации, FR-011/FR-012/FR-013) ———

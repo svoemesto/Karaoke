@@ -91,7 +91,7 @@ specs/357-folder-import-overwrite/
 ### Knowledge Updates
 
 - [`knowledge/domains/catalog/components/song-entity.md`](../../knowledge/domains/catalog/components/song-entity.md) — раздел «Методы» дополнить описанием `saveToDbLocked()` как рекомендуемого пути для долгих процессов (race protection).
-- [`docs/architecture-notes.md`](../../docs/architecture-notes.md) — добавить запись «Pass 357: спека 357 — Folder Import Overwrite (Audit #73)».
+- [`docs/architecture-notes.md`](../../archive/docs/architecture-notes.md) — добавить запись «Pass 357: спека 357 — Folder Import Overwrite (Audit #73)».
 
 ### New Files
 
@@ -120,4 +120,4 @@ specs/357-folder-import-overwrite/
 - [quickstart.md](quickstart.md) — 6 сценариев валидации.
 - [`specs/299-song-fields-overwrite-race-condition/spec.md`](../../specs/299-song-fields-overwrite-race-condition/spec.md) — базовая спека.
 - [`knowledge/domains/health/components/race-fixed-65.md`](../../knowledge/domains/health/components/race-fixed-65.md) — прецедент Pass 343.
-- [`docs/ops/log-correlation.md`](../../docs/ops/log-correlation.md) — контракт WARN/INFO для `infra.prod.*`.
+- [`docs/ops/log-correlation.md`](../../knowledge/guidelines/runbooks/log-correlation.md) — контракт WARN/INFO для `infra.prod.*`.

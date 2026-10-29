@@ -197,7 +197,7 @@ Retention scheduler безопасен для sync.
 - [dual-db-sync.md](./dual-db-sync.md) — почему `tbl_events` НЕ в SyncRegistry.
 - [stats.md](./stats.md) — контекст in-memory кешей.
 - [monitoring.md](./monitoring.md) — debug endpoint как часть мониторинга.
-- [Pass 50-60 в docs/architecture-notes.md](../../../docs/architecture-notes.md) — история фиксов.
+- [Pass 50-60 в docs/architecture-notes.md](../architecture-notes.md) — история фиксов.
 - Конкретные классы:
   - `DedupCache` — `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/DedupCache.kt`.
   - `PollingCache` — `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/PollingCache.kt`.

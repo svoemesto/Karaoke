@@ -66,7 +66,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @see AutoOneClickSyncRun
  * @see AutoOneClickSyncStatusDto
  * @see com.svoemesto.karaokeapp.controllers.AutoOneClickSyncStatusController
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 @Component
 class AutoOneClickSyncScheduler {

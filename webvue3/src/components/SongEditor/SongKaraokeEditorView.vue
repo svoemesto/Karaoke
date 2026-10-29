@@ -400,9 +400,9 @@ const ALWAYS_ALLOWED_KEYS = new Set([
  * автосохранения (спека 232, LOCAL-БД) и регрессий спецтегов (спека 163)
  * сохранены.
  *
- * @see livedocs/features/233-mini-editor-redesign.md
- * @see livedocs/features/232-admin-song-editor-local-db.md
- * @see livedocs/features/163-fix-song-editor-regressions.md
+ * @see specs/233-mini-editor-redesign/spec.md
+ * @see specs/232-admin-song-editor-local-db/spec.md
+ * @see specs/163-fix-song-editor-regressions/spec.md
  */
 
 export default {

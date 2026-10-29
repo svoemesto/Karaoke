@@ -442,7 +442,7 @@ class PublicPlaylistController(
      * должны переключиться на [membershipPost] (POST с JSON-body).
      *
      * @param ids — CSV songId (например, `22982,22983,22984`).
-     * @see docs/features/playlist-membership.md
+     * @see knowledge/product/features/playlist-membership.md
      */
     @GetMapping("/playlists/membership")
     fun membership(
@@ -462,7 +462,7 @@ class PublicPlaylistController(
      * (414 Request-URI Too Large при ~2500 песен у автора «Машина Времени»).
      *
      * @param request — DTO с полем `ids: List<Long>`.
-     * @see docs/features/playlist-membership.md
+     * @see knowledge/product/features/playlist-membership.md
      * @see specs/361-playlists-membership-uri-length/contracts/api-public-account-playlists-membership.md
      */
     @PostMapping("/playlists/membership")

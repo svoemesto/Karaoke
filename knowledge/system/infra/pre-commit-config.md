@@ -180,8 +180,9 @@ CI.
 - **[ci-tools.md](ci-tools.md)** — guard'ы, контракт кодов возврата, CI-джобы.
 - **[governance-docs.md](governance-docs.md)** — процессные документы
   (`AGENTS.md`, `CONTRIBUTING.md`), правила которых проверяют хуки.
-- **[per-feature-docs.md](per-feature-docs.md)** — структура per-feature
-  документов (проверяет хук `check-feature-doc`).
+- **[../../product/README.md](../../product/README.md)** — индекс продуктовой
+  ветки: структура per-feature документов (проверяет хук `check-feature-doc`);
+  шаблон профиля B — [../../templates/product-feature.md](../../templates/product-feature.md).
 - **[do-sh.md](do-sh.md)** — `deploy/do.sh`, к которому обращаются
   container-restart-guard и frontend-build-guard.
 - **[security-headers.md](../../guidelines/security-headers.md)** — регламент

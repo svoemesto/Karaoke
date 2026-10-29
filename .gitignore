@@ -95,8 +95,7 @@ htmlcov/
 *.tar.zst
 
 # Generated API documentation (run ./tools/generate-docs.sh to rebuild)
-docs/api/dokka/
-docs/api/typedoc-*/
+build/api-docs/
 
 # Local tool indexes / config (per-machine, not part of repo)
 .codegraph/

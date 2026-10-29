@@ -104,7 +104,7 @@ nginx (`deploy/karaoke-public/Dockerfile`). Он не имеет собстве�
 ## Ссылки
 
 - [Отчёт пакета PKG-S2-14 и доказательства «до/после»](../../../../specs/377-pkg-s2-14/report.md)
-- [Per-feature документ: пакет аудита PKG-S2-14](../../../../docs/features/pkg-s2-14-audit-fixes.md)
+- [Per-feature документ: пакет аудита PKG-S2-14](../../../system/infra/audit-336-registry.md)
 - [Карточки аудита: P-42, P-43, P-44, P-45, P-46, P-47, P-49](../../../../specs/336-code-audit/findings/)
 - [Домен karaoke-web](../domain.md)
 - [SongShareLinkService — серверная сторона share-ссылок](song-share-link-service.md)

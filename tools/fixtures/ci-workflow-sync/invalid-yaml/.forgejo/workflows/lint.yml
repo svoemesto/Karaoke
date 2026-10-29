@@ -1,0 +1,32 @@
+# ФИКСТУРА (tools/fixtures/ci-workflow-sync/) — замороженный снимок
+#
+# Копия workflow для Forgejo: гейтовый набор ИДЕНТИЧЕН копии в .github/
+# (в .github/ отличаются только `runs-on:` и `timeout-minutes:` — инфраструктурные
+# различия, которые guard НЕ сравнивает).
+#
+# Ожидаемый результат:
+#   bash tools/check-ci-workflow-sync.sh --root tools/fixtures/ci-workflow-sync/synced
+#   код возврата: 0 (наборы совпадают)
+
+name: lint (фикстура)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  docs-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: структура Knowledge
+        run: bash tools/check-knowledge-structure.sh
+      - name: перекрёстные ссылки
+        run: bash tools/check-knowledge-cross-links.sh
+      - name: per-feature документы
+        run: bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md
+      - name: ссылки и упоминания
+        run: python3 tools/check-doc-references.py
+
+      - name: "Guard: валидная копия"
+        run: bash tools/check-no-docs-dir.sh

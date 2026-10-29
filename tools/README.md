@@ -19,9 +19,9 @@
 | `check-kdoc-coverage.sh` | KDoc ≥ 50% (Constitution Principle VI / FR-006). |
 | `check-jsdoc-coverage.sh` | JSDoc ≥ 50%. |
 | `check-eslint-baseline.sh` | ESLint baseline-aware для `webvue3` / `karaoke-public`. |
-| `check-feature-doc.sh` | Per-feature документация (структура + slug == имя файла). |
+| `check-feature-doc.sh` | Per-feature документация (структура + slug == имя файла); вызов: `bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md`. |
 | `baseline-stats.sh` | Baseline counters (informational). |
-| `generate-docs.sh` | Генерация Dokka + typedoc. |
+| `generate-docs.sh` | Генерация Dokka + typedoc; вывод в `build/api-docs/` (вне git). |
 | `check-censored-public.sh` | Smoke-test цензурирования на `karaoke-web` без `karaoke-app`. |
 | `check-audit-coverage.sh` | 100% audit coverage. |
 | `check-songedit-field-coverage.sh` | UI↔backend field coverage для SongEdit. |

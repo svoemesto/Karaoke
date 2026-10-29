@@ -74,4 +74,4 @@
 - [DEVELOPMENT.md](../../../DEVELOPMENT.md) — архитектурный контекст и dated-история
 - [AGENTS.md](../../../AGENTS.md) — инструкции для AI-агента
 - [constitution.md](../../../.specify/memory/constitution.md) — непреложные принципы
-- [docs/architecture-notes.md](../../../docs/architecture-notes.md) — дневник архитектурных решений (архивного файла `architecture-notes-archive.md` в репозитории нет)
+- [docs/architecture-notes.md](../architecture-notes.md) — дневник архитектурных решений (архивного файла `architecture-notes-archive.md` в репозитории нет)

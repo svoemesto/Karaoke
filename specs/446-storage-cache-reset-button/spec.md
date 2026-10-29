@@ -54,7 +54,7 @@
   — `HealthReport`, `canResolve`, `StorageMetadataCache.peekFileExists`, repair-loop.
 - [`knowledge/domains/storage/components/storage-api-client.md`](../../knowledge/domains/storage/components/storage-api-client.md)
   — `recordUpload`/`recordDelete` write-through, кеш-ключи.
-- [`docs/features/storage-metadata-cache.md`](../../docs/features/storage-metadata-cache.md)
+- [`docs/features/storage-metadata-cache.md`](../../knowledge/domains/storage/components/storage-api-client.md)
   — контракт кеша, `DELETE /api/health/cache/refresh[-all]`.
 - [`knowledge/domains/persistence/domain.md`](../../knowledge/domains/persistence/domain.md)
   — `KaraokeDbTable`, raw JDBC.

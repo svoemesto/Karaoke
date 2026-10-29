@@ -82,6 +82,13 @@ API у планировщиков нет.
 - Window читается из `KaraokeProperties` (через `@Scheduled` SpEL
   не работает, поэтому fixedDelay=60s, а внутри — ручная проверка
   окна).
+- Тик состоит из **двух фаз**:
+  1. `resumeRenderingSongs()` — песни в состоянии `rendering`, у которых
+     `RENDER_MP4_DEMO` завершён, → `onRenderCompleted` (докачивание файла);
+  2. `publishScheduledSongs()` — песни, попавшие в окно
+     `telegramAutoPublishWindowMinutes`, → `publishToTelegram`.
+  Порядок важен: сначала докачивается рендер, иначе песня уйдёт в
+  повторный рендер вместо публикации.
 
 **Использует**: `TelegramAutoPublishService` (`TelegramApiClient` — внутри
 сервиса, не в самом scheduler'е).

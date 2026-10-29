@@ -24,7 +24,7 @@ import java.time.Instant
  *
  * @see AutoOneClickSyncScheduler
  * @see AutoOneClickSyncStatusDto
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 data class AutoOneClickSyncRun(
     val startedAt: Instant,
@@ -40,7 +40,7 @@ data class AutoOneClickSyncRun(
  * Вложен в [AutoOneClickSyncRun] для удобства JSON-сериализации.
  *
  * @see AutoOneClickSyncRun
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 data class Totals(
     val created: Int = 0,

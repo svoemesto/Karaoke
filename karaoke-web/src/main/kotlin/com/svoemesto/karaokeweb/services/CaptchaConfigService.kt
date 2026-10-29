@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service
  * серверным ключом — теперь серверный ключ в env, и общее 5-минутное окно исчезло).
  *
  * @see archive/docs/features/async-process-queue.md
- * @see docs/features/public-settings-perimeter.md
+ * @see knowledge/product/features/public-settings-perimeter.md
  */
 @Service
 class CaptchaConfigService(

@@ -30,7 +30,6 @@ SSOT_MAP_FILE = REPO_ROOT / ".ssot-map.yml"
 # Пути, которые НЕ требуют обновления knowledge/ (никогда).
 # Это служебные/вспомогательные файлы, не содержащие бизнес-логики.
 EXCLUDE_PATTERNS = [
-    r"^docs/",
     r"^specs/",
     r"^archive/",
     r"^knowledge/",          # Сами knowledge файлы.
@@ -167,7 +166,7 @@ def main():
     rules = load_ssot_map()
     if not rules:
         print("INFO: .ssot-map.yml not found or empty. SSoT check is no-op.")
-        print("      See docs/architecture-notes.md or AGENTS.md for manual SSoT workflow.")
+        print("      See archive/docs/architecture-notes.md or AGENTS.md for manual SSoT workflow.")
         sys.exit(0)
 
     # 2. Получить изменённые файлы.

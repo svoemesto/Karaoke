@@ -157,6 +157,9 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
 | Логи | в каждом сервисе прод-compose `logging: json-file, max-size 50m, max-file 5`; `prune-images.sh` падает при занятости диска ≥ 85 % | 546 |
 | Compose | `environment:` — список (`- VAR=value`), не смесь отображения и списка | 554 |
 | Watcher | исполняется только `<uuid>.sh`, файл переносится в приватный каталог 700 (закрыто окно TOCTOU), проверяются владелец/права/размер; общая директория не должна быть group/other-writable | 555 |
+| Миграции | каждый файл `deploy/karaoke-db/` идемпотентен (`IF NOT EXISTS`), потому что каталог монтируется в `/docker-entrypoint-initdb.d` и выполняется по порядку с `ON_ERROR_STOP=1`; миграция `18` создаёт `tbl_authors` (её не создавал ни один файл каталога) и bootstrap'ит recordhash-триггер | 039 |
+| Каскады БД | `tbl_subscriptions.site_user_id` — `ON DELETE RESTRICT` (в `15` для новых БД + миграция `51` для существующих): платёжная история не удаляется вместе с пользователем | 041 |
+| recordhash авторов | миграция `46` не должна переопределять recordhash-функцию: канонический набор — 17 колонок в фиксированном порядке, сама миграция самодостаточна и с backfill | 534 |
 
 Что **осталось за владельцем** (зафиксировано в `specs/371-pkg-s2-08/report.md`):
 сертификаты для TLS Postgres/MinIO и выбор «TLS vs SSH/WireGuard-туннель»;
@@ -164,6 +167,32 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
 пользователь для `karaoke_watcher.sh` и удаление bind-mount
 `/sm-karaoke/system` из контейнеров, которым он не нужен; ротация и удаление
 секретов, попавших в историю git.
+
+## Hardening S3 (аудит #336, пакет PKG-S3-21 / OpenProject #393, ветка `611-pkg-s3-21`)
+
+Продолжение волны E — 15 записей по deploy-контуру, миграциям и compose. Поведение
+прода по умолчанию не меняется: все переключатели (TLS, порты, пароли) получили те
+же значения, но заданы явно и проверяются guard'ом.
+
+| Тема | Инвариант | BR |
+|---|---|---|
+| Тег образа | единый `IMAGE_TAG`: `deploy/do.sh` собирает и пушит `${BUILD_VERSION}` (из `deploy/.version` или окружения), `deploy_web.sh` / `deploy_public.sh` передают тег на прод по ssh (`BUILD_VERSION=<тег> bash do.sh pull_web`), прод-`do.sh` экспортирует `IMAGE_TAG`, compose подставляет `${IMAGE_TAG:-1}`; предыдущий тег — в `.version.prev` для отката | 042 |
+| recordhash `tbl_site_users` | канонический `deploy/recordhash_site_users.sql` (19 колонок); миграции 12/13/14/17/21/40/45 повторяют ту же формулу и сами добавляют все колонки, чтобы backfill работал на чистой БД; `56` доставляет формулу на существующие БД | 044 |
+| GIN-индекс | индекс строится по **колонке** (`01`/`02`), `02` пересоздаёт его через DROP+CREATE, `54` — на существующих БД; прежний индекс по константе `'result_text'` (в `tbl_settings`, а поиск идёт по `tbl_songs`) не работал | 045 |
+| Скрипты БД | `restore_db` / `create_clear_db`: mount `./karaoke-db/dumps:/dumps`, `-U ${DB_LOCAL_POSTGRES_USER}`, `exec -i` (не `-it`), проверка кода возврата **до** `announce` | 046, 047 |
+| Статусы песен | `UPDATE … WHERE id_status >= 3` переводил незавершённые песни (3/4/5) в READY → `WHERE id_status IN (3, 4, 5)` — повторный запуск действительно no-op | 535 |
+| INSERT песни | перенос `album_id` (и поздних колонок) закрыт пакетом PKG-S2-10 (BR-108); здесь — регрессия в guard'е | 536 |
+| Каскады хранилища | `tbl_stem_jobs.site_user_id` — `ON DELETE RESTRICT` (в `22` + миграция `55`); удаление — приложением (`StemJobCleanup` по `expires_at`), объекты MinIO не остаются сиротами | 537 |
+| Триггеры | `44` обещала `CREATE OR REPLACE TRIGGER`, а делала `CREATE TRIGGER` → падала при повторе; теперь `DROP TRIGGER IF EXISTS` перед `CREATE TRIGGER`, шапка приведена в соответствие | 538 |
+| Лимиты контейнеров | у прод-`karaoke-web` healthcheck (HTTP 200 `/api/public/authors-tiles`), `mem_limit`/`cpus` и mount `./karaoke-db/dumps:/dumps` для `-XX:HeapDumpPath=/dumps` | 547 |
+| TTS-модель | sha256 модели зафиксирован; загрузка во временный файл + `os.replace` после сверки, проверка перед `load_pickle` (прежняя загрузка по pickle без сверки) | 548 |
+| Заголовки публичного SPA | `X-Frame-Options` / `nosniff` / `Referrer-Policy` в server и в каждом location со своими `add_header`; guard расширен на этот файл (см. [security-headers.md](../../guidelines/security-headers.md)) | 549 |
+| Размер тела | `client_max_body_size 200m` на публичном контуре — как `spring.servlet.multipart` и host-nginx (было `1024m`) | 550 |
+| new_comp `do.sh` | `set -euo pipefail`, проверка наличия обоих env-файлов; ошибки compose валят скрипт (`source .env` без проверки и без fail-fast) | 559 |
+| new_comp compose | `restart: unless-stopped`, healthcheck, `mem_limit`/`cpus` у app/web, `restart` у webvue/webvue3 | 560 |
+
+Полные сводки «было → стало» по всем 30 записям этих двух пакетов — в
+[`audit-336-registry.md`](audit-336-registry.md) (карточки PKG-S2-08 и PKG-S3-21).
 
 ## Секреты
 

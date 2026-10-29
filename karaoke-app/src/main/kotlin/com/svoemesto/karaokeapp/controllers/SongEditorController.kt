@@ -833,7 +833,7 @@ class SongEditorController(
     // при editorAssignmentDefaultTarget='remote': правки уезжали на SERVER, а пользователь
     // видел LOCAL-версию. Sync LOCAL → SERVER — отдельная, явная операция пользователя.
     //
-    // @see archive/docs/features/232-admin-song-editor-local-db.md (после merge)
+    // @see specs/232-admin-song-editor-local-db/spec.md (после merge)
     // @see specs/232-admin-song-editor-local-db/spec.md
     // @see specs/232-admin-song-editor-local-db/contracts/api-contracts.md
 

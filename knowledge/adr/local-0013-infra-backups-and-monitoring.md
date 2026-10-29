@@ -53,4 +53,4 @@ Forgejo, Plane и Harbor работают на стороннем сервере
 3. **Известное ограничение**: третьей offsite-копии нет — отложено владельцем;
    текущие копии живут на сервере и на `nsa-i9`.
 4. **Required Update**: `knowledge/system/infra/external-infra.md`,
-   `docs/ops/prod-config-delivery.md` (раздел про бэкапы инфраструктуры).
+   `knowledge/guidelines/runbooks/prod-config-delivery.md` (раздел про бэкапы инфраструктуры).

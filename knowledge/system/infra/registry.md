@@ -131,6 +131,13 @@ tag-retention применяется только там, где есть `keepT
 6. **`python3 -c "import crypt"` работает только на admin** (Python 3.12); на проде
    Ubuntu 26.04 несёт Python ≥ 3.13, где модуль удалён (PEP 594). bcrypt генерируется
    на admin, на прод едет готовый файл.
+7. **`nginx: client_max_body_size 20M` из `http{}` даёт 413** на любом слое больше
+   20 МБ — размер тела слоя выставляется в `location` registry, иначе заливка образа
+   обрывается на стороне прокси.
+8. **Таймаут Zot по умолчанию (60 с) убивает заливку большого слоя.** Монолитный `PUT`
+   слоя 5.6 ГБ через nginx упал с **502** через 67 секунд. Лечится
+   `http.readTimeout` / `http.writeTimeout` = `2h` в конфиге Zot — без этого образ
+   ≥ 6 ГБ залить нельзя.
 
 ## Связанные ADR | Related ADRs
 
@@ -156,7 +163,7 @@ tag-retention применяется только там, где есть `keepT
 - **[do-sh.md](do-sh.md)** — команды публикации и получения.
 - **`AGENTS.md`** — правила деплоя и запрет `docker restart`.
 - **`specs/540-private-docker-registry/`** — спека, план, контракты, quickstart.
-- **`docs/features/private-docker-registry.md`** — per-feature документ (R-32).
+- **`knowledge/system/infra/registry.md`** — per-feature документ (R-32).
 
 ## Changelog
 

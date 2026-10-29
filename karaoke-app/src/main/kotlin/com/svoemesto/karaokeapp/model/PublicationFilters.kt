@@ -7,7 +7,7 @@ package com.svoemesto.karaokeapp.model
  * юнит-тестами без БД: сам [Song] в тестах не инстанцируется (конструктор
  * требует окружения).
  *
- * @see docs/features/publications-filters.md
+ * @see knowledge/product/features/publications-filters.md
  */
 object PublicationFilters {
     /**

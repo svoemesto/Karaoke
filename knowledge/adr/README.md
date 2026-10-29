@@ -58,6 +58,13 @@ local-0007-zakroma-album-id-in-stream-dto.md
   в membership-endpoint (414 Request-URI Too Large).
 - `0010-lm-studio-instead-of-ollama.md` — LM Studio вместо Ollama как
   LLM-движок; LangChain4j удалён. Замещает ADR-0005 в части LLM.
+- `0011-merge-docs-into-knowledge.md` — слияние слоя `docs/` в `knowledge/`:
+  продуктовая ветка `knowledge/product/` (22 per-feature документа профиля B),
+  реестр аудита #336 (510 BR-кодов), запрет каталога `docs/` guard'ом.
+  **Заменяет ADR-0007 в части** — п. 2 (не переносить `docs/`), п. 4
+  (сосуществование `docs/` и `knowledge/` до окончания миграции) и следствия 5
+  (судьба `docs/` — отдельная спецификация). Остальные решения ADR-0007
+  (Karaoke-overrides, нумерация ADR, `knowledge/` как SSoT) остаются в силе.
 - `local-0009-thread-local-connection-lifecycle.md` — жизненный цикл
   JDBC-соединения потока (ThreadLocal): одноразовый поток закрывает соединение
   в `finally` (`startOneShotThread`), переиспользуемый — не закрывает

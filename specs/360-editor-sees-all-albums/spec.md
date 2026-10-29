@@ -110,7 +110,7 @@ Root cause найдена на стадии `/speckit.clarify` через grep +
   — паттерн: «Если запрос несёт `Authorization: Bearer <token>`, токен резолвится в валидного `SiteUser`, и `SiteUser.isEditor == true` — фильтр `id_status >= 3` (для песен) НЕ применяется». Этот же паттерн должен быть применён к фильтру `ready_song_count > 0` для альбомов.
 - [`specs/356-zakroma-albums-by-author/spec.md`](../356-zakroma-albums-by-author/spec.md)
   — **исходная фича**, в которой US2 «Редактор видит все альбомы автора» уже описана (FR-010, FR-011, SC-002). Спека #356 уже реализована (Pass 360, см. `docs/features/zakroma-albums-by-author.md`), но по сообщению пользователя (issue #76) bypass для редактора не работает.
-- [`docs/features/zakroma-albums-by-author.md`](../../docs/features/zakroma-albums-by-author.md)
+- [`docs/features/zakroma-albums-by-author.md`](../../knowledge/domains/catalog/components/album-entity.md)
   — per-feature документ (FR-009). На странице 32 явно зафиксировано:
     > «Гость: только альбомы с `ready_song_count > 0` (есть готовые песни), подпись «N готовых». Редактор: все альбомы автора, подпись «N песен» (`total_song_count`).»
   Это контракт, который должен соблюдаться — но сейчас нарушается (issue #76).

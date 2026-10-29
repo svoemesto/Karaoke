@@ -265,8 +265,8 @@ new Date(epochMs).toLocaleString('ru-RU', {
 
 - `karaoke-web/.../services/SongShareLinkService.kt` ([исходник](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt), KDoc)
 - Исходный OpenSpec-change `add-song-share-link` удалён из репозитория; актуальная спека — [`specs/164-complete-guest-share-link/spec.md`](../../../specs/164-complete-guest-share-link/spec.md).
-- [Pass 43 в architecture-notes.md](../../../docs/architecture-notes.md) — запись об этом PR.
-- [Pass 50 в architecture-notes.md](../../../docs/architecture-notes.md) — запись о hotfix `167-fix-share-claim-500` (разделение `share.internal` vs `share.notFound`).
+- [Pass 43 в architecture-notes.md](../architecture-notes.md) — запись об этом PR.
+- [Pass 50 в architecture-notes.md](../architecture-notes.md) — запись о hotfix `167-fix-share-claim-500` (разделение `share.internal` vs `share.notFound`).
 - [specs/167-fix-share-claim-500/spec.md](../../../specs/167-fix-share-claim-500/spec.md) — спека hotfix.
 - [specs/167-fix-share-claim-500/plan.md](../../../specs/167-fix-share-claim-500/plan.md) — план hotfix + FR-014 Audit Conclusion.
 - [specs/167-fix-share-claim-500/quickstart.md](../../../specs/167-fix-share-claim-500/quickstart.md) — 7 manual scenarios + rollback.

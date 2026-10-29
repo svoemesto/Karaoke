@@ -19,24 +19,27 @@
 | `CONTRIBUTING.md` | Style guide (Kotlin/Vue/SQL/MD/Sh/Docker) | **Активен** (892 строки) |
 | `DEVELOPMENT.md` | Архитектурный контекст + dated-история | **Активен** (164 строки) |
 | `README.md` | Точка входа | **Активен** |
-| `.specify/memory/constitution.md` | Непреложные принципы | **Активен** (366 строк, обновлён Pass 340+) |
-| `docs/onboarding.md` | Setup новой машины | Активен |
-| `docs/claude-code-setup.md` | Claude Code | Активен |
-| `docs/architecture-notes-archive.md` | Changelog | Активен (deprecated жить) |
-| `docs/invariants.md` | Ключевые инварианты (ловушки) | **Активен** (Pass 343+: см. `system/utilities.md`) |
-| `docs/deployment.md` | Деплой на прод | Активен |
-| `docs/database.md` | DB schema | Активен |
-| `docs/public-modules.md` | Публичные модули | Активен |
-| `archive/docs/strategy/growth.md` | visitor→registration→premium | Активен |
-| `docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) | Активен |
-| `docs/features/<slug>.md` | Per-feature документы (11+1 = 12) | Активен (FR-009) |
-| `docs/api/README.md` | API docs (Dokka + typedoc) | Автогенерируется |
-| `docs/ops/log-correlation.md` | Логи прода (FR-019) | Активен (spec 288) |
+| `.specify/memory/constitution.md` | Непреложные принципы | **Активен** (обновлён Pass 340+) |
+| `knowledge/public/onboarding.md` | Setup новой машины | **Активен** (перенесён из слоя `docs/`) |
+| `archive/docs/architecture-notes.md` | Changelog (dated-история) | **Активен** (перенесён в архив) |
+| `knowledge/system/utilities.md` | Ключевые инварианты (ловушки) | **Активен** |
+| `knowledge/system/infra/deploy-overview.md` | Деплой на прод | **Активен** |
+| `knowledge/domains/persistence/domain.md` | DB schema | **Активен** |
+| `archive/docs/strategy/growth.md` | visitor→registration→premium | Активен (архив) |
+| `archive/docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) | Активен (архив) |
+| `knowledge/product/features/<slug>.md` | Per-feature документы (22) | **Активен** (FR-009, профиль B) |
+| `knowledge/product/README.md` | Индекс продуктовой ветки | **Активен** |
+| `knowledge/guidelines/knowledge-first.md` | Правило MUST #0 (enforcement из `AGENTS.md`) | **Активен** |
+| `knowledge/guidelines/kdoc-jsdoc.md` | Правила KDoc/JSDoc и шаблоны | **Активен** |
+| `build/api-docs/` | Вывод генератора Dokka + typedoc | Автогенерируется, вне git |
+| `knowledge/guidelines/runbooks/` | Операционные runbook'и (5) | **Активен** (в т. ч. `log-correlation.md`, FR-019) |
+| `knowledge/system/infra/audit-336-registry.md` | Реестр BR-кодов аудита #336 (551 код) | **Активен** |
 
 ## Archive (`archive/docs/features/`)
 
-**27 per-feature документов**. Это **legacy** — заменены на
-`knowledge/domains/*/components/*.md` (Pass 340+).
+**30 per-feature документов**. Это **legacy** — заменены на
+`knowledge/domains/*/components/*.md` (Pass 340+) и на продуктовую ветку
+`knowledge/product/features/` (спека 675, ADR-0011).
 
 | Slug | Связанный Knowledge |
 |---|---|
@@ -96,8 +99,8 @@ Knowledge — **дополнение**, не замена.
 ### Documentation
 
 - **На русском** (CLAUDE.md раздел «АБСОЛЮТНОЕ ПРАВИЛО»).
-- **Per-feature** — `docs/features/<slug>.md` при реализации новой
-  фичи (FR-009).
+- **Per-feature** — `knowledge/product/features/<slug>.md` при реализации
+  новой фичи (FR-009).
 - **Knowledge-first** — заполнять `## Knowledge References` в
   spec.md (Pass 340+).
 
@@ -127,13 +130,27 @@ Knowledge-first принцип):
 
 ## Известные TODO
 
-- [ ] **Каждый из 27 archive-docs** — перенос в Knowledge (где ещё
+- [ ] **Каждый из 30 archive-docs** — перенос в Knowledge (где ещё
       не покрыто). Многие уже покрыты в Pass 340-365.
-- [ ] **docs/invariants.md** — синхронизация с `system/utilities.md`.
-- [ ] **docs/architecture-notes-archive.md** — changelog (Pass 343+).
-- [ ] **Per-feature docs (docs/features/)** — 11+1 файлов, нужна
-      детализация (Pass 343+).
+- [x] ~~**docs/invariants.md** — синхронизация с `system/utilities.md`.~~
+      → инварианты живут в [utilities.md](../../system/utilities.md);
+      отдельного файла в `docs/` больше нет (спека 675).
+- [x] ~~**docs/architecture-notes-archive.md** — changelog.~~
+      → [archive/docs/architecture-notes.md](../../../archive/docs/architecture-notes.md).
+- [x] ~~**Per-feature docs** — нужна детализация.~~
+      → продуктовая ветка: 22 документа в
+      [knowledge/product/features/](../../product/features/), индекс — 
+      [knowledge/product/README.md](../../product/README.md).
 
 ## Changelog
 
+- **2026-10-29** (спека 675, ADR-0011): переписан после слияния слоя `docs/`
+  в `knowledge/`. Убраны 10 строк с несуществующими файлами (`docs/onboarding.md`,
+  `docs/claude-code-setup.md`, `docs/architecture-notes-archive.md`,
+  `docs/invariants.md`, `docs/deployment.md`, `docs/database.md`,
+  `docs/public-modules.md`, `docs/strategy/growth-audit.md`,
+  `docs/features/<slug>.md`); добавлены строки продуктовой ветки
+  (`knowledge/product/features/<slug>.md`, `knowledge/product/README.md`),
+  guidelines (`knowledge-first.md`, `kdoc-jsdoc.md`, `runbooks/`) и реестра
+  аудита. Раздел «Archive» сохранён как есть (FR-010).
 - **Pass 376-378** (2026-09-09): Initial. Автор: agent (Karaoke).

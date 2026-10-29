@@ -18,13 +18,13 @@ A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot backend
 |-----|-----|
 | Правила оформления кода (MUST/SHOULD) | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | Описание 9 ключевых подсистем | [archive/docs/features/](./archive/docs/features/README.md) |
-| KDoc/JSDoc инструкция | [docs/api/README.md](./docs/api/README.md) |
+| KDoc/JSDoc инструкция | [knowledge/guidelines/kdoc-jsdoc.md](knowledge/guidelines/kdoc-jsdoc.md) |
 | Непреложные принципы | [.specify/memory/constitution.md](./.specify/memory/constitution.md) |
 | Деплой на прод | [knowledge/system/infra/deploy-overview.md](./knowledge/system/infra/deploy-overview.md) |
 | Публичные модули (karaoke-public, плеер, аккаунт) | [knowledge/public/c4-overview.md](./knowledge/public/c4-overview.md) |
 | `tbl_public_settings`, миграции | [knowledge/system/infra/sql-migrations.md](./knowledge/system/infra/sql-migrations.md) |
 | Ключевые инварианты (ловушки) | [knowledge/guidelines/architecture-conventions.md](./knowledge/guidelines/architecture-conventions.md) |
-| Датированная история фич и «ловушек» | [docs/architecture-notes.md](./docs/architecture-notes.md) |
+| Датированная история фич и «ловушек» | [archive/docs/architecture-notes.md](archive/docs/architecture-notes.md) |
 
 ## Modules / layout
 
@@ -121,7 +121,7 @@ NODE_IMAGE=node:22-alpine NGINX_IMAGE=nginx:stable bash do.sh build_webvue3
 ## Architecture notes (durable-карта)
 
 > Здесь — **краткий** durable-обзор: как устроены ключевые подсистемы. **Датированная история
-> и детали ловушек** — в [docs/architecture-notes.md](./docs/architecture-notes.md).
+> и детали ловушек** — в [archive/docs/architecture-notes.md](archive/docs/architecture-notes.md).
 
 **Custom DB layer, no JPA/Hibernate.** Каждая персистентная сущность реализует `KaraokeDbTable`
 (`model/KaraokeDbTable.kt`): plain Kotlin data class + raw JDBC (`Connection`/`KaraokeConnection`);
@@ -186,7 +186,7 @@ MinIO-совместимом объектном хранилище (`services/St
 ## См. также
 
 - [archive/docs/features/](./archive/docs/features/README.md) — 9 ключевых подсистем
-- [docs/architecture-notes.md](./docs/architecture-notes.md) — dated-история
+- [archive/docs/architecture-notes.md](archive/docs/architecture-notes.md) — dated-история
 - [.specify/memory/constitution.md](./.specify/memory/constitution.md) — принципы
 
 ## Инварианты санитайзера (FR-012 спеки `304-idempotent-path-sanitize`)
@@ -243,7 +243,7 @@ side-effect идемпотентность через Logback `ListAppender`, о
 
 ### Per-feature документ
 
-`docs/features/idempotent-path-sanitize.md`.
+`knowledge/product/features/idempotent-path-sanitize.md`.
 
 ### Контракт в спецификации
 

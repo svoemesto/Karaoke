@@ -4,6 +4,9 @@
 > **Risk**: Low (только форматирование, инфраструктура, документация; runtime-код не менялся)
 > **Reviewer**: @svoemesto
 > **Spec**: `specs/001-code-standards-docs/spec.md`
+>
+> _Историческое описание PR `001-code-standards-docs`; пути приведены к единственному
+> слою `knowledge/` (KARAOKE-334, 2026-10-29)._
 
 ## Что меняет этот PR
 
@@ -37,7 +40,7 @@
 
 ## Phase 5: US3 — Per-feature документы (FR-004, FR-009)
 
-- ✅ 9 документов в `docs/features/` (по ~80 строк каждый, 6 секций):
+- ✅ 9 документов в `knowledge/product/features/` (по ~80 строк каждый, 6 секций):
   - `mlt-generator.md` — генератор MLT для караоке-видео
   - `async-process-queue.md` — `KaraokeProcess*` + threadId-лейны
   - `dual-db-sync.md` — `recordhash` + `SyncRegistry` + O(n) `associateBy`
@@ -47,7 +50,7 @@
   - `llm-lyrics-search.md` — `LyricsFinderService` + SearXNG + Ollama
   - `telegram-auto-publish.md` — `@SponsrSync` Scheduler
   - `monitoring.md` — `MonitoringService` + `MonitorRegistry` (светофор)
-- ✅ `docs/features/README.md` — оглавление с featureKey ↔ slug.
+- ✅ `knowledge/product/README.md` — оглавление с featureKey ↔ slug.
 
 ## Phase 6: US4 — KDoc / JSDoc (FR-006)
 
@@ -57,7 +60,7 @@
   `KaraokeStorageService`, `MonitoringService`, `MainController`, и др.
 - ✅ JSDoc добавлен в **7 Vue/JS-файлов**: `SongsTable.vue`, `Songs/store.js`,
   `SyncTable.vue`, `SitePlaylistsTable.vue`, `HomeView.vue`, `PlayerView.vue`.
-- ✅ Все KDoc/JSDoc-блоки содержат `@see docs/features/<slug>.md`.
+- ✅ Все KDoc/JSDoc-блоки содержат `@see knowledge/product/features/<slug>.md`.
 
 ## Phase 7: US4 — HTML-документация (FR-006)
 
@@ -86,7 +89,7 @@
 ## Constitution amend (semver MINOR)
 
 - **v1.0.0 → v1.1.0** — добавлен **Принцип VI «Code Standards»** (NON-NEGOTIABLE):
-  - **FR-006**: KDoc/JSDoc на публичных API с `@see docs/features/<slug>.md`.
+  - **FR-006**: KDoc/JSDoc на публичных API с `@see knowledge/product/features/<slug>.md`.
   - **FR-007**: Линтеры + baseline-процесс + CI-gate.
   - **FR-009**: per-feature документ при правке кода фичи (чек-лист в PR-template).
 - Sync Impact Report в HTML-комментарии `constitution.md:1-15`.
@@ -97,7 +100,7 @@
 | Категория | Количество | Примеры |
 |-----------|------------|---------|
 | New infra | 11 | `.eslintrc.cjs`, `.prettierrc.json`, `.pre-commit-config.yaml`, `tsconfig.json`, 3 `baseline-*.xml`, 2 `.eslint-baseline.json`, `config/ktlint/*` |
-| New docs | 13 | `CONTRIBUTING.md` (822 строк), 9 per-feature `docs/features/*.md`, `docs/api/README.md`, `README.md` |
+| New docs | 13 | `CONTRIBUTING.md` (822 строк), 9 per-feature `knowledge/product/features/*.md`, `knowledge/guidelines/kdoc-jsdoc.md`, `README.md` |
 | New tools | 8 | `tools/{baseline-stats,check-enforcement,check-eslint-baseline,check-feature-doc,generate-eslint-baseline,verify-doc-links,verify-kotlin-refs,generate-docs}.sh` |
 | KDoc/JSDoc | 19 | См. Phase 6 |
 | Auto-formatted | ~220 | ktlintFormat (KT) + eslint --fix (JS/Vue) |
@@ -121,14 +124,14 @@ bash -lc 'cd karaoke-public && npm run build'            # OK
 
 # 3. Генерация документации
 ./tools/generate-docs.sh
-# Открыть docs/api/dokka/karaoke-app/index.html
-# Открыть docs/api/typedoc-webvue3/index.html
+# Открыть build/api-docs/dokka/karaoke-app/index.html
+# Открыть build/api-docs/typedoc-webvue3/index.html
 
 # 4. Baseline
 ./tools/baseline-stats.sh                                # 2229
 
 # 5. Per-feature документы
-./tools/check-feature-doc.sh docs/features/*.md          # 0 errors
+./tools/check-feature-doc.sh knowledge/product/features/*.md   # 0 errors
 ```
 
 ## Что НЕ входит в этот PR (backlog)
@@ -144,7 +147,7 @@ bash -lc 'cd karaoke-public && npm run build'            # OK
 
 ### Документация
 - [x] Per-feature документы созданы (FR-004) и обновлены в этом PR.
-- [x] `docs/api/README.md` создан с инструкцией по KDoc/JSDoc.
+- [x] `knowledge/guidelines/kdoc-jsdoc.md` создан с инструкцией по KDoc/JSDoc.
 - [x] Если добавляется новое MUST-правило — `CONTRIBUTING.md` обновлён + `constitution.md` v1.1.0 (semver MINOR).
 
 ### Линтеры
@@ -162,7 +165,7 @@ bash -lc 'cd karaoke-public && npm run build'            # OK
 - [x] **VI. Code Standards** — выполнен (KDoc, baseline, per-feature docs).
 
 ### KDoc / JSDoc (FR-006)
-- [x] Публичные API имеют KDoc/JSDoc с `@see docs/features/<slug>.md` (12 Kotlin + 7 Vue).
+- [x] Публичные API имеют KDoc/JSDoc с `@see knowledge/product/features/<slug>.md` (12 Kotlin + 7 Vue).
 - [x] `./tools/generate-docs.sh` отработал — 4 HTML сайта сгенерированы.
 
 ## Связанные артефакты
@@ -173,6 +176,6 @@ bash -lc 'cd karaoke-public && npm run build'            # OK
 - `specs/001-code-standards-docs/research.md` — 9 технических решений.
 - `.specify/memory/constitution.md` — v1.1.0 (принцип VI добавлен).
 - `CONTRIBUTING.md` — 25+ правил с примерами «правильно/неправильно».
-- `docs/features/README.md` — 9 per-feature документов.
+- `knowledge/product/README.md` — 9 per-feature документов.
 
 Closes #001-code-standards-docs

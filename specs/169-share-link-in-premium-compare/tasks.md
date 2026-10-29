@@ -149,7 +149,7 @@ US1 + US2 = MVP. US3 не требует кода (трекинг уже раб�
 
 - [ ] T017 [P] Создать PR: `git push -u origin 169-share-link-in-premium-compare` → `gh pr create --base master --title "frontend(premium): добавить строку «Временная ссылка» в таблицу FREE vs PREMIUM (#169)" --body "<body>"`. Дождаться CI 7/7 SUCCESS (`gh pr checks`). Затем `gh pr merge --merge` (**БЕЗ** `--delete-branch`, см. AGENTS.md «Жизненный цикл feature-ветки»). **Автоматом не выполнено** — push/PR пользователь делает сам (см. AGENTS.md «CI-gate для master»).
 
-- [ ] T018 [P] Post-merge: добавить запись в [`docs/architecture-notes.md`](../../docs/architecture-notes.md) (Pass 56 или следующий номер — секция «Документация-only изменения») с описанием PR #169 и краткими метриками. Эта правка допускается как **отдельный коммит напрямую в master** (см. AGENTS.md «CI-gate … Исключения для документации-only изменений»). **Автоматом не выполнено** — пользователь пишет changelog после merge.
+- [ ] T018 [P] Post-merge: добавить запись в [`docs/architecture-notes.md`](../../archive/docs/architecture-notes.md) (Pass 56 или следующий номер — секция «Документация-only изменения») с описанием PR #169 и краткими метриками. Эта правка допускается как **отдельный коммит напрямую в master** (см. AGENTS.md «CI-gate … Исключения для документации-only изменений»). **Автоматом не выполнено** — пользователь пишет changelog после merge.
 
 **Checkpoint**: PR в master, запись в changelog, фича доехала до пользователя.
 

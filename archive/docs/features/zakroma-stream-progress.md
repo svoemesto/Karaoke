@@ -283,7 +283,7 @@ Album-сообщения отправляются сразу (маркируют
 - [specs/186-zakroma-songs-fast-load/research.md](../../../specs/186-zakroma-songs-fast-load/research.md)
 - [specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md](../../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md)
 - [specs/186-zakroma-songs-fast-load/quickstart.md](../../../specs/186-zakroma-songs-fast-load/quickstart.md)
-- [docs/architecture-notes.md — Pass 52 запись](../../../docs/architecture-notes.md)
+- [docs/architecture-notes.md — Pass 52 запись](../architecture-notes.md)
 
 ## Известные ловушки
 

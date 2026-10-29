@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicLong
  * `WebMvcConfig.addInterceptors`: состояние разных endpoint'ов физически разделено.
  *
  * @see archive/docs/features/site-traffic-resilience.md
- * @see docs/features/client-ip-resolution.md
+ * @see knowledge/product/features/client-ip-resolution.md
  */
 class RateLimitInterceptor(
     /** Имя endpoint'а для ключа (например, "song-picture"). */

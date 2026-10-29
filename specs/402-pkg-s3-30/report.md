@@ -3,7 +3,7 @@
 > **Issue**: OpenProject #402 · **Пакет**: `PKG-S3-30` · **Волна**: E ·
 > **Аудит**: #336 · **Severity**: S3 · **Ветка**: `633-pkg-s3-30` ·
 > **Worktree**: `/home/nsa/Karaoke/.worktrees/waveE-s3-30`
-> **Per-feature документ**: [`docs/features/pkg-s3-30.md`](../../docs/features/pkg-s3-30.md)
+> **Per-feature документ**: [`docs/features/pkg-s3-30.md`](../../knowledge/system/infra/audit-336-registry.md)
 > **SSoT**: [`knowledge/system/infra/ci-tools.md`](../../knowledge/system/infra/ci-tools.md)
 
 ## Итог

@@ -322,10 +322,10 @@ repos:
       # ни локально, ни в CI (BR-510, P-78-04).
       - id: check-feature-doc
         name: check per-feature document structure
-        entry: bash -c './tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md'
+        entry: bash -c './tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md'
         language: system
         pass_filenames: false
-        files: '^(archive/)?docs/features/.*\.md$'
+        files: '^(knowledge/product/features|archive/docs/features)/.*\.md$'
         stages: [pre-commit]
 
       # === Markdown: ссылки и упоминания файлов/эндпоинтов в текущей документации ===
@@ -337,7 +337,41 @@ repos:
         entry: python3 tools/check-doc-references.py
         language: system
         pass_filenames: false
-        files: '^(knowledge|docs|archive/docs)/.*\.md$'
+        files: '^(knowledge|archive/docs)/.*\.md$'
+        stages: [pre-commit]
+
+      # === Guard: второй слой документации (docs/) запрещён ===
+      # Слияние docs/ в knowledge/ (ADR-0011, FR-012, SC-001): knowledge/ —
+      # единственный слой проектной документации. Guard ловит возврат каталога
+      # docs/ и на диске, и среди отслеживаемых файлов.
+      - id: no-docs-dir
+        name: no docs/ directory (second documentation layer is forbidden)
+        entry: bash tools/check-no-docs-dir.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # === Guard: две копии CI-workflow содержат одинаковый набор гейтов ===
+      # === Guard: реестр аудита #336 соответствует knowledge/ ===
+      # FR-015: код, упомянутый в knowledge/, обязан быть в реестре, а код из
+      # реестра — иметь зеркало или быть помеченным «без зеркала».
+      - id: audit-registry
+        name: audit registry matches knowledge (BR codes)
+        entry: python3 tools/check-audit-registry.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # .forgejo/ и .github/ — копии одного workflow; расхождение означает,
+      # что одна из копий проверяет меньше (FR-013).
+      - id: ci-workflow-sync
+        name: CI workflow copies are in sync (same gate set)
+        entry: bash tools/check-ci-workflow-sync.sh
+        language: system
+        pass_filenames: false
+        always_run: true
         stages: [pre-commit]
 
       # === Kotlin: @Value не должен терять плейсхолдер ===

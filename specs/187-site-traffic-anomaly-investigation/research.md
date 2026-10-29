@@ -414,5 +414,5 @@ wrk -t50 -c50 -d30s "https://sm-karaoke.ru/api/public/authors-tiles"
 - [contracts/](./contracts/) — API-контракты новых и модифицированных endpoints.
 - [quickstart.md](./quickstart.md) — ручные сценарии проверки.
 - [`docs/features/stats.md`](../../archive/docs/features/stats.md) — существующий per-feature документ (контекст для in-memory кэша).
-- [`docs/architecture-notes.md`](../../docs/architecture-notes.md) — Pass 50-60 (news/since fix, stats leak, SEO HTML).
+- [`docs/architecture-notes.md`](../../archive/docs/architecture-notes.md) — Pass 50-60 (news/since fix, stats leak, SEO HTML).
 - [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — NON-NEGOTIABLE принципы.

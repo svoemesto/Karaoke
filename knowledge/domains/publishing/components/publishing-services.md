@@ -169,6 +169,22 @@ group blocked.
 Регрессия: `karaoke-app/src/test/.../services/TelegramPublishClaimRaceTest.kt`
 (8 конкурирующих потоков → ровно один `Claimed`, остальные `Busy`).
 
+**Состояния попытки публикации** (значения `TelegramAutoPublishState`, поле
+`telegramAutoPublishState` в JSON-блобе `player_readiness_flags`):
+
+| Состояние | Смысл | Кто ставит |
+|---|---|---|
+| `scheduled` | песня попала в окно публикации, файл ещё не готов | `TelegramAutoPublishScheduler.tick()` → `publishScheduledSongs()` |
+| `rendering` | демо-MP4 рендерится (`RENDER_MP4_DEMO`) | `startRenderAndReturn` — нет файла или он больше лимита |
+| `publishing` | захват выигран, идёт `sendVideo` | `acquirePublishClaim` → `Claimed` (атомарно, до сетевого вызова) |
+| `published` | видео отправлено, `message_id` записан в `id_telegram_demo` | `publishFile` после `sendVideo` |
+| `send_failed` | отправка не удалась (ретраи исчерпаны) | `TelegramApiClient.sendVideo` — до 3 попыток с backoff |
+
+Для `PREMIUM` (`persistMessageId = false`) `message_id` в `id_telegram_demo` **не**
+пишется, чтобы слот заняла будущая AIR-публикация; факт отправки отмечается
+`newsPremiumTelegramSent`, и идемпотентность premium-отправки держится только на
+этом флаге.
+
 ### Детально: `NewsTemplateService` (264 строки)
 
 **Файл**: `karaoke-app/.../services/NewsTemplateService.kt`.

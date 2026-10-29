@@ -153,7 +153,7 @@ and L2 domains are properly listed in L1.
 
 - **Линтер падает на эмодзи в ADR** → не чини ADR (append-only), используй Karaoke-override в `lint-knowledge.py` (уже настроен).
 - **Cross-links broken в ADR** → ADR содержит legacy ссылки на `livedocs/architecture/...` (намеренно). Не «чини» — ADR append-only.
-- **`AGENTS.md` или `CONTRIBUTING.md` упоминает `livedocs/`** → должно быть `knowledge/` или `docs/architecture-notes.md`. Это governance-долг — отдельная правка через `0XX-agents-md-update`.
+- **`AGENTS.md` или `CONTRIBUTING.md` упоминает `livedocs/`** → должно быть `knowledge/` или `archive/docs/architecture-notes.md`. Это governance-долг — отдельная правка через `0XX-agents-md-update`.
 
 ## Scaling Strategy (Mandatory)
 

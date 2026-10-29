@@ -108,6 +108,6 @@ MLT, Demucs, Sheetsage, Telegram-бот, sync LOCAL↔SERVER — всё это �
 
 - [Constitution § «Деплой-окружения»](../../.specify/memory/constitution.md).
 - [L2-containers.md](../system/02-containers.md) — где что работает.
-- [`docs/deployment-notes.md`](../system/infra/deploy-overview.md) — конкретные
+- [`knowledge/system/infra/deploy-overview.md`](../system/infra/deploy-overview.md) — конкретные
   команды deploy.
 - ADR-0005 — следующий ADR объясняет, как связан с self-hosted ML.

@@ -149,7 +149,7 @@ Endpoint `GET /api/public/og/song?id=NNN` (контроллер
 - [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — источник данных.
 - [`SongPublicDto.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/SongPublicDto.kt) — образец выбора публичных полей.
 - [`80to8897`](../../deploy/web-server-deploy/deploy/80to8897) — nginx-конфиг (НЕ меняется).
-- [`docs/architecture-notes.md`](../../../docs/architecture-notes.md) — Pass 35 и Pass 51.
+- [`docs/architecture-notes.md`](../architecture-notes.md) — Pass 35 и Pass 51.
 - [`specs/121-vk-news-auto-publish/spec.md`](../../../specs/121-vk-news-auto-publish/spec.md) — контекст ВК-публикаций.
 - [`specs/130-vk-preview-generation/spec.md`](../../../specs/130-vk-preview-generation/spec.md) — контекст PNG-генерации.
 - [`specs/180-og-seo-html/spec.md`](../../../specs/180-og-seo-html/spec.md) — функциональные требования.

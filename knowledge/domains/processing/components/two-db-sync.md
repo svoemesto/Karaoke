@@ -210,7 +210,7 @@ NB: `recordhash` — md5 от канонизированной строки та
 - ключ и IV MUST быть **одинаковыми** у `karaoke-app` (шифрует `sqlToInsert`/
   `sqlToDelete`) и `karaoke-web` (расшифровывает) — это разные хосты, значения
   синхронизируются вручную; процедура и порядок ротации —
-  [`docs/ops/crypto-key-rotation.md`](../../../../docs/ops/crypto-key-rotation.md).
+  [`knowledge/guidelines/runbooks/crypto-key-rotation.md`](../../../guidelines/runbooks/crypto-key-rotation.md).
 
 Проверки: `CryptoKeyConfigurationTest` (fail-fast, отсутствие значения ключа в
 production-коде) — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/`.

@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * и другой путь — правка его не ломает (FR-005).
  *
  * @see archive/docs/features/news-publish-backfill.md
- * @see docs/features/public-settings-perimeter.md
+ * @see knowledge/product/features/public-settings-perimeter.md
  */
 @Controller
 @RequestMapping("/api/properties")
@@ -87,7 +87,7 @@ class PublicSettingsWebController(
      * @return `200` + `true` при успехе, `200` + `false` при ошибке JDBC, `403` + `false`
      *   при отказе по правам.
      *
-     * @see specs/564-impl-properties-captcha/spec.md FR-001, FR-003, FR-004
+     * @see specs/564-impl-properties-captcha/plan.md FR-001, FR-003, FR-004
      * @see specs/249-public-settings-cache FR-009
      */
     @PostMapping("/setproperty")

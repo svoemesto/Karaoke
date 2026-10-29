@@ -125,7 +125,7 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 
 ## Runbook
 
-[`docs/ops/log-correlation.md`](../../../docs/ops/log-correlation.md)
+[`knowledge/guidelines/runbooks/log-correlation.md`](../../guidelines/runbooks/log-correlation.md)
 — карта источников логов, grep-маркеры, типичные сценарии диагностики.
 
 ## Код (физическая реализация)

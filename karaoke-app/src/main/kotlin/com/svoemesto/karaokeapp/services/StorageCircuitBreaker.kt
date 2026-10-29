@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicReference
  * @see specs/352-storage-graceful-degradation/spec.md (FR-002, FR-004, NFR-002)
  * @see specs/405-storage-circuit-breaker-watchdog/spec.md (Pass 372, #131)
  * @see specs/429-split-local-remote-circuit-breakers/spec.md (Pass 429, #153 — два bean)
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  */
 class StorageCircuitBreaker(
     @Value("\${storage.file-exists-timeout-seconds:20}") private val timeoutSeconds: Long,

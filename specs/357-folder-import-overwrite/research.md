@@ -145,5 +145,5 @@ grep -rn "\.saveToDb()" karaoke-app/src/main/kotlin/ --include="*.kt" \
 ## Knowledge impact
 
 - [`knowledge/domains/catalog/components/song-entity.md`](../../knowledge/domains/catalog/components/song-entity.md) — раздел «Методы» дополнить описанием `saveToDbLocked()` как рекомендуемого пути для долгих процессов (race protection).
-- [`docs/features/process-bulk-actions.md`](../../docs/features/process-bulk-actions.md) — НЕ трогаем (не относится напрямую).
-- [`docs/features/idempotent-path-sanitize.md`](../../docs/features/idempotent-path-sanitize.md) — НЕ трогаем.
+- [`docs/features/process-bulk-actions.md`](../../knowledge/product/features/process-bulk-actions.md) — НЕ трогаем (не относится напрямую).
+- [`docs/features/idempotent-path-sanitize.md`](../../knowledge/product/features/idempotent-path-sanitize.md) — НЕ трогаем.

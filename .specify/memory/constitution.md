@@ -1,12 +1,38 @@
 <!--
   Sync Impact Report
-  - Version change: 2.3.0 → 2.4.0 (MINOR: сокращение Principles I-IX до
-    компактной формы с cross-references, Pass 379 wayfinder #101 #111).
+  - Version change: 2.4.0 → 2.4.1 (PATCH: слияние слоя `docs` в `knowledge/` —
+    ADR-0011, спека 675, KARAOKE-334). Смысл принципов НЕ менялся: изменены
+    только пути и ссылки; ни один принцип не добавлен и не удалён.
+  - Modified principles:
+    - VI (FR-006, FR-009): `@see` и per-feature документ — в
+      `knowledge/product/features/<slug>.md` (профиль B, продуктовый слой).
+    - VII: ссылки на несуществующие документы онбординга (`onboarding.md`) и
+      настройки Claude Code (`claude-code-setup.md`) → текст без ссылки
+      (документы утрачены, ссылок на них в репозитории нет).
+    - VIII: ссылка на несуществующую инструкцию по миграции прод-сервера
+      (`migration-prod-server.md`) → текст без ссылки.
+    - Governance 1: dated-история — `archive/docs/architecture-notes.md`;
+      добавлена пометка о слиянии слоя `docs` в `knowledge/` (ADR-0011).
+  - Added sections: none.
+  - Removed sections: none.
+  - Templates requiring updates: `.github/PULL_REQUEST_TEMPLATE.md`
+    (пути per-feature документов и вызовы инструментов).
+  - New artifacts to reference:
+    - knowledge/product/ — продуктовый слой (профиль B, FR-009), индекс:
+      knowledge/product/README.md;
+    - knowledge/adr/0011-merge-docs-into-knowledge.md — решение о слиянии
+      слоёв (заменяет ADR-0007 в части п. 2, п. 4 и следствия 5).
+  - Follow-up TODOs: none.
+  - Sync: knowledge/ (продуктовая ветка, реестр аудита #336), AGENTS.md
+    3.7.1 → 3.7.2, CLAUDE.md 1.8.1 → 1.8.2, knowledge/README.md (две ветки
+    SSoT + раздел «Бывшие пути»), .agents/skills/ (проектные копии скиллов).
+  - Version change (предыдущая, 2.3.0 → 2.4.0): MINOR — сокращение Principles I-IX
+    до компактной формы с cross-references, Pass 379 wayfinder #101 #111.
   - Modified principles: все 9 Principles (I-IX) переписаны в компактный
     формат «Rule + 1-2 строки + cross-ref». Детали перенесены в:
     - knowledge/guidelines/architecture-conventions.md (R-04, R-05, R-06, R-08, R-11, R-44).
     - knowledge/adr/ (ADR-0001, ADR-0005, ADR-0006, etc.).
-    - docs/features/ (per-feature docs по FR-009).
+    - knowledge/product/features/ (per-feature docs по FR-009, профиль B).
     - AGENTS.md (MUST #0, subagent isolation, etc.).
     - CLAUDE.md (operational checklist).
   - Added sections: none (только сокращение существующих).
@@ -81,13 +107,14 @@ JPA/Hibernate/Exposed. Сравнение LOCAL↔SERVER — через `recordh
 ### VI. Code Standards (NON-NEGOTIABLE)
 
 **Rule (FR-006)**: публичные API MUST иметь KDoc/JSDoc + `@see` на
-`docs/features/<slug>.md`. CI падает на missing description.
+`knowledge/product/features/<slug>.md`. CI падает на missing description.
 
 **Rule (FR-007)**: ktlint/ESLint в pre-commit + CI. Baseline в per-module
 файлах. CI падает на **новые** нарушения. Темп сокращения ≥10%/мес.
 
 **Rule (FR-009)**: при правке кода MUST обновить per-feature документ
-в том же PR (чеклист в `.github/PULL_REQUEST_TEMPLATE.md`).
+(`knowledge/product/features/<slug>.md`) в том же PR (чеклист в
+`.github/PULL_REQUEST_TEMPLATE.md`).
 
 **Детали**: см. `specs/001-code-standards-docs/contracts/per-feature-doc.md`.
 
@@ -100,8 +127,9 @@ JPA/Hibernate/Exposed. Сравнение LOCAL↔SERVER — через `recordh
 **Rule**: `.git-blame-ignore-revs` MUST содержать хэши массовых коммитов
 (prettier, baseline healing). `.gitattributes` — нормализация line endings.
 
-**Детали**: см. `docs/onboarding.md`, `docs/claude-code-setup.md`,
-`docs/architecture-notes.md`.
+**Детали**: онбординг новой машины и настройка Claude Code — документов в
+репозитории нет (утрачены), поэтому ссылок здесь нет; см.
+`archive/docs/architecture-notes.md`.
 
 ### VIII. Секреты и git-гигиена (NON-NEGOTIABLE)
 
@@ -128,7 +156,8 @@ JPA/Hibernate/Exposed. Сравнение LOCAL↔SERVER — через `recordh
 env-переменные (`@Value`, `System.getenv`). Дефолт в `${VAR:default}`
 допустим, но дефолт MUST быть невалидным или публичным.
 
-**Детали**: см. `docs/migration-prod-server.md`.
+**Детали**: инструкции по миграции прод-сервера в репозитории нет
+(документ утрачен), поэтому ссылок здесь нет.
 
 ### IX. Knowledge-first при разработке фич (NON-NEGOTIABLE)
 
@@ -145,7 +174,7 @@ Search без результатов = зафиксировать в spec.md я�
 
 **Single source of truth**: `AGENTS.md` MUST #0 + constitution.md § IX.
 
-**Детали**: см. AGENTS.md § MUST #0, `docs/governance/knowledge-first.md` (layer 2).
+**Детали**: см. AGENTS.md § MUST #0, `knowledge/guidelines/knowledge-first.md` (layer 2).
 
 #### IX.3 — Subagent workspace isolation (NON-NEGOTIABLE, Pass 379)
 
@@ -275,11 +304,14 @@ Search без результатов = зафиксировать в spec.md я�
    Конституция фиксирует непреложные принципы; `AGENTS.md` фиксирует рабочие
    инструкции для агента; `DEVELOPMENT.md` — архитектурный контекст и
    dated-историю конкретных фич (для durable-правил смотреть в этом файле секцию
-   «Architecture notes», для dated-истории — `docs/architecture-notes-archive.md`).
+   «Architecture notes», для dated-истории — `archive/docs/architecture-notes.md`).
    **Дополнение (Phase 002)**: в иерархии 9 уровней (см. таблицу в `AGENTS.md`,
-   секция «Документация и иерархия») — добавились `docs/onboarding.md`,
-   `docs/claude-code-setup.md`, `docs/architecture-notes.md` и
-   `.git-blame-ignore-revs` / `.gitattributes`.
+   секция «Документация и иерархия») — добавились разделы онбординга и
+   настройки Claude Code (документов в репозитории нет),
+   `archive/docs/architecture-notes.md` и `.git-blame-ignore-revs` /
+   `.gitattributes`. **Дополнение (спека 675, ADR-0011)**: слой `docs` слит
+   в `knowledge/` — единственный слой проектной документации; продуктовый слой —
+   `knowledge/product/`, каталог `docs` запрещён guard'ом.
 2. **Внесение изменений**: каждое изменение Конституции оформляется как
    `docs: amend constitution to vX.Y.Z (краткое описание)` в коммите. В commit-body
    указывается Sync Impact Report (какие принципы добавлены/удалены/переименованы,
@@ -301,7 +333,7 @@ Search без результатов = зафиксировать в spec.md я�
    `AGENTS.md`/`DEVELOPMENT.md`; agent-specific skills и команды, если
    ссылаются на принципы). Sync Impact Report пишется в HTML-комментарии
    в начале `constitution.md` при каждом amend. **Дополнение (Phase 002)**:
-   при добавлении нового принципа обновлять `docs/architecture-notes.md`
+   при добавлении нового принципа обновлять `archive/docs/architecture-notes.md`
    (запись о PR) + `AGENTS.md` (если меняется иерархия документации).
 6. **Compliance-проверка в production** (на стороне пользователя, не агента):
    - после `deploy_web.sh` — логи push **не** содержат `EOF`/`400 Bad request`,
@@ -310,4 +342,4 @@ Search без результатов = зафиксировать в spec.md я�
    - `docker exec karaoke-web env | grep <VAR>` для проверки реально прокинутых
      env-переменных.
 
-**Version**: 2.4.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-09-15 (Pass 379 wayfinder #111)
+**Version**: 2.4.1 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-10-29 (спека 675, KARAOKE-334, ADR-0011)

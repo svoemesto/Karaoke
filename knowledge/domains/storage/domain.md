@@ -153,7 +153,7 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
    `karaoke-web` не достигает admin-машины (firewall), поэтому направление
    канала — только admin → prod.
 
-Подробности — [`docs/features/stemjob-private-bucket.md`](../../../docs/features/stemjob-private-bucket.md),
+Подробности — [`knowledge/domains/storage/domain.md`](domain.md),
 [`specs/561-impl-stem-bucket/research.md`](../../../specs/561-impl-stem-bucket/research.md).
 
 ### Решение 6: **`/minio/` отдаётся без `X-Content-Type-Options: nosniff` (BR-558)**

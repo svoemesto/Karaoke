@@ -2,10 +2,10 @@
 # Генерирует HTML-документацию из KDoc/JSDoc для всех модулей проекта.
 #
 # Выходы:
-#   - docs/api/dokka/karaoke-app/index.html   (Kotlin — backend)
-#   - docs/api/dokka/karaoke-web/index.html   (Kotlin — public)
-#   - docs/api/typedoc-webvue3/index.html     (JS — admin SPA)
-#   - docs/api/typedoc-karaoke-public/index.html (JS — public SPA)
+#   - build/api-docs/dokka/karaoke-app/index.html   (Kotlin — backend)
+#   - build/api-docs/dokka/karaoke-web/index.html   (Kotlin — public)
+#   - build/api-docs/typedoc-webvue3/index.html     (JS — admin SPA)
+#   - build/api-docs/typedoc-karaoke-public/index.html (JS — public SPA)
 #
 # Запуск: ./tools/generate-docs.sh
 #         (или с флагом --clean для удаления старых выходов перед генерацией)
@@ -35,7 +35,7 @@ export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$REPO_ROOT/.gradle}"
 
 if [ $CLEAN -eq 1 ]; then
     echo "==> Очистка старых выходов..."
-    rm -rf docs/api/dokka docs/api/typedoc-webvue3 docs/api/typedoc-karaoke-public
+    rm -rf build/api-docs
 fi
 
 echo "==> [1/4] Dokka для karaoke-app (Kotlin backend)..."
@@ -53,27 +53,27 @@ if ! ./gradlew :karaoke-web:dokkaJavadoc --no-daemon 2>&1 | tail -3; then
 fi
 
 echo "==> [3/4] typedoc для webvue3 (admin SPA)..."
-if ! (cd webvue3 && bash -lc 'npx typedoc --out ../docs/api/typedoc-webvue3' 2>&1) | tail -3; then
+if ! (cd webvue3 && bash -lc 'npx typedoc --out ../build/api-docs/typedoc-webvue3' 2>&1) | tail -3; then
     echo "ERROR: typedoc для webvue3 завершился с ошибкой." >&2
     exit 1
 fi
 
 echo "==> [4/4] typedoc для karaoke-public (public SPA)..."
-if ! (cd karaoke-public && bash -lc 'npx typedoc --out ../docs/api/typedoc-karaoke-public' 2>&1) | tail -3; then
+if ! (cd karaoke-public && bash -lc 'npx typedoc --out ../build/api-docs/typedoc-karaoke-public' 2>&1) | tail -3; then
     echo "ERROR: typedoc для karaoke-public завершился с ошибкой." >&2
     exit 1
 fi
 
 # Собираем Dokka в один общий каталог
-echo "==> Объединяю Dokka в docs/api/dokka/..."
-rm -rf docs/api/dokka
-mkdir -p docs/api/dokka
-cp -r karaoke-app/build/dokka/javadoc docs/api/dokka/karaoke-app
-cp -r karaoke-web/build/dokka/javadoc docs/api/dokka/karaoke-web
+echo "==> Объединяю Dokka в build/api-docs/dokka/..."
+rm -rf build/api-docs/dokka
+mkdir -p build/api-docs/dokka
+cp -r karaoke-app/build/dokka/javadoc build/api-docs/dokka/karaoke-app
+cp -r karaoke-web/build/dokka/javadoc build/api-docs/dokka/karaoke-web
 
 echo ""
 echo "✅ Готово! Открой:"
-echo "   docs/api/dokka/karaoke-app/index.html"
-echo "   docs/api/dokka/karaoke-web/index.html"
-echo "   docs/api/typedoc-webvue3/index.html"
-echo "   docs/api/typedoc-karaoke-public/index.html"
+echo "   build/api-docs/dokka/karaoke-app/index.html"
+echo "   build/api-docs/dokka/karaoke-web/index.html"
+echo "   build/api-docs/typedoc-webvue3/index.html"
+echo "   build/api-docs/typedoc-karaoke-public/index.html"

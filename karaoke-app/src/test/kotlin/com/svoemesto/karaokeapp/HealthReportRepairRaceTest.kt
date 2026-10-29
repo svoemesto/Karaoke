@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *  - exitRepair: после exit, следующий attemptEnterRepair снова true.
  *  - Параллельные потоки: только ОДИН получает `true` от attemptEnterRepair.
  *
- * @see specs/426-knowledge-detail-2/spec.md (issue #65)
+ * @see specs/426-storage-circuit-breaker-blocking-timeout/spec.md (issue #65)
  */
 class HealthReportRepairRaceTest {
     private val testSongId = 42L

@@ -284,4 +284,4 @@ KARAOKE_WEB_DEBUG_DB_ALLOWED_IPS=127.0.0.1,::1
 - [`docs/features/dual-db-sync.md`](../../archive/docs/features/dual-db-sync.md) — почему KaraokeConnection + thread-local.
 - [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — NON-NEGOTIABLE принципы.
 - [`AGENTS.md`](../../AGENTS.md) — общие правила для агента.
-- [docs/architecture-notes.md](../../docs/architecture-notes.md) — Pass 50-60 (контекст предыдущих фиксов).
+- [archive/docs/architecture-notes.md](../../archive/docs/architecture-notes.md) — Pass 50-60 (контекст предыдущих фиксов).

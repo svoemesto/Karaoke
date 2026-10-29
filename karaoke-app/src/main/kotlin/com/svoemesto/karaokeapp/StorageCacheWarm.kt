@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * REMOTE circuit-aware: при OPEN весь REMOTE-источник пропускается (WARN).
  *
  * @see specs/449-warm-storage-cache/spec.md
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  */
 
 private val cacheWarmLog = LoggerFactory.getLogger("infra.cache.storage")

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController
  * @see specs/429-split-local-remote-circuit-breakers/spec.md
  * @see specs/348-storage-cache-eternal/spec.md
  * @see specs/352-storage-graceful-degradation/spec.md (FR-005, FR-008)
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  */
 @RestController
 @RequestMapping("/api/health")

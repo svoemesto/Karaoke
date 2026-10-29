@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit
  * проблема не возникает, но архитектурно поддерживается.
  *
  * @see specs/348-storage-cache-eternal/spec.md
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  * @see knowledge/domains/caching/components/web-caches.md
  */
 @Component

@@ -548,18 +548,29 @@ jobs:
             --exclude-loopback
             --exclude-mail
             --accept 200,203,206,301,302,303,304,307,308,403,429
-            docs/features/
-            archive/docs/features/
+            knowledge/product/features/
+            knowledge/
             CONTRIBUTING.md
 
       - name: Check per-feature doc structure
         # 6 обязательных секций + slug == имя файла + Status ∈ {active, deprecated, experimental}.
         # Подробности: contracts/per-feature-doc.md, tools/check-feature-doc.sh.
-        # Проверяются ОБА каталога — живые документы (docs/features/) и
+        # Проверяются ОБА каталога — живые документы (knowledge/product/features/) и
         # архив (archive/docs/features/). Раньше CI проверял только один
         # каталог, поэтому нарушения FR-009 в живых per-feature документах
         # не ловились (BR-510, P-78-04).
-        run: bash tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md
+        run: bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md
+
+      - name: "Guard: каталога docs/ нет"
+        # Второй слой проектной документации запрещён: knowledge/ — единственный
+        # слой проектной документации (ADR-0011, FR-012, SC-001).
+        # Проверяются и отслеживаемые файлы в docs/, и сам каталог на диске.
+        run: bash tools/check-no-docs-dir.sh
+
+      - name: "Guard: синхронность двух копий workflow"
+        # .forgejo/ и .github/ обязаны содержать одинаковый набор гейтовых
+        # команд — иначе одна из копий проверяет меньше (FR-013, SC-005).
+        run: bash tools/check-ci-workflow-sync.sh
 
   # === Baseline stats (informational) ===
   # Не валит CI. Публикует текущие счётчики baseline как summary —
@@ -674,6 +685,12 @@ jobs:
         # домен (Linking Protocol L3 → L2 → L1), frontmatter в
         # domain.md файлах.
         run: bash tools/check-knowledge-structure.sh
+
+      - name: Check audit registry (BR-код ↔ компонент)
+        # Реестр аудита #336 — единственный носитель BR-кодов. Guard проверяет:
+        # код, упомянутый в knowledge/, обязан быть в реестре, а код из реестра —
+        # иметь зеркало или быть помеченным «без зеркала» (FR-015).
+        run: python3 tools/check-audit-registry.py
 
       - name: Check no legacy tbl_settings references
         # Прецедент (Pass 369, 2026-09-11): агент в specs/369 взял имя

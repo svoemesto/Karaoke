@@ -146,7 +146,7 @@ fallback'ы. Текущее поведение `save()` этому против�
 Исполнение: `Song.loadListFromDb`/`Song.countMatchingAttr`, `KaraokeProcess.loadList`
 и `KaraokeDbTable.loadList` выбирают `PreparedStatement`, если `params` непуст.
 Регрессия — `karaoke-app/src/test/.../model/SqlInjection*Test.kt`; per-feature
-документ — [sql-injection-hardening](../../../docs/features/sql-injection-hardening.md).
+документ — [sql-injection-hardening](../../system/infra/audit-336-registry.md).
 
 ### Соединение на поток (ThreadLocal) и его жизненный цикл
 
@@ -373,6 +373,11 @@ L3-компонентов у домена пока нет: контекст оп
    Решение 6 (BR-534). Для `tbl_site_users` канонический набор (19 колонок) — в
    `deploy/recordhash_site_users.sql` (BR-044); `last_login_at`/`created_at` намеренно
    помечены `useInHash = false`.
+   **BR-541:** канонический `deploy/recordhash_authors.sql` тоже обязан включать
+   `sort_order`. До аудита #336 (OpenProject #363) он отставал от схемы на семь
+   колонок, поэтому применение «канонического» файла **откатывало формулу** и правки
+   `sort_order` переставали уезжать в sync. Инвариант проверяется статически —
+   `python3 tools/check-recordhash-consistency.py`.
 4. **Соединение одноразового потока MUST закрываться детерминированно**
    (`startOneShotThread` → `closeThreadConnection()` в `finally`), а соединение
    переиспользуемого потока MUST оставаться в thread-local кеше (не закрывать).

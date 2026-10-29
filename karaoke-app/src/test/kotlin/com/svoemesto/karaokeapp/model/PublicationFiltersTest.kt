@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
  * Проверяются чистые предикаты [PublicationFilters] — без Spring-контекста и БД:
  * `Song` в тестах не инстанцируется (конструктор требует окружения).
  *
- * @see docs/features/publications-filters.md
+ * @see knowledge/product/features/publications-filters.md
  */
 class PublicationFiltersTest {
     @Test

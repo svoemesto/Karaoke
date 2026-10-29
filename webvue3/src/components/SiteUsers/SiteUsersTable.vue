@@ -475,7 +475,7 @@ export default {
     // Эталон правильной реализации — Songs/SongsTable.vue:998-1009.
     // Хардкод currentPage=1 в onTargetChange (ниже) — отдельный случай смены target, watcher
     // покрывает случай смены фильтра. Не удалять onTargetChange.
-    // @see docs/features/pagination-filter-admin-tables.md (FR-006)
+    // @see knowledge/product/features/pagination-filter-admin-tables.md (FR-006)
     countRows: {
       handler(newCount) {
         const totalPages = Math.max(1, Math.ceil(newCount / this.perPage))

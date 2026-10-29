@@ -210,9 +210,9 @@ const TOP_AUTHORS = [
 /**
  * View-страница «О проекте» — описание проекта, топ-15, динамический список исполнителей.
  *
- * @see docs/strategy/growth.md — стратегия роста (QW-9 в роадмапе)
- * @see docs/strategy/about-page-draft.md — черновик контента страницы
- * @see docs/strategy/growth-audit.md — полный аудит (H1.9, H1.21, H1.22, H1.23)
+ * @see archive/docs/strategy/growth.md — стратегия роста (QW-9 в роадмапе)
+ * @see archive/docs/strategy/about-page-draft.md — черновик контента страницы
+ * @see archive/docs/strategy/growth-audit.md — полный аудит (H1.9, H1.21, H1.22, H1.23)
  * @see AGENTS.md
  */
 export default {

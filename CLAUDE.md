@@ -1,10 +1,10 @@
 # Karaoke Project Guidelines (Claude Code)
 
-> **Версия**: 1.8.1 | **2026-10-28** (рабочий трекер — Plane; OpenProject
+> **Версия**: 1.8.2 | **2026-10-29** (рабочий трекер — Plane; OpenProject
 > остаётся локально для ручных задач).
-> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.7.1.
+> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.7.2.
 
-## 🚦 Все правила — в AGENTS.md v3.7.1
+## 🚦 Все правила — в AGENTS.md v3.7.2
 
 - **MUST #0 Knowledge-first pre-flight** → `AGENTS.md` Tier-1.
 - **Hard Gates (Pass 372-375, 358, 353)** → `AGENTS.md` Tier-1.
@@ -20,14 +20,14 @@
 ## 🚦 Рекомендации для Claude Code (не дублируют AGENTS.md)
 
 1. **При старте сессии**: `cat AGENTS.md | head -100` — знать обязательные правила.
-2. **Перед правкой кода фичи**: обновить `docs/features/<slug>.md` (FR-009).
-3. **Перед commit**: 7 проверок из AGENTS.md v3.7.1 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
+2. **Перед правкой кода фичи**: обновить `knowledge/product/features/<slug>.md` (FR-009).
+3. **Перед commit**: 7 проверок из AGENTS.md v3.7.2 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
 4. **При отладке**: сначала `docker logs`, потом гипотезы (Pass 358).
 5. **Если grep по `knowledge/` ничего не нашёл**: зафиксировать в `spec.md` явно «Searched: ... → no relevant docs».
 
 ## 🚦 Стратегия проекта (visitor→registration→premium)
 
-**Single source of truth**: `docs/strategy/growth.md` + `docs/strategy/growth-audit.md`.
+**Single source of truth**: `archive/docs/strategy/growth.md` + `archive/docs/strategy/growth-audit.md`.
 Краткий focus: visitor → registration (конверсия 0.4%, потенциал ×5-13).
 Модель D (гибрид), без trial, сайт-центричная модель.
 
@@ -44,23 +44,29 @@
 | Архитектура, build/deploy команды | `DEVELOPMENT.md` |
 | Стиль кода | `CONTRIBUTING.md` |
 | Build/docker конвенции | `knowledge/guidelines/architecture-conventions.md` |
-| Per-feature документы | `docs/features/<slug>.md` (FR-009) |
-| Стратегия роста | `docs/strategy/growth.md` |
-| Логи прода, диагностика | `docs/ops/log-correlation.md` |
-| Changelog PR | `docs/architecture-notes.md` |
-| Трекер проекта (Plane) | `docs/tracker-setup.md`, `knowledge/system/infra/tracker.md` |
-| Настройка Claude Code | `docs/claude-code-setup.md` |
+| Per-feature документы | `knowledge/product/features/<slug>.md` (FR-009) |
+| Стратегия роста | `archive/docs/strategy/growth.md` |
+| Логи прода, диагностика | `knowledge/guidelines/runbooks/log-correlation.md` |
+| Changelog PR | `archive/docs/architecture-notes.md` |
+| Трекер проекта (Plane) | `knowledge/guidelines/runbooks/tracker-setup.md`, `knowledge/system/infra/tracker.md` |
+| Настройка Claude Code | файла в репозитории нет (документ утрачен) |
 
 ## 🚦 Ключевые правила (Claude Code-specific)
 
 - **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
-- **Secrets**: НЕ коммитить. См. AGENTS.md v3.7.1 § «Hard Gate: Secrets».
+- **Secrets**: НЕ коммитить. См. AGENTS.md v3.7.2 § «Hard Gate: Secrets».
 - **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
 - **Force-push в main/master**: нельзя.
 - **`git commit --no-verify`**: только в крайнем случае.
 
 ## Changelog
 
+- **1.8.2** (2026-10-29, спека 675, KARAOKE-334): пути документации приведены к
+  единственному слою `knowledge/` (ADR-0011: слой `docs` слит в `knowledge`). Изменены только пути, смысл
+  правил не менялся (PATCH). Per-feature документы — в
+  `knowledge/product/features/<slug>.md`; стратегия роста — в
+  `archive/docs/strategy/`; строка «Настройка Claude Code» больше не содержит
+  ссылки на несуществующий файл.
 - **1.8.1** (2026-10-28): ссылки ведут на актуальную `AGENTS.md` v3.7.1;
   в истории восстановлена верная запись для 1.7.0 (v3.6.0).
 - **1.8.0** (2026-10-28, PR «Задача N»): синхронизация с `AGENTS.md` v3.7.0 —
@@ -68,7 +74,7 @@
   другие сущности.
 - **1.7.0** (2026-10-27, T5 карты `tracker-migration`): синхронизация с
   `AGENTS.md` v3.6.0 — рабочий трекер Plane, OpenProject остаётся локальным
-  архивом для ручных задач; ссылки на `docs/tracker-setup.md` и
+  архивом для ручных задач; ссылки на `knowledge/guidelines/runbooks/tracker-setup.md` и
   `knowledge/system/infra/tracker.md`.
 - **1.6.1** (Pass 381, 2026-09-30): синхронизация с `AGENTS.md` v3.4.1 — Pass 380
   больше не указывает нерабочий путь `/api/process/stop`; эндпоинты очереди

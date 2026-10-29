@@ -136,7 +136,7 @@ internal class StatBySongCache {
  *
  * @see archive/docs/features/dual-db-sync.md
  * @see archive/docs/features/song-free-access.md
- * @see livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md
+ * @see knowledge/adr/local-0005-structured-logging-karaoke-app.md
  * @see specs/289-fix-statbysong-cache-on-cold-start/contracts/log-format.md
  */
 object StatBySong {

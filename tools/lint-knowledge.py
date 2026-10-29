@@ -13,7 +13,8 @@ CLI:
     python3 tools/lint-knowledge.py --generate-baseline F # capture current state,
                                                         # write file, exit 0
 
-See also: docs/operations/knowledge-lint-baseline.md (TODO: add doc).
+Механизм baseline: файл конфигурации — config/knowledge/baseline-knowledge-lint.txt
+(генерируется: python3 tools/lint-knowledge.py --generate-baseline <file>).
 """
 
 import argparse
@@ -54,6 +55,12 @@ ADR_REFERENCE_RE = re.compile(r"(adr/|ADR-\d|local-\d{4})")
 # Каталожные компоненты — перечни сущностей/моделей, а не поведение; понятия
 # «зависимости» у них нет (owner-decision 2026-09-27). Список явный: исключение
 # действует только на перечисленные файлы и ревьюится вместе с правилом.
+#
+# Профиль B (knowledge/product/) этим линтером НЕ обслуживается: у
+# per-feature документов другой набор обязательных секций (FR-009: «Что
+# делает / Зачем / Как работает / Инварианты / Известные ловушки / Ссылки»),
+# их проверяет отдельный guard — tools/check-feature-doc.sh. Обход линтера
+# туда НЕ расширяется (D16): обход профиля A остаётся как есть.
 SECTION_EXEMPTIONS = {
     "knowledge/domains/catalog/components/entities-catalog.md": {"Зависимости"},
     "knowledge/domains/catalog/components/remaining-models.md": {"Зависимости"},

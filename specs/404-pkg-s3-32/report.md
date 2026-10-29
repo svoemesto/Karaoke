@@ -773,7 +773,7 @@ found» (проверка не считалась бы пройденной). О
   порядку таблицы; лимит параллелизма; единый builder фильтра; CSV-формулы; фоновая
   перезагрузка повторяет вид; потеря фокуса и уничтожение плеера) + 12 строк в таблице
   контрактов.
-- **Per-feature** (FR-009): [docs/features/pkg-s3-32.md](../../docs/features/pkg-s3-32.md)
+- **Per-feature** (FR-009): [knowledge/system/infra/audit-336-registry.md](../../knowledge/system/infra/audit-336-registry.md)
   — с разделом `## Известные ловушки` (14 пунктов).
 - **Изменения вне webvue3**: `knowledge/system/frontend/webvue3-audit-invariants.md`
   (SSoT) и `docs/features/pkg-s3-32.md` (новый). `specs/336-code-audit/registry.csv`

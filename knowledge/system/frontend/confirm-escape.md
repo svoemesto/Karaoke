@@ -131,4 +131,4 @@ test:unit`):
   редакторе субтитров.
 - `webvue3-views.md` — каталог административных views (места сборки текста
   подтверждений).
-- `docs/features/escape-confirm-user-data.md` — per-feature документ (FR-009).
+- `knowledge/product/features/escape-confirm-user-data.md` — per-feature документ (FR-009).

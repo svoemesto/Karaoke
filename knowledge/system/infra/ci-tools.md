@@ -411,8 +411,10 @@ CI исполняется раннером вне DSH, поэтому в спи�
   приёмки и вендоринга.
 - **[do-sh.md](do-sh.md)** — `deploy/do.sh` и её guard'ы; контейнеры
   перезапускаются только через `do.sh`.
-- **[per-feature-docs.md](per-feature-docs.md)** — структура per-feature
-  документов, которую проверяет `tools/check-feature-doc.sh`.
+- **[../../product/README.md](../../product/README.md)** — индекс продуктовой
+  ветки и структура per-feature документов, которую проверяет
+  `tools/check-feature-doc.sh`; шаблон профиля B —
+  [../../templates/product-feature.md](../../templates/product-feature.md).
 - **[deploy-overview.md](deploy-overview.md)** — раскладка `deploy/`, к которой
   относятся guard'ы R-04/R-05.
 - **[architecture-conventions.md](../../guidelines/architecture-conventions.md)** —
@@ -435,12 +437,12 @@ CI исполняется раннером вне DSH, поэтому в спи�
 Per-feature документы пакетов аудита — канонические подробности по конкретным
 находкам и правкам:
 
-- [`docs/features/pkg-s3-30.md`](../../../docs/features/pkg-s3-30.md) —
+- [`knowledge/system/infra/audit-336-registry.md`](audit-336-registry.md) —
   24 дефекта guard'ов: четыре класса, унификация кодов возврата, `--self-test`.
-- [`docs/features/pkg-s3-34.md`](../../../docs/features/pkg-s3-34.md) —
+- [`knowledge/system/infra/audit-336-registry.md`](audit-336-registry.md) —
   конфигурация сборки: единый Gradle, checksum дистрибутива, Jackson, дампы
   кучи, мёртвые дубли build-конфига.
-- [`docs/features/pkg-s3-35.md`](../../../docs/features/pkg-s3-35.md) —
+- [`knowledge/system/infra/audit-336-registry.md`](audit-336-registry.md) —
   остаток аудита: прямые коммиты в master, шаг сборки фронтенда, офлайн-проверка
   ссылок, легаси-документация по `tbl_songs`.
 - [`archive/docs/features/ci-lint-enforcement.md`](../../../archive/docs/features/ci-lint-enforcement.md) —

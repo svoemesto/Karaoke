@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.7.1 | **Last updated**: 2026-10-28 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.7.2 | **Last updated**: 2026-10-29 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -132,7 +132,7 @@
 
 **Rule**: При Issue ID — **обязательно** 4 шага (`report.md` — REQUIRED артефакт).
 Трекер — Plane (`https://tracker.sm-karaoke.ru`, workspace `svoemesto`, проект
-`KARAOKE`); команды, состояния и коды выхода — `docs/tracker-setup.md`.
+`KARAOKE`); команды, состояния и коды выхода — `knowledge/guidelines/runbooks/tracker-setup.md`.
 
 | Шаг | Команда | Когда |
 |---|---|---|
@@ -147,7 +147,7 @@ OpenProject принимается только с префиксом `op:403` �
 
 **Failure** (Pass 349): OpenProject #69 без workflow → отчёт задним числом.
 **Enforcement**: `tools/check-spec-issue-link.py` + manual review.
-**Source**: `docs/tracker-setup.md`, ADR `knowledge/adr/local-0012-plane-tracker-migration.md`.
+**Source**: `knowledge/guidelines/runbooks/tracker-setup.md`, ADR `knowledge/adr/local-0012-plane-tracker-migration.md`.
 
 ### Как понимать «Задача N»
 
@@ -169,7 +169,7 @@ OpenProject принимается только с префиксом `op:403` �
 **Failure**: «Задача 307» понята как OpenProject #307 или как каталог
 `specs/307-*` → работа сделана не над той задачей.
 **Enforcement**: manual review; номер вне диапазона Plane — уточнить у владельца.
-**Source**: `docs/tracker-setup.md` § «Задачи и нумерация».
+**Source**: `knowledge/guidelines/runbooks/tracker-setup.md` § «Задачи и нумерация».
 
 ## Tier-1: Hard Gate — Git — CI-gate для master ⛔
 
@@ -231,7 +231,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 
 **Rule**: При отладке — сначала `docker logs <container>`, потом гипотезы.
 **Failure**: потеря итераций на гипотезы, лог прямо указывал на причину.
-**Source**: `docs/ops/log-correlation.md`.
+**Source**: `knowledge/guidelines/runbooks/log-correlation.md`.
 
 ## Tier-1: Hard Gate — Процесс: wayfinder → исполнение (PR #590)
 
@@ -248,7 +248,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 
 **Трекер — только Plane**: карта, тикеты-решения и issue-задачи — задачи проекта
 `KARAOKE` (workspace `svoemesto`); локальные `issues_NNNN.md` в проекте **не
-ведутся**. Раскладка карты и тикетов, состояния и команды — `docs/tracker-setup.md`
+ведутся**. Раскладка карты и тикетов, состояния и команды — `knowledge/guidelines/runbooks/tracker-setup.md`
 § «Wayfinding в Plane», состояние инфраструктуры трекера —
 `knowledge/system/infra/tracker.md`. Каталог `.scratch/karaoke/` — только разовые
 локальные артефакты (research-выгрузки, черновики), не слой задач.
@@ -262,7 +262,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 Plane; правка `agents-team-srv` под задачи Караоке; спека как черновик
 (правки FR/SC «по ходу» без слова владельца).
 **Source**: `~/.dsh/romario-team/wayfinding-operations.md` + `subagents.md`
-(командные инструкции, установлены 2026-09-29); `docs/tracker-setup.md`.
+(командные инструкции, установлены 2026-09-29); `knowledge/guidelines/runbooks/tracker-setup.md`.
 
 ## Tier-2: Каталог guards (Pass 379)
 
@@ -273,7 +273,7 @@ Plane; правка `agents-team-srv` под задачи Караоке; спе
 | R-07 JPA запрет | `architecture-conventions.md` | `check-no-jpa-imports.sh` |
 | R-08 Sanitizer idempotency | `architecture-conventions.md` | code review |
 | R-11 MP4/скачивание | `architecture-conventions.md` | `check-no-mp4-mentions.sh` |
-| R-32 FR-009 per-feature | `constitution.md` § VI | `check-feature-doc.sh` |
+| R-32 FR-009 per-feature (`knowledge/product/features/<slug>.md`) | `constitution.md` § VI | `check-feature-doc.sh` |
 | R-43 redirectErrorStream | `constitution.md` § IV | code review |
 | R-44 MLT/melt рендеринг | `architecture-conventions.md` | code review |
 | IX.3 Subagent isolation | `constitution.md` § IX.3 | `check-subagent-isolation.sh` |
@@ -320,6 +320,13 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.7.2** (2026-10-29, спека 675, KARAOKE-334): пути документации приведены к
+  единственному слою `knowledge/` (ADR-0011: слой `docs` слит в `knowledge`). Изменены только пути, смысл
+  правил не менялся (PATCH). R-32 в Tier-2 указывает per-feature документы в
+  `knowledge/product/features/<slug>.md`; ссылки на runbook'и — в
+  `knowledge/guidelines/runbooks/` (tracker-setup, log-correlation); каталог `docs`
+  запрещён guard'ом `tools/check-no-docs-dir.sh` (в CI обеих копий workflow
+  и в pre-commit).
 - **3.7.1** (2026-10-28): правило «Задача N» оформлено подразделом `###` внутри
   Plane Workflow (не отдельной главой), возвращён блок Failure/Source
   четырёхшагового правила; в `CLAUDE.md` исправлена ссылка на версию.
@@ -332,7 +339,7 @@ cd deploy && bash do.sh build_public && cd ..
   и коды выхода прежние); процессный блок ведёт карты и тикеты в Plane;
   OpenProject остаётся локально для ручных задач (ADR `local-0012`, решение
   `06`), его номера принимаются через `op:<NNN>`. Указатели:
-  `docs/tracker-setup.md`, `knowledge/system/infra/tracker.md`,
+  `knowledge/guidelines/runbooks/tracker-setup.md`, `knowledge/system/infra/tracker.md`,
   `knowledge/system/infra/op-plane-mapping.csv`.
 - **3.5.0** (2026-10-24, BR-581, OpenProject #390): `GRADLE_USER_HOME` и
   `DOCKER_CONFIG` — **от корня репозитория**, без хардкода пути машины.

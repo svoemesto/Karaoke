@@ -54,7 +54,7 @@
  *   (рендерится ПЕРВЫМ в `.alt-grid`).
  *
  * @see specs/356-zakroma-albums-by-author/spec.md FR-001, FR-002
- * @see docs/features/zakroma-albums-by-author.md
+ * @see knowledge/domains/catalog/components/album-entity.md
  * @see specs/307-special-authors-zakroma-order/spec.md (паттерн `<slot name="leading" />`)
  */
 export default {

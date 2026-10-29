@@ -278,7 +278,7 @@ regression-компиляцией вне спеки.
 
 **Decision.** `ArtifactIntegrity.verifySong(songId)` возвращает находки
 (`missingStem`, `foreignDuration`, `staleArtifact`, `missingSidecar`, `sidecarMismatch`,
-`emptyKeyBpm`). Ежедневный `ArtifactIntegrityScheduler` (`@Scheduled`, `queue.integrity.cron`,
+`emptyKeyBpm`). Ежедневный `ArtifactIntegrityScheduler` (`@Scheduled`, `karaoke.integrity.cron`,
 default `0 0 4 * * *`, выключатель `queue.integrity.enabled`) сканирует песни с артефактами,
 пишет отчёт `PATH_TO_LOGS/artifact-integrity/<date>.json`, хранит последний отчёт в памяти,
 отдаёт его через админский эндпоинт и уведомляет оператора через SSE. Правок не делает.

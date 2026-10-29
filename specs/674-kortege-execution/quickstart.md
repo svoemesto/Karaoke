@@ -171,7 +171,7 @@ curl -s http://localhost:7906/api/admin/artifacts/integrity
 `foreignDuration`/`sidecarMismatch` для 30390/30391 (чужие стемы/key-bpm, `01-repro.md` §3.1–3.3);
 ежедневная проверка ничего не правит.
 
-**Проверка FR-014 (ежедневный отчёт):** дождаться срабатывания `queue.integrity.cron` (или
+**Проверка FR-014 (ежедневный отчёт):** дождаться срабатывания `karaoke.integrity.cron` (или
 `queue.integrity.enabled=true` + временный cron на стенде) и убедиться, что (а) появился файл
 `PATH_TO_LOGS/artifact-integrity/<date>.json`, (б) `GET /api/admin/artifacts/integrity` отдаёт тот же
 отчёт, (в) mtime и содержимое артефактов песни **не изменились** (проверка молча не правит),

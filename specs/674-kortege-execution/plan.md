@@ -380,7 +380,7 @@ docs/features/kortege-execution.md    # FR-009 per-feature документ
    `dryRun` (по умолчанию `true`) показывает находки; при `dryRun=false` ставит кортежи
    `DEMUCS2` (или `DEMUCS5`, если у песни уже есть 5 стемов) и `KEY_BPM_FROM_FILE` в лейн 1,
    приоритет 0, и возвращает id голов. Никаких правок БД кроме постановки заданий.
-2. `ArtifactIntegrityScheduler` — `@Scheduled` ежедневно (`queue.integrity.cron`, default `0 0 4 * * *`,
+2. `ArtifactIntegrityScheduler` — `@Scheduled` ежедневно (`karaoke.integrity.cron`, default `0 0 4 * * *`,
    выключается `queue.integrity.enabled=false`): скан песен с артефактами, отчёт в
    `PATH_TO_LOGS/artifact-integrity/<yyyy-MM-dd>.json` + последний отчёт в памяти + SSE-уведомление
    оператору. **Молча ничего не правит** — только сообщает (FR-014).

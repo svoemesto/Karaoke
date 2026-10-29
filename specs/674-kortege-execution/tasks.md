@@ -43,7 +43,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `tuple/TupleJanitor.kt`, `tuple/ArtifactIntegrity.kt`
 - [x] T002 [P] Добавить настройки в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt`:
   `queue.tuple.temp_ttl_hours`=24, `queue.tuple.janitor_interval_minutes`=60,
-  `queue.integrity.enabled`=false, `queue.integrity.cron`=`0 0 4 * * *` (публичные дефолты, без секретов)
+  `queue.integrity.enabled`=false, `karaoke.integrity.cron`=`0 0 4 * * *` (публичные дефолты, без секретов)
 - [x] T003 [P] Зафиксировать базовую сборку `karaoke-app/build.gradle.kts`:
   `GRADLE_USER_HOME=... ./gradlew :karaoke-app:compileKotlin :karaoke-app:ktlintCheck`
   проходит до изменений (baseline для ktlint)
@@ -258,7 +258,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `contracts/admin-api.md` §4–5)
 - [x] T045 [US3] `ArtifactIntegrityScheduler` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/ArtifactIntegrityScheduler.kt`:
-  `@Scheduled` по `queue.integrity.cron`, отчёт в `PATH_TO_LOGS/artifact-integrity/<date>.json`,
+  `@Scheduled` по `karaoke.integrity.cron`, отчёт в `PATH_TO_LOGS/artifact-integrity/<date>.json`,
   последний отчёт в памяти, SSE-уведомление, **без правок**; guard `queue.integrity.enabled=false`
   → проверка не запускается и отчёт не пишется (unit-кейс в `ArtifactIntegrityTest`)
 - [ ] T046 [US3] Разовый ремонт 8 песен 30390–30397 на стенде по

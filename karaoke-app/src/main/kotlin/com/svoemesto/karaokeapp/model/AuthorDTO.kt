@@ -27,7 +27,7 @@ data class AuthorDTO(
      * (data class `isSpecialOrder: Boolean` → JSON-поле `specialOrder`, а не `isSpecialOrder`).
      *
      * @see specs/008-special-orders/spec.md
-     * @see docs/strategy/growth.md (H1.20, M-23)
+     * @see archive/docs/strategy/growth.md (H1.20, M-23)
      */
     @get:JsonProperty("isSpecialOrder")
     val isSpecialOrder: Boolean = false,

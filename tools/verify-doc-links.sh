@@ -4,7 +4,7 @@
 # Проверяет ссылки в Markdown-документах через lychee.
 # Использование:
 #   ./tools/verify-doc-links.sh [paths...]
-# По умолчанию: knowledge/ CONTRIBUTING.md
+# По умолчанию: knowledge/product/features/ knowledge/ CONTRIBUTING.md
 #
 # Требования: lychee (https://github.com/lycheeverse/lychee).
 # Установка: cargo install lychee
@@ -35,7 +35,7 @@ for arg in "$@"; do
       echo "Usage: $0 [--online] [paths...]"
       echo "  --online: проверять внешние URL (HEAD-запросы)"
       echo "  --offline: только локальные файлы (по умолчанию)"
-      echo "  paths: файлы/директории для проверки (по умолчанию docs/features/ CONTRIBUTING.md docs/)"
+      echo "  paths: файлы/директории для проверки (по умолчанию knowledge/product/features/ knowledge/ CONTRIBUTING.md)"
       exit 0
       ;;
     *)
@@ -45,7 +45,10 @@ for arg in "$@"; do
 done
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  TARGETS=("knowledge/" "CONTRIBUTING.md")
+  # docs/features/ → knowledge/product/features/ (T031); docs/ (весь слой
+  # документации) → knowledge/; CONTRIBUTING.md без изменений. Продуктовая
+  # ветка указана явно и одновременно входит в knowledge/.
+  TARGETS=("knowledge/product/features/" "knowledge/" "CONTRIBUTING.md")
 fi
 
 if ! command -v lychee >/dev/null 2>&1; then

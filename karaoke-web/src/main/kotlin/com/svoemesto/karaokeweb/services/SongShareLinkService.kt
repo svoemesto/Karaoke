@@ -71,7 +71,7 @@ internal fun toMskLocalDateTime(epochMs: Long): LocalDateTime =
  * и для сравнения с `Date.now()` (`isExpired`).
  *
  * @see archive/docs/features/guest-share-link.md
- * @see docs/features/client-ip-resolution.md
+ * @see knowledge/product/features/client-ip-resolution.md
  */
 @Service
 class SongShareLinkService(

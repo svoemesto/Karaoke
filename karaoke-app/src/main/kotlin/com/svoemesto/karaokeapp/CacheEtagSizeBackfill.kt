@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * @see specs/435-cache-etag-size-backfill/spec.md
  * @see specs/448-backfill-all-records/spec.md
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  */
 
 /** Что делать со строкой кеша по полученному [StorageFileInfo]. */

@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets
  * @property readySongCount Кол-во готовых песен (`id_status >= 6`, для гостей).
  * @property albumType Тип альбома (`"studio"` / `"live"` / `"compilation"` / `"bootleg"`, см. `AlbumType.dbValue`).
  *
- * @see docs/features/zakroma-albums-by-author.md
+ * @see knowledge/domains/catalog/components/album-entity.md
  * @see specs/356-zakroma-albums-by-author/spec.md FR-014
  * @see specs/356-zakroma-albums-by-author/contracts/albums-tiles-api.md
  */

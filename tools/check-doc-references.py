@@ -41,7 +41,7 @@ import re
 import subprocess
 import sys
 
-ROOTS = ("knowledge", "docs", "archive/docs", ".github")
+ROOTS = ("knowledge", "archive/docs", ".github")
 # specs/ — исторические записи о прошлом состоянии кода: проверяем ТОЛЬКО
 # ссылки (навигация), но не упоминания файлов и эндпоинтов (они фиксируют,
 # как код выглядел на момент спеки, и переписывать их нельзя).
@@ -51,7 +51,7 @@ ROOT_FILES = ("README.md", "DEVELOPMENT.md", "CONTRIBUTING.md", "AGENTS.md", "CL
 SKIP_DIR_PARTS = ("/.git", "/node_modules", "/build", "/dist", "/.gradle", "/.worktrees")
 SKIP_DOC_PARTS = ("knowledge/templates",)
 LINK_ONLY_ROOTS = ("specs/",)  # здесь проверяются только ссылки
-GENERATED_PREFIXES = ("docs/api/dokka/", "docs/api/typedoc-")
+GENERATED_PREFIXES = ("build/api-docs/",)
 CODE_ROOTS = ("karaoke-app/src", "karaoke-web/src", "webvue3/src", "karaoke-public/src")
 CODE_EXT = (
     "kt|java|vue|js|ts|mjs|json|yml|yaml|sql|sh|py|xml|html|properties|conf"

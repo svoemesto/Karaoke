@@ -55,7 +55,7 @@ import AlbumTiles from '../components/AlbumTiles.vue'
  * Клик по плашке альбома → `/zakroma/{authorId}?album={albumId}` (страница песен с фильтром).
  *
  * @see specs/356-zakroma-albums-by-author/spec.md FR-002
- * @see docs/features/zakroma-albums-by-author.md
+ * @see knowledge/domains/catalog/components/album-entity.md
  */
 export default {
   name: 'ZakromaAlbumsView',

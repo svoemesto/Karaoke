@@ -145,7 +145,7 @@ const ALBUM_TYPE_LABEL_OPTIONS = [
  * источника, что и фильтр компонента «Песни» — Vuex-геттер `songAuthorsPromise`
  * (`POST /api/songs/authors`). Семантика фильтрации не меняется (точное имя).
  *
- * @see docs/features/author-filter-datalist.md
+ * @see knowledge/product/features/author-filter-datalist.md
  * @see AGENTS.md
  */
 export default {

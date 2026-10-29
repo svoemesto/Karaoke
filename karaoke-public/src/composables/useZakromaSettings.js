@@ -7,7 +7,7 @@
  * без серверной персонализации (см. спека 356, A-003).
  *
  * @see specs/356-zakroma-albums-by-author/spec.md FR-012, FR-013
- * @see docs/features/zakroma-albums-by-author.md
+ * @see knowledge/domains/catalog/components/album-entity.md
  */
 import { ref, watch } from 'vue'
 

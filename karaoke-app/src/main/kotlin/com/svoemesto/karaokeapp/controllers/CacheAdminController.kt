@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController
  * SQL, и т.п.).
  *
  * @see specs/348-storage-cache-eternal/spec.md
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  */
 @RestController
 @RequestMapping("/api/health/cache")

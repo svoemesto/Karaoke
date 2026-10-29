@@ -3592,7 +3592,7 @@ class ApiController(
      *         `{ok: false, error: song_not_found|bad_markers|bad_voice}` при ошибке
      *
      * @see specs/547-drop-empty-song-voices/contracts/save-voice-endpoint.md
-     * @see docs/features/drop-empty-song-voices.md
+     * @see knowledge/product/features/drop-empty-song-voices.md
      */
     @PostMapping("/song/savesourcetextmarkers")
     @ResponseBody

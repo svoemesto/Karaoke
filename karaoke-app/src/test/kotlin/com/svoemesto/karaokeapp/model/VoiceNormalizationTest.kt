@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
  * Контракт: specs/547-drop-empty-song-voices/contracts/voice-normalization.md §4.
  *
  * @see specs/547-drop-empty-song-voices/data-model.md
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  */
 class VoiceNormalizationTest {
     private fun marker(label: String = "Привет"): SourceMarker =

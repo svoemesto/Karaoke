@@ -7,7 +7,7 @@
 #
 # Использование:
 #   ./tools/check-feature-doc.sh <path-to-doc.md> [...]
-#   ./tools/check-feature-doc.sh docs/features/*.md
+#   ./tools/check-feature-doc.sh knowledge/product/features/*.md
 #
 # Возвращает 0 если все документы валидны, 1 если есть нарушения.
 
@@ -41,7 +41,7 @@ check_doc() {
     return 1
   fi
 
-  # README.md (оглавление docs/features/) — не per-feature документ,
+  # README.md (оглавление каталога) — не per-feature документ,
   # не проверяем.
   local filename
   filename=$(basename "$file" .md)
@@ -113,7 +113,7 @@ check_doc() {
 
 if [ $# -eq 0 ]; then
   echo "Usage: $0 <path-to-doc.md> [...]"
-  echo "  Пример: $0 docs/features/*.md"
+  echo "  Пример: $0 knowledge/product/features/*.md"
   exit 2
 fi
 

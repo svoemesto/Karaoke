@@ -631,7 +631,7 @@ class Song(
      * Живёт только в памяти: API сохранения голоса по нему вычисляет новый индекс голоса после
      * удаления пустого (FR-010). Сбрасывается в начале каждого `saveToDb()`; в JSON/БД не уходит.
      *
-     * @see docs/features/drop-empty-song-voices.md
+     * @see knowledge/product/features/drop-empty-song-voices.md
      */
     @get:JsonIgnore
     @Transient
@@ -4246,7 +4246,7 @@ class Song(
      * @param text текст голоса (может быть пустым)
      * @param markers маркеры голоса (может быть пустым списком)
      *
-     * @see docs/features/drop-empty-song-voices.md
+     * @see knowledge/product/features/drop-empty-song-voices.md
      */
     fun setSourceTextAndMarkers(
         voice: Int,
@@ -4285,7 +4285,7 @@ class Song(
      * @param markers маркеры по голосам — первичный список, задаёт число голосов
      * @param texts тексты по голосам; недостающие дополняются пустой строкой
      *
-     * @see docs/features/drop-empty-song-voices.md
+     * @see knowledge/product/features/drop-empty-song-voices.md
      */
     fun setAllVoices(
         markers: List<List<SourceMarker>>,
@@ -4321,7 +4321,7 @@ class Song(
      * BR-103: нормализация применяется к **объединённому** набору голосов (результат
      * трёхстороннего слияния, см. [applyVoiceMerge]), а не к устаревшему снимку объекта.
      *
-     * @see docs/features/drop-empty-song-voices.md
+     * @see knowledge/product/features/drop-empty-song-voices.md
      */
     private fun normalizeVoicesBeforeSave() {
         lastVoiceNormalization = null

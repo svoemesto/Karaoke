@@ -5,7 +5,7 @@
 # документах указывают на реально существующие символы в Kotlin-коде.
 #
 # Использование:
-#   ./tools/verify-kotlin-refs.sh [docs/features/*.md]
+#   ./tools/verify-kotlin-refs.sh [knowledge/product/features/*.md]
 #
 # Использует grep по исходникам (Kotlin), не требует отдельного индексатора.
 # Ограничения: проверяет наличие имени класса/файла; для точного
@@ -15,7 +15,7 @@ set -uo pipefail
 
 TARGETS=("$@")
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  TARGETS=(docs/features/*.md)
+  TARGETS=(knowledge/product/features/*.md)
 fi
 
 if ! command -v rg >/dev/null 2>&1; then

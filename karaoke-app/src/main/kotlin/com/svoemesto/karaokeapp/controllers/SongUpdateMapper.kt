@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory
  * @property baselineAutoFilled true если baseline-логика автозаполнила [SongField.NAME_CENSORED]
  *   из [Song.songName] (для логирования/observability).
  *
- * @see docs.features.song-edit-and-censored.md
+ * @see knowledge/system/frontend/webvue3-audit-invariants.md
  */
 data class SongUpdateApplyResult(
     val albumLinkValid: Boolean = true,
@@ -76,7 +76,7 @@ data class SongUpdateApplyResult(
  *
  * Семантика 1:1 с текущим телом [ApiController.songs2Update] (см. spec 302 FR-014).
  *
- * @see docs.features.song-edit-and-censored.md
+ * @see knowledge/system/frontend/webvue3-audit-invariants.md
  */
 object SongUpdateMapper {
     private val log = LoggerFactory.getLogger(SongUpdateMapper::class.java)

@@ -37,7 +37,7 @@
                 v-text в Vue2 устанавливает DOM-свойство textContent, которое игнорируется
                 для <textarea> (textarea хранит значение в .value, не в textContent).
                 Заменено на :value для реактивного обновления .value.
-                @see docs/features/search-text-extract-btn.md (OP#51)
+                @see knowledge/product/features/search-text-extract-btn.md (OP#51)
                 vue/html-self-closing отключён: <textarea> не может быть void-элементом
                 по спецификации HTML5 (парсер может неправильно определить границы).
               -->
@@ -262,7 +262,7 @@ export default {
           // specs/301-search-text-extract-btn: Vue3 использует Proxy для реактивности,
           // this.$set не существует (TypeError). Используем Array.prototype.splice,
           // как Authors/Albums/Pictures/SiteUsers stores: state.X.splice(idx, 1, updated).
-          // @see docs/features/search-text-extract-btn.md (OP#51)
+          // @see knowledge/product/features/search-text-extract-btn.md (OP#51)
           this.searchResultsList.splice(idx, 1, updated)
         }
         this.currentResult = updated
@@ -488,7 +488,7 @@ export default {
     Flex-column чтобы textarea (.result-text) занимала всё доступное
     пространство, а кнопки «Открыть на сайте» / «Получить текст по ссылке»
     получали свою естественную высоту и НЕ уползали за пределы контейнера.
-    @see docs/features/search-text-extract-btn.md (OP#51)
+    @see knowledge/product/features/search-text-extract-btn.md (OP#51)
   */
   display: flex;
   flex-direction: column;
@@ -544,7 +544,7 @@ export default {
     в .st-body-column-2 (после кнопок), а не растягивается на всю высоту.
     Без min-height:0 браузер не даст textarea сжаться меньше её
     контента, и кнопки снова уплывут за пределы контейнера.
-    @see docs/features/search-text-extract-btn.md (OP#51)
+    @see knowledge/product/features/search-text-extract-btn.md (OP#51)
   */
   flex: 1 1 auto;
   min-height: 0;
@@ -579,7 +579,7 @@ export default {
   Гарантирует вертикальное расположение кнопок в .st-body-column-2
   (одна под другой). Без этого <button> как inline-block может
   вести себя неожиданно при width: 500px.
-  @see docs/features/search-text-extract-btn.md (FR-001, OP#51)
+  @see knowledge/product/features/search-text-extract-btn.md (FR-001, OP#51)
 */
 .group-button {
   border: solid black thin;

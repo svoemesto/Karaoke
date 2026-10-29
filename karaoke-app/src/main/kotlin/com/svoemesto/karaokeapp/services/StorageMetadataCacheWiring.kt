@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component
  *  - AOP/Spring proxy — отвергнуто per Assumption 7 (см. spec.md).
  *
  * @see specs/344-storage-metadata-cache/spec.md (FR-011)
- * @see docs/features/storage-metadata-cache.md
+ * @see knowledge/domains/storage/components/storage-api-client.md
  */
 @Component
 class StorageMetadataCacheWiring(

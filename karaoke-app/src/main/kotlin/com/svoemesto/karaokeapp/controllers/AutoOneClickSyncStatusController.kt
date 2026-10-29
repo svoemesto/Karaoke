@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController
  *
  * @see AutoOneClickSyncScheduler.getStatus
  * @see AutoOneClickSyncStatusDto
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 @RestController
 @RequestMapping("/api/sync")

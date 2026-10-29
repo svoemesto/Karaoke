@@ -51,7 +51,7 @@ import jakarta.servlet.http.HttpServletRequest
  * (аналитика `tbl_events`).
  *
  * @see AGENTS.md
- * @see docs/features/client-ip-resolution.md
+ * @see knowledge/product/features/client-ip-resolution.md
  * @see specs/336-code-audit/findings/P-37.md (P-37-03 — BR-003 «xff-first-element»)
  */
 object ClientIpResolver {

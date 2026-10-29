@@ -37,7 +37,7 @@ import java.time.Instant
  *
  * @see specs/413-sync-audio-descendants/spec.md
  * @see specs/413-sync-audio-descendants/research.md
- * @see docs/features/sync-audio-descendants.md
+ * @see knowledge/domains/catalog/components/audio-descendant-sync.md
  */
 object SyncAudioDescendants {
     /** Content-поля `Song.getDiff`, изменение которых запускает синхронизацию. */

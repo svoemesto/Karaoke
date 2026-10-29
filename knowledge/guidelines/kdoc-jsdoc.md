@@ -247,14 +247,14 @@ python3 tools/auto-jsdoc.py karaoke-public/src
 ./tools/generate-docs.sh --clean  # с удалением старых выходов
 ```
 
-**Выходы** (генерируются скриптом; каталоги `docs/api/dokka/` и `docs/api/typedoc-*/` в `.gitignore` — в свежем клоне их нет, поэтому ссылки ниже «битые» до первого запуска генератора):
+**Выходы** (генерируются скриптом; каталог `build/api-docs/` в `.gitignore` — в свежем клоне его нет, поэтому ссылки ниже «битые» до первого запуска генератора):
 
 | Модуль | Путь | Размер | Генератор |
 |--------|------|--------|-----------|
-| `karaoke-app` (backend) | `docs/api/dokka/karaoke-app/index.html` | 26M | Dokka 1.9.20 (dokkaJavadoc) |
-| `karaoke-web` (public backend) | `docs/api/dokka/karaoke-web/index.html` | 3.9M | Dokka 1.9.20 (dokkaJavadoc) |
-| `webvue3` (admin SPA) | `docs/api/typedoc-webvue3/index.html` | 188K | typedoc 0.28 |
-| `karaoke-public` (public SPA) | `docs/api/typedoc-karaoke-public/index.html` | 180K | typedoc 0.28 |
+| `karaoke-app` (backend) | `build/api-docs/dokka/karaoke-app/index.html` | 26M | Dokka 1.9.20 (dokkaJavadoc) |
+| `karaoke-web` (public backend) | `build/api-docs/dokka/karaoke-web/index.html` | 3.9M | Dokka 1.9.20 (dokkaJavadoc) |
+| `webvue3` (admin SPA) | `build/api-docs/typedoc-webvue3/index.html` | 188K | typedoc 0.28 |
+| `karaoke-public` (public SPA) | `build/api-docs/typedoc-karaoke-public/index.html` | 180K | typedoc 0.28 |
 
 **Почему `dokkaJavadoc`, а не `dokkaHtml`?** Dokka 1.9.x/2.0.x ломается на
 Jackson 2.19 (поставляется Spring Boot 3.5 BOM) — `dokkaHtml` использует

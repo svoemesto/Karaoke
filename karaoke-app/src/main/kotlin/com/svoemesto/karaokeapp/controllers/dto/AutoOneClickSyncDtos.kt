@@ -22,7 +22,7 @@ import com.svoemesto.karaokeapp.services.Totals
  *
  * @see AutoOneClickSyncRun
  * @see AutoOneClickSyncRunDto
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 data class AutoOneClickSyncStatusDto(
     val enabled: Boolean,
@@ -48,7 +48,7 @@ data class AutoOneClickSyncStatusDto(
  *
  * @see AutoOneClickSyncRun
  * @see TotalsDto
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 data class AutoOneClickSyncRunDto(
     val startedAt: String,
@@ -65,7 +65,7 @@ data class AutoOneClickSyncRunDto(
  *
  * @see AutoOneClickSyncRunDto
  * @see Totals
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 data class TotalsDto(
     val created: Int,
@@ -78,7 +78,7 @@ data class TotalsDto(
  * Конвертеры из runtime value-классов в JSON DTO.
  * Используются в [com.svoemesto.karaokeapp.controllers.AutoOneClickSyncStatusController].
  *
- * @see livedocs/features/235-auto-sync-3h.md
+ * @see specs/235-auto-sync-3h/spec.md
  */
 object AutoOneClickSyncDtos {
     /**

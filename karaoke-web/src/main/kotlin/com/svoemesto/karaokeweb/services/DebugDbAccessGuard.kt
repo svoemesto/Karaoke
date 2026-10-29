@@ -23,7 +23,7 @@ import jakarta.servlet.http.HttpServletRequest
  * в allowlist, нельзя (аудит BR-003 «xff-first-element»).
  *
  * @see archive/docs/features/site-traffic-resilience.md (FR-013)
- * @see docs/features/client-ip-resolution.md
+ * @see knowledge/product/features/client-ip-resolution.md
  * @see KaraokeProperties
  * @see DebugDbController
  */

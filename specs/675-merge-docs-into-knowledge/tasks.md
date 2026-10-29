@@ -125,19 +125,19 @@ KARAOKE-324 § 5, подтверждено владельцем 2026-10-29).
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] Переписать ссылки в **остальных** файлах `knowledge/` (38 файлов по карте ссылок — вне перенесённых документов из T020): markdown-ссылки и текстовые упоминания на перемещаемые файлы; ссылки на удаляемый `per-feature-docs.md` и сворачиваемые мост-файлы → на компоненты-приёмники по [contracts/migration-map.md § 1.3](./contracts/migration-map.md)
-- [ ] T027 [P] [US1] Переписать markdown-ссылки в `specs/` — 104 ссылки в 52 файлах; **текстовые упоминания `docs/` не трогать** (политика проекта)
-- [ ] T028 [P] [US1] Переписать `@see` в KDoc/JSDoc — 74 в 51 файле (karaoke-app 36, webvue3 17, karaoke-web 13, karaoke-public 8) → `knowledge/product/features/<slug>.md`
-- [ ] T029 [P] [US1] Перенастроить `tools/check-doc-references.py:44` (`ROOTS` — убрать `"docs"`) и `:54` (`GENERATED_PREFIXES` → `("build/api-docs/",)`)
-- [ ] T030 [P] [US1] Перенастроить `tools/check-ssot-impact.py:33` (снять исключение `r"^docs/"` — каталога нет) и `:170` (текст-ссылка → `archive/docs/architecture-notes.md`)
-- [ ] T031 [P] [US1] Перенастроить `tools/verify-doc-links.sh:48` (`TARGETS` → `knowledge/product/features/`, `CONTRIBUTING.md`) и `:7` (usage-текст)
-- [ ] T032 [P] [US1] Перенастроить `tools/check-no-legacy-tbl-settings.sh:174` (`for f in knowledge/product/features/*.md`) и `tools/verify-kotlin-refs.sh:18` (`TARGETS=(knowledge/product/features/*.md)`)
-- [ ] T033 [P] [US1] Перенастроить `tools/check-feature-doc.sh:10,44,116` (usage-текст и примеры на `knowledge/product/features/*.md`); **контракт проверки (6 секций, slug, status) не менять**
-- [ ] T034 [P] [US1] Перенастроить `tools/generate-docs.sh:5-8,38,56,62,68` — вывод в `build/api-docs/`; и `.gitignore:97-99` — заменить `docs/api/dokka/`, `docs/api/typedoc-*/` на `build/api-docs/`
-- [ ] T035 [P] [US1] Переписать 4 строки `config/knowledge/doc-references-whitelist.txt` со scope `docs/…` (строки 55 → `knowledge/guidelines/kdoc-jsdoc.md`; 61, 62 → `knowledge/system/infra/audit-336-registry.md`; 64 → `knowledge/system/infra/audit-336-registry.md`); строки со scope `archive/docs/…` (10) **не трогать**
-- [ ] T036 [US1] Обновить обе копии workflow — таргеты lychee на `knowledge/product/features/` + `archive/docs/features/` + `CONTRIBUTING.md`: `.forgejo/workflows/lint.yml:592-593` и `.github/workflows/lint.yml:551-552`
-- [ ] T037 [US1] Обновить контрактный тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS335SourceContractsTest.kt:288,294,299` под новые пути — **тест остаётся**, фиксирует «оба каталога проверяются»
-- [ ] T038 [US1] Обновить документацию вызова: `tools/README.md:22` и `PR_DESCRIPTION.md:131`
+- [x] T026 [P] [US1] Переписать ссылки в **остальных** файлах `knowledge/` (38 файлов по карте ссылок — вне перенесённых документов из T020): markdown-ссылки и текстовые упоминания на перемещаемые файлы; ссылки на удаляемый `per-feature-docs.md` и сворачиваемые мост-файлы → на компоненты-приёмники по [contracts/migration-map.md § 1.3](./contracts/migration-map.md)
+- [x] T027 [P] [US1] Переписать markdown-ссылки в `specs/` — 104 ссылки в 52 файлах; **текстовые упоминания `docs/` не трогать** (политика проекта)
+- [x] T028 [P] [US1] Переписать `@see` в KDoc/JSDoc — 74 в 51 файле (karaoke-app 36, webvue3 17, karaoke-web 13, karaoke-public 8) → `knowledge/product/features/<slug>.md`
+- [x] T029 [P] [US1] Перенастроить `tools/check-doc-references.py:44` (`ROOTS` — убрать `"docs"`) и `:54` (`GENERATED_PREFIXES` → `("build/api-docs/",)`)
+- [x] T030 [P] [US1] Перенастроить `tools/check-ssot-impact.py:33` (снять исключение `r"^docs/"` — каталога нет) и `:170` (текст-ссылка → `archive/docs/architecture-notes.md`)
+- [x] T031 [P] [US1] Перенастроить `tools/verify-doc-links.sh:48` (`TARGETS` → `knowledge/product/features/`, `CONTRIBUTING.md`) и `:7` (usage-текст)
+- [x] T032 [P] [US1] Перенастроить `tools/check-no-legacy-tbl-settings.sh:174` (`for f in knowledge/product/features/*.md`) и `tools/verify-kotlin-refs.sh:18` (`TARGETS=(knowledge/product/features/*.md)`)
+- [x] T033 [P] [US1] Перенастроить `tools/check-feature-doc.sh:10,44,116` (usage-текст и примеры на `knowledge/product/features/*.md`); **контракт проверки (6 секций, slug, status) не менять**
+- [x] T034 [P] [US1] Перенастроить `tools/generate-docs.sh:5-8,38,56,62,68` — вывод в `build/api-docs/`; и `.gitignore:97-99` — заменить `docs/api/dokka/`, `docs/api/typedoc-*/` на `build/api-docs/`
+- [x] T035 [P] [US1] Переписать 4 строки `config/knowledge/doc-references-whitelist.txt` со scope `docs/…` (строки 55 → `knowledge/guidelines/kdoc-jsdoc.md`; 61, 62 → `knowledge/system/infra/audit-336-registry.md`; 64 → `knowledge/system/infra/audit-336-registry.md`); строки со scope `archive/docs/…` (10) **не трогать**
+- [x] T036 [US1] Обновить обе копии workflow — таргеты lychee на `knowledge/product/features/` + `archive/docs/features/` + `CONTRIBUTING.md`: `.forgejo/workflows/lint.yml:592-593` и `.github/workflows/lint.yml:551-552`
+- [x] T037 [US1] Обновить контрактный тест `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS335SourceContractsTest.kt:288,294,299` под новые пути — **тест остаётся**, фиксирует «оба каталога проверяются»
+- [x] T038 [US1] Обновить документацию вызова: `tools/README.md:22` и `PR_DESCRIPTION.md:131`
 - [ ] T039 [US1] Проверка US1: [quickstart.md § 1](./quickstart.md) (слой `docs/` исчез), § 3 (пер-фичеурные документы: `ls knowledge/product/features/*.md | wc -l` = 22, FR-003), § 5 (0 битых ссылок) — все коды 0; `bash tools/verify-doc-links.sh` — код 0 (требует `lychee`) (SC-001, SC-003)
 - [ ] T040 [US1] Проверка US1: сверка «до/после» по всем материалам слоя — `git ls-tree -r --name-only 3fb7c8bf docs/ | wc -l` = 73, и каждый старый путь присутствует в справочнике «Бывшие пути» ([quickstart.md § 9](./quickstart.md)); 0 неучтённых (SC-009, SC-010)
 

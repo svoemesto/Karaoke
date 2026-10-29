@@ -40,7 +40,7 @@ import { useAuth } from './useAuth'
  *
  * @see specs/257-header-news-unread-badge/spec.md
  * @see specs/257-header-news-unread-badge/contracts/useNewsUnreadCount-composable.md
- * @see livedocs/features/250-unify-site-header.md (родительский header-context)
+ * @see specs/250-unify-site-header/spec.md (родительский header-context)
  */
 
 const POLL_INTERVAL_MS = 45000

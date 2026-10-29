@@ -285,18 +285,18 @@ class PkgS335SourceContractsTest {
     fun `BR-510 per-feature документы проверяются в обоих каталогах`() {
         val ci = readCode(".github/workflows/lint.yml")
         assertTrue(
-            ci.contains("bash tools/check-feature-doc.sh docs/features/*.md archive/docs/features/*.md"),
+            ci.contains("bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md"),
             "CI проверяет оба каталога per-feature документов (BR-510)",
         )
         val lycheeArgs = ci.substringAfter("lychee-action@").substringBefore("CONTRIBUTING.md")
         val lycheeTargets = lycheeArgs.lines().map { it.trim() }
         assertTrue(
-            lycheeTargets.contains("docs/features/"),
+            lycheeTargets.contains("knowledge/product/features/"),
             "lychee (offline-ссылки) проверяет живые per-feature документы (BR-510)",
         )
         val hook = readCode(".pre-commit-config.yaml")
         assertTrue(
-            hook.contains("docs/features/*.md archive/docs/features/*.md"),
+            hook.contains("knowledge/product/features/*.md archive/docs/features/*.md"),
             "pre-commit-хук проверяет оба каталога (BR-510)",
         )
     }

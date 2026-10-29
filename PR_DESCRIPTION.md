@@ -128,7 +128,7 @@ bash -lc 'cd karaoke-public && npm run build'            # OK
 ./tools/baseline-stats.sh                                # 2229
 
 # 5. Per-feature документы
-./tools/check-feature-doc.sh docs/features/*.md          # 0 errors
+./tools/check-feature-doc.sh knowledge/product/features/*.md   # 0 errors
 ```
 
 ## Что НЕ входит в этот PR (backlog)

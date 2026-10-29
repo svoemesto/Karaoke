@@ -17,7 +17,7 @@ import kotlinx.serialization.json.Json
  * @property markers маркеры оставшихся голосов
  * @property removedIndices индексы исходного списка, которые удалены (по возрастанию)
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  * @see specs/547-drop-empty-song-voices/data-model.md
  */
 data class VoiceNormalization(
@@ -49,7 +49,7 @@ data class VoiceNormalization(
  * `null`/пустая строка → пустой список (данных нет), битый JSON → `null` (нормализация
  * пропускается — fail-safe, FR-012).
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  */
 fun parseVoiceTexts(raw: String?): List<String>? {
     if (raw.isNullOrBlank()) return emptyList()
@@ -69,7 +69,7 @@ fun parseVoiceTexts(raw: String?): List<String>? {
  * Отличие от [Song.sourceMarkersList]: не имеет побочных эффектов (не пишет поле и не вызывает
  * сохранение), поэтому безопасен внутри `saveToDb()`.
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  */
 fun parseVoiceMarkers(raw: String?): List<List<SourceMarker>>? {
     if (raw.isNullOrBlank()) return emptyList()
@@ -87,7 +87,7 @@ fun parseVoiceMarkers(raw: String?): List<List<SourceMarker>>? {
 /**
  * Признак «голос пуст»: текст пуст (или только пробелы) и маркеров нет.
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  */
 fun isVoiceEmpty(
     text: String?,
@@ -101,7 +101,7 @@ fun isVoiceEmpty(
  * `source_text`/`source_markers`; нормализация такой песни записала бы пустой текст и стёрла бы
  * данные из БД. Поэтому при отсутствии любого из полей нормализация запрещена.
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  */
 fun canNormalize(
     hasMarkersField: Boolean,
@@ -118,7 +118,7 @@ fun canNormalize(
  * @return результат нормализации; при `changed = true` длины [VoiceNormalization.texts] и
  *         [VoiceNormalization.markers] равны
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  * @see specs/547-drop-empty-song-voices/contracts/voice-normalization.md
  */
 fun normalizeVoices(
@@ -146,7 +146,7 @@ fun normalizeVoices(
 /**
  * Индексы непустых голосов — для рендера, который обходит голоса по позиции.
  *
- * @see docs/features/drop-empty-song-voices.md
+ * @see knowledge/product/features/drop-empty-song-voices.md
  */
 fun nonEmptyVoiceIndices(markers: List<List<SourceMarker>>): List<Int> =
     markers.indices.filter { markers[it].isNotEmpty() }

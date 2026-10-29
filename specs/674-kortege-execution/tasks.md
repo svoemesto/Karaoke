@@ -200,7 +200,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   проверки; `model/Song.kt`: `getKeyBpmFromFile` без перезапуска `argsKeyBpmFinder`,
   `applyKeyBpmFromFileIfExists` — проверка sidecar
 - [x] T032 [P] [US2] `KaraokeProcess.kt`: `FF_MP3_*` — `rm` → `rm -f`
-- [ ] T033 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleExecutor.kt` и
+- [x] T033 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/TupleExecutor.kt` и
   `KaraokeProcess.kt`: `failTuple`/`completeTuple` независимы от `withoutControl`; `save()`-гейт
   не влияет на `markDone`/`markError`; обновить KDoc
 - [ ] T034 [US2] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt`:
@@ -242,21 +242,21 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [x] T039 [US3] `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt`:
   `createProcess` single-flight по кортежу: живой кортеж → `return 0` без удалений; удаление только
   полностью `DONE`-кортежей; `KEY_BPM` skip только при подтверждённом sidecar
-- [ ] T040 [US3] `Utils.kt`/`KaraokeProcess.kt`: CPU-retry — отдельный кортеж через `createChain`,
+- [x] T040 [US3] `Utils.kt`/`KaraokeProcess.kt`: CPU-retry — отдельный кортеж через `createChain`,
   свой `scopeId`, свой `cp` источника, `retriedOnCpu=true`, ровно один
 - [x] T041 [US3] Recovery-края в `KaraokeProcess.kt`: `setWorkingToWaitingForThread` со сбросом
   `end`/прогресса; обработка soft-deleted кортежа (все шаги удалены → лог, лейн не блокируется)
-- [ ] T042 [US3] `ArtifactIntegrity.verifySong` в
+- [x] T042 [US3] `ArtifactIntegrity.verifySong` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tuple/ArtifactIntegrity.kt`
   (read-only, контракт `contracts/artifact-verification.md` §6)
-- [ ] T043 [US3] `SongArtifactRepairService` в
+- [x] T043 [US3] `SongArtifactRepairService` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SongArtifactRepairService.kt`:
   `dryRun=true` по умолчанию, постановка `DEMUCS2/5` + `KEY_BPM_FROM_FILE` в лейн 1, приоритет 0
-- [ ] T044 [US3] `ArtifactAdminController` в
+- [x] T044 [US3] `ArtifactAdminController` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ArtifactAdminController.kt`:
   `POST /api/admin/artifacts/repair`, `GET /api/admin/artifacts/integrity` (контракт
   `contracts/admin-api.md` §4–5)
-- [ ] T045 [US3] `ArtifactIntegrityScheduler` в
+- [x] T045 [US3] `ArtifactIntegrityScheduler` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/ArtifactIntegrityScheduler.kt`:
   `@Scheduled` по `queue.integrity.cron`, отчёт в `PATH_TO_LOGS/artifact-integrity/<date>.json`,
   последний отчёт в памяти, SSE-уведомление, **без правок**; guard `queue.integrity.enabled=false`
@@ -282,7 +282,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ### Tests for User Story 4
 
-- [x] T048 [P] [US4] `AdminDoneFilterTest` в
+- [ ] T048 [P] [US4] `AdminDoneFilterTest` в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/AdminDoneFilterTest.kt`:
   `status=DONE` и top-level выдача после `purgeFinishedTuples`; `DONE`-голова живого кортежа видна;
   завершённый удалён как при `deleteDone`; `tbl_processes_audit` не задет
@@ -297,7 +297,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   (`LEFT JOIN`), фильтр `chainState`
 - [x] T051 [US4] `dto/admin/KaraokeProcessAdminDTO.kt`: `chainId`, `chainStepIndex`,
   `chainStepsTotal`, `chainState`, `chainFailedStep`, `chainReason`, `progress`
-- [ ] T052 [US4] `services/KaraokeProcessAdminService.kt`: `retryProcess` — tuple-aware (все
+- [x] T052 [US4] `services/KaraokeProcessAdminService.kt`: `retryProcess` — tuple-aware (все
   `ERROR`-шаги кортежа → `WAITING`, приоритет кортежа, одна audit-запись); статусы и audit —
   **строго через `inTransaction(connection)`** (BR-168: `PkgS323Batch4SourceContractsTest` считает
   транзакционные блоки в админ-сервисе)
@@ -314,17 +314,17 @@ single-flight/resume/janitor/проверку содержимого, integratio
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T055 [P] `docs/features/kortege-execution.md` — per-feature документ (FR-009) + `@see` из KDoc
-- [ ] T056 [P] `knowledge/domains/processing/components/async-process-queue.md` — переписать факты
+- [x] T055 [P] `docs/features/kortege-execution.md` — per-feature документ (FR-009) + `@see` из KDoc
+- [x] T056 [P] `knowledge/domains/processing/components/async-process-queue.md` — переписать факты
   (кортеж, голова/шаги, scope, janitor, recovery, single-flight, приоритет) и 17 расхождений из
   `03-semantics.md` §10
-- [ ] T057 [P] `knowledge/domains/processing/domain.md` — термин «кортеж», инварианты, таблица лейнов
-- [ ] T058 [P] `knowledge/domains/processing/components/key-bpm-from-file.md` и
+- [x] T057 [P] `knowledge/domains/processing/domain.md` — термин «кортеж», инварианты, таблица лейнов
+- [x] T058 [P] `knowledge/domains/processing/components/key-bpm-from-file.md` и
   `knowledge/domains/processing/components/process-admin.md` — sidecar, запрет тихого успеха,
   поля кортежа в админке, tuple-retry
-- [ ] T059 [P] `knowledge/domains/catalog/components/dictionaries.md` — SSoT-gate после правки
+- [x] T059 [P] `knowledge/domains/catalog/components/dictionaries.md` — SSoT-gate после правки
   `model/Song.kt` (`.ssot-map.yml:41-43`)
-- [ ] T060 [P] `docs/architecture-notes.md` — запись о PR
+- [x] T060 [P] `docs/architecture-notes.md` — запись о PR
 - [ ] T061 Полная проверка из AGENTS.md (`karaoke-app/build.gradle.kts`, `webvue3/package.json`):
   `GRADLE_USER_HOME=... ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`,
   `:karaoke-app:ktlintCheck`, `:karaoke-web:bootJar`,
@@ -338,7 +338,7 @@ single-flight/resume/janitor/проверку содержимого, integratio
   `specs/674-kortege-execution/quickstart.md` §3); записать в отчёт
 - [ ] T064 Финальная гигиена репозитория (`specs/674-kortege-execution/`, `.gitignore`): `git status`,
   отсутствие секретов и временных файлов; `report.md` не требуется до merge (появится после PR)
-- [ ] T065 [P] `SyncTargetContractTest` (FR-017) в
+- [x] T065 [P] `SyncTargetContractTest` (FR-017) в
   `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/tuple/SyncTargetContractTest.kt`:
   `SyncRegistry.all` не содержит `tbl_processes`; модель `KaraokeProcess` не добавляет колонок;
   `deploy/recordhash_processes.sql` не менялся; `tools/check-recordhash-consistency.py` зелёный

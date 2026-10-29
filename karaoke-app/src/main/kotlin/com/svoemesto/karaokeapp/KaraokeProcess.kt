@@ -120,8 +120,11 @@ class KaraokeProcess(
     fun scopeId(): Long = processChainId ?: id
 
     /** argv шага с развёрнутым `{scope}` (FR-004). */
-    fun expandedArgs(): List<String> =
-        args.firstOrNull()?.let { com.svoemesto.karaokeapp.tuple.TupleScope.expand(it, scopeId()) } ?: emptyList()
+    fun expandedArgs(): List<String> {
+        val argv = args.firstOrNull() ?: return emptyList()
+        return com.svoemesto.karaokeapp.tuple.TupleScope
+            .expand(argv, scopeId())
+    }
 
     /** Помечает одиночную строку головой кортежа (`chain_id = id`, `order = 0`, FR-006). */
     fun markAsHead(): Int {
@@ -861,16 +864,6 @@ class KaraokeProcess(
         }
 
         /**
-         * Возвращает осиротевшие `WORKING`-задания в `WAITING` при старте воркера.
-         *
-         * BR-036 (аудит #336, пакет PKG-S3-22): сбой этого шага оставлял строки в `WORKING` —
-         * воркер их не выбирает (`getProcessesToStart` берёт только `WAITING`), лейн стоит,
-         * а очередь при этом выглядит работающей. Теперь исключение логируется со стеком,
-         * а вызывающий получает `false` и сигналит в SSE/мониторинг.
-         *
-         * @return `true` — сброс выполнен; `false` — сбой БД, `WORKING`-строки могли остаться.
-         */
-        /**
          * 674 (FR-005/FR-010): удалить только **полностью завершённые** кортежи (все строки `DONE`).
          *
          * Публичное имя вызывающего (`deleteDone`) сохранено ради существующих call-sites; семантика
@@ -1062,6 +1055,7 @@ class KaraokeProcess(
             return head.id
         }
 
+        /** BR-036: вернуть осиротевшие WORKING/CREATING в WAITING при старте; false — сбой БД. */
         fun setWorkingToWaiting(database: KaraokeConnection): Boolean {
             println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
 

@@ -4238,6 +4238,7 @@ fun applyLiveCpuLimitToRunningProcesses() {
 // одновременно может быть несколько (edit-рендеры на разных threadId), поэтому убиваем ВСЕ найденные.
 // Убийство контейнера закрывает stdout родительского CLI (docker/docker compose) → поток чтения
 // разблокируется; контейнеры "--rm" удаляются сами.
+
 /** 674: id контейнеров по docker-фильтру (общий помощник kill/ps). */
 private fun dockerContainerIds(filter: String): List<String> =
     runCommand(

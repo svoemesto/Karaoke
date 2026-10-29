@@ -57,5 +57,5 @@
 
 - [views (webvue3)](webvue3-views.md) — каталог view-страниц, включая `PlayerView.vue`.
 - [Vuex-паттерны](vuex-patterns.md) — почему офлайн-режим не трогает store.
-- [Per-feature: целостность состояния админ-UI](../../../docs/features/webui-state-integrity.md)
+- [Per-feature: целостность состояния админ-UI](../infra/audit-336-registry.md)
 - [PlayerMp4RenderService](../../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4RenderService.kt) — оркестратор кадров.

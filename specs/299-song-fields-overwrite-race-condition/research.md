@@ -209,5 +209,5 @@ Pass 281 уже защитил 6 мест (см. спеку 281 FR-001, FR-011, 
 - [`../../281-find-lyrics-overwrites-key-bpm/spec.md`](spec.md) — Pass 281.
 - [`../specs/087-fix-shared-db-connection`](../../087-fix-shared-db-connection/) — ThreadLocal connection model.
 - [`../specs/236-fix-karaoke-connection-self-healing`](../../236-fix-karaoke-connection-self-healing/) — self-healing.
-- [`../../../docs/ops/log-correlation.md`](../../docs/ops/log-correlation.md) — log markers.
+- [`../../../docs/ops/log-correlation.md`](../../knowledge/guidelines/runbooks/log-correlation.md) — log markers.
 - [`../../../.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — Constitution (8 principles).

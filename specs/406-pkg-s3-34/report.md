@@ -4,7 +4,7 @@
 > **Аудит**: #336 · **Severity**: S3 · **Ветка**: `640-pkg-s3-34` ·
 > **Worktree**: `/home/nsa/Karaoke/.worktrees/waveE-s3-34`
 > **Коммит (реализация)**: `4464309b36f6cd2595caa6bf723ba01509a44bc9` (PR #744 → merge `53c0c5b5`)
-> **Per-feature документ**: [`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md)
+> **Per-feature документ**: [`docs/features/pkg-s3-34.md`](../../knowledge/system/infra/audit-336-registry.md)
 > **SSoT**: [`knowledge/guidelines/architecture-conventions.md` § R-46](../../knowledge/guidelines/architecture-conventions.md),
 > [`knowledge/system/infra/ci-tools.md`](../../knowledge/system/infra/ci-tools.md)
 
@@ -402,7 +402,7 @@ f6b8596b10cce501591e92f229816aa4046424f3b24d771751b06779d58c8ec4  gradle-7.5.1-b
   блок `### PKG-S3-34`
 - Карточки находок: [`specs/336-code-audit/findings/P-74.md`](../336-code-audit/findings/P-74.md),
   [`specs/336-code-audit/findings/P-41.md`](../336-code-audit/findings/P-41.md)
-- Per-feature документ (FR-009): [`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md)
+- Per-feature документ (FR-009): [`docs/features/pkg-s3-34.md`](../../knowledge/system/infra/audit-336-registry.md)
 - Регламент R-46: [`knowledge/guidelines/architecture-conventions.md`](../../knowledge/guidelines/architecture-conventions.md)
 - SSoT по инструментам CI: [`knowledge/system/infra/ci-tools.md`](../../knowledge/system/infra/ci-tools.md)
 - CI workflow: [`.github/workflows/lint.yml`](../../.github/workflows/lint.yml) (джоб `build-config-guard`)

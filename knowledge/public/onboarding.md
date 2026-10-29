@@ -154,7 +154,7 @@ pre-commit run --all-files
 
 - **Гайдлайны**: AGENTS.md, CONTRIBUTING.md, CLAUDE.md.
 - **Архитектура**: knowledge/domains/, knowledge/adr/, knowledge/system/.
-- **Оперативные playbook'и**: [knowledge/guidelines/runbooks/](../../guidelines/runbooks/).
+- **Оперативные playbook'и**: [knowledge/guidelines/runbooks/](../guidelines/runbooks/).
 - **Стратегия роста**: см. ADR-0005-self-hosted-ml и раздел «Стратегия» в
   knowledge/public/glossary.md.
 

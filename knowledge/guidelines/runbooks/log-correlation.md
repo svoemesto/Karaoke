@@ -1,4 +1,4 @@
-# Корреляция логов прода — `docs/ops/log-correlation.md`
+# Корреляция логов прода — `knowledge/guidelines/runbooks/log-correlation.md`
 
 **Дата**: 2026-09-01
 **Привязка**: [specs/288-prod-diagnostics-logging/spec.md](../../../specs/288-prod-diagnostics-logging/spec.md) — FR-019, FR-020

@@ -30,8 +30,8 @@
 | `archive/docs/strategy/growth.md` | visitor→registration→premium | Активен |
 | `docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) | Активен |
 | `docs/features/<slug>.md` | Per-feature документы (11+1 = 12) | Активен (FR-009) |
-| `docs/api/README.md` | API docs (Dokka + typedoc) | Автогенерируется |
-| `docs/ops/log-correlation.md` | Логи прода (FR-019) | Активен (spec 288) |
+| `knowledge/guidelines/kdoc-jsdoc.md` | API docs (Dokka + typedoc) | Автогенерируется |
+| `knowledge/guidelines/runbooks/log-correlation.md` | Логи прода (FR-019) | Активен (spec 288) |
 
 ## Archive (`archive/docs/features/`)
 

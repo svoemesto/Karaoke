@@ -4,7 +4,7 @@
 # Проверяет ссылки в Markdown-документах через lychee.
 # Использование:
 #   ./tools/verify-doc-links.sh [paths...]
-# По умолчанию: docs/features/ CONTRIBUTING.md docs/
+# По умолчанию: knowledge/ CONTRIBUTING.md
 #
 # Требования: lychee (https://github.com/lycheeverse/lychee).
 # Установка: cargo install lychee
@@ -45,7 +45,7 @@ for arg in "$@"; do
 done
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  TARGETS=("docs/features/" "CONTRIBUTING.md" "docs/")
+  TARGETS=("knowledge/" "CONTRIBUTING.md")
 fi
 
 if ! command -v lychee >/dev/null 2>&1; then
@@ -61,4 +61,10 @@ echo "==> Запуск lychee (${OFFLINE_FLAG:-online}) на: ${TARGETS[*]}"
 # на КОРРЕКТНЫХ ссылках (Pass 466). Именно такой флаг, а не --base-url: --base-url
 # меняет семантику ОТНОСИТЕЛЬНЫХ ссылок («становятся соседями базы») и ломает их —
 # проверено, ошибок становится больше (18 -> 237).
-lychee $OFFLINE_FLAG --no-progress --exclude-loopback --root-dir "$PROJECT_ROOT" "${TARGETS[@]}"
+# Шаблоны knowledge/templates/ содержат ИЛЛЮСТРАТИВНЫЕ ссылки на ещё не
+# существующие файлы-примеры (components/component-name.md и т. п.) — по
+# аналогии с reason «illustrative» в whitelist'е check-doc-references.py.
+# Такие цели исключаются из проверки lychee.
+lychee $OFFLINE_FLAG --no-progress --exclude-loopback \
+  --exclude 'knowledge/templates/components/' \
+  --root-dir "$PROJECT_ROOT" "${TARGETS[@]}"

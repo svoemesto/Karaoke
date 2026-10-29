@@ -97,7 +97,7 @@
 | Категория | Количество | Примеры |
 |-----------|------------|---------|
 | New infra | 11 | `.eslintrc.cjs`, `.prettierrc.json`, `.pre-commit-config.yaml`, `tsconfig.json`, 3 `baseline-*.xml`, 2 `.eslint-baseline.json`, `config/ktlint/*` |
-| New docs | 13 | `CONTRIBUTING.md` (822 строк), 9 per-feature `docs/features/*.md`, `docs/api/README.md`, `README.md` |
+| New docs | 13 | `CONTRIBUTING.md` (822 строк), 9 per-feature `docs/features/*.md`, `knowledge/guidelines/kdoc-jsdoc.md`, `README.md` |
 | New tools | 8 | `tools/{baseline-stats,check-enforcement,check-eslint-baseline,check-feature-doc,generate-eslint-baseline,verify-doc-links,verify-kotlin-refs,generate-docs}.sh` |
 | KDoc/JSDoc | 19 | См. Phase 6 |
 | Auto-formatted | ~220 | ktlintFormat (KT) + eslint --fix (JS/Vue) |
@@ -144,7 +144,7 @@ bash -lc 'cd karaoke-public && npm run build'            # OK
 
 ### Документация
 - [x] Per-feature документы созданы (FR-004) и обновлены в этом PR.
-- [x] `docs/api/README.md` создан с инструкцией по KDoc/JSDoc.
+- [x] `knowledge/guidelines/kdoc-jsdoc.md` создан с инструкцией по KDoc/JSDoc.
 - [x] Если добавляется новое MUST-правило — `CONTRIBUTING.md` обновлён + `constitution.md` v1.1.0 (semver MINOR).
 
 ### Линтеры

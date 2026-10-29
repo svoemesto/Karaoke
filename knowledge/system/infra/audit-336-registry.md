@@ -58,25 +58,25 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-001 | Аудит #336 (порция P-37). Оба endpoint'а (/api/public/utils/vkIdOAuthUrl | [domains/karaoke-web/components/public-controllers-2.md](domains/karaoke-web/components/public-controllers-2.md) | PKG-S2 |
-| BR-002 | Аудит #336 (порция P-37). Оба endpoint'а (/api/public/utils/vkIdOAuthUrl | [domains/karaoke-web/components/public-controllers-2.md](domains/karaoke-web/components/public-controllers-2.md) | PKG-S2 |
-| BR-004 | 2026-10-24 (OpenProject #378): единое правило видимости для | [product/features/public-api-exposure.md](product/features/public-api-exposure.md) | PKG-S2 |
-| BR-005 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/services-overview.md](domains/karaoke-web/components/services-overview.md) | PKG-S2 |
-| BR-012 | 6. Транзакционность применения действий не менялась (отдельная задача ) | [domains/karaoke-web/components/main-controller.md](domains/karaoke-web/components/main-controller.md) | PKG-S2 |
-| BR-013 | 2026-10-24 (OpenProject #378): единое правило видимости для | [product/features/public-api-exposure.md](product/features/public-api-exposure.md) | PKG-S2 |
-| BR-015 | 2026-10-24 (OpenProject #378): единое правило видимости для | [product/features/public-api-exposure.md](product/features/public-api-exposure.md) | PKG-S2 |
-| BR-023 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/public-controllers-6.md](domains/karaoke-web/components/public-controllers-6.md) | PKG-S2 |
-| BR-500 | 2026-10-24 (OpenProject #378): удалена колонка cntBoosty, ссылка новости | [domains/karaoke-web/components/thymeleaf-templates.md](domains/karaoke-web/components/thymeleaf-templates.md) | PKG-S2 |
-| BR-504 | 2026-10-24 (OpenProject #378): удалена колонка cntBoosty, ссылка новости | [domains/karaoke-web/components/main-controller.md](domains/karaoke-web/components/main-controller.md) | PKG-S2 |
-| BR-515 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/services-overview.md](domains/karaoke-web/components/services-overview.md) | PKG-S2 |
-| BR-516 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/song-share-link-service.md](domains/karaoke-web/components/song-share-link-service.md) | PKG-S2 |
+| BR-001 | Аудит #336 (порция P-37). Оба endpoint'а (/api/public/utils/vkIdOAuthUrl | [domains/karaoke-web/components/public-controllers-2.md](../../domains/karaoke-web/components/public-controllers-2.md) | PKG-S2 |
+| BR-002 | Аудит #336 (порция P-37). Оба endpoint'а (/api/public/utils/vkIdOAuthUrl | [domains/karaoke-web/components/public-controllers-2.md](../../domains/karaoke-web/components/public-controllers-2.md) | PKG-S2 |
+| BR-004 | 2026-10-24 (OpenProject #378): единое правило видимости для | [product/features/public-api-exposure.md](../../product/features/public-api-exposure.md) | PKG-S2 |
+| BR-005 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/services-overview.md](../../domains/karaoke-web/components/services-overview.md) | PKG-S2 |
+| BR-012 | 6. Транзакционность применения действий не менялась (отдельная задача ) | [domains/karaoke-web/components/main-controller.md](../../domains/karaoke-web/components/main-controller.md) | PKG-S2 |
+| BR-013 | 2026-10-24 (OpenProject #378): единое правило видимости для | [product/features/public-api-exposure.md](../../product/features/public-api-exposure.md) | PKG-S2 |
+| BR-015 | 2026-10-24 (OpenProject #378): единое правило видимости для | [product/features/public-api-exposure.md](../../product/features/public-api-exposure.md) | PKG-S2 |
+| BR-023 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/public-controllers-6.md](../../domains/karaoke-web/components/public-controllers-6.md) | PKG-S2 |
+| BR-500 | 2026-10-24 (OpenProject #378): удалена колонка cntBoosty, ссылка новости | [domains/karaoke-web/components/thymeleaf-templates.md](../../domains/karaoke-web/components/thymeleaf-templates.md) | PKG-S2 |
+| BR-504 | 2026-10-24 (OpenProject #378): удалена колонка cntBoosty, ссылка новости | [domains/karaoke-web/components/main-controller.md](../../domains/karaoke-web/components/main-controller.md) | PKG-S2 |
+| BR-515 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/services-overview.md](../../domains/karaoke-web/components/services-overview.md) | PKG-S2 |
+| BR-516 | 2026-10-24 (OpenProject #378): транзакция батча sync | [domains/karaoke-web/components/song-share-link-service.md](../../domains/karaoke-web/components/song-share-link-service.md) | PKG-S2 |
 
 ### OpenProject #384
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-003 | Source: OpenProject #384 — «S2: Доверие к заголовку X-Forwarded-For» (аудит кода #336, «xff-first-element», порции P-37 / P-38) | [product/features/client-ip-resolution.md](product/features/client-ip-resolution.md) | OpenProject #384 |
-| BR-011 | Source: OpenProject #357 — «S1: POST /changerecords — публичный endpoint, который исполняет присланный клиентом SQL » | [product/features/client-ip-resolution.md](product/features/client-ip-resolution.md) | OpenProject #384 |
+| BR-003 | Source: OpenProject #384 — «S2: Доверие к заголовку X-Forwarded-For» (аудит кода #336, «xff-first-element», порции P-37 / P-38) | [product/features/client-ip-resolution.md](../../product/features/client-ip-resolution.md) | OpenProject #384 |
+| BR-011 | Source: OpenProject #357 — «S1: POST /changerecords — публичный endpoint, который исполняет присланный клиентом SQL » | [product/features/client-ip-resolution.md](../../product/features/client-ip-resolution.md) | OpenProject #384 |
 
 ### PKG-S3-29
 
@@ -98,7 +98,7 @@
 | BR-519 | Данные : INSERT событий параметризован; лимит | — | PKG-S3-29 |
 | BR-520 | Транзакции : отзыв старой ссылки и вставка новой — одна | — | PKG-S3-29 |
 | BR-521 | Как работает — Логи и конфигурация : println в | — | PKG-S3-29 |
-| BR-522 | Как работает — Логи и конфигурация : println в | [system/frontend/karaoke-web-error-contract.md](system/frontend/karaoke-web-error-contract.md) | PKG-S3-29 |
+| BR-522 | Как работает — Логи и конфигурация : println в | [system/frontend/karaoke-web-error-contract.md](../../system/frontend/karaoke-web-error-contract.md) | PKG-S3-29 |
 
 ### PKG-MONEY
 
@@ -107,142 +107,142 @@
 | BR-014 | checkout удалял корзину до создания платежа: при отказе ЮKassa корзина | — | PKG-MONEY |
 | BR-020 | статус PAID сохранялся до начисления и вне транзакции: ретрай вебхука | — | PKG-MONEY |
 | BR-021 | повторное оформление переиспользовало заказ только при ровно pending | — | PKG-MONEY |
-| BR-514 | автопродление отбрасывало result.id (вебхук не мог найти подписку) | [domains/karaoke-web/components/services-overview.md](domains/karaoke-web/components/services-overview.md) | PKG-MONEY |
+| BR-514 | автопродление отбрасывало result.id (вебхук не мог найти подписку) | [domains/karaoke-web/components/services-overview.md](../../domains/karaoke-web/components/services-overview.md) | PKG-MONEY |
 
 ### PKG-ERR-STATS-ZERO
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-016 | StatBySong (karaoke-web): runCountQuery возвращал 0 при | [domains/publishing/components/stats-cache.md](domains/publishing/components/stats-cache.md) | PKG-ERR-STATS-ZERO |
-| BR-185 | MonetizationStats (karaoke-app): scalarInt/scalarDouble | [domains/stats/domain.md](domains/stats/domain.md) | PKG-ERR-STATS-ZERO |
+| BR-016 | StatBySong (karaoke-web): runCountQuery возвращал 0 при | [domains/publishing/components/stats-cache.md](../../domains/publishing/components/stats-cache.md) | PKG-ERR-STATS-ZERO |
+| BR-185 | MonetizationStats (karaoke-app): scalarInt/scalarDouble | [domains/stats/domain.md](../../domains/stats/domain.md) | PKG-ERR-STATS-ZERO |
 
 ### OpenProject #358
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-018 | specs/557-close-gesture-token-paywall/spec.md — контракт (OpenProject #358, аудит ) | [product/features/close-gesture-token-paywall.md](product/features/close-gesture-token-paywall.md) | OpenProject #358 |
+| BR-018 | specs/557-close-gesture-token-paywall/spec.md — контракт (OpenProject #358, аудит ) | [product/features/close-gesture-token-paywall.md](../../product/features/close-gesture-token-paywall.md) | OpenProject #358 |
 
 ### OpenProject #359
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-019 | Source: OpenProject #359 — «S1: /api/properties/ доступен анонимно — публичная запись в tblpublicsettings и утечка серверного ключа капчи » и #362 — «S1: проверка капчи fail-… | [product/features/public-settings-perimeter.md](product/features/public-settings-perimeter.md) | OpenProject #359 |
-| BR-518 | Source: OpenProject #359 — «S1: /api/properties/ доступен анонимно — публичная запись в tblpublicsettings и утечка серверного ключа капчи » и #362 — «S1: проверка капчи fail-… | [product/features/public-settings-perimeter.md](product/features/public-settings-perimeter.md) | OpenProject #359 |
+| BR-019 | Source: OpenProject #359 — «S1: /api/properties/ доступен анонимно — публичная запись в tblpublicsettings и утечка серверного ключа капчи » и #362 — «S1: проверка капчи fail-… | [product/features/public-settings-perimeter.md](../../product/features/public-settings-perimeter.md) | OpenProject #359 |
+| BR-518 | Source: OpenProject #359 — «S1: /api/properties/ доступен анонимно — публичная запись в tblpublicsettings и утечка серверного ключа капчи » и #362 — «S1: проверка капчи fail-… | [product/features/public-settings-perimeter.md](../../product/features/public-settings-perimeter.md) | OpenProject #359 |
 
 ### —
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-022 | 2026-10-24 (OpenProject #378, пакет PKG-S2-15): тег SKIP добавлен высшим | [product/features/song-air-access.md](product/features/song-air-access.md) | — |
-| BR-533 | 52tblsongssyncdescriptionfields.sql — недостающие колонки tblsongssync + recordhash | [product/features/song-air-access.md](product/features/song-air-access.md) | — |
-| BR-541 | Канонический deploy/recordhashauthors.sql тоже обязан включать sortorder: до аудита #336 (OpenProject #363) он отставал от схемы на семь колонок, поэтому применение «канониче… | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | — |
-| BR-552 | MUST: секреты трекера не передаются через argv — API-токен уходит в curl через stdin (curl --config -, header = "Authorization: …"), пароль БД — через stdin в одноразовый .pg… | [system/infra/tracker.md](system/infra/tracker.md) | — |
-| BR-553 | Забыли пересобрать recordhash-триггер tblsongssync: запись в sync-таблицу упадёт с column freeafteronair does not exist, либо её recordhash не будет включать значение → LOCAL… | [product/features/song-air-access.md](product/features/song-air-access.md) | — |
-| BR-601 | Polling-сводка задач (--human / --json / --quiet). Режим --json разбирает вывод list-issues --raw (колонки разделены табом) → id / subject / status заполнены корректно. stder… | [system/infra/tracker.md](system/infra/tracker.md) | — |
-| BR-605 | Общие функции: HTTP wrapper с retry на 429, JSON-логирование, Basic Auth. Библиотека подключается через source и не меняет настройки вызывающего шелла (режим set задаёт сам в… | [system/infra/tracker.md](system/infra/tracker.md) | — |
+| BR-022 | 2026-10-24 (OpenProject #378, пакет PKG-S2-15): тег SKIP добавлен высшим | [product/features/song-air-access.md](../../product/features/song-air-access.md) | — |
+| BR-533 | 52tblsongssyncdescriptionfields.sql — недостающие колонки tblsongssync + recordhash | [product/features/song-air-access.md](../../product/features/song-air-access.md) | — |
+| BR-541 | Канонический deploy/recordhashauthors.sql тоже обязан включать sortorder: до аудита #336 (OpenProject #363) он отставал от схемы на семь колонок, поэтому применение «канониче… | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | — |
+| BR-552 | MUST: секреты трекера не передаются через argv — API-токен уходит в curl через stdin (curl --config -, header = "Authorization: …"), пароль БД — через stdin в одноразовый .pg… | [system/infra/tracker.md](../../system/infra/tracker.md) | — |
+| BR-553 | Забыли пересобрать recordhash-триггер tblsongssync: запись в sync-таблицу упадёт с column freeafteronair does not exist, либо её recordhash не будет включать значение → LOCAL… | [product/features/song-air-access.md](../../product/features/song-air-access.md) | — |
+| BR-601 | Polling-сводка задач (--human / --json / --quiet). Режим --json разбирает вывод list-issues --raw (колонки разделены табом) → id / subject / status заполнены корректно. stder… | [system/infra/tracker.md](../../system/infra/tracker.md) | — |
+| BR-605 | Общие функции: HTTP wrapper с retry на 429, JSON-логирование, Basic Auth. Библиотека подключается через source и не меняет настройки вызывающего шелла (режим set задаёт сам в… | [system/infra/tracker.md](../../system/infra/tracker.md) | — |
 
 ### PKG-SEC-SQLI
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-028 | восемь семейств (ids, albumid, publishdate/time, status, songbpm/tone/year/track, songtype, flag, filter) — сырые | [domains/persistence/domain.md](domains/persistence/domain.md) | PKG-SEC-SQLI |
-| BR-100 | восемь семейств (ids, albumid, publishdate/time, status, songbpm/tone/year/track, songtype, flag, filter) — сырые | [domains/persistence/domain.md](domains/persistence/domain.md) | PKG-SEC-SQLI |
-| BR-175 | восемь семейств (ids, albumid, publishdate/time, status, songbpm/tone/year/track, songtype, flag, filter) — сырые | [domains/catalog/components/pictures.md](domains/catalog/components/pictures.md) | PKG-SEC-SQLI |
-| BR-237 | id, authorid, year, albumtype — без кавычек; name/namesearch — ручное '' | [domains/catalog/components/album-entity.md](domains/catalog/components/album-entity.md) | PKG-SEC-SQLI |
+| BR-028 | восемь семейств (ids, albumid, publishdate/time, status, songbpm/tone/year/track, songtype, flag, filter) — сырые | [domains/persistence/domain.md](../../domains/persistence/domain.md) | PKG-SEC-SQLI |
+| BR-100 | восемь семейств (ids, albumid, publishdate/time, status, songbpm/tone/year/track, songtype, flag, filter) — сырые | [domains/persistence/domain.md](../../domains/persistence/domain.md) | PKG-SEC-SQLI |
+| BR-175 | восемь семейств (ids, albumid, publishdate/time, status, songbpm/tone/year/track, songtype, flag, filter) — сырые | [domains/catalog/components/pictures.md](../../domains/catalog/components/pictures.md) | PKG-SEC-SQLI |
+| BR-237 | id, authorid, year, albumtype — без кавычек; name/namesearch — ручное '' | [domains/catalog/components/album-entity.md](../../domains/catalog/components/album-entity.md) | PKG-SEC-SQLI |
 
 ### PKG-ERR-EXITCODE
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-029 | # Код возврата внешнего процесса проверяется (аудит #336, ) | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-ERR-EXITCODE |
-| BR-161 | # Код возврата внешнего процесса проверяется (аудит #336, ) | [domains/processing/components/playwright-rendering.md](domains/processing/components/playwright-rendering.md) | PKG-ERR-EXITCODE |
+| BR-029 | # Код возврата внешнего процесса проверяется (аудит #336, ) | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-ERR-EXITCODE |
+| BR-161 | # Код возврата внешнего процесса проверяется (аудит #336, ) | [domains/processing/components/playwright-rendering.md](../../domains/processing/components/playwright-rendering.md) | PKG-ERR-EXITCODE |
 
 ### PKG-S2-10
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-030 | заданий , неатомарную цепочку шагов , падение | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S2-10 |
-| BR-031 | заданий , неатомарную цепочку шагов , падение | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S2-10 |
-| BR-032 | заданий , неатомарную цепочку шагов , падение | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S2-10 |
-| BR-033 | воркера на пустых processargs , инъекцию полей в | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S2-10 |
+| BR-030 | заданий , неатомарную цепочку шагов , падение | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S2-10 |
+| BR-031 | заданий , неатомарную цепочку шагов , падение | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S2-10 |
+| BR-032 | заданий , неатомарную цепочку шагов , падение | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S2-10 |
+| BR-033 | воркера на пустых processargs , инъекцию полей в | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S2-10 |
 | BR-048 | copyfieldsfromanother , SSRF через прокси обложек | — | PKG-S2-10 |
 | BR-049 | copyfieldsfromanother , SSRF через прокси обложек | — | PKG-S2-10 |
 | BR-050 | подмену rootFolder через POST /api/song/update , перезапись | — | PKG-S2-10 |
 | BR-063 | чужих изменений после сетевого вызова публикации , sleep на | — | PKG-S2-10 |
 | BR-064 | каждой итерации массового поиска текста , NPE на неизвестном | — | PKG-S2-10 |
 | BR-071 | аккорде , «успех» при неудавшемся сохранении песни ( | — | PKG-S2-10 |
-| BR-101 | аккорде , «успех» при неудавшемся сохранении песни ( | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | PKG-S2-10 |
-| BR-102 | ), N+1 по альбомам в toDTO , неполный список колонок | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | PKG-S2-10 |
-| BR-104 | ), N+1 по альбомам в toDTO , неполный список колонок | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | PKG-S2-10 |
+| BR-101 | аккорде , «успех» при неудавшемся сохранении песни ( | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | PKG-S2-10 |
+| BR-102 | ), N+1 по альбомам в toDTO , неполный список колонок | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | PKG-S2-10 |
+| BR-104 | ), N+1 по альбомам в toDTO , неполный список колонок | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | PKG-S2-10 |
 | BR-109 | Что делает — INSERT и path traversal в SmartCopy | — | PKG-S2-10 |
 
 ### PKG-S3-22
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-034 | KaraokeProcess.applyFilterLimit: take(limit) вместо | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S3-22 |
-| BR-035 | MediaInfo.runMediaInfo: чтение stdout отдельным демон-потоком | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | PKG-S3-22 |
+| BR-034 | KaraokeProcess.applyFilterLimit: take(limit) вместо | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S3-22 |
+| BR-035 | MediaInfo.runMediaInfo: чтение stdout отдельным демон-потоком | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | PKG-S3-22 |
 | BR-036 | deleteDone/setWorkingToWaiting возвращают Boolean | — | PKG-S3-22 |
 | BR-037 | loadList добавляет processdeletedat IS NULL по умолчанию | — | PKG-S3-22 |
 | BR-051 | ApiController.sheetsageString/StringList/DoubleList: безопасное чтение | — | PKG-S3-22 |
 | BR-052 | /songs/changed, /processes/changed: ERROR в лог + 5xx вместо | — | PKG-S3-22 |
-| BR-053 | 055/059 — batch-эндпоинты: loadSongsBatch, distinct, «успех = есть | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S3-22 |
+| BR-053 | 055/059 — batch-эндпоинты: loadSongsBatch, distinct, «успех = есть | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S3-22 |
 | BR-054 | семь chords-эндпоинтов формируют текст версии SongVersion.CHORDS | — | PKG-S3-22 |
-| BR-056 | TextFileHistory: ReentrantLock на путь, атомарная запись, копия | [system/utilities.md](system/utilities.md) | PKG-S3-22 |
-| BR-057 | /publications/date: Song.loadPublicationDateCandidates (4 колонки) | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-056 | TextFileHistory: ReentrantLock на путь, атомарная запись, копия | [system/utilities.md](../../system/utilities.md) | PKG-S3-22 |
+| BR-057 | /publications/date: Song.loadPublicationDateCandidates (4 колонки) | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
 | BR-058 | notifyStatsDirty: проверка 200..299, WARN с хостом и кодом | — | PKG-S3-22 |
-| BR-061 | runBackgroundReported: фоновые потоки ловят Throwable, пишут стек и | [domains/processing/components/async-process-queue.md](domains/processing/components/async-process-queue.md) | PKG-S3-22 |
+| BR-061 | runBackgroundReported: фоновые потоки ловят Throwable, пишут стек и | [domains/processing/components/async-process-queue.md](../../domains/processing/components/async-process-queue.md) | PKG-S3-22 |
 | BR-065 | smartcopyperodbyday: 400 на невалидную дату/start > end/период > 31 дня | — | PKG-S3-22 |
 | BR-066 | playerfile: ZIP стримится в ответ, finish/close в finally | — | PKG-S3-22 |
 | BR-067 | convertFlacToMp3: вывод ffmpeg в файл, таймаут + destroyForcibly | — | PKG-S3-22 |
 | BR-068 | массовый поиск текста: причина неудачи в лог и в SSE-сводку | — | PKG-S3-22 |
 | BR-069 | extractlyricsbysearchresultid: ResponseEntity + явный 404 | — | PKG-S3-22 |
 | BR-070 | /api/files: 404 «путь не найден» / 400 «не каталог» вместо подмены на / | — | PKG-S3-22 |
-| BR-072 | 080/083 — геттеры Song больше не пишут в БД и не запускают процессы | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
-| BR-073 | Song.rootFolder — чистое чтение: геттер не подбирает «похожий» | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
-| BR-074 | Song.pictureAuthor / pictureAlbum — чистое чтение tblpictures | [domains/catalog/components/pictures.md](domains/catalog/components/pictures.md) | PKG-S3-22 |
-| BR-075 | readiness-флаги (playerreadinessflags) пишутся точечным | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-072 | 080/083 — геттеры Song больше не пишут в БД и не запускают процессы | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-073 | Song.rootFolder — чистое чтение: геттер не подбирает «похожий» | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-074 | Song.pictureAuthor / pictureAlbum — чистое чтение tblpictures | [domains/catalog/components/pictures.md](../../domains/catalog/components/pictures.md) | PKG-S3-22 |
+| BR-075 | readiness-флаги (playerreadinessflags) пишутся точечным | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
 | BR-076 | 077/081 — валидация аппликатур и индексов: voice in indices | — | PKG-S3-22 |
-| BR-078 | разбор файлов Sheetsage устойчив: trim/removePrefix вместо | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
-| BR-079 | Song.sheetsageInfo возвращает типизированный SheetsageInfo | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-078 | разбор файлов Sheetsage устойчив: trim/removePrefix вместо | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-079 | Song.sheetsageInfo возвращает типизированный SheetsageInfo | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
 | BR-082 | тишина перед первым слогом считается по непустым голосам | — | PKG-S3-22 |
-| BR-084 | разбор playerreadinessflags кэшируется в объекте (ключ кэша | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-084 | разбор playerreadinessflags кэшируется в объекте (ключ кэша | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
 | BR-085 | getKeyBpmFromFile через parseKeyBpmFileOrNull (битый файл — WARN + пустой | — | PKG-S3-22 |
 | BR-086 | все интерполируемые значения в HTML аккордов/табов проходят escapeHtml | — | PKG-S3-22 |
-| BR-103 | слияние голосов при сохранении: saveToDb сливает «устаревший | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
-| BR-105 | фильтр списка «Количество голосов» считается по реальным маркерам | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
-| BR-106 | Song.deleteFromDb: сначала DELETE строки (в use {}, ошибка → | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-103 | слияние голосов при сохранении: saveToDb сливает «устаревший | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-105 | фильтр списка «Количество голосов» считается по реальным маркерам | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
+| BR-106 | Song.deleteFromDb: сначала DELETE строки (в use {}, ошибка → | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-22 |
 | BR-107 | Song.createDbInstance ловит только SQLException и «лечит» только | — | PKG-S3-22 |
-| BR-114 | AdminApiTokenFilter: при заданном karaoke.security.admin-token | [domains/identity/components/security-config.md](domains/identity/components/security-config.md) | PKG-S3-22 |
+| BR-114 | AdminApiTokenFilter: при заданном karaoke.security.admin-token | [domains/identity/components/security-config.md](../../domains/identity/components/security-config.md) | PKG-S3-22 |
 
 ### PKG-S2-08
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-039 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | [system/infra/sql-migrations.md](system/infra/sql-migrations.md) | PKG-S2-08 |
+| BR-039 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | [system/infra/sql-migrations.md](../../system/infra/sql-migrations.md) | PKG-S2-08 |
 | BR-040 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
-| BR-041 | платёжная история удалялась вместе с пользователем | [system/infra/sql-migrations.md](system/infra/sql-migrations.md) | PKG-S2-08 |
+| BR-041 | платёжная история удалялась вместе с пользователем | [system/infra/sql-migrations.md](../../system/infra/sql-migrations.md) | PKG-S2-08 |
 | BR-042 | > Продолжение: волна E, пакет PKG-S3-21 (15 S3-записей | — | PKG-S2-08 |
 | BR-043 | «деплой успешен» при недоставленном образе : неудачный | — | PKG-S2-08 |
-| BR-044 | Повторное применение старой миграции tblsiteusers — регресс. До каждая из | [domains/persistence/domain.md](domains/persistence/domain.md) | PKG-S2-08 |
+| BR-044 | Повторное применение старой миграции tblsiteusers — регресс. До каждая из | [domains/persistence/domain.md](../../domains/persistence/domain.md) | PKG-S2-08 |
 | BR-045 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
 | BR-046 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
 | BR-047 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
-| BR-108 | ON DELETE RESTRICT в 22 + миграция 55; удаление — приложение (сначала объекты) | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | PKG-S2-08 |
-| BR-534 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | [domains/persistence/domain.md](domains/persistence/domain.md) | PKG-S2-08 |
+| BR-108 | ON DELETE RESTRICT в 22 + миграция 55; удаление — приложение (сначала объекты) | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | PKG-S2-08 |
+| BR-534 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | [domains/persistence/domain.md](../../domains/persistence/domain.md) | PKG-S2-08 |
 | BR-535 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
 | BR-536 | Известные ловушки — Регрессия закрыта guard'ом | — | PKG-S2-08 |
-| BR-537 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | [system/infra/sql-migrations.md](system/infra/sql-migrations.md) | PKG-S2-08 |
+| BR-537 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | [system/infra/sql-migrations.md](../../system/infra/sql-migrations.md) | PKG-S2-08 |
 | BR-538 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
-| BR-539 | бэкапов прод-БД не существовало : pgdump --no-password | [system/infra/deploy-overview.md](system/infra/deploy-overview.md) | PKG-S2-08 |
+| BR-539 | бэкапов прод-БД не существовало : pgdump --no-password | [system/infra/deploy-overview.md](../../system/infra/deploy-overview.md) | PKG-S2-08 |
 | BR-542 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
 | BR-543 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
-| BR-544 | меняет пакет #371 , nginxkaraoke-public.conf — пакет #393 | [product/features/security-headers.md](product/features/security-headers.md) | PKG-S2-08 |
-| BR-545 | меняет пакет #371 , nginxkaraoke-public.conf — пакет #393 | [product/features/security-headers.md](product/features/security-headers.md) | PKG-S2-08 |
-| BR-546 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > ) → пакет PKG-S2-08 | [system/infra/deploy-overview.md](system/infra/deploy-overview.md) | PKG-S2-08 |
+| BR-544 | меняет пакет #371 , nginxkaraoke-public.conf — пакет #393 | [product/features/security-headers.md](../../product/features/security-headers.md) | PKG-S2-08 |
+| BR-545 | меняет пакет #371 , nginxkaraoke-public.conf — пакет #393 | [product/features/security-headers.md](../../product/features/security-headers.md) | PKG-S2-08 |
+| BR-546 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > ) → пакет PKG-S2-08 | [system/infra/deploy-overview.md](../../system/infra/deploy-overview.md) | PKG-S2-08 |
 | BR-547 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
 | BR-548 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > | — | PKG-S2-08 |
-| BR-549 | python3 tools/check-security-headers.py (файл SPA-nginx) | [product/features/security-headers.md](product/features/security-headers.md) | PKG-S2-08 |
+| BR-549 | python3 tools/check-security-headers.py (файл SPA-nginx) | [product/features/security-headers.md](../../product/features/security-headers.md) | PKG-S2-08 |
 | BR-550 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > ), OpenProject #393, ветка 611-pkg-s3-21 | — | PKG-S2-08 |
 | BR-554 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > ) → пакет PKG-S2-08 | — | PKG-S2-08 |
 | BR-555 | Feature: Hardening deploy-контура (PKG-S2-08, аудит #336, OpenProject  — > ) → пакет PKG-S2-08 | — | PKG-S2-08 |
@@ -255,28 +255,28 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-062 | > Source: OpenProject #366 — пакет PKG-RACE-PUBLISH аудита #336 | [domains/publishing/components/publishing-services.md](domains/publishing/components/publishing-services.md) | PKG-RACE-PUBLISH |
-| BR-138 | > Source: OpenProject #366 — пакет PKG-RACE-PUBLISH аудита #336 | [domains/publishing/components/publishing-services.md](domains/publishing/components/publishing-services.md) | PKG-RACE-PUBLISH |
+| BR-062 | > Source: OpenProject #366 — пакет PKG-RACE-PUBLISH аудита #336 | [domains/publishing/components/publishing-services.md](../../domains/publishing/components/publishing-services.md) | PKG-RACE-PUBLISH |
+| BR-138 | > Source: OpenProject #366 — пакет PKG-RACE-PUBLISH аудита #336 | [domains/publishing/components/publishing-services.md](../../domains/publishing/components/publishing-services.md) | PKG-RACE-PUBLISH |
 
 ### PKG-S2-17
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-087 | 2026-10-25 (088/093/124/125/370/379/380/388/399/410/411/416/417/426 | [domains/catalog/components/dictionaries.md](domains/catalog/components/dictionaries.md) | PKG-S2-17 |
-| BR-088 | Аудит #336, пакет PKG-S2-17 (OpenProject #380, записи | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
-| BR-093 | прежнего фильтра, а «repair» в модалке HR отправлял ремонт ЧУЖОЙ песни | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
-| BR-124 | Аудит #336, пакет PKG-S2-17 (OpenProject #380, записи | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
-| BR-125 | Зачем — песне, а не к той, для которой ушёл запрос | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-087 | 2026-10-25 (088/093/124/125/370/379/380/388/399/410/411/416/417/426 | [domains/catalog/components/dictionaries.md](../../domains/catalog/components/dictionaries.md) | PKG-S2-17 |
+| BR-088 | Аудит #336, пакет PKG-S2-17 (OpenProject #380, записи | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-093 | прежнего фильтра, а «repair» в модалке HR отправлял ремонт ЧУЖОЙ песни | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-124 | Аудит #336, пакет PKG-S2-17 (OpenProject #380, записи | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-125 | Зачем — песне, а не к той, для которой ушёл запрос | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
 | BR-370 | Зачем — (HTTP 400 на каждое изменение колонки) | — | PKG-S2-17 |
-| BR-379 | Зачем — ) | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
-| BR-380 | прежнего фильтра, а «repair» в модалке HR отправлял ремонт ЧУЖОЙ песни | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
-| BR-388 | Массовое удаление процессов брало id из snapshot прошлого фильтра | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-379 | Зачем — ) | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-380 | прежнего фильтра, а «repair» в модалке HR отправлял ремонт ЧУЖОЙ песни | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-388 | Массовое удаление процессов брало id из snapshot прошлого фильтра | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
 | BR-399 | Зачем — закрывалась без сохранения | — | PKG-S2-17 |
-| BR-410 | Дайджест share-ссылок грузил только первую страницу из 25 строк | [system/frontend/target-request-guard.md](system/frontend/target-request-guard.md) | PKG-S2-17 |
-| BR-411 | с HTTP 500, а испорченный фильтр переживал F5 | [system/frontend/target-request-guard.md](system/frontend/target-request-guard.md) | PKG-S2-17 |
-| BR-416 | стирала поля админа. Новая копия сборки payload — это возврат | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-410 | Дайджест share-ссылок грузил только первую страницу из 25 строк | [system/frontend/target-request-guard.md](../../system/frontend/target-request-guard.md) | PKG-S2-17 |
+| BR-411 | с HTTP 500, а испорченный фильтр переживал F5 | [system/frontend/target-request-guard.md](../../system/frontend/target-request-guard.md) | PKG-S2-17 |
+| BR-416 | стирала поля админа. Новая копия сборки payload — это возврат | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
 | BR-417 | привязку к ладу , а закрытие в течение 3 с теряло правку | — | PKG-S2-17 |
-| BR-426 | Зачем — ) | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-S2-17 |
+| BR-426 | Зачем — ) | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-S2-17 |
 
 ### PKG-S3-31
 
@@ -326,81 +326,81 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-110 | LRU-кэш огибающих на 64 записи; при смене mtime прежний ключ того же файла удаляется | [system/utilities.md](system/utilities.md) | PKG-S2-11 |
-| BR-111 | plans/runs — LRU (32/128) + TTL 30 мин; отчёт удаляется после терминального apply | [domains/storage/domain.md](domains/storage/domain.md) | PKG-S2-11 |
-| BR-112 | фильтр/сортировка/пагинация в SQL (EXISTS, ORDER BY, LIMIT/OFFSET, COUNT); песни — только для страницы | [system/utilities.md](system/utilities.md) | PKG-S2-11 |
-| BR-113 | loadBySongIds → Map<Long, List<SongAssignment>>; детерминированный выбор (open, затем max id); публичная карточка ищет назначение текущего редактора | [domains/processing/components/playwright-rendering.md](domains/processing/components/playwright-rendering.md) | PKG-S2-11 |
-| BR-128 | loadBySongIds → Map<Long, List<SongAssignment>>; детерминированный выбор (open, затем max id); публичная карточка ищет назначение текущего редактора | [domains/editorial/components/assignment-lifecycle.md](domains/editorial/components/assignment-lifecycle.md) | PKG-S2-11 |
-| BR-132 | loadBySongIds → Map<Long, List<SongAssignment>>; детерминированный выбор (open, затем max id); публичная карточка ищет назначение текущего редактора | [domains/health/components/health-report-batch-pool.md](domains/health/components/health-report-batch-pool.md) | PKG-S2-11 |
-| BR-133 | Base64-значения, атомарная запись под lock, устойчивый разбор (битая строка → WARN) | [domains/processing/components/karaoke-properties.md](domains/processing/components/karaoke-properties.md) | PKG-S2-11 |
-| BR-139 | каждая попытка sendVideo в try/catch; сеть/таймаут/не-JSON — retryable; исходная ошибка как cause | [domains/publishing/components/publishing-services.md](domains/publishing/components/publishing-services.md) | PKG-S2-11 |
-| BR-140 | каждая попытка sendVideo в try/catch; сеть/таймаут/не-JSON — retryable; исходная ошибка как cause | [domains/publishing/components/publishing-services.md](domains/publishing/components/publishing-services.md) | PKG-S2-11 |
-| BR-141 | каждая попытка sendVideo в try/catch; сеть/таймаут/не-JSON — retryable; исходная ошибка как cause | [domains/storage/domain.md](domains/storage/domain.md) | PKG-S2-11 |
-| BR-142 | uploadFile(path) бросает исключение; нет файла и сбой загрузки различимы | [domains/publishing/components/publishing-services.md](domains/publishing/components/publishing-services.md) | PKG-S2-11 |
+| BR-110 | LRU-кэш огибающих на 64 записи; при смене mtime прежний ключ того же файла удаляется | [system/utilities.md](../../system/utilities.md) | PKG-S2-11 |
+| BR-111 | plans/runs — LRU (32/128) + TTL 30 мин; отчёт удаляется после терминального apply | [domains/storage/domain.md](../../domains/storage/domain.md) | PKG-S2-11 |
+| BR-112 | фильтр/сортировка/пагинация в SQL (EXISTS, ORDER BY, LIMIT/OFFSET, COUNT); песни — только для страницы | [system/utilities.md](../../system/utilities.md) | PKG-S2-11 |
+| BR-113 | loadBySongIds → Map<Long, List<SongAssignment>>; детерминированный выбор (open, затем max id); публичная карточка ищет назначение текущего редактора | [domains/processing/components/playwright-rendering.md](../../domains/processing/components/playwright-rendering.md) | PKG-S2-11 |
+| BR-128 | loadBySongIds → Map<Long, List<SongAssignment>>; детерминированный выбор (open, затем max id); публичная карточка ищет назначение текущего редактора | [domains/editorial/components/assignment-lifecycle.md](../../domains/editorial/components/assignment-lifecycle.md) | PKG-S2-11 |
+| BR-132 | loadBySongIds → Map<Long, List<SongAssignment>>; детерминированный выбор (open, затем max id); публичная карточка ищет назначение текущего редактора | [domains/health/components/health-report-batch-pool.md](../../domains/health/components/health-report-batch-pool.md) | PKG-S2-11 |
+| BR-133 | Base64-значения, атомарная запись под lock, устойчивый разбор (битая строка → WARN) | [domains/processing/components/karaoke-properties.md](../../domains/processing/components/karaoke-properties.md) | PKG-S2-11 |
+| BR-139 | каждая попытка sendVideo в try/catch; сеть/таймаут/не-JSON — retryable; исходная ошибка как cause | [domains/publishing/components/publishing-services.md](../../domains/publishing/components/publishing-services.md) | PKG-S2-11 |
+| BR-140 | каждая попытка sendVideo в try/catch; сеть/таймаут/не-JSON — retryable; исходная ошибка как cause | [domains/publishing/components/publishing-services.md](../../domains/publishing/components/publishing-services.md) | PKG-S2-11 |
+| BR-141 | каждая попытка sendVideo в try/catch; сеть/таймаут/не-JSON — retryable; исходная ошибка как cause | [domains/storage/domain.md](../../domains/storage/domain.md) | PKG-S2-11 |
+| BR-142 | uploadFile(path) бросает исключение; нет файла и сбой загрузки различимы | [domains/publishing/components/publishing-services.md](../../domains/publishing/components/publishing-services.md) | PKG-S2-11 |
 | BR-143 | DTO отдаётся как ResponseEntity<StatsDebugDto>, без as Map | — | PKG-S2-11 |
-| BR-148 | VkAutoPublishService.kt, VkPreviewWarmupClient.kt, VkPhotoUploadClient.kt | [domains/processing/components/karaoke-properties.md](domains/processing/components/karaoke-properties.md) | PKG-S2-11 |
-| BR-162 | уборка только бакетов karaoke/stemjobs; сбой уборки при старте → WARN, не отказ контекста | [domains/storage/domain.md](domains/storage/domain.md) | PKG-S2-11 |
+| BR-148 | VkAutoPublishService.kt, VkPreviewWarmupClient.kt, VkPhotoUploadClient.kt | [domains/processing/components/karaoke-properties.md](../../domains/processing/components/karaoke-properties.md) | PKG-S2-11 |
+| BR-162 | уборка только бакетов karaoke/stemjobs; сбой уборки при старте → WARN, не отказ контекста | [domains/storage/domain.md](../../domains/storage/domain.md) | PKG-S2-11 |
 | BR-176 | null биндится как типизированный SQL NULL; ошибка executeUpdate пробрасывается | — | PKG-S2-11 |
 
 ### PKG-S3-23
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-117 | Что делает — P-08 (…) — картинки , дайджест share-ссылок | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-118 | Что делает — P-08 (…) — картинки , дайджест share-ссылок | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-119 | список новостей , границы акции , поиск текста в Яндекс.Музыке | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-117 | Что делает — P-08 (…) — картинки , дайджест share-ссылок | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-118 | Что делает — P-08 (…) — картинки , дайджест share-ссылок | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-119 | список новостей , границы акции , поиск текста в Яндекс.Музыке | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
 | BR-120 | список новостей , границы акции , поиск текста в Яндекс.Музыке | — | PKG-S3-23 |
-| BR-121 | Что делает — ffmpeg без таймаута | [domains/processing/domain.md](domains/processing/domain.md) | PKG-S3-23 |
-| BR-122 | Что делает — P-08 (…) — картинки , дайджест share-ссылок | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-129 | P-19 (…) — черновик редакторского назначения , пустой | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-130 | голос в раскладке , переименование артефактов песни | [domains/catalog/domain.md](domains/catalog/domain.md) | PKG-S3-23 |
-| BR-131 | P-19 (…) — черновик редакторского назначения , пустой | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-134 | P-21 (…) — проверки мониторинга , пересечение тиков | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-135 | Что делает — реестр admin-задач , клиент forced-alignment | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-136 | Что делает — реестр admin-задач , клиент forced-alignment | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-137 | P-21 (…) — проверки мониторинга , пересечение тиков | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-144 | P-22/P-23/P-24 (…) — кеш метаданных хранилища | [domains/monitoring/components/error-semantics.md](domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
-| BR-145 | circuit breaker , авто-публикация в Telegram , подписка SSE | [domains/monitoring/components/error-semantics.md](domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
-| BR-146 | circuit breaker , авто-публикация в Telegram , подписка SSE | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-147 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/sse/domain.md](domains/sse/domain.md) | PKG-S3-23 |
-| BR-149 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-157 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-158 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-159 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-160 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/monitoring/components/error-semantics.md](domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
-| BR-163 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/error-semantics.md](domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
-| BR-164 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-165 | Что делает — премиум-публикация | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-166 | P-22/P-23/P-24 (…) — кеш метаданных хранилища | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-167 | P-22/P-25 (…) — синк Sponsr , audit-транзакция | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-168 | Что делает — процессов , уборка артефактов (…), словари | [domains/processing/components/process-admin.md](domains/processing/components/process-admin.md) | PKG-S3-23 |
-| BR-169 | Что делает — процессов , уборка артефактов (…), словари | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-23 |
-| BR-171 | Что делает — процессов , уборка артефактов (…), словари | [domains/health/domain.md](domains/health/domain.md) | PKG-S3-23 |
+| BR-121 | Что делает — ffmpeg без таймаута | [domains/processing/domain.md](../../domains/processing/domain.md) | PKG-S3-23 |
+| BR-122 | Что делает — P-08 (…) — картинки , дайджест share-ссылок | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-129 | P-19 (…) — черновик редакторского назначения , пустой | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-130 | голос в раскладке , переименование артефактов песни | [domains/catalog/domain.md](../../domains/catalog/domain.md) | PKG-S3-23 |
+| BR-131 | P-19 (…) — черновик редакторского назначения , пустой | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-134 | P-21 (…) — проверки мониторинга , пересечение тиков | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-135 | Что делает — реестр admin-задач , клиент forced-alignment | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-136 | Что делает — реестр admin-задач , клиент forced-alignment | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-137 | P-21 (…) — проверки мониторинга , пересечение тиков | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-144 | P-22/P-23/P-24 (…) — кеш метаданных хранилища | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
+| BR-145 | circuit breaker , авто-публикация в Telegram , подписка SSE | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
+| BR-146 | circuit breaker , авто-публикация в Telegram , подписка SSE | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-147 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/sse/domain.md](../../domains/sse/domain.md) | PKG-S3-23 |
+| BR-149 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-157 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-158 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-159 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-160 | Что делает — авто-публикация в VK (…), long-poll Telegram | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
+| BR-163 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
+| BR-164 | Что делает — ASR Whisper , локальное хранилище | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-165 | Что делает — премиум-публикация | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-166 | P-22/P-23/P-24 (…) — кеш метаданных хранилища | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-167 | P-22/P-25 (…) — синк Sponsr , audit-транзакция | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-168 | Что делает — процессов , уборка артефактов (…), словари | [domains/processing/components/process-admin.md](../../domains/processing/components/process-admin.md) | PKG-S3-23 |
+| BR-169 | Что делает — процессов , уборка артефактов (…), словари | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-23 |
+| BR-171 | Что делает — процессов , уборка артефактов (…), словари | [domains/health/domain.md](../../domains/health/domain.md) | PKG-S3-23 |
 | BR-172 | Что делает — процессов , уборка артефактов (…), словари | — | PKG-S3-23 |
-| BR-173 | P-22/P-25 (…) — синк Sponsr , audit-транзакция | [domains/monitoring/components/error-semantics.md](domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
+| BR-173 | P-22/P-25 (…) — синк Sponsr , audit-транзакция | [domains/monitoring/components/error-semantics.md](../../domains/monitoring/components/error-semantics.md) | PKG-S3-23 |
 
 ### OpenProject #360
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-123 | Source: OpenProject #360 — «S1: 25 обработчиков подтверждения собирают customConfirmParams.body интерполяцией имени песни » | [product/features/escape-confirm-user-data.md](product/features/escape-confirm-user-data.md) | OpenProject #360 |
+| BR-123 | Source: OpenProject #360 — «S1: 25 обработчиков подтверждения собирают customConfirmParams.body интерполяцией имени песни » | [product/features/escape-confirm-user-data.md](../../product/features/escape-confirm-user-data.md) | OpenProject #360 |
 
 ### PKG-S3-35
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-154 | Каждый вызов VK API в прокси-режиме создавал новый | [domains/integration/components/external-api-clients.md](domains/integration/components/external-api-clients.md) | PKG-S3-35 |
+| BR-154 | Каждый вызов VK API в прокси-режиме создавал новый | [domains/integration/components/external-api-clients.md](../../domains/integration/components/external-api-clients.md) | PKG-S3-35 |
 | BR-207 | (208/209/210/211/212/215/216/217/218). Страница публикаций | — | PKG-S3-35 |
-| BR-216 | перенесены в SPA. Правки 217/218, сделанные «на месте» в легаси-странице | [domains/sse/domain.md](domains/sse/domain.md) | PKG-S3-35 |
+| BR-216 | перенесены в SPA. Правки 217/218, сделанные «на месте» в легаси-странице | [domains/sse/domain.md](../../domains/sse/domain.md) | PKG-S3-35 |
 | BR-217 | Что делает — Легаси-страница песен и CI ( | — | PKG-S3-35 |
 | BR-218 | …. Легаси-страница песен подписывалась на STOMP-эндпоинт | — | PKG-S3-35 |
-| BR-220 | Диджесты . SitePlaylistItem.countItemsByPlaylistIds | [domains/identity/components/dictionaries.md](domains/identity/components/dictionaries.md) | PKG-S3-35 |
-| BR-221 | серверная пагинация есть, но админские таблицы всё ещё | [domains/identity/components/dictionaries.md](domains/identity/components/dictionaries.md) | PKG-S3-35 |
-| BR-222 | Редактор (…). approve разделён на публичный метод | [domains/editorial/components/assignment-lifecycle.md](domains/editorial/components/assignment-lifecycle.md) | PKG-S3-35 |
-| BR-223 | Что делает — karaoke-app, диджесты и редактор ( | [domains/editorial/components/assignment-lifecycle.md](domains/editorial/components/assignment-lifecycle.md) | PKG-S3-35 |
-| BR-224 | Сбой push'а на SERVER и сбой фоновой синхронизации | [domains/editorial/components/assignment-lifecycle.md](domains/editorial/components/assignment-lifecycle.md) | PKG-S3-35 |
+| BR-220 | Диджесты . SitePlaylistItem.countItemsByPlaylistIds | [domains/identity/components/dictionaries.md](../../domains/identity/components/dictionaries.md) | PKG-S3-35 |
+| BR-221 | серверная пагинация есть, но админские таблицы всё ещё | [domains/identity/components/dictionaries.md](../../domains/identity/components/dictionaries.md) | PKG-S3-35 |
+| BR-222 | Редактор (…). approve разделён на публичный метод | [domains/editorial/components/assignment-lifecycle.md](../../domains/editorial/components/assignment-lifecycle.md) | PKG-S3-35 |
+| BR-223 | Что делает — karaoke-app, диджесты и редактор ( | [domains/editorial/components/assignment-lifecycle.md](../../domains/editorial/components/assignment-lifecycle.md) | PKG-S3-35 |
+| BR-224 | Сбой push'а на SERVER и сбой фоновой синхронизации | [domains/editorial/components/assignment-lifecycle.md](../../domains/editorial/components/assignment-lifecycle.md) | PKG-S3-35 |
 | BR-225 | guard tools/check-no-legacy-tbl-settings.sh расширен | — | PKG-S3-35 |
-| BR-226 | TTL-кеш статистики не имел single-flight: два одновременных | [domains/stats/domain.md](domains/stats/domain.md) | PKG-S3-35 |
+| BR-226 | TTL-кеш статистики не имел single-flight: два одновременных | [domains/stats/domain.md](../../domains/stats/domain.md) | PKG-S3-35 |
 | BR-507 | Зачем — В CI не было сборки фронтенда; guard прямых | — | PKG-S3-35 |
 | BR-509 | ) — контракт realtime в легаси-странице песен приведён к серверному | — | PKG-S3-35 |
 | BR-510 | ) — контракт realtime в легаси-странице песен приведён к серверному | — | PKG-S3-35 |
@@ -411,9 +411,9 @@
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
 | BR-174 | Партия 1 (…10 записей) — отчёт сухого прогона чистки строится вне | — | PKG-S3-24 |
-| BR-182 | Author.getWhereList (POST /api/authors/authorsdigests, albumsdigests?filterAuthorName=) | [domains/catalog/components/author-entity.md](domains/catalog/components/author-entity.md) | PKG-S3-24 |
-| BR-187 | Партия 1 (…10 записей) — отчёт сухого прогона чистки строится вне | [domains/persistence/domain.md](domains/persistence/domain.md) | PKG-S3-24 |
-| BR-189 | Партия 2 (…10 записей) — конфликт слота публикации виден; имя | [domains/catalog/domain.md](domains/catalog/domain.md) | PKG-S3-24 |
+| BR-182 | Author.getWhereList (POST /api/authors/authorsdigests, albumsdigests?filterAuthorName=) | [domains/catalog/components/author-entity.md](../../domains/catalog/components/author-entity.md) | PKG-S3-24 |
+| BR-187 | Партия 1 (…10 записей) — отчёт сухого прогона чистки строится вне | [domains/persistence/domain.md](../../domains/persistence/domain.md) | PKG-S3-24 |
+| BR-189 | Партия 2 (…10 записей) — конфликт слота публикации виден; имя | [domains/catalog/domain.md](../../domains/catalog/domain.md) | PKG-S3-24 |
 | BR-199 | Партия 2 (…10 записей) — конфликт слота публикации виден; имя | — | PKG-S3-24 |
 | BR-202 | Партия 3 (…10 записей) — <datalist> читают реальные имена модели | — | PKG-S3-24 |
 | BR-215 | Партия 3 (…10 записей) — <datalist> читают реальные имена модели | — | PKG-S3-24 |
@@ -422,92 +422,92 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-188 | popPublicationStacks в model/Publication.kt: раскладка идёт | [domains/catalog/components/remaining-models.md](domains/catalog/components/remaining-models.md) | PKG-S2-12 |
-| BR-195 | StatsCacheKey.forEndpoint(endpoint, target, params) включает | [domains/stats/domain.md](domains/stats/domain.md) | PKG-S2-12 |
-| BR-200 | 206/214 — karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Pagination.kt: LEGACYPAGESIZE = 200 | [domains/catalog/components/remaining-models.md](domains/catalog/components/remaining-models.md) | PKG-S2-12 |
+| BR-188 | popPublicationStacks в model/Publication.kt: раскладка идёт | [domains/catalog/components/remaining-models.md](../../domains/catalog/components/remaining-models.md) | PKG-S2-12 |
+| BR-195 | StatsCacheKey.forEndpoint(endpoint, target, params) включает | [domains/stats/domain.md](../../domains/stats/domain.md) | PKG-S2-12 |
+| BR-200 | 206/214 — karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Pagination.kt: LEGACYPAGESIZE = 200 | [domains/catalog/components/remaining-models.md](../../domains/catalog/components/remaining-models.md) | PKG-S2-12 |
 | BR-201 | из processes.html, publications.html, unpublications.html | — | PKG-S2-12 |
 | BR-205 | 213 — songsUpdate/songs2Update объявляют отсутствующие в формах | — | PKG-S2-12 |
 | BR-206 | Что делает — Закрывает 15 записей аудита | — | PKG-S2-12 |
 | BR-213 | ) закрыты волнами A–D — их правки не дублируются, ссылки на пакеты | — | PKG-S2-12 |
 | BR-214 | ) закрыты волнами A–D — их правки не дублируются, ссылки на пакеты | — | PKG-S2-12 |
-| BR-219 | validateTariffValues (karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/TariffValidation.kt) до записи | [domains/monetization/domain.md](domains/monetization/domain.md) | PKG-S2-12 |
-| BR-227 | ScraperAgent.extractLyrics(pageContent, artist, songTitle) | [domains/integration/domain.md](domains/integration/domain.md) | PKG-S2-12 |
+| BR-219 | validateTariffValues (karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/TariffValidation.kt) до записи | [domains/monetization/domain.md](../../domains/monetization/domain.md) | PKG-S2-12 |
+| BR-227 | ScraperAgent.extractLyrics(pageContent, artist, songTitle) | [domains/integration/domain.md](../../domains/integration/domain.md) | PKG-S2-12 |
 | BR-234 | MainController.doCollectStore грузит реальный список песен | — | PKG-S2-12 |
 | BR-235 | isValidVoiceIndex(voice, countVoices) до вызова | — | PKG-S2-12 |
-| BR-244 | KaraokeProperties: propertiesWriteLock вокруг «карта → | [domains/processing/components/karaoke-properties.md](domains/processing/components/karaoke-properties.md) | PKG-S2-12 |
-| BR-251 | postChunksConfirming отправляет чанки по одному и | [domains/processing/components/two-db-sync.md](domains/processing/components/two-db-sync.md) | PKG-S2-12 |
-| BR-266 | authorRequestOrder даёт один круг кандидатов; рекурсия | [system/utilities.md](system/utilities.md) | PKG-S2-12 |
+| BR-244 | KaraokeProperties: propertiesWriteLock вокруг «карта → | [domains/processing/components/karaoke-properties.md](../../domains/processing/components/karaoke-properties.md) | PKG-S2-12 |
+| BR-251 | postChunksConfirming отправляет чанки по одному и | [domains/processing/components/two-db-sync.md](../../domains/processing/components/two-db-sync.md) | PKG-S2-12 |
+| BR-266 | authorRequestOrder даёт один круг кандидатов; рекурсия | [system/utilities.md](../../system/utilities.md) | PKG-S2-12 |
 
 ### PKG-S3-25
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-228 | единый фильтр URL для обоих движков поиска , пакетная | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-229 | единый фильтр URL для обоих движков поиска , пакетная | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-230 | P-12 (…) — llm + mlt: размер скачиваемой страницы | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-231 | не менялись, экран показывал пустые значения . Неразобранные маркеры | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-232 | Генерация .mlt делала ~9 000 запросов к БД на песню только за | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-228 | единый фильтр URL для обоих движков поиска , пакетная | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-229 | единый фильтр URL для обоих движков поиска , пакетная | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-230 | P-12 (…) — llm + mlt: размер скачиваемой страницы | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-231 | не менялись, экран показывал пустые значения . Неразобранные маркеры | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-232 | Генерация .mlt делала ~9 000 запросов к БД на песню только за | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
 | BR-233 | VK-заголовком без ссылки на песню . Каждое изменение поля в админке | — | PKG-S3-25 |
-| BR-236 | → 200 с текстом Error, клиент считал, что сохранилось . Сбой БД при | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-25 |
-| BR-238 | P-14/P-13 (…) — mlt/mko + model/Album: сравнение строк по | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-239 | значению , валидация stringLad , сбой БД ≠ «нет альбомов» | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-25 |
-| BR-240 | загрузке альбомов → 200 с , и результат ещё кэшировался на TTL | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-241 | валидный узел вместо nameless , ссылки mainbin на | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-242 | существующие узлы , проверка размера списков счётчика | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-243 | IndexOutOfBoundsException в template . Отсутствие TEXT-элемента | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-25 |
-| BR-245 | свойства вместо исключения , регистрация трёх ключей, которые читает | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-236 | → 200 с текстом Error, клиент считал, что сохранилось . Сбой БД при | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-25 |
+| BR-238 | P-14/P-13 (…) — mlt/mko + model/Album: сравнение строк по | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-239 | значению , валидация stringLad , сбой БД ≠ «нет альбомов» | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-25 |
+| BR-240 | загрузке альбомов → 200 с , и результат ещё кэшировался на TTL | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-241 | валидный узел вместо nameless , ссылки mainbin на | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-242 | существующие узлы , проверка размера списков счётчика | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-243 | IndexOutOfBoundsException в template . Отсутствие TEXT-элемента | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-25 |
+| BR-245 | свойства вместо исключения , регистрация трёх ключей, которые читает | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
 | BR-246 | karaoke-web , volatile-флаг загрузки + публикация карты после | — | PKG-S3-25 |
 | BR-248 | наполнения , наблюдаемый результат записи файла , построчный | — | PKG-S3-25 |
-| BR-249 | наполнения , наблюдаемый результат записи файла , построчный | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-25 |
-| BR-250 | P-05 (…) — KaraokeProperties: разбор значения по типу | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-252 | одной транзакции , атомарный захват флагов , снятие флага в | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-253 | одной транзакции , атомарный захват флагов , снятие флага в | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-254 | finally , закрытие потока обхода файлов , битая строка CSV | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-255 | finally , закрытие потока обхода файлов , битая строка CSV | [domains/monitoring/domain.md](domains/monitoring/domain.md) | PKG-S3-25 |
-| BR-256 | как пропуск , текст песни без HTML-разметки , сопоставление | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-257 | как пропуск , текст песни без HTML-разметки , сопоставление | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-259 | шагов задания по jobId , статус WORKING только после вставки | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-260 | шага , кеш IAM-токена , JSON без интерполяции | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-261 | шага , кеш IAM-токена , JSON без интерполяции | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-262 | шага , кеш IAM-токена , JSON без интерполяции | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-249 | наполнения , наблюдаемый результат записи файла , построчный | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-25 |
+| BR-250 | P-05 (…) — KaraokeProperties: разбор значения по типу | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-252 | одной транзакции , атомарный захват флагов , снятие флага в | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-253 | одной транзакции , атомарный захват флагов , снятие флага в | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-254 | finally , закрытие потока обхода файлов , битая строка CSV | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-255 | finally , закрытие потока обхода файлов , битая строка CSV | [domains/monitoring/domain.md](../../domains/monitoring/domain.md) | PKG-S3-25 |
+| BR-256 | как пропуск , текст песни без HTML-разметки , сопоставление | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-257 | как пропуск , текст песни без HTML-разметки , сопоставление | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-259 | шагов задания по jobId , статус WORKING только после вставки | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-260 | шага , кеш IAM-токена , JSON без интерполяции | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-261 | шага , кеш IAM-токена , JSON без интерполяции | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-262 | шага , кеш IAM-токена , JSON без интерполяции | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
 | BR-263 | различение исходов ffprobe , сбой выборки ≠ «пусто» | — | PKG-S3-25 |
-| BR-264 | различение исходов ffprobe , сбой выборки ≠ «пусто» | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-265 | различение исходов загрузки HTML , сравнение ymId по значению | [domains/monitoring/components/log-categories.md](domains/monitoring/components/log-categories.md) | PKG-S3-25 |
+| BR-264 | различение исходов ffprobe , сбой выборки ≠ «пусто» | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-265 | различение исходов загрузки HTML , сравнение ymId по значению | [domains/monitoring/components/log-categories.md](../../domains/monitoring/components/log-categories.md) | PKG-S3-25 |
 | BR-267 | P-07/P-06 (…) — Utils/UtilsAI/стемы/синк: DELETE+INSERT в | — | PKG-S3-25 |
 | BR-268 | все слова , закрытие соединения определения страны , таймаут | — | PKG-S3-25 |
 | BR-269 | все слова , закрытие соединения определения страны , таймаут | — | PKG-S3-25 |
-| BR-270 | и уборка внешнего процесса , экранирование значений в скрипте для | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-271 | хоста , безопасное транспонирование аккорда , пакетная | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-270 | и уборка внешнего процесса , экранирование значений в скрипте для | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-271 | хоста , безопасное транспонирование аккорда , пакетная | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
 | BR-272 | хоста , безопасное транспонирование аккорда , пакетная | — | PKG-S3-25 |
-| BR-273 | загрузка кандидатов-родителей , валидация соединения не в горячем | [domains/monitoring/domain.md](domains/monitoring/domain.md) | PKG-S3-25 |
-| BR-274 | Что делает — пути , стек исключения в логе | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
-| BR-275 | P-07b/P-03 (…) — Utils/KaraokeConnection: разбиение на | [domains/monitoring/components/boundary-validation.md](domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-273 | загрузка кандидатов-родителей , валидация соединения не в горячем | [domains/monitoring/domain.md](../../domains/monitoring/domain.md) | PKG-S3-25 |
+| BR-274 | Что делает — пути , стек исключения в логе | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
+| BR-275 | P-07b/P-03 (…) — Utils/KaraokeConnection: разбиение на | [domains/monitoring/components/boundary-validation.md](../../domains/monitoring/components/boundary-validation.md) | PKG-S3-25 |
 
 ### OpenProject #361
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-258 | Source: OpenProject #361 — «S1: результаты и исходники премиум-задания „Создать минусовку“ кладутся в тот же бакет karaoke, что и публичные картинки/mp3 » | [domains/storage/components/storage-flow.md](domains/storage/components/storage-flow.md) | OpenProject #361 |
+| BR-258 | Source: OpenProject #361 — «S1: результаты и исходники премиум-задания „Создать минусовку“ кладутся в тот же бакет karaoke, что и публичные картинки/mp3 » | [domains/storage/components/storage-flow.md](../../domains/storage/components/storage-flow.md) | OpenProject #361 |
 
 ### PKG-S3-26
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
 | BR-276 | voices писал в flashColor ; проверяйте ключ при отладке | — | PKG-S3-26 |
-| BR-277 | Известные ловушки — кнопки «Удалить» в отчёте о здоровье | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-278 | Известные ловушки — DISKVANISHED / UNKNOWN . UNKNOWN → WARNING + | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-279 | «Не удалось узнать размер объекта» ≠ «файл актуален»: вердикт UNKNOWN → WARNING + storageStateUnknown | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-280 | Health-отчёты и ремонт (…8 записей) — отчёт больше не показывает | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-281 | «Не удалось узнать размер объекта» ≠ «файл актуален»: вердикт UNKNOWN → WARNING + storageStateUnknown | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-282 | обязана брать attemptEnterRepair и снимать exitRepair | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-285 | Известные ловушки — SSE | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-286 | в println: пропуск проверки обязан быть виден в логах . Новые категории | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-287 | Health-отчёты и ремонт (…8 записей) — отчёт больше не показывает | [domains/health/components/health-report.md](domains/health/components/health-report.md) | PKG-S3-26 |
-| BR-289 | Настройки, словари, крипта (…8 записей) — настройка | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-26 |
-| BR-293 | Поиск обложек и гигиена репозитория (3 записи) — сбой | [domains/integration/components/external-api-clients.md](domains/integration/components/external-api-clients.md) | PKG-S3-26 |
-| BR-294 | Настройки, словари, крипта (…8 записей) — настройка | [domains/catalog/components/song-entity.md](domains/catalog/components/song-entity.md) | PKG-S3-26 |
-| BR-526 | регрессионный тест PkgS326BehaviorTest : он ищет фикстуры с | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-26 |
-| BR-531 | регрессионный тест PkgS326BehaviorTest : он ищет фикстуры с | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-26 |
+| BR-277 | Известные ловушки — кнопки «Удалить» в отчёте о здоровье | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-278 | Известные ловушки — DISKVANISHED / UNKNOWN . UNKNOWN → WARNING + | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-279 | «Не удалось узнать размер объекта» ≠ «файл актуален»: вердикт UNKNOWN → WARNING + storageStateUnknown | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-280 | Health-отчёты и ремонт (…8 записей) — отчёт больше не показывает | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-281 | «Не удалось узнать размер объекта» ≠ «файл актуален»: вердикт UNKNOWN → WARNING + storageStateUnknown | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-282 | обязана брать attemptEnterRepair и снимать exitRepair | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-285 | Известные ловушки — SSE | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-286 | в println: пропуск проверки обязан быть виден в логах . Новые категории | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-287 | Health-отчёты и ремонт (…8 записей) — отчёт больше не показывает | [domains/health/components/health-report.md](../../domains/health/components/health-report.md) | PKG-S3-26 |
+| BR-289 | Настройки, словари, крипта (…8 записей) — настройка | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-26 |
+| BR-293 | Поиск обложек и гигиена репозитория (3 записи) — сбой | [domains/integration/components/external-api-clients.md](../../domains/integration/components/external-api-clients.md) | PKG-S3-26 |
+| BR-294 | Настройки, словари, крипта (…8 записей) — настройка | [domains/catalog/components/song-entity.md](../../domains/catalog/components/song-entity.md) | PKG-S3-26 |
+| BR-526 | регрессионный тест PkgS326BehaviorTest : он ищет фикстуры с | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-26 |
+| BR-531 | регрессионный тест PkgS326BehaviorTest : он ищет фикстуры с | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-26 |
 
 ### PKG-S2-14
 
@@ -516,7 +516,7 @@
 | BR-295 | utils/shareRevoke.js:isRevokeConfirmed(status, body); revoke | — | PKG-S2-14 |
 | BR-302 | KaraokePlayer.init захватывает локальный AbortController | — | PKG-S2-14 |
 | BR-303 | листенер visibilitychange → release удалён | — | PKG-S2-14 |
-| BR-312 | экранирование (&, <, >, ", ') текста слога и метки | [product/features/escape-confirm-user-data.md](product/features/escape-confirm-user-data.md) | PKG-S2-14 |
+| BR-312 | экранирование (&, <, >, ", ') текста слога и метки | [product/features/escape-confirm-user-data.md](../../product/features/escape-confirm-user-data.md) | PKG-S2-14 |
 | BR-313 | подписки composable useZakromaStreamProgress идут через | — | PKG-S2-14 |
 | BR-319 | ChatView.mounted ждёт await fetchMe, доступ считается | — | PKG-S2-14 |
 | BR-327 | beforeRouteLeave при взведённом таймере выполняет | — | PKG-S2-14 |
@@ -526,34 +526,34 @@
 | BR-339 | authApi.request/authPostJson/authUpload задают xhr.timeout | — | PKG-S2-14 |
 | BR-340 | utils/captchaReady.js: captchaScriptState различает | — | PKG-S2-14 |
 | BR-350 | utils/subscriptionPoll.js: classifyPollResponse + | — | PKG-S2-14 |
-| BR-523 | SubsEdit.vue. Оба регрессионных теста включены | [domains/README.md](domains/README.md) | PKG-S2-14 |
+| BR-523 | SubsEdit.vue. Оба регрессионных теста включены | [domains/README.md](../../domains/README.md) | PKG-S2-14 |
 
 ### PKG-S3-27
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-296 | и карточки specs/336-code-audit/bug-report.md (записи …) | [system/frontend/webvue3-audit-invariants.md](system/frontend/webvue3-audit-invariants.md) | PKG-S3-27 |
-| BR-297 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-298 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-299 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-300 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-301 | ) — копирование подтверждается результатом; ответ корзины разбирается | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-304 | Плеер (…) — отменённая загрузка не показывается как ошибка | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-311 | Плеер (…) — отменённая загрузка не показывается как ошибка | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-314 | Что делает — Сессия и навигация — корзина | [system/frontend/composable-use-cart.md](system/frontend/composable-use-cart.md) | PKG-S3-27 |
-| BR-316 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-317 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-318 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-320 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-321 | Хранилища и store — одно поколение выдачи для | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-322 | Хранилища и store — одно поколение выдачи для | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-323 | Хранилища и store — одно поколение выдачи для | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-296 | и карточки specs/336-code-audit/bug-report.md (записи …) | [system/frontend/webvue3-audit-invariants.md](../../system/frontend/webvue3-audit-invariants.md) | PKG-S3-27 |
+| BR-297 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-298 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-299 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-300 | Что делает — Компоненты и share-ссылки ( | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-301 | ) — копирование подтверждается результатом; ответ корзины разбирается | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-304 | Плеер (…) — отменённая загрузка не показывается как ошибка | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-311 | Плеер (…) — отменённая загрузка не показывается как ошибка | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-314 | Что делает — Сессия и навигация — корзина | [system/frontend/composable-use-cart.md](../../system/frontend/composable-use-cart.md) | PKG-S3-27 |
+| BR-316 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-317 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-318 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-320 | Что делает — Сессия и навигация — корзина | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-321 | Хранилища и store — одно поколение выдачи для | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-322 | Хранилища и store — одно поколение выдачи для | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-323 | Хранилища и store — одно поколение выдачи для | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
 | BR-324 | Просмотры — поллинг чата работает и для пустого | — | PKG-S3-27 |
-| BR-325 | Просмотры — поллинг чата работает и для пустого | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-326 | Просмотры — поллинг чата работает и для пустого | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-331 | Редактор заданий (…) — отправка прерывается, если черновик | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-338 | Редактор заданий (…) — отправка прерывается, если черновик | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
-| BR-346 | и карточки specs/336-code-audit/bug-report.md (записи …) | [system/frontend/karaoke-public-tests.md](system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-325 | Просмотры — поллинг чата работает и для пустого | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-326 | Просмотры — поллинг чата работает и для пустого | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-331 | Редактор заданий (…) — отправка прерывается, если черновик | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-338 | Редактор заданий (…) — отправка прерывается, если черновик | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
+| BR-346 | и карточки specs/336-code-audit/bug-report.md (записи …) | [system/frontend/karaoke-public-tests.md](../../system/frontend/karaoke-public-tests.md) | PKG-S3-27 |
 
 ### PKG-S3-28
 
@@ -624,9 +624,9 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-397 | > Source: OpenProject #367 — «[#336] S2: Гонка чтения/записи целевого объекта» | [system/frontend/vuex-patterns.md](system/frontend/vuex-patterns.md) | PKG-RACE |
-| BR-407 | > Source: OpenProject #367 — «[#336] S2: Гонка чтения/записи целевого объекта» | [system/frontend/target-request-guard.md](system/frontend/target-request-guard.md) | PKG-RACE |
-| BR-409 | > Source: OpenProject #367 — «[#336] S2: Гонка чтения/записи целевого объекта» | [system/frontend/target-request-guard.md](system/frontend/target-request-guard.md) | PKG-RACE |
+| BR-397 | > Source: OpenProject #367 — «[#336] S2: Гонка чтения/записи целевого объекта» | [system/frontend/vuex-patterns.md](../../system/frontend/vuex-patterns.md) | PKG-RACE |
+| BR-407 | > Source: OpenProject #367 — «[#336] S2: Гонка чтения/записи целевого объекта» | [system/frontend/target-request-guard.md](../../system/frontend/target-request-guard.md) | PKG-RACE |
+| BR-409 | > Source: OpenProject #367 — «[#336] S2: Гонка чтения/записи целевого объекта» | [system/frontend/target-request-guard.md](../../system/frontend/target-request-guard.md) | PKG-RACE |
 
 ### PKG-S3-33
 
@@ -645,7 +645,7 @@
 | BR-457 | Что делает — Редактор субтитров ( | — | PKG-S3-33 |
 | BR-463 | Что делает — Панели и таблицы — отказ | — | PKG-S3-33 |
 | BR-464 | Что делает — Панели и таблицы — отказ | — | PKG-S3-33 |
-| BR-465 | Что делает — Панели и таблицы — отказ | [system/frontend/store-stats.md](system/frontend/store-stats.md) | PKG-S3-33 |
+| BR-465 | Что делает — Панели и таблицы — отказ | [system/frontend/store-stats.md](../../system/frontend/store-stats.md) | PKG-S3-33 |
 | BR-466 | Что делает — Панели и таблицы — отказ | — | PKG-S3-33 |
 | BR-468 | Что делает — Редактор субтитров ( | — | PKG-S3-33 |
 | BR-469 | Что делает — ) — удержание кнопок транспорта | — | PKG-S3-33 |
@@ -669,19 +669,19 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-449 | Аудит #336, пакет PKG-S2-18 (OpenProject #381, 13 записей | [system/frontend/subs-edit-admin-editor.md](system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
-| BR-450 | Аудит #336, пакет PKG-S2-18 (OpenProject #381, 13 записей | [system/frontend/subs-edit-admin-editor.md](system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
-| BR-451 | Аудит #336, пакет PKG-S2-18 (OpenProject #381, 13 записей | [system/frontend/subs-edit-admin-editor.md](system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
-| BR-458 | Известные ловушки — страницы 2+ окажутся пустыми | [system/frontend/store-monetization-stores.md](system/frontend/store-monetization-stores.md) | PKG-S2-18 |
-| BR-459 | TTL нужно сбрасывать у всех затронутых вкладок | [system/frontend/store-stats.md](system/frontend/store-stats.md) | PKG-S2-18 |
-| BR-460 | Зачем — ) | [system/frontend/store-stats.md](system/frontend/store-stats.md) | PKG-S2-18 |
-| BR-461 | Зачем — ) | [system/frontend/store-monetization-stores.md](system/frontend/store-monetization-stores.md) | PKG-S2-18 |
-| BR-462 | Известные ловушки — задания из хранилища | [system/frontend/store-stem-jobs.md](system/frontend/store-stem-jobs.md) | PKG-S2-18 |
-| BR-467 | Известные ловушки — но данные не переписывает | [system/frontend/subs-edit-admin-editor.md](system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
-| BR-483 | анимация по стенным часам делает файл невоспроизводимым | [system/frontend/player-offline-mp4-render.md](system/frontend/player-offline-mp4-render.md) | PKG-S2-18 |
-| BR-484 | Зачем — ) | [system/frontend/player-offline-mp4-render.md](system/frontend/player-offline-mp4-render.md) | PKG-S2-18 |
-| BR-485 | Зачем — ) | [system/frontend/player-offline-mp4-render.md](system/frontend/player-offline-mp4-render.md) | PKG-S2-18 |
-| BR-487 | TTL нужно сбрасывать у всех затронутых вкладок | [system/frontend/store-stats.md](system/frontend/store-stats.md) | PKG-S2-18 |
+| BR-449 | Аудит #336, пакет PKG-S2-18 (OpenProject #381, 13 записей | [system/frontend/subs-edit-admin-editor.md](../../system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
+| BR-450 | Аудит #336, пакет PKG-S2-18 (OpenProject #381, 13 записей | [system/frontend/subs-edit-admin-editor.md](../../system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
+| BR-451 | Аудит #336, пакет PKG-S2-18 (OpenProject #381, 13 записей | [system/frontend/subs-edit-admin-editor.md](../../system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
+| BR-458 | Известные ловушки — страницы 2+ окажутся пустыми | [system/frontend/store-monetization-stores.md](../../system/frontend/store-monetization-stores.md) | PKG-S2-18 |
+| BR-459 | TTL нужно сбрасывать у всех затронутых вкладок | [system/frontend/store-stats.md](../../system/frontend/store-stats.md) | PKG-S2-18 |
+| BR-460 | Зачем — ) | [system/frontend/store-stats.md](../../system/frontend/store-stats.md) | PKG-S2-18 |
+| BR-461 | Зачем — ) | [system/frontend/store-monetization-stores.md](../../system/frontend/store-monetization-stores.md) | PKG-S2-18 |
+| BR-462 | Известные ловушки — задания из хранилища | [system/frontend/store-stem-jobs.md](../../system/frontend/store-stem-jobs.md) | PKG-S2-18 |
+| BR-467 | Известные ловушки — но данные не переписывает | [system/frontend/subs-edit-admin-editor.md](../../system/frontend/subs-edit-admin-editor.md) | PKG-S2-18 |
+| BR-483 | анимация по стенным часам делает файл невоспроизводимым | [system/frontend/player-offline-mp4-render.md](../../system/frontend/player-offline-mp4-render.md) | PKG-S2-18 |
+| BR-484 | Зачем — ) | [system/frontend/player-offline-mp4-render.md](../../system/frontend/player-offline-mp4-render.md) | PKG-S2-18 |
+| BR-485 | Зачем — ) | [system/frontend/player-offline-mp4-render.md](../../system/frontend/player-offline-mp4-render.md) | PKG-S2-18 |
+| BR-487 | TTL нужно сбрасывать у всех затронутых вкладок | [system/frontend/store-stats.md](../../system/frontend/store-stats.md) | PKG-S2-18 |
 
 ### PKG-S3-20
 
@@ -689,30 +689,30 @@
 |---|---|---|---|
 | BR-489 | alignment-ml/tests/testservelimits.py — 490 (синхронный обработчик, отзывчивость | — | PKG-S3-20 |
 | BR-490 | HTTP-сервис (serve.py) — 415, превышение размера/длительности — 413 | — | PKG-S3-20 |
-| BR-491 | (смоук → полный прогон, чекпоинты, битый словарь, --resume) | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-492 | Status: active (493/494/495/496/497/498, аудит #336, пакет PKG-S3-20) | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-493 | Тесты — alignment-ml/tests/testalignmodes.py (494) | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-494 | HTTP-сервис (serve.py) — запрос тоже отклоняется | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-495 | Тесты — alignment-ml/tests/testdatasetexclusion.py | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-496 | Тесты — alignment-ml/tests/testchunkingboundaries.py | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-497 | (ALIGNMANIFEST) и зовут ./.venv/bin/python train.py … | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
-| BR-498 | Тесты — alignment-ml/tests/testrequirementspin.py | [domains/integration/components/alignment-ml.md](domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-491 | (смоук → полный прогон, чекпоинты, битый словарь, --resume) | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-492 | Status: active (493/494/495/496/497/498, аудит #336, пакет PKG-S3-20) | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-493 | Тесты — alignment-ml/tests/testalignmodes.py (494) | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-494 | HTTP-сервис (serve.py) — запрос тоже отклоняется | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-495 | Тесты — alignment-ml/tests/testdatasetexclusion.py | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-496 | Тесты — alignment-ml/tests/testchunkingboundaries.py | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-497 | (ALIGNMANIFEST) и зовут ./.venv/bin/python train.py … | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
+| BR-498 | Тесты — alignment-ml/tests/testrequirementspin.py | [domains/integration/components/alignment-ml.md](../../domains/integration/components/alignment-ml.md) | PKG-S3-20 |
 
 ### PKG-S3-34
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-499 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-34 |
-| BR-527 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-34 |
-| BR-528 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-34 |
-| BR-529 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-34 |
-| BR-530 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](guidelines/architecture-conventions.md) | PKG-S3-34 |
+| BR-499 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-34 |
+| BR-527 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-34 |
+| BR-528 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-34 |
+| BR-529 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-34 |
+| BR-530 | Новый guard: нет явных версий Jackson, нет разнобоя версий, нет мёртвого блока dependencies в корне, нет pom.xml, дампы кучи — только в sanctioned-скрипте и с приватными прав… | [guidelines/architecture-conventions.md](../../guidelines/architecture-conventions.md) | PKG-S3-34 |
 
 ### PKG-S2-09
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-558 | # Feature: Заголовки безопасности публичного сайта (аудит #336, OpenProject #372) | [product/features/security-headers.md](product/features/security-headers.md) | PKG-S2-09 |
+| BR-558 | # Feature: Заголовки безопасности публичного сайта (аудит #336, OpenProject #372) | [product/features/security-headers.md](../../product/features/security-headers.md) | PKG-S2-09 |
 
 ### PKG-S3-30
 
@@ -747,7 +747,7 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-627 | (отдельная задача #410): утечка соединений. Правки этого | [domains/persistence/domain.md](domains/persistence/domain.md) | OpenProject #410 |
+| BR-627 | (отдельная задача #410): утечка соединений. Правки этого | [domains/persistence/domain.md](../../domains/persistence/domain.md) | OpenProject #410 |
 
 ## 4. Карточки пакетов
 

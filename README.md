@@ -25,7 +25,7 @@ Boot бэкенд.
 | [constitution.md](./.specify/memory/constitution.md) | Непреложные принципы проекта |
 | [**Knowledge (SSoT)**](./knowledge/README.md) | **ПЕРВЫЙ источник знаний** — SDD/DDD/C4 (домены, компоненты, ADR) |
 | [knowledge/domains/README.md](./knowledge/domains/README.md) | Карта доменов и их компонентов |
-| [docs/architecture-notes.md](./docs/architecture-notes.md) | Датированный changelog архитектуры |
+| [archive/docs/architecture-notes.md](archive/docs/architecture-notes.md) | Датированный changelog архитектуры |
 | [knowledge/adr/](./knowledge/adr/README.md) | Architecture Decision Records (включая `local-*`) |
 | [archive/docs/strategy/growth.md](./archive/docs/strategy/growth.md) | Стратегия роста (воронка: visitor → registration → premium) |
 | [knowledge/public/onboarding.md](./knowledge/public/onboarding.md) | Настройка новой машины разработчика |

@@ -131,6 +131,6 @@ curl -X GET "http://localhost:8080/api/public/authors/42/albums?scope=main"
 - [spec.md § FR-014](../spec.md)
 - [data-model.md § DTO AlbumTilePublicDto](../data-model.md)
 - [research.md § R10](../research.md)
-- [docs/features/zakroma-albums-by-author.md](../../../docs/features/zakroma-albums-by-author.md) — создаётся в Phase implement.
+- [knowledge/domains/catalog/components/album-entity.md](../../../knowledge/domains/catalog/components/album-entity.md) — создаётся в Phase implement.
 - [specs/286-author-song-counts-cache](../286-author-song-counts-cache/) — прецедент для денормализации.
 - [specs/307-special-authors-zakroma-order](../307-special-authors-zakroma-order/) — прецедент для zakroma-tiles UI.

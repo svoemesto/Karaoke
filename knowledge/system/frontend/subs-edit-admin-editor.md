@@ -219,4 +219,4 @@ sourceText -> getSyllables -> updateMarkersBySyllables
   и `formatText` продублированы в двух копиях (админской и composable) и
   обязаны вести себя согласованно; расхождение — баг.
 - `store-song-editor.md` — Vuex store редактора.
-- `docs/ops/log-correlation.md` — логи при отладке.
+- `knowledge/guidelines/runbooks/log-correlation.md` — логи при отладке.

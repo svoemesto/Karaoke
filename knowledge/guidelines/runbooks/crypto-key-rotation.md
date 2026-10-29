@@ -1,4 +1,4 @@
-# Ротация ключа шифрования `CRYPTO_AES_KEY` / `CRYPTO_AES_IV` — `docs/ops/crypto-key-rotation.md`
+# Ротация ключа шифрования `CRYPTO_AES_KEY` / `CRYPTO_AES_IV` — `knowledge/guidelines/runbooks/crypto-key-rotation.md`
 
 **Дата документа**: 2026-10-26
 **Статус**: ротация **выполнена**; ключ живёт только в окружении, запасного (захардкоженного) ключа в коде нет.

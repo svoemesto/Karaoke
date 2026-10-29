@@ -72,6 +72,6 @@
 ## Ссылки
 
 - [PR #642](https://github.com/svoemesto/Karaoke/pull/642)
-- [docs/features/publications-filters.md](../../docs/features/publications-filters.md)
+- [knowledge/product/features/publications-filters.md](../../knowledge/product/features/publications-filters.md)
 - [PublicationFilters.kt](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/PublicationFilters.kt)
 - [PublicationFiltersTest.kt](../../karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationFiltersTest.kt)

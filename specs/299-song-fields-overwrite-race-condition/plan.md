@@ -158,4 +158,4 @@ Phase 2 декомпозирует реализацию на конкретны�
 - [`contracts/manual-test-checklist.md`](./contracts/manual-test-checklist.md) — manual test checklist (5 шагов).
 - [`../../281-find-lyrics-overwrites-key-bpm/spec.md`](spec.md) — Pass 281 спека (на которой основан этот).
 - [`../../../.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — Constitution (8 Core Principles).
-- [`../../../docs/ops/log-correlation.md`](../../docs/ops/log-correlation.md) — карта логов прода.
+- [`../../../docs/ops/log-correlation.md`](../../knowledge/guidelines/runbooks/log-correlation.md) — карта логов прода.

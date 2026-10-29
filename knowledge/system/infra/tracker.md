@@ -46,7 +46,7 @@ wayfinder, тикеты-решения, issue-задачи исполнения 
 [`op-plane-mapping.csv`](op-plane-mapping.csv).
 
 Команды, их семантика, коды выхода и пошаговые сценарии — в
-[`docs/tracker-setup.md`](../../../docs/tracker-setup.md) (единственный
+[`knowledge/guidelines/runbooks/tracker-setup.md`](../../guidelines/runbooks/tracker-setup.md) (единственный
 источник деталей, здесь не дублируются).
 
 ## Логика и Алгоритмы
@@ -122,7 +122,7 @@ Workflow».
   `infra`, host-nginx, TLS, `/srv/infra`, бэкапы.
 - → **`tools/tracker.sh`**, `tools/tracker-lib.sh`, `tools/tracker-poll.sh`,
   `tools/check-spec-issue-link.py` — клиенты Plane; детали и коды выхода —
-  [`docs/tracker-setup.md`](../../../docs/tracker-setup.md).
+  [`knowledge/guidelines/runbooks/tracker-setup.md`](../../guidelines/runbooks/tracker-setup.md).
 - → **[`op-plane-mapping.csv`](op-plane-mapping.csv)** — разрешение номеров
   OpenProject (`op:<NNN>`).
 - ← **OpenProject** на `nsa-i9` — источник перенесённых данных и ручной
@@ -173,7 +173,7 @@ Workflow».
   nginx и TLS для `tracker.sm-karaoke.ru`.
 - **[ci-tools.md](ci-tools.md)** — CI-раннер на `nsa-i9`; `check-spec-issue-link.py`
   проверяет привязку спек к задачам Plane.
-- **[`docs/tracker-setup.md`](../../../docs/tracker-setup.md)** — руководство
+- **[`knowledge/guidelines/runbooks/tracker-setup.md`](../../guidelines/runbooks/tracker-setup.md)** — руководство
   пользователя и агента: доступ, команды, состояния, диагностика.
 - **[`op-plane-mapping.md`](op-plane-mapping.md)** — таблица соответствия
   номеров OpenProject и Plane.

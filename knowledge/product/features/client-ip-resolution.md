@@ -166,8 +166,8 @@ rate-limit claim'ов share-ссылок, `client_ip_hash` в БД и анали
 - [`knowledge/domains/karaoke-web/domain.md`](../../domains/karaoke-web/domain.md) — «Решение 5: Адрес источника запроса»
 - [`knowledge/domains/karaoke-web/components/services-overview.md`](../../domains/karaoke-web/components/services-overview.md) — потребители правила
 - [`deploy/prod-single-host/80to8897`](../../../deploy/prod-single-host/80to8897) — прод-nginx: `X-Real-IP` и `X-Forwarded-For`
-- [`docs/features/public-settings-perimeter.md`](public-settings-perimeter.md) — тот же приём «`X-Real-IP` для журнала безопасности»
-- [`docs/features/internal-secret-sync.md`](internal-secret-sync.md) — журнал безопасности синхронизации (BR-011)
+- [`knowledge/product/features/public-settings-perimeter.md`](public-settings-perimeter.md) — тот же приём «`X-Real-IP` для журнала безопасности»
+- [`knowledge/product/features/internal-secret-sync.md`](internal-secret-sync.md) — журнал безопасности синхронизации (BR-011)
 
 ## Связанные ADR
 

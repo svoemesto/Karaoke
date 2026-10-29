@@ -101,7 +101,7 @@ JPA/Hibernate/Exposed. Сравнение LOCAL↔SERVER — через `recordh
 (prettier, baseline healing). `.gitattributes` — нормализация line endings.
 
 **Детали**: см. `docs/onboarding.md`, `docs/claude-code-setup.md`,
-`docs/architecture-notes.md`.
+`archive/docs/architecture-notes.md`.
 
 ### VIII. Секреты и git-гигиена (NON-NEGOTIABLE)
 
@@ -145,7 +145,7 @@ Search без результатов = зафиксировать в spec.md я�
 
 **Single source of truth**: `AGENTS.md` MUST #0 + constitution.md § IX.
 
-**Детали**: см. AGENTS.md § MUST #0, `docs/governance/knowledge-first.md` (layer 2).
+**Детали**: см. AGENTS.md § MUST #0, `knowledge/guidelines/knowledge-first.md` (layer 2).
 
 #### IX.3 — Subagent workspace isolation (NON-NEGOTIABLE, Pass 379)
 
@@ -278,7 +278,7 @@ Search без результатов = зафиксировать в spec.md я�
    «Architecture notes», для dated-истории — `docs/architecture-notes-archive.md`).
    **Дополнение (Phase 002)**: в иерархии 9 уровней (см. таблицу в `AGENTS.md`,
    секция «Документация и иерархия») — добавились `docs/onboarding.md`,
-   `docs/claude-code-setup.md`, `docs/architecture-notes.md` и
+   `docs/claude-code-setup.md`, `archive/docs/architecture-notes.md` и
    `.git-blame-ignore-revs` / `.gitattributes`.
 2. **Внесение изменений**: каждое изменение Конституции оформляется как
    `docs: amend constitution to vX.Y.Z (краткое описание)` в коммите. В commit-body
@@ -301,7 +301,7 @@ Search без результатов = зафиксировать в spec.md я�
    `AGENTS.md`/`DEVELOPMENT.md`; agent-specific skills и команды, если
    ссылаются на принципы). Sync Impact Report пишется в HTML-комментарии
    в начале `constitution.md` при каждом amend. **Дополнение (Phase 002)**:
-   при добавлении нового принципа обновлять `docs/architecture-notes.md`
+   при добавлении нового принципа обновлять `archive/docs/architecture-notes.md`
    (запись о PR) + `AGENTS.md` (если меняется иерархия документации).
 6. **Compliance-проверка в production** (на стороне пользователя, не агента):
    - после `deploy_web.sh` — логи push **не** содержат `EOF`/`400 Bad request`,

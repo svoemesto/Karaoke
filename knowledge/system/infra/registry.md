@@ -163,7 +163,7 @@ tag-retention применяется только там, где есть `keepT
 - **[do-sh.md](do-sh.md)** — команды публикации и получения.
 - **`AGENTS.md`** — правила деплоя и запрет `docker restart`.
 - **`specs/540-private-docker-registry/`** — спека, план, контракты, quickstart.
-- **`docs/features/private-docker-registry.md`** — per-feature документ (R-32).
+- **`knowledge/system/infra/registry.md`** — per-feature документ (R-32).
 
 ## Changelog
 

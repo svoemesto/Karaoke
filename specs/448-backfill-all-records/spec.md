@@ -47,7 +47,7 @@
   — `getFileInfo` обеих реализаций (`size=-1` при отсутствии), circuit-aware.
 - [`knowledge/domains/caching/components/web-caches.md`](../../knowledge/domains/caching/components/web-caches.md)
   — паттерны кеша (precedent #339).
-- [`docs/features/storage-metadata-cache.md`](../../docs/features/storage-metadata-cache.md)
+- [`docs/features/storage-metadata-cache.md`](../../knowledge/domains/storage/components/storage-api-client.md)
   — контракт кеша, backfill (Pass 435).
 - [`specs/435-cache-etag-size-backfill/spec.md`](../435-cache-etag-size-backfill/spec.md)
   — исходная фича (фильтр `exists=true`).

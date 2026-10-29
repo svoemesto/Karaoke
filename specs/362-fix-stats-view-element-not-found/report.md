@@ -134,7 +134,7 @@ Element not found` (стек указывал на apexcharts `render()`). Ко�
   Changelog запись про `lastLoadedAt`.
 - [`knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md`](../../knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md) —
   StatsView как пример lazy load для графиков.
-- [`docs/architecture-notes.md`](../../docs/architecture-notes.md) —
+- [`docs/architecture-notes.md`](../../archive/docs/architecture-notes.md) —
   Pass 362 запись.
 - OpenProject: Issue #79 → In review (после публикации отчёта).
 - PR: см. git log branch `362-fix-stats-view-element-not-found`.

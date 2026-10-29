@@ -411,7 +411,7 @@ Apache POI wrapper для чтения/записи Excel.
 
 `sanitize(s)` MUST быть идемпотентным. Любая правка = риск regression.
 
-См. `docs/features/idempotent-path-sanitize.md`.
+См. `knowledge/product/features/idempotent-path-sanitize.md`.
 
 ---
 

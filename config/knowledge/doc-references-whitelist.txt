@@ -52,7 +52,7 @@ archive/docs/features/telegram-auto-publish.md	path	application.properties	illus
 archive/docs/features/zakroma-stream-progress.md	path	tools/deploy-nginx-stream.sh	honest-gap
 archive/docs/onboarding-handoff/011-m23-special-orders-pickup.md	path	SpecialBucketView.vue	honest-gap
 archive/docs/strategy/growth-audit.md	path	NewsBell.vue	honest-gap
-docs/api/README.md	path	Settings.kt	honest-gap
+knowledge/guidelines/kdoc-jsdoc.md	path	Settings.kt	honest-gap
 archive/docs/features/telegram-auto-publish.md	path	config.json	host-path
 CONTRIBUTING.md	path	FilterModal.vue	illustrative
 CONTRIBUTING.md	path	SettingVoiceLine.kt	illustrative
@@ -69,3 +69,9 @@ archive/docs/features/songs-table.md	path	songs2.html	archived-record
 archive/docs/features/songs-table.md	path	area_left_column.html	archived-record
 knowledge/system/infra/harbor-registry.md	endpoint	/api/v2.0/projects	external-not-api
 knowledge/system/infra/ci-tools.md	path	start.sh	host-path
+archive/docs/features/README.md	link	../../../docs/architecture-notes.md	archived-record
+archive/docs/features/guest-share-link.md	link	../../../docs/architecture-notes.md	archived-record
+archive/docs/features/news-publish-backfill.md	link	../../../docs/architecture-notes.md	archived-record
+archive/docs/features/seo-html-for-bots.md	link	../../../docs/architecture-notes.md	archived-record
+archive/docs/features/site-traffic-resilience.md	link	../../../docs/architecture-notes.md	archived-record
+archive/docs/features/zakroma-stream-progress.md	link	../../../docs/architecture-notes.md	archived-record

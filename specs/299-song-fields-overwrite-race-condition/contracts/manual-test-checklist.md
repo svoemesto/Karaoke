@@ -141,6 +141,6 @@ fun main() {
 
 - [`../spec.md`](../spec.md) — основная спецификация (US1-US4, FR-001..FR-060, SC-001..SC-008).
 - [`../checklists/requirements.md`](../checklists/requirements.md) — quality checklist спецификации.
-- [`docs/ops/log-correlation.md`](../../../docs/ops/log-correlation.md) — карта логов прода, grep-маркеры `infra.prod.ping`.
+- [`docs/ops/log-correlation.md`](../../../knowledge/guidelines/runbooks/log-correlation.md) — карта логов прода, grep-маркеры `infra.prod.ping`.
 - [`specs/281-find-lyrics-overwrites-key-bpm/spec.md`](../../281-find-lyrics-overwrites-key-bpm/spec.md) — Pass 281 (предыдущая итерация фикса, на которой основан этот).
 - [`AGENTS.md`](../../../AGENTS.md) — governance, lint-gates, machine-specific rules.

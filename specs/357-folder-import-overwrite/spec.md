@@ -64,8 +64,8 @@
 - [`knowledge/domains/catalog/components/song-entity.md`](../../knowledge/domains/catalog/components/song-entity.md) — зачем прочитан: главная entity проекта, 150 полей, описание `saveToDb()` через diff (`KaraokeDbTable`).
 - [`knowledge/adr/local-0002-save-exception-handling.md`](../../knowledge/adr/local-0002-save-exception-handling.md) — зачем прочитан: принятый паттерн обработки исключений в `KaraokeDbTable.save()` для воркеров, влияет на FR-040.
 - [`knowledge/adr/local-0005-structured-logging-karaoke-app.md`](../../knowledge/adr/local-0005-structured-logging-karaoke-app.md) — зачем прочитан: контракт `infra.prod.*` логов, обязательный для FR-160 (WARN при lock-timeout / fallback / diff_overlap).
-- [`docs/features/process-bulk-actions.md`](../../docs/features/process-bulk-actions.md) — зачем прочитан: контекст `KaraokeProcess` lifecycle и связь с импортом файлов из папки.
-- [`docs/features/idempotent-path-sanitize.md`](../../docs/features/idempotent-path-sanitize.md) — зачем прочитан: импорт файлов из папки проходит через `Song.createFromPath` (строка 8271 спеки 357), где используется `sanitizeSongFileName` — этот код будет затронут FR-005.
+- [`docs/features/process-bulk-actions.md`](../../knowledge/product/features/process-bulk-actions.md) — зачем прочитан: контекст `KaraokeProcess` lifecycle и связь с импортом файлов из папки.
+- [`docs/features/idempotent-path-sanitize.md`](../../knowledge/product/features/idempotent-path-sanitize.md) — зачем прочитан: импорт файлов из папки проходит через `Song.createFromPath` (строка 8271 спеки 357), где используется `sanitizeSongFileName` — этот код будет затронут FR-005.
 - [`specs/299-song-fields-overwrite-race-condition/spec.md`](../../specs/299-song-fields-overwrite-race-condition/spec.md) — зачем прочитан: **базовая спека**, вводит `saveToDbLocked()` / `loadFromDbByIdForUpdate`. Спека 357 наследует FR-001..FR-016, FR-020, FR-030, FR-040, FR-060 спеки 299 и расширяет их FR-100..FR-180 для ВСЕХ оставшихся мест `saveToDb()`.
 
 ### Если ничего не нашлось (явный no-op)
@@ -214,7 +214,7 @@
 ### Key Entities *(include if feature involves data)*
 
 - **`Song`** (главная entity, ~150 полей, `tbl_songs`) — единственная entity, защищаемая в этой спеке. См. [`knowledge/domains/catalog/components/song-entity.md`](../../knowledge/domains/catalog/components/song-entity.md).
-- **`KaraokeProcess`** (очередь задач, `tbl_processes`) — НЕ трогается в этой спеке (только косвенно через `Song.saveToDb` при обновлении статусов). См. [`docs/features/process-bulk-actions.md`](../../docs/features/process-bulk-actions.md).
+- **`KaraokeProcess`** (очередь задач, `tbl_processes`) — НЕ трогается в этой спеке (только косвенно через `Song.saveToDb` при обновлении статусов). См. [`docs/features/process-bulk-actions.md`](../../knowledge/product/features/process-bulk-actions.md).
 
 ## Success Criteria *(mandatory)*
 

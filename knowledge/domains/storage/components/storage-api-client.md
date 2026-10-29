@@ -189,7 +189,7 @@ connection-pool).
 
 Это **root-cause fix** для OpenProject #65 «Ошибка при проверке наличия
 файла в удаленном хранилище». См. `specs/352-storage-graceful-degradation/spec.md`,
-`docs/features/storage-metadata-cache.md`, `specs/349-tracker-must-link/report-65.md`.
+`knowledge/domains/storage/components/storage-api-client.md`, `specs/349-tracker-must-link/report-65.md`.
 
 ## Pass 372: watchdog + manual reset (Spec #405, OpenProject #131)
 
@@ -221,7 +221,7 @@ connection-pool).
   - `reset transitions to CLOSED idempotently`.
 
 См. `specs/405-storage-circuit-breaker-watchdog/spec.md`, `tasks.md`, `plan.md`,
-`docs/features/storage-metadata-cache.md` (V2.2).
+`knowledge/domains/storage/components/storage-api-client.md` (V2.2).
 
 ## Pass 426: блокирующий loader + реальный timeout (Spec #426, OpenProject #150)
 

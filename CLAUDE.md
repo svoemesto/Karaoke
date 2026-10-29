@@ -46,9 +46,9 @@
 | Build/docker конвенции | `knowledge/guidelines/architecture-conventions.md` |
 | Per-feature документы | `docs/features/<slug>.md` (FR-009) |
 | Стратегия роста | `docs/strategy/growth.md` |
-| Логи прода, диагностика | `docs/ops/log-correlation.md` |
-| Changelog PR | `docs/architecture-notes.md` |
-| Трекер проекта (Plane) | `docs/tracker-setup.md`, `knowledge/system/infra/tracker.md` |
+| Логи прода, диагностика | `knowledge/guidelines/runbooks/log-correlation.md` |
+| Changelog PR | `archive/docs/architecture-notes.md` |
+| Трекер проекта (Plane) | `knowledge/guidelines/runbooks/tracker-setup.md`, `knowledge/system/infra/tracker.md` |
 | Настройка Claude Code | `docs/claude-code-setup.md` |
 
 ## 🚦 Ключевые правила (Claude Code-specific)
@@ -68,7 +68,7 @@
   другие сущности.
 - **1.7.0** (2026-10-27, T5 карты `tracker-migration`): синхронизация с
   `AGENTS.md` v3.6.0 — рабочий трекер Plane, OpenProject остаётся локальным
-  архивом для ручных задач; ссылки на `docs/tracker-setup.md` и
+  архивом для ручных задач; ссылки на `knowledge/guidelines/runbooks/tracker-setup.md` и
   `knowledge/system/infra/tracker.md`.
 - **1.6.1** (Pass 381, 2026-09-30): синхронизация с `AGENTS.md` v3.4.1 — Pass 380
   больше не указывает нерабочий путь `/api/process/stop`; эндпоинты очереди

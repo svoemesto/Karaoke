@@ -118,7 +118,7 @@ Tomcat (не `ThreadMXBean.peakThreadCount` — это пик потоков в�
 ## Связи
 
 - Отчёт пакета: `specs/401-pkg-s3-29/report.md`
-- Per-feature: `docs/features/pkg-s3-29.md`
+- Per-feature: `knowledge/system/infra/audit-336-registry.md`
 - Реестр аудита: `specs/336-code-audit/registry.csv` (`work_package=401`)
 - Кэш ответов: `PollingCache` (`karaoke-app/.../services/PollingCache.kt`)
 - Инварианты публичного SPA (фронт): `frontend/karaoke-public-audit-invariants.md`

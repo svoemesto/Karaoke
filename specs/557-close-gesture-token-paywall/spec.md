@@ -79,7 +79,7 @@
   — конвенция логирования и error handling в `karaoke-web` (обязательное требование к журналу отказов, FR-012).
 - [`knowledge/adr/local-0001-karaoke-properties-defaults.md`](../../knowledge/adr/local-0001-karaoke-properties-defaults.md)
   — конвенция настроек с non-secure дефолтами: релевантна, если правка вводит новую настройку (срок жизни токена, флаг включения) — дефолт должен быть безопасным.
-- [`docs/features/song-air-access.md`](../../docs/features/song-air-access.md)
+- [`docs/features/song-air-access.md`](../../knowledge/product/features/song-air-access.md)
   — per-feature документ (Constitution VI, FR-009) с приоритетом правил доступа: `idStatus < 6` → нет публичного доступа; далее «всегда бесплатно» / «не снимать с эфира» / стандартное окно бесплатного доступа / иначе premium-only. Это и есть продуктовый контракт «права», к которому приводится выдача аудио.
 - Решение владельца по спеке 554 (`specs/554-close-public-sql-endpoint/spec.md`) — образец структуры и глубины этой спеки; правило «сначала закрыть публичный периметр, поведение легитимного клиента не менять».
 

@@ -93,7 +93,7 @@ sampling, dedup, rate limiting. Все настройки — через
 (фолбэк — TCP-peer), без XFF: запись в журнале безопасности не должна опираться на
 заголовок, который клиент контролирует хотя бы частично (аудит BR-011, #357).
 
-Подробности: [`docs/features/client-ip-resolution.md`](../../../docs/features/client-ip-resolution.md).
+Подробности: [`knowledge/product/features/client-ip-resolution.md`](../../product/features/client-ip-resolution.md).
 
 ## Ubiquitous Language | Единый язык
 

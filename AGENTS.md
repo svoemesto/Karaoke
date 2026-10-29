@@ -132,7 +132,7 @@
 
 **Rule**: При Issue ID — **обязательно** 4 шага (`report.md` — REQUIRED артефакт).
 Трекер — Plane (`https://tracker.sm-karaoke.ru`, workspace `svoemesto`, проект
-`KARAOKE`); команды, состояния и коды выхода — `docs/tracker-setup.md`.
+`KARAOKE`); команды, состояния и коды выхода — `knowledge/guidelines/runbooks/tracker-setup.md`.
 
 | Шаг | Команда | Когда |
 |---|---|---|
@@ -147,7 +147,7 @@ OpenProject принимается только с префиксом `op:403` �
 
 **Failure** (Pass 349): OpenProject #69 без workflow → отчёт задним числом.
 **Enforcement**: `tools/check-spec-issue-link.py` + manual review.
-**Source**: `docs/tracker-setup.md`, ADR `knowledge/adr/local-0012-plane-tracker-migration.md`.
+**Source**: `knowledge/guidelines/runbooks/tracker-setup.md`, ADR `knowledge/adr/local-0012-plane-tracker-migration.md`.
 
 ### Как понимать «Задача N»
 
@@ -169,7 +169,7 @@ OpenProject принимается только с префиксом `op:403` �
 **Failure**: «Задача 307» понята как OpenProject #307 или как каталог
 `specs/307-*` → работа сделана не над той задачей.
 **Enforcement**: manual review; номер вне диапазона Plane — уточнить у владельца.
-**Source**: `docs/tracker-setup.md` § «Задачи и нумерация».
+**Source**: `knowledge/guidelines/runbooks/tracker-setup.md` § «Задачи и нумерация».
 
 ## Tier-1: Hard Gate — Git — CI-gate для master ⛔
 
@@ -231,7 +231,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 
 **Rule**: При отладке — сначала `docker logs <container>`, потом гипотезы.
 **Failure**: потеря итераций на гипотезы, лог прямо указывал на причину.
-**Source**: `docs/ops/log-correlation.md`.
+**Source**: `knowledge/guidelines/runbooks/log-correlation.md`.
 
 ## Tier-1: Hard Gate — Процесс: wayfinder → исполнение (PR #590)
 
@@ -248,7 +248,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 
 **Трекер — только Plane**: карта, тикеты-решения и issue-задачи — задачи проекта
 `KARAOKE` (workspace `svoemesto`); локальные `issues_NNNN.md` в проекте **не
-ведутся**. Раскладка карты и тикетов, состояния и команды — `docs/tracker-setup.md`
+ведутся**. Раскладка карты и тикетов, состояния и команды — `knowledge/guidelines/runbooks/tracker-setup.md`
 § «Wayfinding в Plane», состояние инфраструктуры трекера —
 `knowledge/system/infra/tracker.md`. Каталог `.scratch/karaoke/` — только разовые
 локальные артефакты (research-выгрузки, черновики), не слой задач.
@@ -262,7 +262,7 @@ Hub в публичном репо. **Enforcement**: `check-ssot-impact.py` + ma
 Plane; правка `agents-team-srv` под задачи Караоке; спека как черновик
 (правки FR/SC «по ходу» без слова владельца).
 **Source**: `~/.dsh/romario-team/wayfinding-operations.md` + `subagents.md`
-(командные инструкции, установлены 2026-09-29); `docs/tracker-setup.md`.
+(командные инструкции, установлены 2026-09-29); `knowledge/guidelines/runbooks/tracker-setup.md`.
 
 ## Tier-2: Каталог guards (Pass 379)
 
@@ -332,7 +332,7 @@ cd deploy && bash do.sh build_public && cd ..
   и коды выхода прежние); процессный блок ведёт карты и тикеты в Plane;
   OpenProject остаётся локально для ручных задач (ADR `local-0012`, решение
   `06`), его номера принимаются через `op:<NNN>`. Указатели:
-  `docs/tracker-setup.md`, `knowledge/system/infra/tracker.md`,
+  `knowledge/guidelines/runbooks/tracker-setup.md`, `knowledge/system/infra/tracker.md`,
   `knowledge/system/infra/op-plane-mapping.csv`.
 - **3.5.0** (2026-10-24, BR-581, OpenProject #390): `GRADLE_USER_HOME` и
   `DOCKER_CONFIG` — **от корня репозитория**, без хардкода пути машины.

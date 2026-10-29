@@ -219,7 +219,7 @@ BUILD SUCCESSFUL in 12s
 `.../StatBySongCacheStateTest.kt`, `.../templates/ThymeleafTemplatesTest.kt`,
 `karaoke-app/src/test/.../audit/PkgErrStatsZeroMonetizationTest.kt`.
 
-Документы: [per-feature](../../docs/features/pkg-err-stats-zero.md),
+Документы: [per-feature](../../knowledge/system/infra/audit-336-registry.md),
 [SSoT stats-cache](../../knowledge/domains/publishing/components/stats-cache.md),
 [SSoT stats domain](../../knowledge/domains/stats/domain.md),
 [SSoT public-controllers-3](../../knowledge/domains/karaoke-web/components/public-controllers-3.md),

@@ -76,7 +76,7 @@ Karaoke. Каждое правило — в формате `Rule / Protocol / Fa
 **Failure**: Нарушение → потеря данных при импорте (issue #53: `!`/`?`
 молча удалялись → файлы не находились).
 
-**Reference**: `docs/features/idempotent-path-sanitize.md`.
+**Reference**: `knowledge/product/features/idempotent-path-sanitize.md`.
 
 **Enforcement**: `tools/check-no-mp4-mentions.sh` baseline (125 записей legacy).
 
@@ -181,7 +181,7 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
 `tools/gradle-heap-dump.sh --self-test` (эмпирическая проверка прав 700/600).
 Джоб `build-config-guard` в `.github/workflows/lint.yml`, pre-commit-хуки
 `gradle-wrapper-guard` и `build-config-guard`. Per-feature документ —
-[`docs/features/pkg-s3-34.md`](../../docs/features/pkg-s3-34.md).
+[`knowledge/system/infra/audit-336-registry.md`](../system/infra/audit-336-registry.md).
 
 ### R-47 — Проверки пакета не равны CI: контрактный прогон перед PR
 

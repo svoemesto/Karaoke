@@ -82,7 +82,7 @@
 ## Markdown / docs
 
 - **Frontmatter** обязателен для каждого LiveDoc (`status`, `slug`).
-- **Templates**: использовать [knowledge/templates/](../../templates/).
+- **Templates**: использовать [knowledge/templates/](../templates/).
 - **C4 mermaid** для архитектурных диаграмм (L1, L2, L3).
 - **State-based**, не changelog-style.
 - **Эмодзи запрещены** в markdown (линтер падает, см. `tools/lint-knowledge.py`).

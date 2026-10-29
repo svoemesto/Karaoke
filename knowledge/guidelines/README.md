@@ -17,7 +17,7 @@
 
 | Документ | Назначение | Источник |
 | --- | --- | --- |
-| `kdoc-jsdoc.md` | Правила KDoc/JSDoc и шаблоны | `docs/api/README.md` |
+| `kdoc-jsdoc.md` | Правила KDoc/JSDoc и шаблоны | `knowledge/guidelines/kdoc-jsdoc.md` |
 | `vue-style.md` | Vue/Vite style (выжимка из CONTRIBUTING.md) | TBD |
 
 ## Связь с шаблонами

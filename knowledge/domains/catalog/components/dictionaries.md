@@ -44,7 +44,7 @@
 **Использование в админских фильтрах публикаций** (OpenProject #326):
 UNPUBLISH показывает только `idStatus = 6` (полностью готово, но публикация не
 назначена); UNDONE — `idStatus < 6`, включая 5 («отрендерено, ждёт approve»).
-См. [docs/features/publications-filters.md](../../../../docs/features/publications-filters.md).
+См. [knowledge/product/features/publications-filters.md](../../../product/features/publications-filters.md).
 
 **Запрещено**:
 

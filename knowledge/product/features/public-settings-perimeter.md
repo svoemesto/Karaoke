@@ -191,7 +191,7 @@ curl -s -X POST "https://sm-karaoke.ru/api/properties/setproperty" \
 - [`knowledge/domains/karaoke-web/components/config.md`](../../domains/karaoke-web/components/config.md)
 - [`knowledge/domains/karaoke-web/components/services-overview.md`](../../domains/karaoke-web/components/services-overview.md)
 - [`knowledge/domains/monitoring/components/log-categories.md`](../../domains/monitoring/components/log-categories.md)
-- [`docs/features/internal-secret-sync.md`](internal-secret-sync.md) — тот же контракт заголовка для `POST /changerecords`
+- [`knowledge/product/features/internal-secret-sync.md`](internal-secret-sync.md) — тот же контракт заголовка для `POST /changerecords`
 
 ## Связанные ADR
 

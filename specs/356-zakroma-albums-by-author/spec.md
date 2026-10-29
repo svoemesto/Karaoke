@@ -61,7 +61,7 @@
 - [`knowledge/domains/processing/components/two-db-sync.md`](../../knowledge/domains/processing/components/two-db-sync.md) — SyncRegistry, `Album` уже зарегистрирован, добавление колонок потребует пересоздания `recordhash`-триггера (см. Constitution III).
 - [`knowledge/adr/local-0003-shared-minio-image-cache.md`](../../knowledge/adr/local-0003-shared-minio-image-cache.md) — обложки альбомов 200×200, MinIO-кеш, TTL 7 дней, dedup через ETag.
 - [`knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md`](../../knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md) — Vuex-паттерн для админки. Для публичного сайта (`karaoke-public`) — localStorage / Vue 3 composables, паттерн другой (но идейно близок).
-- [`docs/features/zakroma-tiles-sort-order.md`](../../docs/features/zakroma-tiles-sort-order.md) — прецедент: спец-плашка, sort_order, `AuthorTiles.vue` со слотом `<slot name="leading" />`. Эта фича — её «next step».
+- [`docs/features/zakroma-tiles-sort-order.md`](../../knowledge/domains/catalog/components/dictionaries.md) — прецедент: спец-плашка, sort_order, `AuthorTiles.vue` со слотом `<slot name="leading" />`. Эта фича — её «next step».
 - [`specs/286-author-song-counts-cache/spec.md`](../286-author-song-counts-cache/spec.md) — **точный прецедент** для денормализации счётчиков + DB-триггер + sync через recordhash. Этот спек прямо упоминается в issue #70 («как в своё время эти поля были добавлены в таблицу авторов»).
 - [`specs/307-special-authors-zakroma-order/spec.md`](../307-special-authors-zakroma-order/spec.md) — `/zakroma` route, `AuthorTiles.vue`, `ZakromaView.vue`, `AuthorTilePublicDto`.
 - [`knowledge/adr/0001-raw-jdbc.md`](../../knowledge/adr/0001-raw-jdbc.md) — сырой JDBC, без JPA/Hibernate.

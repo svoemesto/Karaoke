@@ -134,7 +134,7 @@ Guard статически разбирает конфиг (собственны
 
 ## Связанные документы
 
-- [`docs/features/security-headers.md`](../../docs/features/security-headers.md) —
+- [`knowledge/product/features/security-headers.md`](../product/features/security-headers.md) —
   per-feature документ (FR-009).
 - [`knowledge/domains/storage/domain.md`](../domains/storage/domain.md) —
   MinIO-контур и почему `/minio/` без `nosniff`.

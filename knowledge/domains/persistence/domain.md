@@ -146,7 +146,7 @@ fallback'ы. Текущее поведение `save()` этому против�
 Исполнение: `Song.loadListFromDb`/`Song.countMatchingAttr`, `KaraokeProcess.loadList`
 и `KaraokeDbTable.loadList` выбирают `PreparedStatement`, если `params` непуст.
 Регрессия — `karaoke-app/src/test/.../model/SqlInjection*Test.kt`; per-feature
-документ — [sql-injection-hardening](../../../docs/features/sql-injection-hardening.md).
+документ — [sql-injection-hardening](../../system/infra/audit-336-registry.md).
 
 ### Соединение на поток (ThreadLocal) и его жизненный цикл
 

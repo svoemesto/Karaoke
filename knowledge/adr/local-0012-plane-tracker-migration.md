@@ -69,5 +69,5 @@ tags:
    решения владельца — архив нужен как резолвер старых номеров.
 4. **Известное ограничение**: Plane CE — лимит 12 пользователей на workspace.
 5. **Required Update выполнен** (T5): `knowledge/system/infra/tracker.md`,
-   `AGENTS.md` (Plane-workflow), `docs/tracker-setup.md`, таблица соответствия
+   `AGENTS.md` (Plane-workflow), `knowledge/guidelines/runbooks/tracker-setup.md`, таблица соответствия
    в `knowledge/system/infra/`.

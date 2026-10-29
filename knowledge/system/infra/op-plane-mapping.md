@@ -80,7 +80,7 @@ grep -E '^403,' knowledge/system/infra/op-plane-mapping.csv
 ## Связь с другими компонентами
 
 - **[tracker.md](tracker.md)** — состояние трекера Plane и рабочего цикла.
-- **[`docs/tracker-setup.md`](../../../docs/tracker-setup.md)** — команды CLI,
+- **[`knowledge/guidelines/runbooks/tracker-setup.md`](../../guidelines/runbooks/tracker-setup.md)** — команды CLI,
   включая форму `op:<NNN>`, и диагностика.
 
 ## Changelog

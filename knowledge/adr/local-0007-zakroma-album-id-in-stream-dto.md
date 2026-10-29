@@ -89,7 +89,7 @@ data class ZakromaAlbumMetaPublicDto(
 - [deploy/karaoke-db/49_albums_song_counts.sql](../../deploy/karaoke-db/49_albums_song_counts.sql) — триггер для `tbl_albums` (Pass 357)
 - [specs/286-author-song-counts-cache](../../specs/286-author-song-counts-cache/spec.md) — прецедент денормализации
 - [specs/356-zakroma-albums-by-author/spec.md](../../specs/356-zakroma-albums-by-author/spec.md) — Issue #70
-- [docs/features/zakroma-albums-by-author.md](../../docs/features/zakroma-albums-by-author.md) — per-feature документ
+- [knowledge/domains/catalog/components/album-entity.md](../domains/catalog/components/album-entity.md) — per-feature документ
 
 ## История
 

@@ -171,11 +171,12 @@ jobs:
     name: backend build (Kotlin)
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      # GRADLE_USER_HOME не переопределяем: setup-java (cache: gradle) кэширует
-      # ~/.gradle — и wrapper/dists (дистрибутив Gradle), и caches (зависимости).
-      # Прежнее переопределение на workspace делало кэш бесполезным: Gradle
-      # писал в другой каталог, и дистрибутив качался в каждом джобе.
+    # GRADLE_USER_HOME не переопределяем: setup-java (cache: gradle) кэширует
+    # ~/.gradle — и wrapper/dists (дистрибутив Gradle), и caches (зависимости).
+    # Прежнее переопределение на workspace делало кэш бесполезным: Gradle
+    # писал в другой каталог, и дистрибутив качался в каждом джобе.
+    # Пустой `env:` (только комментарии) YAML читает как null — Forgejo валит
+    # такой джоб за 0 секунд, поэтому ключ убран целиком.
     steps:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

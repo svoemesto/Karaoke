@@ -259,7 +259,8 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [ ] T045 [US3] `ArtifactIntegrityScheduler` в
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/ArtifactIntegrityScheduler.kt`:
   `@Scheduled` по `queue.integrity.cron`, отчёт в `PATH_TO_LOGS/artifact-integrity/<date>.json`,
-  последний отчёт в памяти, SSE-уведомление, **без правок**
+  последний отчёт в памяти, SSE-уведомление, **без правок**; guard `queue.integrity.enabled=false`
+  → проверка не запускается и отчёт не пишется (unit-кейс в `ArtifactIntegrityTest`)
 - [ ] T046 [US3] Разовый ремонт 8 песен 30390–30397 на стенде по
   `specs/674-kortege-execution/quickstart.md` §3.5: `dryRun=true` → подтверждение находок →
   `dryRun=false`; после — отчёт целостности `findingsTotal=0` (SC-005)
@@ -297,7 +298,9 @@ single-flight/resume/janitor/проверку содержимого, integratio
 - [ ] T051 [US4] `dto/admin/KaraokeProcessAdminDTO.kt`: `chainId`, `chainStepIndex`,
   `chainStepsTotal`, `chainState`, `chainFailedStep`, `chainReason`, `progress`
 - [ ] T052 [US4] `services/KaraokeProcessAdminService.kt`: `retryProcess` — tuple-aware (все
-  `ERROR`-шаги кортежа → `WAITING`, приоритет кортежа, одна audit-запись)
+  `ERROR`-шаги кортежа → `WAITING`, приоритет кортежа, одна audit-запись); статусы и audit —
+  **строго через `inTransaction(connection)`** (BR-168: `PkgS323Batch4SourceContractsTest` считает
+  транзакционные блоки в админ-сервисе)
 - [ ] T053 [P] [US4] `webvue3/src/components/Processes/ProcessesTable.vue` и
   `webvue3/src/components/Processes/store.js`: колонка «Шаг k из N», состояние кортежа, причина,
   фильтр `chainState`

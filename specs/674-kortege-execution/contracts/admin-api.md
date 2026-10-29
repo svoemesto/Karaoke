@@ -95,6 +95,11 @@ Query-параметры — без изменений (`status`, `type`, `threa
 
 Идемпотентность: повторный retry уже `WAITING`-кортежа — `409` (статус не `ERROR`), как сейчас.
 
+**Транзакционность (BR-168).** Изменение статусов кортежа и запись audit-лога выполняются в одной
+транзакции через существующий `inTransaction(connection)` админ-сервиса (autocommit=false → commit/
+rollback → восстановление autocommit). Обходить `inTransaction` нельзя: `PkgS323Batch4SourceContractsTest`
+проверяет наличие и число транзакционных блоков в `KaraokeProcessAdminService.kt`.
+
 ## 3. `GET /api/admin/processes/{id}` — без изменений пути, DTO с §1.2
 
 `GET /api/admin/processes/{id}/audit` — без изменений.

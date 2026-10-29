@@ -155,9 +155,22 @@ class KaraokeProperties {
 
         fun getString(key: String): String = get(key)?.let { it as String } ?: ""
 
-        fun getLong(key: String): Long = get(key)?.let { it as Long } ?: 0L
+        // specs/674-kortege-execution: defaultValue у числовых свойств — Int (24, 60…),
+        // поэтому `it as Long` падал ClassCastException на первом же чтении Long-свойства
+        // (janitor: `queue.tuple.temp_ttl_hours`). Приводим Number/String, а не кастуем.
+        fun getLong(key: String): Long =
+            when (val value = get(key)) {
+                is Number -> value.toLong()
+                is String -> value.toLongOrNull() ?: 0L
+                else -> 0L
+            }
 
-        fun getInt(key: String): Int = get(key)?.let { it as Int } ?: 0
+        fun getInt(key: String): Int =
+            when (val value = get(key)) {
+                is Number -> value.toInt()
+                is String -> value.toIntOrNull() ?: 0
+                else -> 0
+            }
 
         fun getDouble(key: String): Double = get(key)?.let { it as Double } ?: 0.0
 

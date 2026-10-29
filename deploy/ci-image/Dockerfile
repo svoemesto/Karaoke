@@ -67,5 +67,20 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 RUN npx -y playwright@1.63.0 install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 
+# Node для setup-node: та же логика, что с JDK — дистрибутив лежит в toolcache,
+# поэтому action не ходит ни в API версий nodejs.org (rate limit), ни за tarball.
+# Версия должна совпадать с базовым образом (node:22-bookworm = 22.23.4) и с
+# node-version в workflow.
+RUN set -eux; \
+    v=22.23.4; \
+    dir=/opt/hostedtoolcache/node/$v; \
+    mkdir -p "$dir"; \
+    curl -fsSL -o /tmp/node.tar.xz "https://nodejs.org/dist/v$v/node-v$v-linux-x64.tar.xz"; \
+    tar -xJf /tmp/node.tar.xz -C "$dir"; \
+    mv "$dir/node-v$v-linux-x64" "$dir/x64"; \
+    touch "$dir/x64.complete"; \
+    rm -f /tmp/node.tar.xz; \
+    "$dir/x64/bin/node" --version
+
 RUN java -version && node --version && python3 -c "import yaml; print('pyyaml', yaml.__version__)" \
     && jq --version && docker --version && ffmpeg -version | head -1

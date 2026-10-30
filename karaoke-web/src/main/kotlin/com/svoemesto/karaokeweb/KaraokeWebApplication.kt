@@ -20,5 +20,9 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class KaraokeWebApplication
 
 fun main(args: Array<String>) {
+    // KARAOKE-338: веб-приложение прода явно остаётся в роли PROD — новости «в коллекции»
+    // создаёт админка (karaoke-app) и доставляет синхронизация; на проде работает только
+    // путь по применению синхронизации (MainController.doChangeRecords).
+    com.svoemesto.karaokeapp.KaraokeRuntimeRole.name = com.svoemesto.karaokeapp.KaraokeRuntimeRole.PROD
     runApplication<KaraokeWebApplication>(*args)
 }

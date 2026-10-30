@@ -6076,8 +6076,65 @@ class Song(
      *
      * @return true — данные в БД актуальны; false — сохранить не удалось (вызывающий обязан
      *   не считать результат применённым; [saveToDbLocked] делает rollback).
+     *
+     * **KARAOKE-338.** Дополнительно, если именно в этом сохранении флаг
+     * [newsAvailableAnnounced] впервые стал true (false→true), метод создаёт новость «в коллекции»
+     * в текущей БД (только в админке, см. [KaraokeRuntimeRole.isAdmin]).
+     *
+     * **Почему здесь.** Раньше новость «в коллекции» создавалась только на проде, в `karaoke-web`
+     * (`MainController.doChangeRecords` → `SongReleaseAnnouncementService`), по факту применения
+     * синхронизации с переходом флага. Но флаг живёт внутри `player_readiness_flags`, а это поле
+     * намеренно исключено из синхронизации как «шум готовности файлов»
+     * (`RecordDiff(..., recordDiffRealField = false)` + `SongSyncTarget.shouldPush`). Если флаг
+     * менялся отдельно от «реальных» полей (инцидент 2026-10-30: 50+ песен «Секрет»), он не доезжал
+     * до прода, перехода там не было — и новость не появлялась, хотя публикации в Telegram и ВК
+     * уходили.
+     *
+     * Теперь новость создаётся сразу в админке (роль процесса — [KaraokeRuntimeRole.isAdmin]) и
+     * доставляется на прод штатной синхронизацией сущности `news` (LOCAL→SERVER). Прод-путь
+     * остаётся страховкой: он идемпотентен (гард `News.existsAnnouncement`) и дублей не создаёт.
+     * Прошлые песни без новостей не догоняются — создание событийное, без сканирования.
      */
     fun saveToDb(): Boolean {
+        val announcedBefore = newsAvailableAnnounced
+        val saved = saveToDbInternal()
+        if (saved) announceCollectionNewsIfJustAnnounced(announcedBefore)
+        return saved
+    }
+
+    /**
+     * Создаёт новость «в коллекции», если в этом сохранении флаг [newsAvailableAnnounced] перешёл
+     * false→true. Ошибки логируются и не пробрасываются: сбой новости не должен ломать сохранение
+     * песни (тот же принцип, что в `SongReleaseAnnouncementService.detectAndAnnounceAvailability`).
+     */
+    private fun announceCollectionNewsIfJustAnnounced(announcedBefore: Boolean) {
+        if (announcedBefore || !newsAvailableAnnounced || id == 0L) return
+        // Только админка: на проде (karaoke-web) новость создаёт путь по синхронизации, иначе
+        // получились бы дубли.
+        if (!KaraokeRuntimeRole.isAdmin) return
+        try {
+            val created =
+                SongReleaseAnnouncementService.detectAndAnnounceAvailability(
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    songId = id,
+                    wasAvailableBefore = false,
+                )
+            if (created) {
+                println(
+                    "[${Timestamp.from(Instant.now())}] news.created: новость «в коллекции» " +
+                        "для songId=$id создана в админке (KARAOKE-338)",
+                )
+            }
+        } catch (e: Exception) {
+            println(
+                "[${Timestamp.from(Instant.now())}] news.create_failed: songId=$id — ${e.message}",
+            )
+        }
+    }
+
+    private fun saveToDbInternal(): Boolean {
         if (readonly) return false
         // BR-103 (аудит #336, пакет PKG-S3-22): значения полей голосов ДО нормализации —
         // по ним считается трёхстороннее слияние со свежей строкой из БД.

@@ -959,63 +959,36 @@ check_br550() {
 }
 
 # ---------------------------------------------------------------------
-# BR-630 — karaoke-app: предел памяти контейнера и связь «heap ↔ предел»
-#   (спека 676 / KARAOKE-245, FR-006…FR-008).
+# BR-630 — karaoke-app: превентивные меры против OOM (спека 676 /
+#   KARAOKE-245, FR-006…FR-015).
 #
 #   Прецедент 2026-10-23: JVM с -Xmx8g без cgroup-лимита вытесняла память
 #   admin-машины (хост уходил в swap, соседние сервисы страдали), погиб
 #   HttpClient-монитор и 5+ часов держался ложный CRITICAL «прод недоступен».
 #   Значение -Xmx жило только в неотслеживаемом deploy/.env — связь «heap меньше
-#   предела» из репозитория не проверялась. Теперь лимиты объявлены в compose,
-#   и guard следит, чтобы они оставались согласованными.
+#   предела» из репозитория не проверялась.
+#
+#   ЕДИНСТВЕННАЯ реализация правил BR-630 — в tools/check-memory-guardrails.sh
+#   (быстрый guard, работает в pre-commit и CI). Здесь — только делегирование:
+#   вывод guard'а печатается как есть, вердикт определяется его кодом возврата.
+#   Так ручной инструмент по-прежнему покрывает правило, а расхождение между
+#   двумя реализациями невозможно.
 # ---------------------------------------------------------------------
 check_br630() {
     local br="BR-630"
-    local f="deploy/docker-compose-app.yml"
-    if file_has 'mem_limit:[[:space:]]*8g' "$f"; then
-        ok "$br" "$f: предел памяти контейнера karaoke-app — 8 ГБ"
-    else
-        bad "$br" "$f: нет mem_limit: 8g — у контейнера нет cgroup-потолка памяти"
+    local guard="$REPO/tools/check-memory-guardrails.sh"
+    if [[ ! -f "$guard" ]]; then
+        bad "$br" "tools/check-memory-guardrails.sh не найден — правила BR-630 не проверяются"
+        return
     fi
-    if file_has '\-Xmx6g' "$f"; then
-        ok "$br" "$f: максимум heap JVM — 6 ГБ (меньше предела контейнера 8 ГБ)"
+    local output rc
+    output="$(bash "$guard" 2>&1)"
+    rc=$?
+    printf '%s\n' "$output" | sed -n '/\[BR-630\]/p'
+    if [[ "$rc" -eq 0 ]]; then
+        ok "$br" "правила BR-630 (предел памяти, heap, дампы, пороги, retention) — делегированы tools/check-memory-guardrails.sh"
     else
-        bad "$br" "$f: нет -Xmx6g — значение heap не зафиксировано в репозитории"
-    fi
-    # -Xmx6g должен идти ПОСЛЕ ${APP_JAVA_OPTS}: последний -Xmx побеждает, иначе
-    # устаревшее значение из неотслеживаемого .env перебьёт лимит (heap == предел).
-    if grep -vE '^[[:space:]]*#' "$REPO/$f" | grep -qE 'command:.*APP_JAVA_OPTS.*-Xmx6g'; then
-        ok "$br" "$f: -Xmx6g идёт после \${APP_JAVA_OPTS} — перекрывает значение из deploy/.env"
-    else
-        bad "$br" "$f: -Xmx6g не после \${APP_JAVA_OPTS} — значение из deploy/.env перебьёт лимит"
-    fi
-    # FR-009/FR-010: дамп heap при OOM пишется на том, том смонтирован.
-    if file_has '\-XX:\+HeapDumpOnOutOfMemoryError' "$f" && file_has '\-XX:HeapDumpPath=/dumps' "$f"; then
-        ok "$br" "$f: дамп состояния heap при OOM пишется на том"
-    else
-        bad "$br" "$f: нет -XX:+HeapDumpOnOutOfMemoryError/-XX:HeapDumpPath=/dumps — дамп при OOM не пишется"
-    fi
-    if file_has '\./karaoke-db/dumps:/dumps' "$f"; then
-        ok "$br" "$f: /dumps смонтирован — HeapDumpPath работает, дамп переживает рестарт"
-    else
-        bad "$br" "$f: /dumps не смонтирован — дамп теряется вместе с контейнером"
-    fi
-    # FR-011: политика хранения дампов (последние 2, ≤ 20 ГБ, вытеснение по возрасту).
-    local retention="deploy/heap-dump-retention.sh"
-    if [[ -f "$REPO/$retention" ]]; then
-        ok "$br" "$retention: политика хранения дампов есть в репозитории"
-    else
-        bad "$br" "$retention: нет политики хранения дампов — том переполняется"
-    fi
-    if file_has 'KEEP_RECENT=2' "$retention" && file_has 'MAX_TOTAL_BYTES=\$\(\(20 \* 1024 \* 1024 \* 1024\)\)' "$retention"; then
-        ok "$br" "$retention: последние 2 дампа, лимит тома 20 ГБ"
-    else
-        bad "$br" "$retention: значения политики хранения не совпадают с решением владельца (2 дампа / 20 ГБ)"
-    fi
-    if file_has 'MIN_AGE_MINUTES=60' "$retention"; then
-        ok "$br" "$retention: защита по возрасту — 60 минут (недописанный дамп не удаляется)"
-    else
-        bad "$br" "$retention: нет защиты по возрасту (MIN_AGE_MINUTES)"
+        bad "$br" "tools/check-memory-guardrails.sh: нарушения BR-630 (см. вывод выше)"
     fi
 }
 

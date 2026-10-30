@@ -194,9 +194,11 @@ merged="$(jget "$after" merged)"
 info "  смержено: merge_commit $(jget "$after" merge_commit_sha | cut -c1-8) (кем: $(jget "$after" merged_by.login))"
 
 if [[ "$DELETE_BRANCH" == "1" ]]; then
-  printf 'header = "Authorization: token %s"\n' "$(cfg_escape "$FJ_TOKEN")" \
+  # Эндпоинт удаления ветки — DELETE /repos/{owner}/{repo}/branches/{branch}
+  # (у git/refs нет метода DELETE — такой путь отвечает 405).
+  code="$(printf 'header = "Authorization: token %s"\n' "$(cfg_escape "$FJ_TOKEN")" \
     | curl -sS --max-time 60 --config - -X DELETE \
-        "$FJ_URL/api/v1/repos/$REPO/git/refs/heads/$head_ref" \
-        -o /dev/null -w '  HTTP %{http_code} (удаление remote-ветки)' || true
-  printf '\n'
+        "$FJ_URL/api/v1/repos/$REPO/branches/$head_ref" \
+        -o /dev/null -w '%{http_code}' || true)"
+  info "  удаление remote-ветки: HTTP ${code:-000} (204 — удалена)"
 fi

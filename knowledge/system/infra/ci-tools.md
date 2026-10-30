@@ -39,6 +39,14 @@
   `master` отклоняется pre-receive hook'ом), обязательное ревью, защита тегов.
   Статус-чеки **не** обязательны для merge, иначе выключенный `nsa-i9`
   блокирует работу.
+- **Кто одобряет PR**: Forgejo не даёт автору одобрить свой PR
+  (`approve your own pull is not allowed`). Одобрение даёт служебный аккаунт
+  `karaoke-reviewer` (collaborator с правом write — без write ревью
+  засчитывается, но merge падает с «Does not have enough approvals»). Цикл
+  «PR → CI → одобрение → merge» агент проходит сам; подробности и команда
+  отзыва доступа — в runbook'е
+  [forgejo-access.md](../../guidelines/runbooks/forgejo-access.md)
+  § «Одобрение PR».
 - **Автозапуск раннера**: cron `@reboot` + watchdog каждые 5 минут; ручной
   запуск — `start.sh` в каталоге раннера.
 - **Ручной запуск прогона**: workflow объявляет триггер `workflow_dispatch`,
@@ -471,6 +479,7 @@ Per-feature документы пакетов аудита — канониче�
 
 ## Changelog
 
+- **KARAOKE-337** (2026-10-30, продолжение): в § «Где исполняется CI» — кто одобряет PR: служебный аккаунт `karaoke-reviewer` (Forgejo запрещает автору одобрять свой PR; без права write ревью не засчитывается). Автор: agent (Karaoke).
 - **KARAOKE-337** (2026-10-30): в § «Где исполняется CI» — ручной запуск прогона через `workflow_dispatch` (API Forgejo, отдельного эндпоинта «перезапустить упавшие джобы» нет); в § «Известные ловушки» — красный `master` из-за сетевого сбоя (проверять локально на том же коммите) и битая ссылка на каталог вне репозитория (lychee в свежем checkout). Автор: agent (Karaoke).
 - **Спека 676** (2026-10-30, KARAOKE-245, BR-630): в таблице guard'ов — новый `tools/check-memory-guardrails.sh` (автоматические гейты: CI-джоб `memory-guardrails-guard` в обеих копиях workflow + pre-commit-хуки); в строке `check-deploy-hardening.sh` отмечено делегирование BR-630. Автор: agent (Karaoke).
 - **Спека 677** (2026-10-30, KARAOKE-337, BR-631): в таблице guard'ов — новый `tools/check-allowlist-guardrails.sh` (автоматические гейты: CI-джобы `allowlist-guardrails-guard` и `allowlist-automation-self-test` в обеих копиях workflow + pre-commit-хуки); новая операционная автоматизация `deploy/admin-ip-allowlist.sh` с self-test'ом. Автор: agent (Karaoke).

@@ -72,11 +72,16 @@ root). `systemd-analyze verify` может ругаться на отсутст�
 
 ```bash
 # 1. Подготовить изолированный каталог с копией конфигурации и подставить посторонний адрес
-#    (это делает сам self-test; для ручной проверки с настоящим nginx — по инструкции
-#    владельца из report.md).
-# 2. Запустить тестовый nginx с подготовленным конфигом и проверить синтаксис:
-nginx -t -c <подготовленный-конфиг>
-# 3. Убедиться, что скрипт добавляет адрес только в allow-list и откатывается при ошибке:
+#    (это делает сам self-test).
+# 2. Одноразовый контейнер с настоящим nginx — только по согласию владельца:
+#    DOCKER_CONFIG — от корня репозитория (R-373), порты — свободные высокие,
+#    контейнеры проекта (karaoke-app и прочие) не трогаем, docker restart запрещён (R-374).
+export DOCKER_CONFIG="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.docker"
+docker run --rm -d --name allowlist-nginx-test -p 15433:5433 -p 19000:9000 \
+  -v "$PWD/deploy/prod-single-host/nginx.conf:/etc/nginx/nginx.conf:ro" nginx:stable
+docker exec allowlist-nginx-test nginx -t          # синтаксис настоящим nginx
+docker rm -f allowlist-nginx-test                   # контейнер убирается сразу
+# 3. Self-test скрипта (тот же сценарий, но без контейнера):
 bash deploy/admin-ip-allowlist.sh --self-test
 ```
 

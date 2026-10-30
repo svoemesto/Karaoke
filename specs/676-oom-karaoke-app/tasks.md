@@ -31,8 +31,8 @@
 свою регрессию от чужой.
 
 - [ ] T001 [x] **R1-правка (факт об образе)** — в `specs/676-oom-karaoke-app/research.md` (R1) и `specs/676-oom-karaoke-app/plan.md` (Technical Context) заменить `eclipse-temurin:22-jre-jammy` на фактический образ `sm-karaoke.ru:5443/library/ubuntu:22.04` + `openjdk-17-jre-headless` (JDK 17), обоснование — «не зависит от состава JRE/JDK и наличия `java.management`» · **выполнено в коммите `b6c2ae7c`**
-- [ ] T002 Зафиксировать зелёный baseline: `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test` — вывод сохранить в `specs/676-oom-karaoke-app/report.md` (без baseline нельзя отличить регрессию от исходного сбоя)
-- [ ] T003 [P] Выбрать свободный BR-код для нового guard-правила (проверить `knowledge/system/infra/audit-336-registry.md`: используются BR-600…BR-628) и подготовить формат строки реестра по образцу строки BR-188 (`audit-336-registry.md:427`)
+- [x] T002 Зафиксировать зелёный baseline: `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test` — вывод сохранить в `specs/676-oom-karaoke-app/report.md` (без baseline нельзя отличить регрессию от исходного сбоя)
+- [x] T003 [P] Выбрать свободный BR-код для нового guard-правила — **BR-630** (BR-629 уже занят: `karaoke-web`, контракты публичного API) — и подготовить формат строки реестра по образцу строки BR-188 (`audit-336-registry.md:427`)
 - [ ] T004 [P] Зафиксировать перечень 12 документов FR-020 с конкретной правкой в каждом (таблица «документ → что меняем») — в `specs/676-oom-karaoke-app/report.md`, раздел «База знаний»
 
 ---
@@ -42,9 +42,9 @@
 **Purpose**: инварианты и обвязка, без которых истории нельзя реализовать
 корректно.
 
-- [ ] T005 Зафиксировать инвариант BR-188 (О9): убедиться по коду, что `popPublicationStacks` остаётся в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt` и содержит буквально `while (stacks.any { it.isNotEmpty() })`; `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS212SourceContractsTest.kt` — **не трогать** (fallback-перенос тела раскладки запрещён: выносить можно только сторону вызывающего)
-- [ ] T006 Зафиксировать порядок гейтов для реализации (О2): после каждой правки кода — `kara-post-edit`; перед каждым коммитом — `kara-pre-commit`; финальный коммит — без SKIP; в финальном коммите не должно быть файлов `.idea/` (в `.idea/misc.xml` — посторонняя правка IDE, изменилась **до** сессии, в коммит не включается)
-- [ ] T007 [P] Подготовить тестовую обвязку подмены JDBC для US1: переиспользовать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/FakeKaraokeConnection.kt` и `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/SqlInjectionTestSupport.kt` (`MockJdbc`); новых зависимостей не добавлять (Mockito уже в `spring-boot-starter-test`)
+- [x] T005 Зафиксировать инвариант BR-188 (О9): убедиться по коду, что `popPublicationStacks` остаётся в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt` и содержит буквально `while (stacks.any { it.isNotEmpty() })`; `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/PkgS212SourceContractsTest.kt` — **не трогать** (fallback-перенос тела раскладки запрещён: выносить можно только сторону вызывающего)
+- [x] T006 Зафиксировать порядок гейтов для реализации (О2): после каждой правки кода — `kara-post-edit`; перед каждым коммитом — `kara-pre-commit`; финальный коммит — без SKIP; в финальном коммите не должно быть файлов `.idea/` (в `.idea/misc.xml` — посторонняя правка IDE, изменилась **до** сессии, в коммит не включается)
+- [x] T007 [P] Подготовить тестовую обвязку подмены JDBC для US1: переиспользовать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/FakeKaraokeConnection.kt` и `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/SqlInjectionTestSupport.kt` (`MockJdbc`); новых зависимостей не добавлять (Mockito уже в `spring-boot-starter-test`)
 
 **Checkpoint**: инварианты и гейты зафиксированы — можно переходить к историям.
 
@@ -64,14 +64,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationGridCallerTest.kt` — сценарий A: `Publication.getUnPublicationList(...)` с JDBC-подменой (500 песен, 10 авторов, `tbl_authors` пуст) → сетка 50×10, суммарно 500 `Publication`, все `publish10` заполнены
-- [ ] T009 [P] [US1] В том же файле `PublicationGridCallerTest.kt` — сценарий B: `Publication.getSkipedPublicationList(...)` (авторы со `skip = true`) → та же сетка 50×10; сценарий C: пустой набор → 0 строк без зависания (файл `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationGridCallerTest.kt`)
-- [ ] T010 [US1] Проверить «падает на прежней реализации»: локально (вне коммита) вернуть в `model/Publication.kt` захваченный максимум размера стопки, убедиться, что тест не завершается (таймаут), затем **откатить** правку; зафиксировать результат в `report.md`
-- [ ] T011 [US1] Прогнать `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test --tests '*PublicationGridCallerTest*' --tests '*PkgS212*'` → зелёные (новый тест + оба существующих `PkgS212*` не сломаны — FR-004)
+- [x] T008 [P] [US1] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationGridCallerTest.kt` — сценарий A: `Publication.getUnPublicationList(...)` с JDBC-подменой (500 песен, 10 авторов, `tbl_authors` пуст) → сетка 50×10, суммарно 500 `Publication`, все `publish10` заполнены
+- [x] T009 [P] [US1] В том же файле `PublicationGridCallerTest.kt` — сценарий B: `Publication.getSkipedPublicationList(...)` (авторы со `skip = true`) → та же сетка 50×10; сценарий C: пустой набор → 0 строк без зависания (файл `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationGridCallerTest.kt`)
+- [x] T010 [US1] Проверить «падает на прежней реализации»: локально (вне коммита) вернуть в `model/Publication.kt` захваченный максимум размера стопки, убедиться, что тест не завершается (таймаут), затем **откатить** правку; зафиксировать результат в `report.md`
+- [x] T011 [US1] Прогнать `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test --tests '*PublicationGridCallerTest*' --tests '*PkgS212*'` → зелёные (новый тест + оба существующих `PkgS212*` не сломаны — FR-004)
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Проверить ревью диффа: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt` **не изменён** (FR-003); `/api/unpublications2` и `/api/publicationsdigest` не затронуты (FR-005); `audit/PkgS212BehaviorTest.kt` и `audit/PkgS212SourceContractsTest.kt` не изменены
+- [x] T012 [US1] Проверить ревью диффа: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt` **не изменён** (FR-003); `/api/unpublications2` и `/api/publicationsdigest` не затронуты (FR-005); `audit/PkgS212BehaviorTest.kt` и `audit/PkgS212SourceContractsTest.kt` не изменены
 
 **Checkpoint**: US1 закрыт — инвариант конечности закреплён на уровне вызывающих.
 
@@ -87,10 +87,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] В `deploy/docker-compose-app.yml` (сервис `karaoke-app`) добавить `mem_limit: 8g` с комментарием: предел памяти контейнера, запас ~2 ГБ на метапространство/native/потоки
-- [ ] T014 [US2] В `deploy/docker-compose-app.yml` заменить `command: ${APP_JAVA_OPTS} -jar /app.jar` на `command: ${APP_JAVA_OPTS} -Xmx6g -jar /app.jar` — **`-Xmx6g` строго ПОСЛЕ `${APP_JAVA_OPTS}`** (последний `-Xmx` побеждает — проверено: `java -Xmx8g -Xmx6g` → `MaxHeapSize` = 6 GiB), с комментарием про устаревшее `-Xmx8g` в неотслеживаемом `deploy/.env`
-- [ ] T015 [P] [US2] В `tools/check-deploy-hardening.sh` добавить правило `check_br629` (по образцу `check_br547`): `mem_limit: 8g` задан; `-Xmx6g` присутствует и стоит **после** `${APP_JAVA_OPTS}`; **heap < предел**; зарегистрировать в массиве `CHECKS`; убедиться, что `--self-test` ловит пустой `deploy/docker-compose-app.yml` (фикстура уже создаётся в self-test)
-- [ ] T016 [US2] Прогнать `bash tools/check-deploy-hardening.sh` и `bash tools/check-deploy-hardening.sh --self-test` → зелёные
+- [x] T013 [US2] В `deploy/docker-compose-app.yml` (сервис `karaoke-app`) добавить `mem_limit: 8g` с комментарием: предел памяти контейнера, запас ~2 ГБ на метапространство/native/потоки
+- [x] T014 [US2] В `deploy/docker-compose-app.yml` заменить `command: ${APP_JAVA_OPTS} -jar /app.jar` на `command: ${APP_JAVA_OPTS} -Xmx6g -jar /app.jar` — **`-Xmx6g` строго ПОСЛЕ `${APP_JAVA_OPTS}`** (последний `-Xmx` побеждает — проверено: `java -Xmx8g -Xmx6g` → `MaxHeapSize` = 6 GiB), с комментарием про устаревшее `-Xmx8g` в неотслеживаемом `deploy/.env`
+- [x] T015 [P] [US2] В `tools/check-deploy-hardening.sh` добавить правило `check_br629` (по образцу `check_br547`): `mem_limit: 8g` задан; `-Xmx6g` присутствует и стоит **после** `${APP_JAVA_OPTS}`; **heap < предел**; зарегистрировать в массиве `CHECKS`; убедиться, что `--self-test` ловит пустой `deploy/docker-compose-app.yml` (фикстура уже создаётся в self-test)
+- [x] T016 [US2] Прогнать `bash tools/check-deploy-hardening.sh` и `bash tools/check-deploy-hardening.sh --self-test` → зелёные
 
 **Checkpoint**: US2 закрыт — предел памяти и связка «heap ↔ предел» зафиксированы в репозитории.
 
@@ -108,12 +108,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] В `deploy/docker-compose-app.yml` дополнить `command:` флагами `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps` (после `${APP_JAVA_OPTS}` и после `-Xmx6g`) и добавить в `volumes:` строку `- ./karaoke-db/dumps:/dumps` с комментарием (BR-046/BR-047 — тот же каталог, что у `karaoke-db`)
-- [ ] T018 [P] [US3] Создать `deploy/heap-dump-retention.sh`: политика «последние 2 `*.hprof`, суммарно ≤ 20 ГБ, вытеснение по возрасту», защита от файла моложе `MIN_AGE_MINUTES`; **строго только `*.hprof`** (`.sql`-дампы БД в этом же каталоге не трогать); ключ каталога — 1-й аргумент или `HEAP_DUMP_DIR`, по умолчанию `$(dirname "$0")/karaoke-db/dumps`; режим `--self-test` (временный каталог); **работает без установки** (О5); `bash -n` зелёный
-- [ ] T019 [P] [US3] Создать `deploy/heap-dump-retention.service` и `deploy/heap-dump-retention.timer` по образцу `deploy/karaoke-db-backup.service` / `.timer` (oneshot + таймер); **ничего не устанавливать и не включать** (О5) — активация описана в runbook'е как действие владельца
-- [ ] T020 [US3] Расширить `check_br629` в `tools/check-deploy-hardening.sh`: `-XX:+HeapDumpOnOutOfMemoryError`, `-XX:HeapDumpPath=/dumps`, монтирование `./karaoke-db/dumps:/dumps`; прогнать `bash tools/check-deploy-hardening.sh` и `--self-test` → зелёные
-- [ ] T021 [US3] Прогнать `bash deploy/heap-dump-retention.sh --self-test` и ручной прогон на временном каталоге с 4 файлами `*.hprof` + 1 файлом `*.sql` → остаются 2 newest `*.hprof`, `.sql` цел, вывод содержит `kept=/removed=/freedBytes=/totalBytes=`
-- [ ] T022 [US3] Проверить `git check-ignore -v deploy/karaoke-db/dumps/test.hprof` → правило `/deploy/karaoke-db/dumps/*` (кроме `.gitkeep`) действует; дампы в git не попадают (FR-012)
+- [x] T017 [US3] В `deploy/docker-compose-app.yml` дополнить `command:` флагами `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps` (после `${APP_JAVA_OPTS}` и после `-Xmx6g`) и добавить в `volumes:` строку `- ./karaoke-db/dumps:/dumps` с комментарием (BR-046/BR-047 — тот же каталог, что у `karaoke-db`)
+- [x] T018 [P] [US3] Создать `deploy/heap-dump-retention.sh`: политика «последние 2 `*.hprof`, суммарно ≤ 20 ГБ, вытеснение по возрасту», защита от файла моложе `MIN_AGE_MINUTES`; **строго только `*.hprof`** (`.sql`-дампы БД в этом же каталоге не трогать); ключ каталога — 1-й аргумент или `HEAP_DUMP_DIR`, по умолчанию `$(dirname "$0")/karaoke-db/dumps`; режим `--self-test` (временный каталог); **работает без установки** (О5); `bash -n` зелёный
+- [x] T019 [P] [US3] Создать `deploy/heap-dump-retention.service` и `deploy/heap-dump-retention.timer` по образцу `deploy/karaoke-db-backup.service` / `.timer` (oneshot + таймер); **ничего не устанавливать и не включать** (О5) — активация описана в runbook'е как действие владельца
+- [x] T020 [US3] Расширить `check_br629` в `tools/check-deploy-hardening.sh`: `-XX:+HeapDumpOnOutOfMemoryError`, `-XX:HeapDumpPath=/dumps`, монтирование `./karaoke-db/dumps:/dumps`; прогнать `bash tools/check-deploy-hardening.sh` и `--self-test` → зелёные
+- [x] T021 [US3] Прогнать `bash deploy/heap-dump-retention.sh --self-test` и ручной прогон на временном каталоге с 4 файлами `*.hprof` + 1 файлом `*.sql` → остаются 2 newest `*.hprof`, `.sql` цел, вывод содержит `kept=/removed=/freedBytes=/totalBytes=`
+- [x] T022 [US3] Проверить `git check-ignore -v deploy/karaoke-db/dumps/test.hprof` → правило `/deploy/karaoke-db/dumps/*` (кроме `.gitkeep`) действует; дампы в git не попадают (FR-012)
 
 **Checkpoint**: US3 закрыт — дамп пишется на том, политика хранения реализована и проверяема.
 
@@ -130,12 +130,12 @@ recovery, стабильность ключа, отсутствие побочн
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Создать `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/HeapUsageCheck.kt` (`object : MonitorCheck`): чтение `Runtime` (`maxMemory`, `totalMemory - freeMemory`), пороги из env `MONITOR_HEAP_WARN_PERCENT` / `MONITOR_HEAP_CRITICAL_PERCENT` (дефолты 75 / 90, разбор по ADR `local-0001`), алерт с ключом `monitor.heap.usage`, severity WARNING/CRITICAL по порогу, категория логов `infra.monitor.heap`, формат `event:key=value`, строка INFO о загрузке на каждом тике, INFO-recovery на переходе из «алерт» в «норма», состояние `@Volatile` в памяти (без новых персистентных ключей), `resolveAction = null`, KDoc + `@see knowledge/product/features/heap-memory-guardrails.md`
-- [ ] T024 [US4] Зарегистрировать `HeapUsageCheck` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorRegistry.kt` — одна строка в `MonitorRegistry.checks` (8-я проверка)
-- [ ] T025 [P] [US4] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/monitor/HeapUsageCheckTest.kt`: ниже порога → пустой список; в [warn, critical) → WARNING; ≥ critical → CRITICAL; два вызова подряд → один и тот же `key`; переход в норму → recovery-сообщение и пустой список; повторное превышение → снова алерт; время выполнения < 1 с; пороги из env (подстановка через `System.getenv` в тесте — переиспользовать приём существующих тестов конфигурации)
-- [ ] T026 [US4] В `deploy/docker-compose-app.yml` (блок `environment:`, список) добавить `- MONITOR_HEAP_WARN_PERCENT=75` и `- MONITOR_HEAP_CRITICAL_PERCENT=90` с комментарием «пороги алерта загрузки heap (FR-015)»
-- [ ] T027 [US4] Прогнать `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test --tests '*HeapUsageCheckTest*'` и затем полный `:karaoke-app:test` → зелёные
-- [ ] T028 [US4] Выполнить `kara-post-edit` после правок кода (compile + ktlint + eslint + bootJar) — по чеклисту скилла; результат в `specs/676-oom-karaoke-app/report.md`
+- [x] T023 [US4] Создать `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/HeapUsageCheck.kt` (`object : MonitorCheck`): чтение `Runtime` (`maxMemory`, `totalMemory - freeMemory`), пороги из env `MONITOR_HEAP_WARN_PERCENT` / `MONITOR_HEAP_CRITICAL_PERCENT` (дефолты 75 / 90, разбор по ADR `local-0001`), алерт с ключом `monitor.heap.usage`, severity WARNING/CRITICAL по порогу, категория логов `infra.monitor.heap`, формат `event:key=value`, строка INFO о загрузке на каждом тике, INFO-recovery на переходе из «алерт» в «норма», состояние `@Volatile` в памяти (без новых персистентных ключей), `resolveAction = null`, KDoc + `@see knowledge/product/features/heap-memory-guardrails.md`
+- [x] T024 [US4] Зарегистрировать `HeapUsageCheck` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorRegistry.kt` — одна строка в `MonitorRegistry.checks` (8-я проверка)
+- [x] T025 [P] [US4] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/monitor/HeapUsageCheckTest.kt`: ниже порога → пустой список; в [warn, critical) → WARNING; ≥ critical → CRITICAL; два вызова подряд → один и тот же `key`; переход в норму → recovery-сообщение и пустой список; повторное превышение → снова алерт; время выполнения < 1 с; пороги из env (подстановка через `System.getenv` в тесте — переиспользовать приём существующих тестов конфигурации)
+- [x] T026 [US4] В `deploy/docker-compose-app.yml` (блок `environment:`, список) добавить `- MONITOR_HEAP_WARN_PERCENT=75` и `- MONITOR_HEAP_CRITICAL_PERCENT=90` с комментарием «пороги алерта загрузки heap (FR-015)»
+- [x] T027 [US4] Прогнать `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test --tests '*HeapUsageCheckTest*'` и затем полный `:karaoke-app:test` → зелёные
+- [x] T028 [US4] Выполнить `kara-post-edit` после правок кода (compile + ktlint + eslint + bootJar) — по чеклисту скилла; результат в `specs/676-oom-karaoke-app/report.md`
 
 **Checkpoint**: US4 закрыт — загрузка heap видна до OOM.
 

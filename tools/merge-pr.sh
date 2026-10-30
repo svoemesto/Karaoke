@@ -150,9 +150,10 @@ if [[ "$ci_summary" != "success" ]]; then
     1. Разобрать причину. Если код — починить и запушить в ветку PR.
     2. Если причина в сети машины (джобы качают себя: lychee-action, gradle) —
        проверить те же проверки локально на этом коммите и перезапустить прогон:
-         curl -X POST -H "Authorization: token $FJ_TOKEN" -H "Content-Type: application/json" \
-           -d '{"ref":"<ветка PR>"}' \
-           "$FJ_URL/api/v1/repos/<owner>/<repo>/actions/workflows/lint.yml/dispatches"
+         printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+           | curl -X POST --config - -H 'Content-Type: application/json' \
+               -d '{"ref":"<ветка PR>"}' \
+               "$FJ_URL/api/v1/repos/<owner>/<repo>/actions/workflows/lint.yml/dispatches"
        Если после перезапуска всё ещё красно — разбор с владельцем, не merge.
 HINT
   exit 1

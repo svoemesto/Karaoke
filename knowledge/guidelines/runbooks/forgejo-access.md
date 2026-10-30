@@ -81,10 +81,11 @@ curl -s -H "Authorization: token $FJ_TOKEN" \
 
 ```bash
 . /home/nsa/.config/karaoke/forgejo.env
-curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST \
-  -H "Authorization: token $FJ_TOKEN" -H "Content-Type: application/json" \
-  -d '{"ref":"master"}' \
-  "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/workflows/lint.yml/dispatches"
+# Токен — через stdin-конфиг curl, иначе он виден в `ps -eo args`.
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - -o /dev/null -w "HTTP %{http_code}\n" -X POST \
+      -H 'Content-Type: application/json' -d '{"ref":"master"}' \
+      "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/workflows/lint.yml/dispatches"
 ```
 
 Ответ `204` — запрос принят; прогон виден в списке запусков. Перезапускается

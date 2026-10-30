@@ -185,7 +185,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
 fi
 
 # --- 3. Merge ------------------------------------------------------------
-merge_json="$(python3 -c 'import json,sys; print(json.dumps({"Do":"merge","delete_branch_after_merge":false}))')"
+merge_json='{"Do":"merge","delete_branch_after_merge":false}'
 api "$FJ_TOKEN" POST "/api/v1/repos/$REPO/pulls/$PR/merge" "$merge_json" >/dev/null || true
 
 after="$(api "$FJ_TOKEN" GET "/api/v1/repos/$REPO/pulls/$PR")"

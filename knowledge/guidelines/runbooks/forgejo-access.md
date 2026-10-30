@@ -65,6 +65,33 @@ curl -s -H "Authorization: token $FJ_TOKEN" \
 4. Токен — владельческий (полные права). Для одноразовых задач лучше выпускать
    отдельный токен с меньшими правами.
 
+## Перезапуск CI-прогона
+
+Отдельного API «перезапустить только упавшие джобы» в Forgejo 15 нет: в
+`/swagger.v1.json` из rerun/dispatch-эндпоинтов есть ровно один, а кнопка
+«Re-run failed jobs» в веб-интерфейсе — веб-маршрут без REST-эндпоинта.
+
+Рабочий путь — диспетчеризация workflow: в `.forgejo/workflows/lint.yml`
+объявлен триггер `workflow_dispatch`, поэтому прогон запускается без пуша:
+
+```bash
+. /home/nsa/.config/karaoke/forgejo.env
+curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST \
+  -H "Authorization: token $FJ_TOKEN" -H "Content-Type: application/json" \
+  -d '{"ref":"master"}' \
+  "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/workflows/lint.yml/dispatches"
+```
+
+Ответ `204` — запрос принят; прогон виден в списке запусков. Перезапускается
+**весь** workflow, а не только упавшие джобы.
+
+Перед перезапуском стоит убедиться, что красное вызвано сбоем сети, а не
+кодом: те же проверки локально на том же коммите
+(`./gradlew :karaoke-app:test :karaoke-web:test`, `tools/check-doc-references.py`,
+`tools/check-knowledge-structure.sh`). Джобы, которым нужен интернет, падают
+при сетевых сбоях машины — подробности в
+[ci-tools.md](../../system/infra/ci-tools.md) § «Известные ловушки».
+
 ## Почему так
 
 Раньше креды лежали только в `.scratch/karaoke/infra-dub2000/.adm` этого

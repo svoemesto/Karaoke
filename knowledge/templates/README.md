@@ -53,5 +53,6 @@
 - [`knowledge/README.md`](../README.md) — главная SSoT-карта.
 - [`knowledge/adr/0007-adopt-knowledge-as-ssot.md`](../adr/0007-adopt-knowledge-as-ssot.md) —
   ADR о принятии knowledge/ как SSoT.
-- [`bootstrap-living-docs`](../../.dsh/skills/bootstrap-living-docs/SKILL.md) —
-  скилл, по которому были созданы эти шаблоны.
+- `bootstrap-living-docs` — скилл, по которому были созданы эти шаблоны.
+  Живёт вне репозитория (каталог `.dsh/` в `.gitignore`), поэтому ссылкой не
+  сопровождается: в свежем клоне и в CI её нечего проверять.

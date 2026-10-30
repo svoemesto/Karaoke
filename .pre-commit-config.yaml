@@ -233,6 +233,21 @@ repos:
         files: '^(build\.gradle\.kts|gradle\.properties|karaoke-app/build\.gradle\.kts|karaoke-web/build\.gradle\.kts|karaoke-db/build\.gradle\.kts|pom\.xml|\.idea/misc\.xml|tools/gradle-heap-dump\.sh|tools/check-build-config\.sh)$'
         stages: [pre-commit]
 
+      # === Guard: политика хранения heap-дампов (BR-630, спека 676 / KARAOKE-245) ===
+      # Retention-политика (последние 2 дампа, лимит тома 20 ГБ, вытеснение по
+      # возрасту, защита недописанного дампа) проверяется self-test'ом на
+      # синтетических файлах — в том числе, что SQL-дампы БД в общем каталоге
+      # (./karaoke-db/dumps) НЕ вытесняются. Сценарий лимита тома — на sparse-файлах.
+      # Подключено к автоматическим гейтам: без этого политика оставалась бы
+      # ручным шагом (FR-011).
+      - id: heap-dump-retention-self-test
+        name: heap dump retention self-test (BR-630)
+        entry: bash deploy/heap-dump-retention.sh --self-test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Guard: тест экранирования метки комментария (BR-523) ===
       # Проверяет, что регрессионный тест «взведён» (падает на уязвимом снимке
       # кода и проходит на исправленном) и что его skip-состояние соответствует

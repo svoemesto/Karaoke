@@ -82,6 +82,23 @@ jobs:
       - name: Check no redirect artifacts in repo root
         run: bash tools/check-root-junk.sh
 
+  # === Guard: политика хранения heap-дампов (BR-630, спека 676 / KARAOKE-245) ===
+  # Retention-политика (последние 2 дампа, лимит тома 20 ГБ, вытеснение по
+  # возрасту, защита недописанного дампа) проверяется self-test'ом на
+  # синтетических файлах — в том числе, что SQL-дампы БД в общем каталоге
+  # ./karaoke-db/dumps НЕ вытесняются. Тот же тест подключён к pre-commit
+  # (hook heap-dump-retention-self-test) — политика не остаётся ручным шагом.
+  heap-dump-retention-guard:
+    name: heap dump retention policy (BR-630)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check heap dump retention policy
+        run: bash deploy/heap-dump-retention.sh --self-test
+
   # === Guard: конфигурация сборки (BR-499/BR-527/BR-528/BR-529/BR-530, OP #406) ===
   # Аудит #336, волна E, пакет PKG-S3-34 (модуль «прочее»). Пять записей об
   # одном: конфигурация сборки в репозитории расходилась сама с собой и

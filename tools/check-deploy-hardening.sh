@@ -989,6 +989,34 @@ check_br630() {
     else
         bad "$br" "$f: -Xmx6g не после \${APP_JAVA_OPTS} — значение из deploy/.env перебьёт лимит"
     fi
+    # FR-009/FR-010: дамп heap при OOM пишется на том, том смонтирован.
+    if file_has '\-XX:\+HeapDumpOnOutOfMemoryError' "$f" && file_has '\-XX:HeapDumpPath=/dumps' "$f"; then
+        ok "$br" "$f: дамп состояния heap при OOM пишется на том"
+    else
+        bad "$br" "$f: нет -XX:+HeapDumpOnOutOfMemoryError/-XX:HeapDumpPath=/dumps — дамп при OOM не пишется"
+    fi
+    if file_has '\./karaoke-db/dumps:/dumps' "$f"; then
+        ok "$br" "$f: /dumps смонтирован — HeapDumpPath работает, дамп переживает рестарт"
+    else
+        bad "$br" "$f: /dumps не смонтирован — дамп теряется вместе с контейнером"
+    fi
+    # FR-011: политика хранения дампов (последние 2, ≤ 20 ГБ, вытеснение по возрасту).
+    local retention="deploy/heap-dump-retention.sh"
+    if [[ -f "$REPO/$retention" ]]; then
+        ok "$br" "$retention: политика хранения дампов есть в репозитории"
+    else
+        bad "$br" "$retention: нет политики хранения дампов — том переполняется"
+    fi
+    if file_has 'KEEP_RECENT=2' "$retention" && file_has 'MAX_TOTAL_BYTES=\$\(\(20 \* 1024 \* 1024 \* 1024\)\)' "$retention"; then
+        ok "$br" "$retention: последние 2 дампа, лимит тома 20 ГБ"
+    else
+        bad "$br" "$retention: значения политики хранения не совпадают с решением владельца (2 дампа / 20 ГБ)"
+    fi
+    if file_has 'MIN_AGE_MINUTES=60' "$retention"; then
+        ok "$br" "$retention: защита по возрасту — 60 минут (недописанный дамп не удаляется)"
+    else
+        bad "$br" "$retention: нет защиты по возрасту (MIN_AGE_MINUTES)"
+    fi
 }
 
 # ---------------------------------------------------------------------

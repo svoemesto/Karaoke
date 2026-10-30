@@ -73,6 +73,11 @@ services:
       # пересоздался через deploy/do.sh, compose-файл не содержал docker.sock,
       # и demucs перестал работать. Восстановлено добавлением этого volume.
       - /var/run/docker.sock:/var/run/docker.sock
+      # BR-630 (FR-009/FR-010): том дампов heap. Тот же каталог, что у karaoke-db
+      # (BR-046: ./karaoke-db/dumps) — дамп переживает перезапуск контейнера и
+      # читается с хоста. Политика хранения (последние 2, ≤ 20 ГБ, вытеснение по
+      # возрасту) — deploy/heap-dump-retention.sh.
+      - ./karaoke-db/dumps:/dumps
     devices:
       - /dev/dri:/dev/dri
     networks:
@@ -95,7 +100,10 @@ services:
     #   Так перекрывается устаревшее -Xmx8g из неотслеживаемого deploy/.env, и связь
     #   «heap меньше предела контейнера» проверяется из репозитория, а не только
     #   по значению в .env, которого в git нет.
-    command: ${APP_JAVA_OPTS} -Xmx6g -jar /app.jar
+    #
+    # FR-009: дамп состояния heap при исчерпании памяти пишется на том /dumps
+    #   (тот же приём, что у прод-karaoke-web — BR-547).
+    command: ${APP_JAVA_OPTS} -Xmx6g -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps -jar /app.jar
 
   searxng:
     image: sm-karaoke.ru:5443/mirror/searxng/searxng:latest@sha256:f3e639582391a481a7a9965d8a3611319cc8561f03929277cca0a8b4cd610830

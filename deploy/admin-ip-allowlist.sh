@@ -48,6 +48,11 @@ PROD_CONF="${ALLOWLIST_PROD_NGINX_CONF:-/etc/nginx/nginx.conf}"
 PROD_PORTS="${ALLOWLIST_PROD_PORTS:-5433 9000}"
 HEALTH_URL="${ALLOWLIST_HEALTH_URL:-https://sm-karaoke.ru/health}"
 PROBE_TIMEOUT="${ALLOWLIST_PROBE_TIMEOUT:-5}"
+# Повторы проб: одна неудачная проба — ещё не «прод недоступен» (сетевой сбой на
+# машине даёт ложные срабатывания). Повтор — деталь реализации, контракт
+# (FR-001) не меняется.
+PROBE_ATTEMPTS="${ALLOWLIST_PROBE_ATTEMPTS:-3}"
+PROBE_RETRY_PAUSE="${ALLOWLIST_PROBE_RETRY_PAUSE:-2}"
 SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10)
 
 # --- адрес ---
@@ -98,13 +103,28 @@ log_event() {
   if [ -n "${LOG_FILE}" ]; then
     printf '%s\n' "${out}" >>"${LOG_FILE}" 2>/dev/null || true
   fi
-  printf '%s\n' "${out}"
+  # Журнал идёт в stderr: stdout остаётся чистым для функций, возвращающих
+  # значение (detect_address и др.). Под systemd и stdout, и stderr попадают
+  # в journald (StandardOutput=journal, StandardError=journal).
+  printf '%s\n' "${out}" >&2
 }
 
 # Значения для лога без пробелов (контракт журнала §2).
 sanitize() { printf '%s' "${1:-}" | tr -d '\n\r' | tr ' ' '_'; }
 
 # ------------------------------------------------------------------ пробы ----
+# Текущее время в миллисекундах. `%3N` есть в GNU date; если нет — fallback
+# на секунды (точность до секунды, но значение реальное, а не заглушка).
+now_ms() {
+  local v
+  v="$(date +%s%3N 2>/dev/null)" || v=""
+  if [[ "${v}" =~ ^[0-9]+$ ]] && [ "${v}" -gt 1000000000000 ] 2>/dev/null; then
+    printf '%s' "${v}"
+    return 0
+  fi
+  printf '%s' "$(( $(date +%s) * 1000 ))"
+}
+
 probe_tcp() {
   local host="$1" port="$2" timeout_s="$3"
   timeout "${timeout_s}" bash -c "exec 3<>/dev/tcp/${host}/${port}" >/dev/null 2>&1
@@ -116,6 +136,47 @@ probe_https() {
   [ "${code}" -ge 200 ] 2>/dev/null && [ "${code}" -lt 300 ] 2>/dev/null
 }
 
+# Проба TCP с ограниченным повтором. В PROBE_DURATION_MS — реальная
+# длительность последней попытки, в PROBE_ATTEMPTS_USED — число попыток.
+probe_tcp_retry() {
+  local host="$1" port="$2" timeout_s="$3" attempts="${4:-${PROBE_ATTEMPTS}}"
+  local i started ended
+  started="$(now_ms)"
+  for ((i = 1; i <= attempts; i++)); do
+    if probe_tcp "${host}" "${port}" "${timeout_s}"; then
+      ended="$(now_ms)"
+      PROBE_DURATION_MS=$((ended - started))
+      PROBE_ATTEMPTS_USED="${i}"
+      return 0
+    fi
+    [ "${i}" -lt "${attempts}" ] && sleep "${PROBE_RETRY_PAUSE}"
+  done
+  ended="$(now_ms)"
+  PROBE_DURATION_MS=$((ended - started))
+  PROBE_ATTEMPTS_USED="${attempts}"
+  return 1
+}
+
+# Проба HTTPS с тем же ограниченным повтором.
+probe_https_retry() {
+  local url="$1" timeout_s="$2" attempts="${3:-${PROBE_ATTEMPTS}}"
+  local i started ended
+  started="$(now_ms)"
+  for ((i = 1; i <= attempts; i++)); do
+    if probe_https "${url}" "${timeout_s}"; then
+      ended="$(now_ms)"
+      PROBE_DURATION_MS=$((ended - started))
+      PROBE_ATTEMPTS_USED="${i}"
+      return 0
+    fi
+    [ "${i}" -lt "${attempts}" ] && sleep "${PROBE_RETRY_PAUSE}"
+  done
+  ended="$(now_ms)"
+  PROBE_DURATION_MS=$((ended - started))
+  PROBE_ATTEMPTS_USED="${attempts}"
+  return 1
+}
+
 # Проверки доступности канала. Возвращает: 0 — всё доступно, 1 — канал закрыт.
 check_reachability() {
   local host="${1:-}" pg_ok=1 minio_ok=1 https_ok=1
@@ -123,10 +184,10 @@ check_reachability() {
   ports="$(printf '%s' "${PROD_PORTS}" | tr ' ' '\n' | grep -v '^$' || true)"
 
   for port in ${ports}; do
-    if probe_tcp "${host}" "${port}" "${PROBE_TIMEOUT}"; then
-      log_event "probe" "target=tcp:${port}" "ok=true" "duration_ms=0"
+    if probe_tcp_retry "${host}" "${port}" "${PROBE_TIMEOUT}"; then
+      log_event "probe" "target=tcp:${port}" "ok=true" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}"
     else
-      log_event "probe" "target=tcp:${port}" "ok=false" "duration_ms=0" "detail=connect_failed"
+      log_event "probe" "target=tcp:${port}" "ok=false" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}" "detail=connect_failed"
       case "${port}" in
         5433) pg_ok=0 ;;
         9000) minio_ok=0 ;;
@@ -134,10 +195,10 @@ check_reachability() {
     fi
   done
 
-  if probe_https "${HEALTH_URL}" "${PROBE_TIMEOUT}"; then
-    log_event "probe" "target=https" "ok=true" "duration_ms=0"
+  if probe_https_retry "${HEALTH_URL}" "${PROBE_TIMEOUT}"; then
+    log_event "probe" "target=https" "ok=true" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}"
   else
-    log_event "probe" "target=https" "ok=false" "duration_ms=0" "detail=not_2xx"
+    log_event "probe" "target=https" "ok=false" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}" "detail=not_2xx"
     https_ok=0
   fi
 
@@ -678,7 +739,10 @@ PY
 
 # ------------------------------------------------------------- режимы ----
 run_cycle() {
-  local host ip reason_ok=""
+  # host — первый аргумент (хост, к которому идут TCP-пробы). Раньше он был
+  # необъявленным локальным именем и не инициализировался: под `set -u` цикл
+  # падал целиком ещё до первой пробы.
+  local host="${1:-}" ip
 
   # FR-001/FR-002: пробы и различение причины недоступности.
   if ! check_reachability "${host}"; then
@@ -998,6 +1062,64 @@ STUB
     echo "   OK: откат вернул исходное содержимое целиком"
   else
     echo "   FAIL: откат не восстановил исходное содержимое"; failed=1
+  fi
+
+  echo "== Сценарий 9: настоящий detect_address — stdout содержит только адрес"
+  # Регрессия на живой машине: журнал печатался в stdout, и адрес возвращался
+  # вместе со строками журнала → валидация всегда давала «невалиден».
+  local out_addr err_addr
+  curl() { echo "203.0.113.77"; }
+  out_addr="$(detect_address 2>"${workdir}/stderr.log")"
+  err_addr="$(cat "${workdir}/stderr.log")"
+  unset -f curl
+  if [ "${out_addr}" = "203.0.113.77" ]; then
+    echo "   OK: stdout detect_address = ровно адрес (журнал ушёл в stderr)"
+  else
+    echo "   FAIL: stdout detect_address = '${out_addr}' (ожидался ровно адрес)"; failed=1
+  fi
+  if [ -n "${err_addr}" ]; then
+    echo "   OK: журнал присутствует в stderr ($(printf '%s\n' "${err_addr}" | wc -l) строк)"
+  else
+    echo "   FAIL: журнала нет в stderr"; failed=1
+  fi
+
+  echo "== Сценарий 10: повтор пробы — сетевой сбой не равен «прод недоступен»"
+  # Первая попытка TCP-пробы падает, вторая проходит → канал доступен.
+  local probe_calls=0
+  local old_pause="${PROBE_RETRY_PAUSE}"
+  PROBE_RETRY_PAUSE=0
+  probe_tcp() { probe_calls=$((probe_calls + 1)); [ "${probe_calls}" -ge 2 ]; }
+  probe_https() { return 0; }
+  check_reachability "127.0.0.1" >/dev/null 2>&1 || true
+  if [ "${REACH_PG}" = 1 ] && [ "${REACH_MINIO}" = 1 ]; then
+    echo "   OK: канал признан доступным после повтора (попыток: ${probe_calls})"
+  else
+    echo "   FAIL: канал признан недоступным, хотя повтор был успешным (попыток: ${probe_calls})"; failed=1
+  fi
+  PROBE_RETRY_PAUSE="${old_pause}"
+  probe_tcp() {
+    local host="$1" port="$2" timeout_s="$3"
+    timeout "${timeout_s}" bash -c "exec 3<>/dev/tcp/${host}/${port}" >/dev/null 2>&1
+  }
+  probe_https() {
+    local url="$1" timeout_s="$2" code
+    code="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time "${timeout_s}" "${url}" 2>/dev/null)" || code="000"
+    [ "${code}" -ge 200 ] 2>/dev/null && [ "${code}" -lt 300 ] 2>/dev/null
+  }
+
+  echo "== Сценарий 11: прод недоступен целиком — адрес не определяется (FR-002)"
+  # HTTPS не отвечает → цикл не должен определять адрес и не должен идти на прод.
+  local marker="${workdir}/address-called"
+  probe_https() { return 1; }
+  probe_tcp() { return 1; }
+  detect_address() { echo called >>"${marker}"; printf '%s' "203.0.113.77"; }
+  local cycle_rc=0
+  run_cycle "" >/dev/null 2>&1 || cycle_rc=$?
+  unset -f detect_address
+  if [ "${cycle_rc}" = "${EXIT_DECLINED}" ] && [ ! -f "${marker}" ]; then
+    echo "   OK: цикл завершился отказом (код ${EXIT_DECLINED}), адрес не определялся"
+  else
+    echo "   FAIL: код=${cycle_rc}, маркер определения адреса: $([ -f "${marker}" ] && echo есть || echo нет)"; failed=1
   fi
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"

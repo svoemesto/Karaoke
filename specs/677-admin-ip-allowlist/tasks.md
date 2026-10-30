@@ -165,6 +165,16 @@ allow-list отсутствует) → дождаться срабатывани
 - [x] T066 Реализовать Д-6 в коде: выбор способа записи по `findmnt -T` с записью в журнал, откат по выбранному способу, права нового файла как у прежнего в `deploy/admin-ip-allowlist.sh`
 - [x] T067 Дополнить self-test сценариями «атомарное переименование» и «откат после переименования» в `deploy/admin-ip-allowlist.sh`
 
+### Группа доработки по дефектам живой машины (2026-10-30, лид)
+
+Дефекты вскрыты прогоном `--diagnose` на nsa-i9; спека и FR/SC не меняются, чинится реализация.
+
+- [x] T068 Перевести журнал в stderr, оставив stdout чистым для функций, возвращающих значение (`detect_address` и др.), и проверить все места с `$(...)`-вызовом в `deploy/admin-ip-allowlist.sh`
+- [x] T069 Заменить заглушку `duration_ms=0` на реальное измерение длительности проб и добавить ограниченный повтор проб (3 попытки, пауза 2 с) в `deploy/admin-ip-allowlist.sh`
+- [x] T070 Добавить регрессионные тесты: настоящий `detect_address` с подменённым `curl` (stdout равен ровно адресу), «проба упала → повтор → успех», «прод недоступен целиком → адрес не определяется» (FR-002) в `deploy/admin-ip-allowlist.sh`
+- [x] T071 Исправить неинициализированный локальный `host` в `run_cycle` (под `set -u` цикл падал целиком) в `deploy/admin-ip-allowlist.sh`
+- [x] T072 Отразить разделение stderr/stdout и повторы проб в контрактах `specs/677-admin-ip-allowlist/contracts/journal-format.md` и `specs/677-admin-ip-allowlist/contracts/automation-cli.md`
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

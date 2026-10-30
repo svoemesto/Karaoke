@@ -6,11 +6,18 @@
 
 | Носитель | Путь | Что пишется |
 |---|---|---|
-| Файл журнала | `ALLOWLIST_LOG_FILE` (по умолчанию `/var/log/admin-ip-allowlist.log`) | Те же строки, что и в stdout |
+| Файл журнала | `ALLOWLIST_LOG_FILE` (по умолчанию `/var/log/admin-ip-allowlist.log`) | Те же строки, что и в stderr |
 | journald | stdout/stderr сервиса | Те же строки (unit: `StandardOutput=journal`, `StandardError=journal`) |
 | Уведомление | Telegram Bot API | Краткий итог (см. §4) |
 
 Файл журнала и файл состояния лежат **вне репозитория**; в git не попадают.
+
+**Журнал пишется в stderr, stdout остаётся машинным каналом.** Это требование
+вытекает из устройства скрипта: функции вроде `detect_address` возвращают значение
+через stdout, и строка журнала, попавшая в тот же поток, делала значение непригодным
+(на живой машине адрес всегда получался «невалидным»). Под systemd и stdout, и stderr
+идут в journald (`StandardOutput=journal`, `StandardError=journal`), поэтому в журнале
+ничего не теряется.
 
 ## 2. Формат записи
 

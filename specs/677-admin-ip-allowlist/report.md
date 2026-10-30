@@ -179,14 +179,48 @@ argv и журнал. Рабочее дерево админ-машины авт
 * **SC-002, SC-003, SC-004, SC-005, SC-006, SC-007** — покрыты self-test'ом и
   контрактами (см. §3).
 
-## 7. PR и слияние
+## 7. Доработка по дефектам, вскрытым на живой машине (2026-10-30)
+
+Прогон `bash deploy/admin-ip-allowlist.sh --diagnose` на `nsa-i9` выявил дефекты, которых
+self-test не ловил; спека и FR/SC не менялись — чинилась реализация.
+
+| Дефект | Причина | Исправление |
+|---|---|---|
+| **Адрес всегда «невалиден»** (блокирующий) | `log_event` печатал строку журнала в stdout, а `detect_address` возвращал адрес тем же потоком → в адрес попадали все строки журнала; вывод на машине: `event:diagnose address=2026-10-30T12:55:07Z_event:address_source=…` | журнал переведён в **stderr**, stdout зарезервирован под машинный вывод; под systemd и stdout, и stderr идут в journald (`StandardOutput=journal`, `StandardError=journal`) |
+| **`duration_ms=0`** | длительность проб была заглушкой | реальное измерение (`now_ms`, `%3N` с fallback на секунды) |
+| **Ложные «прод недоступен»** | транзиентный сетевой сбой на машине (12:54 — сбой, 12:52 и 12:56 — успех) | ограниченный повтор проб: 3 попытки, пауза 2 с; в журнал пишутся реальные `duration_ms` и `attempts` |
+| **Цикл падал целиком** | в `run_cycle` локальная `host` перекрывала параметр и не инициализировалась → под `set -u` скрипт завершался до первой пробы | `local host="${1:-}"` |
+
+Проверка после исправления на той же машине:
+
+```
+$ bash deploy/admin-ip-allowlist.sh --diagnose 2>&1 >/dev/null | tail -3
+2026-10-30T12:59:49Z event:diagnose address=185.26.28.199 valid=yes
+2026-10-30T12:59:49Z event:diagnose prod_conf_read=true blocks=6
+2026-10-30T12:59:50Z event:mountpoint is_mountpoint=no target=/ source=/dev/vda2 fstype=ext4
+
+$ detect_address 2>/dev/null
+185.26.28.199
+```
+
+`stdout` функции `detect_address` — **ровно адрес**, строки журнала ушли в stderr.
+Попутно подтверждён факт по Д-6 на живой машине: `/etc/nginx/nginx.conf` не является
+точкой монтирования (`TARGET /`, `SOURCE /dev/vda2`, ext4) → выбирается атомарное
+переименование.
+
+**Регрессионные тесты** (self-test, 11 сценариев): настоящий `detect_address` с
+подменённым `curl` (stdout равен ровно адресу, журнал — в stderr); «проба упала → повтор →
+успех»; «прод недоступен целиком → адрес не определяется» (FR-002) — именно этот сценарий
+вскрыл падение `run_cycle` из-за неинициализированной `host`.
+
+## 8. PR и слияние
 
 * **PR [#26](https://git.sm-karaoke.ru/svoemesto/Karaoke/pulls/26)** — `678-admin-ip-allowlist` → `master`, 20 файлов, +2260/−88; CI — 30/30 success.
 * Ветка собрана заново от `master` без коммитов чужой сессии (KARAOKE-338), попавших в общий
   checkout: они лежат на своей ветке `679-news-collection-local` и в PR не входят.
 * **Слияние — за владельцем** (Д-1): Forgejo не допускает одобрения автором собственного PR.
 
-## 8. Связанные артефакты
+## 9. Связанные артефакты
 
 `specs/677-admin-ip-allowlist/` — `spec.md`, `plan.md`, `research.md`, `data-model.md`,
 `contracts/{automation-cli,allow-list-surgery,journal-format}.md`, `quickstart.md`,

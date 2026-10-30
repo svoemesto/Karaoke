@@ -191,7 +191,7 @@ api "$FJ_TOKEN" POST "/api/v1/repos/$REPO/pulls/$PR/merge" "$merge_json" >/dev/n
 after="$(api "$FJ_TOKEN" GET "/api/v1/repos/$REPO/pulls/$PR")"
 merged="$(jget "$after" merged)"
 [[ "$merged" == "True" ]] || die "PR #$PR не смержен (state=$(jget "$after" state), merged=$merged)"
-info "  смержено: merge_commit $(jget "$after" merge.sha | cut -c1-8) (кем: $(jget "$after" merged_by.login))"
+info "  смержено: merge_commit $(jget "$after" merge_commit_sha | cut -c1-8) (кем: $(jget "$after" merged_by.login))"
 
 if [[ "$DELETE_BRANCH" == "1" ]]; then
   printf 'header = "Authorization: token %s"\n' "$(cfg_escape "$FJ_TOKEN")" \

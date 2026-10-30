@@ -26,6 +26,10 @@
 #   * не более одной применённой правки за 30 минут (FR-010);
 #   * токены — только из окружения, никогда в argv (BR-551/552/605): Bot API
 #     вызывается через `curl -K` с конфиг-файлом 600;
+#   * прокси — только для вызова Telegram Bot API (ALLOWLIST_TELEGRAM_PROXY);
+#     определение внешнего адреса и пробы доступности идут напрямую
+#     (`--noproxy '*'`) — иначе в allow-list попал бы адрес выхода прокси,
+#     а не адрес админ-машины; глобального прокси у скрипта нет;
 #   * локальный git не используется: PR собирается через Forgejo API, чтобы
 #     рабочее дерево админ-машины (где работают другие сессии) не трогать.
 #
@@ -67,6 +71,13 @@ STATE_FILE="${ALLOWLIST_STATE_FILE:-/var/log/admin-ip-allowlist.state}"
 # --- уведомления ---
 TELEGRAM_TOKEN="${ALLOWLIST_TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${ALLOWLIST_TELEGRAM_CHAT_ID:-}"
+# Прокси — ТОЛЬКО для вызова Telegram Bot API: с админ-машины api.telegram.org
+# напрямую недоступен (нужен VPN), рабочий локальный SOCKS5 — 127.0.0.1:1080.
+# Пусто → прямое соединение. Определение внешнего адреса и пробы доступности
+# прокси не используют НИКОГДА (см. --noproxy в probe_https/detect_address):
+# через прокси определился бы адрес выхода прокси, и в allow-list прод-хоста
+# попал бы не адрес админ-машины.
+TELEGRAM_PROXY="${ALLOWLIST_TELEGRAM_PROXY:-}"
 
 # --- PR ---
 FJ_TOKEN="${ALLOWLIST_FJ_TOKEN:-}"
@@ -132,7 +143,9 @@ probe_tcp() {
 
 probe_https() {
   local url="$1" timeout_s="$2" code
-  code="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time "${timeout_s}" "${url}" 2>/dev/null)" || code="000"
+  # --noproxy '*': проба идёт НАПРЯМУЮ — переменные прокси окружения не должны
+  # влиять на результат (иначе «прод недоступен» означало бы «прокси недоступен»).
+  code="$(curl -fsS --noproxy '*' -o /dev/null -w '%{http_code}' --max-time "${timeout_s}" "${url}" 2>/dev/null)" || code="000"
   [ "${code}" -ge 200 ] 2>/dev/null && [ "${code}" -lt 300 ] 2>/dev/null
 }
 
@@ -214,7 +227,10 @@ detect_address() {
   local values=() unique=() url value
   REASON=""
   for url in ${IP_SERVICES}; do
-    value="$(curl -fsS --max-time "${IP_TIMEOUT}" "${url}" 2>/dev/null | tr -d '[:space:]' || true)"
+    # --noproxy '*': адрес определяется НАПРЯМУЮ — это адрес админ-машины.
+    # Через прокси определился бы адрес выхода прокси, и в allow-list прод-хоста
+    # попал бы не тот адрес (FR-003).
+    value="$(curl -fsS --noproxy '*' --max-time "${IP_TIMEOUT}" "${url}" 2>/dev/null | tr -d '[:space:]' || true)"
     if [ -n "${value}" ]; then
       values+=("${value}")
       unique+=("${value}")
@@ -608,16 +624,53 @@ send_telegram() {
     printf 'request = "POST"\n'
     printf 'data-urlencode = "chat_id=%s"\n' "${TELEGRAM_CHAT_ID}"
     printf 'data-urlencode = "text=%s"\n' "${text}"
+    # Прокси — конфиг-файлом curl, НЕ через argv (BR-551/552/605): и токен, и
+    # адрес прокси не должны быть видны в `ps`. Само значение прокси в журнал
+    # не пишется (в URL прокси могут быть учётные данные) — только факт.
+    if [ -n "${TELEGRAM_PROXY}" ]; then
+      printf 'proxy = "%s"\n' "${TELEGRAM_PROXY}"
+    else
+      # Прямое соединение: переменные прокси окружения игнорируются, чтобы
+      # вызов Bot API не ушёл через прокси, заданный неявно. Глобального прокси
+      # в скрипте нет — см. --noproxy в probe_https/detect_address.
+      printf 'noproxy = "*"\n'
+    fi
   } >"${cfg}"
-  local code
-  code="$(curl -sS -o /dev/null -w '%{http_code}' -K "${cfg}" 2>/dev/null)" || code="000"
+  local code="" rc=0
+  code="$(curl -sS -o /dev/null -w '%{http_code}' -K "${cfg}" 2>/dev/null)" || rc=$?
+  [ -n "${code}" ] || code="000"
   rm -f "${cfg}"
-  if [ "${code}" = "200" ]; then
-    log_event "notify" "channel=telegram" "ok=true"
+  if [ "${rc}" -eq 0 ] && [ "${code}" = "200" ]; then
+    log_event "notify" "channel=telegram" "ok=true" "proxy=$(proxy_state)"
     return 0
   fi
-  log_event "notify" "channel=telegram" "ok=false" "http_code=${code}"
+  # Недоставленное уведомление — НЕ повод провалить цикл: правка allow-list
+  # уже применена (или не применена) независимо от доставки сообщения.
+  # Вызывающий код обязан игнорировать код возврата (см. `|| true` в run_cycle).
+  log_event "notify" "channel=telegram" "ok=false" "http_code=${code}" "curl_rc=${rc}" \
+    "proxy=$(proxy_state)" "reason=$(notify_failure_reason "${rc}" "${code}")"
   return 1
+}
+
+# Факт использования прокси для журнала: само значение не пишется (в URL
+# прокси могут быть учётные данные).
+proxy_state() {
+  if [ -n "${TELEGRAM_PROXY}" ]; then printf 'set'; else printf 'none'; fi
+}
+
+# Причина неудачной отправки уведомления. Прокси задан, но соединение не
+# установлено — не прошёл путь через прокси; иначе — сама отправка.
+notify_failure_reason() {
+  local rc="$1" code="$2"
+  if [ "${rc}" -ne 0 ] && [ "${code}" = "000" ] && [ -n "${TELEGRAM_PROXY}" ]; then
+    printf 'proxy_unreachable'
+    return 0
+  fi
+  if [ "${rc}" -ne 0 ]; then
+    printf 'transport_error'
+    return 0
+  fi
+  printf 'api_error'
 }
 
 # --------------------------------------------------------------------- PR ----
@@ -632,6 +685,9 @@ fj_api() {
   cfg="$(mktemp "${TMPDIR:-/tmp}/allowlist-fj.XXXXXX")" || return 1
   chmod 600 "${cfg}" || { rm -f "${cfg}"; return 1; }
   {
+    # noproxy: обращение к Forgejo идёт напрямую — глобального прокси в
+    # скрипте нет (тот же инвариант, что у прямых вызовов probe/detect_address).
+    printf 'noproxy = "*"\n'
     printf 'url = "%s/api/v1/repos/%s%s"\n' "${FJ_URL}" "${FJ_REPO}" "${path}"
     printf 'header = "Authorization: token %s"\n' "${FJ_TOKEN}"
     printf 'header = "Content-Type: application/json"\n'
@@ -748,7 +804,7 @@ run_cycle() {
   if ! check_reachability "${host}"; then
     if [ "${REACH_HTTPS}" != 1 ]; then
       log_event "decision" "reason=https_down" "action=skip" "detail=prod_not_cause_allow_list"
-      send_telegram "Karaoke allow-list: прод недоступен целиком (HTTPS ${HEALTH_URL} не отвечает). Причина не в allow-list — адрес не добавлялся. Прод не тронут."
+      send_telegram "Karaoke allow-list: прод недоступен целиком (HTTPS ${HEALTH_URL} не отвечает). Причина не в allow-list — адрес не добавлялся. Прод не тронут." || true
       return "${EXIT_DECLINED}"
     fi
     log_event "decision" "reason=allow_list" "action=continue" "pg_ok=${REACH_PG}" "minio_ok=${REACH_MINIO}"
@@ -767,7 +823,7 @@ run_cycle() {
   if ! ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
     rm -f "${prod_conf}"
     log_event "skip" "reason=prod_unreachable_by_ssh"
-    send_telegram "Karaoke allow-list: прод-хост недоступен по SSH — правка не применялась, состояние не менялось."
+    send_telegram "Karaoke allow-list: прод-хост недоступен по SSH — правка не применялась, состояние не менялось." || true
     return "${EXIT_FAIL}"
   fi
 
@@ -780,7 +836,7 @@ run_cycle() {
   # FR-010: ограничение частоты.
   if ! rate_limit_ok; then
     rm -f "${prod_conf}"
-    send_telegram "Karaoke allow-list: правка отложена — с последней применённой правки прошло меньше ${MIN_INTERVAL_MINUTES} минут (адрес ${ip}). Следующая попытка — после истечения окна."
+    send_telegram "Karaoke allow-list: правка отложена — с последней применённой правки прошло меньше ${MIN_INTERVAL_MINUTES} минут (адрес ${ip}). Следующая попытка — после истечения окна." || true
     return "${EXIT_DECLINED}"
   fi
 
@@ -790,13 +846,13 @@ run_cycle() {
   if ! prepare_new_config "${prod_conf}" "${new_conf}" "${ip}" 2>/dev/null; then
     rm -f "${prod_conf}" "${new_conf}"
     log_event "skip" "reason=config_mismatch" "detail=stream_blocks_or_deny_all_not_found"
-    send_telegram "Karaoke allow-list: структура конфигурации прод-хоста не совпала с ожидаемой (не найдены stream-блоки 5433/9000 или 'deny all;') — правка не выполнялась. Требуется взгляд владельца."
+    send_telegram "Karaoke allow-list: структура конфигурации прод-хоста не совпала с ожидаемой (не найдены stream-блоки 5433/9000 или 'deny all;') — правка не выполнялась. Требуется взгляд владельца." || true
     return "${EXIT_DECLINED}"
   fi
   if ! verify_diff "${prod_conf}" "${new_conf}" "${ip}" 2>/dev/null; then
     rm -f "${prod_conf}" "${new_conf}"
     log_event "skip" "reason=diff_check_failed" "ip=$(sanitize "${ip}")"
-    send_telegram "Karaoke allow-list: проверка diff'а не прошла — изменение содержало бы не только строку allow. Правка не выполнялась."
+    send_telegram "Karaoke allow-list: проверка diff'а не прошла — изменение содержало бы не только строку allow. Правка не выполнялась." || true
     return "${EXIT_DECLINED}"
   fi
   log_event "edit" "step=prepared" "ip=$(sanitize "${ip}")" "blocks=2"
@@ -807,7 +863,7 @@ run_cycle() {
   # FR-006…FR-009: применение с откатом.
   if ! apply_change remote "${PROD_CONF}" "${new_conf}" "${ip}"; then
     rm -f "${prod_conf}" "${new_conf}"
-    send_telegram "Karaoke allow-list: правка НЕ применена (адрес ${ip}), выполнен откат из бэкапа, конфигурация прод-хоста восстановлена. Причина: ${REASON}."
+    send_telegram "Karaoke allow-list: правка НЕ применена (адрес ${ip}), выполнен откат из бэкапа, конфигурация прод-хоста восстановлена. Причина: ${REASON}." || true
     return "${EXIT_FAIL}"
   fi
   rm -f "${prod_conf}" "${new_conf}"
@@ -820,7 +876,7 @@ run_cycle() {
   log_event "control" "pg_ok=${pg_ok}" "minio_ok=${minio_ok}" "https_ok=${https_ok}"
   if [ "${pg_ok}" != 1 ] || [ "${minio_ok}" != 1 ] || [ "${https_ok}" != 1 ]; then
     rollback_change remote "${PROD_CONF}" "${BACKUP_PATH}"
-    send_telegram "Karaoke allow-list: контрольная проверка не прошла — выполнен откат из бэкапа, конфигурация прод-хоста восстановлена (адрес ${ip})."
+    send_telegram "Karaoke allow-list: контрольная проверка не прошла — выполнен откат из бэкапа, конфигурация прод-хоста восстановлена (адрес ${ip})." || true
     return "${EXIT_FAIL}"
   fi
 
@@ -832,7 +888,7 @@ run_cycle() {
   # FR-014: PR через Forgejo API.
   create_pull_request "${ip}" "${BACKUP_PATH}" || true
 
-  send_telegram "Karaoke allow-list: адрес ${ip} добавлен в allow-list прод-хоста (5433, 9000). Проверка синтаксиса — ок, контрольная проверка — ок. Бэкап: ${BACKUP_PATH}.${PR_URL:+ PR ждёт одобрения: ${PR_URL}}"
+  send_telegram "Karaoke allow-list: адрес ${ip} добавлен в allow-list прод-хоста (5433, 9000). Проверка синтаксиса — ок, контрольная проверка — ок. Бэкап: ${BACKUP_PATH}.${PR_URL:+ PR ждёт одобрения: ${PR_URL}}" || true
   return "${EXIT_OK}"
 }
 
@@ -915,6 +971,10 @@ run_self_test() {
   fi
   LOG_FILE="${workdir}/journal.log"
   STATE_FILE="${workdir}/state"
+  # Самопроверка не должна отправлять настоящие уведомления: токен и chat_id
+  # гасятся на всё время прогона (сценарий прокси подставляет свои значения).
+  TELEGRAM_TOKEN=""
+  TELEGRAM_CHAT_ID=""
   local test_ip="203.0.113.77"
   local old="${workdir}/nginx.conf" new="${workdir}/nginx.new"
 
@@ -1103,11 +1163,134 @@ STUB
   }
   probe_https() {
     local url="$1" timeout_s="$2" code
-    code="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time "${timeout_s}" "${url}" 2>/dev/null)" || code="000"
+    code="$(curl -fsS --noproxy '*' -o /dev/null -w '%{http_code}' --max-time "${timeout_s}" "${url}" 2>/dev/null)" || code="000"
     [ "${code}" -ge 200 ] 2>/dev/null && [ "${code}" -lt 300 ] 2>/dev/null
   }
 
-  echo "== Сценарий 11: прод недоступен целиком — адрес не определяется (FR-002)"
+  echo "== Сценарий 11: прокси Telegram — только в вызове Bot API"
+  # Регрессия: с админ-машины api.telegram.org напрямую недоступен, нужен
+  # локальный прокси. Прокси применяется ТОЛЬКО к вызову Bot API: определение
+  # внешнего адреса и пробы доступности идут напрямую — иначе в allow-list
+  # прод-хоста попал бы адрес выхода прокси, а не адрес админ-машины.
+  # Проверка явная: curl подменён заглушкой, которая пишет переданные аргументы
+  # и содержимое конфиг-файла (-K) в файлы прогона.
+  local stub_dir="${workdir}/curlstub"
+  mkdir -p "${stub_dir}"
+  curl() {
+    printf 'ARGS %s\n' "$*" >>"${stub_dir}/args.log"
+    local prev="" a cfg=""
+    for a in "$@"; do
+      if [ "${prev}" = "-K" ]; then cfg="${a}"; fi
+      prev="${a}"
+    done
+    if [ -n "${cfg}" ] && [ -f "${cfg}" ]; then
+      { printf 'CONFIG %s\n' "${cfg}"; cat "${cfg}"; } >>"${stub_dir}/config.log"
+      printf '200'
+      return 0
+    fi
+    case "$*" in
+      *http_code*) printf '200' ;;
+      *) printf '203.0.113.77' ;;
+    esac
+    return 0
+  }
+  TELEGRAM_TOKEN="000000:FAKE"
+  TELEGRAM_CHAT_ID="1"
+  TELEGRAM_PROXY="socks5h://127.0.0.1:1080"
+  rm -f "${stub_dir}/args.log" "${stub_dir}/config.log"
+  send_telegram "self-test" >/dev/null 2>&1 || true
+  if grep -qF 'proxy = "socks5h://127.0.0.1:1080"' "${stub_dir}/config.log" 2>/dev/null; then
+    echo "   OK: прокси подставлен в конфиг-файл вызова Bot API"
+  else
+    echo "   FAIL: прокси не попал в конфиг-файл вызова Bot API"; failed=1
+  fi
+  if grep -qF 'noproxy' "${stub_dir}/config.log" 2>/dev/null; then
+    echo "   FAIL: в конфиге Bot API задан noproxy вместе с proxy"; failed=1
+  else
+    echo "   OK: noproxy и proxy не заданы одновременно"
+  fi
+
+  # Определение внешнего адреса — напрямую, без прокси.
+  rm -f "${stub_dir}/args.log" "${stub_dir}/config.log"
+  detect_address >/dev/null 2>&1 || true
+  local addr_lines addr_noproxy
+  addr_lines="$(grep -c '^ARGS' "${stub_dir}/args.log" 2>/dev/null || true)"
+  addr_noproxy="$(grep -c -- '--noproxy' "${stub_dir}/args.log" 2>/dev/null || true)"
+  [ -n "${addr_lines}" ] || addr_lines=0
+  [ -n "${addr_noproxy}" ] || addr_noproxy=0
+  if [ "${addr_lines}" -gt 0 ] && [ "${addr_lines}" -eq "${addr_noproxy}" ]; then
+    echo "   OK: определение адреса идёт напрямую (${addr_lines} запрос(ов), все с --noproxy)"
+  else
+    echo "   FAIL: определение адреса: запросов ${addr_lines}, с --noproxy ${addr_noproxy}"; failed=1
+  fi
+  if grep -q -- '-K' "${stub_dir}/args.log" 2>/dev/null || grep -qF '1080' "${stub_dir}/args.log" 2>/dev/null; then
+    echo "   FAIL: в определении адреса появился конфиг-файл или адрес прокси"; failed=1
+  else
+    echo "   OK: в определении адреса нет конфиг-файла и нет адреса прокси"
+  fi
+
+  # Проба доступности — напрямую, без прокси.
+  rm -f "${stub_dir}/args.log" "${stub_dir}/config.log"
+  probe_https "https://sm-karaoke.ru/health" 1 >/dev/null 2>&1 || true
+  local probe_lines probe_noproxy
+  probe_lines="$(grep -c '^ARGS' "${stub_dir}/args.log" 2>/dev/null || true)"
+  probe_noproxy="$(grep -c -- '--noproxy' "${stub_dir}/args.log" 2>/dev/null || true)"
+  [ -n "${probe_lines}" ] || probe_lines=0
+  [ -n "${probe_noproxy}" ] || probe_noproxy=0
+  if [ "${probe_lines}" -eq 1 ] && [ "${probe_noproxy}" -eq 1 ]; then
+    echo "   OK: проба доступности идёт напрямую (--noproxy)"
+  else
+    echo "   FAIL: проба доступности: запросов ${probe_lines}, с --noproxy ${probe_noproxy}"; failed=1
+  fi
+  if grep -q -- '-K' "${stub_dir}/args.log" 2>/dev/null || grep -qF '1080' "${stub_dir}/args.log" 2>/dev/null; then
+    echo "   FAIL: в пробе доступности появился конфиг-файл или адрес прокси"; failed=1
+  else
+    echo "   OK: в пробе доступности нет конфиг-файла и нет адреса прокси"
+  fi
+
+  # Переменная не задана — прямое соединение (proxy не задан, noproxy задан).
+  TELEGRAM_PROXY=""
+  rm -f "${stub_dir}/args.log" "${stub_dir}/config.log"
+  send_telegram "self-test" >/dev/null 2>&1 || true
+  if grep -qF 'noproxy = "*"' "${stub_dir}/config.log" 2>/dev/null &&
+    ! grep -q '^proxy = ' "${stub_dir}/config.log" 2>/dev/null; then
+    echo "   OK: без ALLOWLIST_TELEGRAM_PROXY вызов Bot API идёт напрямую (noproxy)"
+  else
+    echo "   FAIL: без ALLOWLIST_TELEGRAM_PROXY в конфиге нет noproxy (или задан proxy)"; failed=1
+  fi
+  unset -f curl
+  TELEGRAM_TOKEN=""
+  TELEGRAM_CHAT_ID=""
+
+  echo "== Сценарий 12: недоступный прокси не проваливает цикл (FR-013)"
+  # Прокси задан, но недоступен: уведомление не доставляется — цикл всё равно
+  # должен завершиться штатным кодом (правка allow-list от доставки сообщения
+  # не зависит). Прокси — порт 1 на локальной машине: соединение не установится,
+  # наружу ничего не уходит, прод не затрагивается (цикл уходит в ветку
+  # «прод недоступен целиком» до обращения к прод-хосту по ssh).
+  TELEGRAM_TOKEN="000000:FAKE"
+  TELEGRAM_CHAT_ID="1"
+  TELEGRAM_PROXY="socks5h://127.0.0.1:1"
+  probe_https() { return 1; }
+  probe_tcp() { return 1; }
+  local notify_cycle_rc=0
+  run_cycle "" >/dev/null 2>&1 || notify_cycle_rc=$?
+  if [ "${notify_cycle_rc}" -eq "${EXIT_DECLINED}" ]; then
+    echo "   OK: код цикла ${notify_cycle_rc} — недоставленное уведомление цикл не провалило"
+  else
+    echo "   FAIL: код цикла ${notify_cycle_rc} (ожидался ${EXIT_DECLINED})"; failed=1
+  fi
+  if grep -q 'event:notify channel=telegram ok=false' "${LOG_FILE}" 2>/dev/null &&
+    grep -q 'reason=proxy_unreachable' "${LOG_FILE}" 2>/dev/null; then
+    echo "   OK: в журнале есть событие о неудачной отправке уведомления (reason=proxy_unreachable)"
+  else
+    echo "   FAIL: в журнале нет события о неудачной отправке уведомления"; failed=1
+  fi
+  TELEGRAM_TOKEN=""
+  TELEGRAM_CHAT_ID=""
+  TELEGRAM_PROXY=""
+
+  echo "== Сценарий 13: прод недоступен целиком — адрес не определяется (FR-002)"
   # HTTPS не отвечает → цикл не должен определять адрес и не должен идти на прод.
   local marker="${workdir}/address-called"
   probe_https() { return 1; }
@@ -1151,10 +1334,14 @@ usage() {
 ALLOWLIST_PROD_PORTS, ALLOWLIST_HEALTH_URL, ALLOWLIST_IP_SERVICES,
 ALLOWLIST_IP_TIMEOUT, ALLOWLIST_PROBE_TIMEOUT, ALLOWLIST_MIN_INTERVAL_MINUTES,
 ALLOWLIST_LOG_FILE, ALLOWLIST_STATE_FILE, ALLOWLIST_TELEGRAM_BOT_TOKEN,
-ALLOWLIST_TELEGRAM_CHAT_ID, ALLOWLIST_FJ_TOKEN, ALLOWLIST_FJ_URL,
-ALLOWLIST_REPO, ALLOWLIST_REPO_PATH, ALLOWLIST_NGINX_BIN.
+ALLOWLIST_TELEGRAM_CHAT_ID, ALLOWLIST_TELEGRAM_PROXY, ALLOWLIST_FJ_TOKEN,
+ALLOWLIST_FJ_URL, ALLOWLIST_REPO, ALLOWLIST_REPO_PATH, ALLOWLIST_NGINX_BIN.
 
 Токены — только из окружения; в argv и в журнал они не попадают.
+
+ALLOWLIST_TELEGRAM_PROXY — прокси ТОЛЬКО для вызова Telegram Bot API
+(например socks5h://127.0.0.1:1080); по умолчанию пусто — прямое соединение.
+Определение внешнего адреса и пробы доступности прокси не используют никогда.
 EOF
 }
 

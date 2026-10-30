@@ -175,6 +175,22 @@ allow-list отсутствует) → дождаться срабатывани
 - [x] T071 Исправить неинициализированный локальный `host` в `run_cycle` (под `set -u` цикл падал целиком) в `deploy/admin-ip-allowlist.sh`
 - [x] T072 Отразить разделение stderr/stdout и повторы проб в контрактах `specs/677-admin-ip-allowlist/contracts/journal-format.md` и `specs/677-admin-ip-allowlist/contracts/automation-cli.md`
 
+### Группа доработки по прокси уведомлений (2026-10-30, лид)
+
+Факт, установленный на живой машине: `api.telegram.org` с админ-машины напрямую недоступен
+(нужен VPN), рабочий локальный SOCKS5-прокси слушает `127.0.0.1:1080` — уведомления
+не доходили. Спека и FR/SC не меняются: дорабатывается реализация под уже утверждённый
+контракт (FR-013, FR-016).
+
+- [x] T073 Ввести переменную окружения `ALLOWLIST_TELEGRAM_PROXY` (по умолчанию — пусто, то есть без прокси) и применять её **только** к вызову Telegram Bot API; значение передаётся конфиг-файлом `curl -K`, не через argv (BR-551/552/605) — в `deploy/admin-ip-allowlist.sh`
+- [x] T074 Запретить глобальный прокси: переменные прокси окружения не используются, прямые вызовы (определение внешнего адреса FR-003, пробы доступности FR-001) идут с `--noproxy '*'` — иначе в allow-list попал бы адрес выхода прокси, а не адрес админ-машины — в `deploy/admin-ip-allowlist.sh`
+- [x] T075 Сделать недоставленное уведомление не проваливающим цикл: событие в журнале (`notify:channel=telegram ok=false reason=…`), код возврата цикла прежний — в `deploy/admin-ip-allowlist.sh`
+- [x] T076 Добавить регрессионные сценарии self-test'а: при заданном `ALLOWLIST_TELEGRAM_PROXY` прокси подставляется в вызов Bot API и **не** подставляется в определение адреса и пробу доступности (curl подменён заглушкой, фиксирующей аргументы и конфиг-файл); недоступный прокси не проваливает цикл, а попадает в журнал как `notify:… ok=false reason=proxy_unreachable` — в `deploy/admin-ip-allowlist.sh`
+- [x] T077 Описать переменную и правило прокси в контрактах `specs/677-admin-ip-allowlist/contracts/automation-cli.md` (§3, §4, §4.1, §5) и `specs/677-admin-ip-allowlist/contracts/journal-format.md` (событие `notify`)
+- [x] T078 Дополнить guard BR-631 правилами «глобальный прокси запрещён», «прямые вызовы с `--noproxy`», «прокси Telegram — конфиг-файлом, не argv», «переменная описана в контракте» и сценариями `--self-test` в `tools/check-allowlist-guardrails.sh`
+- [x] T079 Отразить прокси уведомлений в per-feature документе `knowledge/product/features/admin-ip-allowlist.md` и в ADR `knowledge/adr/local-0015-admin-ip-allowlist-automation.md`
+- [x] T080 Прогнать гейты по quickstart §3 и зафиксировать фактический вывод в `specs/677-admin-ip-allowlist/report.md` (§10)
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

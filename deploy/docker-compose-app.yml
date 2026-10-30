@@ -77,11 +77,25 @@ services:
       - /dev/dri:/dev/dri
     networks:
       - karaokenet
+    # BR-630 (спека 676, FR-006/FR-007): предел памяти контейнера karaoke-app.
+    #   Пара «heap ↔ предел» видна в репозитории: максимум heap JVM — 6 ГБ
+    #   (-Xmx6g в команде ниже), предел памяти контейнера — 8 ГБ (mem_limit).
+    #   Запас ~2 ГБ на метапространство, native-память и потоки.
+    #   Прецедент 2026-10-23: JVM с -Xmx8g без cgroup-лимита вытесняла память
+    #   admin-машины (хост уходил в swap, соседние сервисы страдали) — из-за этого
+    #   погиб HttpClient-монитор и 5+ часов держался ложный CRITICAL «прод
+    #   недоступен» при живом прод-сайте.
+    mem_limit: 8g
     entrypoint:
       - java
       - -Dfile.encoding=UTF-8
       - -Djava.security.egd=file:/dev/./urandom
-    command: ${APP_JAVA_OPTS} -jar /app.jar
+    # BR-630 (FR-007/FR-008): -Xmx6g стоит ПОСЛЕ ${APP_JAVA_OPTS} — последний -Xmx
+    #   побеждает (проверено: java -Xmx8g -Xmx6g → MaxHeapSize = 6442450944 = 6 GiB).
+    #   Так перекрывается устаревшее -Xmx8g из неотслеживаемого deploy/.env, и связь
+    #   «heap меньше предела контейнера» проверяется из репозитория, а не только
+    #   по значению в .env, которого в git нет.
+    command: ${APP_JAVA_OPTS} -Xmx6g -jar /app.jar
 
   searxng:
     image: sm-karaoke.ru:5443/mirror/searxng/searxng:latest@sha256:f3e639582391a481a7a9965d8a3611319cc8561f03929277cca0a8b4cd610830

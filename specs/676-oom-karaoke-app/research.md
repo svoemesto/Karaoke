@@ -311,8 +311,9 @@ systemd-юнит `deploy/heap-dump-retention.service` и таймер
 Регистр BR-кодов — `knowledge/system/infra/audit-336-registry.md` (там же —
 формулировка BR-188, которую FR-020 просит синхронизировать).
 
-**Новый BR-код**: в реестре уже используются BR-600…BR-628; для этой работы
-заводится следующий свободный код (BR-629) и строка в реестре аудита.
+**Новый BR-код**: в реестре используются BR-600…BR-628, но **BR-629 уже занят** (`karaoke-web`,
+контракты публичного API). Для этой работы заведён следующий свободный код —
+**BR-630** — и строка в реестре аудита.
 
 ---
 
@@ -388,7 +389,7 @@ FR-020 перечисляет 12 обязательных документов, 
 | **FR-004** | **Новый тест уровня вызывающих** | `publication-grid.md` § 3–5, research R6 |
 | FR-005 | Не трогаем | `publication-grid.md` § 5.4 |
 | FR-006 | `mem_limit: 8g` | `deploy-memory-limits.md` § 2 |
-| FR-007 | `-Xmx6g` < `mem_limit: 8g` | `deploy-memory-limits.md` § 2 + guard BR-629 |
+| FR-007 | `-Xmx6g` < `mem_limit: 8g` | `deploy-memory-limits.md` § 2 + guard BR-630 |
 | FR-008 | Пара видна в compose + guard | `deploy-memory-limits.md` § 2, research R7/R10 |
 | FR-009 | `-XX:+HeapDumpOnOutOfMemoryError`, `-XX:HeapDumpPath=/dumps` | `deploy-memory-limits.md` § 2 |
 | FR-010 | `./karaoke-db/dumps:/dumps` (bind-mount — доступен вне контейнера) | `deploy-memory-limits.md` § 2, research R8 |

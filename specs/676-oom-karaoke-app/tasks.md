@@ -83,7 +83,7 @@
 ними видна в репозитории** (FR-006…FR-008).
 
 **Independent Test**: чтение `deploy/docker-compose-app.yml` + зелёный
-`tools/check-deploy-hardening.sh` (новое правило BR-629).
+`tools/check-deploy-hardening.sh` (новое правило BR-630).
 
 ### Implementation for User Story 2
 

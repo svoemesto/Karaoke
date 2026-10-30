@@ -109,23 +109,26 @@ not allowed`. Это политика API, а не настройка защит
 `forgejo.env` под ключом `FJ_REVIEWER_TOKEN`; учётка — collaborator репозитория
 с правом **write** (см. ниже, почему именно write).
 
-Полный цикл работы с PR без участия человека:
+Полный цикл работы с PR без участия человека (вручную; рабочий путь —
+`tools/merge-pr.sh`, см. ниже):
 
 ```bash
 . /home/nsa/.config/karaoke/forgejo.env
 
 # 1. Создать PR токеном owner — автором будет owner.
 # 2. Дождаться CI (при красном из-за сети — перезапуск прогонов, см. выше).
-# 3. Одобрить токеном согласователя:
-curl -s -X POST -H "Authorization: token $FJ_REVIEWER_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"event":"APPROVED","body":"Проверено: ..."}' \
-  "$FJ_URL/api/v1/repos/svoemesto/Karaoke/pulls/<N>/reviews"
+# 3. Одобрить токеном согласователя. Токен нельзя передавать через -H:
+#    он попадёт в `ps -eo args`. Заголовок уходит в stdin-конфиг curl.
+printf 'header = "Authorization: token %s"\n' "$FJ_REVIEWER_TOKEN" \
+  | curl -sS --config - -X POST -H 'Content-Type: application/json' \
+      -d '{"event":"APPROVED","body":"Проверено: ..."}' \
+      "$FJ_URL/api/v1/repos/svoemesto/Karaoke/pulls/<N>/reviews"
 
-# 4. Смержить токеном owner:
-curl -s -X POST -H "Authorization: token $FJ_TOKEN" \
-  -H "Content-Type: application/json" -d '{"Do":"merge"}' \
-  "$FJ_URL/api/v1/repos/svoemesto/Karaoke/pulls/<N>/merge"
+# 4. Смержить токеном owner — тем же приёмом.
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - -X POST -H 'Content-Type: application/json' \
+      -d '{"Do":"merge"}' \
+      "$FJ_URL/api/v1/repos/svoemesto/Karaoke/pulls/<N>/merge"
 ```
 
 Эндпоинт merge всегда отвечает `405` — успех проверяется по состоянию PR
@@ -154,6 +157,32 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" -X PUT \
 Как отозвать доступ: удалить токен учётки (Forgejo → User Settings →
 Applications) и убрать collaborator'а
 (`DELETE /repos/svoemesto/Karaoke/collaborators/karaoke-reviewer`).
+
+### Скрипт `tools/merge-pr.sh`
+
+Ручная последовательность из четырёх шагов — источник ошибок (забыли дождаться
+CI, забыли про одобрение). Поэтому в репозитории лежит скрипт, который делает
+всё это за один вызов и **отказывается** мержить незелёное:
+
+```bash
+bash tools/merge-pr.sh <N>                    # одобрить и смержить
+bash tools/merge-pr.sh <N> --dry-run          # только проверки
+bash tools/merge-pr.sh <N> --delete-branch    # удалить remote-ветку после merge
+```
+
+Что внутри:
+
+1. PR должен быть в состоянии `open`.
+2. Все статус-чеки head-коммита — `success`. Ноль статус-чеков — тоже отказ:
+   «CI не отработал» — не «CI зелёный». Ни одного `pending`.
+3. Одобрение аккаунтом-согласователем (если его ещё нет).
+4. Merge и проверка результата: эндпоинт merge всегда отвечает `405`, поэтому
+   успех определяется по состоянию PR (`merged: true`).
+
+Скрипт — **единственная** разрешённая точка входа в master (AGENTS.md v3.8.0,
+Tier-1 «Hard Gate — Git — CI-gate для master»). Токены он читает из
+`forgejo.env` и передаёт в curl через `--config -`, чтобы секрет не попадал в
+`ps -eo args`.
 
 ## Почему так
 

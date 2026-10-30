@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.monitor
 
+import com.svoemesto.karaokeapp.monitor.checks.HeapUsageCheck
 import com.svoemesto.karaokeapp.monitor.checks.LaneStalledCheck
 import com.svoemesto.karaokeapp.monitor.checks.ProdContainerCheck
 import com.svoemesto.karaokeapp.monitor.checks.RenderQueueStalledCheck
@@ -22,5 +23,7 @@ object MonitorRegistry {
             UnreadChatMessagesCheck,
             SubmittedAssignmentsCheck,
             StemJobsStuckCheck,
+            // BR-630 (спека 676): загрузка heap JVM — пороги 75 % / 90 % (FR-015).
+            HeapUsageCheck,
         )
 }

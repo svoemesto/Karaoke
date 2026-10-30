@@ -1,0 +1,14 @@
+[Unit]
+Description=Karaoke: уборка старых heap-дампов контейнера karaoke-app (таймер)
+
+[Timer]
+# Дамп появляется при OOM — редко, но том переполняться не должен никогда.
+# Раз в 15 минут достаточно: политика хранит последние 2 дампа и держит том в
+# пределах 20 ГБ (FR-011).
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+Unit=heap-dump-retention.service
+
+[Install]
+WantedBy=timers.target

@@ -102,6 +102,46 @@ SELECT count(*) FROM pg_stat_activity;
 § «Соединение на поток»). Ответ «перезапустить БД» проблему **не** решает:
 канал закрывается в приложении, а не на стороне БД.
 
+**Предел памяти контейнера `karaoke-app`** (BR-630, спека 676 / KARAOKE-245).
+
+`karaoke-app` живёт **на admin-машине `nsa-i9`** (на прод-хосте его нет).
+До 2026-10-30 у контейнера не было ни предела памяти, ни дампов heap:
+`-Xmx8g` жил только в **неотслеживаемом** `deploy/.env`, а в инциденте
+2026-10-23 JVM без cgroup-лимита вытесняла память хоста — хост уходил в
+swap, погиб HttpClient-монитор, и 5+ часов держался ложный CRITICAL
+«прод недоступен» при живом прод-сайте.
+
+Теперь лимиты объявлены в **отслеживаемой** конфигурации
+(`deploy/docker-compose-app.yml`):
+
+| Параметр | Значение | Где |
+|---|---|---|
+| Предел памяти контейнера | `mem_limit: 8g` | compose |
+| Максимум heap JVM | `-Xmx6g` | compose, **после** `${APP_JAVA_OPTS}` |
+| Дамп состояния heap при OOM | `-XX:+HeapDumpOnOutOfMemoryError`, `-XX:HeapDumpPath=/dumps` | compose |
+| Том дампов | `./karaoke-db/dumps:/dumps` | compose (тот же каталог, что у `karaoke-db`, BR-046) |
+| Пороги алерта загрузки heap | `MONITOR_HEAP_WARN_PERCENT=75`, `MONITOR_HEAP_CRITICAL_PERCENT=90` | compose (`environment:`) |
+
+**Порядок `-Xmx6g` после `${APP_JAVA_OPTS}`** — принципиален: последний
+`-Xmx` побеждает (`java -Xmx8g -Xmx6g` → `MaxHeapSize` = 6 GiB), поэтому
+устаревшее `-Xmx8g` из неотслеживаемого `deploy/.env` перекрывается, а
+связь «heap 6 ГБ < предел контейнера 8 ГБ» видна и проверяется из
+репозитория. Значение в `deploy/.env` само по себе не влияет на лимит.
+
+**Политика хранения дампов** — `deploy/heap-dump-retention.sh`: последние
+**2** дампа, суммарный лимит тома **20 ГБ**, вытеснение по возрасту,
+защита 60 минут (недописанный дамп не удаляется). Работает **без
+установки** (`bash deploy/heap-dump-retention.sh`); systemd-юниты
+(`deploy/heap-dump-retention.{service,timer}`) — необязательная
+автоматизация, их установка и включение — действие владельца. Политика
+трогает **только** `*.hprof`: каталог общий с SQL-дампами БД, они не
+вытесняются никогда.
+
+**Проверяется автоматически**: `tools/check-memory-guardrails.sh` (быстрый
+guard, в pre-commit и CI) — предел памяти, `-Xmx` и его отношение к
+пределу, порядок флагов, флаги дампа, том, пороги и значения retention-политики.
+Ручной `tools/check-deploy-hardening.sh` делегирует ему же правило BR-630.
+
 ## nginx конфигурации
 
 - `deploy/web-server-deploy/deploy/nginx.conf` — главный.
@@ -185,6 +225,7 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
 | Каскады хранилища | `tbl_stem_jobs.site_user_id` — `ON DELETE RESTRICT` (в `22` + миграция `55`); удаление — приложением (`StemJobCleanup` по `expires_at`), объекты MinIO не остаются сиротами | 537 |
 | Триггеры | `44` обещала `CREATE OR REPLACE TRIGGER`, а делала `CREATE TRIGGER` → падала при повторе; теперь `DROP TRIGGER IF EXISTS` перед `CREATE TRIGGER`, шапка приведена в соответствие | 538 |
 | Лимиты контейнеров | у прод-`karaoke-web` healthcheck (HTTP 200 `/api/public/authors-tiles`), `mem_limit`/`cpus` и mount `./karaoke-db/dumps:/dumps` для `-XX:HeapDumpPath=/dumps` | 547 |
+| Лимиты памяти `karaoke-app` | на admin-машине: `mem_limit: 8g` + `-Xmx6g` (после `${APP_JAVA_OPTS}` — последний `-Xmx` побеждает), дамп heap при OOM на томе `./karaoke-db/dumps`, пороги алерта 75 %/90 %; retention-политика — последние 2 / ≤ 20 ГБ / по возрасту; guard — `tools/check-memory-guardrails.sh` (pre-commit + CI) | 630 |
 | TTS-модель | sha256 модели зафиксирован; загрузка во временный файл + `os.replace` после сверки, проверка перед `load_pickle` (прежняя загрузка по pickle без сверки) | 548 |
 | Заголовки публичного SPA | `X-Frame-Options` / `nosniff` / `Referrer-Policy` в server и в каждом location со своими `add_header`; guard расширен на этот файл (см. [security-headers.md](../../guidelines/security-headers.md)) | 549 |
 | Размер тела | `client_max_body_size 200m` на публичном контуре — как `spring.servlet.multipart` и host-nginx (было `1024m`) | 550 |
@@ -233,6 +274,8 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 - **Constitution.md** — запрет на коммит секретов.
 
 ## Changelog
+
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): раздел о пределе памяти контейнера `karaoke-app` (8 ГБ / 6 ГБ), дампах heap и retention-политике; строка BR-630 в таблице Hardening S3. Автор: agent (Karaoke).
 
 - **Pass 382** (2026-10-24, PKG-S2-08 / OpenProject #371): раздел «Hardening S2» —
   инварианты по секретам, push, бэкапам, сети, TLS, логам, compose и watcher'у;

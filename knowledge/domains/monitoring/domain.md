@@ -36,6 +36,8 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 | **MonitorAlert** | Структура алерта (severity + message) | `MonitorAlert.kt` |
 | **MonitorSeverity** | WARNING, CRITICAL | `MonitorSeverity.kt` |
 | **Stalled** | Задача/лейн не двигается > N минут | `RenderQueueStalledCheck` |
+| **HeapUsageCheck** | Проверка загрузки heap JVM (пороги 75 % / 90 %) | `HeapUsageCheck` |
+| **HeapSample** | Снимок загрузки heap: занято / потолок | `HeapSample` |
 | **infra.prod.ping** | SLF4J-категория для HTTP-пинга сайта | фича 288 |
 | **infra.prod.db** | SLF4J-категория для JDBC-пинга прод-БД | фича 288 |
 | **infra.cache.statbysong** | SLF4J-категория для `StatBySong.refreshCache()` | фича 289 |
@@ -101,6 +103,12 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 7. **Пакетная загрузка вместо N+1** (BR-230, BR-273): структурные данные
    читаются ОДНИМ запросом и раздаются из кеша/индекса; точечный
    `SELECT` на каждый элемент цикла — нарушение ADR-0001.
+8. **Загрузка heap видна ДО падения** (BR-630, спека 676): 8-я проверка
+   `HeapUsageCheck` публикует загрузку heap **на каждом тике** (не только
+   при превышении порога) — пороги 75 % (WARNING) и 90 % (CRITICAL) из
+   конфигурации. Состояние проверки — только в памяти, новых персистентных
+   ключей нет. Severity алерта и уровень журнала — разные шкалы:
+   CRITICAL логируется как ERROR (ADR `local-0014`).
 
 ## Публичные контракты (API)
 
@@ -117,6 +125,7 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 ## Структура компонентов (C4 L3)
 
 - [error-semantics](components/error-semantics.md) — сквозной инвариант «сбой ≠ штатный результат»: как отличать «нет данных» от «хранилище/БД/сеть не ответили» (аудит #336, пакет `PKG-S3-23`, 39 записей).
+- [monitor-checks](components/monitor-checks.md) — 8-я проверка `HeapUsageCheck` (загрузка heap JVM, BR-630): источник данных `Runtime`, пороги из конфигурации, маппинг severity → уровень журнала.
 - [boundary-validation](components/boundary-validation.md) — сквозной инвариант «вход проверяется ДО использования»: HTTP-параметры, страницы из интернета, значения из админских свойств и ссылки внутри `.mlt` (аудит #336, пакет `PKG-S3-25`).
 - [log-categories](components/log-categories.md) — В Karaoke есть **соглашение о SLF4J-категориях**: компоненты логируют через `infra.*` категории для удобного grep'а в…
 - [monitor-checks-detailed](components/monitor-checks-detailed.md) — детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](components/monitor-checks.md).
@@ -134,4 +143,8 @@ Karaoke (PostgreSQL, `karaoke-web`, `karaoke-app`, nginx) и **алертов**
 - `karaoke-app/src/main/kotlin/.../monitor/MonitorCheck.kt`
 - `karaoke-app/src/main/kotlin/.../monitor/MonitorRegistry.kt`
 - `karaoke-app/src/main/kotlin/.../monitor/MonitorAlert.kt`
-- `karaoke-app/src/main/kotlin/.../monitor/checks/*.kt` (7 проверок)
+- `karaoke-app/src/main/kotlin/.../monitor/checks/*.kt` (8 проверок)
+
+## Changelog
+
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): 8-я проверка `HeapUsageCheck` (загрузка heap JVM) — Linking Protocol L3→L2 соблюдён, проверка перечислена в структуре компонентов; добавлен инвариант о публикации загрузки до падения. Автор: agent (Karaoke).

@@ -210,6 +210,26 @@ publish10 … publish23: SongDTO?, publish10text … publish23text: String)`.
 `PUBLICATION_PAGE_SIZE = 31` день через `pageSlice`/`hasNextPage`, а не рендерит весь
 каталог (было 127 МиБ HTML).
 
+**Форма раскладки** (BR-188, спека 676 FR-002): строк — максимум песен у одного
+автора, столбцов — авторы с непустой стопкой; первый ряд содержит по самой
+ранней публикации каждого автора.
+
+**Покрыто тестами на уровне вызывающих** (FR-004, спека 676):
+`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationGridCallerTest.kt`
+— 500 неопубликованных песен (10 авторов по 50) → сетка 50×10, все песни в
+раскладке ровно по разу; на прежней реализации (захваченный максимум) тест
+падает с `OutOfMemoryError`, тогда как `audit/PkgS212BehaviorTest.kt` и
+`audit/PkgS212SourceContractsTest.kt` остаются зелёными — они проверяли только
+вспомогательную `popPublicationStacks`. Product-код при этом не менялся:
+подменена граница JDBC.
+
+**Остаточный риск**: ограничения на объём раскладки (пагинация/лимит) нет —
+защита только от бесконечного цикла. Три легаси-точки входа
+(`GET /unpublications`, `POST /api/unpublications`,
+`POST /api/skipedpublications`) **без авторизации**; ограничение доступа —
+вне объёма спеки 676 (отдельная задача KARAOKE-335), выпилка мёртвого кода
+легаси-пути — KARAOKE-336.
+
 ## Известные TODO
 
 - [ ] `Publication` — есть ли фактическая таблица/колонки (`tbl_publications`
@@ -223,5 +243,6 @@ publish10 … publish23: SongDTO?, publish10text … publish23text: String)`.
 
 ## Changelog
 
+- **Спека 676** (2026-10-30, KARAOKE-245, FR-004): уточнена форма раскладки, добавлена ссылка на тест уровня вызывающих (`PublicationGridCallerTest`) и на остаточный риск (нет лимита объёма; три легаси-точки входа без авторизации — вне объёма). Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 348** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -41,8 +41,8 @@
 | Из них в 18 файлах `pkg-*.md` | 385 |
 | Из них только в остальных 47 файлах (8 продуктовых документов + 5 мост-файлов + прочие) | **125** |
 | Кодов, встречающихся только в `knowledge/` (не в слое `docs/features/`) — § 6 | **41** |
-| Зарегистрировано в реестре всего | **551** |
-| Кодов с зеркалом в `knowledge/` | **248** |
+| Зарегистрировано в реестре всего | **552** |
+| Кодов с зеркалом в `knowledge/` | **249** |
 | Кодов без зеркала (список в § 5) | **262** |
 | Пакетов аудита #336 (карточки в § 4) | **37** |
 
@@ -424,7 +424,7 @@
 
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
-| BR-188 | popPublicationStacks в model/Publication.kt: раскладка идёт | [domains/catalog/components/remaining-models.md](../../domains/catalog/components/remaining-models.md) | PKG-S2-12 |
+| BR-188 | `popPublicationStacks` в `model/Publication.kt`: условие выхода — **живое состояние стопок** (`while (stacks.any { it.isNotEmpty() })`), а не захваченный максимум размера (прежний вариант давал вечный цикл и OOM); покрыто тестом уровня вызывающих (спека 676, FR-004) | [domains/catalog/components/remaining-models.md](../../domains/catalog/components/remaining-models.md) | PKG-S2-12 |
 | BR-195 | StatsCacheKey.forEndpoint(endpoint, target, params) включает | [domains/stats/domain.md](../../domains/stats/domain.md) | PKG-S2-12 |
 | BR-200 | 206/214 — karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Pagination.kt: LEGACYPAGESIZE = 200 | [domains/catalog/components/remaining-models.md](../../domains/catalog/components/remaining-models.md) | PKG-S2-12 |
 | BR-201 | из processes.html, publications.html, unpublications.html | — | PKG-S2-12 |
@@ -750,6 +750,12 @@
 | Код | Суть дефекта | Зеркало | Пакет |
 |---|---|---|---|
 | BR-627 | (отдельная задача #410): утечка соединений. Правки этого | [domains/persistence/domain.md](../../domains/persistence/domain.md) | OpenProject #410 |
+
+### Спека 676 / KARAOKE-245 (BR-630)
+
+| Код | Суть дефекта | Зеркало | Пакет |
+|---|---|---|---|
+| BR-630 | Превентивные меры против OOM в контейнере `karaoke-app` (admin-машина): не было предела памяти контейнера (`mem_limit`), значение heap жило только в неотслеживаемом `deploy/.env` (в git его нет), не было дампа состояния heap при OOM и политики хранения дампов. Теперь: `mem_limit: 8g` + `-Xmx6g` (после `${APP_JAVA_OPTS}` — последний `-Xmx` побеждает), `-XX:+HeapDumpOnOutOfMemoryError` + `-XX:HeapDumpPath=/dumps`, том `./karaoke-db/dumps`, retention-политика (последние 2 / ≤ 20 ГБ / по возрасту), 8-я проверка мониторинга `HeapUsageCheck` (пороги 75 % / 90 %) | [system/infra/deploy-overview.md](../../system/infra/deploy-overview.md) | Спека 676 / KARAOKE-245 |
 
 ## 4. Карточки пакетов
 

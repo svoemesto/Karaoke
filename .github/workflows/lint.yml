@@ -86,6 +86,41 @@ jobs:
       - name: Check no redirect artifacts in repo root
         run: bash tools/check-root-junk.sh
 
+  # === Guard: политика хранения heap-дампов (BR-630, спека 676 / KARAOKE-245) ===
+  # Retention-политика (последние 2 дампа, лимит тома 20 ГБ, вытеснение по
+  # возрасту, защита недописанного дампа) проверяется self-test'ом на
+  # синтетических файлах — в том числе, что SQL-дампы БД в общем каталоге
+  # ./karaoke-db/dumps НЕ вытесняются. Тот же тест подключён к pre-commit
+  # (hook heap-dump-retention-self-test) — политика не остаётся ручным шагом.
+  heap-dump-retention-guard:
+    name: heap dump retention policy (BR-630)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check heap dump retention policy
+        run: bash deploy/heap-dump-retention.sh --self-test
+
+  # === Guard: превентивные меры против OOM (BR-630, спека 676 / KARAOKE-245) ===
+  # Предел памяти контейнера karaoke-app, максимум heap JVM и их соотношение
+  # (heap < предел), дамп состояния heap при OOM на томе, пороги алерта
+  # загрузки heap, политика хранения дампов. Если mem_limit или -Xmx исчезнут
+  # из compose, вся мера исчезнет молча — guard ловит это автоматически.
+  # Единственная реализация правил BR-630 — tools/check-memory-guardrails.sh;
+  # ручной tools/check-deploy-hardening.sh делегирует тому же скрипту.
+  memory-guardrails-guard:
+    name: memory guardrails guard (BR-630)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check memory guardrails (BR-630)
+        run: bash tools/check-memory-guardrails.sh
+
   # === Guard: конфигурация сборки (BR-499/BR-527/BR-528/BR-529/BR-530, OP #406) ===
   # Аудит #336, волна E, пакет PKG-S3-34 (модуль «прочее»). Пять записей об
   # одном: конфигурация сборки в репозитории расходилась сама с собой и

@@ -180,8 +180,8 @@ Guard, который что-то проверяет, обязан уметь п
 `tools/check-deploy-hardening.sh`, `tools/check-direct-commits.sh`,
 `tools/check-endpoint-field-coverage.sh`, `tools/check-enforcement.sh`,
 `tools/check-file-permissions.sh`, `tools/check-frontend-build.sh`,
-`tools/check-gradle-wrapper.sh`, `tools/check-secret-in-argv.sh`,
-`tools/check-spec-issue-link.py`.
+`tools/check-gradle-wrapper.sh`, `tools/check-memory-guardrails.sh`,
+`tools/check-secret-in-argv.sh`, `tools/check-spec-issue-link.py`.
 
 ## Таблица guard'ов
 
@@ -198,7 +198,8 @@ Guard, который что-то проверяет, обязан уметь п
 | `tools/check-gradle-user-home.sh` | `GRADLE_USER_HOME` указывает на **writable** каталог; путь выводится от корня репозитория, без хардкода пути машины | pre-commit-хуки `gradle-user-home-guard` | 0 / 1 / 2 |
 | `tools/check-docker-config.sh` | `DOCKER_CONFIG` указывает на writable-каталог; путь — от корня репозитория | pre-commit-хуки `docker-config-guard` | 0 / 1 / 2 |
 | `tools/check-docker-image-tags.sh` | R-04/R-05: `FROM nginx:` и `FROM node:` только из whitelist (`nginx:stable`, `node:22-alpine`); запрещены `nginx:alpine`, `nginx:latest`, `node:alpine`, `node:latest`, `node:lts`; игнорируются backup-файлы (`DockerfileOld`, `DockerfileBackup`, `DockerfileFull`, `DockerfileDemucs`) | CI-джоб `docker-image-tags-guard`; pre-commit-хуки `docker-image-tags-guard` | 0 / 1 / 2 |
-| `tools/check-deploy-hardening.sh` | hardening-конфигурация deploy (проверяет, в том числе, что `do.sh` проверяет код возврата `docker image push` и не считает «Image is up to date» без проверки) | вручную; в CI не вызывается | 0 / 1 / 2 |
+| `tools/check-deploy-hardening.sh` | hardening-конфигурация deploy (проверяет, в том числе, что `do.sh` проверяет код возврата `docker image push` и не считает «Image is up to date» без проверки). Правило BR-630 (лимиты памяти `karaoke-app`) **делегирует** `tools/check-memory-guardrails.sh` — реализация правил одна | вручную; в CI не вызывается | 0 / 1 / 2 |
+| `tools/check-memory-guardrails.sh` | BR-630 (спека 676 / KARAOKE-245): превентивные меры против OOM в контейнере `karaoke-app` — предел памяти (`mem_limit: 8g`), максимум heap JVM (`-Xmx6g`) и отношение «heap < предел», порядок флагов (`-Xmx` **после** `${APP_JAVA_OPTS}` — последний `-Xmx` побеждает), дамп состояния heap при OOM (`-XX:+HeapDumpOnOutOfMemoryError`, `-XX:HeapDumpPath=/dumps`), том дампов (`./karaoke-db/dumps:/dumps`), пороги алерта загрузки heap (75 % / 90 %) и параметры retention-политики (2 дампа / 20 ГБ / 60 мин / только `*.hprof`) | CI-джоб `memory-guardrails-guard` (обе копии workflow); pre-commit-хуки `memory-guardrails-guard` | 0 / 1 / 2 |
 | `tools/check-container-restart.sh` | прямые `docker compose … restart`, `docker start <c>`, `docker restart -t 30 <c>` вместо `bash deploy/do.sh restart_*`; проверяет только `.sh`/`.bash`, `deploy/do.sh` и `.github/workflows/` (в Markdown и ADR бывают примеры) | pre-commit-хуки `container-restart-guard` | 0 / 1 / 2 |
 | `tools/check-frontend-build.sh` | `npm run <cmd>` без `cd webvue3` / `cd karaoke-public`; контекст нарушения берётся из **полного содержимого файла**, номера строк — из diff'а (контекст не выдумывается) | pre-commit-хуки `frontend-build-guard` | 0 / 1 / 2 |
 
@@ -447,3 +448,7 @@ Per-feature документы пакетов аудита — канониче�
   ссылок, легаси-документация по `tbl_songs`.
 - [`archive/docs/features/ci-lint-enforcement.md`](../../../archive/docs/features/ci-lint-enforcement.md) —
   пин сторонних actions по SHA.
+
+## Changelog
+
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): в таблице guard'ов — новый `tools/check-memory-guardrails.sh` (автоматические гейты: CI-джоб `memory-guardrails-guard` в обеих копиях workflow + pre-commit-хуки); в строке `check-deploy-hardening.sh` отмечено делегирование BR-630. Автор: agent (Karaoke).

@@ -7,7 +7,7 @@
 
 | Контейнер | Где | Назначение | См. также |
 |---|---|---|---|
-| **karaoke-app** | Admin-машина | Backend админ-логики: рендер, парсинг, HealthReport, async-очередь. Spring Boot, Kotlin. Порт 8899. | [processing domain](../domains/processing/domain.md) |
+| **karaoke-app** | Admin-машина | Backend админ-логики: рендер, парсинг, HealthReport, async-очередь. Spring Boot, Kotlin. Порт 8899. **Предел памяти 8 ГБ, heap ≤ 6 ГБ, дампы heap на томе `./karaoke-db/dumps`** (BR-630, спека 676). | [processing domain](../domains/processing/domain.md), [deploy-overview](infra/deploy-overview.md) |
 | **karaoke-web** | Admin-машина + прод | Публичное API + UI (Thymeleaf), `useAuth`, `useKaraokeEditor`. Spring Boot, Kotlin. Порт 8899 (admin) / 8899 (прод). | [integration domain](../domains/integration/domain.md) |
 | **webvue3** | Admin-машина | Админ-интерфейс (Vue 3 + Vite + Vuex). Порт 7906. | [frontend docs](../system/frontend/) |
 | **karaoke-public** | Admin-машина + прод | Публичный сайт (Vue 3 + Vite + composables). Порт 7905. | [frontend docs](../system/frontend/karaoke-public-composables.md) |
@@ -81,6 +81,18 @@ flowchart TB
     KaraokeWeb --> NginxProd
 ```
 
+## Ресурсные лимиты (BR-630, спека 676 / KARAOKE-245)
+
+| Контейнер | Предел памяти | Heap JVM | Дамп при OOM | Где объявлено |
+|---|---|---|---|---|
+| `karaoke-app` | `mem_limit: 8g` | `-Xmx6g` | `-XX:+HeapDumpOnOutOfMemoryError`, `-XX:HeapDumpPath=/dumps` → `./karaoke-db/dumps` | `deploy/docker-compose-app.yml` |
+| `karaoke-web` (прод) | `mem_limit: 1600m` | `-Xmx1200m` (APP_JAVA_OPTS) | тот же том `./karaoke-db/dumps` | `deploy/prod-single-host/docker-compose-web.yml` (BR-547) |
+
+Загрузка heap `karaoke-app` наблюдается 8-й проверкой мониторинга
+`HeapUsageCheck` (пороги 75 % / 90 %) — см.
+[домен monitoring](../domains/monitoring/domain.md). Проверяется guard'ом
+`tools/check-memory-guardrails.sh` (pre-commit + CI).
+
 ## Hot paths
 
 - **Страница «Песни» (webvue3) → karaoke-app** — XHR + SSE подписка.
@@ -100,6 +112,7 @@ flowchart TB
 
 ## Changelog
 
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): лимиты памяти и дампы `karaoke-app` в таблице контейнеров + раздел «Ресурсные лимиты». Автор: agent (Karaoke).
 - **Pass 440** (2026-09-23): Прод-сервер и MinIO объединены в один хост
   `188.127.240.124` (wayfinder #165 / спека #178). MinIO — локальный контейнер.
 - **Pass 356** (2026-09-09): Initial C4 L2. Автор: agent (Karaoke).

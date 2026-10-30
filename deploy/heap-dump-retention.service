@@ -1,0 +1,16 @@
+[Unit]
+Description=Karaoke: уборка старых heap-дампов контейнера karaoke-app (BR-630)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Путь ExecStart должен совпадать с каталогом deploy/ на целевой машине
+# (admin-машина: /home/nsa/Karaoke/deploy). Установка и включение юнита —
+# действие владельца; сам скрипт работает и без установки:
+#   bash deploy/heap-dump-retention.sh
+ExecStart=/home/nsa/Karaoke/deploy/heap-dump-retention.sh
+User=root
+Group=root
+StandardOutput=journal
+StandardError=journal

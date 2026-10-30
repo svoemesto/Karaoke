@@ -1,10 +1,10 @@
 # Karaoke Project Guidelines (Claude Code)
 
-> **Версия**: 1.8.2 | **2026-10-29** (рабочий трекер — Plane; OpenProject
+> **Версия**: 1.9.0 | **2026-10-30** (рабочий трекер — Plane; OpenProject
 > остаётся локально для ручных задач).
-> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.7.2.
+> 84 строки. Cross-references only. **Single source of truth**: `AGENTS.md` v3.8.0.
 
-## 🚦 Все правила — в AGENTS.md v3.7.2
+## 🚦 Все правила — в AGENTS.md v3.8.0
 
 - **MUST #0 Knowledge-first pre-flight** → `AGENTS.md` Tier-1.
 - **Hard Gates (Pass 372-375, 358, 353)** → `AGENTS.md` Tier-1.
@@ -21,7 +21,7 @@
 
 1. **При старте сессии**: `cat AGENTS.md | head -100` — знать обязательные правила.
 2. **Перед правкой кода фичи**: обновить `knowledge/product/features/<slug>.md` (FR-009).
-3. **Перед commit**: 7 проверок из AGENTS.md v3.7.2 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
+3. **Перед commit**: 7 проверок из AGENTS.md v3.8.0 § «Hard Gate: Обязательная проверка после ЛЮБОГО изменения».
 4. **При отладке**: сначала `docker logs`, потом гипотезы (Pass 358).
 5. **Если grep по `knowledge/` ничего не нашёл**: зафиксировать в `spec.md` явно «Searched: ... → no relevant docs».
 
@@ -54,13 +54,17 @@
 ## 🚦 Ключевые правила (Claude Code-specific)
 
 - **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
-- **Secrets**: НЕ коммитить. См. AGENTS.md v3.7.2 § «Hard Gate: Secrets».
+- **Secrets**: НЕ коммитить. См. AGENTS.md v3.8.0 § «Hard Gate: Secrets».
 - **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
 - **Force-push в main/master**: нельзя.
 - **`git commit --no-verify`**: только в крайнем случае.
 
 ## Changelog
 
+- **1.9.0** (2026-10-30, KARAOKE-337): синхронизация с `AGENTS.md` v3.8.0 —
+  merge PR только через `tools/merge-pr.sh` (зелёный CI на head-коммите +
+  одобрение аккаунтом `karaoke-reviewer`); в Tier-1 правило Git дополнено
+  требованием зелёного CI и исключением для сетевых сбоев.
 - **1.8.2** (2026-10-29, спека 675, KARAOKE-334): пути документации приведены к
   единственному слою `knowledge/` (ADR-0011: слой `docs` слит в `knowledge`). Изменены только пути, смысл
   правил не менялся (PATCH). Per-feature документы — в

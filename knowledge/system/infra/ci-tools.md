@@ -47,6 +47,10 @@
   отзыва доступа — в runbook'е
   [forgejo-access.md](../../guidelines/runbooks/forgejo-access.md)
   § «Одобрение PR».
+- **Точка входа в master — `tools/merge-pr.sh`**: скрипт требует, чтобы все
+  статус-чеки head-коммита были `success` (в branch protection статус-чеки не
+  входят — раннер на `nsa-i9`), ставит одобрение и мержит. Правило закреплено
+  в `AGENTS.md` v3.8.0 (Tier-1 «Hard Gate — Git — CI-gate для master»).
 - **Автозапуск раннера**: cron `@reboot` + watchdog каждые 5 минут; ручной
   запуск — `start.sh` в каталоге раннера.
 - **Ручной запуск прогона**: workflow объявляет триггер `workflow_dispatch`,
@@ -479,6 +483,7 @@ Per-feature документы пакетов аудита — канониче�
 
 ## Changelog
 
+- **KARAOKE-337** (2026-10-30, продолжение): в § «Где исполняется CI» — точка входа в master: `tools/merge-pr.sh` требует зелёные статус-чеки head-коммита (правило закреплено в `AGENTS.md` v3.8.0). Автор: agent (Karaoke).
 - **KARAOKE-337** (2026-10-30, продолжение): в § «Где исполняется CI» — кто одобряет PR: служебный аккаунт `karaoke-reviewer` (Forgejo запрещает автору одобрять свой PR; без права write ревью не засчитывается). Автор: agent (Karaoke).
 - **KARAOKE-337** (2026-10-30): в § «Где исполняется CI» — ручной запуск прогона через `workflow_dispatch` (API Forgejo, отдельного эндпоинта «перезапустить упавшие джобы» нет); в § «Известные ловушки» — красный `master` из-за сетевого сбоя (проверять локально на том же коммите) и битая ссылка на каталог вне репозитория (lychee в свежем checkout). Автор: agent (Karaoke).
 - **Спека 676** (2026-10-30, KARAOKE-245, BR-630): в таблице guard'ов — новый `tools/check-memory-guardrails.sh` (автоматические гейты: CI-джоб `memory-guardrails-guard` в обеих копиях workflow + pre-commit-хуки); в строке `check-deploy-hardening.sh` отмечено делегирование BR-630. Автор: agent (Karaoke).

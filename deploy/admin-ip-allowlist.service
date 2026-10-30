@@ -1,0 +1,24 @@
+[Unit]
+Description=Karaoke: самовосстановление доступа к прод-каналу при смене внешнего IP (BR-631)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Путь ExecStart должен совпадать с каталогом deploy/ на целевой машине
+# (admin-машина: /home/nsa/Karaoke/deploy). Установка и включение юнита —
+# действие владельца; сам скрипт работает и без установки:
+#   bash deploy/admin-ip-allowlist.sh --diagnose
+ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh
+User=root
+Group=root
+# Токены Telegram и Forgejo — из файла с правами 600 (создаёт владелец):
+#   /etc/admin-ip-allowlist.env
+# В нём: ALLOWLIST_TELEGRAM_BOT_TOKEN, ALLOWLIST_TELEGRAM_CHAT_ID,
+#        ALLOWLIST_FJ_TOKEN, ALLOWLIST_FJ_URL
+EnvironmentFile=-/etc/admin-ip-allowlist.env
+# Журнал: файл + journald (контракт journal-format.md).
+Environment=ALLOWLIST_LOG_FILE=/var/log/admin-ip-allowlist.log
+Environment=ALLOWLIST_STATE_FILE=/var/log/admin-ip-allowlist.state
+StandardOutput=journal
+StandardError=journal

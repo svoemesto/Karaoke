@@ -103,6 +103,43 @@ jobs:
       - name: Check heap dump retention policy
         run: bash deploy/heap-dump-retention.sh --self-test
 
+  # === Guard: allow-list админ-машины (BR-631, спека 677 / KARAOKE-337) ===
+  # Структура allow-list в репозиторной копии host-nginx: у каждого stream-блока
+  # (listen 5433 и listen 9000) есть `deny all;` и непустой allow-list, адреса
+  # внутри блока уникальны и публичны (FR-004/FR-005/FR-006). Плюс: ограничение
+  # частоты правки задано (30 минут, FR-010), файл состояния и журнал — вне
+  # репозитория, в скрипте и юнитах нет секретов (FR-016), таймер настроен на
+  # 10 минут (Д-3). Единственная реализация правил BR-631 —
+  # tools/check-allowlist-guardrails.sh.
+  allowlist-guardrails-guard:
+    name: allowlist guardrails guard (BR-631)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check allowlist guardrails (BR-631)
+        run: bash tools/check-allowlist-guardrails.sh
+
+  # === Guard: изолированная проверка автоматизации allow-list (FR-018) ===
+  # Сценарий «IP сменился» на изолированном конфиге: добавление строки allow в
+  # оба stream-блока, проверка синтаксиса, откат при ошибке, отказ при
+  # недоступном проде, ограничение частоты, состав PR. Прод-хост не затрагивается.
+  allowlist-automation-self-test:
+    name: allowlist automation self-test (FR-018)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Self-test of allowlist automation
+        run: bash deploy/admin-ip-allowlist.sh --self-test
+
+      - name: Self-test of allowlist guardrails
+        run: bash tools/check-allowlist-guardrails.sh --self-test
+
   # === Guard: превентивные меры против OOM (BR-630, спека 676 / KARAOKE-245) ===
   # Предел памяти контейнера karaoke-app, максимум heap JVM и их соотношение
   # (heap < предел), дамп состояния heap при OOM на томе, пороги алерта

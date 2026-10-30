@@ -60,7 +60,7 @@ Per-feature документ — `knowledge/product/features/<slug>.md`, фор�
 | 21 | [Автоуборка артефактов песни (OpenProject #321, спека #544)](features/song-artifact-cleanup.md) | `song-artifact-cleanup` |
 | 22 | [Превентивные меры против OOM в `karaoke-app` (лимит памяти, дампы, мониторинг heap)](features/heap-memory-guardrails.md) | `heap-memory-guardrails` |
 | 22 | [Тональность и темп в таблице песен (Ton / BPM)](features/tonality-bpm-songs-table.md) | `tonality-bpm-songs-table` |
-
+| 22 | [Автоматизация allow-list админ-машины (самовосстановление доступа к прод-каналу)](features/admin-ip-allowlist.md) | `admin-ip-allowlist` |
 ## Связанные документы
 
 - [`knowledge/README.md`](../README.md) — главная SSoT-карта, таблица двух профилей.

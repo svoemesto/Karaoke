@@ -1,0 +1,13 @@
+[Unit]
+Description=Karaoke: самовосстановление доступа к прод-каналу при смене внешнего IP (таймер)
+
+[Timer]
+# Проверка раз в 10 минут (Д-3): адрес провайдера плавает ежемесячно, выход VPN
+# переключается вручную — десятиминутный цикл заметно быстрее ручной правки.
+OnBootSec=2min
+OnUnitActiveSec=10min
+Persistent=true
+Unit=admin-ip-allowlist.service
+
+[Install]
+WantedBy=timers.target

@@ -242,6 +242,37 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
   YOOKASSA_SHOP_ID/SECRET, VK access_token, Telegram bot token).
 - **НЕ должен трекаться** git (Constitution VIII, `.gitignore`).
 
+## Allow-list админ-машины (BR-631)
+
+Прод-канал (`5433` — БД, `9000` — MinIO) доступен **только** с админ-машины: доступ
+разрешает allow-list в `/etc/nginx/nginx.conf` host-nginx (блок `stream {}`, по три
+строки `allow …;` + `deny all;` в блоках `listen 5433` и `listen 9000`). Основание —
+ADR `0004-karaoke-app-admin-only.md`.
+
+* **Источник истины — прод.** Репозиторная копия — `deploy/prod-single-host/nginx.conf`
+  (канон); на проде — рабочая конфигурация. Механизма доставки конфигурации из
+  репозитория на прод нет: конфиги копируются вручную (runbook
+  `knowledge/guidelines/runbooks/prod-config-delivery.md` §1).
+* **Автоматизация (спека 677 / KARAOKE-337):** `deploy/admin-ip-allowlist.sh` под
+  таймером `deploy/admin-ip-allowlist.timer` (10 минут) сам добавляет текущий внешний
+  адрес админ-машины в allow-list: определение адреса (публичный HTTPS-сервис +
+  резерв) → валидация (публичный IPv4) → одна строка `allow <ip>;` в оба stream-блока
+  → бэкап → двойная проверка синтаксиса → reload → контрольная проверка → откат при
+  сбое. Не более одной применённой правки за 30 минут. Адреса не удаляются никогда.
+* **Уведомления** — Telegram-бот проекта (токен из окружения, в argv не попадает).
+* **Репозиторий догоняет прод через PR**, который одобряет и сливает владелец:
+  автоматизация сама PR не сливает (Forgejo не допускает одобрения автором своего PR).
+  В PR идёт репозиторная копия **плюс только недостающая строка `allow`**.
+* **Юниты** (`deploy/admin-ip-allowlist.{service,timer}`) лежат в репозитории;
+  **установку выполняет владелец** — `sudo cp` в `/etc/systemd/system/` +
+  `systemctl daemon-reload` + `systemctl enable --now` (инструкция — в runbook §8).
+* **Правила репозитория** проверяет guard `tools/check-allowlist-guardrails.sh`
+  (BR-631): структура allow-list, уникальность и публичность адресов, окно частоты,
+  отсутствие секретов, период таймера.
+
+Подробности: ADR `knowledge/adr/local-0015-admin-ip-allowlist-automation.md`,
+per-feature `knowledge/product/features/admin-ip-allowlist.md`.
+
 ## Архитектурные решения
 
 ### Решение 1: Single docker-compose per deploy
@@ -287,3 +318,4 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 - **Pass 440** (2026-09-23): Переезд прод+MinIO на один хост (`188.127.240.124`).
   Канон — `deploy/prod-single-host/`; `web-server-deploy/` deprecated. wayfinder #165 / спека #178.
 - **Pass 354** (2026-09-09): Initial. Автор: agent (Karaoke).
+- **Спека 677** (2026-10-30, KARAOKE-337, BR-631): добавлен раздел «Allow-list админ-машины» — источник истины (прод), модель автоматизации, установка юнитов владельцем, guard BR-631. Автор: agent (Karaoke).

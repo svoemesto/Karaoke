@@ -263,6 +263,37 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: allow-list админ-машины (BR-631, спека 677 / KARAOKE-337) ===
+      # Структура allow-list, уникальность и публичность адресов, ограничение
+      # частоты, отсутствие секретов, период таймера. Единственная реализация
+      # правил BR-631 — tools/check-allowlist-guardrails.sh.
+      - id: allowlist-guardrails-guard
+        name: allowlist guardrails guard (BR-631)
+        entry: bash tools/check-allowlist-guardrails.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # === Guard: изолированная проверка автоматизации allow-list (FR-018) ===
+      # Сценарий «IP сменился» на изолированном конфиге: добавление, проверка
+      # синтаксиса, откат при ошибке, отказ при недоступном проде, частота.
+      - id: allowlist-automation-self-test
+        name: allowlist automation self-test (FR-018)
+        entry: bash deploy/admin-ip-allowlist.sh --self-test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: allowlist-guardrails-self-test
+        name: allowlist guardrails self-test (BR-631)
+        entry: bash tools/check-allowlist-guardrails.sh --self-test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Guard: тест экранирования метки комментария (BR-523) ===
       # Проверяет, что регрессионный тест «взведён» (падает на уязвимом снимке
       # кода и проходит на исправленном) и что его skip-состояние соответствует

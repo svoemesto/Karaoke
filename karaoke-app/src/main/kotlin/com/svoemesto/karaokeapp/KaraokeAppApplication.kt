@@ -38,5 +38,8 @@ class KaraokeAppApplication : SchedulingConfigurer {
 }
 
 fun main(args: Array<String>) {
+    // KARAOKE-338: это админское приложение — здесь создаются новости «в коллекции» локально
+    // (см. KaraokeRuntimeRole и Song.saveToDb), прод-приложение остаётся в роли PROD.
+    KaraokeRuntimeRole.name = KaraokeRuntimeRole.ADMIN
     runApplication<KaraokeAppApplication>(*args)
 }

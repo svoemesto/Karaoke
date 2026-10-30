@@ -77,6 +77,27 @@ News (category + text + picture + dates)
        → VkApiClient / TelegramApiClient (см. external-api-clients)
 ```
 
+### Где создаётся новость «в коллекции» (KARAOKE-338, 2026-10-30)
+
+| Путь | Где выполняется | Триггер |
+|---|---|---|
+| **Основной** | `karaoke-app` (админка): `Song.saveToDb` → `announceCollectionNewsIfJustAnnounced` → `SongReleaseAnnouncementService.detectAndAnnounceAvailability` | флаг `newsAvailableAnnounced` перешёл false→true в этом сохранении; роль процесса — `KaraokeRuntimeRole.ADMIN` |
+| **Страховочный** | `karaoke-web` (прод): `MainController.doChangeRecords` | переход флага при применении синхронизации |
+| **«В эфире»** | `karaoke-web`: `SongReleaseAnnouncementScheduler.checkOnAir` (каждые 5 минут) | `publish_date`/`publish_time` попали в последнее окно ~10 минут |
+
+Новость, созданная в админке, доставляется на прод штатным sync-target `news`
+(LOCAL→SERVER). Оба пути идемпотентны (`News.existsAnnouncement`), дублей не создают.
+
+**Почему нужен путь в админке.** Флаг `newsAvailableAnnounced` лежит внутри
+`player_readiness_flags`, а это поле намеренно исключено из синхронизации
+(`RecordDiff(..., recordDiffRealField = false)` + `SongSyncTarget.shouldPush`). Если флаг
+меняется отдельно от «реальных» полей песни, до прода он не доезжает, перехода там нет — и
+новость не создаётся (инцидент 2026-10-30: 50+ песен «Секрет» попали в коллекцию, публикации в
+Telegram и ВК ушли, а новостей на проде не появилось).
+
+Роль процесса выставляет `main` каждого приложения: `KaraokeAppApplication` → `ADMIN`,
+`KaraokeWebApplication` → `PROD` (по умолчанию — `PROD`, чтобы на проде не было дублей).
+
 ### Детально: `VkAutoPublishService` (546 строк)
 
 **Файл**: `karaoke-app/.../services/VkAutoPublishService.kt`.

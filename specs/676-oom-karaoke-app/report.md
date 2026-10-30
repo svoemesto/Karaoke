@@ -106,11 +106,92 @@ D (мониторинг загрузки heap), E (база знаний).
 
 ## Проверки (фактический вывод)
 
-<!-- ГЕЙТЫ -->
+### Код и модульные тесты
+
+```bash
+$ GRADLE_USER_HOME=… ./gradlew :karaoke-app:test
+BUILD SUCCESSFUL — тестов=957, провалов=0, пропущено=0
+```
+
+Baseline до правок (T002): **941 тест, 0 провалов** → после фичи **957** (+16: 4 в
+`PublicationGridCallerTest` + 12 в `HeapUsageCheckTest`).
+
+### Линтеры и сборка (kara-post-edit)
+
+| Шаг | Команда | Результат |
+|---|---|---|
+| Backend compile | `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel` | BUILD SUCCESSFUL |
+| Kotlin-линтер | `./gradlew ktlintCheck` | BUILD SUCCESSFUL |
+| Backend bootJar | `./gradlew :karaoke-app:bootJar :karaoke-web:bootJar --parallel` | BUILD SUCCESSFUL |
+| ESLint + Prettier | `cd webvue3 && npm run lint` + `format:check`; то же для `karaoke-public` | без ошибок |
+| Vite-сборки | `cd webvue3 && npm run build`; то же для `karaoke-public` | `✓ built in 8.39s` / `✓ built in 4.11s` |
+| Docker-образ | `cd deploy && bash do.sh build_webvue3` | `sm-karaoke.ru:5443/karaoke/karaoke-webvue3:1` собран (только сборка — без push и рестарта) |
+
+### Гейты деплой-контура
+
+| Команда | Результат |
+|---|---|
+| `bash tools/check-deploy-hardening.sh` | **PASS=97 FAIL=0** (BR-630 делегирован `check-memory-guardrails.sh`) |
+| `bash tools/check-deploy-hardening.sh --self-test` | **все 29 правил ловят пустое (битое) состояние** |
+| `bash tools/check-memory-guardrails.sh` | **PASS=12 FAIL=0** |
+| `bash tools/check-memory-guardrails.sh --self-test` | **правила ловят битое состояние и пропускают корректное** |
+| `bash deploy/heap-dump-retention.sh --self-test` | **OK** (последние 2 / ≤ 20 ГБ / вытеснение по возрасту) |
+| `bash tools/check-ci-workflow-sync.sh` | **OK: 40 гейтов в каждой копии** |
+
+### Гейты базы знаний
+
+| Команда | Результат |
+|---|---|
+| `python3 tools/lint-knowledge.py` | **All documentation passes architectural style and structural checks** |
+| `bash tools/check-knowledge-structure.sh` | **OK: 9/9 проверок** |
+| `python3 tools/check-ssot-impact.py` | **OK: 0 нарушений** (24 изменённых файла, 5 значимых) |
+| `bash tools/check-feature-doc.sh knowledge/product/features/*.md` | **Все документы валидны** |
+| `python3 tools/check-audit-registry.py` | **OK**: 511 кодов в § 3, 552 зарегистрировано, 292 встречается в `knowledge/` |
+
+### Pre-commit (перед КАЖДЫМ коммитом, без `--no-verify` и без SKIP)
+
+```bash
+$ pre-commit run --all-files
+34 хука — 34 Passed
+```
+
+Состав: guard'и gradle-user-home / docker-config / container-restart / frontend-build /
+docker-image-tags / no-jpa-imports / no-mp4-mentions / subagent-isolation / security-headers /
+recordhash / confirm-escape / secret-in-argv / gradle-wrapper / build-config /
+marker-escape / **memory-guardrails (BR-630)** / **heap-dump-retention self-test (BR-630)**;
+ktlint; eslint ×2; prettier ×2; lychee (offline-ссылки); check per-feature document;
+check documentation references; no docs/ directory; audit registry; CI workflow sync;
+@Value placeholders; SongEdit/endpoint field coverage; block direct commits to master.
+
+### Quickstart § 1–4 (T045)
+
+```bash
+$ ./gradlew :karaoke-app:test --tests '*PublicationGridCallerTest*' --tests '*HeapUsageCheckTest*' --tests '*PkgS212*'
+BUILD SUCCESSFUL
+```
+
+§ 3 — конфигурация прочитана и сверена с контрактом: `mem_limit: 8g` (`:99`),
+`-Xmx6g` после `${APP_JAVA_OPTS}` (`:112`), `-XX:+HeapDumpOnOutOfMemoryError` +
+`-XX:HeapDumpPath=/dumps` (`:112`), том `./karaoke-db/dumps:/dumps` (`:86`), пороги
+`MONITOR_HEAP_WARN_PERCENT=75` / `MONITOR_HEAP_CRITICAL_PERCENT=90` (`:62-63`).
+§ 4 — гейты базы знаний (см. выше). § 5 (стенд) — **не выполнялся**: требует работы с
+контейнером и согласия владельца (owner-action № 2).
 
 ## Что осталось красным и почему
 
-<!-- КРАСНОЕ -->
+**Красного нет.** Все перечисленные гейты зелёные: 957 тестов / 0 провалов, deploy-guard
+97 PASS / 0 FAIL, новый guard BR-630 — 12 PASS / 0 FAIL, retention self-test — OK, CI-копии
+синхронны (40 гейтов в каждой), база знаний — lint/structure/ssot/feature-doc/registry зелёные,
+pre-commit — 34/34.
+
+Не выполнялось (и почему):
+
+| Что | Почему |
+|---|---|
+| Стендовая проверка SC-004 (искусственное исчерпание памяти в контейнере) | требует работы с контейнером `karaoke-app` и согласия владельца; зафиксировано как owner-action № 2 |
+| Установка и включение systemd-таймера уборки дампов | операции с systemd на машине — только по слову владельца; owner-action № 1 |
+| `docker compose up` / рестарт контейнеров / деплой | запрещено без согласия; push/PR/merge — только по слову лида |
+| Сборка Docker-образа `karaoke-app` | образы приложения собираются `deploy/do.sh build_app` при деплое; в рамках задачи собран только образ webvue3 (фронтенд не менялся, но образ пересобран по чеклисту `kara-post-edit`) |
 
 ## Решения владельца, зафиксированные в артефактах
 

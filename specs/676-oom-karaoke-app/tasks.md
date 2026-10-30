@@ -30,10 +30,10 @@
 **Purpose**: зафиксировать исходное состояние и договорённости, чтобы отличать
 свою регрессию от чужой.
 
-- [ ] T001 [x] **R1-правка (факт об образе)** — в `specs/676-oom-karaoke-app/research.md` (R1) и `specs/676-oom-karaoke-app/plan.md` (Technical Context) заменить `eclipse-temurin:22-jre-jammy` на фактический образ `sm-karaoke.ru:5443/library/ubuntu:22.04` + `openjdk-17-jre-headless` (JDK 17), обоснование — «не зависит от состава JRE/JDK и наличия `java.management`» · **выполнено в коммите `b6c2ae7c`**
+- [x] T001 [x] **R1-правка (факт об образе)** — в `specs/676-oom-karaoke-app/research.md` (R1) и `specs/676-oom-karaoke-app/plan.md` (Technical Context) заменить `eclipse-temurin:22-jre-jammy` на фактический образ `sm-karaoke.ru:5443/library/ubuntu:22.04` + `openjdk-17-jre-headless` (JDK 17), обоснование — «не зависит от состава JRE/JDK и наличия `java.management`» · **выполнено в коммите `b6c2ae7c`**
 - [x] T002 Зафиксировать зелёный baseline: `GRADLE_USER_HOME=… ./gradlew :karaoke-app:test` — вывод сохранить в `specs/676-oom-karaoke-app/report.md` (без baseline нельзя отличить регрессию от исходного сбоя)
 - [x] T003 [P] Выбрать свободный BR-код для нового guard-правила — **BR-630** (BR-629 уже занят: `karaoke-web`, контракты публичного API) — и подготовить формат строки реестра по образцу строки BR-188 (`audit-336-registry.md:427`)
-- [ ] T004 [P] Зафиксировать перечень 12 документов FR-020 с конкретной правкой в каждом (таблица «документ → что меняем») — в `specs/676-oom-karaoke-app/report.md`, раздел «База знаний»
+- [x] T004 [P] Зафиксировать перечень 12 документов FR-020 с конкретной правкой в каждом (таблица «документ → что меняем») — в `specs/676-oom-karaoke-app/report.md`, раздел «База знаний»
 
 ---
 
@@ -154,20 +154,20 @@ FR-021, FR-013).
 
 ### Implementation for User Story 5
 
-- [ ] T029 [P] [US5] `knowledge/domains/monitoring/domain.md`: 8-я проверка в «Структура компонентов»/Ubiquitous Language; фактические «метрики — TODO» остаются; Linking Protocol L3→L2 (проверка перечислена)
-- [ ] T030 [P] [US5] `knowledge/domains/monitoring/components/monitor-core.md`: регистрация `HeapUsageCheck` в `MonitorRegistry.checks`; **исправить устаревшее «fixedRate» → фактический `fixedDelay`** (`MonitoringService.kt:61`)
-- [ ] T031 [P] [US5] `knowledge/domains/monitoring/components/monitor-checks.md`: строка 8-й проверки (пороги, канал, ключ алерта); **исправить дрейф**: интерфейс `run(ctx): List<MonitorAlert>` (не `val name` + `check()`), алгоритм тика — по факту (`snapshot = alerts.associateBy { it.key }`)
-- [ ] T032 [P] [US5] `knowledge/domains/monitoring/components/monitor-checks-detailed.md`: детальное описание `HeapUsageCheck` (источник данных, пороги, severity, recovery, инварианты)
-- [ ] T033 [P] [US5] `knowledge/domains/monitoring/components/log-categories.md`: категория `infra.monitor.heap`; **привести «recovery — не INFO» в соответствие с `domain.md:90` и FR-017 → INFO**
-- [ ] T034 [P] [US5] `knowledge/domains/catalog/components/remaining-models.md`: сигнатура и строка `popPublicationStacks`; инвариант «строки = максимум песен у автора / столбцы = авторы»; остаточный риск объёма раскладки; указание на существующие **и новые** тесты (`PkgS212*`, `PublicationGridCallerTest`); факт отсутствия авторизации на легаси-странице
-- [ ] T035 [P] [US5] `knowledge/system/infra/deploy-overview.md`: где живёт `karaoke-app`; фактические лимиты (контейнер 8 ГБ / heap 6 ГБ); том дампов и путь; «`-Xmx` теперь зафиксирован в репозитории» (было: только в неотслеживаемом `.env`)
-- [ ] T036 [P] [US5] `knowledge/system/02-containers.md`: лимиты и JVM-опции контейнера `karaoke-app` (там сейчас ни слова о памяти)
-- [ ] T037 [P] [US5] `knowledge/system/infra/audit-336-registry.md`: синхронизировать формулировку BR-188 + добавить строку нового BR-кода (T003)
-- [ ] T038 [P] [US5] `knowledge/guidelines/runbooks/log-correlation.md`: runbook по дампам и алерту памяти (FR-013) — порядок действий: (1) найти алерт `infra.monitor.heap` / `monitor.heap.usage`, (2) снять дамп из `deploy/karaoke-db/dumps` **до** перезапуска, (3) проверить фактические лимиты контейнера, (4) безопасно перезапустить (Pass 380: сначала остановить очередь!), (5) ручная уборка дампов `bash deploy/heap-dump-retention.sh`; отдельно: «фактический лимит задаётся compose, значение в неотслеживаемом `deploy/.env` на него не влияет»; «активация таймера retention'а — действие владельца» (О5)
-- [ ] T039 [P] [US5] `archive/docs/architecture-notes.md`: запись об инциденте 2026-10-23 (её нет вовсе) — по формату файла
-- [ ] T040 [US5] Создать `knowledge/adr/local-0014-heap-memory-guardrails-karaoke-app.md` по шаблону `knowledge/templates/adr.md` (источник данных о heap, место хранения дампов и исполнитель политики, способ фиксации пары «heap ↔ предел») + внести его в `knowledge/adr/README.md`; **`knowledge/adr/local-0013-…` НЕ редактировать** (О8) — уточнение области решения («journal-only — про infra-сервер; для `karaoke-app` канал — журнал/SLF4J по FR-018») фиксируется в `local-0014` и в домене `monitoring`
-- [ ] T041 [US5] Создать `knowledge/product/features/heap-memory-guardrails.md` (6 обязательных секций по `tools/check-feature-doc.sh`, `slug` == имя файла, `status` ∈ {active, deprecated, experimental}) + добавить строку в индекс `knowledge/product/README.md`; обновить `knowledge/product/features/publications-filters.md` (FR-021)
-- [ ] T042 [US5] Прогнать гейты базы знаний: `python3 tools/lint-knowledge.py`, `bash tools/check-knowledge-structure.sh`, `python3 tools/check-ssot-impact.py`, `bash tools/check-feature-doc.sh knowledge/product/features/heap-memory-guardrails.md` → зелёные; Linking Protocol L3→L2→L1 соблюдён
+- [x] T029 [P] [US5] `knowledge/domains/monitoring/domain.md`: 8-я проверка в «Структура компонентов»/Ubiquitous Language; фактические «метрики — TODO» остаются; Linking Protocol L3→L2 (проверка перечислена)
+- [x] T030 [P] [US5] `knowledge/domains/monitoring/components/monitor-core.md`: регистрация `HeapUsageCheck` в `MonitorRegistry.checks`; **исправить устаревшее «fixedRate» → фактический `fixedDelay`** (`MonitoringService.kt:61`)
+- [x] T031 [P] [US5] `knowledge/domains/monitoring/components/monitor-checks.md`: строка 8-й проверки (пороги, канал, ключ алерта); **исправить дрейф**: интерфейс `run(ctx): List<MonitorAlert>` (не `val name` + `check()`), алгоритм тика — по факту (`snapshot = alerts.associateBy { it.key }`)
+- [x] T032 [P] [US5] `knowledge/domains/monitoring/components/monitor-checks-detailed.md`: детальное описание `HeapUsageCheck` (источник данных, пороги, severity, recovery, инварианты)
+- [x] T033 [P] [US5] `knowledge/domains/monitoring/components/log-categories.md`: категория `infra.monitor.heap`; **привести «recovery — не INFO» в соответствие с `domain.md:90` и FR-017 → INFO**
+- [x] T034 [P] [US5] `knowledge/domains/catalog/components/remaining-models.md`: сигнатура и строка `popPublicationStacks`; инвариант «строки = максимум песен у автора / столбцы = авторы»; остаточный риск объёма раскладки; указание на существующие **и новые** тесты (`PkgS212*`, `PublicationGridCallerTest`); факт отсутствия авторизации на легаси-странице
+- [x] T035 [P] [US5] `knowledge/system/infra/deploy-overview.md`: где живёт `karaoke-app`; фактические лимиты (контейнер 8 ГБ / heap 6 ГБ); том дампов и путь; «`-Xmx` теперь зафиксирован в репозитории» (было: только в неотслеживаемом `.env`)
+- [x] T036 [P] [US5] `knowledge/system/02-containers.md`: лимиты и JVM-опции контейнера `karaoke-app` (там сейчас ни слова о памяти)
+- [x] T037 [P] [US5] `knowledge/system/infra/audit-336-registry.md`: синхронизировать формулировку BR-188 + добавить строку нового BR-кода (T003)
+- [x] T038 [P] [US5] `knowledge/guidelines/runbooks/log-correlation.md`: runbook по дампам и алерту памяти (FR-013) — порядок действий: (1) найти алерт `infra.monitor.heap` / `monitor.heap.usage`, (2) снять дамп из `deploy/karaoke-db/dumps` **до** перезапуска, (3) проверить фактические лимиты контейнера, (4) безопасно перезапустить (Pass 380: сначала остановить очередь!), (5) ручная уборка дампов `bash deploy/heap-dump-retention.sh`; отдельно: «фактический лимит задаётся compose, значение в неотслеживаемом `deploy/.env` на него не влияет»; «активация таймера retention'а — действие владельца» (О5)
+- [x] T039 [P] [US5] `archive/docs/architecture-notes.md`: запись об инциденте 2026-10-23 (её нет вовсе) — по формату файла
+- [x] T040 [US5] Создать `knowledge/adr/local-0014-heap-memory-guardrails-karaoke-app.md` по шаблону `knowledge/templates/adr.md` (источник данных о heap, место хранения дампов и исполнитель политики, способ фиксации пары «heap ↔ предел») + внести его в `knowledge/adr/README.md`; **`knowledge/adr/local-0013-…` НЕ редактировать** (О8) — уточнение области решения («journal-only — про infra-сервер; для `karaoke-app` канал — журнал/SLF4J по FR-018») фиксируется в `local-0014` и в домене `monitoring`
+- [x] T041 [US5] Создать `knowledge/product/features/heap-memory-guardrails.md` (6 обязательных секций по `tools/check-feature-doc.sh`, `slug` == имя файла, `status` ∈ {active, deprecated, experimental}) + добавить строку в индекс `knowledge/product/README.md`; обновить `knowledge/product/features/publications-filters.md` (FR-021)
+- [x] T042 [US5] Прогнать гейты базы знаний: `python3 tools/lint-knowledge.py`, `bash tools/check-knowledge-structure.sh`, `python3 tools/check-ssot-impact.py`, `bash tools/check-feature-doc.sh knowledge/product/features/heap-memory-guardrails.md` → зелёные; Linking Protocol L3→L2→L1 соблюдён
 
 **Checkpoint**: US5 закрыт — база знаний соответствует системе.
 
@@ -177,11 +177,11 @@ FR-021, FR-013).
 
 **Purpose**: зафиксировать результат и закрыть ветку коммитом.
 
-- [ ] T043 Создать `specs/676-oom-karaoke-app/report.md` по образцу `specs/675-merge-docs-into-knowledge/report.md`: Issue/ветка/дата · что сделано по блокам A–E · таблица FR→где закрыто · фактический вывод гейтов (команда → результат) · **отклонение от буквы FR-020** (`local-0013` не правится — О8) · факты/решения для владельца: (1) устаревшее `APP_JAVA_OPTS=-Xmx8g` в неотслеживаемом `deploy/.env` — compose перекрывает, файл не трогали; (2) `cpus` не добавляли — возможное отдельное решение; (3) активация systemd-таймера retention'а — действие владельца; (4) факт расхождения `constitution.md` (образ `eclipse-temurin:22-jre-jammy`) с фактическим `deploy/karaoke-app/Dockerfile` (`ubuntu:22.04` + `openjdk-17-jre-headless`) — кандидат на отдельное решение владельца · diffstat · список коммитов
-- [ ] T044 Выполнить `kara-post-edit` (полный чеклист: compile, ktlint, eslint, bootJar) и `pre-commit run --all-files` — все хуки зелёные, **без SKIP**; вывод в `specs/676-oom-karaoke-app/report.md`
-- [ ] T045 Прогнать `specs/676-oom-karaoke-app/quickstart.md` § 1–4 (модульный прогон, гейты, конфигурация, база знаний) — § 5 (стенд: контейнеры) **не выполняется** без согласия владельца (О1/О3)
-- [ ] T046 Отметить выполненные задачи в `specs/676-oom-karaoke-app/tasks.md` (чекбоксы) и обновить раздел «Состояние» в `plan.md`, если фактический порядок разошёлся
-- [ ] T047 Финальный коммит в ветку `676-oom-karaoke-app` (сообщение в стиле репозитория, с объяснением «почему»); **без** `--no-verify`, **без** push/PR/merge
+- [x] T043 Создать `specs/676-oom-karaoke-app/report.md` по образцу `specs/675-merge-docs-into-knowledge/report.md`: Issue/ветка/дата · что сделано по блокам A–E · таблица FR→где закрыто · фактический вывод гейтов (команда → результат) · **отклонение от буквы FR-020** (`local-0013` не правится — О8) · факты/решения для владельца: (1) устаревшее `APP_JAVA_OPTS=-Xmx8g` в неотслеживаемом `deploy/.env` — compose перекрывает, файл не трогали; (2) `cpus` не добавляли — возможное отдельное решение; (3) активация systemd-таймера retention'а — действие владельца; (4) факт расхождения `constitution.md` (образ `eclipse-temurin:22-jre-jammy`) с фактическим `deploy/karaoke-app/Dockerfile` (`ubuntu:22.04` + `openjdk-17-jre-headless`) — кандидат на отдельное решение владельца · diffstat · список коммитов
+- [x] T044 Выполнить `kara-post-edit` (полный чеклист: compile, ktlint, eslint, bootJar) и `pre-commit run --all-files` — все хуки зелёные, **без SKIP**; вывод в `specs/676-oom-karaoke-app/report.md`
+- [x] T045 Прогнать `specs/676-oom-karaoke-app/quickstart.md` § 1–4 (модульный прогон, гейты, конфигурация, база знаний) — § 5 (стенд: контейнеры) **не выполняется** без согласия владельца (О1/О3)
+- [x] T046 Отметить выполненные задачи в `specs/676-oom-karaoke-app/tasks.md` (чекбоксы) и обновить раздел «Состояние» в `plan.md`, если фактический порядок разошёлся
+- [x] T047 Финальный коммит в ветку `676-oom-karaoke-app` (сообщение в стиле репозитория, с объяснением «почему»); **без** `--no-verify`, **без** push/PR/merge
 
 ---
 

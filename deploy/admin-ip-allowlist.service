@@ -16,6 +16,10 @@ Group=root
 #   /etc/admin-ip-allowlist.env
 # В нём: ALLOWLIST_TELEGRAM_BOT_TOKEN, ALLOWLIST_TELEGRAM_CHAT_ID,
 #        ALLOWLIST_FJ_TOKEN, ALLOWLIST_FJ_URL
+# Прокси для вызова Telegram Bot API (необязательно, владелец):
+#   ALLOWLIST_TELEGRAM_PROXY=socks5h://127.0.0.1:1080
+# Применяется ТОЛЬКО к уведомлениям: определение внешнего адреса и пробы
+# доступности идут напрямую (--noproxy '*').
 EnvironmentFile=-/etc/admin-ip-allowlist.env
 # Журнал: файл + journald (контракт journal-format.md).
 Environment=ALLOWLIST_LOG_FILE=/var/log/admin-ip-allowlist.log

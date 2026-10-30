@@ -19,7 +19,11 @@
 #   4. файл состояния и журнал — вне репозитория;
 #   5. скрипт и юниты не содержат секретов (BR-551/552/605: секрет в argv и
 #      в репозитории — одинаково плохо);
-#   6. таймер настроен на 10 минут (Д-3) и юниты на месте.
+#   6. таймер настроен на 10 минут (Д-3) и юниты на месте;
+#   7. прокси уведомлений: глобального прокси нет, ALLOWLIST_TELEGRAM_PROXY
+#      применяется ТОЛЬКО к вызову Telegram Bot API и передаётся конфиг-файлом
+#      curl (не через argv), а прямые вызовы (определение адреса и пробы)
+#      идут с `--noproxy '*'`.
 #
 # Использование:
 #   bash tools/check-allowlist-guardrails.sh              # проверка с отчётом
@@ -251,20 +255,128 @@ check_units() {
   fi
 }
 
+# 7. Прокси уведомлений: только для Telegram, никакого глобального прокси.
+# Тело функции из shell-файла: от строки `name() {` до закрывающей `}`.
+extract_func() {
+  local file="$1" fn="$2"
+  [ -f "${file}" ] || return 0
+  awk -v fn="${fn}" '
+    $0 ~ "^"fn"\\(\\)[[:space:]]*\\{" {inb=1}
+    inb {print}
+    inb && /^}/ {exit}
+  ' "${file}"
+}
+
+check_proxy_rules() {
+  local script="$ROOT/deploy/admin-ip-allowlist.sh"
+  local contract="$ROOT/specs/677-admin-ip-allowlist/contracts/automation-cli.md"
+  if [ ! -f "$script" ]; then
+    bad "нет скрипта автоматизации: deploy/admin-ip-allowlist.sh"
+    return 0
+  fi
+
+  # 7a. Глобальные переменные прокси окружения не используются: иначе
+  # определение адреса пошло бы через прокси, и в allow-list прод-хоста попал бы
+  # адрес выхода прокси вместо адреса админ-машины.
+  local hits
+  hits="$(grep -inE 'all_proxy|https_proxy|http_proxy' "${script}" | head -5 || true)"
+  if [ -n "${hits}" ]; then
+    bad "в скрипте использованы переменные прокси окружения — глобальный прокси запрещён:"
+    printf '%s\n' "${hits}" | sed 's/^/      /' >&2
+  else
+    ok "в скрипте нет глобальных переменных прокси окружения"
+  fi
+
+  # 7b. Прямые вызовы идут напрямую: --noproxy '*' отключает переменные
+  # прокси окружения для этих запросов.
+  local fn body
+  for fn in detect_address probe_https; do
+    body="$(extract_func "${script}" "${fn}")"
+    if [ -z "${body}" ]; then
+      bad "в скрипте не найдена функция ${fn}"
+      continue
+    fi
+    if printf '%s' "${body}" | grep -q -- '--noproxy'; then
+      ok "${fn} — прямой вызов (--noproxy): адрес определяется без прокси"
+    else
+      bad "${fn} вызывается без --noproxy — через прокси окружения определился бы не адрес админ-машины"
+    fi
+  done
+
+  # 7c. Прокси Telegram: из переменной окружения, в curl — конфиг-файлом.
+  local tg
+  tg="$(extract_func "${script}" send_telegram)"
+  if [ -z "${tg}" ]; then
+    bad "в скрипте не найдена функция send_telegram"
+  else
+    if grep -q 'ALLOWLIST_TELEGRAM_PROXY' "${script}"; then
+      ok "скрипт читает ALLOWLIST_TELEGRAM_PROXY"
+    else
+      bad "скрипт не читает ALLOWLIST_TELEGRAM_PROXY"
+    fi
+    if printf '%s' "${tg}" | grep -qF 'proxy = "%s"'; then
+      ok "прокси Telegram передаётся конфиг-файлом curl (proxy = ...)"
+    else
+      bad "в send_telegram нет строки proxy = — прокси не передаётся в curl"
+    fi
+    if printf '%s' "${tg}" | grep -q -- '--proxy'; then
+      bad "в send_telegram прокси передаётся через argv (--proxy) — виден в ps"
+    else
+      ok "прокси Telegram не попадает в argv"
+    fi
+  fi
+
+  # 7d. Контракт описывает переменную.
+  if [ ! -f "${contract}" ]; then
+    bad "нет контракта: specs/677-admin-ip-allowlist/contracts/automation-cli.md"
+  elif grep -q 'ALLOWLIST_TELEGRAM_PROXY' "${contract}"; then
+    ok "контракт automation-cli.md описывает ALLOWLIST_TELEGRAM_PROXY"
+  else
+    bad "в контракте automation-cli.md нет переменной ALLOWLIST_TELEGRAM_PROXY"
+  fi
+}
+
 check_rules() {
   check_allowlist
   check_limits_and_paths
   check_no_secrets
   check_units
+  check_proxy_rules
 }
 
 if [ "$MODE" = "self-test" ]; then
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  mkdir -p "$tmp/deploy/prod-single-host" "$tmp/tools"
+  mkdir -p "$tmp/deploy/prod-single-host" "$tmp/tools" \
+    "$tmp/specs/677-admin-ip-allowlist/contracts"
   cp "$ROOT/tools/check-allowlist-guardrails.sh" "$tmp/tools/" 2>/dev/null || true
 
-  # «Битый» пример: deny all; убран, адрес приватный и продублирован.
+  # Ожидание: нарушения должны быть пойманы.
+  expect_fail() {
+    local label="$1"
+    pass=0
+    fail=0
+    ROOT="$tmp" check_rules >/dev/null 2>&1
+    if [ "${fail}" -eq 0 ]; then
+      echo "❌ self-test: ${label} — нарушение не поймано" >&2
+      exit 2
+    fi
+  }
+
+  # Ожидание: корректное состояние нарушением не считается.
+  expect_ok() {
+    local label="$1"
+    pass=0
+    fail=0
+    ROOT="$tmp" check_rules >/dev/null 2>&1
+    if [ "${fail}" -ne 0 ]; then
+      echo "❌ self-test: ${label} — корректная конфигурация принята как нарушение" >&2
+      exit 2
+    fi
+  }
+
+  # «Битый» пример: deny all; убран, адрес приватный и продублирован,
+  # глобальный прокси в скрипте, переменная не описана в контракте.
   cat >"$tmp/deploy/prod-single-host/nginx.conf" <<'NGX'
 stream {
     server {
@@ -284,6 +396,7 @@ NGX
 MIN_INTERVAL_MINUTES="${ALLOWLIST_MIN_INTERVAL_MINUTES:-5}"
 LOG_FILE="${ALLOWLIST_LOG_FILE:-/home/nsa/Karaoke/deploy/admin-ip-allowlist.log}"
 STATE_FILE="${ALLOWLIST_STATE_FILE:-/home/nsa/Karaoke/deploy/admin-ip-allowlist.state}"
+ALL_PROXY="http://127.0.0.1:3128"
 SH
   cat >"$tmp/deploy/admin-ip-allowlist.timer" <<'UNIT'
 [Timer]
@@ -293,14 +406,15 @@ UNIT
 [Service]
 ExecStart=deploy/admin-ip-allowlist.sh
 UNIT
+  cat >"$tmp/specs/677-admin-ip-allowlist/contracts/automation-cli.md" <<'MD'
+# Contract: CLI автоматизации allow-list
 
-  pass=0
-  fail=0
-  ROOT="$tmp" check_rules >/dev/null 2>&1
-  if [ "${fail}" -eq 0 ]; then
-    echo "❌ self-test: битое состояние не поймано" >&2
-    exit 2
-  fi
+## 4. Переменные окружения
+
+| `ALLOWLIST_TELEGRAM_BOT_TOKEN` | (нет) | Токен бота проекта |
+MD
+
+  expect_fail "битое состояние"
 
   # «Хороший» пример: все правила выполняются.
   cat >"$tmp/deploy/prod-single-host/nginx.conf" <<'NGX'
@@ -319,11 +433,29 @@ stream {
     }
 }
 NGX
-  cat >"$tmp/deploy/admin-ip-allowlist.sh" <<'SH'
+  cat >"$tmp/good-script.sh" <<'SH'
 MIN_INTERVAL_MINUTES="${ALLOWLIST_MIN_INTERVAL_MINUTES:-30}"
 LOG_FILE="${ALLOWLIST_LOG_FILE:-/var/log/admin-ip-allowlist.log}"
 STATE_FILE="${ALLOWLIST_STATE_FILE:-/var/log/admin-ip-allowlist.state}"
+TELEGRAM_PROXY="${ALLOWLIST_TELEGRAM_PROXY:-}"
+
+detect_address() {
+  local url="$1"
+  curl -fsS --noproxy '*' --max-time 8 "${url}"
+}
+
+probe_https() {
+  local url="$1" timeout_s="$2"
+  curl -fsS --noproxy '*' -o /dev/null -w '%{http_code}' --max-time "${timeout_s}" "${url}"
+}
+
+send_telegram() {
+  local cfg="$1"
+  printf 'proxy = "%s"\n' "${TELEGRAM_PROXY}" >>"${cfg}"
+  curl -sS -K "${cfg}"
+}
 SH
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
   cat >"$tmp/deploy/admin-ip-allowlist.timer" <<'UNIT'
 [Timer]
 OnUnitActiveSec=10min
@@ -333,14 +465,62 @@ UNIT
 ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh
 StandardOutput=journal
 UNIT
+  cat >"$tmp/specs/677-admin-ip-allowlist/contracts/automation-cli.md" <<'MD'
+# Contract: CLI автоматизации allow-list
 
-  pass=0
-  fail=0
-  ROOT="$tmp" check_rules >/dev/null 2>&1
-  if [ "${fail}" -ne 0 ]; then
-    echo "❌ self-test: корректная конфигурация принята как нарушение" >&2
-    exit 2
-  fi
+## 4. Переменные окружения
+
+| `ALLOWLIST_TELEGRAM_BOT_TOKEN` | (нет) | Токен бота проекта |
+| `ALLOWLIST_TELEGRAM_PROXY` | (нет) | Прокси только для вызова Telegram Bot API |
+MD
+
+  expect_ok "корректная конфигурация"
+
+  # Правило 7a: глобальный прокси окружения в скрипте запрещён.
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  printf 'ALL_PROXY="http://127.0.0.1:3128"\n' >>"$tmp/deploy/admin-ip-allowlist.sh"
+  expect_fail "глобальный прокси в скрипте"
+
+  # Правило 7b: определение адреса обязано идти напрямую.
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  sed -i "s|curl -fsS --noproxy '\*' --max-time 8|curl -fsS --max-time 8|" \
+    "$tmp/deploy/admin-ip-allowlist.sh"
+  expect_fail "определение адреса без --noproxy"
+
+  # Правило 7b: проба доступности обязана идти напрямую.
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  sed -i "s|curl -fsS --noproxy '\*' -o /dev/null|curl -fsS -o /dev/null|" \
+    "$tmp/deploy/admin-ip-allowlist.sh"
+  expect_fail "проба доступности без --noproxy"
+
+  # Правило 7c: прокси Telegram — конфиг-файлом, не через argv.
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  sed -i "s|printf 'proxy = \"%s\"\\\\n' \"\${TELEGRAM_PROXY}\" >>\"\${cfg}\"|curl -sS --proxy \"\${TELEGRAM_PROXY}\" \"\${cfg}\"|" \
+    "$tmp/deploy/admin-ip-allowlist.sh"
+  expect_fail "прокси Telegram через argv"
+
+  # Правило 7d: контракт описывает переменную.
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  cat >"$tmp/specs/677-admin-ip-allowlist/contracts/automation-cli.md" <<'MD'
+# Contract: CLI автоматизации allow-list
+
+## 4. Переменные окружения
+
+| `ALLOWLIST_TELEGRAM_BOT_TOKEN` | (нет) | Токен бота проекта |
+MD
+  expect_fail "переменная не описана в контракте"
+
+  # Возврат к корректному состоянию.
+  cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  cat >"$tmp/specs/677-admin-ip-allowlist/contracts/automation-cli.md" <<'MD'
+# Contract: CLI автоматизации allow-list
+
+## 4. Переменные окружения
+
+| `ALLOWLIST_TELEGRAM_BOT_TOKEN` | (нет) | Токен бота проекта |
+| `ALLOWLIST_TELEGRAM_PROXY` | (нет) | Прокси только для вызова Telegram Bot API |
+MD
+  expect_ok "корректная конфигурация после проверок"
 
   echo "✅ self-test: правила ловят битое состояние и пропускают корректное"
   exit 0

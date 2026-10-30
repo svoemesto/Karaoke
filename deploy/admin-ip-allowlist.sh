@@ -337,6 +337,15 @@ check_mount_point() {
   MOUNT_IS_MOUNTPOINT="${is_mount}"
 }
 
+# Способ записи, выбранный по факту проверки точки монтирования (Д-6):
+# mv — обычный файл (атомарное переименование), cat — bind-mount (inode сохраняется).
+WRITE_METHOD="cat"
+
+
+# Перепроверка адреса перед применением (гонка смены адреса). В self-test
+# переопределяется, чтобы сценарий не ходил в сеть.
+confirm_address() { detect_address; }
+
 # apply_change <local|remote> <target_file> <new_file> <ip>
 # Порядок (контракт allow-list-surgery.md §4): перепроверка адреса → временный
 # файл → проверка синтаксиса временного файла → бэкап → подмена содержимым с
@@ -352,7 +361,7 @@ apply_change() {
 
   # Шаг 0: перепроверка адреса (гонка смены адреса).
   local confirmed
-  confirmed="$(detect_address)" || { REASON="${REASON:-address_changed}"; return 1; }
+  confirmed="$(confirm_address)" || { REASON="${REASON:-address_changed}"; return 1; }
   if [ "${confirmed}" != "${ip}" ]; then
     log_event "skip" "reason=address_changed" "expected=$(sanitize "${ip}")" "actual=$(sanitize "${confirmed}")"
     REASON="address_changed"
@@ -385,12 +394,33 @@ apply_change() {
   fi
   log_event "edit" "step=backup" "ok=true" "backup=$(sanitize "${backup}")"
 
-  # Шаг 4: подмена содержимым с сохранением inode (FR-007) — `cat`, не `mv`.
-  if ! run_target "${mode}" "cat '${remote_tmp}' > '${target}'" >/dev/null 2>&1; then
-    run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
-    log_event "edit" "step=write" "ok=false"
-    REASON="write_failed"
-    return 1
+  # Шаг 4: запись — по факту проверки точки монтирования (решение владельца Д-6).
+  #   файл НЕ точка монтирования → атомарное переименование (mv);
+  #   файл точка монтирования (bind-mount) → подмена содержимым с сохранением inode (cat).
+  check_mount_point "${mode}" "${target}"
+  if [ "${MOUNT_IS_MOUNTPOINT}" = "yes" ]; then
+    WRITE_METHOD="cat"
+  else
+    WRITE_METHOD="mv"
+  fi
+  log_event "edit" "step=write" "method=${WRITE_METHOD}" "ok=true"
+
+  if [ "${WRITE_METHOD}" = "mv" ]; then
+    # Права и владелец нового файла — как у прежнего (иначе nginx может не прочитать).
+    run_target "${mode}" "chmod --reference='${target}' '${remote_tmp}' 2>/dev/null || chmod 644 '${remote_tmp}'; chown --reference='${target}' '${remote_tmp}' 2>/dev/null || true" >/dev/null 2>&1 || true
+    if ! run_target "${mode}" "mv -f '${remote_tmp}' '${target}'" >/dev/null 2>&1; then
+      run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
+      log_event "edit" "step=write" "method=${WRITE_METHOD}" "ok=false"
+      REASON="write_failed"
+      return 1
+    fi
+  else
+    if ! run_target "${mode}" "cat '${remote_tmp}' > '${target}'" >/dev/null 2>&1; then
+      run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
+      log_event "edit" "step=write" "method=${WRITE_METHOD}" "ok=false"
+      REASON="write_failed"
+      return 1
+    fi
   fi
 
   # Шаг 5: целостность записи (sha256) — ловит усечение при прерывании.
@@ -398,7 +428,7 @@ apply_change() {
   actual_sha="$(run_target "${mode}" "sha256sum '${target}' 2>/dev/null | awk '{print \$1}'")"
   if [ "${expected_sha}" != "${actual_sha}" ]; then
     log_event "edit" "step=integrity" "ok=false"
-    rollback_change "${mode}" "${target}" "${backup}"
+    rollback_change "${mode}" "${target}" "${backup}" "${WRITE_METHOD}"
     run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
     REASON="integrity_failed"
     return 1
@@ -408,7 +438,7 @@ apply_change() {
   # Шаг 6: синтаксис живого файла.
   if ! run_target "${mode}" "${NGINX_BIN} -t" >/dev/null 2>&1; then
     log_event "syntax" "ok=false" "step=live_file" "detail=nginxt_failed"
-    rollback_change "${mode}" "${target}" "${backup}"
+    rollback_change "${mode}" "${target}" "${backup}" "${WRITE_METHOD}"
     run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
     REASON="syntax_failed"
     return 1
@@ -418,7 +448,7 @@ apply_change() {
   # Шаг 7: reload.
   if ! run_target "${mode}" "${NGINX_BIN} -s reload" >/dev/null 2>&1; then
     log_event "reload" "ok=false"
-    rollback_change "${mode}" "${target}" "${backup}"
+    rollback_change "${mode}" "${target}" "${backup}" "${WRITE_METHOD}"
     run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
     REASON="reload_failed"
     return 1
@@ -434,12 +464,31 @@ apply_change() {
 
 rollback_change() {
   local mode="$1" target="$2" backup="$3"
-  if run_target "${mode}" "cat '${backup}' > '${target}'" >/dev/null 2>&1; then
+  local method="${4:-${WRITE_METHOD:-cat}}"
+  local restore="${target}.restore-tmp"
+  local ok=0
+  if [ "${method}" = "mv" ]; then
+    # Откат при атомарном переименовании — тоже атомарный: копия бэкапа
+    # переименовывается на место целиком, сам бэкап остаётся для разбора.
+    if run_target "${mode}" "cp '${backup}' '${restore}' && mv -f '${restore}' '${target}'" >/dev/null 2>&1; then
+      ok=1
+    fi
+  else
+    # Откат при подмене содержимым: прежний путь + сверка sha256 с бэкапом.
+    if run_target "${mode}" "cat '${backup}' > '${target}'" >/dev/null 2>&1; then
+      local expect_sha actual_sha
+      expect_sha="$(run_target "${mode}" "sha256sum '${backup}' 2>/dev/null | awk '{print \$1}'")"
+      actual_sha="$(run_target "${mode}" "sha256sum '${target}' 2>/dev/null | awk '{print \$1}'")"
+      [ "${expect_sha}" = "${actual_sha}" ] && ok=1
+    fi
+  fi
+  run_target "${mode}" "rm -f '${restore}'" >/dev/null 2>&1 || true
+  if [ "${ok}" = 1 ]; then
     run_target "${mode}" "${NGINX_BIN} -s reload" >/dev/null 2>&1 || true
-    log_event "rollback" "ok=true" "reason=$(sanitize "${REASON}")" "backup=$(sanitize "${backup}")"
+    log_event "rollback" "ok=true" "method=${method}" "reason=$(sanitize "${REASON:-}")" "backup=$(sanitize "${backup}")"
     return 0
   fi
-  log_event "rollback" "ok=false" "reason=$(sanitize "${REASON}")" "backup=$(sanitize "${backup}")"
+  log_event "rollback" "ok=false" "method=${method}" "reason=$(sanitize "${REASON:-}")" "backup=$(sanitize "${backup}")"
   return 1
 }
 
@@ -730,7 +779,7 @@ run_diagnose() {
   if ip="$(detect_address)"; then
     log_event "diagnose" "address=$(sanitize "${ip}")" "valid=$(validate_address "${ip}" && echo yes || echo no)"
   else
-    log_event "diagnose" "address=" "reason=$(sanitize "${REASON}")"
+    log_event "diagnose" "address=" "reason=$(sanitize "${REASON:-}")"
   fi
   local prod_conf
   prod_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
@@ -887,6 +936,68 @@ run_self_test() {
     echo "   OK: публичный IPv4 принят"
   else
     echo "   FAIL: публичный IPv4 отклонён"; failed=1
+  fi
+
+  echo "== Сценарий 7: применение правки — атомарное переименование (Д-6)"
+  # Файл не точка монтирования → mv (атомарно). Проверяем, что inode изменился
+  # и в файле появилась ровно одна строка allow на каждый блок.
+  local target="${workdir}/target.conf"
+  local stub="${workdir}/nginx-stub"
+  cat >"${stub}" <<'STUB'
+#!/usr/bin/env bash
+# Заглушка nginx для self-test: -t [-c file] проверяет наличие `deny all;`,
+# -s reload — успех. Настоящий nginx проверяется отдельным прогоном.
+case "$1" in
+  -t)
+    # -t -c <file> — проверяем конфиг; -t без -c (живой файл) — успех.
+    if [ $# -ge 3 ] && [ -n "${3:-}" ]; then
+      [ -f "$3" ] && grep -q "deny all;" "$3" && exit 0
+      exit 1
+    fi
+    exit 0
+    ;;
+  -s) exit 0 ;;
+esac
+exit 0
+STUB
+  chmod +x "${stub}"
+  make_test_config >"${target}"
+  local inode_before inode_after
+  inode_before="$(stat -c %i "${target}" 2>/dev/null || echo 0)"
+  # Переопределяем перепроверку адреса: сценарий не ходит в сеть.
+  confirm_address() { printf '%s' "${test_ip}"; }
+  local old_nginx_bin="${NGINX_BIN}"
+  NGINX_BIN="${stub}"
+  local new_conf="${workdir}/target.new"
+  prepare_new_config "${target}" "${new_conf}" "${test_ip}" 2>/dev/null
+  local rc_apply=0
+  apply_change local "${target}" "${new_conf}" "${test_ip}" >/dev/null 2>&1 || rc_apply=1
+  NGINX_BIN="${old_nginx_bin}"
+  confirm_address() { detect_address; }
+  inode_after="$(stat -c %i "${target}" 2>/dev/null || echo 0)"
+  if [ "${rc_apply}" = 0 ] && [ "${inode_before}" != "${inode_after}" ]; then
+    echo "   OK: запись выполнена атомарным переименованием (inode ${inode_before} → ${inode_after})"
+  else
+    echo "   FAIL: применение не удалось или inode не изменился (rc=${rc_apply}, ${inode_before} → ${inode_after})"; failed=1
+  fi
+  local applied_lines
+  applied_lines="$(grep -cE "^[[:space:]]*allow[[:space:]]${test_ip//./\\.};" "${target}" || true)"
+  if [ "${applied_lines}" = "2" ]; then
+    echo "   OK: в целевом файле ровно две добавленные строки allow"
+  else
+    echo "   FAIL: добавлено ${applied_lines} строк allow (ожидалось 2)"; failed=1
+  fi
+
+  echo "== Сценарий 8: откат после атомарного переименования (SC-005)"
+  local backup_file="${target}.bak-test"
+  cp "${target}" "${backup_file}"
+  printf 'broken content\n' >"${workdir}/broken2.conf"
+  mv -f "${workdir}/broken2.conf" "${target}"
+  rollback_change local "${target}" "${backup_file}" mv >/dev/null 2>&1
+  if grep -q "deny all;" "${target}" && grep -qE "^[[:space:]]*allow[[:space:]]${test_ip//./\\.};" "${target}"; then
+    echo "   OK: откат вернул исходное содержимое целиком"
+  else
+    echo "   FAIL: откат не восстановил исходное содержимое"; failed=1
   fi
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"

@@ -179,7 +179,14 @@ argv и журнал. Рабочее дерево админ-машины авт
 * **SC-002, SC-003, SC-004, SC-005, SC-006, SC-007** — покрыты self-test'ом и
   контрактами (см. §3).
 
-## 7. Связанные артефакты
+## 7. PR и слияние
+
+* **PR [#26](https://git.sm-karaoke.ru/svoemesto/Karaoke/pulls/26)** — `678-admin-ip-allowlist` → `master`, 20 файлов, +2260/−88; CI — 30/30 success.
+* Ветка собрана заново от `master` без коммитов чужой сессии (KARAOKE-338), попавших в общий
+  checkout: они лежат на своей ветке `679-news-collection-local` и в PR не входят.
+* **Слияние — за владельцем** (Д-1): Forgejo не допускает одобрения автором собственного PR.
+
+## 8. Связанные артефакты
 
 `specs/677-admin-ip-allowlist/` — `spec.md`, `plan.md`, `research.md`, `data-model.md`,
 `contracts/{automation-cli,allow-list-surgery,journal-format}.md`, `quickstart.md`,

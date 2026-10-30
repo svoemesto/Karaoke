@@ -136,3 +136,60 @@ bash deploy_public.sh   # образ + СИНХРОНИЗАЦИЯ docker-compose
 ```bash
 cd deploy && source ./sync_prod_config.sh && sync_prod_config web
 ```
+
+## 8. Модель управления allow-list админ-машины (BR-631)
+
+§1–§7 описывают доставку конфигурации **вручную**. Для allow-list прод-канала
+(`5433`/`9000`) появилась автоматика — спека 677 / KARAOKE-337, ADR
+`knowledge/adr/local-0015-admin-ip-allowlist-automation.md`. Разница в модели:
+
+| | Ручная доставка (§4) | Автоматизация allow-list |
+|---|---|---|
+| Кто меняет прод | человек | `deploy/admin-ip-allowlist.sh` под таймером (10 минут) |
+| Что меняется | конкретный файл целиком | **только** одна строка `allow <ip>;` в каждом из двух stream-блоков |
+| Порядок | копирование содержимым → `nginx -t` → reload → проверка ответа | перепроверка адреса → temp-файл → `nginx -t -c temp` → бэкап → подмена содержимым → проверка sha256 → `nginx -t` → reload → контроль → откат |
+| Как попадает в репозиторий | копирование вручную | PR через Forgejo API (состав PR — репозиторная копия **плюс только недостающая строка `allow`**), сливает владелец |
+| Откат | вручную из бэкапа | автоматически из `nginx.conf.bak-<stamp>`, затем уведомление владельцу |
+
+### Что делать владельцу
+
+1. **Установить юниты** (файлы лежат в репозитории, установка — действие владельца):
+
+   ```bash
+   cd /home/nsa/Karaoke
+   sudo cp deploy/admin-ip-allowlist.timer deploy/admin-ip-allowlist.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now admin-ip-allowlist.timer
+   systemctl list-timers | grep admin-ip-allowlist
+   ```
+
+2. **Задать токены** — в файле с правами `600` (юнит читает его через
+   `EnvironmentFile`): `/etc/admin-ip-allowlist.env`:
+
+   ```
+   ALLOWLIST_TELEGRAM_BOT_TOKEN=<токен бота проекта>
+   ALLOWLIST_TELEGRAM_CHAT_ID=<chat_id канала проекта>
+   ALLOWLIST_FJ_TOKEN=<токен Forgejo>
+   ALLOWLIST_FJ_URL=https://git.sm-karaoke.ru
+   ```
+
+   Токены в репозиторий не попадают (FR-016) и не видны в `ps` (Bot API вызывается
+   через `curl -K` с конфиг-файлом `600`).
+
+3. **Проверить состояние без правок**: `bash deploy/admin-ip-allowlist.sh --diagnose`.
+
+### Чего автоматизация не делает
+
+* не удаляет адреса из allow-list (FR-011) — удаление только по слову владельца;
+* не меняет ничего, кроме файла allow-list и его бэкапа (FR-015);
+* не добавляет адрес, если прод недоступен целиком (FR-002);
+* не включает `access_log` в stream-блоках (FR-019 — SHOULD, требует согласия на
+  изменение прода);
+* не сливает PR сама (Д-1).
+
+### Дрейф прод↔репозиторий
+
+Если прод-конфигурация отличается от репозиторной копии, дрейф фиксируется в
+журнале (`event:drift`) и сообщается владельцу, но применение не блокируется: прод —
+операционная истина. В PR посторонние расхождения не выносятся — PR содержит
+репозиторную копию плюс только недостающую строку `allow`.

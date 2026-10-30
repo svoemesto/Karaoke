@@ -110,6 +110,13 @@ UNPUBLISH (там только статус 6).
   UNPUBLISH: оно скрывало 59 готовых песен без даты.
 - **Раскладка.** Оба фильтра используют `CrossSong.unpublications` (по
   авторам), а не дата-сетку: у 7 583 песен статуса 1 даты нет.
+- **Раскладка по авторам — конечна, но не ограничена по объёму.** 23.10.26
+  условие выхода раскладки брало захваченный максимум размера стопки, из-за чего
+  раздел «Un-Публикации» уходил в вечный цикл и исчерпывал память JVM (инцидент
+  2026-10-23). Починка закрывает конечность, но **лимита на объём раскладки нет**
+  — при тысячах песен одного автора сетка растёт. Покрытие уровня вызывающих —
+  `PublicationGridCallerTest` (500 песен → сетка 50×10); современные пути
+  (`/api/unpublications2`, `/api/publicationsdigest`) не затронуты.
 
 ## Ссылки
 
@@ -119,6 +126,8 @@ UNPUBLISH (там только статус 6).
 - [ApiController.kt](../../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — `POST /api/publicationsdigest`.
 - [PublishTableFooter.vue](../../../webvue3/src/components/Publish/components/PublishTableFooter.vue) — кнопки фильтров.
 - [PublicationFiltersTest.kt](../../../karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationFiltersTest.kt) — юнит-тесты.
+- [PublicationGridCallerTest.kt](../../../karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/PublicationGridCallerTest.kt) — тест раскладки на уровне вызывающих (BR-188, спека 676).
+- [remaining-models.md](../../domains/catalog/components/remaining-models.md) — устройство раскладки стопок.
 - [dictionaries.md](../../domains/catalog/components/dictionaries.md) — коды `IdStatus` и их использование в фильтрах.
 
 ## Что не входит

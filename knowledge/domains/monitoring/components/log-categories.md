@@ -44,6 +44,7 @@
 | `infra.catalog.rename` | `karaoke-app/.../model/SongArtifactRenamer.kt` (BR-131) | Неудача переименования артефакта песни (путь + причина) | WARN |
 | `infra.monitor.check` | `karaoke-app/.../monitor/checks/{StemJobsStuckCheck,SubmittedAssignmentsCheck,UnreadChatMessagesCheck}.kt` (BR-134) | Сбой проверки мониторинга, читающей прод-БД: ошибка пробрасывается и становится алертом `check.<Name>.failure` | ERROR |
 | `infra.monitor.tick` | `karaoke-app/.../monitor/MonitoringService.kt` (BR-135) | Тик мониторинга: пропуск пересекающегося тика (single-flight), падение проверки, ошибка рассылки | WARN |
+| `infra.monitor.heap` | `karaoke-app/.../monitor/checks/HeapUsageCheck.kt` (BR-630, спека 676) | Загрузка heap JVM: `heap:usage usedBytes=… maxBytes=… percent=…` — **на каждом тике** (SC-005), `heap:thresholdExceeded percent=… threshold=… severity=…` при превышении порога (75 % / 90 %), `heap:recovered percent=…` при возврате в норму | INFO (тик), WARN (WARNING), ERROR (CRITICAL) |
 | `infra.alignment` | `karaoke-app/.../services/AlignmentServiceClient.kt` (BR-137) | Сбой обращения к сервису forced-alignment: HTTP-код, тип исключения | ERROR |
 | `infra.telegram.publish` | `karaoke-app/.../services/TelegramAutoPublishScheduler.kt` (BR-146) | Сбой выборки кандидатов авто-публикации в Telegram (`sqlState`), падение тика | WARN / ERROR |
 | `infra.telegram.polling` | `karaoke-app/.../services/TelegramUpdatesConsumer.kt` (BR-158) | Long-poll Telegram: сбой `deleteWebhook` на старте, ошибка long-poll | WARN |
@@ -153,9 +154,19 @@ fun refreshCache() {
 **[WARN] Регистрация новой категории** должна быть зафиксирована в
 таблице выше. Несогласованная категория = невидимый grep.
 
-**[WARN] Уровень WARN для восстановления (recovery)** — не INFO.
-Восстановления важны для анализа инцидентов, и должны быть видимы
-в `tail` лога.
+**[WARN] Уровень сообщения о восстановлении (recovery)** — INFO, если
+восстановление не сопровождается другой проблемой. Это соответствует
+инварианту домена (`domain.md`: «Recovered-сообщения тоже логируются
+(INFO)») и решению по специке 676 (BR-630, ADR `local-0014`): восстановление —
+штатное состояние, а не тревога. Прежняя запись в этом документе требовала
+WARN и **противоречила** `domain.md` — противоречие снято.
+
+**[WARN] Severity алерта ≠ уровень журнала.** Уровень SLF4J выводится из
+severity по правилу (BR-630, ADR `local-0014`): INFO→INFO, WARNING→WARN,
+ERROR→ERROR, **CRITICAL→ERROR** (уровня CRITICAL в SLF4J нет, внешних
+оповещений нет — уровень лога остаётся единственным машинно-читаемым
+признаком эскалации). Таблица соответствия — в
+[monitor-checks.md](monitor-checks.md).
 
 ## Связанные ADR | Related ADRs
 
@@ -175,3 +186,7 @@ fun refreshCache() {
 **[WARN]** Счётчики, которые могут не получить значение, возвращают
 явный признак ошибки (`-1`), а не `0`: «непрочитанных нет» и «не удалось
 посчитать» должны различаться (см. `infra.chat`, `infra.stemjobs`).
+
+## Changelog
+
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): категория `infra.monitor.heap` (загрузка heap JVM); требование WARN для recovery заменено на INFO — прежнее требование противоречило `domain.md`; добавлено правило «severity алерта ≠ уровень журнала» (CRITICAL→ERROR). Автор: agent (Karaoke).

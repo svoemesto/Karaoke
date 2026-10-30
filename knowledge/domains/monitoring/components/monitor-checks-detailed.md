@@ -1,21 +1,21 @@
 # Component: monitor-checks (детальный каталог)
 
 > **Домен**: [monitoring](../domain.md)
-> **Компонента**: детальный каталог 7 MonitorCheck'ов. Дополняет
+> **Компонента**: детальный каталог 8 MonitorCheck'ов. Дополняет
 > [monitor-checks.md](monitor-checks.md).
 
 
 ## Ответственность | Responsibility
 
 
-детальный каталог 7 MonitorCheck'ов. Дополняет [monitor-checks.md](monitor-checks.md).
+детальный каталог 8 MonitorCheck'ов. Дополняет [monitor-checks.md](monitor-checks.md).
 
 ## Назначение
 
-7 MonitorCheck'ов в `karaoke-app/.../monitor/checks/`. Тикают раз в
+8 MonitorCheck'ов в `karaoke-app/.../monitor/checks/`. Тикают раз в
 минуту через `MonitoringService`. Каждый возвращает `List<MonitorAlert>`.
 
-## Каталог (7 чеков)
+## Каталог (8 чеков)
 
 | # | Check | Строк | Severity | Что |
 |---|---|---|---|---|
@@ -26,6 +26,7 @@
 | 5 | `UnreadChatMessagesCheck` | 47 | INFO | Непрочитанные сообщения от пользователей (remote DB) |
 | 6 | `SubmittedAssignmentsCheck` | 47 | INFO | Задания в `submitted` (remote DB) |
 | 7 | `StemJobsStuckCheck` | 49 | WARNING | StemJob застряли > 30 мин (WAITING/WORKING) |
+| 8 | `HeapUsageCheck` | 211 | **WARNING → CRITICAL** | Загрузка heap JVM (пороги 75 % / 90 %) |
 
 Severity-колонка — по фактическому `MonitorSeverity` в коде каждого
 чека (проверено grep'ом `severity =`); `ProdContainerCheck` повышает
@@ -140,14 +141,59 @@ read/unread на каждом тике.
 **БД**: PROD (задания создаются пользователями на прод-сайте).
 Body без числа.
 
+### 8. `HeapUsageCheck` (211 строк, WARNING → CRITICAL)
+
+**Файл**: `karaoke-app/.../monitor/checks/HeapUsageCheck.kt` (BR-630,
+спека 676).
+
+**Проверяет**: загрузку heap JVM — `Runtime.totalMemory() - freeMemory()`
+(занято) против `Runtime.maxMemory()` (потолок, ≈ `-Xmx`).
+
+**Пороги** (решение владельца 2026-10-30): **75 %** — предупреждение,
+**90 %** — критический уровень. Значения задаются конфигурацией (env
+`MONITOR_HEAP_WARN_PERCENT` / `MONITOR_HEAP_CRITICAL_PERCENT`, ADR
+`local-0001`); нечитаемое или несогласованное значение → дефолты 75/90.
+
+**Severity нарастает**: WARNING при `percent >= 75`, CRITICAL при
+`percent >= 90`.
+
+**Источник данных**: `Runtime` — не зависит от состава JRE/JDK и от
+наличия модуля `java.management`; MXBean процент от максимума heap точнее
+не даёт.
+
+**Ключ алерта**: `monitor.heap.usage`.
+
+**Логи** (категория `infra.monitor.heap`, формат `event:key=value`):
+`heap:usage usedBytes=… maxBytes=… percent=…` — **на каждом тике** (SC-005:
+«не реже раза в минуту»), `heap:thresholdExceeded percent=… threshold=…
+severity=…` при превышении, `heap:recovered percent=…` при возврате в
+норму.
+
+**Маппинг severity → уровень лога** (BR-630, ADR `local-0014`):
+WARNING→WARN, CRITICAL→ERROR. Уровня CRITICAL в SLF4J нет, а внешних
+оповещений нет — уровень лога остаётся единственным
+машинно-читаемым признаком эскалации для оператора. Проверки с
+единственным уровнем (WARNING) логируют свои алерты на WARN — это
+согласовано с тем же правилом.
+
+**Состояние**: `alerting` (`@Volatile`) — **только в памяти**, новых
+персистентных ключей нет (FR-019).
+
+**Body без числа**: процент и порог — в `detail`, `body` постоянный
+(иначе `contentHash()` менялся бы на каждом тике и алерт «мигал» бы
+read/unread).
+
+**Одноклик-fix**: не предусмотрен — автоматического «лечения» загрузки
+heap нет, `resolveAction = null`.
+
 ## Логика и Алгоритмы | Logic and Algorithms
 
 ### Тик и сборка снапшота
 
-`MonitoringService.tick()` — `@Scheduled(fixedRate = 60_000L,
+`MonitoringService.tick()` — `@Scheduled(fixedDelay = 60_000L,
 initialDelay = 20_000L)`:
 
-1. `MonitorRegistry.checks.flatMap { check.run(ctx()) }` — все 7
+1. `MonitorRegistry.checks.flatMap { check.run(ctx()) }` — все 8
    проверок за один проход; `ctx()` = `MonitorContext(localDb =
    WORKING_DATABASE, storageService = KSS_APP, storageApiClient =
    SAC_APP)`.
@@ -167,7 +213,8 @@ initialDelay = 20_000L)`:
   `LaneStalledCheck.STALL_THRESHOLD_MS = 2 мин`,
   `StemJobsStuckCheck.STALE_MINUTES = 30`,
   `ProdContainerCheck` — `monitorProdDownCriticalMinutes` (дефолт
-  5 мин). У `UnreadChatMessagesCheck` и `SubmittedAssignmentsCheck`
+  5 мин), `HeapUsageCheck` — пороги загрузки heap (дефолт 75 % / 90 %).
+  У `UnreadChatMessagesCheck` и `SubmittedAssignmentsCheck`
   порога по времени нет.
 - **`body` без числа, число в `detail`** — `MonitorAlert.contentHash()`
   считается по `severity.name|title|body`; `detail` в хэш не входит,
@@ -200,9 +247,15 @@ read/unread на каждом тике.
 при перезапуске `karaoke-app` отсчёт начинается заново. Это
 by-design (нет персистенции monitor-состояния).
 
+## Связанные ADR | Related ADRs
+
+- [local-0014 — превентивные меры против OOM в `karaoke-app`](../../../adr/local-0014-heap-memory-guardrails-karaoke-app.md) —
+  источник данных о heap (`Runtime`), пороги 75 %/90 % из конфигурации, маппинг
+  severity алерта → уровень журнала (CRITICAL → ERROR), место хранения дампов.
+
 ## Зависимости | Dependencies
 
-- [monitor-checks.md](monitor-checks.md) — общий каталог (7 чеков).
+- [monitor-checks.md](monitor-checks.md) — общий каталог (8 чеков).
 - [log-categories.md](log-categories.md) — `infra.prod.ping`,
   `infra.prod.db`, `infra.cache.statbysong`.
 - [rendering domain](../../rendering/domain.md) — `RenderQueueStalledCheck`.
@@ -217,5 +270,6 @@ by-design (нет персистенции monitor-состояния).
 
 ## Changelog
 
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): 8-я проверка `HeapUsageCheck` (загрузка heap JVM, пороги 75 %/90 %); тик — `fixedDelay`, а не `fixedRate` (факт по `MonitoringService.kt:61`). Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 404-410** (2026-09-09): Initial detailed. Автор: agent (Karaoke).

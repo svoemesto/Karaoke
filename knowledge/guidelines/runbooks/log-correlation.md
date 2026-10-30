@@ -82,7 +82,26 @@ docker logs karaoke-app --since "1d" | grep "ping:recovered"
 docker logs karaoke-app --since "1d" | grep "infra.prod.db"
 ```
 
-### 2.4. nginx на прод-сервере
+### 2.4. Загрузка heap `karaoke-app` и дампы (BR-630, спека 676)
+
+```bash
+# Текущая загрузка heap (строка INFO на каждом тике мониторинга, раз в минуту)
+docker logs karaoke-app --since "1h" | grep "infra.monitor.heap"
+
+# Превышение порога (75 % — WARNING, 90 % — CRITICAL)
+docker logs karaoke-app --since "1d" | grep "heap:thresholdExceeded"
+
+# Возврат в норму
+docker logs karaoke-app --since "1d" | grep "heap:recovered"
+
+# Дампы состояния heap на хосте (том ./karaoke-db/dumps)
+ls -la ~/Karaoke/deploy/karaoke-db/dumps/
+
+# Убрать старые дампы вручную (политика: последние 2, ≤ 20 ГБ, по возрасту)
+bash ~/Karaoke/deploy/heap-dump-retention.sh
+```
+
+### 2.5. nginx на прод-сервере
 
 ```bash
 # Через SSH
@@ -128,6 +147,9 @@ ssh root@188.127.240.124 'grep "/minio/karaoke/" /var/log/nginx/access.log | tai
 | `infra.prod.ping - ping:failed` | Неуспешный пинг прода |
 | `infra.prod.ping - ping:recovered` | Восстановление прода после сбоя |
 | `infra.prod.db` | Пинги прод-БД |
+| `infra.monitor.heap` | Загрузка heap JVM `karaoke-app` (BR-630): строка `heap:usage …` — на каждом тике мониторинга |
+| `heap:thresholdExceeded` | Превышение порога загрузки heap (75 % — WARNING, 90 % — CRITICAL) |
+| `heap:recovered` | Возврат загрузки heap в норму |
 | `WARN` / `ERROR` | Уровни логирования (Spring Boot дефолт) |
 | `song.locked_save_fallback` | (specs/299) Песня удалена между `loadFromDbByIdForUpdate` и `saveToDbLocked` — fallback на `saveToDb()` без блокировки. Ожидаемая частота: < 1/час. |
 | `song.locked_save_failed` | (specs/299) SQL-ошибка внутри `saveToDbLocked` (не lock timeout). Должно быть 0. Если есть — проверить логи БД. |
@@ -250,6 +272,56 @@ docker exec karaoke-db psql -U postgres -d karaoke -c "ALTER SYSTEM SET log_min_
 
 ---
 
+### 5.4. «Алерт по памяти в `karaoke-app` (или OOM)» (BR-630, спека 676)
+
+**Контекст**: в логах `karaoke-app` — `heap:thresholdExceeded` (загрузка heap
+выше 75 % / 90 %), либо контейнер упал с `OutOfMemoryError` и в
+`deploy/karaoke-db/dumps/` появился `java_pid*.hprof`.
+
+**Порядок действий**:
+
+1. **Снять дамп ДО перезапуска контейнера** (после рестарта файл останется на
+   томе, но контекст инцидента в логах уже потерян):
+
+   ```bash
+   ls -la ~/Karaoke/deploy/karaoke-db/dumps/
+   cp ~/Karaoke/deploy/karaoke-db/dumps/java_pid*.hprof /tmp/heap-$(date +%s).hprof
+   ```
+
+2. **Проверить фактические лимиты** (они в репозитории, не в `.env`):
+
+   ```bash
+   docker inspect karaoke-app --format '{{.HostConfig.Memory}}'   # 8589934592 = 8 ГБ
+   docker exec karaoke-app java -XX:+PrintFlagsFinal -version 2>/dev/null | grep MaxHeapSize
+   grep -nE 'mem_limit|-Xmx' ~/Karaoke/deploy/docker-compose-app.yml
+   ```
+
+3. **Посмотреть загрузку в динамике** (если контейнер ещё жив):
+
+   ```bash
+   docker logs karaoke-app --since "30m" | grep "heap:usage"
+   ```
+
+4. **Убрать старые дампы** (том не должен переполняться):
+
+   ```bash
+   bash ~/Karaoke/deploy/heap-dump-retention.sh
+   ```
+
+5. **Перезапускать контейнер — по правилам Pass 380**: сначала остановить
+   очередь заданий (`GET /process/isworking` на `:8898` → `false`, кнопка
+   «Стоп»), и только потом `bash deploy/do.sh restart_app`. Очередь заданий
+   внутри контейнера при перезапуске теряется.
+
+6. **Своп на admin-машине не трогаем** (решение владельца 2026-10-30): предел
+   памяти обеспечивается лимитом контейнера (`mem_limit: 8g` + `-Xmx6g`).
+   Увеличение свопа проблему не лечит: при наличии свопа контейнер уходит в
+   подкачку вместо явного OOM-kill — тихое подвисание хуже рестарта.
+
+**Если после роста `-Xmx` выше ~9–10 ГБ понадобится изменить лимит тома
+дампов** — пересчитать: два дампа по 6 ГБ (12 ГБ) помещаются в 20 ГБ, а
+три — уже нет.
+
 ## 6. Что делать при инциденте (TL;DR)
 
 ```
@@ -291,3 +363,8 @@ tar czf /tmp/incident-logs.tgz /tmp/incident-logs
 
 - Создан: 2026-09-01 (specs/288-prod-diagnostics-logging, FR-019).
 - Обновление: после крупного инцидента (добавить новый типичный сценарий в секцию 5).
+- Обновление 2026-10-30 (спека 676, KARAOKE-245, BR-630): раздел 2.4 — загрузка heap и
+  дампы `karaoke-app`; маркеры `infra.monitor.heap` / `heap:thresholdExceeded` /
+  `heap:recovered` в § 3.2; типичный сценарий 5.4 — порядок действий при алерте по
+  памяти и при OOM (снять дамп → проверить лимиты → убрать старые дампы →
+  перезапуск по Pass 380; своп не трогаем).

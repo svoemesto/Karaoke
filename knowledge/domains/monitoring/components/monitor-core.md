@@ -110,6 +110,7 @@ object MonitorRegistry {
         UnreadChatMessagesCheck,
         SubmittedAssignmentsCheck,
         StemJobsStuckCheck,
+        HeapUsageCheck,          // BR-630: загрузка heap JVM
     )
 }
 ```
@@ -138,8 +139,10 @@ enum class MonitorSeverity(val rank: Int, val color: String) {
 
 ### `MonitoringService` — тик раз в минуту
 
-`@Component`, `@Scheduled(fixedRate = 60_000L, initialDelay = 20_000L)`
-(fixedRate, не fixedDelay; старт через 20 с после запуска app).
+`@Component`, `@Scheduled(fixedDelay = 60_000L, initialDelay = 20_000L)`
+(старт через 20 с после запуска app). Тик — `fixedDelay`, а не `fixedRate`,
+и с single-flight guard: пересекающийся тик пропускается с записью в журнал
+(BR-135) — см. `MonitoringService.kt:56-82`.
 
 ```kotlin
 fun tick() {
@@ -153,7 +156,7 @@ fun tick() {
 }
 ```
 
-1. Все 7 проверок прогоняются за один проход; `ctx()` собирает
+1. Все 8 проверок прогоняются за один проход; `ctx()` собирает
    `MonitorContext(WORKING_DATABASE, KSS_APP, SAC_APP)`.
 2. Упавшая проверка не роняет тик — превращается в WARNING-алерт
    `key = "check.<Name>.failure"`.
@@ -177,12 +180,13 @@ fun tick() {
 
 ## Зависимости | Dependencies
 
-- [monitor-checks.md](monitor-checks.md) — 7 проверок.
+- [monitor-checks.md](monitor-checks.md) — 8 проверок.
 - [monitor-checks-detailed.md](monitor-checks-detailed.md) — детали.
 - [sse domain](../../sse/domain.md) — broadcast `MONITOR_ALERTS`.
 - [log-categories.md](log-categories.md) — `infra.prod.*` логи.
 
 ## Changelog
 
+- **Спека 676** (2026-10-30, KARAOKE-245, BR-630): 8-я проверка `HeapUsageCheck` в реестре; тик — `fixedDelay` (факт по `MonitoringService.kt:61`), а не `fixedRate`. Автор: agent (Karaoke).
 - **Pass 486** (2026-09-27, spec `486-knowledge-domains-others`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 421** (2026-09-09): Initial. Автор: agent (Karaoke).

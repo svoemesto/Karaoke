@@ -74,6 +74,15 @@ local-0007-zakroma-album-id-in-stream-dto.md
   (BR-627, OpenProject #410).
 - `local-0008-effective-hidden-album-types.md` — transient auto-reset
   `effectiveHiddenAlbumTypes` для `?albumId=`.
+- `local-0014-heap-memory-guardrails-karaoke-app.md` — превентивные меры против
+  OOM в `karaoke-app` (спека 676 / KARAOKE-245, BR-630): предел памяти
+  контейнера (`mem_limit: 8g`) и максимум heap (`-Xmx6g`), дамп состояния heap
+  при OOM на томе и политика хранения дампов, источник данных о загрузке heap
+  (`Runtime`), маппинг severity алерта → уровень журнала (CRITICAL → ERROR);
+  отвергнутая альтернатива «поднять своп 64 → 128 ГБ» и решение владельца
+  «своп не поднимаем». Уточняет область ADR `local-0013` (канал доставки для
+  `karaoke-app` — журнал/SLF4J); сам `local-0013` не переписывается (ADR
+  append-only).
 
 Текущий формат — `* Status:` / `* Date:` / etc. — сохраняется как есть;
 полный переход на YAML frontmatter (как в шаблоне) — опционален и

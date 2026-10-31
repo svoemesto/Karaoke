@@ -28,7 +28,7 @@
  * `DSH_GUARD_POLICY` / `DSH_GUARD_JOURNAL`; значения по умолчанию не содержат
  * пути конкретной машины.
  */
-import { appendFileSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 
@@ -101,7 +101,7 @@ export function splitSegmentsWithDir(command, workdir) {
     for (const piece of part.split('|')) {
       const trimmed = piece.trim()
       if (!trimmed) continue
-      const cd = trimmed.match(/^cd\s+['"]?([^'"\s]+)['"]?$/)
+      const cd = trimmed.match(/^\(?cd\s+['"]?([^'"\s)]+)['"]?\)?$/)
       if (cd) {
         currentDir = cd[1].startsWith('/') ? cd[1] : resolve(currentDir, cd[1])
         continue
@@ -148,8 +148,7 @@ export function resolveGitBranch(workdir) {
  * ошибка записи в журнал не отменяет решение).
  * @param {string} policyPath
  * @returns {Array<object>}
- */
-export function loadPolicy(policyPath) {
+ */export function loadPolicy(policyPath) {
   try {
     const parsed = JSON.parse(readFileSync(policyPath, 'utf8'))
     const rules = Array.isArray(parsed?.rules) ? parsed.rules : []
@@ -166,6 +165,7 @@ export function loadPolicy(policyPath) {
             branchEquals: rule.branchEquals ?? null,
             workdirPrefix: rule.workdirPrefix ?? null,
             pathContains: rule.pathContains ?? null,
+            ops: Array.isArray(rule.ops) ? rule.ops.map(String) : null,
             regex: new RegExp(rule.pattern, 'i'),
           }
         } catch {
@@ -198,16 +198,142 @@ export function matchCommand(command, rules, context = {}) {
         if (!rule.regex.test(segment.text)) continue
         const branch = resolveGitBranch(segment.dir)
         if (branch && rule.branchEquals && branch === rule.branchEquals) {
-          return { id: rule.id, severity: rule.severity, reason: rule.reason, mode: rule.mode, segment: segment.text }
+          return { id: rule.id, severity: rule.severity, reason: rule.reason, mode: rule.mode, state: rule.state, segment: segment.text }
         }
         continue
       }
+      if (rule.state === 'do-sh') {
+        // Согласие владельца на санкционированную команду — состояние, а не
+        // текст: ловим сам вызов do.sh, а решение «есть согласие или нет»
+        // принимается в apply() по записи окна согласия.
+        if (!rule.regex.test(segment.text)) continue
+        const call = resolveDoShCall(segment.text, segment.dir)
+        if (!call) continue
+        if (rule.ops && rule.ops.length > 0 && !rule.ops.includes(call.op)) continue
+        if (!isKaraokeDeployDir(call.scriptDir)) continue
+        return { id: rule.id, severity: rule.severity, reason: rule.reason, mode: rule.mode, state: rule.state, segment: segment.text, op: call.op }
+      }
       if (rule.regex.test(segment.text)) {
-        return { id: rule.id, severity: rule.severity, reason: rule.reason, mode: rule.mode, segment: segment.text }
+        return { id: rule.id, severity: rule.severity, reason: rule.reason, mode: rule.mode, state: rule.state, segment: segment.text }
       }
     }
   }
   return null
+}
+
+/**
+ * Проверить, что каталог — каталог `deploy` проекта Karaoke.
+ *
+ * Маркер — наличие `do.sh` и `docker-compose-app.yml` рядом: это признаки
+ * именно этого проекта, а не путь машины (правило переносимо между хостами
+ * и worktree'ами с любыми именами).
+ * @param {string} dir
+ * @returns {boolean}
+ */
+export function isKaraokeDeployDir(dir) {
+  if (!dir) return false
+  try {
+    return existsSync(join(dir, 'do.sh')) && existsSync(join(dir, 'docker-compose-app.yml'))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Разобрать вызов `do.sh`: операция и каталог скрипта.
+ *
+ * Поддерживаются обе формы вызова:
+ *   - `bash do.sh stop_app` в каталоге deploy (каталог берётся из контекста);
+ *   - `bash /path/to/deploy/do.sh stop_app` (каталог берётся из пути).
+ * @param {string} segmentText
+ * @param {string} segmentDir
+ * @returns {{ op: string, scriptDir: string }|null}
+ */
+export function resolveDoShCall(segmentText, segmentDir) {
+  const text = String(segmentText ?? '')
+  const byPath = text.match(/(?:^|[\s'"])((?:[^\s'"]*\/)?deploy)\/do\.sh\s+([a-z_][a-z0-9_]*)/)
+  if (byPath) {
+    return { op: byPath[2], scriptDir: resolve(segmentDir || process.cwd(), byPath[1]) }
+  }
+  const byName = text.match(/(?:^|[\s/])(?:\.\/)?do\.sh\s+([a-z_][a-z0-9_]*)/)
+  if (byName) {
+    return { op: byName[1], scriptDir: segmentDir || process.cwd() }
+  }
+  return null
+}
+
+/**
+ * Привести идентификатор сессии к безопасному имени файла.
+ * @param {string} id
+ * @returns {string}
+ */
+export function sanitizeSessionId(id) {
+  return String(id ?? '').replace(/[^A-Za-z0-9._-]/g, '_')
+}
+
+/**
+ * Прочитать запись согласия владельца для сессии.
+ *
+ * Файл: `<consentDir>/<session-id>.json`, содержит
+ * `{ "session": "<id>", "grantedAt": "<ISO>", "ops": ["restart_app"], "by": "owner" }`.
+ * @param {string} consentDir
+ * @param {string|null} sessionId
+ * @returns {{ path: string, record: object }|null}
+ */
+export function loadConsent(consentDir, sessionId) {
+  if (!consentDir || !sessionId) return null
+  const path = join(consentDir, `${sanitizeSessionId(sessionId)}.json`)
+  try {
+    const record = JSON.parse(readFileSync(path, 'utf8'))
+    if (!record || typeof record !== 'object') return null
+    if (record.expiresAt && Number.isFinite(Date.parse(record.expiresAt))
+        && Date.parse(record.expiresAt) < Date.now()) {
+      return null
+    }
+    return { path, record }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Покрывает ли запись согласия данную операцию.
+ * @param {{record: object}} consent
+ * @param {string} op
+ * @returns {boolean}
+ */
+export function consentCovers(consent, op) {
+  const ops = consent?.record?.ops
+  if (!Array.isArray(ops)) return false
+  if (ops.includes('*')) return true
+  return ops.includes(op)
+}
+
+/**
+ * Полное решение по команде: сопоставление с политикой + учёт окна согласия.
+ *
+ * Вынесено отдельно от `apply()`, чтобы решение проверялось офлайн-тестом без
+ * рантайма DSH.
+ * @param {string} command
+ * @param {Array<object>} rules
+ * @param {{ workdir?: string, sessionId?: string|null, consentDir?: string|null,
+ *           defaultMode?: 'deny'|'ask' }} [context]
+ * @returns {{ hit: object|null, verdict: 'allow'|'deny'|'ask', consent: string|null, op: string|null }}
+ */
+export function evaluateCommand(command, rules, context = {}) {
+  const workdir = context.workdir ?? ''
+  const defaultMode = context.defaultMode === 'deny' ? 'deny' : 'ask'
+  const hit = matchCommand(command, rules, { workdir })
+  if (!hit) return { hit: null, verdict: 'allow', consent: null, op: null }
+
+  if (hit.state === 'do-sh') {
+    const consent = loadConsent(context.consentDir ?? null, context.sessionId ?? null)
+    if (consent && consentCovers(consent, hit.op)) {
+      return { hit, verdict: 'allow', consent: consent.path, op: hit.op }
+    }
+  }
+
+  return { hit, verdict: hit.mode ?? defaultMode, consent: null, op: hit.op ?? null }
 }
 
 /**
@@ -228,7 +354,8 @@ function writeJournal(journalPath, record) {
 
 /**
  * @param {object} ctx контекст плагина DSH
- * @param {{ mode?: 'deny'|'ask', journalPath?: string, policyPath?: string, logAll?: boolean }} config
+ * @param {{ mode?: 'deny'|'ask', journalPath?: string, policyPath?: string,
+ *          consentDir?: string, logAll?: boolean }} config
  * @returns {() => void} функция снятия подписки
  */
 export function apply(ctx, config) {
@@ -239,6 +366,9 @@ export function apply(ctx, config) {
   const journalPath = config?.journalPath
     ?? process.env.DSH_GUARD_JOURNAL
     ?? join(homedir(), '.dsh', 'ledger', 'agent-commands.ndjson')
+  const consentDir = config?.consentDir
+    ?? process.env.DSH_GUARD_CONSENT_DIR
+    ?? join(homedir(), '.dsh', 'policies', 'consent')
   const logAll = config?.logAll !== false
 
   let cachedRules = []
@@ -264,9 +394,15 @@ export function apply(ctx, config) {
     if (command === null) return next()
 
     const workdir = typeof args.workdir === 'string' ? args.workdir : ''
-    const hit = matchCommand(command, rules(), { workdir })
+    const sessionId = exec.agent?.session?.id ?? null
+    const { hit, verdict, consent: consentPath } = evaluateCommand(command, rules(), {
+      workdir,
+      sessionId,
+      consentDir,
+      defaultMode,
+    })
+
     const effectiveMode = hit?.mode ?? defaultMode
-    const verdict = hit ? effectiveMode : 'allow'
 
     if (hit || logAll) {
       writeJournal(journalPath, {
@@ -280,18 +416,26 @@ export function apply(ctx, config) {
         verdict,
         mode: effectiveMode,
         test: false,
+        session: sessionId ?? null,
+        consent: consentPath,
       })
     }
 
-    if (!hit) return next()
+    if (!hit || verdict === 'allow') return next()
 
-    const reason = `Запрещённая команда по правилу «${hit.id}»${hit.reason ? `: ${hit.reason}` : ''}. Требуется явное одобрение владельца (AGENTS.md, Hard Gates).`
+    const reason = hit.state === 'do-sh'
+      ? `Команда «${hit.op}» через deploy/do.sh меняет состояние контейнеров. ${hit.reason} Согласие владельца выдаётся в чате и действует до конца сессии (окно согласия).`
+      : `Запрещённая команда по правилу «${hit.id}»${hit.reason ? `: ${hit.reason}` : ''}. Требуется явное одобрение владельца (AGENTS.md, Hard Gates).`
     const displayReason = {
-      en: `Blocked by agent-command-guard: rule "${hit.id}". ${hit.reason ?? ''}`.trim(),
-      ru: `Заблокировано правилом «${hit.id}»: ${hit.reason ?? ''}`.trim(),
+      en: hit.state === 'do-sh'
+        ? `Blocked by agent-command-guard: "${hit.op}" via deploy/do.sh requires the owner's approval (consent window).`
+        : `Blocked by agent-command-guard: rule "${hit.id}". ${hit.reason ?? ''}`.trim(),
+      ru: hit.state === 'do-sh'
+        ? `Заблокировано правилом «do-sh-consent»: операция «${hit.op}» через deploy/do.sh требует согласия владельца (окно согласия).`
+        : `Заблокировано правилом «${hit.id}»: ${hit.reason ?? ''}`.trim(),
     }
 
-    if (effectiveMode === 'deny') return { kind: 'deny', reason }
+    if (verdict === 'deny') return { kind: 'deny', reason }
     return { kind: 'ask', reason, displayReason }
   })
 }

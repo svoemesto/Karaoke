@@ -15,11 +15,14 @@
  *        tools/dsh-agent-command-guard/policy/deny-commands.json /tmp/commands.jsonl
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { matchCommand, loadPolicy, redact, resolveGitBranch } from './index.js'
+import {
+  matchCommand, loadPolicy, redact, resolveGitBranch,
+  evaluateCommand, loadConsent, consentCovers, sanitizeSessionId,
+} from './index.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const POLICY = process.argv[2] ?? join(HERE, 'policy', 'deny-commands.json')
@@ -57,6 +60,19 @@ for (const [id, list] of [...perRule.entries()].sort((a, b) => b[1].length - a[1
 function tempRepo(branch) {
   const dir = mkdtempSync(join(tmpdir(), 'agent-guard-test-'))
   execFileSync('git', ['init', '-q', '-b', branch, dir])
+  return dir
+}
+
+// Каталог deploy проекта Karaoke: маркер — do.sh и docker-compose-app.yml
+// рядом. Создаётся временно, чтобы тест не зависел от пути машины.
+function tempKaraokeDeploy({ marker = true } = {}) {
+  // Каталог называется именно «deploy» — так он назван в репозитории, и по
+  // имени определяется каталог скрипта при вызове по полному пути.
+  const parent = mkdtempSync(join(tmpdir(), 'agent-guard-project-'))
+  const dir = join(parent, 'deploy')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'do.sh'), '#!/usr/bin/env bash\necho stub\n')
+  if (marker) writeFileSync(join(dir, 'docker-compose-app.yml'), 'services: {}\n')
   return dir
 }
 
@@ -105,6 +121,63 @@ for (const [name, cmd] of MUST_NOT) {
   const ok = hit === null
   if (ok) mustNotOk++
   console.log(`${ok ? 'ЧИСТО  ' : 'ЛОЖНОЕ '} | ${name} → ${hit?.id ?? '—'}`)
+}
+
+console.log('\n— deploy/do.sh и окно согласия (KARAOKE-343) —')
+{
+  const deployDir = tempKaraokeDeploy()
+  const foreignDir = tempKaraokeDeploy({ marker: false })
+
+  const caught = matchCommand('bash do.sh stop_app', rules, { workdir: deployDir })
+  console.log(`${caught ? 'ПОЙМАН ' : 'ПРОПУЩЕН'} | do.sh stop_app в deploy Karaoke → ${caught?.id ?? '—'} (op ${caught?.op ?? '—'})`)
+  if (caught?.id === 'do-sh-consent') mustOk++
+
+  const byPath = matchCommand(`bash ${join(deployDir, 'do.sh')} start_app`, rules, { workdir: tmpdir() })
+  console.log(`${byPath ? 'ПОЙМАН ' : 'ПРОПУЩЕН'} | do.sh полным путём → ${byPath?.id ?? '—'} (op ${byPath?.op ?? '—'})`)
+  if (byPath?.id === 'do-sh-consent') mustOk++
+
+  const foreign = matchCommand('bash do.sh stop_app', rules, { workdir: foreignDir })
+  console.log(`${foreign === null ? 'ЧИСТО  ' : 'ЛОЖНОЕ '} | do.sh в чужом проекте (нет маркера Karaoke) → ${foreign?.id ?? '—'}`)
+  if (foreign === null) mustNotOk++
+
+  const otherOp = matchCommand('bash do.sh logs', rules, { workdir: deployDir })
+  console.log(`${otherOp === null ? 'ЧИСТО  ' : 'ЛОЖНОЕ '} | do.sh с операцией вне списка (logs) → ${otherOp?.id ?? '—'}`)
+  if (otherOp === null) mustNotOk++
+
+  // Окно согласия: запись владельца снимает вопрос для перечисленных операций.
+  const consentDir = mkdtempSync(join(tmpdir(), 'agent-guard-consent-'))
+  const sessionId = 'session-test-1'
+  writeFileSync(join(consentDir, `${sanitizeSessionId(sessionId)}.json`), JSON.stringify({
+    session: sessionId, grantedAt: new Date().toISOString(), ops: ['stop_app'], by: 'owner',
+  }))
+
+  const withoutConsent = evaluateCommand('bash do.sh stop_app', rules, {
+    workdir: deployDir, sessionId: 'session-without-consent', consentDir, defaultMode: 'ask',
+  })
+  console.log(`${withoutConsent.verdict === 'ask' ? 'СПРОШЕНО' : 'ПРОПУЩЕНО '} | do.sh без окна согласия → ${withoutConsent.verdict}`)
+
+  const withConsent = evaluateCommand('bash do.sh stop_app', rules, {
+    workdir: deployDir, sessionId, consentDir, defaultMode: 'ask',
+  })
+  console.log(`${withConsent.verdict === 'allow' ? 'РАЗРЕШЕНО' : 'НЕ РАЗРЕШЕНО'} | do.sh с окном согласия → ${withConsent.verdict} (consent: ${withConsent.consent ? 'есть' : 'нет'})`)
+
+  const otherOpWithConsent = evaluateCommand('bash do.sh restart_app', rules, {
+    workdir: deployDir, sessionId, consentDir, defaultMode: 'ask',
+  })
+  console.log(`${otherOpWithConsent.verdict === 'ask' ? 'СПРОШЕНО' : 'ПРОПУЩЕНО '} | do.sh restart_app, окна нет → ${otherOpWithConsent.verdict}`)
+
+  const noSession = evaluateCommand('bash do.sh stop_app', rules, {
+    workdir: deployDir, sessionId: null, consentDir, defaultMode: 'ask',
+  })
+  console.log(`${noSession.verdict === 'ask' ? 'СПРОШЕНО' : 'ПРОПУЩЕНО '} | do.sh без сессии (agent-less) → ${noSession.verdict}`)
+
+  const otherSession = evaluateCommand('bash do.sh stop_app', rules, {
+    workdir: deployDir, sessionId: 'session-other', consentDir, defaultMode: 'ask',
+  })
+  console.log(`${otherSession.verdict === 'ask' ? 'СПРОШЕНО' : 'ПРОПУЩЕНО '} | do.sh в чужой сессии → ${otherSession.verdict}`)
+
+  const consent = loadConsent(consentDir, sessionId)
+  console.log(`Окно согласия прочитано: ${consent ? 'да' : 'нет'}; покрывает stop_app: ${consent ? consentCovers(consent, 'stop_app') : false}`)
 }
 
 console.log('\n— По замыслу НЕ определяется по тексту (состояние, а не текст) —')

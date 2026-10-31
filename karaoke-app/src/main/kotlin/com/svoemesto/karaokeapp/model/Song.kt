@@ -6120,6 +6120,9 @@ class Song(
                     storageApiClient = storageApiClient,
                     songId = id,
                     wasAvailableBefore = false,
+                    // KARAOKE-361: источник `admin` участвует в hash-diff синхронизации `news`
+                    // (в отличие от `auto`), поэтому новость доедет до прода штатным синком.
+                    source = News.SOURCE_ADMIN,
                 )
             if (created) {
                 println(

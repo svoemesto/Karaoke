@@ -973,6 +973,19 @@ tracker_create_issue() {
 }
 
 # =====================================================================
+# tracker_workflow_step — запись шага Plane-workflow в локальный след
+# =====================================================================
+# След нужен, потому что Plane не отдаёт историю состояний (эндпоинты
+# history/activities — 404): «был ли mark-review» можно узнать только из
+# собственного журнала шагов (KARAOKE-346).
+tracker_workflow_step() {
+    local step="$1" ref="$2"
+    local script="${REPO_ROOT:-.}/tools/check-tracker-workflow.sh"
+    [ -f "$script" ] || return 0
+    bash "$script" --step "$step" --issue "$ref" >/dev/null 2>&1 || true
+}
+
+# =====================================================================
 # tracker_claim_issue — assignee + состояние In progress
 # =====================================================================
 tracker_claim_issue() {
@@ -995,6 +1008,8 @@ tracker_claim_issue() {
         '{assignees: [$a], state: $s}')
 
     tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "claim-issue" >/dev/null || return $?
+
+    tracker_workflow_step "claim" "$ref"
 
     echo "${C_GREEN}OK${C_RESET}: #${ref} claimed by ${TRACKER_AGENT_USER} (status: In progress)"
 }
@@ -1050,9 +1065,19 @@ tracker_close_issue() {
         return 5
     fi
 
+    # Сверка шагов Plane-workflow (KARAOKE-346). Проверка НЕ блокирует
+    # закрытие: нарушения фиксируются следом и отчётом, тикет-нарушение
+    # заводит агент по факту (KARAOKE-345).
+    local wf_script="${REPO_ROOT:-.}/tools/check-tracker-workflow.sh"
+    if [ -f "$wf_script" ]; then
+        bash "$wf_script" --issue "$ref" || true
+    fi
+
     local payload
     payload=$(jq -n --arg s "$state_id" '{state: $s}')
     tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "close-issue" >/dev/null || return $?
+
+    tracker_workflow_step "close" "$ref"
 
     echo "${C_GREEN}OK${C_RESET}: #${ref} closed"
 }
@@ -1104,6 +1129,8 @@ tracker_mark_review() {
     local payload
     payload=$(jq -n --arg s "$state_id" '{state: $s}')
     tracker_http_request PATCH "${pp}/issues/${id}/" "$payload" "mark-review" >/dev/null || return $?
+
+    tracker_workflow_step "mark-review" "$ref"
 
     echo "${C_GREEN}OK${C_RESET}: #${ref} → In review (готов к проверке пользователем)"
 }

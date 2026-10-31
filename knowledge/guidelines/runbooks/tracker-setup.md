@@ -210,6 +210,15 @@ Tier-1 «Plane Workflow»). `<ID>` — номер Plane или `KARAOKE-<ном�
 Если владелец вернул задачу на доработку — `reopen-issue <ID>` переводит её
 обратно в `In progress`.
 
+**Сверка шагов.** Перед закрытием `close-issue` запускает
+`tools/check-tracker-workflow.sh --issue <ID>`: сверяются claim, add-comment и
+mark-review. Проверка **не блокирует** закрытие — нарушения попадают в след
+`~/.dsh/ledger/workflow.ndjson` и в отчёт; тикет-нарушение типа
+«governance-violation» заводит агент по факту. Разбор закрытых задач (в том
+числе закрытых в UI вручную): `bash tools/check-tracker-workflow.sh --sweep
+--limit 10`. Подробности — [tracker.md](../../system/infra/tracker.md) § «Сверка
+шагов workflow».
+
 ## Polling
 
 В начале сессии агент выполняет `tools/tracker-poll.sh`, чтобы увидеть

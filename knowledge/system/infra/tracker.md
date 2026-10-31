@@ -91,6 +91,13 @@ wayfinder, тикеты-решения, issue-задачи исполнения 
 (`In progress`). Обязательность шагов задаёт `AGENTS.md`, Tier-1 «Plane
 Workflow».
 
+### Метка нарушения
+
+`type:governance-violation` — метка публичного record'а нарушений. Заводит
+**агент** по факту блокировки (только для режима `deny`); задача создаётся с
+родителем — исходной задачей (`parent`), поэтому нарушение видно в её контексте.
+Метку создаёт сам агент через API Plane (`POST /labels/`).
+
 ### Сверка шагов workflow
 
 `tools/check-tracker-workflow.sh` проверяет, что задача прошла обязательные
@@ -189,6 +196,10 @@ Plane не отдаёт историю состояний (эндпоинты `h
   Plane как трекер, перенос с OpenProject, сосуществование трекеров.
 - [`local-0013-infra-backups-and-monitoring.md`](../../adr/local-0013-infra-backups-and-monitoring.md) —
   бэкапы и мониторинг infra-сервера, включая Plane.
+- [`local-0016-command-guard-enforcement.md`](../../adr/local-0016-command-guard-enforcement.md) —
+  механизм enforcement для правил AI-агента: публичный record нарушения (задача
+  Plane с меткой `type:governance-violation`) и сверка шагов workflow перед
+  закрытием.
 
 ## Связь с другими компонентами
 

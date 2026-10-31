@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "updated": "2026-10-31",
-  "note": "Политика по умолчанию для agent-command-guard. Финальный перечень правил и режимов по каждому классу — тикет KARAOKE-343; этот файл — точка правки, а не решение.",
+  "note": "Политика по умолчанию для agent-command-guard. Финальный перечень правил и режимов по каждому классу — тикет KARAOKE-343; схема журнала — KARAOKE-344; окно согласия — KARAOKE-343. Этот файл — точка правки, а не решение.",
   "rules": [
     {
       "id": "container-restart",
@@ -11,8 +11,23 @@
       "reason": "R-374: контейнеры Karaoke — только через deploy/do.sh и только с согласия владельца (Pass 380/381: сначала остановить очередь KaraokeProcess)."
     },
     {
+      "id": "do-sh-consent",
+      "severity": "high",
+      "mode": "ask",
+      "state": "do-sh",
+      "ops": [
+        "stop_app",
+        "start_app",
+        "restart_app",
+        "build_app"
+      ],
+      "pattern": "(?:^|[\\s/])(?:\\./)?do\\.sh\\s+([a-z_][a-z0-9_]*)",
+      "reason": "R-374 + Pass 380/381: запуск deploy/do.sh меняет состояние контейнеров — только с согласия владельца (окно согласия: ~/.dsh/policies/consent/<session-id>.json, до конца сессии)."
+    },
+    {
       "id": "compose-mutation-karaoke",
       "severity": "high",
+      "mode": "ask",
       "pattern": "^docker\\s+compose\\b.*\\b(up|down)\\b",
       "pathContains": "Karaoke",
       "reason": "R-374: обход deploy/do.sh через docker compose up/down в репозитории Karaoke."
@@ -20,18 +35,21 @@
     {
       "id": "git-force-push",
       "severity": "high",
+      "mode": "ask",
       "pattern": "^git\\s+push\\b.*(--force-with-lease|--force|(^|\\s)-f(\\s|$))",
       "reason": "Hard Gate Git: force-push запрещён."
     },
     {
       "id": "git-no-verify",
       "severity": "medium",
+      "mode": "ask",
       "pattern": "^git\\s+commit\\b.*--no-verify",
       "reason": "Hard Gate Git: --no-verify — только с явного одобрения владельца."
     },
     {
       "id": "git-commit-on-master",
       "severity": "high",
+      "mode": "ask",
       "state": "git-branch",
       "branchEquals": "master",
       "pattern": "^git\\s+(commit|rebase|merge)\\b",
@@ -40,12 +58,14 @@
     {
       "id": "git-push-master-refspec",
       "severity": "high",
+      "mode": "ask",
       "pattern": "^git\\s+push\\b.*\\s(master|HEAD:master|master:master)(\\s|$)",
       "reason": "Hard Gate Git: пуш в master — только через PR + CI."
     },
     {
       "id": "branch-protection-mutation",
       "severity": "high",
+      "mode": "ask",
       "pattern": "^gh\\s+api\\b.*(-X\\s*(DELETE|PUT|PATCH)|--method\\s+(DELETE|PUT|PATCH)).*protection",
       "reason": "Hard Gate Git: снятие/изменение branch protection — только по явному решению владельца."
     }

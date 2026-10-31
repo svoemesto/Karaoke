@@ -1,9 +1,9 @@
 {
   "name": "@local/agent-command-guard",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "Перехват опасных команд AI-агента до выполнения + append-only журнал (KARAOKE-339, KARAOKE-342)",
+  "description": "Перехват опасных команд AI-агента до выполнения, окно согласия владельца и append-only журнал (KARAOKE-339, KARAOKE-342, KARAOKE-343)",
   "exports": {
     ".": "./index.js",
     "./locale/*.json": "./locale/*.json",

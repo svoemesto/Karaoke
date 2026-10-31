@@ -464,6 +464,9 @@ CI исполняется раннером вне DSH, поэтому в спи�
 - **[governance-docs.md](governance-docs.md)** — процессные документы
   (`CONTRIBUTING.md`, `AGENTS.md`), MUST-правила которых проверяет
   `tools/check-enforcement.sh`.
+- **[agent-command-guard.md](agent-command-guard.md)** — плагин хоста DSH:
+  перехват опасных команд агента до выполнения и append-only журнал; ловит
+  исполнение там, где guard'ы репозитория видят только git-дифф.
 
 ## Источники деталей
 

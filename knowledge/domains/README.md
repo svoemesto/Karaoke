@@ -114,6 +114,7 @@ knowledge/domains/<name>/
   - `governance-docs.md` — CONTRIBUTING, DEVELOPMENT, constitution (Pass 376).
   - `audit-336-registry.md` — реестр BR-кодов аудита #336 (2026-10-29).
   - `sql-migrations.md` — deploy/karaoke-db/*.sql (Pass 381).
+  - `agent-command-guard.md` — плагин хоста DSH: перехват опасных команд агента до выполнения и append-only след (KARAOKE-339).
 
 ## Структурный долг: закрыт (2026-09-27, spec `487-knowledge-lint-zero`)
 

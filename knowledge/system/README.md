@@ -31,7 +31,7 @@ C4-модель верхнего уровня:
   ([`frontend/webvue3-audit-invariants.md`](frontend/webvue3-audit-invariants.md)),
   контракт ошибок и отказов `karaoke-web` из аудита #336
   ([`frontend/karaoke-web-error-contract.md`](frontend/karaoke-web-error-contract.md)).
-- [`infra/`](infra/) — 20 документов по инфраструктуре репозитория: `tools/`,
+- [`infra/`](infra/) — 21 документ по инфраструктуре репозитория: `tools/`,
   `deploy/`, `do.sh`, `registry` (Zot на прод-хосте — зеркало и локальный кэш),
   `harbor-registry` (основной каталог образов), `external-infra` (infra-сервер,
   Forgejo/Plane/Harbor, бэкапы, мониторинг), `tracker` (Plane — рабочий трекер,

@@ -1,0 +1,53 @@
+{
+  "version": 3,
+  "updated": "2026-10-31",
+  "note": "Политика по умолчанию для agent-command-guard. Финальный перечень правил и режимов по каждому классу — тикет KARAOKE-343; этот файл — точка правки, а не решение.",
+  "rules": [
+    {
+      "id": "container-restart",
+      "severity": "high",
+      "mode": "deny",
+      "pattern": "^docker\\s+(restart|stop|start)\\s+([\\w-]+\\s+)*karaoke-[a-z0-9-]+",
+      "reason": "R-374: контейнеры Karaoke — только через deploy/do.sh и только с согласия владельца (Pass 380/381: сначала остановить очередь KaraokeProcess)."
+    },
+    {
+      "id": "compose-mutation-karaoke",
+      "severity": "high",
+      "pattern": "^docker\\s+compose\\b.*\\b(up|down)\\b",
+      "pathContains": "Karaoke",
+      "reason": "R-374: обход deploy/do.sh через docker compose up/down в репозитории Karaoke."
+    },
+    {
+      "id": "git-force-push",
+      "severity": "high",
+      "pattern": "^git\\s+push\\b.*(--force-with-lease|--force|(^|\\s)-f(\\s|$))",
+      "reason": "Hard Gate Git: force-push запрещён."
+    },
+    {
+      "id": "git-no-verify",
+      "severity": "medium",
+      "pattern": "^git\\s+commit\\b.*--no-verify",
+      "reason": "Hard Gate Git: --no-verify — только с явного одобрения владельца."
+    },
+    {
+      "id": "git-commit-on-master",
+      "severity": "high",
+      "state": "git-branch",
+      "branchEquals": "master",
+      "pattern": "^git\\s+(commit|rebase|merge)\\b",
+      "reason": "Hard Gate Git: коммит напрямую в master — только feature-ветка + PR + CI. Ветка определяется по .git/HEAD рабочего каталога, а не по тексту команды."
+    },
+    {
+      "id": "git-push-master-refspec",
+      "severity": "high",
+      "pattern": "^git\\s+push\\b.*\\s(master|HEAD:master|master:master)(\\s|$)",
+      "reason": "Hard Gate Git: пуш в master — только через PR + CI."
+    },
+    {
+      "id": "branch-protection-mutation",
+      "severity": "high",
+      "pattern": "^gh\\s+api\\b.*(-X\\s*(DELETE|PUT|PATCH)|--method\\s+(DELETE|PUT|PATCH)).*protection",
+      "reason": "Hard Gate Git: снятие/изменение branch protection — только по явному решению владельца."
+    }
+  ]
+}

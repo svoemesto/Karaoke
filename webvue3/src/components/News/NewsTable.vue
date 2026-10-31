@@ -102,16 +102,15 @@
         </template>
 
         <template #cell(source)="data">
+          <!-- KARAOKE-361: три источника. `auto` — создана на проде (вне синхронизации);
+               `admin` — создана автоматически в админке и доезжает на прод синхронизацией;
+               всё остальное (`manual`) — создана вручную администратором. -->
           <div
             class="fld-news-source"
             :class="data.value === 'auto' ? 'fld-news-source-auto' : 'fld-news-source-manual'"
-            :title="
-              data.value === 'auto'
-                ? 'Создана автоматически (выход песни в эфир)'
-                : 'Создана вручную администратором'
-            "
+            :title="sourceTitle(data.value)"
           >
-            {{ data.value === 'auto' ? '🤖 авто' : 'ручная' }}
+            {{ sourceLabel(data.value) }}
           </div>
         </template>
 
@@ -306,6 +305,19 @@ export default {
     categoryLabel(value) {
       const opt = this.categoryOptions.find((o) => o.value === value)
       return opt ? `${opt.icon} ${opt.label}` : value
+    },
+    // KARAOKE-361: `auto` — новость создана на проде (в hash-diff синхронизации не участвует),
+    // `admin` — создана автоматически в админке и доезжает на прод синхронизацией `news`,
+    // остальные значения (`manual`) — создана вручную администратором.
+    sourceLabel(value) {
+      if (value === 'auto') return '🤖 авто'
+      if (value === 'admin') return '🤖 авто (админка)'
+      return 'ручная'
+    },
+    sourceTitle(value) {
+      if (value === 'auto') return 'Создана автоматически на проде (выход песни в эфир)'
+      if (value === 'admin') return 'Создана автоматически в админке и синхронизируется на прод'
+      return 'Создана вручную администратором'
     },
     // publishAt приходит как java.sql.Timestamp.toString() ("yyyy-MM-dd HH:mm:ss.SSS") — тот же
     // формат, что sponsrPremiumUntil в karaoke-public/AccountView.vue.

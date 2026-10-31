@@ -127,6 +127,10 @@ Knowledge-first принцип):
 - **CI tools** ([ci-tools.md](ci-tools.md)) — enforce'ит правила.
 - **Pre-commit** ([pre-commit-config.md](pre-commit-config.md)) —
   локальная проверка перед коммитом.
+- **Перехват команд AI-агента** ([agent-command-guard.md](agent-command-guard.md)) —
+  host-плагин DSH: часть правил Hard Gates проверяется до исполнения, нарушения
+  получают след в журнале и публичный record (задача Plane с меткой
+  `type:governance-violation`); ADR `local-0016`.
 
 ## Известные TODO
 

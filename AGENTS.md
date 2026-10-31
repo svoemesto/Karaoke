@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.8.0 | **Last updated**: 2026-10-30 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.9.0 | **Last updated**: 2026-10-31 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -171,6 +171,35 @@ OpenProject принимается только с префиксом `op:403` �
 **Enforcement**: manual review; номер вне диапазона Plane — уточнить у владельца.
 **Source**: `knowledge/guidelines/runbooks/tracker-setup.md` § «Задачи и нумерация».
 
+## Tier-1: Hard Gate — Перехват команд AI-агента и след нарушений
+
+**Rule**: команды, запрещённые Hard Gates, проверяются **до выполнения**
+host-плагином `agent-command-guard`; решение и текст команды пишутся в журнал
+`~/.dsh/ledger/agent-commands.ndjson`. Нарушение получает публичный record:
+задача Plane с меткой `type:governance-violation` (родитель — исходная задача).
+Пропуск шагов Plane-workflow проверяется перед `close-issue`
+(`tools/check-tracker-workflow.sh`).
+
+| Класс команды | Режим | След |
+|---|---|---|
+| Прямой `docker restart/stop/start` контейнеров Karaoke | **deny** | журнал + тикет-нарушение |
+| `deploy/do.sh`, меняющий состояние, без окна согласия | **ask** | журнал |
+| `docker compose up/down` в репозитории Karaoke; force-push; `--no-verify`; коммит/пуш в `master`; мутации branch protection | **ask** | журнал |
+
+**Окно согласия**: владелец даёт согласие **словом в чате** — агент пишет
+`~/.dsh/policies/consent/<session-id>.json` **до** вызова `deploy/do.sh`; окно
+действует до конца сессии и **не** покрывает прямой `docker restart` и
+`docker compose`.
+
+**Failure**: обход через скрипт или подмену команды, исполнение вне DSH,
+пропуск шага workflow → тикет-нарушение; согласие, данное на одну сессию, не
+продлевается на следующую.
+**Enforcement**: host-плагин DSH (`deny`/`ask`) + `tools/check-tracker-workflow.sh`
++ pre-commit guard'ы.
+**Ограничение**: запрет по тексту обходим — цель «остановить, спросить и оставить
+след», а не «сделать нарушение невозможным».
+**Source**: `knowledge/system/infra/agent-command-guard.md`, ADR `local-0016`.
+
 ## Tier-1: Hard Gate — Git — CI-gate для master ⛔
 
 **Rule**: НИКОГДА `git commit` / `git push` напрямую в `master`. ТОЛЬКО через
@@ -288,6 +317,7 @@ Plane; правка `agents-team-srv` под задачи Караоке; спе
 | Pass 373 Docker | Этот файл (Tier-1) | `check-docker-config.sh` |
 | Pass 374 Containers | Этот файл (Tier-1) | `check-container-restart.sh` |
 | Pass 375 Frontend | Этот файл (Tier-1) | `check-frontend-build.sh` |
+| Перехват команд AI-агента | Этот файл (Tier-1) + `knowledge/system/infra/agent-command-guard.md` | host-плагин DSH `agent-command-guard` |
 | Pass 380 Очередь перед рестартом | Этот файл (Tier-1) | ручная проверка владельцем |
 | Процесс wayfinder → исполнение | Этот файл (Tier-1) | manual review |
 
@@ -327,6 +357,21 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.9.0** (2026-10-31, KARAOKE-339, ADR `local-0016`): в Tier-1 появился Hard Gate
+  «Перехват команд AI-агента и след нарушений» — команды проверяются **до**
+  выполнения host-плагином `agent-command-guard`, решения пишутся в журнал
+  `~/.dsh/ledger/agent-commands.ndjson`, нарушение получает публичный record
+  (задача Plane с меткой `type:governance-violation`, родитель — исходная
+  задача). Режимы: `deny` для прямого `docker restart/stop/start` контейнеров
+  Karaoke, `ask` для остальных классов. Согласие владельца на санкционированную
+  команду фиксируется окном `~/.dsh/policies/consent/<session-id>.json` (пишет
+  агент по слову владельца, действует до конца сессии, не покрывает прямой
+  `docker restart` и `docker compose`). Пропуск шагов Plane-workflow проверяется
+  перед `close-issue` (`tools/check-tracker-workflow.sh`); сверка не блокирует
+  закрытие — след + отчёт + тикет. Зафиксировано ограничение: запрет по тексту
+  обходим, цель — «остановить, спросить и оставить след». Tier-2: строка каталога
+  guard'ов. Правило не дублирует детали: механика — в
+  `knowledge/system/infra/agent-command-guard.md`, обоснование — в ADR `local-0016`.
 - **3.8.0** (2026-10-30, KARAOKE-337): в Tier-1 «Hard Gate — Git — CI-gate для master» —
   merge только через `tools/merge-pr.sh`: скрипт требует зелёные статус-чеки
   head-коммита (в branch protection статус-чеки не входят — раннер на `nsa-i9`),

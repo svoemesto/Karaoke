@@ -59,6 +59,7 @@
 | `.github/workflows/lint.yml` (existing, modified) | Step "No direct commits to master" — `git log --first-parent origin/master --since=24.hours --no-merges` fail при > 0. Final safety net для bypass. |
 | `AGENTS.md` § "Git — CI-gate для master" (v2.3.0) | Документация: 3 enforcement layers (GitHub branch protection + pre-commit + CI lint) + explicit прецедент Pass 353. |
 
+| [`check-tracker-workflow.sh`](check-tracker-workflow.sh) | Сверка шагов Plane-workflow (claim → add-comment → mark-review → close): живая проверка перед `close-issue` и разбор закрытых задач. Нарушения фиксируются следом в `~/.dsh/ledger/workflow.ndjson` и отчётом; закрытие **не** блокируется. |
 ## Защита команд AI-агента (KARAOKE-339)
 
 | Скрипт / каталог | Назначение |

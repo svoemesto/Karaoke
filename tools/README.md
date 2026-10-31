@@ -59,6 +59,14 @@
 | `.github/workflows/lint.yml` (existing, modified) | Step "No direct commits to master" — `git log --first-parent origin/master --since=24.hours --no-merges` fail при > 0. Final safety net для bypass. |
 | `AGENTS.md` § "Git — CI-gate для master" (v2.3.0) | Документация: 3 enforcement layers (GitHub branch protection + pre-commit + CI lint) + explicit прецедент Pass 353. |
 
+## Защита команд AI-агента (KARAOKE-339)
+
+| Скрипт / каталог | Назначение |
+|---------------|------------|
+| [`dsh-agent-command-guard/`](dsh-agent-command-guard/) | Плагин хоста DSH: перехват вызова `bash` до выполнения (`tools/pre-execute`), сопоставление с политикой, режимы `deny`/`ask`, append-only журнал. Исходники, политика по умолчанию, офлайн-тест матчера и README — внутри каталога. |
+| [`install-agent-command-guard.sh`](install-agent-command-guard.sh) | Установка машинной части: политика в `~/.dsh/policies/`, сборщик следа в `~/.local/bin/`, его systemd user-таймер. Сам плагин ставится инструментом `plugin_manager` (требует одобрения). |
+| [`dsh-command-ledger.py`](dsh-command-ledger.py) | Независимый сборщик следа: полный argv из journald, новые строки `~/.bash_history` с метками времени, снимки состояния контейнеров и образов → `~/.dsh/ledger/ledger.ndjson` (0600). Работает и без плагина. |
+
 ## Утилиты для новых скриптов
 
 Раздел об утилитах для разработки новых bash-скриптов.

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Agent Command Guard",
+    "description": "Blocks or asks before an agent runs a command that changes production state, and records every shell call in an append-only journal."
+  }
+}

@@ -14,6 +14,7 @@
 | [kdoc-jsdoc.md](kdoc-jsdoc.md) | Правила KDoc/JSDoc и шаблоны (перенесён из слоя `docs/api/`) |
 | [runbooks/README.md](runbooks/README.md) | Индекс операционных runbook'ов |
 | [knowledge-first.md](knowledge-first.md) | Правило MUST #0 — обязательный pre-flight перед любой правкой (enforcement из `AGENTS.md`) |
+| [agent-rule-enforcement.md](agent-rule-enforcement.md) | Как защитить правила проекта от нарушений AI-агента: уровни enforcement, инвентарь правил Karaoke, рецепт переноса в свой проект, переносимость стека (трекер/git/реестр образов), чек-лист приёмки |
 
 ## Планируемое наполнение
 

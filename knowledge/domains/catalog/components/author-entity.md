@@ -71,7 +71,7 @@ Comparable<Author>, KaraokeDbTable` — `getTableName() = "tbl_authors"`,
 | Endpoint | Контракт |
 |---|---|
 | `POST /api/authors/authorsdigests` | Списочный дайджест авторов (webvue3 `Authors/store.js`) |
-| `POST /api/authors/updateauthor` | Обновление автора |
+| `POST /api/authors/updateauthor` | Обновление автора — **частичное**: обязателен только `id`, переданные поля применяются, неприсланные сохраняются (2026-11-01) |
 | `POST /api/authors/withnewalbumcount` | Бейдж «новые альбомы» (spec 176) |
 
 ## Логика и Алгоритмы | Logic and Algorithms
@@ -155,5 +155,6 @@ OR LOWER(aliases) LIKE ?`. `matchedAliases` — только те алиасы, 
 
 ## Changelog
 
+- **Инцидент 2026-11-01** (KARAOKE-380): контракт `POST /api/authors/updateauthor` уточнён — обновление частичное (обязателен только `id`, переданные поля применяются, неприсланные сохраняются); раньше всё, кроме `id`, было обязательным, и diff-payload модалки давал HTTP 400. Автор: agent (Karaoke).
 - **Pass 483** (2026-09-27, spec `483-knowledge-domain-catalog`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 427** (2026-09-09): Initial. Автор: agent (Karaoke).

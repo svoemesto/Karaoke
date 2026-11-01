@@ -3,7 +3,7 @@
 * **Issue**: KARAOKE-378 (Plane, проект KARAOKE, тип `type:bug`)
 * **Ветка**: `706-ci-gate-fixes` → PR #51 (https://git.sm-karaoke.ru/svoemesto/Karaoke/pulls/51)
 * **Дата**: 2026-11-01
-* **Статус**: исправлено, PR открыт
+* **Статус**: исправлено, PR #51 смержен (merge-коммит `422d16c8`)
 
 ## Находка
 

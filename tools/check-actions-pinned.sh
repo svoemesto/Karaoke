@@ -8,7 +8,8 @@
 # перенаправить на другой коммит — и CI подхватит новый код без
 # изменения нашего репозитория и без ревью (supply chain).
 #
-# Правило: каждый `uses:` в `.github/workflows/*.yml` обязан указывать
+# Правило: каждый `uses:` в workflow-файлах ОБЕИХ копий
+# (`.github/workflows/*.yml` и `.forgejo/workflows/*.yml`) обязан указывать
 # полный SHA коммита (40 hex) с комментарием-версией:
 #
 #   uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -30,7 +31,15 @@
 set -uo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORKFLOWS_DIR="${PROJECT_ROOT}/.github/workflows"
+# Обе копии CI-конфигурации: .github/ — для GitHub Actions, .forgejo/ — для
+# Forgejo Actions (эта копия реально исполняется на нашем сервере).
+# BR-508 (KARAOKE-376): раньше guard проверял ТОЛЬКО .github/, поэтому в
+# исполняемой копии .forgejo/workflows/lint.yml можно было поставить сторонний
+# action на плавающий тег — и guard бы этого не заметил.
+WORKFLOWS_DIRS=(
+  "${PROJECT_ROOT}/.github/workflows"
+  "${PROJECT_ROOT}/.forgejo/workflows"
+)
 FIXTURES_DIR="${PROJECT_ROOT}/tools/fixtures/actions-pinned"
 
 # Является ли ref полным SHA коммита (40 hex).
@@ -97,12 +106,20 @@ run_guard() {
     # Явные файлы — для проверки снимков «до/после» в отчёте.
     :
   else
-    if [[ ! -d "$WORKFLOWS_DIR" ]]; then
-      echo "ERROR: каталог ${WORKFLOWS_DIR} не найден"
+    local dir found_dir=0
+    shopt -s nullglob
+    set --
+    for dir in "${WORKFLOWS_DIRS[@]}"; do
+      if [[ ! -d "$dir" ]]; then
+        continue
+      fi
+      found_dir=1
+      set -- "$@" "$dir"/*.yml "$dir"/*.yaml
+    done
+    if [[ "$found_dir" -eq 0 ]]; then
+      echo "ERROR: не найден ни один каталог workflow: ${WORKFLOWS_DIRS[*]}"
       return 2
     fi
-    shopt -s nullglob
-    set -- "${WORKFLOWS_DIR}"/*.yml "${WORKFLOWS_DIR}"/*.yaml
   fi
 
   for file in "$@"; do
@@ -116,16 +133,16 @@ run_guard() {
   done
 
   if [[ "$total" -eq 0 ]]; then
-    echo "ERROR: в ${WORKFLOWS_DIR} нет workflow-файлов"
+    echo "ERROR: в ${WORKFLOWS_DIRS[*]} нет workflow-файлов"
     return 2
   fi
 
   if [[ "$failed" -gt 0 ]]; then
-    [[ "$quiet" == "yes" ]] || echo "FAIL: actions не закреплены по SHA в ${failed} из ${total} workflow-файл(ов) (BR-508)"
+    [[ "$quiet" == "yes" ]] || echo "FAIL: actions не закреплены по SHA в ${failed} из ${total} workflow-файл(ов) (BR-508, KARAOKE-376)"
     return 1
   fi
 
-  [[ "$quiet" == "yes" ]] || echo "OK: все сторонние uses: в ${total} workflow-файл(ах) закреплены по SHA (BR-508)"
+  [[ "$quiet" == "yes" ]] || echo "OK: все сторонние uses: в ${total} workflow-файл(ах) закреплены по SHA (BR-508, KARAOKE-376)"
   return 0
 }
 
@@ -144,6 +161,19 @@ run_self_test() {
   else
     echo "OK: self-test — снимок «до» (тег) отвергнут"
   fi
+
+  # Регресс KARAOKE-376: guard обязан обходить ОБЕ копии workflow. Раньше
+  # проверялась только .github/, и в исполняемой копии .forgejo/ плавающий тег
+  # проходил молча.
+  local self_src
+  self_src="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+  for dir_marker in '.github/workflows' '.forgejo/workflows'; do
+    if grep -qF "$dir_marker" "${self_src}"; then
+      echo "   OK: guard обходит копию ${dir_marker}"
+    else
+      echo "   FAIL: guard не обходит копию ${dir_marker}"; failed=1
+    fi
+  done
 
   # «После»: SHA — guard обязан пройти.
   if check_file "${FIXTURES_DIR}/after/workflow.yml" >/dev/null 2>&1; then

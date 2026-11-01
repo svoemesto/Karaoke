@@ -47,6 +47,10 @@
   отзыва доступа — в runbook'е
   [forgejo-access.md](../../guidelines/runbooks/forgejo-access.md)
   § «Одобрение PR».
+- **Сбор статус-чеков merge-гейта — `tools/merge-gate-statuses.py`**: полнота
+  выборки определяется фактом пагинации, а не `X-Total-Count` (KARAOKE-377:
+  заголовок считает сырые записи журнала статусов — с дублями от нескольких
+  прогонов одного коммита, поэтому сравнение с ним давало ложный «недобор»).
 - **Точка входа в master — `tools/merge-pr.sh`**: скрипт требует, чтобы все
   статус-чеки head-коммита были `success` (в branch protection статус-чеки не
   входят — раннер на `nsa-i9`), ставит одобрение и мержит. Правило закреплено
@@ -327,7 +331,8 @@ Guard, который что-то проверяет, обязан уметь п
 | Guard | Что проверяет | Где вызывается | Коды |
 |---|---|---|---|
 | `tools/check-direct-commits.sh` | в master — только merge-коммиты (результат merge PR); коммит с **одним** родителем в first-parent-цепочке — прямой коммит. Считает через `git log --first-parent` с разбором числа родителей — без off-by-one. Известные исторические нарушения — в `tools/check-direct-commits.baseline`; новые в baseline не добавляются | CI-джоб `knowledge-structure` | 0 / 1 / 2 |
-| `tools/check-actions-pinned.sh` | каждый сторонний `uses:` в `.github/workflows/*.yml` указывает **полный SHA коммита** (40 hex) с комментарием версии (`# vX.Y.Z`): плавающий тег (`@v4`) можно перенаправить на другой коммит в чужом репозитории, и CI исполнит новый код без изменения нашего репозитория и без ревью. Фикстуры «до/после» — `tools/fixtures/actions-pinned/` | CI-джоб `actions-pinned-guard` | 0 / 1 / 2 |
+| `tools/check-actions-pinned.sh` | каждый сторонний `uses:` указывает **полный SHA коммита** (40 hex) с комментарием версии (`# vX.Y.Z`): плавающий тег (`@v4`) можно перенаправить на другой коммит в чужом репозитории, и CI исполнит новый код без изменения нашего репозитория и без ревью. Проверяются **обе** копии CI-конфигурации — `.github/workflows/` и `.forgejo/workflows/` (KARAOKE-376: раньше проверялась только `.github/`, а исполняется на сервере `.forgejo/`). Фикстуры «до/после» — `tools/fixtures/actions-pinned/` | CI-джоб `actions-pinned-guard` | 0 / 1 / 2 |
+| `tools/merge-gate-statuses.py` | сбор статус-чеков коммита для merge-гейта: по одному статусу на контекст (дубли нескольких прогонов схлопываются), полнота выборки определяется **фактом пагинации**, а не сырым `X-Total-Count` (он считает записи с дублями — KARAOKE-377). Код `3` — выборка неполна, merge не выполняется. Фикстуры — `tools/fixtures/merge-gate/` | `tools/merge-pr.sh` (шаг сбора статусов) | 0 / 1 / 2 / 3 |
 | `tools/git-hooks/pre-commit-block-master.sh` | прямой `git commit` в `master`/`main` — client-side слой защиты | pre-commit-хуки `block-master-commit` | 0 / 1 |
 
 ### Frontend-гейты
@@ -632,3 +637,4 @@ Per-feature документы пакетов аудита — канониче�
 - **KARAOKE-337** (2026-10-30): в § «Где исполняется CI» — ручной запуск прогона через `workflow_dispatch` (API Forgejo, отдельного эндпоинта «перезапустить упавшие джобы» нет); в § «Известные ловушки» — красный `master` из-за сетевого сбоя (проверять локально на том же коммите) и битая ссылка на каталог вне репозитория (lychee в свежем checkout). Автор: agent (Karaoke).
 - **Спека 676** (2026-10-30, KARAOKE-245, BR-630): в таблице guard'ов — новый `tools/check-memory-guardrails.sh` (автоматические гейты: CI-джоб `memory-guardrails-guard` в обеих копиях workflow + pre-commit-хуки); в строке `check-deploy-hardening.sh` отмечено делегирование BR-630. Автор: agent (Karaoke).
 - **Спека 677** (2026-10-30, KARAOKE-337, BR-631): в таблице guard'ов — новый `tools/check-allowlist-guardrails.sh` (автоматические гейты: CI-джобы `allowlist-guardrails-guard` и `allowlist-automation-self-test` в обеих копиях workflow + pre-commit-хуки); новая операционная автоматизация `deploy/admin-ip-allowlist.sh` с self-test'ом. Автор: agent (Karaoke).
+- **KARAOKE-376/377/378** (2026-11-01): в таблице guard'ов — пиннинг actions теперь проверяет обе копии workflow (`.github/` и `.forgejo/`) и новый инструмент `tools/merge-gate-statuses.py` (сбор статус-чеков merge-гейта: полнота по пагинации, не по сырому X-Total-Count); в § «Где исполняется CI» — сбор статус-чеков merge-гейта. Автор: agent (Karaoke).

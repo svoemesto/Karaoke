@@ -107,7 +107,9 @@ Karaoke разбит на **9 доменов** (Bounded Contexts). Каждый 
 6. Запустить линтеры (`./gradlew ktlintCheck`, `npm run lint`,
    `bash tools/check-knowledge-structure.sh`, `python3 tools/lint-knowledge.py`).
 7. Push и PR через `gh pr create --base master`.
-8. Дождаться CI (7 проверок), при зелёном — `gh pr merge --merge`.
+8. Дождаться CI: решение принимается по агрегату `ci-summary` (применимые и
+   неприменимые проверки одним статусом), при зелёном — `gh pr merge --merge`.
+   Merge в этом проекте — только через `bash tools/merge-pr.sh <N>`.
 
 ### Куда смотреть перед merge
 

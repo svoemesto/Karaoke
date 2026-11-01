@@ -606,6 +606,13 @@ def local_run(manifest: dict, applicability: dict, workflow_path: Path, as_json:
             print(f"SKIPPED  {c['id']} — зона не затронута: {', '.join(c['paths']) or '(без зон)'}")
             continue
         commands = extract_commands(workflow, c["id"])
+        if not commands:
+            # Тяжёлые проверки (gradle, npm, docker) требуют CI-окружения:
+            # локально они не исполняются, но остаются в списке применимых.
+            print(f"APPLICABLE  {c['id']} — CI-only (локально не исполняется)")
+            rows.append({"id": c["id"], "state": "applicable", "zones": c["paths"],
+                         "commands": [], "note": "ci-only"})
+            continue
         print(f"APPLICABLE  {c['id']} — команд: {len(commands)}")
         results = []
         for command, workdir in commands:
@@ -619,8 +626,13 @@ def local_run(manifest: dict, applicability: dict, workflow_path: Path, as_json:
                 check=False,
             )
             status = "ok" if proc.returncode == 0 else "FAILED"
+            if proc.returncode == 2 and c["class"] == "infrastructure":
+                # Служебный джоб, которому нужны данные прогона CI (агрегат
+                # ci-summary): локально он не исполним — это «нет данных»,
+                # а не нарушение.
+                status = "НЕТ ДАННЫХ (служебный джоб CI)"
             print(f"  [{status}] (cwd: {workdir}) {command.splitlines()[0][:120]}")
-            if proc.returncode != 0:
+            if status == "FAILED":
                 failed.append((c["id"], proc.returncode))
                 tail = (proc.stdout + proc.stderr).strip().splitlines()[-10:]
                 for line in tail:

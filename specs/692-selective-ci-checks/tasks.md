@@ -389,47 +389,47 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 **Purpose**: зафиксировать правило в живой документации, подготовить governance-правку, прогнать
 гейты и довести PR до зелёного CI.
 
-- [ ] T047 [P] Создать `knowledge/adr/local-0017-selective-ci-checks.md` — ADR: контекст, решение
+- [X] T047 [P] Создать `knowledge/adr/local-0017-selective-ci-checks.md` — ADR: контекст, решение
       (манифест + `changes`/`ci-summary`), рассмотренные альтернативы (3 варианта механизма,
       2 варианта семантики гейта), последствия («зелёный CI» = «зелёный `ci-summary`»), связь с
       FR-015/FR-016.
       → проверка: `grep -nE '^#{1,3} ' knowledge/adr/local-0017-selective-ci-checks.md` → обязательные разделы ADR
-- [ ] T048 [P] `knowledge/guidelines/architecture-conventions.md` — добавить R-49 «Проверка
+- [X] T048 [P] `knowledge/guidelines/architecture-conventions.md` — добавить R-49 «Проверка
       запускается по зоне интереса» (Rule / Protocol / Failure / Enforcement) и переработать R-47 в
       новую редакцию (применимые проверки; список применимых — из манифеста, список команд — из
       workflow; pre-commit-хуки не меняются).
       → проверка: `grep -n 'R-49' knowledge/guidelines/architecture-conventions.md` → раздел есть
-- [ ] T049 [P] `knowledge/system/infra/ci-tools.md` — раздел «Правило выборочного запуска»
+- [X] T049 [P] `knowledge/system/infra/ci-tools.md` — раздел «Правило выборочного запуска»
       (механизм `changes`/`ci-summary`, манифест, след пропуска) + строка в таблице guard'ов
       (`check-ci-checks-manifest.sh`: зона / режим / стоимость) + записи про KARAOKE-377/378.
       → проверка: `grep -n 'ci-checks-manifest' knowledge/system/infra/ci-tools.md` → строка в таблице
-- [ ] T050 [P] `knowledge/system/infra/pre-commit-config.md` — отметка: pre-commit не меняется;
+- [X] T050 [P] `knowledge/system/infra/pre-commit-config.md` — отметка: pre-commit не меняется;
       правило применимости живёт в манифесте, а не в хуках (R-48); новый хук `ci-checks-manifest`.
       → проверка: `grep -n 'ci-checks-manifest' knowledge/system/infra/pre-commit-config.md` → строка есть
-- [ ] T051 [P] `knowledge/public/onboarding.md` — «дождаться CI (7 проверок)» → «дождаться CI
+- [X] T051 [P] `knowledge/public/onboarding.md` — «дождаться CI (7 проверок)» → «дождаться CI
       (зелёный `ci-summary`)» + краткое объяснение, что пропущенная проверка — не «зелёная».
       → проверка: `grep -n 'ci-summary' knowledge/public/onboarding.md` → строка есть
-- [ ] T052 [P] Создать `knowledge/product/features/selective-ci-checks.md` — per-feature документ
+- [X] T052 [P] Создать `knowledge/product/features/selective-ci-checks.md` — per-feature документ
       (Constitution VI, FR-009): slug `selective-ci-checks`, status, 6 обязательных секций,
       ссылка на ADR `local-0017`.
       → проверка: `bash tools/check-feature-doc.sh knowledge/product/features/selective-ci-checks.md; echo rc=$?` → `0`
-- [ ] T053 [P] `CLAUDE.md` — синхронизировать строку про CI («7/7 PASS обязателен перед merge» →
+- [X] T053 [P] `CLAUDE.md` — синхронизировать строку про CI («7/7 PASS обязателен перед merge» →
       зелёный `ci-summary`), без изменения версии, если правка не тянет semver-бамп.
       → проверка: `grep -n 'ci-summary' CLAUDE.md` → строка есть
-- [ ] T054 Подготовить **не применённый** diff для `AGENTS.md` (Tier-1 «Hard Gate — Git — CI-gate
+- [X] T054 Подготовить **не применённый** diff для `AGENTS.md` (Tier-1 «Hard Gate — Git — CI-gate
       для master»: «зелёный CI» → «зелёный `ci-summary` (применимые проверки)», semver-бамп
       3.9.0 → 3.10.0, запись в Changelog) и сохранить его как
       `specs/692-selective-ci-checks/agents-md-diff.patch`; сам `AGENTS.md` **не менять**
       (governance-правка: semver-бамп + одобрение владельца).
       → проверка: `git diff --no-index /dev/null specs/692-selective-ci-checks/agents-md-diff.patch` → патч приложится к `AGENTS.md`; `git diff --name-only master..HEAD -- AGENTS.md` → пусто
-- [ ] T055 Прогнать гейты изменённой области: `python3 tools/check-ssot-impact.py`,
+- [X] T055 Прогнать гейты изменённой области: `python3 tools/check-ssot-impact.py`,
       `python3 tools/check-doc-references.py`, `bash tools/check-knowledge-structure.sh`,
       `python3 tools/lint-knowledge.py`, `bash tools/check-ci-workflow-sync.sh`,
       `bash tools/check-ci-checks-manifest.sh`, `python3 tools/ci-checks.py --self-test`,
       `bash tools/check-ci-checks-manifest.sh --self-test`, `bash tools/merge-pr.sh --self-test`.
       → проверка: каждый гейт — rc=0 (кроме `check-doc-references.py`, где чужое нарушение
       закрывается точечным `SKIP=check-doc-references` — по решению лида; в отчёте — строка о пропуске)
-- [ ] T056 Локальный контрактный прогон применимых проверок: `python3 tools/ci-checks.py --local`;
+- [X] T056 Локальный контрактный прогон применимых проверок: `python3 tools/ci-checks.py --local`;
       зафиксировать в отчёте, что полный набор (`--local --all`) не прогонялся и почему (время
       раннера), если не прогнан.
       → проверка: вывод `--local` в отчёте шага; причина отсутствия полного прогона указана явно
@@ -437,7 +437,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       **не** выполнять (только по слову владельца, через `bash tools/merge-pr.sh 41`).
       → проверка: `git ls-remote origin refs/heads/692-selective-ci-checks` → SHA совпадает с
       локальным HEAD; статус прогона — зелёный
-- [ ] T058 Подготовить `specs/692-selective-ci-checks/report.md` — отчёт для Plane-шага
+- [X] T058 Подготовить `specs/692-selective-ci-checks/report.md` — отчёт для Plane-шага
       `add-comment` (шаги `mark-review`/`close-issue` выполняются после merge — не в этой сессии).
       → проверка: `test -f specs/692-selective-ci-checks/report.md` → файл есть
 - [ ] T059 **Follow-up (не входит в этот PR)** — после обновления Forgejo до **v17.0.1+**
@@ -479,7 +479,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       `2` («данных нет»: нет рефа, нет merge-base, нет инструмента) — **отказ**, а не «зелёно».
       → проверка: `bash tools/merge-pr.sh --self-test; echo rc=$?` → `0` (в том числе фикстура
       «нет данных → отказ»)
-- [ ] T062 **Фаза 9 (Polish)** — задача-скрипт измерения после внедрения:
+- [X] T062 **Фаза 9 (Polish)** — задача-скрипт измерения после внедрения:
       `tools/measure-selective-ci.py` — сбор `/actions/tasks` (`created_at`/`updated_at` → длительности
       заданий) + состав правок по коммиту прогона (локальный git), методика
       `.scratch/wayfinding/ci-path-filters/baseline-metrics.md`; окно наблюдения — ≥30 PR и ≥14 дней

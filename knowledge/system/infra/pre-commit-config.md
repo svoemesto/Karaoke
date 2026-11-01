@@ -37,7 +37,7 @@ pre-commit run --all-files    # прогнать все хуки вручную 
 | `default_install_hook_types` | `[pre-commit]` | устанавливается только pre-commit-хук |
 | `default_stages` | `[pre-commit]` | хуки работают на стадии `pre-commit` |
 
-## Каталог хуков (29 активных)
+## Каталог хуков (38 активных)
 
 Все хуки — `repo: local`, `language: system`. Скрипты из `tools/` вызываются
 с флагом `--quiet`: pre-commit показывает только код возврата, без деталей.
@@ -115,6 +115,19 @@ CI-джобе `karaoke-public-unit-tests` — регрессия не прохо
 архив `archive/docs/features/`. Раньше хук срабатывал только на архиве, и
 нарушения FR-009 в живых per-feature документах не ловились ни локально, ни в
 CI.
+
+### Согласованность CI-конфигурации
+
+- `ci-workflow-sync` — две копии workflow не разошлись: набор гейтовых команд
+  и `if:`-условия совпадают.
+- `ci-checks-manifest` — манифест зон (`config/ci/checks.yml`) согласован с
+  обеими копиями workflow: джоб ↔ запись один-в-один, `if:`/`needs:` идентичны,
+  мёртвых зон нет, `watch` без catch-all, `known_unmapped` не пересекается с
+  зонами.
+
+Оба хука работают по правилу, реализованному в `tools/ci-checks.py`
+(носитель правила — `config/ci/checks.yml`); pre-commit **не дублирует**
+маппинг «правка → проверки» (R-49).
 
 ### Git-гигиена
 

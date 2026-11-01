@@ -34,11 +34,11 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 **Purpose**: носитель правила — манифест зон.
 
-- [ ] T001 Создать `config/ci/checks.yml` — каркас манифеста: `version: 1`, `unknown_paths: all`,
+- [X] T001 Создать `config/ci/checks.yml` — каркас манифеста: `version: 1`, `unknown_paths: all`,
       `groups: {}`, `checks: []`, комментарий-шапка «единственный носитель маппинга „правка →
       проверки“; правка зоны требует ссылки на доказательство (evidence)».
       → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('config/ci/checks.yml')); print(d['version'], d['unknown_paths'])"` → `1 all`
-- [ ] T002 Наполнить `config/ci/checks.yml` **35 записями** — полный реестр job-id обеих копий
+- [X] T002 Наполнить `config/ci/checks.yml` **35 записями** — полный реестр job-id обеих копий
       workflow (D-19, инвариант «джоб ↔ запись» **тотальный, без исключений**): 31 существующий
       job-id из `.forgejo/workflows/lint.yml` + `direct-commits-guard` (T028) +
       `ci-checks-manifest-guard` (T060) + `changes` (T022) + `ci-summary` (T024). Для каждой
@@ -440,13 +440,18 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 - [ ] T058 Подготовить `specs/692-selective-ci-checks/report.md` — отчёт для Plane-шага
       `add-comment` (шаги `mark-review`/`close-issue` выполняются после merge — не в этой сессии).
       → проверка: `test -f specs/692-selective-ci-checks/report.md` → файл есть
-- [ ] T059 **Follow-up (не входит в этот PR)** — после обновления Forgejo до v16.0.7
-      (задача KARAOKE-379): проверить `ref` в scheduled-прогоне и при необходимости перевести
-      checkout/выражения на `${{ forgejo.ref }}` (release notes Forgejo 16.0.0, PR 13081:
-      «use proper `${{ forgejo.ref }}` in scheduled workflows»), а также добавить
-      `timezone: 'Europe/Moscow'` в cron-триггер (на v15 поле может не приниматься валидатором,
-      поэтому в этом PR его нет). Задачу завести в Plane рядом с KARAOKE-379 со ссылкой на эту
-      строку `tasks.md`.
+- [ ] T059 **Follow-up (не входит в этот PR)** — после обновления Forgejo до **v17.0.1+**
+      (задача KARAOKE-379; цель апгрейда владельцем изменена с v16.0.7 на v17.0.1+, первопричина
+      предупреждения v17.0.0 исправлена в upstream #14866 → #14869): проверить `ref` в
+      scheduled-прогоне и при необходимости перевести checkout/выражения на
+      `${{ forgejo.ref }}` (release notes Forgejo 16.0.0, PR 13081: «use proper
+      `${{ forgejo.ref }}` in scheduled workflows» — требование остаётся актуальным и в v17), а
+      также добавить `timezone: 'Europe/Moscow'` в cron-триггер (в v17 поддерживается, но сейчас
+      живой сервер v15, где поле может не приниматься валидатором, поэтому в этом PR его нет).
+      Отдельно: после апгрейда появляется читаемый через API лог джоба — это закроет
+      машино-читаемость следа пропуска (D-18 п.1), но реализация на это не завязана (гейт
+      пересчитывает применимость сам). Задачу завести в Plane рядом с KARAOKE-379 со ссылкой на
+      эту строку `tasks.md`.
       → проверка: `grep -n 'forgejo.ref\|timezone' .forgejo/workflows/lint.yml` → после обновления
       присутствуют; до обновления — только в комментарии
 

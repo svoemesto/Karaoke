@@ -181,23 +181,23 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 ### Implementation for User Story 1
 
-- [ ] T022 [US1] `.forgejo/workflows/lint.yml` — джоб `changes`: checkout с `fetch-depth: 0`,
+- [X] T022 [US1] `.forgejo/workflows/lint.yml` — джоб `changes`: checkout с `fetch-depth: 0`,
       шаг `id: applicable` с `run: python3 tools/ci-checks.py --manifest config/ci/checks.yml --emit-outputs`,
       блок `outputs:` — `all` + по одному выходу на каждую проверку (имя = `id` с `_`, D-15).
       → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('.forgejo/workflows/lint.yml')); print(sorted(d['jobs']['changes']['outputs'])[:3])"` → ключи с `_`
-- [ ] T023 [US1] `.forgejo/workflows/lint.yml` — для каждой из **32 проверок контура** (31
+- [X] T023 [US1] `.forgejo/workflows/lint.yml` — для каждой из **32 проверок контура** (31
       существующая + `direct-commits-guard` из T028) добавить `needs: changes` и условие
       `if: needs.changes.outputs.all == 'true' || needs.changes.outputs.<id_с_underscore> == 'true'`;
       ровно одно условие на проверку, без исключений. Три **инфраструктурных** джоба
       (`changes`, `ci-summary`, `ci-checks-manifest-guard`) условие не получают: `changes` считает
       применимость, `ci-summary` агрегирует (`if: always()`), гейт манифеста запускается всегда.
       → проверка: `grep -c "needs.changes.outputs" .forgejo/workflows/lint.yml` → 32
-- [ ] T024 [US1] `.forgejo/workflows/lint.yml` — джоб `ci-summary`: `needs: [changes, …все проверки,
+- [X] T024 [US1] `.forgejo/workflows/lint.yml` — джоб `ci-summary`: `needs: [changes, …все проверки,
       ci-checks-manifest-guard]`, `if: always()`, `env: CI_CHEKS_OUTPUTS: ${{ toJSON(needs.changes.outputs) }}`
       и `CI_CHEKS_RESULTS: ${{ toJSON(needs) }}`, шаг
       `run: python3 tools/ci-checks.py --manifest config/ci/checks.yml --summary`.
       → проверка: `grep -A6 'ci-summary:' .forgejo/workflows/lint.yml` → блок с `toJSON(needs)`
-- [ ] T025 [US1] `.forgejo/workflows/lint.yml` — триггер `schedule:` с `cron: '0 4 * * 1'`
+- [X] T025 [US1] `.forgejo/workflows/lint.yml` — триггер `schedule:` с `cron: '0 4 * * 1'`
       (еженедельно, понедельник 04:00) и отдельная `concurrency`-группа для расписания с
       `cancel-in-progress: false` (FR-005, страховка не отменяется обычным прогоном).
       **Не полагаться на трактовку `ref` в scheduled-контексте:** явный `ref:` в checkout для
@@ -207,22 +207,22 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       follow-up к KARAOKE-379; поле `timezone:` сейчас **не добавлять** (на v15 может не приниматься
       валидатором workflow) — тоже follow-up к KARAOKE-379.
       → проверка: `grep -A2 'schedule:' .forgejo/workflows/lint.yml` → cron `0 4 * * 1`, и `grep -n 'forgejo.ref' .forgejo/workflows/lint.yml` → только в комментарии, не в `run:`/`with:`
-- [ ] T026 [US1] `.github/workflows/lint.yml` — зеркало T022–T025: тот же состав джобов, те же
+- [X] T026 [US1] `.github/workflows/lint.yml` — зеркало T022–T025: тот же состав джобов, те же
       `if:`/`needs`, та же cron-строка; различаться могут только обёртка (checkout-URL, `concurrency`).
       → проверка: `bash tools/check-ci-workflow-sync.sh; echo rc=$?` → `0`
-- [ ] T027 [US1] `tools/ci-checks.py --summary` — режим агрегата: читает `CI_CHEKS_OUTPUTS` и
+- [X] T027 [US1] `tools/ci-checks.py --summary` — режим агрегата: читает `CI_CHEKS_OUTPUTS` и
       `CI_CHEKS_RESULTS`, применяет правила S-1…S-7 (блокирующий набор = записи с `gate: true`;
       `changes` падает → красный независимо от `gate`; `ci-summary` сам не оценивается), печатает
       перечень применимых проверок с результатами и перечень неприменимых с указанием зон (след
       пропуска, FR-017), выводит `SUMMARY: green|red`; перечень неприменимых дублируется в
       **step output** джоба (`skipped_checks`) — носители следа по D-18.
       → проверка: четыре сценария из `quickstart.md` §5 → rc `0`, `1`, `1`, `1`
-- [ ] T028 [US1] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — вынести шаг
+- [X] T028 [US1] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — вынести шаг
       `bash tools/check-direct-commits.sh` (+ его `--self-test`) из джоба `knowledge-structure` в
       отдельный джоб `direct-commits-guard` с `needs: changes`, тем же условием запуска и
       `mode: always` в манифесте (FR-008: проверка истории git не пропускается никогда).
       → проверка: `grep -c 'check-direct-commits.sh' .forgejo/workflows/lint.yml` → шаг встречается только в джобе `direct-commits-guard`
-- [ ] T029 [US1] Согласованность `config/ci/checks.yml` и обеих копий workflow — гейт должен быть
+- [X] T029 [US1] Согласованность `config/ci/checks.yml` и обеих копий workflow — гейт должен быть
       зелёным на реальном дереве (после T023, T024, T026, T028, **T060**): **35 записей ↔ 35
       job-id** (32 проверки контура + 3 инфраструктурных: `changes`, `ci-summary`,
       `ci-checks-manifest-guard`) — инвариант тотальный, без исключений.
@@ -459,7 +459,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 Идентификаторы продолжают сквозную нумерацию; задачи выполняются в фазах, указанных в описании.
 
-- [ ] T060 [US4] **Фаза 4 (US1)** — джоб `ci-checks-manifest-guard` в
+- [X] T060 [US4] **Фаза 4 (US1)** — джоб `ci-checks-manifest-guard` в
       `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml`: регистрация guard'а в CI по
       R-47 п. 3 («скрипт + **джоб** + pre-commit + `--self-test`»). Шаги:
       `bash tools/check-ci-checks-manifest.sh`, `bash tools/check-ci-checks-manifest.sh --self-test`,

@@ -238,6 +238,17 @@ for cid, raw in sorted(records.items()):
             fail(1, f"M-9: '{cid}': class=infrastructure ⇒ mode: always")
         if paths:
             fail(1, f"M-9: '{cid}': class=infrastructure ⇒ без зон")
+    watch = raw.get("watch") or []
+    if watch:
+        # M-13: watch объявляет, ЧТО служебная запись инспектирует. Запрещён
+        # catch-all: иначе объединение зон покрывает всё и неизвестных путей
+        # не остаётся никогда (FR-004 обнуляется одной строкой в манифесте).
+        for pattern in watch:
+            if pattern.strip() in ("**", "*", "/*", "**/*", "**/**"):
+                fail(1, f"M-13: '{cid}': watch не допускает catch-all паттерна {pattern!r}")
+        if not (raw.get("watch_note") or "").strip():
+            fail(1, f"M-13: '{cid}': для watch обязателен watch_note "
+                    "(что именно служебная запись инспектирует)")
     if raw.get("cost") == "heavy":
         heavy_ids.add(cid)
 

@@ -55,6 +55,7 @@ checks:
     watch:
       - config/ci/checks.yml
       - tools/ci-checks.py
+    watch_note: "читает манифест config/ci/checks.yml и реализацию правила tools/ci-checks.py"
     evidence: "tools/ci-checks.py --emit-outputs"
 
   # === Инфраструктура сборки и runtime ===
@@ -96,8 +97,11 @@ checks:
     gate: true
     cost: light
     mode: paths
+    # Область prod-single-host обслуживают проверки allow-list'а и заголовков
+    # безопасности; читают они не все файлы области (nginx.conf и два nginx-файла),
+    # но область подчинена им.
     paths:
-      - deploy/prod-single-host/nginx.conf
+      - deploy/prod-single-host/**
       - deploy/admin-ip-allowlist.sh
       - deploy/admin-ip-allowlist.service
       - deploy/admin-ip-allowlist.timer
@@ -120,13 +124,11 @@ checks:
     gate: true
     cost: light
     mode: paths
-    # Зона — deploy-контур целиком: BR-630/BR-631 — инварианты контура, и
-    # полный обход контура делает deploy-guard (tools/check-deploy-hardening.sh:195,
-    # git grep по 'deploy/*'), CI-видимая часть которого — memory-guardrails
-    # (tools/check-memory-guardrails.sh:112-113).
     paths:
-      - deploy/**
-    evidence: "tools/check-memory-guardrails.sh:112-113; tools/check-deploy-hardening.sh:195; lint.yml:155"
+      - deploy/docker-compose-app.yml
+      - deploy/heap-dump-retention.sh
+      - tools/check-memory-guardrails.sh
+    evidence: "tools/check-memory-guardrails.sh:112-113; lint.yml:155"
 
   - id: build-config-guard
     title: build config guard (BR-499/527/528/529/530)
@@ -276,6 +278,7 @@ checks:
     # Guard обходит ВСЕ tracked-файлы *.sh / *.bash репозитория.
     paths:
       - "**/*.sh"
+      - deploy/web-server-deploy/**
       - tools/check-secret-in-argv.sh
       - tools/check-secret-in-argv.baseline
     evidence: "tools/check-secret-in-argv.sh:141; lint.yml:528,532"
@@ -407,7 +410,7 @@ checks:
       - specs/**/spec.md
       - deploy/karaoke-db/*.sql
       - deploy/recordhash_*.sql
-      - deploy/new_comp/**/karaoke_clear_dump.sql
+      - deploy/new_comp/**
       - karaoke-app/**/model/*.kt
       - karaoke-app/**/KaraokeProcess.kt
       - karaoke-app/**/docs/*.sql
@@ -496,8 +499,7 @@ checks:
     cost: light
     mode: paths
     paths:
-      - deploy/prod-single-host/80to8897
-      - deploy/prod-single-host/nginx_karaoke-public.conf
+      - deploy/prod-single-host/**
       - karaoke-public/nginx_karaoke-public.conf
       - tools/check-security-headers.py
     evidence: "tools/check-security-headers.py:50-68; lint.yml:990"
@@ -517,6 +519,7 @@ checks:
       - tools/fixtures/ci-checks-manifest/**
       - .forgejo/workflows/lint.yml
       - .github/workflows/lint.yml
+    watch_note: "читает манифест, обе копии workflow, реализацию правила и свои фикстуры"
     evidence: "tools/check-ci-checks-manifest.sh:1"
 
   - id: ci-summary
@@ -528,4 +531,5 @@ checks:
     watch:
       - config/ci/checks.yml
       - tools/ci-checks.py
+    watch_note: "читает манифест и реализацию правила (агрегирует результаты джобов)"
     evidence: "tools/ci-checks.py --summary"

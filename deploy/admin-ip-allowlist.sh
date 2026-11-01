@@ -399,11 +399,40 @@ PY
 }
 
 # ------------------------------------------------- применение и откат ----
+# SSH_ATTEMPTS / SSH_RETRY_PAUSE — повторы соединения с прод-хостом.
+# KARAOKE-382 (2026-11-01): сеть админ-машины нестабильна (пул провайдера
+# плавает, VPN переподключается) — SSH к проду то устанавливался, то обрывался
+# на connect, и одна неудачная попытка выглядела как «прод недоступен по SSH»:
+# правка allow-list не применялась, а канал 5433/9000 оставался закрытым.
+# Несколько попыток с паузой отделяют кратковременный сетевой сбой от реальной
+# недоступности. Прод-фильтрации SSH нет (проверено 2026-11-01: iptables
+# INPUT ACCEPT, ufw/fail2ban отсутствуют), поэтому повтор здесь — достаточная
+# мера.
+SSH_ATTEMPTS="${ALLOWLIST_SSH_ATTEMPTS:-3}"
+SSH_RETRY_PAUSE="${ALLOWLIST_SSH_RETRY_PAUSE:-5}"
+
+# run_ssh <команда> — выполнить команду на прод-хосте с повторами при сбое.
+# Повтор безопасен: чтение конфига идемпотентно, а правка allow-list сводится
+# к одной и той же строке `allow <ip>;`.
+run_ssh() {
+  local attempt=1 rc=0
+  while [ "${attempt}" -le "${SSH_ATTEMPTS}" ]; do
+    ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*"
+    rc=$?
+    [ "${rc}" -eq 0 ] && return 0
+    attempt=$((attempt + 1))
+    [ "${attempt}" -le "${SSH_ATTEMPTS}" ] && sleep "${SSH_RETRY_PAUSE}"
+    [ "${attempt}" -le "${SSH_ATTEMPTS}" ] || break
+    log_event "ssh_retry" "attempt=${attempt}" "rc=${rc}" "host=${PROD_HOST}"
+  done
+  return "${rc}"
+}
+
 # run_target local|remote <команда> — выполнить команду на цели.
 run_target() {
   local mode="$1"; shift
   if [ "${mode}" = "remote" ]; then
-    ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*"
+    run_ssh "$*"
   else
     bash -c "$*"
   fi
@@ -844,7 +873,7 @@ run_cycle() {
   # FR-005: адрес уже в allow-list — никаких действий, включая reload.
   local prod_conf
   prod_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
-  if ! ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
+  if ! run_ssh "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
     rm -f "${prod_conf}"
     log_event "skip" "reason=prod_unreachable_by_ssh"
     send_telegram "Karaoke allow-list: прод-хост недоступен по SSH — правка не применялась, состояние не менялось." || true
@@ -927,7 +956,7 @@ run_diagnose() {
   fi
   local prod_conf
   prod_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
-  if ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
+  if run_ssh "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
     log_event "diagnose" "prod_conf_read=true" "blocks=$(grep -cE '^[[:space:]]*allow[[:space:]]' "${prod_conf}")"
     check_mount_point remote "${PROD_CONF}"
   else
@@ -1347,6 +1376,41 @@ STUB
     echo "   OK: цикл завершился отказом (код ${EXIT_DECLINED}), адрес не определялся"
   else
     echo "   FAIL: код=${cycle_rc}, маркер определения адреса: $([ -f "${marker}" ] && echo есть || echo нет)"; failed=1
+  fi
+
+  echo "== Сценарий 14: повтор SSH при кратковременном сбое сети (KARAOKE-382)"
+  # Регрессия: сеть админ-машины нестабильна (пул провайдера, VPN) — SSH к проду
+  # то поднимался, то обрывался на connect. Одна неудачная попытка выглядела как
+  # «прод недоступен по SSH»: правка allow-list не применялась, а канал
+  # 5433/9000 оставался закрытым. run_ssh повторяет попытку, пока не исчерпает
+  # SSH_ATTEMPTS, и возвращает результат успешной попытки.
+  local ssh_calls_log="${workdir}/ssh-calls.log"
+  : >"${ssh_calls_log}"
+  ssh() {
+    printf 'call\n' >>"${ssh_calls_log}"
+    if [ "$(wc -l <"${ssh_calls_log}" | tr -d ' ')" -lt 2 ]; then return 255; fi
+    printf 'ok'
+    return 0
+  }
+  local ssh_attempts_backup="${SSH_ATTEMPTS}" ssh_pause_backup="${SSH_RETRY_PAUSE}"
+  SSH_ATTEMPTS=3
+  SSH_RETRY_PAUSE=0
+  local retry_out=""
+  retry_out="$(run_ssh 'true' 2>/dev/null)"
+  SSH_ATTEMPTS="${ssh_attempts_backup}"
+  SSH_RETRY_PAUSE="${ssh_pause_backup}"
+  unset -f ssh
+  local ssh_calls
+  ssh_calls="$(wc -l <"${ssh_calls_log}" | tr -d ' ')"
+  if [ "${ssh_calls}" -ge 2 ]; then
+    echo "   OK: после сбоя SSH сделан повтор (попыток: ${ssh_calls})"
+  else
+    echo "   FAIL: повторов SSH не было (попыток: ${ssh_calls})"; failed=1
+  fi
+  if [ "${retry_out}" = "ok" ]; then
+    echo "   OK: успешная попытка вернула результат"
+  else
+    echo "   FAIL: успешная попытка не вернула результат ('${retry_out}')"; failed=1
   fi
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"

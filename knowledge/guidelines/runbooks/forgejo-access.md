@@ -72,9 +72,9 @@ curl -s -H "Authorization: token $FJ_TOKEN" \
 
 ## Перезапуск CI-прогона
 
-Отдельного API «перезапустить только упавшие джобы» в Forgejo 15 нет: в
-`/swagger.v1.json` из rerun/dispatch-эндпоинтов есть ровно один, а кнопка
-«Re-run failed jobs» в веб-интерфейсе — веб-маршрут без REST-эндпоинта.
+Отдельного API «перезапустить только упавшие джобы» нет (проверено и на 15.0.10,
+и на 17.0.1): в `/swagger.v1.json` из rerun/dispatch-эндпоинтов есть ровно один,
+а кнопка «Re-run failed jobs» в веб-интерфейсе — веб-маршрут без REST-эндпоинта.
 
 Рабочий путь — диспетчеризация workflow: в `.forgejo/workflows/lint.yml`
 объявлен триггер `workflow_dispatch`, поэтому прогон запускается без пуша:
@@ -184,6 +184,88 @@ bash tools/merge-pr.sh <N> --delete-branch    # удалить remote-ветку
 Tier-1 «Hard Gate — Git — CI-gate для master»). Токены он читает из
 `forgejo.env` и передаёт в curl через `--config -`, чтобы секрет не попадал в
 `ps -eo args`.
+
+## Логи джобов и прогонов (с 2026-11-01, Forgejo 17.0.1)
+
+В версии 15.0.10 логи заданий через API были недоступны (`404`), и причину
+красного джоба приходилось восстанавливать по косвенным признакам. В 17.0.1
+появились эндпоинты:
+
+| Эндпоинт | Ответ |
+|---|---|
+| `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` | `text/plain` — лог одного задания |
+| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs` | ZIP со всеми логами прогона (файлы `{джоб}-{id}-attempt-1.log`) |
+| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` | список джобов прогона с их id |
+
+Токен — через stdin-конфиг curl (иначе он виден в `ps -eo args`):
+
+```bash
+. /home/nsa/.config/karaoke/forgejo.env
+
+# список джобов прогона (run_id — из GET /actions/runs)
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - \
+      "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/runs/<run_id>/jobs"
+
+# лог одного джоба — text/plain
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - \
+      "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/jobs/<job_id>/logs"
+
+# все логи прогона — ZIP (распаковать и читать {джоб}-{id}-attempt-1.log)
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - -o run-logs.zip \
+      "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/runs/<run_id>/logs"
+```
+
+### Как прочитать лог СТАРОГО прогона
+
+Логи живут в хранилище Forgejo (`data/actions_log/<owner>/<repo>/<run-id>/<job-id>.log.zst`,
+сжатие zstd) и переживают обновление платформы, но не доступны через API для
+прогонов, чьи файлы уже вытеснены. Тогда — из архива бэкапа:
+
+```bash
+# архивы бэкапов на сервере: /home/sm/backup-out/forgejo-YYYY-MM-DD.tar.gz
+ssh -p 7487 sm@185.71.198.17 \
+  'tar -tzf /home/sm/backup-out/forgejo-YYYY-MM-DD.tar.gz | grep actions_log | head'
+# вытащить нужный каталог прогона и распаковать логи (zstd)
+```
+
+Полный путь к архивам и что доступно агенту `sm` без root —
+`knowledge/system/infra/external-infra.md`.
+
+## Обновление Forgejo
+
+Платформа обновляет владелец; агент помогает с проверками. Процедура и откат —
+`knowledge/adr/local-0011-forgejo-git-hosting-and-ci.md`; здесь чек-лист.
+
+**Перед обновлением**
+
+1. Сверить текущую версию: `version` в ответе API (`17.0.1+gitea-1.22.0`).
+2. **Бэкап** (обязателен: откат возможен только с `forgejo restore` из дампа) —
+   дождаться таймера `infra-backup.timer` (03:30 UTC) или снять `forgejo dump`
+   вручную; убедиться, что архив создан и не пуст.
+3. Проверить, что образ прежней версии есть в кэше — без него откат невозможен.
+
+**Обновление**
+
+4. `forgejo manager flush-queues` — остановить обработку очередей.
+5. Сменить тег образа в `/srv/forgejo/docker-compose.yml`.
+6. `docker compose up -d` в каталоге стека.
+7. `forgejo doctor check --all` — все проверки OK (на 17.0.1 — 27 проверок).
+
+**Смоук после обновления**
+
+8. Открыть `https://git.sm-karaoke.ru`: список PR и статус-чеки на месте.
+9. Убедиться, что раннер подключился и выполняет задания (на 17.0.1 act_runner
+   v13.0.0 подключается сразу).
+10. Проверить, что API логов отдаёт `text/plain` (а не 404).
+
+**Откат**
+
+11. Вернуть прежний тег образа в compose и поднять стек заново.
+12. **Обязательно** `forgejo restore` из дампа: версия 15 не стартует с базой,
+    обновлённой до 17.
 
 ## Почему так
 

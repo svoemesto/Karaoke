@@ -32,6 +32,10 @@
 - LXD 6.10 LTS, пул `dir` на SSD, `lxdbr0` `10.77.0.0/24`, контейнер `infra`
   (16 vCPU, 32 ГБ, `security.nesting=true`).
 - Docker внутри контейнера; Plane, Harbor и Forgejo — compose-стеки.
+- **Стек Forgejo** — `/srv/forgejo/docker-compose.yml`, данные —
+  `/srv/forgejo/data` (SQLite), порты `127.0.0.1:3000` и `2222`, домен
+  `git.sm-karaoke.ru`. Версия платформы и процедура обновления —
+  `knowledge/adr/local-0011-forgejo-git-hosting-and-ci.md`.
 - Толстые данные — HDD `/srv/infra` (bind-mount с `/mnt/backup/infra`):
   блобы Harbor, вложения Plane. БД — SSD.
 - Резервный канал доступа к 443 — внутренний адрес `10.77.0.1` (host-nginx);
@@ -39,14 +43,33 @@
 
 ### Бэкапы
 
-Ежедневно 03:30 UTC (systemd-таймер): `forgejo dump`, `pg_dump` Plane и Harbor,
-конфиги, вложения Plane, host-nginx и сертификаты. Хранение — 7 дней на сервере,
-14 дней на `nsa-i9` (забор в 07:30 МСК по cron). Дампы и конфиги — права `600`.
+Ежедневно 03:30 UTC (systemd-таймер `infra-backup.timer`): `forgejo dump`,
+`pg_dump` Plane и Harbor, конфиги, вложения Plane, host-nginx и сертификаты.
+Хранение — 7 дней на сервере, 14 дней на `nsa-i9` (забор в 07:30 МСК по cron).
+Дампы и конфиги — права `600`.
+
+Архивы бэкапов Forgejo — `/home/sm/backup-out/forgejo-YYYY-MM-DD.tar.gz`
+(~1 ГБ на архив). Оттуда же берутся логи старых прогонов CI: в дампе лежит
+`data/actions_log/<owner>/<repo>/<run-id>/<job-id>.log.zst`.
 
 ### Мониторинг
 
 Каждые 6 часов: срок сертификата, заполнение дисков, статус контейнеров,
 свежесть бэкапа. Пишет в journal; внешних оповещений нет (решение владельца).
+
+## Что доступно агенту `sm` без root, а что требует sudo
+
+- **Без sudo**: каталог архивов бэкапов `/home/sm/backup-out/` (дампы Forgejo,
+  Plane, Harbor; логи старых прогонов CI внутри дампа Forgejo) и чтение compose
+  конфигурации стека `/srv/forgejo/docker-compose.yml`.
+- **С `sudo`** (то есть внутри контейнера через `lxc exec infra`): управление
+  стеком (`docker compose up -d`), `forgejo doctor check --all`,
+  `forgejo manager flush-queues`, `forgejo dump` по расписанию, таймеры
+  `infra-backup.timer`.
+- **Host key** SSH-сервера сверяет владелец; молча отключать проверку нельзя.
+  В песочнице агента `~/.ssh/known_hosts` доступен только для чтения, поэтому
+  `ssh` пишет `update_known_hosts: Read-only file system` — это безобидное
+  сообщение, соединение при этом устанавливается.
 
 ## Доступ агентов к Forgejo
 

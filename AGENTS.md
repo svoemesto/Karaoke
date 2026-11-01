@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.10.0 | **Last updated**: 2026-11-01 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.10.1 | **Last updated**: 2026-11-01 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -210,9 +210,9 @@ feature-ветку + PR + CI. Merge — **только** через `tools/merge
 
 Проверки в CI запускаются **выборочно** — по зонам интереса (R-49): правило
 живёт в `config/ci/checks.yml`, реализация — `tools/ci-checks.py`. Пропущенная
-проверка — **не** «зелёная», а неприменимая; решение о merge принимает агрегат
-`ci-summary`, а не отдельные статус-чеки джобов (Forgejo не умеет статус
-`skipped` — джоб отдаётся как `success` с пометкой «Has been skipped»).
+проверка — **не** «зелёная», а неприменимая; с 2026-11-01 (KARAOKE-379) Forgejo 17
+различает состояние `skipped` — но решение о merge принимает агрегат
+`ci-summary`, а не отдельные статус-чеки джобов.
 
 **Protocol**:
 ```bash
@@ -364,6 +364,11 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.10.1** (2026-11-01, KARAOKE-379, обновление платформы): в Tier-1 «Hard Gate —
+  Git — CI-gate для master» исправлено устаревшее утверждение «Forgejo не умеет
+  статус `skipped`»: с 2026-11-01 (платформа обновлена до Forgejo 17) состояние
+  `skipped` различается, но решение о merge по-прежнему принимает агрегат
+  `ci-summary`, а не отдельные статус-чеки джобов. Tier-2 не тронут.
 - **3.10.0** (2026-11-01, спека 692, ADR `local-0017`): в Tier-1 «Hard Gate — Git —
   CI-gate для master» — merge-гейт принимает решение по **агрегату `ci-summary`**
   (пропущенная проверка не «зелёная», а неприменимая; Forgejo не умеет статус

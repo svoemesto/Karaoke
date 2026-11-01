@@ -26,6 +26,7 @@ python3 tools/ci-checks.py [--manifest PATH] [--workflow PATH] [--base REF] [--j
 | `--workflow PATH` | `.forgejo/workflows/lint.yml` | источник `run:`-команд (локальный прогон) |
 | `--base REF` | `origin/master` (fallback `master`) | база диффа |
 | `--json` | выкл. | машинно-читаемый вывод вместо текстового |
+| `--list` | выкл. | в режиме `--local`: напечатать список применимых проверок и выйти **без** исполнения команд |
 
 Режимы (взаимоисключающие, ровно один):
 

@@ -6035,7 +6035,8 @@ class Song(
     //      песни при первом же saveToDb() после развёртывания нового кода.
     //      Если идём по этому пути на старой песне — это нормальная инициализация: для уже-опубликованных
     //      в эфир (idTelegramDemo/idVk заполнены) флаг не выставляется вообще — для них премиум-лишний.
-    private fun markNewsAvailableIfReady() {
+    private fun markNewsAvailableIfReady(): Boolean {
+        var announcedJustNow = false
         if (!newsAvailableAnnounced &&
             idStatus == 6L &&
             stemAccompanimentReady &&
@@ -6045,6 +6046,7 @@ class Song(
             sourceMarkersList.isNotEmpty()
         ) {
             newsAvailableAnnounced = true
+            announcedJustNow = true
         }
         // Блок 2 — выставление newsPremiumPublishPending. Идемпотентен: пока флаг уже true или премиум
         // уже завершён (COMPLETE) или провален окончательно (FAILED) — не переустанавливаем.
@@ -6064,6 +6066,51 @@ class Song(
             premiumAttemptCount = 0
             premiumAutoPublishLastError = ""
         }
+        return announcedJustNow
+    }
+
+    /**
+     * KARAOKE-361: создаёт новость «в коллекции» В АДМИНКЕ (роль процесса —
+     * [KaraokeRuntimeRole.isAdmin]) в момент, когда флаг [newsAvailableAnnounced] перешёл
+     * false→true.
+     *
+     * Источник строки — [News.collectionAnnouncementSource]: в админке это `admin`, а такой
+     * источник участвует в hash-diff синхронизации `news` (см. [News.hashSyncSourceFilter]) —
+     * поэтому новость доезжает на прод штатной синхронизацией, если включена доставка новостей
+     * (`sync_news_push_insert_allowed`; по умолчанию выключена).
+     *
+     * Прод-путь ([SongReleaseAnnouncementService.detectAndAnnounceAvailability]) остаётся
+     * страховкой: он идемпотентен (гард `News.existsAnnouncement`) и дублей не создаёт.
+     *
+     * Ошибки логируются и не пробрасываются: сбой новости не должен ломать сохранение песни (тот
+     * же принцип, что в [SongReleaseAnnouncementService.detectAndAnnounceAvailability]).
+     */
+    private fun announceCollectionNewsIfJustAnnounced() {
+        if (!KaraokeRuntimeRole.isAdmin) return
+        if (id == 0L) return
+        try {
+            val created =
+                SongReleaseAnnouncementService.detectAndAnnounceAvailability(
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    songId = id,
+                    wasAvailableBefore = false,
+                    // KARAOKE-361: источник выбирается по роли процесса — в админке `admin`
+                    // (участвует в hash-diff), на проде `auto` (вне hash-diff).
+                    source = News.collectionAnnouncementSource(KaraokeRuntimeRole.isAdmin),
+                )
+            if (created) {
+                println(
+                    "[${Timestamp.from(Instant.now())}] news.created: новость «в коллекции» " +
+                        "для songId=$id создана в админке (KARAOKE-361)",
+                )
+            }
+        } catch (e: Exception) {
+            println(
+                "[${Timestamp.from(Instant.now())}] news.create_failed: songId=$id — ${e.message}",
+            )
+        }
     }
 
     /**
@@ -6077,6 +6124,7 @@ class Song(
      * @return true — данные в БД актуальны; false — сохранить не удалось (вызывающий обязан
      *   не считать результат применённым; [saveToDbLocked] делает rollback).
      */
+
     fun saveToDb(): Boolean {
         if (readonly) return false
         // BR-103 (аудит #336, пакет PKG-S3-22): значения полей голосов ДО нормализации —
@@ -6094,7 +6142,7 @@ class Song(
             if (fields[SongField.NAME_CENSORED].isNullOrEmpty() && songName.isNotEmpty()) {
                 fields[SongField.NAME_CENSORED] = songName.censored(database)
             }
-            markNewsAvailableIfReady()
+            val justAnnounced = markNewsAvailableIfReady()
             // specs/544 (FR-006): sidecar-файл состояния больше не пишется.
             // BR-107: результат INSERT больше не игнорируется — null означает «строка не вставлена».
             val created =
@@ -6110,9 +6158,14 @@ class Song(
                 )
                 return false
             }
+            // KARAOKE-361: песня только что стала «доступной для новости» (флаг false→true) — в
+            // админке создаём новость «в коллекции» (источник `admin`, участвует в hash-diff).
+            if (justAnnounced) {
+                announceCollectionNewsIfJustAnnounced()
+            }
             return true
         } else {
-            markNewsAvailableIfReady()
+            val justAnnounced = markNewsAvailableIfReady()
             val savedSong =
                 loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 
@@ -6471,6 +6524,11 @@ class Song(
                 if (listCreate.size + listUpdate.size + listDelete.size != 0) {
                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
                 }
+            }
+            // KARAOKE-361: флаг «доступна для новости» перешёл false→true в этом сохранении —
+            // в админке создаём новость «в коллекции» (источник `admin`, участвует в hash-diff).
+            if (justAnnounced) {
+                announceCollectionNewsIfJustAnnounced()
             }
             return true
         }

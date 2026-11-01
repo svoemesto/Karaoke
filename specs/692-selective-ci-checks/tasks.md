@@ -185,7 +185,13 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 - [ ] T025 [US1] `.forgejo/workflows/lint.yml` — триггер `schedule:` с `cron: '0 4 * * 1'`
       (еженедельно, понедельник 04:00) и отдельная `concurrency`-группа для расписания с
       `cancel-in-progress: false` (FR-005, страховка не отменяется обычным прогоном).
-      → проверка: `grep -A2 'schedule:' .forgejo/workflows/lint.yml` → cron `0 4 * * 1`
+      **Не полагаться на трактовку `ref` в scheduled-контексте:** явный `ref:` в checkout для
+      расписания не задавать (живой сервер — v15.0.10; для полного набора ref на применимость не
+      влияет — там `all=true`). В комментарии к триггеру зафиксировать требование Forgejo v16
+      («use proper `${{ forgejo.ref }}` in scheduled workflows», release notes 16.0.0, PR 13081) как
+      follow-up к KARAOKE-379; поле `timezone:` сейчас **не добавлять** (на v15 может не приниматься
+      валидатором workflow) — тоже follow-up к KARAOKE-379.
+      → проверка: `grep -A2 'schedule:' .forgejo/workflows/lint.yml` → cron `0 4 * * 1`, и `grep -n 'forgejo.ref' .forgejo/workflows/lint.yml` → только в комментарии, не в `run:`/`with:`
 - [ ] T026 [US1] `.github/workflows/lint.yml` — зеркало T022–T025: тот же состав джобов, те же
       `if:`/`needs`, та же cron-строка; различаться могут только обёртка (checkout-URL, `concurrency`).
       → проверка: `bash tools/check-ci-workflow-sync.sh; echo rc=$?` → `0`
@@ -394,10 +400,18 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       **не** выполнять (только по слову владельца, через `bash tools/merge-pr.sh 41`).
       → проверка: `git ls-remote origin refs/heads/692-selective-ci-checks` → SHA совпадает с
       локальным HEAD; статус прогона — зелёный
-      → проверка: `git ls-remote origin refs/heads/692-selective-ci-checks` → SHA совпадает с локальным HEAD; статус прогона — зелёный
 - [ ] T058 Подготовить `specs/692-selective-ci-checks/report.md` — отчёт для Plane-шага
       `add-comment` (шаги `mark-review`/`close-issue` выполняются после merge — не в этой сессии).
       → проверка: `test -f specs/692-selective-ci-checks/report.md` → файл есть
+- [ ] T059 **Follow-up (не входит в этот PR)** — после обновления Forgejo до v16.0.7
+      (задача KARAOKE-379): проверить `ref` в scheduled-прогоне и при необходимости перевести
+      checkout/выражения на `${{ forgejo.ref }}` (release notes Forgejo 16.0.0, PR 13081:
+      «use proper `${{ forgejo.ref }}` in scheduled workflows»), а также добавить
+      `timezone: 'Europe/Moscow'` в cron-триггер (на v15 поле может не приниматься валидатором,
+      поэтому в этом PR его нет). Задачу завести в Plane рядом с KARAOKE-379 со ссылкой на эту
+      строку `tasks.md`.
+      → проверка: `grep -n 'forgejo.ref\|timezone' .forgejo/workflows/lint.yml` → после обновления
+      присутствуют; до обновления — только в комментарии
 
 ---
 
@@ -500,3 +514,9 @@ Task: "T015 [P] [US4] tools/fixtures/ci-checks-manifest/synced/"
   при коммитах, задевающих `knowledge/`, используется точечный
   `SKIP=check-doc-references git commit …` (не `--no-verify`) — по решению лида, с записью каждого
   пропуска в отчёт шага.
+- **Промежуточное «красное» состояние гейта согласованности — ожидаемо, не регресс.** Между
+  фазой 3 (гейт создан) и задачей T029 (workflow приведён в соответствие) гейт
+  `tools/check-ci-checks-manifest.sh` на реальном дереве возвращает ненулевой код: в копиях
+  workflow ещё 31 job-id, а в манифесте 32 записи (`direct-commits-guard` появится в T028).
+  Красный гейт в этом промежутке — следствие порядка фаз, а не дефект; после T029 гейт зелёный.
+  На фикстурах (`tools/fixtures/ci-checks-manifest/`) гейт зелёный уже на фазе 3.

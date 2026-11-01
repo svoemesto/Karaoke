@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.9.0 | **Last updated**: 2026-10-31 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.10.0 | **Last updated**: 2026-11-01 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -204,9 +204,15 @@ host-плагином `agent-command-guard`; решение и текст ком
 
 **Rule**: НИКОГДА `git commit` / `git push` напрямую в `master`. ТОЛЬКО через
 feature-ветку + PR + CI. Merge — **только** через `tools/merge-pr.sh`: скрипт
-требует зелёные статус-чеки head-коммита (в branch protection статус-чеки не
-входят — раннер живёт на `nsa-i9`, и его остановка не должна блокировать работу),
+требует зелёный агрегат `ci-summary` head-коммита (в branch protection статус-чеки
+не входят — раннер живёт на `nsa-i9`, и его остановка не должна блокировать работу),
 одобряет PR служебным аккаунтом `karaoke-reviewer` и мержит.
+
+Проверки в CI запускаются **выборочно** — по зонам интереса (R-49): правило
+живёт в `config/ci/checks.yml`, реализация — `tools/ci-checks.py`. Пропущенная
+проверка — **не** «зелёная», а неприменимая; решение о merge принимает агрегат
+`ci-summary`, а не отдельные статус-чеки джобов (Forgejo не умеет статус
+`skipped` — джоб отдаётся как `success` с пометкой «Has been skipped»).
 
 **Protocol**:
 ```bash
@@ -304,6 +310,7 @@ Plane; правка `agents-team-srv` под задачи Караоке; спе
 
 | Rule | Source | Tool |
 |---|---|---|
+| R-49 Зона интереса проверки (выборочный запуск CI) | `architecture-conventions.md` | `config/ci/checks.yml` + `tools/ci-checks.py`, гейт `check-ci-checks-manifest.sh` |
 | R-04 nginx:stable | `architecture-conventions.md` | `check-docker-image-tags.sh` |
 | R-05 node:22-alpine | `architecture-conventions.md` | `check-docker-image-tags.sh` |
 | R-07 JPA запрет | `architecture-conventions.md` | `check-no-jpa-imports.sh` |
@@ -357,6 +364,11 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.10.0** (2026-11-01, спека 692, ADR `local-0017`): в Tier-1 «Hard Gate — Git —
+  CI-gate для master» — merge-гейт принимает решение по **агрегату `ci-summary`**
+  (пропущенная проверка не «зелёная», а неприменимая; Forgejo не умеет статус
+  `skipped`), и добавлено правило выборочного запуска CI по зонам интереса (R-49);
+  в Tier-2 «Каталог guards» добавлена строка R-49.
 - **3.9.0** (2026-10-31, KARAOKE-339, ADR `local-0016`): в Tier-1 появился Hard Gate
   «Перехват команд AI-агента и след нарушений» — команды проверяются **до**
   выполнения host-плагином `agent-command-guard`, решения пишутся в журнал

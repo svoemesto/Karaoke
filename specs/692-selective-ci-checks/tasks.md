@@ -24,7 +24,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 Фаза 3 (User Story 4, P2) идёт раньше фаз историй P1: гейт согласованности — инфраструктура,
 которая проверяет согласие манифеста и обеих копий workflow, и должна быть готова к моменту, когда
 копии начнут меняться. Между фазами 3 и 4 гейт на реальном дереве честно красный (31 job-id против
-32 записей манифеста) — это ожидаемое промежуточное состояние; «зеленеет» он задачей T029.
+35 записей манифеста) — это ожидаемое промежуточное состояние; «зеленеет» он задачей T029.
 
 **Формат**: `- [ ] [ID] [P?] [Story?] описание с путём файла` + `→ проверка: <команда>`.
 
@@ -38,11 +38,17 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       `groups: {}`, `checks: []`, комментарий-шапка «единственный носитель маппинга „правка →
       проверки“; правка зоны требует ссылки на доказательство (evidence)».
       → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('config/ci/checks.yml')); print(d['version'], d['unknown_paths'])"` → `1 all`
-- [ ] T002 Наполнить `config/ci/checks.yml` **32 записями** по инвентарю зон
-      (`.scratch/wayfinding/ci-path-filters/job-zone-inventory.md`, sha256
-      `67021c40df87462b47c784d306f922ae452dbc3397eea3188c5af4f01b6b1afb`): 31 существующий job-id
-      из `.forgejo/workflows/lint.yml` + `direct-commits-guard` (T028). Для каждой записи — `id`,
-      `title`, `gate`, `cost`, `mode`, `paths`, `evidence` (ссылка вида `lint.yml:270; tools/…:44`).
+- [ ] T002 Наполнить `config/ci/checks.yml` **35 записями** — полный реестр job-id обеих копий
+      workflow (D-19, инвариант «джоб ↔ запись» **тотальный, без исключений**): 31 существующий
+      job-id из `.forgejo/workflows/lint.yml` + `direct-commits-guard` (T028) +
+      `ci-checks-manifest-guard` (T060) + `changes` (T022) + `ci-summary` (T024). Для каждой
+      записи — `id`, `class`, `title`, `gate`, `cost`, `mode`, `paths`, `evidence` (ссылка вида
+      `lint.yml:270; tools/…:44`).
+      **Два класса записей** (contracts/ci-checks-manifest.md §3.1): проверки контура —
+      `class: check` (по умолчанию), 31 существующий job-id + `direct-commits-guard`; служебные
+      джобы — `class: infrastructure`: `changes` (`gate: false`, `cost: info`), `ci-summary`
+      (`gate: false`, `cost: info`), `ci-checks-manifest-guard` (`gate: true`, `cost: light`) — у
+      них `mode: always`, зоны и `evidence` пустые, «мёртвая зона» к ним не применяется.
       Обязательные решения из плана: группа `ssoT` = [`ssot-impact`, `knowledge-structure`];
       `baseline-stats` → `gate: false`, `cost: info`; `direct-commits-guard` → `mode: always`
       (FR-008); `secret-in-argv-guard` → `**/*.sh`, `**/*.bash`;
@@ -51,7 +57,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       **отсутствие** мусора в корне — зона выражает место, где он мог бы появиться; см.
       contracts/ci-checks-manifest.md §4); зоны `docs/**` и «отсутствующих» путей в манифест
       **не входят** (их ловит `unknown_paths: all`).
-      → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('config/ci/checks.yml')); print(len(d['checks']))"` → `32`, и сверка id со списком job-id: `grep -E '^  [a-z0-9-]+:$' .forgejo/workflows/lint.yml | sed -E 's/^  ([a-z0-9-]+):$/\1/' | sort > /tmp/jobs.txt; grep -E '^  - id:' config/ci/checks.yml | sed -E 's/^  - id: //' | sort > /tmp/ids.txt; diff /tmp/jobs.txt /tmp/ids.txt` → расхождение только по `direct-commits-guard` (до T028)
+      → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('config/ci/checks.yml')); print(len(d['checks']))"` → `35`, и сверка id со списком job-id: `grep -E '^  [a-z0-9-]+:$' .forgejo/workflows/lint.yml | sed -E 's/^  ([a-z0-9-]+):$/\1/' | sort > /tmp/jobs.txt; grep -E '^  - id:' config/ci/checks.yml | sed -E 's/^  - id: //' | sort > /tmp/ids.txt; diff /tmp/jobs.txt /tmp/ids.txt` → после T028/T060/T022/T024 расхождений нет
 
 ---
 
@@ -87,6 +93,11 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 - [ ] T009 `tools/ci-checks.py --self-test` — 10 фикстур контракта CLI §6 (T-1…T-10): глоб-совпадения
       и не-совпадения, зона вне изменений, группа `ssoT`, `mode: always`, `unknown_paths: all`,
       неизвестная версия манифеста → rc=2, `--summary` с применимой проверкой без результата → rc=1.
+      **Плюс две фикстуры по критериям успеха** (SC-001, SC-002):
+      (1) правка только в `knowledge/` и в `specs/` → применимы только лёгкие (`docs-lint`,
+      `knowledge-structure`, `ssot-impact` через группу `ssoT`), **тяжёлых — ноль**;
+      (2) правка в `tools/`/`config/`/`deploy/` → тяжёлые продуктовые (`backend-build`,
+      `backend-test`, `frontend-build`, `karaoke-public-e2e`) **неприменимы**.
       → проверка: `python3 tools/ci-checks.py --self-test; echo rc=$?` → `0`
 
 **Checkpoint**: правило реализовано и покрыто фикстурами; можно переходить к гейту и workflow.
@@ -109,15 +120,17 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       через `python3` + PyYAML; недоступные данные (нет git, нет PyYAML, нет файла) → rc=2.
       → проверка: `bash tools/check-ci-checks-manifest.sh --help` → rc=0
 - [ ] T011 [US4] `tools/check-ci-checks-manifest.sh` — проверка 1:1 «джоб ↔ запись манифеста»: джобы
-      извлекаются из обеих копий workflow; служебные джобы `changes` и `ci-summary` из проверки
-      исключены (M-9/M-11); расхождение в любую сторону → rc=1.
+      извлекаются из обеих копий workflow; соответствие **тотальное, без списков исключений**
+      (M-2): расхождение в любую сторону → rc=1.
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/missing-check; echo rc=$?` → ≠0
-- [ ] T012 [US4] `tools/check-ci-checks-manifest.sh` — проверка идентичности `if:`-условий по
-      job-id между двумя копиями (FR-019); расхождение → rc=1.
+- [ ] T012 [US4] `tools/check-ci-checks-manifest.sh` — проверка идентичности `if:`-условий **и**
+      `needs` по job-id между двумя копиями (FR-019: порядок выполнения обязан быть одинаковым и
+      проверяться гейтом; инвариант M-12); расхождение → rc=1.
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/divergent-condition; echo rc=$?` → ≠0
 - [ ] T013 [US4] `tools/check-ci-checks-manifest.sh` — проверка зон: `paths` непустой при
       `mode: paths`; `evidence` непустой; каждый глоб матчит хотя бы один tracked-файл (мёртвая зона
-      → ошибка, FR-013); `mode: always` ⇒ без `paths`.
+      → ошибка, FR-013) — **проверка применяется только к записям с `mode: paths`**;
+      `mode: always` ⇒ без `paths`; `class: infrastructure` ⇒ `mode: always` и без зон (M-9).
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/dead-zone; echo rc=$?` → ≠0
 - [ ] T014 [US4] `tools/check-ci-checks-manifest.sh` — проверка `version`, `unknown_paths`,
       `gate: false` ⇒ `cost: info`, уникальности `id`, членов групп и «проверка — максимум в одной
@@ -172,14 +185,16 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       шаг `id: applicable` с `run: python3 tools/ci-checks.py --manifest config/ci/checks.yml --emit-outputs`,
       блок `outputs:` — `all` + по одному выходу на каждую проверку (имя = `id` с `_`, D-15).
       → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('.forgejo/workflows/lint.yml')); print(sorted(d['jobs']['changes']['outputs'])[:3])"` → ключи с `_`
-- [ ] T023 [US1] `.forgejo/workflows/lint.yml` — для каждого из 32 джобов-проверок добавить
-      `needs: changes` и условие
+- [ ] T023 [US1] `.forgejo/workflows/lint.yml` — для каждой из **32 проверок контура** (31
+      существующая + `direct-commits-guard` из T028) добавить `needs: changes` и условие
       `if: needs.changes.outputs.all == 'true' || needs.changes.outputs.<id_с_underscore> == 'true'`;
-      ровно одно условие на джоб, без исключений.
-      → проверка: `grep -c "needs.changes.outputs" .forgejo/workflows/lint.yml` → 32 (+1 в `ci-summary`)
-- [ ] T024 [US1] `.forgejo/workflows/lint.yml` — джоб `ci-summary`: `needs: [changes, …все проверки]`,
-      `if: always()`, `env: CI_CHEKS_OUTPUTS: ${{ toJSON(needs.changes.outputs) }}` и
-      `CI_CHEKS_RESULTS: ${{ toJSON(needs) }}`, шаг
+      ровно одно условие на проверку, без исключений. Три **инфраструктурных** джоба
+      (`changes`, `ci-summary`, `ci-checks-manifest-guard`) условие не получают: `changes` считает
+      применимость, `ci-summary` агрегирует (`if: always()`), гейт манифеста запускается всегда.
+      → проверка: `grep -c "needs.changes.outputs" .forgejo/workflows/lint.yml` → 32
+- [ ] T024 [US1] `.forgejo/workflows/lint.yml` — джоб `ci-summary`: `needs: [changes, …все проверки,
+      ci-checks-manifest-guard]`, `if: always()`, `env: CI_CHEKS_OUTPUTS: ${{ toJSON(needs.changes.outputs) }}`
+      и `CI_CHEKS_RESULTS: ${{ toJSON(needs) }}`, шаг
       `run: python3 tools/ci-checks.py --manifest config/ci/checks.yml --summary`.
       → проверка: `grep -A6 'ci-summary:' .forgejo/workflows/lint.yml` → блок с `toJSON(needs)`
 - [ ] T025 [US1] `.forgejo/workflows/lint.yml` — триггер `schedule:` с `cron: '0 4 * * 1'`
@@ -196,9 +211,11 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       `if:`/`needs`, та же cron-строка; различаться могут только обёртка (checkout-URL, `concurrency`).
       → проверка: `bash tools/check-ci-workflow-sync.sh; echo rc=$?` → `0`
 - [ ] T027 [US1] `tools/ci-checks.py --summary` — режим агрегата: читает `CI_CHEKS_OUTPUTS` и
-      `CI_CHEKS_RESULTS`, применяет правила S-1…S-6, печатает перечень применимых проверок с
-      результатами и перечень неприменимых с указанием зон (след пропуска, FR-017), выводит
-      `SUMMARY: green|red`.
+      `CI_CHEKS_RESULTS`, применяет правила S-1…S-7 (блокирующий набор = записи с `gate: true`;
+      `changes` падает → красный независимо от `gate`; `ci-summary` сам не оценивается), печатает
+      перечень применимых проверок с результатами и перечень неприменимых с указанием зон (след
+      пропуска, FR-017), выводит `SUMMARY: green|red`; перечень неприменимых дублируется в
+      **step output** джоба (`skipped_checks`) — носители следа по D-18.
       → проверка: четыре сценария из `quickstart.md` §5 → rc `0`, `1`, `1`, `1`
 - [ ] T028 [US1] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — вынести шаг
       `bash tools/check-direct-commits.sh` (+ его `--self-test`) из джоба `knowledge-structure` в
@@ -206,8 +223,9 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       `mode: always` в манифесте (FR-008: проверка истории git не пропускается никогда).
       → проверка: `grep -c 'check-direct-commits.sh' .forgejo/workflows/lint.yml` → шаг встречается только в джобе `direct-commits-guard`
 - [ ] T029 [US1] Согласованность `config/ci/checks.yml` и обеих копий workflow — гейт должен быть
-      зелёным на реальном дереве (после T023, T024, T026, T028): 32 записи ↔ 32 джоба-проверки
-      + 2 служебных (`changes`, `ci-summary`).
+      зелёным на реальном дереве (после T023, T024, T026, T028, **T060**): **35 записей ↔ 35
+      job-id** (32 проверки контура + 3 инфраструктурных: `changes`, `ci-summary`,
+      `ci-checks-manifest-guard`) — инвариант тотальный, без исключений.
       → проверка: `bash tools/check-ci-checks-manifest.sh; echo rc=$?` → `0`
 
 **Checkpoint**: User Story 1 полностью функционален — прогон различает применимые и неприменимые
@@ -268,22 +286,34 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       агрегированному сигналу: статус-чек контекста `ci-summary` со статусом `success`; статус-чеки
       отдельных проверок в решении о merge не участвуют (FR-010, D-05); отсутствие сигнала → отказ
       «прогон не отработал», а не merge.
+      **Правило выбора контекста** (Forgejo формирует контекст как `Lint / <имя джоба> (<событие>)`,
+      поэтому на один коммит приходится до двух контекстов `ci-summary`: от push ветки и от PR):
+      гейт собирает **все** контексты, содержащие `ci-summary`; **ни одного такого контекста →
+      отказ** («прогон не отработал»); **любой из них не `success` → отказ** с указанием имени
+      красного контекста. Приоритета между `(pull_request)` и `(push)` нет — это ослабило бы гейт
+      по сравнению с сегодняшним требованием `success` по всем статус-чекам коммита.
       → проверка: `bash tools/merge-pr.sh 41 --dry-run` → выводит состояние сигнала `ci-summary`
-- [ ] T036 [US3] `tools/merge-pr.sh` — пагинация выборки статусов: запрос с `?limit=100` + сверка
-      заголовка `X-Total-Count` с числом полученных контекстов; расхождение → отказ (KARAOKE-377:
-      без `limit` API отдаёт 30 контекстов из 33).
-      → проверка: фикстура из T039 + `grep -n 'X-Total-Count' tools/merge-pr.sh`
+- [ ] T036 [US3] `tools/merge-pr.sh` — пагинация выборки статусов: **постраничный** сбор — цикл по
+      `page` (с `limit`), пока не собрано `X-Total-Count` контекстов; сверка числа полученных с
+      заголовком `X-Total-Count`; расхождение → отказ (KARAOKE-377: без `limit` API отдаёт 30
+      контекстов из 33, а при росте числа контекстов одного запроса с `limit=100` уже не хватит).
+      → проверка: фикстура из T039 + `grep -n 'X-Total-Count' tools/merge-pr.sh` → виден цикл по `page`
 - [ ] T037 [US3] `tools/merge-pr.sh` — `workflow_dispatch` не создаёт статус-чеков → подсказка
       «перезапусти прогон» заменена на «ручной перезапуск прогон зелёным не делает; нужен новый
       push/PR» (KARAOKE-378).
       → проверка: `grep -n 'workflow_dispatch' tools/merge-pr.sh` → в тексте подсказки
-- [ ] T038 [US3] `tools/merge-pr.sh` — ожидаемый набор проверок берётся из того же манифеста
-      `config/ci/checks.yml` (согласованность манифеста и workflow ловит гейт согласованности —
-      гейту merge знать о нём не нужно).
-      → проверка: `grep -n 'checks.yml' tools/merge-pr.sh` → манифест упомянут
-- [ ] T039 [US3] `tools/merge-pr.sh --self-test` — вынести разбор выборки статусов в отдельную
-      функцию и добавить фикстуру с **более чем 30** статусами, где красная проверка «теряется» в
-      усечённом окне: полный обход обязан её увидеть и отказать (SC-006).
+- [ ] T038 [US3] `tools/merge-pr.sh` — манифест `config/ci/checks.yml` гейтом используется
+      **только для диагностики**: перечень ожидаемых проверок, перечисление пропущенных. Решение о
+      слиянии принимается **по `ci-summary`**; статус-чеки отдельных проверок в решении **не
+      участвуют** (D-05), зелёного статуса по каждой проверке из манифеста гейт **не требует**.
+      Согласованность манифеста и workflow ловит гейт согласованности — гейту merge знать о нём
+      не нужно.
+      → проверка: `grep -n 'checks.yml' tools/merge-pr.sh` → манифест упомянут в диагностической части
+- [ ] T039 [US3] `tools/merge-pr.sh --self-test` — вынести разбор выборки статусов и выбор
+      контекста `ci-summary` в отдельные функции и добавить фикстуры: (1) **более 30 статусов**,
+      где красная проверка «теряется» в усечённом окне — полный обход обязан её увидеть и отказать
+      (SC-006); (2) ни одного контекста `ci-summary` → отказ «прогон не отработал»; (3) два
+      контекста `ci-summary`, один не `success` → отказ с именем красного контекста.
       → проверка: `bash tools/merge-pr.sh --self-test; echo rc=$?` → `0`
 
 **Checkpoint**: User Story 3 полностью функционален.
@@ -307,12 +337,19 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       `python tools/`, `./tools/`) — та же фильтрация, что в нынешнем R-47.
       → проверка: `python3 tools/ci-checks.py --local --help` → rc=0; в выводе видно, что для `frontend-lint` развёрнуты оба SPA
 - [ ] T041 [US5] `tools/ci-checks.py --local` — исполнение команд по порядку, отчёт по каждой
-      проверке (`APPLICABLE` / `SKIPPED (зона не затронута)`), код возврата `0`/`1`/`2`;
-      `--all` — полный набор независимо от применимости (страховка).
+      проверке; код возврата `0`/`1`/`2`; `--all` — полный набор независимо от применимости
+      (страховка). **Термины берутся из словаря** [data-model.md §6](data-model.md) — «применимая
+      проверка», «неприменимая проверка» («это не „пройдена“ и не „зелёная“»), «не отработало»,
+      «блокирующий набор»; собственных терминов вроде `APPLICABLE`/`SKIPPED` в отчёте не
+      заводим — словарь один.
       → проверка: `python3 tools/ci-checks.py --local; echo rc=$?` → только применимые проверки исполнены
-- [ ] T042 [US5] Сверка списков «локально ↔ CI» средствами `tools/ci-checks.py` — один и тот же
-      список применимых на одном изменении (правило считается одной реализацией — FR-007, SC-007).
-      → проверка: `python3 tools/ci-checks.py --emit-outputs | sort > /tmp/ci_list.txt; python3 tools/ci-checks.py --local --list | sort > /tmp/local_list.txt; diff /tmp/ci_list.txt /tmp/local_list.txt` → расхождений нет
+- [ ] T042 [US5] Сверка списков «локально ↔ CI» средствами `tools/ci-checks.py` — правило считается
+      одной реализацией (FR-007). Набор фикстур **из не менее чем 10 категорий правок** (SC-007):
+      `knowledge/`, `specs/`, `webvue3/`, `karaoke-public/`, бэкенд (`karaoke-app/`, `karaoke-web/`),
+      gradle-конфиги (`build.gradle.kts`, `settings.gradle.kts`, `gradle/`), `deploy/`, `tools/`,
+      `config/ci/`, смешанная правка. Для каждой категории — список применимых проверок с двух
+      сторон; расхождений быть не должно.
+      → проверка: `python3 tools/ci-checks.py --emit-outputs | sort > /tmp/ci_list.txt; python3 tools/ci-checks.py --local --list | sort > /tmp/local_list.txt; diff /tmp/ci_list.txt /tmp/local_list.txt` → расхождений нет (для каждой из 10 категорий)
 
 **Checkpoint**: User Story 5 полностью функционален.
 
@@ -340,7 +377,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       расписания и e2e — `cancel-in-progress: false` (полный прогон не отменяется обычным и наоборот).
       → проверка: `grep -n -A3 'concurrency' .forgejo/workflows/lint.yml` → есть группа с `cancel-in-progress: false`
 - [ ] T046 [US6] Проверка полного набора на фикстуре `tools/ci-checks.py --self-test`: при `all=true`
-      применимы все 32 проверки независимо от зон.
+      применимы все записи манифеста (35) независимо от зон.
       → проверка: `python3 tools/ci-checks.py --self-test; echo rc=$?` → `0` (фикстура «all=true → применимы все»)
 
 **Checkpoint**: User Story 6 полностью функционален.
@@ -412,6 +449,38 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       строку `tasks.md`.
       → проверка: `grep -n 'forgejo.ref\|timezone' .forgejo/workflows/lint.yml` → после обновления
       присутствуют; до обновления — только в комментарии
+
+### Задачи, добавленные после анализа (шаг 3 `speckit-analyze`)
+
+Идентификаторы продолжают сквозную нумерацию; задачи выполняются в фазах, указанных в описании.
+
+- [ ] T060 [US4] **Фаза 4 (US1)** — джоб `ci-checks-manifest-guard` в
+      `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml`: регистрация guard'а в CI по
+      R-47 п. 3 («скрипт + **джоб** + pre-commit + `--self-test`»). Шаги:
+      `bash tools/check-ci-checks-manifest.sh`, `bash tools/check-ci-checks-manifest.sh --self-test`,
+      `python3 tools/ci-checks.py --self-test`. **Без** `needs: changes` и без условия по зонам —
+      гейт запускается **всегда** (`mode: always`, запись `class: infrastructure`, `gate: true`):
+      он дешёвый, а его проверка «мёртвая зона» зависит от состава tracked-файлов (удаление файла
+      может сделать зону мёртвой), поэтому привязать его к правке только workflow-файлов нельзя.
+      Запись в манифесте — `ci-checks-manifest-guard` (T002).
+      → проверка: `grep -A8 'ci-checks-manifest-guard:' .forgejo/workflows/lint.yml` → джоб есть и
+      self-test-шаги присутствуют; то же в `.github/workflows/lint.yml`;
+      `bash tools/check-ci-workflow-sync.sh; echo rc=$?` → `0`
+- [ ] T061 [US3] **Фаза 6 (US3)** — `tools/merge-pr.sh`: пересчёт применимости **самим гейтом**
+      (D-18 п. 2) — вызов
+      `python3 tools/ci-checks.py --manifest config/ci/checks.yml --base origin/master --head <head_sha> --list`
+      на head-коммите PR. Это независимый источник истины: гейт не доверяет заданию агрегата, а сам
+      знает, какие проверки должны были выполниться, и перечисляет пропущенные в отчёте; при коде
+      `2` («данных нет»: нет рефа, нет merge-base, нет инструмента) — **отказ**, а не «зелёно».
+      → проверка: `bash tools/merge-pr.sh --self-test; echo rc=$?` → `0` (в том числе фикстура
+      «нет данных → отказ»)
+- [ ] T062 **Фаза 9 (Polish)** — задача-скрипт измерения после внедрения:
+      `tools/measure-selective-ci.py` — сбор `/actions/tasks` (`created_at`/`updated_at` → длительности
+      заданий) + состав правок по коммиту прогона (локальный git), методика
+      `.scratch/wayfinding/ci-path-filters/baseline-metrics.md`; окно наблюдения — ≥30 PR и ≥14 дней
+      (SC-003/SC-004/SC-005). Логи джобов **не** используются (на v15 через API недоступны, 404).
+      Описание скрипта — в `knowledge/system/infra/ci-tools.md` (рядом с таблицей guard'ов).
+      → проверка: `python3 tools/measure-selective-ci.py --help` → rc=0; раздел в `ci-tools.md` есть
 
 ---
 
@@ -517,6 +586,17 @@ Task: "T015 [P] [US4] tools/fixtures/ci-checks-manifest/synced/"
 - **Промежуточное «красное» состояние гейта согласованности — ожидаемо, не регресс.** Между
   фазой 3 (гейт создан) и задачей T029 (workflow приведён в соответствие) гейт
   `tools/check-ci-checks-manifest.sh` на реальном дереве возвращает ненулевой код: в копиях
-  workflow ещё 31 job-id, а в манифесте 32 записи (`direct-commits-guard` появится в T028).
-  Красный гейт в этом промежутке — следствие порядка фаз, а не дефект; после T029 гейт зелёный.
+  workflow ещё 31 job-id, а в манифесте — **35 записей** (31 существующий + `direct-commits-guard`
+  (T028) + `ci-checks-manifest-guard` (T060) + `changes` (T022) + `ci-summary` (T024)). Красный
+  гейт в этом промежутке — следствие порядка фаз, а не дефект; после T029 гейт зелёный.
   На фикстурах (`tools/fixtures/ci-checks-manifest/`) гейт зелёный уже на фазе 3.
+- **Решения анализа (шаг 3) внесены:** A1 — манифест стал полным реестром job-id (35 записей,
+  инвариант «джоб ↔ запись» тотальный, без исключений), добавлен джоб `ci-checks-manifest-guard`
+  (T060) и отдельная инфраструктурная запись для него; C1 — `--self-test` обеих реализаций
+  выполняется в CI (шаги джоба гейта); F1 — гейт сверяет равенство `needs` по job-id (M-12);
+  F2 — правило выбора контекста `ci-summary` (все контексты, содержащие `ci-summary`; ни одного →
+  отказ; любой не `success` → отказ с именем); F3 — манифест в гейте только для диагностики;
+  F4 — носитель следа пропуска (D-18: печать в лог + step output, пересчёт гейтом, без
+  `permissions: statuses: write`); F5 — инвариант M-12 заведён в обе таблицы; F6 — постраничный
+  сбор статусов; D1 — словарь терминов один (data-model §6); U1/U2 — фикстуры SC-001/SC-002
+  (T009); U3 — 10 категорий правок (T042); U4 — скрипт измерения (T062).

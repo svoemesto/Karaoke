@@ -47,6 +47,7 @@ checks:
 | Ключ | Тип | Обязательность | Значение |
 |---|---|---|---|
 | `id` | str | обязательно | machine-readable ключ = **job-id в workflow** (1:1). Допустимые символы: `a-z`, `0-9`, `-` |
+| `class` | str | опционально, default `check` | `check` \| `infrastructure` — класс записи (см. ниже) |
 | `title` | str | обязательно | человекочитаемое имя (сводки, отчёты) |
 | `gate` | bool | опционально, default `true` | входит ли в блокирующий набор |
 | `cost` | str | опционально, default `light` | `heavy` \| `light` \| `info` |
@@ -55,6 +56,22 @@ checks:
 | `evidence` | str | обязателен при `mode: paths` | доказательство зоны: `путь:строка` (FR-001) |
 
 Смысл полей — в [../data-model.md](../data-model.md) (§2–§4).
+
+### 3.1 Два класса записей
+
+Манифест — **полный реестр job-id обеих копий workflow: 35 записей** (31 существующий job-id +
+`direct-commits-guard` + `ci-checks-manifest-guard` + `changes` + `ci-summary`). Инвариант
+«джоб ↔ запись» **тотальный, без списков исключений** (D-19).
+
+| Класс | `class` | Что это | Зоны | `mode` | Блокирует |
+|---|---|---|---|---|---|
+| Проверка контура | `check` (default) | 31 существующий job-id + `direct-commits-guard` | `mode: paths` — зона обязательна; `mode: always` — зоны нет | `paths` \| `always` | `gate: true` (по умолчанию) |
+| Инфраструктурная | `infrastructure` | `changes`, `ci-summary`, `ci-checks-manifest-guard` | нет | `always` | `changes`/`ci-summary` — `gate: false`; `ci-checks-manifest-guard` — `gate: true` |
+
+Правила класса `infrastructure`: `mode: always`, `paths` и `evidence` пустые, зон нет;
+«мёртвая зона» к ним не применяется. Гейт согласованности (`ci-checks-manifest-guard`) —
+инфраструктурная запись с `gate: true`: он запускается **всегда** (дешёвый, а его проверка
+«мёртвая зона» зависит от состава tracked-файлов), и его падение блокирует слияние.
 
 ## 4. Семантика глоба
 
@@ -97,16 +114,17 @@ Git-стиль, матчинг по всему пути файла.
 | # | Инвариант | Код |
 |---|---|---|
 | M-1 | `version` ∈ {1}; `unknown_paths` ∈ {`all`, `none`} | 1 / 2 |
-| M-2 | `checks[].id` уникальны; 1:1 с job-id обеих копий workflow | 1 |
+| M-2 | `checks[].id` уникальны; **тотальное** соответствие job-id обеих копий workflow (1:1, без исключений) | 1 |
 | M-3 | `title` непустой | 1 |
 | M-4 | `mode: paths` ⇒ `paths` непустой и `evidence` непустой | 1 |
 | M-5 | `mode: always` ⇒ `paths` отсутствует/пуст | 1 |
-| M-6 | каждый глоб матчит ≥ 1 tracked-файл (мёртвая зона) | 1 |
+| M-6 | каждый глоб из `paths` матчит ≥ 1 tracked-файл (мёртвая зона) — **только для записей с `mode: paths`** | 1 |
 | M-7 | `cost` ∈ {`heavy`, `light`, `info`}; `gate: false` ⇒ `cost: info` | 1 |
 | M-8 | члены групп существуют; проверка — максимум в одной группе | 1 |
-| M-9 | `id` не совпадает со служебными джобами `changes` / `ci-summary` | 1 |
+| M-9 | `class: infrastructure` ⇒ `mode: always`, `paths` и `evidence` пустые | 1 |
 | M-10 | `if:`-условия в двух копиях идентичны по job-id | 1 |
-| M-11 | `needs` тяжёлого джоба `karaoke-public-e2e` покрывает все `cost: heavy` (FR-018/FR-019) | 1 |
+| M-11 | `needs` джоба `karaoke-public-e2e` покрывает все записи с `cost: heavy` (FR-018/FR-019) | 1 |
+| M-12 | `needs` в двух копиях идентичны по job-id (порядок выполнения одинаков, FR-019) | 1 |
 
 ## 7. Порядок и читаемость
 
@@ -147,4 +165,32 @@ Git-стиль, матчинг по всему пути файла.
       - webvue3/.eslint-baseline.json
       - karaoke-public/.eslint-baseline.json
     evidence: "tools/baseline-stats.sh:20-23,70,84,96-97"
+
+  - id: ci-checks-manifest-guard
+    class: infrastructure
+    title: CI checks manifest guard (R-47 п. 3, FR-012/FR-013)
+    gate: true
+    cost: light
+    mode: always
+    evidence: "tools/check-ci-checks-manifest.sh:1"
+
+  - id: changes
+    class: infrastructure
+    title: changed files → applicable checks
+    gate: false
+    cost: info
+    mode: always
+    evidence: "tools/ci-checks.py --emit-outputs"
+
+  - id: ci-summary
+    class: infrastructure
+    title: CI summary (applicable checks)
+    gate: false
+    cost: info
+    mode: always
+    evidence: "tools/ci-checks.py --summary"
 ```
+
+**Инфраструктурные записи не имеют зон** — значит «мёртвая зона» (M-6) к ним не применяется, а
+применимость инфраструктурных джобов не зависит от зон: `changes` и `ci-summary` работают всегда,
+`ci-checks-manifest-guard` — тоже (см. D-19).

@@ -6606,14 +6606,22 @@ class ApiController(
     @ResponseBody
     fun apisUpdateAuthor(
         @RequestParam(required = true) id: Long,
-        @RequestParam(required = true) author: String,
-        @RequestParam(required = true) ymId: String,
-        @RequestParam(required = true) vkId: String,
-        @RequestParam(required = true) lastAlbumYm: String,
-        @RequestParam(required = true) lastAlbumVk: String?,
-        @RequestParam(required = true) lastAlbumProcessed: String,
-        @RequestParam(required = true) watched: Boolean,
-        @RequestParam(required = true) skip: Boolean,
+        // BR-367/BR-377 (аудит #336, пакет PKG-S3-31): контракт — ЧАСТИЧНОЕ обновление.
+        // Обязателен только `id`; каждый переданный параметр применяется, неприсланные
+        // поля сохраняют прежние значения. Раньше всё, кроме `id`, было `required = true`,
+        // поэтому клиент, шлющий только изменённые поля (diff — BR-377), получал
+        // HTTP 400 MissingServletRequestParameterException на каждом таком сохранении.
+        // Инвариант «не перезаписывать чужие изменения» (knowledge:
+        // knowledge/system/frontend/webvue3-audit-invariants.md, § 9) требует именно
+        // частичного обновления, поэтому опциональность — контракт, а не послабление.
+        @RequestParam(required = false) author: String?,
+        @RequestParam(required = false) ymId: String?,
+        @RequestParam(required = false) vkId: String?,
+        @RequestParam(required = false) lastAlbumYm: String?,
+        @RequestParam(required = false) lastAlbumVk: String?,
+        @RequestParam(required = false) lastAlbumProcessed: String?,
+        @RequestParam(required = false) watched: Boolean?,
+        @RequestParam(required = false) skip: Boolean?,
         @RequestParam(required = false) aliases: String?,
         @RequestParam(required = false) isSpecialOrder: Boolean?,
         @RequestParam(required = false) description: String?,
@@ -6631,14 +6639,14 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )?.let {
-                it.author = author
-                it.ymId = ymId
-                it.vkId = vkId
-                it.lastAlbumYm = lastAlbumYm
-                it.lastAlbumVk = lastAlbumVk ?: ""
-                it.lastAlbumProcessed = lastAlbumProcessed
-                it.watched = watched
-                it.skip = skip
+                author?.let { v -> it.author = v }
+                ymId?.let { v -> it.ymId = v }
+                vkId?.let { v -> it.vkId = v }
+                lastAlbumYm?.let { v -> it.lastAlbumYm = v }
+                lastAlbumVk?.let { v -> it.lastAlbumVk = v }
+                lastAlbumProcessed?.let { v -> it.lastAlbumProcessed = v }
+                watched?.let { v -> it.watched = v }
+                skip?.let { v -> it.skip = v }
                 aliases?.let { a -> it.aliases = a }
                 isSpecialOrder?.let { v -> it.isSpecialOrder = v }
                 description?.let { v -> it.description = v }

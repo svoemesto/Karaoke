@@ -156,6 +156,25 @@ abstract class SyncTarget<T : Any>(
     abstract fun label(item: T): String
 
     open fun shouldPush(diff: List<RecordDiff>): Boolean = diff.isNotEmpty()
+
+    /**
+     * Дополнительные «реальные» диффы, которые нужно пушить в цель, даже если `getDiff()` их
+     * намеренно скрывает (KARAOKE-361).
+     *
+     * Зачем: некоторые поля помечены `recordDiffRealField = false` не потому, что они не важны, а
+     * потому что их нельзя писать «всей строкой» из приложения (BR-075 — общее JSON-поле
+     * `player_readiness_flags` затирало бы ключи, записанные параллельным CAS-потоком). Но именно
+     * от одного из этих ключей (`newsAvailableAnnounced`) зависит создание новости «в коллекции» на
+     * проде: прод узнаёт о переходе только из синхронизации, а флаг в диффе не было — новость не
+     * создавалась (инциденты 2026-10-30 и 2026-10-31).
+     *
+     * Здесь изменение узкое: только синхронизация (не `saveToDb`, где защита BR-075 остаётся
+     * в силе) и только тот ключ, от которого зависит прод-логика.
+     */
+    open fun extraPushableDiff(
+        fromItem: T,
+        toItem: T,
+    ): List<RecordDiff> = emptyList()
 }
 
 /**
@@ -263,6 +282,36 @@ object SongSyncTarget : SyncTarget<Song>(
     // состоит только из виртуальных полей (status/color/processColorXxx) или шума status_process_*.
     override fun shouldPush(diff: List<RecordDiff>): Boolean =
         diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_") }
+
+    /**
+     * KARAOKE-361: доставляем на прод изменение флага «песня стала доступна» (`newsAvailableAnnounced`).
+     *
+     * Флаг живёт в общем JSON-поле `player_readiness_flags`, которое `getDiff()` помечает как
+     * нереальное (BR-075: приложение не должно писать всё поле — затрёт параллельные CAS-записи).
+     * Из-за этого синхронизация не пушила флаг, прод не видел перехода false→true, и новость «в
+     * коллекции» не создавалась (инциденты 2026-10-30 «Секрет» и 2026-10-31 «Лучшее (2026)»).
+     *
+     * Здесь изменение узкое и только для синхронизации: если именно этот ключ отличается — добавляем
+     * реальный дифф, то есть строка уходит в цель UPDATE'ом с `player_readiness_flags`. На проде это
+     * включает штатный путь `MainController.doChangeRecords` → `SongReleaseAnnouncementService`:
+     * прод видит переход флага и сам создаёт новость (дублей нет — гард `News.existsAnnouncement`).
+     */
+    override fun extraPushableDiff(
+        fromItem: Song,
+        toItem: Song,
+    ): List<RecordDiff> =
+        if (fromItem.newsAvailableAnnounced != toItem.newsAvailableAnnounced) {
+            listOf(
+                RecordDiff(
+                    "player_readiness_flags",
+                    fromItem.playerReadinessFlags,
+                    toItem.playerReadinessFlags,
+                    true,
+                ),
+            )
+        } else {
+            emptyList()
+        }
 }
 
 val PicturesSyncTarget =

@@ -77,46 +77,18 @@ News (category + text + picture + dates)
        → VkApiClient / TelegramApiClient (см. external-api-clients)
 ```
 
-### Где создаётся новость «в коллекции» (KARAOKE-338, 2026-10-30)
+### Новость «в коллекции»: единственный рабочий путь доставки (KARAOKE-361, 2026-10-31)
 
 | Путь | Где выполняется | Триггер |
 |---|---|---|
-| **Основной** | `karaoke-app` (админка): `Song.saveToDb` → `announceCollectionNewsIfJustAnnounced` → `SongReleaseAnnouncementService.detectAndAnnounceAvailability` | флаг `newsAvailableAnnounced` перешёл false→true в этом сохранении; роль процесса — `KaraokeRuntimeRole.ADMIN` |
-| **Страховочный** | `karaoke-web` (прод): `MainController.doChangeRecords` | переход флага при применении синхронизации |
+| **Основной** | `karaoke-web` (прод): `MainController.doChangeRecords` → `SongReleaseAnnouncementService.detectAndAnnounceAvailability` | применение синхронизации, в которой пришёл переход флага `newsAvailableAnnounced` false→true |
 | **«В эфире»** | `karaoke-web`: `SongReleaseAnnouncementScheduler.checkOnAir` (каждые 5 минут) | `publish_date`/`publish_time` попали в последнее окно ~10 минут |
 
-Новость, созданная в админке, доставляется на прод штатным sync-target `news`
-(LOCAL→SERVER). Оба пути идемпотентны (`News.existsAnnouncement`), дублей не создают.
+Новость «в коллекции» создаётся **только на проде** — так задумано (спека 089: авто-новости живут на проде, push новостей из админки отключён: все `sync_news_push_*_allowed = false`). Поэтому «создать новость в админке и отправить её синхронизацией» не работает принципиально — на этом остановились попытки KARAOKE-338 и KARAOKE-361 (v1): строки создавались локально и оставались локальными.
 
-**Почему нужен путь в админке.** Флаг `newsAvailableAnnounced` лежит внутри
-`player_readiness_flags`, а это поле намеренно исключено из синхронизации
-(`RecordDiff(..., recordDiffRealField = false)` + `SongSyncTarget.shouldPush`). Если флаг
-меняется отдельно от «реальных» полей песни, до прода он не доезжает, перехода там нет — и
-новость не создаётся (инцидент 2026-10-30: 50+ песен «Секрет» попали в коллекцию, публикации в
-Telegram и ВК ушли, а новостей на проде не появилось).
+**Что действительно нужно было починить.** Флаг `newsAvailableAnnounced` живёт в общем JSON-поле `player_readiness_flags`, а `Song.getDiff()` помечает это поле нереальным (`recordDiffRealField = false`) — защита BR-075: приложение не должно писать всё поле, иначе затрёт ключи параллельного CAS-потока. Из-за этого изменение одного только флага давало дифф из «нереальных» полей, `SongSyncTarget.shouldPush()` возвращал false, строка не уходила на прод, перехода там не было — и новость не создавалась (инциденты 2026-10-30 «Секрет», 2026-10-31 «Лучшее (2026)»).
 
-Роль процесса выставляет `main` каждого приложения: `KaraokeAppApplication` → `ADMIN`,
-`KaraokeWebApplication` → `PROD` (по умолчанию — `PROD`, чтобы на проде не было дублей).
-
-#### Источник новости решает, доедет ли она до прода (KARAOKE-361, 2026-10-31)
-
-`News.source` — не только «кто создал», но и «участвует ли в синхронизации»:
-
-| `source` | Кто создаёт | Участвует в `News.listHashes()` (hash-diff LOCAL→SERVER) |
-|---|---|---|
-| `manual` | администратор через `NewsController` | да |
-| `admin` | автоматически **в админке** (`Song.saveToDb`, KARAOKE-361) | **да** — только так новость доезжает до прода |
-| `auto` | автоматически **на проде** (`SongReleaseAnnouncementService`) | нет: спека 089 держит авто-новости прода вне hash-diff (защита от mirror-delete) |
-
-Инцидент 2026-10-31 (альбом «Лучшее (2026)», 15 песен): админка создала 15 новостей, но
-`createAutoAnnouncement` жёстко ставил `source='auto'`, а `listHashes()` пропускал только
-`manual` — новости легли в локальную БД и никогда не уезжали. Исправление: у
-`createAutoAnnouncement` появился параметр `source` (по умолчанию `auto` — поведение прода не
-изменилось), админский путь передаёт `admin`, а фильтр `listHashes()` —
-`News.hashSyncSourceFilter()` = `source IN ('manual','admin')`.
-
-Выбор источника в одном месте — `News.collectionAnnouncementSource(isAdminRuntime)`; тест
-контракта — `karaoke-app/src/test/.../audit/NewsSyncSourceTest.kt`.
+**Правка.** `SyncTarget.extraPushableDiff(fromItem, toItem)` — дополнительные реальные диффы, которые цель обязана получить, хотя приложение их не пишет. Переопределение в `SongSyncTarget`: если у двух версий песни различается `newsAvailableAnnounced`, добавляется реальный дифф `player_readiness_flags`. Вызывается только из `collectSyncOps` (`Utils.kt`), то есть **только в синхронизации**: `saveToDb()` и защита BR-075 не затронуты. На проде это включает штатный путь создания новости; дублей нет — гард `News.existsAnnouncement` (по `category` + `song_id`/`link`).
 
 
 ### Детально: `VkAutoPublishService` (546 строк)

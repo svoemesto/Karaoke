@@ -1540,7 +1540,10 @@ private fun <T : Any> collectSyncOps(
                 val itemFrom = fromMap[id]
                 val itemTo = toMap[id]
                 if (itemFrom != null && itemTo != null) {
-                    val diff = target.getDiff(itemFrom, itemTo)
+                    // KARAOKE-361: плюс диффы, которые цель обязана получить, хотя приложение их не
+                    // пишет «всей строкой» (см. SyncTarget.extraPushableDiff — флаг новости в
+                    // player_readiness_flags).
+                    val diff = target.getDiff(itemFrom, itemTo) + target.extraPushableDiff(itemFrom, itemTo)
                     if (target.shouldPush(diff)) {
                         listToUpdateNames.add(target.label(itemFrom))
                         println(

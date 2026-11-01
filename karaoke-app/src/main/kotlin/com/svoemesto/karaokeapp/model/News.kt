@@ -88,21 +88,14 @@ class News(
     @KaraokeDbTableField(name = "song_id", useInDiff = false)
     var songId: Long? = null
 
-    // "manual" (создана администратором через NewsController) | "admin" (создана автоматически
-    // В АДМИНКЕ, karaoke-app — и должна доехать до прода синхронизацией) | "auto" (создана
-    // SongReleaseAnnouncementService на проде). useInDiff=false, а строки с source="auto"
-    // исключены из listHashes() ниже — авто-новости физически существуют только на PROD и НЕ
-    // должны участвовать в LOCAL↔SERVER hash-diff sync-движке (см.
-    // specs/089-auto-news-song-release/research.md, п.2): иначе следующий admin-триггерный
-    // «1 клик» может стереть их как «отсутствующие в источнике» (mirror-delete), если
-    // когда-либо включат sync_news_push_delete_allowed.
-    //
-    // KARAOKE-361: строки, созданные в админке (source="admin"), наоборот, ОБЯЗАНЫ участвовать
-    // в hash-diff — это единственный способ доставить новость «в коллекции» на прод: флаг
-    // newsAvailableAnnounced живёт в несинкаемом player_readiness_flags, а прод-путь
-    // (detectAndAnnounceAvailability по синхронизации) без этого флага не срабатывает.
+    // "manual" (создана администратором через NewsController) | "auto" (создана
+    // SongReleaseAnnouncementService). useInDiff=false, а строки с source="auto" полностью исключены
+    // из listHashes() ниже — авто-новости физически существуют только на PROD и НЕ должны участвовать
+    // в LOCAL↔SERVER hash-diff sync-движке (см. specs/089-auto-news-song-release/research.md, п.2):
+    // иначе следующий admin-триггерный «1 клик» может стереть их как «отсутствующие в источнике»
+    // (mirror-delete), если когда-либо включат sync_news_push_delete_allowed.
     @KaraokeDbTableField(name = "source", useInDiff = false)
-    var source: String = SOURCE_MANUAL
+    var source: String = "manual"
 
     override fun toDTO(): NewsDto =
         NewsDto(
@@ -120,43 +113,17 @@ class News(
     companion object {
         const val TABLE_NAME = "tbl_news"
 
-        /** Новость, созданная администратором вручную через `NewsController`. */
-        const val SOURCE_MANUAL = "manual"
-
-        /** Новость, автосозданная на проде (`SongReleaseAnnouncementService`); вне hash-diff. */
-        const val SOURCE_AUTO = "auto"
-
-        /** Новость, автосозданная в админке (KARAOKE-361); участвует в hash-diff и уезжает на прод. */
-        const val SOURCE_ADMIN = "admin"
-
-        /**
-         * Фильтр `listHashes()`: какие источники участвуют в LOCAL↔SERVER hash-diff.
-         *
-         * `auto` исключён намеренно (см. KDoc поля [source]); `admin` добавлен в KARAOKE-361 —
-         * иначе новость, созданная в админке, физически не может доехать до прода.
-         */
-        fun hashSyncSourceFilter(): String = "source IN ('$SOURCE_MANUAL', '$SOURCE_ADMIN')"
-
-        /**
-         * Источник новости «в коллекции» по роли процесса: админка создаёт строку, участвующую
-         * в синхронизации ([SOURCE_ADMIN]), прод — локальную ([SOURCE_AUTO]).
-         */
-        fun collectionAnnouncementSource(isAdminRuntime: Boolean): String =
-            if (isAdminRuntime) SOURCE_ADMIN else SOURCE_AUTO
-
         private fun isPublished(publishAt: Timestamp?): Boolean = publishAt != null && publishAt <= Timestamp(System.currentTimeMillis())
 
         // Используется ТОЛЬКО NewsSyncTarget (generic LOCAL↔SERVER sync-движок, sync/SyncTarget.kt).
-        // Участвуют только источники из [hashSyncSourceFilter]: `auto` исключён (авто-новости не
-        // должны попадать в hash-diff — см. KDoc поля News.source выше и
-        // specs/089-auto-news-song-release/research.md, п.2), `admin` включён (KARAOKE-361 — иначе
-        // новость, созданная в админке, не доедет до прода).
+        // Принудительно исключает source='auto' — авто-новости не должны попадать в hash-diff (см.
+        // KDoc поля News.source выше и specs/089-auto-news-song-release/research.md, п.2).
         fun listHashes(
             database: KaraokeConnection,
             whereText: String = "",
         ): List<RecordHash>? {
-            val sourceFilter = hashSyncSourceFilter()
-            val combinedWhere = if (whereText.isBlank()) "WHERE $sourceFilter" else "$whereText AND $sourceFilter"
+            val autoExclusion = "source = 'manual'"
+            val combinedWhere = if (whereText.isBlank()) "WHERE $autoExclusion" else "$whereText AND $autoExclusion"
             return KaraokeDbTable.getListHashes(tableName = TABLE_NAME, database = database, whereText = combinedWhere)
         }
 
@@ -427,10 +394,6 @@ class News(
             database: KaraokeConnection,
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
-            // KARAOKE-361: источник решает, доедет ли новость до прода. По умолчанию [SOURCE_AUTO]
-            // (поведение прода не меняется), админский путь передаёт [SOURCE_ADMIN] — такой
-            // источник участвует в hash-diff синхронизации `news` (см. [hashSyncSourceFilter]).
-            source: String = SOURCE_AUTO,
         ): News? {
             // specs/125-news-flags-backfix (FR-010/FR-011): kill-switch, блокирующий auto-новости
             // во время sync-окна после backfill флагов публикации. Покрывает ОБЕ точки создания
@@ -457,7 +420,7 @@ class News(
             entity.publishAt = Timestamp(System.currentTimeMillis())
             entity.createdAt = Timestamp(System.currentTimeMillis())
             entity.songId = songId
-            entity.source = source
+            entity.source = "auto"
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? News?
         }
 

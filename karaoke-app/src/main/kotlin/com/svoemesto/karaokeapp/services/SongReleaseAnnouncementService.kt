@@ -89,9 +89,6 @@ object SongReleaseAnnouncementService {
         storageApiClient: StorageApiClient,
         songId: Long,
         wasAvailableBefore: Boolean,
-        // KARAOKE-361: на проде источник `auto` (строка живёт только там и вне hash-diff);
-        // админка передаёт `admin`, чтобы новость доехала синхронизацией `news`.
-        source: String = News.SOURCE_AUTO,
     ): Boolean {
         if (wasAvailableBefore) return false
         return try {
@@ -125,7 +122,6 @@ object SongReleaseAnnouncementService {
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                source = source,
             )
             true
         } catch (e: Exception) {

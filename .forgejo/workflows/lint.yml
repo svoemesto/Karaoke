@@ -681,8 +681,10 @@ jobs:
     name: e2e (karaoke-public)
     needs: [changes, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, webvue3-unit-tests, karaoke-public-unit-tests]
     # Отдельная concurrency-группа: e2e использует общий docker-демон
-    # раннера и фиксированный порт 17907, поэтому его прогон не
-    # отменяется (FR-018/FR-019).
+    # раннера, поэтому его прогон не отменяется (FR-018/FR-019).
+    # Имя контейнера и хост-порт теперь уникальны для каждого прогона
+    # (KARAOKE-380), но тяжёлые джобы на общем демоне всё равно идут
+    # последовательно.
     concurrency:
       group: lint-e2e-${{ github.ref }}
       cancel-in-progress: false
@@ -716,18 +718,37 @@ jobs:
       - name: Start karaoke-public container
         # Конфиг без проксирования /api на karaoke-web (его в CI нет) —
         # см. karaoke-public/e2e/nginx-e2e.conf.
+        #
+        # ИЗОЛЯЦИЯ ПРОГОНА (KARAOKE-380): контейнер e2e живёт в ОБЩЕМ docker-демоне
+        # раннера, где параллельно идут другие прогоны. Фиксированные имя и порт
+        # давали два отказа: «name already in use» и «No such container» (чужой
+        # прогон успевал удалить наш контейнер — уборка была общей).
+        # Теперь имя уникально по прогону, а хост-порт произвольный (docker сам
+        # выбирает свободный) — конфликт с чужим прогоном невозможен.
         run: |
-          # Контейнер живёт в общем docker демона между прогонами: без уборки
-          # следующий джоб падает на Conflict ("name already in use").
-          docker rm -f karaoke-public-e2e 2>/dev/null || true
-          # Хост-порт 7907 занят боевым karaoke-public — берём свободный.
-          docker run -d --name karaoke-public-e2e -p 17907:7907 karaoke-public:e2e
+          set -euo pipefail
+          NAME="karaoke-public-e2e-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "e2e-контейнер: $NAME"
+          # Публикуем порт 7907 на произвольный свободный порт хоста (0.0.0.0).
+          docker run -d --name "$NAME" -p 0.0.0.0::7907 karaoke-public:e2e
           # Конфиг кладём через docker cp, а не -v: путь workspace живёт внутри
           # job-контейнера, а демон общий — хост такого пути не видит.
-          docker cp "$PWD/karaoke-public/e2e/nginx-e2e.conf" karaoke-public-e2e:/etc/nginx/nginx.conf
-          docker exec karaoke-public-e2e nginx -s reload
-          sleep 1
-          docker logs karaoke-public-e2e 2>&1 | tail -5
+          docker cp "$PWD/karaoke-public/e2e/nginx-e2e.conf" "$NAME":/etc/nginx/nginx.conf
+          docker exec "$NAME" nginx -s reload
+          docker logs "$NAME" 2>&1 | tail -5
+
+      - name: Wait for e2e container (nginx готов)
+        # Вместо `sleep 1`: ждём реального ответа nginx. Адрес и порт берём у
+        # самого контейнера, а не из `ip route` — утилиты `ip` в CI-образе нет
+        # (`ip: command not found` → exit 127, KARAOKE-380).
+        working-directory: karaoke-public
+        run: |
+          set -euo pipefail
+          NAME="karaoke-public-e2e-${{ github.run_id }}-${{ github.run_attempt }}"
+          PORT=$(docker port "$NAME" 7907/tcp | head -1 | awk -F: '{print $NF}')
+          GATEWAY=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' "$NAME")
+          echo "E2E_BASE_URL=http://${GATEWAY}:${PORT}"
+          node e2e/wait-for-http.mjs "http://${GATEWAY}:${PORT}/" 60
 
       - name: npm ci (clean install)
         working-directory: karaoke-public
@@ -745,10 +766,13 @@ jobs:
         # блокирует CI — она подтверждает, что редактор собрался и отдан.
         working-directory: karaoke-public
         run: |
+          set -euo pipefail
           # localhost внутри job-контейнера — это он сам; опубликованный порт
-          # живёт на хосте, поэтому идём через шлюз docker-сети.
-          GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
-          export E2E_BASE_URL="http://${GATEWAY}:17907"
+          # живёт на хосте демона, поэтому идём через шлюз docker-сети.
+          NAME="karaoke-public-e2e-${{ github.run_id }}-${{ github.run_attempt }}"
+          PORT=$(docker port "$NAME" 7907/tcp | head -1 | awk -F: '{print $NF}')
+          GATEWAY=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' "$NAME")
+          export E2E_BASE_URL="http://${GATEWAY}:${PORT}"
           echo "E2E_BASE_URL=$E2E_BASE_URL"
           npx playwright test --grep-invert @smoke
 
@@ -756,17 +780,22 @@ jobs:
         working-directory: karaoke-public
         continue-on-error: true
         run: |
-          GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
-          export E2E_BASE_URL="http://${GATEWAY}:17907"
+          set -euo pipefail
+          NAME="karaoke-public-e2e-${{ github.run_id }}-${{ github.run_attempt }}"
+          PORT=$(docker port "$NAME" 7907/tcp | head -1 | awk -F: '{print $NF}')
+          GATEWAY=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' "$NAME")
+          export E2E_BASE_URL="http://${GATEWAY}:${PORT}"
           npx playwright test --grep @smoke
 
       - name: Container logs (on failure)
         if: failure()
-        run: docker logs karaoke-public-e2e || true
+        run: docker logs "karaoke-public-e2e-${{ github.run_id }}-${{ github.run_attempt }}" || true
 
       - name: Cleanup container
+        # Убираем ТОЛЬКО свой контейнер: общая уборка по имени удаляла бы
+        # контейнер чужого прогона на общем демоне (KARAOKE-380).
         if: always()
-        run: docker rm -f karaoke-public-e2e 2>/dev/null || true
+        run: docker rm -f "karaoke-public-e2e-${{ github.run_id }}-${{ github.run_attempt }}" 2>/dev/null || true
 
   # === Docs: структура per-feature + Markdown-ссылки ===
   # Не блокер-уровень, но даёт быстрый сигнал о сломанной документации.

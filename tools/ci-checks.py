@@ -704,6 +704,16 @@ def self_test() -> int:
     except NoData:
         check("FR-014 неизвестная версия → нет данных (код 2)", True)
 
+    # FR-014: манифест недоступен/нечитаем → код 2 (не 0 и не 1).
+    import contextlib
+    import io as _io
+
+    stderr = _io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        rc = main(["--manifest", "/nonexistent/checks.yml", "--emit-outputs"])
+    check("FR-014 манифест недоступен → код 2", rc == EXIT_NO_DATA, f"rc={rc}")
+    check("FR-014 без traceback в выводе", "Traceback" not in stderr.getvalue())
+
     # Агрегат: применимая проверка без результата → падение (fail-closed).
     outputs = {output_name(c["id"]): "false" for c in manifest["checks"]}
     outputs["backend"] = "true"

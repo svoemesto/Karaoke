@@ -648,11 +648,23 @@ send_telegram() {
     fi
   } >"${cfg}"
   local code="" rc=0
-  code="$(curl -sS -o /dev/null -w '%{http_code}' -K "${cfg}" 2>/dev/null)" || rc=$?
+  # Ответ Bot API сохраняем во временный файл (не в argv, не в журнал): из него
+  # берём message_id отправленного сообщения — по нему пост можно удалить
+  # (deleteMessage), если служебное уведомление попало не туда.
+  local resp
+  resp="$(mktemp "${TMPDIR:-/tmp}/allowlist-tg-resp.XXXXXX")" || return 1
+  chmod 600 "${resp}" || { rm -f "${resp}"; return 1; }
+  code="$(curl -sS -o "${resp}" -w '%{http_code}' -K "${cfg}" 2>/dev/null)" || rc=$?
   [ -n "${code}" ] || code="000"
   rm -f "${cfg}"
+  local message_id=""
+  if [ -s "${resp}" ]; then
+    message_id="$(sed -n 's/.*"message_id":[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "${resp}" | head -1)"
+  fi
+  rm -f "${resp}"
   if [ "${rc}" -eq 0 ] && [ "${code}" = "200" ]; then
-    log_event "notify" "channel=telegram" "ok=true" "proxy=$(proxy_state)"
+    log_event "notify" "channel=telegram" "ok=true" "proxy=$(proxy_state)" \
+      "message_id=${message_id:-none}"
     return 0
   fi
   # Недоставленное уведомление — НЕ повод провалить цикл: правка allow-list

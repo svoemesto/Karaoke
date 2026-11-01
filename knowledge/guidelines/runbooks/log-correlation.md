@@ -171,6 +171,41 @@ ssh root@188.127.240.124 'grep "/minio/karaoke/" /var/log/nginx/access.log | tai
 
 ---
 
+### 2.6. SSH на прод-хосте (`sm-karaoke.ru`, 188.127.240.124)
+
+sshd на проде пишет через syslog в `/dev/log`, а `/dev/log` — это
+`/run/systemd/journal/dev-log`, то есть сообщения уходят **в journald** (rsyslog на
+проде не установлен — и не нужен). Проверено 2026-11-01 (KARAOKE-383): за сутки
+`_COMM=sshd` — 541 запись, `_COMM=sshd-session` — ~30 000, «Accepted publickey» и
+«Disconnected from» на месте.
+
+```bash
+# входы и выходы (демон)
+journalctl _COMM=sshd --since today --no-pager | grep -E "Accepted|Disconnected|Connection closed"
+# форкнутые процессы OpenSSH 9.8+ (PAM, аутентификация)
+journalctl _COMM=sshd-session --since today --no-pager | tail -50
+# то же по идентификатору syslog
+journalctl SYSLOG_IDENTIFIER=sshd --since today --no-pager | tail -50
+```
+
+**Ловушка (наша собственная ошибка 2026-11-01).** На проде в journald больше
+1.5 млн записей и `/var/log/journal` — около 1 ГБ. Запрос вида
+`journalctl _COMM=sshd --since "2026-11-01 00:00" --no-pager | wc -l` **не
+возвращает ноль записей — он возвращает ПУСТОЙ вывод**: journalctl не успевает
+прочитать объём и отдаёт пустоту (либо соединение отваливается по таймауту).
+Это легко принять за «sshd не пишет». Надёжно — ограничивать окно
+(`--since today`, `--since "-1h"`) и не полагаться на счётчик по всему объёму.
+Проверка «журнал жив» — точечная: `journalctl _COMM=sshd --since "-10min" --no-pager | tail -5`.
+
+**Доступ к прод-хосту.** SSH с админ-машины `nsa-i9` нестабилен (пул адресов
+провайдера, VPN — см. KARAOKE-382): соединение то устанавливается, то обрывается
+на connect. Надёжный путь — через `msk-f896` как jump-host:
+
+```bash
+ssh -o ProxyCommand="ssh -i ~/.config/karaoke/id_ed25519 -p 7487 -o BatchMode=yes -W %h:%p sm@185.71.198.17" \
+    -i ~/.config/karaoke/id_ed25519 root@188.127.240.124
+```
+
 ## 4. TZ-синхронизация (важно для корреляции)
 
 **Цель**: все 4 источника логов должны использовать одну TZ для однозначной корреляции по timestamp.
@@ -368,3 +403,6 @@ tar czf /tmp/incident-logs.tgz /tmp/incident-logs
   `heap:recovered` в § 3.2; типичный сценарий 5.4 — порядок действий при алерте по
   памяти и при OOM (снять дамп → проверить лимиты → убрать старые дампы →
   перезапуск по Pass 380; своп не трогаем).
+- Обновление 2026-11-01 (KARAOKE-383): раздел 2.6 — журналы SSH на прод-хосте
+  (`journalctl _COMM=sshd` / `_COMM=sshd-session`), доступ через jump-host `msk-f896` и ловушка
+  пустого вывода `journalctl` на большом объёме (больше 1.5 млн записей).

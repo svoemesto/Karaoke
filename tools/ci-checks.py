@@ -815,8 +815,10 @@ def self_test() -> int:
         os.environ["GITHUB_OUTPUT"] = _out_file
         try:
             with contextlib.redirect_stdout(io.StringIO()):
+                # База = HEAD: фикстура не должна зависеть от истории репозитория
+                # (в CI checkout может быть shallow — depth 1, без HEAD^).
                 _rc = main(["--manifest", str(REPO_ROOT / "config/ci/checks.yml"),
-                            "--emit-outputs", "--base", "HEAD^", "--head", "HEAD"])
+                            "--emit-outputs", "--base", "HEAD", "--head", "HEAD"])
         finally:
             if _old is None:
                 os.environ.pop("GITHUB_OUTPUT", None)

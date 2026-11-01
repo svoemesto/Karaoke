@@ -1165,8 +1165,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout
+      - name: Checkout (полная история: self-test правила обращается к git)
         uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
 
       - name: Manifest ↔ workflow consistency
         run: bash tools/check-ci-checks-manifest.sh

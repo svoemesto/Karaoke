@@ -147,6 +147,7 @@ def load_manifest(path: Path) -> dict:
                 "cost": raw.get("cost", "light"),
                 "mode": mode,
                 "paths": list(paths),
+                "watch": list(raw.get("watch") or []),
                 "evidence": evidence,
             }
         )
@@ -297,9 +298,16 @@ def full_set_requested(args, env) -> bool:
     return False
 
 
+def known_patterns_of(manifest: dict) -> list[str]:
+    """Объединение зон: зоны проверок + пути, инспектируемые служебными записями."""
+    patterns = [p for c in manifest["checks"] if c["mode"] == "paths" for p in c["paths"]]
+    patterns += [p for c in manifest["checks"] for p in c.get("watch", [])]
+    return patterns
+
+
 def unknown_paths_of(manifest: dict, changed: list[str]) -> list[str]:
     """Пути, не попавшие ни в одну зону (диагностика: design §3.5)."""
-    known = [p for c in manifest["checks"] if c["mode"] == "paths" for p in c["paths"]]
+    known = known_patterns_of(manifest)
     return [path for path in changed if not any(match_path(pattern, path) for pattern in known)]
 
 
@@ -319,9 +327,10 @@ def compute_applicability(manifest: dict, changed: list[str], force_all: bool = 
             result[c["id"]] = {"applicable": True, "zones": list(c["paths"]), "unknown": False}
         return result, True
 
-    # Зоны всех проверок с mode: paths — объединение зон, в котором путь
-    # считается «известным».
+    # Объединение зон: зоны проверок (mode: paths) + пути, которые инспектируют
+    # служебные записи (class: infrastructure, поле watch).
     known_patterns = [p for c in checks if c["mode"] == "paths" for p in c["paths"]]
+    known_patterns += [p for c in checks for p in c.get("watch", [])]
 
     for c in checks:
         if c["mode"] != "paths":

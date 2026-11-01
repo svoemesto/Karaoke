@@ -52,6 +52,9 @@ checks:
     gate: false
     cost: info
     mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
     evidence: "tools/ci-checks.py --emit-outputs"
 
   # === Инфраструктура сборки и runtime ===
@@ -507,6 +510,13 @@ checks:
     gate: true
     cost: light
     mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
+      - tools/check-ci-checks-manifest.sh
+      - tools/fixtures/ci-checks-manifest/**
+      - .forgejo/workflows/lint.yml
+      - .github/workflows/lint.yml
     evidence: "tools/check-ci-checks-manifest.sh:1"
 
   - id: ci-summary
@@ -515,4 +525,7 @@ checks:
     gate: false
     cost: info
     mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
     evidence: "tools/ci-checks.py --summary"

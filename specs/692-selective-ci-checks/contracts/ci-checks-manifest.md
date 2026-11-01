@@ -54,6 +54,7 @@ checks:
 | `mode` | str | обязательно | `paths` \| `always` |
 | `paths` | list[str] | обязателен при `mode: paths` | зоны интереса (глобы), непустой |
 | `evidence` | str | обязателен при `mode: paths` | доказательство зоны: `путь:строка` (FR-001) |
+| `watch` | list[str] | опционально (только `class: infrastructure`) | пути, которые служебная запись инспектирует; на применимость не влияет (запись и так всегда применима), но входит в объединение зон — иначе файлы самого правила считались бы «неизвестными» |
 
 Смысл полей — в [../data-model.md](../data-model.md) (§2–§4).
 
@@ -126,6 +127,7 @@ Git-стиль, матчинг по всему пути файла.
 | M-10 | `if:`-условия в двух копиях идентичны по job-id | 1 |
 | M-11 | `needs` джоба `karaoke-public-e2e` покрывает все записи с `cost: heavy` (FR-018/FR-019) | 1 |
 | M-12 | `needs` в двух копиях идентичны по job-id (порядок выполнения одинаков, FR-019) | 1 |
+| M-13 | каждый глоб из `watch` матчит ≥ 1 tracked-файл («мёртвая зона») | 1 |
 
 ## 7. Порядок и читаемость
 
@@ -173,6 +175,13 @@ Git-стиль, матчинг по всему пути файла.
     gate: true
     cost: light
     mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
+      - tools/check-ci-checks-manifest.sh
+      - tools/fixtures/ci-checks-manifest/**
+      - .forgejo/workflows/lint.yml
+      - .github/workflows/lint.yml
     evidence: "tools/check-ci-checks-manifest.sh:1"
 
   - id: changes
@@ -181,6 +190,9 @@ Git-стиль, матчинг по всему пути файла.
     gate: false
     cost: info
     mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
     evidence: "tools/ci-checks.py --emit-outputs"
 
   - id: ci-summary
@@ -189,6 +201,9 @@ Git-стиль, матчинг по всему пути файла.
     gate: false
     cost: info
     mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
     evidence: "tools/ci-checks.py --summary"
 ```
 

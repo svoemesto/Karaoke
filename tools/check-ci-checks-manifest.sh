@@ -304,9 +304,9 @@ def pattern_to_regex(pattern):
 
 tracked = tracked_files()
 for cid, raw in sorted(records.items()):
-    if raw.get("mode") != "paths":
-        continue
-    for pattern in (raw.get("paths") or []):
+    patterns = list(raw.get("paths") or []) if raw.get("mode") == "paths" else []
+    patterns += list(raw.get("watch") or [])
+    for pattern in patterns:
         rx = re.compile(pattern_to_regex(pattern))
         if not any(rx.match(path) for path in tracked):
             fail(1, f"M-6: мёртвая зона: '{cid}' → '{pattern}' не матчит ни одного tracked-файла")

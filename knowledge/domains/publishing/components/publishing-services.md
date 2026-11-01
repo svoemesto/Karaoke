@@ -98,6 +98,27 @@ Telegram и ВК ушли, а новостей на проде не появил
 Роль процесса выставляет `main` каждого приложения: `KaraokeAppApplication` → `ADMIN`,
 `KaraokeWebApplication` → `PROD` (по умолчанию — `PROD`, чтобы на проде не было дублей).
 
+#### Источник новости решает, доедет ли она до прода (KARAOKE-361, 2026-10-31)
+
+`News.source` — не только «кто создал», но и «участвует ли в синхронизации»:
+
+| `source` | Кто создаёт | Участвует в `News.listHashes()` (hash-diff LOCAL→SERVER) |
+|---|---|---|
+| `manual` | администратор через `NewsController` | да |
+| `admin` | автоматически **в админке** (`Song.saveToDb`, KARAOKE-361) | **да** — только так новость доезжает до прода |
+| `auto` | автоматически **на проде** (`SongReleaseAnnouncementService`) | нет: спека 089 держит авто-новости прода вне hash-diff (защита от mirror-delete) |
+
+Инцидент 2026-10-31 (альбом «Лучшее (2026)», 15 песен): админка создала 15 новостей, но
+`createAutoAnnouncement` жёстко ставил `source='auto'`, а `listHashes()` пропускал только
+`manual` — новости легли в локальную БД и никогда не уезжали. Исправление: у
+`createAutoAnnouncement` появился параметр `source` (по умолчанию `auto` — поведение прода не
+изменилось), админский путь передаёт `admin`, а фильтр `listHashes()` —
+`News.hashSyncSourceFilter()` = `source IN ('manual','admin')`.
+
+Выбор источника в одном месте — `News.collectionAnnouncementSource(isAdminRuntime)`; тест
+контракта — `karaoke-app/src/test/.../audit/NewsSyncSourceTest.kt`.
+
+
 ### Детально: `VkAutoPublishService` (546 строк)
 
 **Файл**: `karaoke-app/.../services/VkAutoPublishService.kt`.

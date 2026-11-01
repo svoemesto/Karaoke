@@ -433,7 +433,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       зафиксировать в отчёте, что полный набор (`--local --all`) не прогонялся и почему (время
       раннера), если не прогнан.
       → проверка: вывод `--local` в отчёте шага; причина отсутствия полного прогона указана явно
-- [ ] T057 Обновить PR #41 (push ветки `692-selective-ci-checks`) и дождаться зелёного CI; merge
+- [X] T057 Обновить PR #41 (push ветки `692-selective-ci-checks`) и дождаться зелёного CI; merge
       **не** выполнять (только по слову владельца, через `bash tools/merge-pr.sh 41`).
       → проверка: `git ls-remote origin refs/heads/692-selective-ci-checks` → SHA совпадает с
       локальным HEAD; статус прогона — зелёный

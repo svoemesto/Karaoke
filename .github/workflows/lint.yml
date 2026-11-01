@@ -1127,7 +1127,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout (полная история: self-test правила обращается к git)
+      - name: Checkout (полная история нужна self-test правила)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0

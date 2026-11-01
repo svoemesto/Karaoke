@@ -168,7 +168,7 @@ cd deploy && source ./sync_prod_config.sh && sync_prod_config web
 
    ```
    ALLOWLIST_TELEGRAM_BOT_TOKEN=<токен бота проекта>
-   ALLOWLIST_TELEGRAM_CHAT_ID=<chat_id канала проекта>
+   ALLOWLIST_NOTIFY_CHAT_ID=<chat_id СЛУЖЕБНОГО чата для уведомлений>
    ALLOWLIST_FJ_TOKEN=<токен Forgejo>
    ALLOWLIST_FJ_URL=https://git.sm-karaoke.ru
    ```

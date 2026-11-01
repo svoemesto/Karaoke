@@ -1212,6 +1212,9 @@ jobs:
       - name: Self-test of the rule implementation
         run: python3 tools/ci-checks.py --self-test
 
+      - name: Self-test of the merge-gate status collector (KARAOKE-377)
+        run: python3 tools/merge-gate-statuses.py --self-test
+
   # === Агрегат прогона: единственный сигнал для merge-гейта ===
   # Forgejo не умеет статус «skipped»: пропущенный джоб отдаётся как success
   # с описанием «Has been skipped», поэтому по статус-чекам «неприменимо»

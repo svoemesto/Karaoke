@@ -252,38 +252,13 @@ print(len(d.get("statuses") or []))' "$dir/body" 2>/dev/null || echo 0)"
     if [ -n "$total" ] && [ "$n" -ge "$total" ]; then break; fi
     page=$((page + 1))
   done
-  python3 - "$dir" "$total" <<'PY'
-import glob
-import json
-import os
-import sys
-
-directory, total = sys.argv[1], sys.argv[2]
-seen = set()
-out = []
-for path in sorted(glob.glob(os.path.join(directory, "page-*.json"))):
-    try:
-        with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
-    except Exception:
-        continue
-    for status in (data.get("statuses") or []):
-        key = (status.get("context"), status.get("status"), status.get("description"))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(status)
-if total:
-    try:
-        expected = int(total)
-    except ValueError:
-        expected = 0
-    if expected and len(out) < expected:
-        print(f"INCOMPLETE: собрано {len(out)} статус-чеков, X-Total-Count={expected}",
-              file=sys.stderr)
-        sys.exit(3)
-print(json.dumps(out, ensure_ascii=False))
-PY
+  # KARAOKE-377: сбор статусов вынесен в tools/merge-gate-statuses.py —
+  # полнота выборки определяется фактом пагинации, а не сырым X-Total-Count
+  # (тот считает записи с дублями от нескольких прогонов одного коммита).
+  local more_pages=""
+  [ "$page" -gt 50 ] && more_pages="--more-pages"
+  python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/merge-gate-statuses.py" \
+    --dir "$dir" --total "$total" ${more_pages}
   local rc=$?
   rm -rf "$dir"
   return $rc
@@ -322,13 +297,17 @@ printf '%s' "$statuses_json" | status_gate || {
   Что делать:
     1. Разобрать причину. Если код — починить и запушить в ветку PR.
     2. Если причина в сети машины (джобы качают себя: lychee-action, gradle) —
-       проверить те же проверки локально на этом коммите и перезапустить прогон:
+       проверить те же проверки локально на этом коммите и перезапустить прогон.
+       ПЕРЕЗАПУСК ПРОГОНА (создаёт новые статус-чеки):
          printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
-           | curl -X POST --config - -H 'Content-Type: application/json' \
-               -d '{"ref":"<ветка PR>"}' \
-               "$FJ_URL/api/v1/repos/<owner>/<repo>/actions/workflows/lint.yml/dispatches"
-       ВНИМАНИЕ: прогон workflow_dispatch не создаёт статус-чеков — агрегат
-       ci-summary появится только после обычного прогона (push/PR).
+           | curl -X POST --config - \
+               "$FJ_URL/api/v1/repos/<owner>/<repo>/actions/runs/<run_id>/rerun"
+       где <run_id> — ВНУТРЕННИЙ id прогона из GET /actions/runs (не число из
+       интерфейса; см. knowledge/guidelines/runbooks/forgejo-access.md).
+       Если rerun недоступен — обычный прогон: пустой коммит в ветку PR
+       (git commit --allow-empty; git push) — push создаёт статус-чеки.
+       ВНИМАНИЕ: прогон workflow_dispatch статус-чеков НЕ создаёт — агрегат
+       ci-summary появится только после обычного прогона (push/PR или rerun).
        Если после перезапуска всё ещё красно — разбор с владельцем, не merge.
 HINT
   exit 1

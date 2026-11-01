@@ -130,8 +130,11 @@ def zone_patterns(manifest: dict) -> list[str]:
     return ci.known_patterns_of(manifest)
 
 
-def unmapped_patterns(manifest: dict) -> list[str]:
-    return ci.known_unmapped_patterns_of(manifest)
+def unmapped_patterns(manifest: dict, force: bool = False) -> list[str]:
+    """Глобы секции known_unmapped. force=True -> секция считается включённой
+    (измеритель показывает ОБЕ цифры, независимо от текущего переключателя)."""
+    return ci.known_unmapped_patterns_of(manifest, active_only=not force,
+                                        cli_flag=True if force else None)
 
 
 def applicable(check_id: str, manifest_by_id: dict, changed: list[str],
@@ -181,7 +184,7 @@ def measure(records: list[dict], manifest: dict, variant: str, tasks_by_run: dic
     if variant == "strict":
         known = zone_patterns(manifest)
     else:
-        known = zone_patterns(manifest) + unmapped_patterns(manifest)
+        known = zone_patterns(manifest) + unmapped_patterns(manifest, force=True)
 
     per_category: dict[str, dict] = {}
     totals = {"heavy_total": 0, "heavy_dropped": 0, "busy_total": 0.0, "busy_saved": 0.0,
@@ -301,12 +304,17 @@ def main(argv=None) -> int:
         sys.exit(2)
 
     tasks_by_run = load_task_durations(records_path.parent)
-    unmapped = unmapped_patterns(manifest)
+    unmapped = unmapped_patterns(manifest, force=True)
     print(f"манифест: {manifest_path}")
     print(f"известных зон: {len(zone_patterns(manifest))}; known_unmapped: {len(unmapped)} глоб(ов)")
     pr_runs = [r for r in records if r.get("event") == "pull_request"
                and (args.population == "all" or int(r.get("n_canon_jobs") or 0) >= 29)]
     print(f"прогонов в записях: {len(records)} (PR-гейт в популяции '{args.population}': {len(pr_runs)})")
+    active = ci.known_unmapped_enabled(manifest, env=os.environ,
+                                       cli_flag=True if args.variant == "known-unmapped" else None)
+    print(f"секция known_unmapped в манифесте: {len(manifest.get('known_unmapped') or [])} записей; "
+          f"активна сейчас: {'да' if active else 'нет'} "
+          f"(переключатель: CI_CHECKS_KNOWN_UNMAPPED=1 / known_unmapped_enabled: true / --known-unmapped)")
 
     strict = measure(records, manifest, "strict", tasks_by_run, args.population)
     if args.variant in ("both", "strict"):

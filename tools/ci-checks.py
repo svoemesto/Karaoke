@@ -331,24 +331,58 @@ def known_patterns_of(manifest: dict) -> list[str]:
     return patterns
 
 
-def known_unmapped_patterns_of(manifest: dict) -> list[str]:
-    """Глобы секции known_unmapped (утверждённо не читаемые пути)."""
-    return [p for entry in manifest.get("known_unmapped") or [] for p in entry["paths"]]
+KNOWN_UNMAPPED_ENV = "CI_CHECKS_KNOWN_UNMAPPED"
 
 
-def mapped_patterns_of(manifest: dict) -> list[str]:
-    """Всё, что считается «известным»: зоны + watch + known_unmapped."""
-    return known_patterns_of(manifest) + known_unmapped_patterns_of(manifest)
+def known_unmapped_enabled(manifest: dict, env=None, cli_flag: bool | None = None) -> bool:
+    """Включена ли секция known_unmapped.
+
+    Решение владельца применяется ОДНОЙ настройкой: ключ CLI
+    (--known-unmapped) > переменная окружения CI_CHECKS_KNOWN_UNMAPPED > поле
+    манифеста known_unmapped_enabled. По умолчанию выключено — поведение
+    строго по FR-004.
+    """
+    if cli_flag is not None:
+        return bool(cli_flag)
+    env = os.environ if env is None else env
+    raw = (env.get(KNOWN_UNMAPPED_ENV) or "").strip().lower()
+    if raw in ("1", "true", "yes", "on"):
+        return True
+    if raw in ("0", "false", "no", "off", ""):
+        return bool(manifest.get("known_unmapped_enabled", False))
+    return bool(manifest.get("known_unmapped_enabled", False))
 
 
-def unknown_paths_of(manifest: dict, changed: list[str]) -> list[str]:
+def known_unmapped_patterns_of(manifest: dict, active_only: bool = True,
+                               env=None, cli_flag: bool | None = None) -> list[str]:
+    """Глобы секции known_unmapped (утверждённо не читаемые пути).
+
+    active_only=True -> только если секция ВКЛЮЧЕНА (по умолчанию она выключена,
+    и поведение остаётся строгим по FR-004). active_only=False -> весь перечень
+    (так его проверяет гейт: записи валидны всегда, даже когда выключены).
+    """
+    entries = manifest.get("known_unmapped") or []
+    if active_only and not known_unmapped_enabled(manifest, env=env, cli_flag=cli_flag):
+        return []
+    return [p for entry in entries for p in entry["paths"]]
+
+
+def mapped_patterns_of(manifest: dict, active_only: bool = True,
+                        env=None, cli_flag: bool | None = None) -> list[str]:
+    """Всё, что считается «известным»: зоны + watch + (активный known_unmapped)."""
+    return known_patterns_of(manifest) + known_unmapped_patterns_of(
+        manifest, active_only=active_only, env=env, cli_flag=cli_flag)
+
+
+def unknown_paths_of(manifest: dict, changed: list[str], active_only: bool = True,
+                      env=None, cli_flag: bool | None = None) -> list[str]:
     """Пути, не попавшие ни в одну зону и не объявленные как known_unmapped.
 
     Путь, не перечисленный нигде, остаётся «неизвестным» => полный набор
     (fail-closed по FR-004). Секция known_unmapped (пустая по умолчанию) лишь
     ЯВНО перечисляет пути, которые никто не читает.
     """
-    known = mapped_patterns_of(manifest)
+    known = mapped_patterns_of(manifest, active_only=active_only, env=env, cli_flag=cli_flag)
     return [path for path in changed if not any(match_path(pattern, path) for pattern in known)]
 
 
@@ -934,6 +968,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--list",
         action="store_true",
         help="список применимых проверок (по id) без исполнения команд",
+    )
+    parser.add_argument(
+        "--known-unmapped",
+        dest="known_unmapped",
+        action="store_true",
+        help="включить секцию known_unmapped манифеста (перечень путей, которые не "
+             "читает ни одна CI-проверка); по умолчанию выключено — поведение "
+             "строго по FR-004",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--emit-outputs", action="store_true", help="outputs джоба changes")

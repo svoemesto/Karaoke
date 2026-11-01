@@ -34,6 +34,8 @@
 #                 корень репозитория); нужен для прогона на фикстурах
 #                 tools/fixtures/ci-checks-manifest/.
 #   --quiet       только код возврата (для pre-commit).
+#   --known-unmapped  считать секцию known_unmapped включённой (проверка активного
+#                    состояния; по умолчанию она выключена — строго по FR-004).
 #   --self-test   прогон фикстур: согласованное дерево → 0; подсунутые нарушения →
 #                 ненулевой код; недоступные данные → 2.
 set -uo pipefail
@@ -41,6 +43,9 @@ set -uo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="$PROJECT_ROOT"
 QUIET=0
+# Переключатель секции known_unmapped (решение владельца — одной настройкой):
+# CLI --known-unmapped > env CI_CHECKS_KNOWN_UNMAPPED > поле known_unmapped_enabled.
+FORCE_KNOWN_UNMAPPED=""
 SELF_TEST=0
 
 while [ $# -gt 0 ]; do
@@ -51,6 +56,7 @@ while [ $# -gt 0 ]; do
       ;;
     --quiet) QUIET=1; shift ;;
     --self-test) SELF_TEST=1; shift ;;
+    --known-unmapped) FORCE_KNOWN_UNMAPPED=1; shift ;;
     -h|--help)
       sed -n '2,40p' "$0"
       exit 0
@@ -95,7 +101,7 @@ if [ ! -d "$ROOT" ]; then
   exit 2
 fi
 
-OUT="$(python3 - "$ROOT" <<'PY'
+OUT="$(python3 - "$ROOT" "${FORCE_KNOWN_UNMAPPED:-}" <<'PY'
 import os
 import re
 import subprocess
@@ -103,6 +109,7 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+_force = bool(sys.argv[2]) if len(sys.argv) > 2 else False
 
 try:
     import yaml
@@ -386,8 +393,16 @@ for entry in known_unmapped:
                             f"'{zp}' (файл {path}) — запись избыточна")
                     break
 
-print(f"known_unmapped: {ku_entries} записей, {len(ku_files)} tracked-файлов "
-      f"(пустой список = строгое поведение FR-004)")
+_env = (os.environ.get("CI_CHECKS_KNOWN_UNMAPPED") or "").strip().lower()
+if _force or _env in ("1", "true", "yes", "on"):
+    _active = True
+    _why = "включена переключателем (CLI/окружение)"
+else:
+    _active = bool(manifest.get("known_unmapped_enabled"))
+    _why = ("known_unmapped_enabled: true" if _active
+            else "ВЫКЛЮЧЕНА — поведение строго по FR-004")
+print(f"known_unmapped: {ku_entries} записей, {len(ku_files)} tracked-файлов; секция "
+      f"{'АКТИВНА' if _active else 'НЕ АКТИВНА'} ({_why})")
 
 if failures:
     for code, text in failures:

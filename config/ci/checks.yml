@@ -53,13 +53,166 @@ unknown_paths: all
 #   * гейт печатает размер списка и число покрытых tracked-файлов, чтобы рост
 #     списка был виден сразу, а не всплыл через полгода.
 #
-# Пример (не включён):
-# known_unmapped:
-#   - paths:
-#       - tools/dsh-agent-command-guard/**
-#     note: "плагин DSH: его читает только tools/install-agent-command-guard.sh (в CI не выполняется)"
-known_unmapped: []
-
+# Секция подготовлена (перечень остатка покрытия) и НЕ ВКЛЮЧЕНА по умолчанию:
+# поведение остаётся строго по FR-004.
+#
+# ВКЛЮЧЕНИЕ — ОДНА НАСТРОЙКА (решение владельца применяется без правки перечня):
+#   * переменная окружения CI_CHECKS_KNOWN_UNMAPPED=1 (в CI — env джоба changes);
+#   * ключ known_unmapped_enabled: true в этом же файле;
+#   * ключ --known-unmapped у tools/ci-checks.py и tools/measure-selective-ci.py.
+# Приоритет: ключ CLI > переменная окружения > поле манифеста.
+known_unmapped_enabled: false
+known_unmapped:
+  - paths:
+      - .idea/compiler.xml
+      - .idea/dataSources.xml
+      - .idea/gradle.xml
+      - .idea/jarRepositories.xml
+      - .idea/modules.xml
+      - .idea/modules/Karaoke.karaoke-web.main.iml
+      - .idea/modules/Karaoke.main.iml
+      - .idea/modules/Karaoke.test.iml
+      - .idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml
+      - .idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml
+      - .idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml
+      - .idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml
+      - .idea/vcs.xml
+    note: "IDE-конфигурация IntelliJ: CI читает только .idea/misc.xml (build-config-guard)"
+  - paths:
+      - .specify/.preflight-drop-empty-song-voices.ok
+      - .specify/.preflight-forgejo-ci-plugin.ok
+      - .specify/.preflight-kortege-execution.ok
+      - .specify/.preflight-lyrics-search-preserve-song-fields.ok
+      - .specify/.preflight-selective-ci-checks.ok
+      - .specify/.preflight-song-artifact-cleanup.ok
+      - .specify/extensions.yml
+      - .specify/init-options.json
+      - .specify/integration.json
+      - .specify/integrations/dsh.manifest.json
+      - .specify/integrations/opencode.manifest.json
+      - .specify/integrations/speckit.manifest.json
+      - .specify/memory/.constitution-template.json
+      - .specify/memory/constitution.md
+      - .specify/memory/feature-121-vk-news-auto-publish.md
+      - .specify/templates/checklist-template.md
+      - .specify/templates/constitution-template.md
+      - .specify/templates/plan-template.md
+      - .specify/templates/spec-template.md
+      - .specify/templates/tasks-template.md
+      - .specify/workflows/speckit/workflow.yml
+      - .specify/workflows/workflow-registry.json
+    note: "фреймворк Spec Kit (шаблоны, память, интеграции); CI читает только его *.sh (secret-in-argv)"
+  - paths:
+      - openspec/**
+    note: "второй фреймворк спецификаций; CI не читает"
+  - paths:
+      - alignment-ml/.gitignore
+      - alignment-ml/README.md
+      - alignment-ml/align.py
+      - alignment-ml/chunking.py
+      - alignment-ml/evaluate.py
+      - alignment-ml/manifest.py
+      - alignment-ml/requirements.txt
+      - alignment-ml/serve.py
+      - alignment-ml/syllables.py
+      - alignment-ml/tests/test_align_modes.py
+      - alignment-ml/tests/test_chunking_boundaries.py
+      - alignment-ml/tests/test_dataset_exclusion.py
+      - alignment-ml/tests/test_evaluate_errors.py
+      - alignment-ml/tests/test_requirements_pin.py
+      - alignment-ml/tests/test_serve_limits.py
+      - alignment-ml/tests/test_train_scripts.py
+      - alignment-ml/tests/test_vocab_binding.py
+      - alignment-ml/train.py
+    note: "экспериментальный ML-контур; CI читает только его *.sh (secret-in-argv)"
+  - paths:
+      - karaoke-vue/**
+    note: "legacy-SPA: не собирается и не проверяется CI"
+  - paths:
+      - .agents/**
+    note: "скиллы агентов; CI не читает"
+  - paths:
+      - tools/dsh-agent-command-guard/README.md
+      - tools/dsh-agent-command-guard/cordis.patch.yml
+      - tools/dsh-agent-command-guard/icon.svg
+      - tools/dsh-agent-command-guard/index.js
+      - tools/dsh-agent-command-guard/locale/en.json
+      - tools/dsh-agent-command-guard/locale/ru.json
+      - tools/dsh-agent-command-guard/package.json
+      - tools/dsh-agent-command-guard/policy/deny-commands.json
+      - tools/dsh-agent-command-guard/test-guard.mjs
+    note: "плагин DSH (ADR local-0016); его ставит tools/install-agent-command-guard.sh — в CI не выполняется"
+  - paths:
+      - .scratch/**
+    note: "локальные артефакты рабочих прогонов; CI не читает"
+  - paths:
+      - logs/**
+    note: "служебный каталог логов; CI не читает"
+  - paths:
+      - tools/README.md
+      - tools/auto-jsdoc.py
+      - tools/auto-kdoc-quality.py
+      - tools/auto-kdoc.py
+      - tools/check-direct-commits.baseline
+      - tools/check-endpoint-field-coverage.whitelist.yml
+      - tools/check-songedit-field-coverage.whitelist.yml
+      - tools/cleanup-test-songs.sql
+      - tools/dsh-agent-command-guard/README.md
+      - tools/dsh-agent-command-guard/cordis.patch.yml
+      - tools/dsh-agent-command-guard/icon.svg
+      - tools/dsh-agent-command-guard/index.js
+      - tools/dsh-agent-command-guard/locale/en.json
+      - tools/dsh-agent-command-guard/locale/ru.json
+      - tools/dsh-agent-command-guard/package.json
+      - tools/dsh-agent-command-guard/policy/deny-commands.json
+      - tools/dsh-agent-command-guard/test-guard.mjs
+      - tools/dsh-command-ledger.py
+      - tools/endpoint-pairs.yml
+      - tools/measure-selective-ci.py
+      - tools/spec-kit/commands-cheatsheet.md
+    note: "хелперы и списки, которые читают только pre-commit-хуки или человек; CI-джобами не исполняются"
+  - paths:
+      - config/detekt/detekt.yml
+    note: "конфигурация, которую в CI не читает ни одна проверка"
+  - paths:
+      - deploy/.version
+      - deploy/ci-image/README.md
+      - deploy/create_tbl_users.sql
+      - deploy/do.env.example
+      - deploy/docker-compose-app.gpu.yml
+      - deploy/docker-compose-database.yml
+      - deploy/docker-compose-ollama.yml
+      - deploy/docker-compose-public.yml
+      - deploy/docker-compose-storage.yml
+      - deploy/docker-compose-telegram-proxy.yml
+      - deploy/docker-compose-web.yml
+      - deploy/docker-compose-webvue3.yml
+      - deploy/docker-compose-whisper.yml
+      - deploy/docker-compose.yml
+      - deploy/heap-dump-retention.service
+      - deploy/heap-dump-retention.timer
+      - deploy/karaoke-app/files/FiraSansExtraCondensed-Medium.ttf
+      - deploy/karaoke-app/files/Roboto-Black.ttf
+      - deploy/karaoke-app/files/demucs2
+      - deploy/karaoke-app/files/demucs5
+      - deploy/karaoke-app/files/demucs7
+      - deploy/karaoke-app/files/test.mp3
+      - deploy/karaoke-app/files/www.sm-karaoke.ru.crt
+      - deploy/karaoke-db-backup.service
+      - deploy/karaoke-db-backup.timer
+      - deploy/karaoke-db/dumps/.gitkeep
+      - deploy/karaoke-web/Roboto-Black.ttf
+      - deploy/karaoke-web/minio-proxy-local.conf
+      - deploy/searxng-settings/settings.yml
+      - deploy/tracker-db-backup.service
+      - deploy/tracker-db-backup.timer
+      - deploy/tracker-docker-compose.yml
+      - deploy/tts/silero_say.py
+      - deploy/Заметки
+      - deploy/Комманды Linux.md
+      - deploy/Настройка виртуальной машины.md
+      - deploy/Настройка сервера.md
+    note: "файлы deploy-контура, которые не читает ни одна CI-проверка"
 groups:
   ssoT:
     members: [ssot-impact, knowledge-structure]

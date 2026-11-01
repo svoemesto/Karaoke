@@ -975,7 +975,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: changes
-    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.direct_commits_guard == 'true'
+    # mode: always — проверка истории git не зависит от зон, пропуск недопустим.
+    if: always()
     steps:
       - name: Checkout (полная история обязательна для git log по origin/master)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

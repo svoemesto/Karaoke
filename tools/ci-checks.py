@@ -30,6 +30,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -422,10 +424,25 @@ def output_name(check_id: str) -> str:
 
 
 def emit_outputs(manifest: dict, applicability: dict, full_set: bool) -> int:
-    print(f"all={'true' if full_set else 'false'}")
+    lines = [f"all={'true' if full_set else 'false'}"]
     for c in manifest["checks"]:
         value = "true" if applicability[c["id"]]["applicable"] else "false"
-        print(f"{output_name(c['id'])}={value}")
+        lines.append(f"{output_name(c['id'])}={value}")
+    for line in lines:
+        print(line)
+
+    # В CI выходы шага читаются ИЗ ФАЙЛА $GITHUB_OUTPUT: act_runner (Forgejo)
+    # не разбирает stdout шага, как это делает GitHub Actions. Без этой записи
+    # `needs.changes.outputs.*` пуст, и ВСЕ проверки с условием по зоне
+    # пропускаются (наблюдалось на прогоне 205: 34 проверки «Has been skipped»).
+    target = (os.environ.get("GITHUB_OUTPUT") or "").strip()
+    if target:
+        try:
+            with open(target, "a", encoding="utf-8") as fh:
+                for line in lines:
+                    fh.write(line + "\n")
+        except OSError as exc:
+            raise NoData(f"не удалось записать выходы в $GITHUB_OUTPUT ({target}): {exc}") from exc
     return EXIT_OK
 
 
@@ -781,13 +798,34 @@ def self_test() -> int:
         check("FR-014 неизвестная версия → нет данных (код 2)", True)
 
     # FR-014: манифест недоступен/нечитаем → код 2 (не 0 и не 1).
-    import contextlib
-    import io as _io
-
-    stderr = _io.StringIO()
+    stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
         rc = main(["--manifest", "/nonexistent/checks.yml", "--emit-outputs"])
     check("FR-014 манифест недоступен → код 2", rc == EXIT_NO_DATA, f"rc={rc}")
+
+    # Выходы шага должны попадать в $GITHUB_OUTPUT: act_runner (Forgejo) не
+    # разбирает stdout шага, и без файла все проверки с условием пропускаются.
+    import tempfile as _tempfile
+
+    with _tempfile.TemporaryDirectory() as _tmp:
+        _out_file = os.path.join(_tmp, "github_output")
+        with open(_out_file, "w", encoding="utf-8") as _fh:
+            _fh.write("")
+        _old = os.environ.get("GITHUB_OUTPUT")
+        os.environ["GITHUB_OUTPUT"] = _out_file
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                _rc = main(["--manifest", str(REPO_ROOT / "config/ci/checks.yml"),
+                            "--emit-outputs", "--base", "HEAD^", "--head", "HEAD"])
+        finally:
+            if _old is None:
+                os.environ.pop("GITHUB_OUTPUT", None)
+            else:
+                os.environ["GITHUB_OUTPUT"] = _old
+        with open(_out_file, encoding="utf-8") as _fh:
+            _written = [line for line in _fh.read().splitlines() if line.strip()]
+    check("выходы шага записаны в $GITHUB_OUTPUT", _rc == EXIT_OK and len(_written) > 1)
+    check("в $GITHUB_OUTPUT есть ключ all", any(line.startswith("all=") for line in _written))
 
     # T-42 / SC-007: локальный пред-PR список == CI-список (минус служебные джобы).
     # Локальный список = применимые проверки контура, у которых в workflow есть

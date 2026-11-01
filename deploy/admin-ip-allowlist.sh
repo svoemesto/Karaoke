@@ -81,7 +81,8 @@ TELEGRAM_TOKEN="${ALLOWLIST_TELEGRAM_BOT_TOKEN:-}"
 # (инцидент 2026-11-01: «прод-хост недоступен по SSH» ушло в канал
 # «Караоке на своём месте»). Если ALLOWLIST_NOTIFY_CHAT_ID не задан —
 # уведомления не отправляются, факт остаётся только в журнале.
-TELEGRAM_CHAT_ID="${ALLOWLIST_NOTIFY_CHAT_ID:-}"
+notify_chat_id() { printf '%s' "${ALLOWLIST_NOTIFY_CHAT_ID:-}"; }
+TELEGRAM_CHAT_ID="$(notify_chat_id)"
 # Прокси — ТОЛЬКО для вызова Telegram Bot API: с админ-машины api.telegram.org
 # напрямую недоступен (нужен VPN), рабочий локальный SOCKS5 — 127.0.0.1:1080.
 # Пусто → прямое соединение. Определение внешнего адреса и пробы доступности
@@ -648,11 +649,23 @@ send_telegram() {
     fi
   } >"${cfg}"
   local code="" rc=0
-  code="$(curl -sS -o /dev/null -w '%{http_code}' -K "${cfg}" 2>/dev/null)" || rc=$?
+  # Ответ Bot API сохраняем во временный файл (не в argv, не в журнал): из него
+  # берём message_id отправленного сообщения — по нему пост можно удалить
+  # (deleteMessage), если служебное уведомление попало не туда.
+  local resp
+  resp="$(mktemp "${TMPDIR:-/tmp}/allowlist-tg-resp.XXXXXX")" || return 1
+  chmod 600 "${resp}" || { rm -f "${resp}"; return 1; }
+  code="$(curl -sS -o "${resp}" -w '%{http_code}' -K "${cfg}" 2>/dev/null)" || rc=$?
   [ -n "${code}" ] || code="000"
   rm -f "${cfg}"
+  local message_id=""
+  if [ -s "${resp}" ]; then
+    message_id="$(sed -n 's/.*"message_id":[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "${resp}" | head -1)"
+  fi
+  rm -f "${resp}"
   if [ "${rc}" -eq 0 ] && [ "${code}" = "200" ]; then
-    log_event "notify" "channel=telegram" "ok=true" "proxy=$(proxy_state)"
+    log_event "notify" "channel=telegram" "ok=true" "proxy=$(proxy_state)" \
+      "message_id=${message_id:-none}"
     return 0
   fi
   # Недоставленное уведомление — НЕ повод провалить цикл: правка allow-list
@@ -1219,6 +1232,26 @@ STUB
     echo "   FAIL: в конфиге Bot API задан noproxy вместе с proxy"; failed=1
   else
     echo "   OK: noproxy и proxy не заданы одновременно"
+  fi
+
+  echo "== Сценарий 11b: чат уведомлений — служебный, а не канал проекта (2026-11-01)"
+  # Регрессия: send_telegram брал chat_id из ALLOWLIST_TELEGRAM_CHAT_ID — это
+  # канал проекта (публичный канал публикации новостей), и служебная информация
+  # о проде («прод-хост недоступен по SSH») попала в публичный канал. Теперь чат
+  # берётся из ALLOWLIST_NOTIFY_CHAT_ID; если он не задан — уведомление не
+  # отправляется вовсе (факт остаётся в журнале).
+  local chat_value=""
+  chat_value="$(ALLOWLIST_NOTIFY_CHAT_ID=-100777 ALLOWLIST_TELEGRAM_CHAT_ID=-100999 notify_chat_id)"
+  if [ "${chat_value}" = "-100777" ]; then
+    echo "   OK: чат уведомлений берётся из ALLOWLIST_NOTIFY_CHAT_ID"
+  else
+    echo "   FAIL: чат уведомлений не взят из ALLOWLIST_NOTIFY_CHAT_ID (получено: ${chat_value:-пусто})"; failed=1
+  fi
+  chat_value="$(ALLOWLIST_TELEGRAM_CHAT_ID=-100999 notify_chat_id)"
+  if [ -z "${chat_value}" ]; then
+    echo "   OK: канал проекта (ALLOWLIST_TELEGRAM_CHAT_ID) для уведомлений не используется"
+  else
+    echo "   FAIL: чат уведомлений подставляется из канала проекта (${chat_value})"; failed=1
   fi
 
   # Определение внешнего адреса — напрямую, без прокси.

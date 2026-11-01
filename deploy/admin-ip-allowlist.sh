@@ -26,6 +26,10 @@
 #   * не более одной применённой правки за 30 минут (FR-010);
 #   * токены — только из окружения, никогда в argv (BR-551/552/605): Bot API
 #     вызывается через `curl -K` с конфиг-файлом 600;
+#   * уведомления — в отдельный чат (ALLOWLIST_NOTIFY_CHAT_ID), НЕ в канал
+#     проекта: канал проекта публичный (публикация новостей), и служебная
+#     информация о проде туда попадать не должна (инцидент 2026-11-01);
+#     если чат не задан — уведомлений нет, факт остаётся в журнале;
 #   * прокси — только для вызова Telegram Bot API (ALLOWLIST_TELEGRAM_PROXY);
 #     определение внешнего адреса и пробы доступности идут напрямую
 #     (`--noproxy '*'`) — иначе в allow-list попал бы адрес выхода прокси,
@@ -70,7 +74,14 @@ STATE_FILE="${ALLOWLIST_STATE_FILE:-/var/log/admin-ip-allowlist.state}"
 
 # --- уведомления ---
 TELEGRAM_TOKEN="${ALLOWLIST_TELEGRAM_BOT_TOKEN:-}"
-TELEGRAM_CHAT_ID="${ALLOWLIST_TELEGRAM_CHAT_ID:-}"
+# Служебные уведомления (allow-list, откат, «прод недоступен по SSH») идут
+# в ОТДЕЛЬНЫЙ чат — ALLOWLIST_NOTIFY_CHAT_ID. Канал проекта
+# (ALLOWLIST_TELEGRAM_CHAT_ID) для них НЕ используется: это публичный канал
+# публикации новостей, и служебная информация о проде в нём быть не должна
+# (инцидент 2026-11-01: «прод-хост недоступен по SSH» ушло в канал
+# «Караоке на своём месте»). Если ALLOWLIST_NOTIFY_CHAT_ID не задан —
+# уведомления не отправляются, факт остаётся только в журнале.
+TELEGRAM_CHAT_ID="${ALLOWLIST_NOTIFY_CHAT_ID:-}"
 # Прокси — ТОЛЬКО для вызова Telegram Bot API: с админ-машины api.telegram.org
 # напрямую недоступен (нужен VPN), рабочий локальный SOCKS5 — 127.0.0.1:1080.
 # Пусто → прямое соединение. Определение внешнего адреса и пробы доступности
@@ -1334,10 +1345,15 @@ usage() {
 ALLOWLIST_PROD_PORTS, ALLOWLIST_HEALTH_URL, ALLOWLIST_IP_SERVICES,
 ALLOWLIST_IP_TIMEOUT, ALLOWLIST_PROBE_TIMEOUT, ALLOWLIST_MIN_INTERVAL_MINUTES,
 ALLOWLIST_LOG_FILE, ALLOWLIST_STATE_FILE, ALLOWLIST_TELEGRAM_BOT_TOKEN,
-ALLOWLIST_TELEGRAM_CHAT_ID, ALLOWLIST_TELEGRAM_PROXY, ALLOWLIST_FJ_TOKEN,
+ALLOWLIST_NOTIFY_CHAT_ID, ALLOWLIST_TELEGRAM_PROXY, ALLOWLIST_FJ_TOKEN,
 ALLOWLIST_FJ_URL, ALLOWLIST_REPO, ALLOWLIST_REPO_PATH, ALLOWLIST_NGINX_BIN.
 
 Токены — только из окружения; в argv и в журнал они не попадают.
+
+ALLOWLIST_NOTIFY_CHAT_ID — чат для СЛУЖЕБНЫХ уведомлений (allow-list, откат,
+«прод недоступен по SSH»). Канал проекта (ALLOWLIST_TELEGRAM_CHAT_ID) для них
+не используется: он публичный. Если переменная не задана — уведомления не
+отправляются, факт остаётся в журнале.
 
 ALLOWLIST_TELEGRAM_PROXY — прокси ТОЛЬКО для вызова Telegram Bot API
 (например socks5h://127.0.0.1:1080); по умолчанию пусто — прямое соединение.

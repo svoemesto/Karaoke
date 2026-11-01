@@ -171,6 +171,9 @@ AGENTS.md                           # НЕ ПРАВИТЬ в этом PR — г�
 | D-11 | Особые джобы | `baseline-stats` → `gate: false`; `ssot-impact` ↔ `knowledge-structure` → группа `ssoT`; `check-direct-commits` → отдельный джоб `mode: always` | design §8 |
 | D-12 | Гейт согласованности | новый `tools/check-ci-checks-manifest.sh` (1:1 джоб↔манифест, идентичность `if:`, непустые зоны, мёртвая зона, версия, `unknown_paths`, `--self-test`) + расширение `check-ci-workflow-sync.sh` | FR-012/FR-013, design §7 |
 | D-13 | Документирование | ADR `local-0017`, R-49, переработка R-47, `ci-tools.md`, `pre-commit-config.md`, `onboarding.md`, `CLAUDE.md`; `AGENTS.md` — только diff | FR-015, design §10 |
+| D-14 | Per-feature документ | `knowledge/product/features/selective-ci-checks.md` | Constitution VI (FR-009) |
+| D-15 | Имена outputs джоба `changes` | `id` с заменой `-` на `_` (`backend_build`); результаты и outputs передаются в агрегат JSON'ом (`toJSON(needs)`) | в выражениях движка дефис — оператор вычитания |
+| D-16 | Два источника локального прогона | список применимых — из манифеста (`tools/ci-checks.py`), список команд — из workflow по job-id | FR-007 (зеркалирование CI) + FR-006/R-48 (нет второго носителя) |
 
 ## Phase 1 — Design & Contracts
 

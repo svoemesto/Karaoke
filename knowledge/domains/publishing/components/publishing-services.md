@@ -90,6 +90,24 @@ News (category + text + picture + dates)
 
 **Правка.** `SyncTarget.extraPushableDiff(fromItem, toItem)` — дополнительные реальные диффы, которые цель обязана получить, хотя приложение их не пишет. Переопределение в `SongSyncTarget`: если у двух версий песни различается `newsAvailableAnnounced`, добавляется реальный дифф `player_readiness_flags`. Вызывается только из `collectSyncOps` (`Utils.kt`), то есть **только в синхронизации**: `saveToDb()` и защита BR-075 не затронуты. На проде это включает штатный путь создания новости; дублей нет — гард `News.existsAnnouncement` (по `category` + `song_id`/`link`).
 
+#### Источник новости решает, участвует ли она в синхронизации (KARAOKE-361, порт 2026-11-01)
+
+`News.source` — не только «кто создал», но и «участвует ли в синхронизации». Константы — в `News.companion` (`SOURCE_MANUAL` / `SOURCE_AUTO` / `SOURCE_ADMIN`), выбор — в одном месте: `News.collectionAnnouncementSource(isAdminRuntime)`.
+
+| `source` | Кто создаёт | В `News.listHashes()` (hash-diff LOCAL→SERVER) |
+|---|---|---|
+| `manual` | администратор вручную через `NewsController` | да |
+| `admin` | автоматически **в админке** (`Song.markNewsAvailableIfReady` → `Song.announceCollectionNewsIfJustAnnounced`, KARAOKE-361) | **да** — так новость, созданная в админке, доедет до прода |
+| `auto` | автоматически **на проде** (`SongReleaseAnnouncementService`) | нет: спека 089 держит авто-новости прода вне hash-diff (защита от mirror-delete) |
+
+Роль процесса (`KaraokeRuntimeRole.ADMIN`/`PROD`) выставляется в `main` каждого приложения: `KaraokeAppApplication` → ADMIN, `KaraokeWebApplication` → PROD (по умолчанию — PROD, чтобы на проде не было дублей новостей).
+
+**Доставка включается настройкой, а не кодом.** Участие в hash-diff — только половина дела: строка реально уезжает на прод, когда включён `sync_news_push_insert_allowed` (по умолчанию **выключен** — спека 089). Пока настройка выключена, поведение не меняется: новость на проде создаёт прод-путь (`detectAndAnnounceAvailability`, страховка PR #40). Перед включением доставки новостей проверьте, что на проде нет `auto`-новостей про те же песни: иначе в ленте окажутся обе строки (`admin` из админки и `auto` с прода) — гард `News.existsAnnouncement` защищает только от обратного порядка.
+
+**Идемпотентность.** Оба пути проходят через гард `News.existsAnnouncement` (по `category` + `song_id`/`link`), поэтому повторный проход флага новость не дублирует.
+
+**Контракт.** `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/NewsSyncSourceTest.kt` — фильтр источников, выбор по роли процесса, различие значений констант.
+
 
 ### Детально: `VkAutoPublishService` (546 строк)
 

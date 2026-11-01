@@ -480,12 +480,14 @@ checks:
     gate: true
     cost: heavy
     mode: paths
-    # Общий docker-демон раннера и фиксированный порт 17907 → последовательное
-    # выполнение с остальными тяжёлыми проверками (FR-018/FR-019).
+    # Общий docker-демон раннера → последовательное выполнение с остальными
+    # тяжёлыми проверками (FR-018/FR-019). Имя контейнера и хост-порт
+    # теперь уникальны для каждого прогона (KARAOKE-380), поэтому конфликт
+    # с чужим прогоном на общем демоне исключён.
     paths:
       - karaoke-public/**
       - deploy/karaoke-public/Dockerfile
-    evidence: "lint.yml:582,598,604,624,632; deploy/karaoke-public/Dockerfile:16,29"
+    evidence: "lint.yml:712,720,731,747,769; deploy/karaoke-public/Dockerfile:16,29"
 
   # === Документация и SSoT ===
 

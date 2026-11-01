@@ -460,8 +460,23 @@ CI исполняется раннером вне DSH, поэтому в спи�
 | Эндпоинт | Ответ |
 |---|---|
 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` | `text/plain` — лог одного задания |
-| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs` | ZIP со всеми логами прогона (файлы `{джоб}-{id}-attempt-1.log`) |
-| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` | список джобов прогона с их id |
+| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs` | ZIP со всеми логами прогона (файлы `{джоб}-{id}-attempt-1.log`; у пропущенных джобов — запись `.MISSING`) |
+| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` | плоский JSON-массив джобов прогона: `id`, `name`, `status` (в т.ч. `skipped`), `run_id`, `attempt` |
+
+**Важно: что такое `run_id`.** Это `id` прогона из `GET /actions/runs`, а **не**
+число, показанное в веб-интерфейсе (`index_in_repo`). Для прогона с UI-номером
+217 это `id` = 583; подстановка UI-номера даёт
+`404 run with id 217: resource does not exist` (проверено 2026-11-01). То же
+касается `id` из `GET /actions/tasks` — это id **задания**, а не прогона.
+
+```bash
+# Найти id прогона по его номеру в интерфейсе:
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/runs" \
+  | python3 -c 'import json,sys
+for r in json.load(sys.stdin).get("workflow_runs") or []:
+    if r.get("index_in_repo") == 217: print(r.get("id"))'
+```
 
 Токен — через stdin-конфиг curl (тот же приём, что в `tools/merge-pr.sh`), иначе
 он виден в `ps -eo args`. Рецепты команд — в
@@ -486,6 +501,35 @@ CI исполняется раннером вне DSH, поэтому в спи�
 ограничивает права `GITHUB_TOKEN`. Намеренное расхождение копий не нарушает
 правило FR-013: гейт `tools/check-ci-workflow-sync.sh` сверяет состав проверок
 (наборы команд) и условия запуска (`if:`), а не платформенные поля.
+
+## e2e в CI: контейнер на общем docker-демоне (KARAOKE-380)
+
+**Контекст.** Раннер act_runner (`nsa-i9`) создаёт job-контейнеры в docker-демоне
+контейнера `infra` на `185.71.198.17`. Демон общий: там же работают все
+одновременные прогоны разных веток. Джоб `e2e (karaoke-public)` поднимает в нём
+контейнер с публичным сайтом.
+
+**Три причины падений, найденные по логам прогонов (2026-11-01).**
+
+1. Фиксированные имя (`karaoke-public-e2e`) и хост-порт (17907) на общем
+   демоне: параллельный прогон получал «name already in use», а общая уборка
+   (`docker rm -f karaoke-public-e2e`) удаляла контейнер чужого прогона —
+   Playwright получал «No such container: karaoke-public-e2e».
+2. Готовность nginx проверялась `sleep 1` — nginx к этому моменту ещё не
+   поднимался, прогон падал «мимо».
+3. Адрес собирался через `ip route`, а утилиты `ip` в CI-образе нет:
+   `ip: command not found` → exit 127.
+
+**Как сделано (обе копии workflow).** Имя контейнера уникально на прогон
+(`karaoke-public-e2e-<run_id>-<run_attempt>`), хост-порт произвольный
+(`-p 0.0.0.0::7907` — docker выбирает свободный), адрес и порт берутся у самого
+контейнера (`docker port` + `docker inspect`, без `ip`), готовность проверяет
+скрипт `karaoke-public/e2e/wait-for-http.mjs` (ждёт реального ответа вместо
+паузы), а уборка (`if: always()`) удаляет **только свой** контейнер.
+
+**Правило на будущее.** Любой CI-джоб, поднимающий контейнер на общем демоне,
+обязан иметь уникальное имя и произвольный порт; фиксированное имя и общая
+уборка на общем демоне — источник взаимных отказов прогонов.
 
 ## Известные ловушки
 

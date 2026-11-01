@@ -48,7 +48,12 @@ UNKNOWN_PATHS_VALUES = {"all", "none"}
 
 # Команды, которые считаются проверками (та же фильтрация, что в нынешнем R-47):
 # установочные шаги (checkout, npm ci, apt-get) локальным прогоном не гоняются.
-GUARD_CMD_PREFIXES = ("bash tools/", "python3 tools/", "python tools/", "./tools/")
+# Команды, которые локальный пред-PR прогон умеет исполнять: guard'ы репозитория
+# (tools/) и guard'ы deploy-контура (deploy/heap-dump-retention.sh и т.п.).
+GUARD_CMD_PREFIXES = (
+    "bash tools/", "python3 tools/", "python tools/", "./tools/",
+    "bash deploy/", "./deploy/",
+)
 
 # Полный набор запрашивается, когда событие не оставляет сомнений
 # (push в master, расписание, ручной полный прогон) — FR-005.
@@ -152,6 +157,24 @@ def load_manifest(path: Path) -> dict:
             }
         )
 
+    # Секция known_unmapped: пути, которые утверждённо не читает ни одна проверка.
+    # Пустая по умолчанию — тогда поведение строго по FR-004.
+    known_unmapped = []
+    for raw in (data.get("known_unmapped") or []):
+        if not isinstance(raw, dict):
+            raise Violation(f"{path}: запись known_unmapped должна быть словарём")
+        paths = raw.get("paths") or []
+        note = (raw.get("note") or "").strip()
+        if not paths:
+            raise Violation(f"{path}: запись known_unmapped без paths")
+        if not note:
+            raise Violation(f"{path}: запись known_unmapped требует note "
+                            "(чем подтверждено, что путь не читается)")
+        for pattern in paths:
+            if pattern.strip() in ("**", "*", "/*", "**/*", "**/**"):
+                raise Violation(f"{path}: known_unmapped не допускает catch-all {pattern!r}")
+        known_unmapped.append({"paths": list(paths), "note": note})
+
     groups = {}
     for name, spec in (data.get("groups") or {}).items():
         members = (spec or {}).get("members") or []
@@ -164,6 +187,7 @@ def load_manifest(path: Path) -> dict:
         "unknown_paths": unknown_paths,
         "groups": groups,
         "checks": checks,
+        "known_unmapped": known_unmapped,
     }
 
 
@@ -305,9 +329,24 @@ def known_patterns_of(manifest: dict) -> list[str]:
     return patterns
 
 
+def known_unmapped_patterns_of(manifest: dict) -> list[str]:
+    """Глобы секции known_unmapped (утверждённо не читаемые пути)."""
+    return [p for entry in manifest.get("known_unmapped") or [] for p in entry["paths"]]
+
+
+def mapped_patterns_of(manifest: dict) -> list[str]:
+    """Всё, что считается «известным»: зоны + watch + known_unmapped."""
+    return known_patterns_of(manifest) + known_unmapped_patterns_of(manifest)
+
+
 def unknown_paths_of(manifest: dict, changed: list[str]) -> list[str]:
-    """Пути, не попавшие ни в одну зону (диагностика: design §3.5)."""
-    known = known_patterns_of(manifest)
+    """Пути, не попавшие ни в одну зону и не объявленные как known_unmapped.
+
+    Путь, не перечисленный нигде, остаётся «неизвестным» => полный набор
+    (fail-closed по FR-004). Секция known_unmapped (пустая по умолчанию) лишь
+    ЯВНО перечисляет пути, которые никто не читает.
+    """
+    known = mapped_patterns_of(manifest)
     return [path for path in changed if not any(match_path(pattern, path) for pattern in known)]
 
 
@@ -331,6 +370,7 @@ def compute_applicability(manifest: dict, changed: list[str], force_all: bool = 
     # служебные записи (class: infrastructure, поле watch).
     known_patterns = [p for c in checks if c["mode"] == "paths" for p in c["paths"]]
     known_patterns += [p for c in checks for p in c.get("watch", [])]
+    known_patterns += known_unmapped_patterns_of(manifest)
 
     for c in checks:
         if c["mode"] != "paths":
@@ -690,6 +730,21 @@ def self_test() -> int:
           not any(infra_app[i]["applicable"] for i in ("backend-build", "frontend-build", "e2e")))
 
     unknown, _ = compute_applicability(manifest, ["weird/new/file.bin"])
+    # T-34: раздельные зоны фронтендов — правка в webvue3/ не запускает
+    # проверки karaoke-public и наоборот (US2).
+    split = _fixture_manifest([
+        _check("webvue3-lint", paths=["webvue3/**"]),
+        _check("public-lint", paths=["karaoke-public/**"]),
+        _check("backend", paths=["karaoke-app/**"]),
+    ])
+    app_w, _ = compute_applicability(split, ["webvue3/src/api/client.js"])
+    check("T-34 правка в webvue3/ не запускает проверки karaoke-public",
+          app_w["webvue3-lint"]["applicable"] and not app_w["public-lint"]["applicable"]
+          and not app_w["backend"]["applicable"])
+    app_p, _ = compute_applicability(split, ["karaoke-public/src/main.js"])
+    check("T-34 правка в karaoke-public/ не запускает проверки webvue3",
+          app_p["public-lint"]["applicable"] and not app_p["webvue3-lint"]["applicable"])
+
     check("FR-004 неизвестный путь → полный набор",
           all(v["applicable"] for v in unknown.values()))
 
@@ -721,6 +776,58 @@ def self_test() -> int:
     with contextlib.redirect_stderr(stderr):
         rc = main(["--manifest", "/nonexistent/checks.yml", "--emit-outputs"])
     check("FR-014 манифест недоступен → код 2", rc == EXIT_NO_DATA, f"rc={rc}")
+
+    # T-42 / SC-007: локальный пред-PR список == CI-список (минус служебные джобы).
+    # Локальный список = применимые проверки контура, у которых в workflow есть
+    # команды; CI-список = все применимые. Расхождение допустимо ТОЛЬКО на
+    # служебные записи (class: infrastructure, mode: always).
+    try:
+        real = load_manifest(REPO_ROOT / "config/ci/checks.yml")
+        wf = load_yaml(REPO_ROOT / ".forgejo/workflows/lint.yml")
+        by_id = {c["id"]: c for c in real["checks"]}
+        categories = [
+            ("знания", ["knowledge/system/infra/tracker.md"]),
+            ("спека", ["specs/692-selective-ci-checks/spec.md"]),
+            ("бэкенд", ["karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Foo.kt"]),
+            ("webvue3", ["webvue3/src/api/client.js"]),
+            ("karaoke-public", ["karaoke-public/src/main.js"]),
+            ("инфраструктура", ["deploy/docker-compose-app.yml"]),
+            ("tools", ["tools/check-ci-checks-manifest.sh"]),
+            ("config", ["config/ktlint/baseline.xml"]),
+            ("workflow", [".forgejo/workflows/lint.yml"]),
+            ("смешанное", ["knowledge/system/infra/tracker.md",
+                           "karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Foo.kt"]),
+        ]
+        problems = []
+        for label, paths in categories:
+            app, _ = compute_applicability(real, paths)
+            applicable = {cid for cid, v in app.items() if v["applicable"]}
+            local = {cid for cid in applicable
+                     if by_id[cid]["class"] != "infrastructure"
+                     and by_id[cid]["cost"] != "heavy"}
+            service = applicable - local
+            for cid in service:
+                rec = by_id[cid]
+                if rec["class"] == "infrastructure" and rec["mode"] != "always":
+                    problems.append(f"{label}: служебный джоб {cid} не always")
+            for cid in local:
+                if extract_commands(wf, cid):
+                    continue
+                # Локальный пред-PR прогон умеет исполнять только команды
+                # guard'ов (bash/python3 tools/...). Тяжёлые проверки (gradle,
+                # npm, docker) требуют CI-окружения — они по построению вне
+                # локального списка. Всё остальное без команд — пробел.
+                if by_id[cid]["cost"] != "heavy":
+                    problems.append(f"{label}: у {cid} нет команд в workflow "
+                                    f"(cost={by_id[cid]['cost']})")
+            for cid in applicable:
+                if cid not in by_id:
+                    problems.append(f"{label}: {cid} нет в манифесте")
+        check(f"T-42/SC-007 локальный список == CI-список на {len(categories)} категориях "
+              f"(тяжёлые — по построению CI-only)",
+              not problems, "; ".join(problems[:3]))
+    except Exception as exc:  # noqa: BLE001 - фикстура не должна ронять self-test
+        check("T-42/SC-007 локальный список == CI-список", False, str(exc)[:120])
     check("FR-014 без traceback в выводе", "Traceback" not in stderr.getvalue())
 
     # Агрегат: применимая проверка без результата → падение (fail-closed).

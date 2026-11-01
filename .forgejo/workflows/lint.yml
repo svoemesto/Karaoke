@@ -1183,7 +1183,7 @@ jobs:
   # применимость из манифеста и сверяет её с фактическими результатами
   # (fail-closed).
   ci-summary:
-    name: CI summary (applicable checks)
+    name: ci-summary (applicable checks)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes, actions-pinned-guard, root-junk-guard, heap-dump-retention-guard, allowlist-guardrails-guard, allowlist-automation-self-test, memory-guardrails-guard, build-config-guard, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, confirm-escape-guard, webvue3-unit-tests, karaoke-public-unit-tests, marker-escape-guard, secret-in-argv-guard, file-permissions-guard, karaoke-public-e2e, docs-lint, baseline-stats, kdoc-coverage, jsdoc-coverage, ssot-impact, direct-commits-guard, knowledge-structure, docker-image-tags-guard, no-jpa-imports-guard, value-placeholders-guard, no-mp4-mentions-guard, personal-fixtures-guard, security-headers-guard, ci-checks-manifest-guard]

@@ -243,7 +243,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] `config/ci/checks.yml` — развести зоны фронтендов: `webvue3/**` только у
+- [X] T030 [US2] `config/ci/checks.yml` — развести зоны фронтендов: `webvue3/**` только у
       `frontend-lint`, `frontend-build`, `webvue3-unit-tests`, `confirm-escape-guard`,
       `marker-escape-guard`, `jsdoc-coverage`; `karaoke-public/**` — у `frontend-lint`,
       `frontend-build`, `karaoke-public-unit-tests`, `karaoke-public-e2e`, `jsdoc-coverage`;
@@ -251,19 +251,19 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       `no-jpa-imports-guard`, `value-placeholders-guard`, `no-mp4-mentions-guard`,
       `file-permissions-guard`, `personal-fixtures-guard`, `ssot-impact`.
       → проверка: `python3 -c "import yaml; d=yaml.safe_load(open('config/ci/checks.yml')); [print(c['id'], c.get('paths')) for c in d['checks'] if c['id'] in ('frontend-lint','webvue3-unit-tests','karaoke-public-unit-tests')]"` → разные зоны
-- [ ] T031 [US2] `config/ci/checks.yml` — зона `karaoke-public-e2e` = `karaoke-public/**` +
+- [X] T031 [US2] `config/ci/checks.yml` — зона `karaoke-public-e2e` = `karaoke-public/**` +
       `deploy/karaoke-public/Dockerfile`, `cost: heavy` (D-10: общий docker-демон и фиксированный
       порт 17907 — разделяемый ресурс).
       → проверка: `grep -A9 'id: karaoke-public-e2e' config/ci/checks.yml` → зона и `cost: heavy`
-- [ ] T032 [US2] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — `karaoke-public-e2e`
+- [X] T032 [US2] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — `karaoke-public-e2e`
       получает явный `needs` на все тяжёлые джобы (`cost: heavy` из манифеста): e2e стартует только
       после их завершения; порядок идентичен в обеих копиях (FR-018/FR-019, SC-009).
       → проверка: `grep -A3 'karaoke-public-e2e:' .forgejo/workflows/lint.yml` → `needs` со всеми тяжёлыми; то же в `.github/`
-- [ ] T033 [US2] `tools/check-ci-checks-manifest.sh` — инвариант M-11: `needs` джоба
+- [X] T033 [US2] `tools/check-ci-checks-manifest.sh` — инвариант M-11: `needs` джоба
       `karaoke-public-e2e` покрывает все проверки с `cost: heavy` из манифеста, в обеих копиях
       (нарушение → rc=1).
       → проверка: `bash tools/check-ci-checks-manifest.sh; echo rc=$?` → `0`
-- [ ] T034 [US2] `tools/ci-checks.py --self-test` — фикстуры раздельных зон: правка в `webvue3/`
+- [X] T034 [US2] `tools/ci-checks.py --self-test` — фикстуры раздельных зон: правка в `webvue3/`
       активирует `frontend-lint`/`frontend-build`/`webvue3-unit-tests` и **не** активирует
       `backend-build`/`karaoke-public-unit-tests`; правка в `karaoke-public/` — симметрично.
       → проверка: `python3 tools/ci-checks.py --self-test; echo rc=$?` → `0`
@@ -282,7 +282,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] `tools/merge-pr.sh` — решение о merge принимается по **единственному**
+- [X] T035 [US3] `tools/merge-pr.sh` — решение о merge принимается по **единственному**
       агрегированному сигналу: статус-чек контекста `ci-summary` со статусом `success`; статус-чеки
       отдельных проверок в решении о merge не участвуют (FR-010, D-05); отсутствие сигнала → отказ
       «прогон не отработал», а не merge.
@@ -293,23 +293,23 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       красного контекста. Приоритета между `(pull_request)` и `(push)` нет — это ослабило бы гейт
       по сравнению с сегодняшним требованием `success` по всем статус-чекам коммита.
       → проверка: `bash tools/merge-pr.sh 41 --dry-run` → выводит состояние сигнала `ci-summary`
-- [ ] T036 [US3] `tools/merge-pr.sh` — пагинация выборки статусов: **постраничный** сбор — цикл по
+- [X] T036 [US3] `tools/merge-pr.sh` — пагинация выборки статусов: **постраничный** сбор — цикл по
       `page` (с `limit`), пока не собрано `X-Total-Count` контекстов; сверка числа полученных с
       заголовком `X-Total-Count`; расхождение → отказ (KARAOKE-377: без `limit` API отдаёт 30
       контекстов из 33, а при росте числа контекстов одного запроса с `limit=100` уже не хватит).
       → проверка: фикстура из T039 + `grep -n 'X-Total-Count' tools/merge-pr.sh` → виден цикл по `page`
-- [ ] T037 [US3] `tools/merge-pr.sh` — `workflow_dispatch` не создаёт статус-чеков → подсказка
+- [X] T037 [US3] `tools/merge-pr.sh` — `workflow_dispatch` не создаёт статус-чеков → подсказка
       «перезапусти прогон» заменена на «ручной перезапуск прогон зелёным не делает; нужен новый
       push/PR» (KARAOKE-378).
       → проверка: `grep -n 'workflow_dispatch' tools/merge-pr.sh` → в тексте подсказки
-- [ ] T038 [US3] `tools/merge-pr.sh` — манифест `config/ci/checks.yml` гейтом используется
+- [X] T038 [US3] `tools/merge-pr.sh` — манифест `config/ci/checks.yml` гейтом используется
       **только для диагностики**: перечень ожидаемых проверок, перечисление пропущенных. Решение о
       слиянии принимается **по `ci-summary`**; статус-чеки отдельных проверок в решении **не
       участвуют** (D-05), зелёного статуса по каждой проверке из манифеста гейт **не требует**.
       Согласованность манифеста и workflow ловит гейт согласованности — гейту merge знать о нём
       не нужно.
       → проверка: `grep -n 'checks.yml' tools/merge-pr.sh` → манифест упомянут в диагностической части
-- [ ] T039 [US3] `tools/merge-pr.sh --self-test` — вынести разбор выборки статусов и выбор
+- [X] T039 [US3] `tools/merge-pr.sh --self-test` — вынести разбор выборки статусов и выбор
       контекста `ci-summary` в отдельные функции и добавить фикстуры: (1) **более 30 статусов**,
       где красная проверка «теряется» в усечённом окне — полный обход обязан её увидеть и отказать
       (SC-006); (2) ни одного контекста `ci-summary` → отказ «прогон не отработал»; (3) два
@@ -330,20 +330,20 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 ### Implementation for User Story 5
 
-- [ ] T040 [US5] `tools/ci-checks.py --local` — список применимых проверок из манифеста (та же
+- [X] T040 [US5] `tools/ci-checks.py --local` — список применимых проверок из манифеста (та же
       реализация правила) + список команд из workflow по job-id (`jobs.<id>.steps[*].run`),
       уважение `working-directory`, разворот матрицы на оба значения (`webvue3`,
       `karaoke-public`), фильтрация только guard-команд (`bash tools/`, `python3 tools/`,
       `python tools/`, `./tools/`) — та же фильтрация, что в нынешнем R-47.
       → проверка: `python3 tools/ci-checks.py --local --help` → rc=0; в выводе видно, что для `frontend-lint` развёрнуты оба SPA
-- [ ] T041 [US5] `tools/ci-checks.py --local` — исполнение команд по порядку, отчёт по каждой
+- [X] T041 [US5] `tools/ci-checks.py --local` — исполнение команд по порядку, отчёт по каждой
       проверке; код возврата `0`/`1`/`2`; `--all` — полный набор независимо от применимости
       (страховка). **Термины берутся из словаря** [data-model.md §6](data-model.md) — «применимая
       проверка», «неприменимая проверка» («это не „пройдена“ и не „зелёная“»), «не отработало»,
       «блокирующий набор»; собственных терминов вроде `APPLICABLE`/`SKIPPED` в отчёте не
       заводим — словарь один.
       → проверка: `python3 tools/ci-checks.py --local; echo rc=$?` → только применимые проверки исполнены
-- [ ] T042 [US5] Сверка списков «локально ↔ CI» средствами `tools/ci-checks.py` — правило считается
+- [X] T042 [US5] Сверка списков «локально ↔ CI» средствами `tools/ci-checks.py` — правило считается
       одной реализацией (FR-007). Набор фикстур **из не менее чем 10 категорий правок** (SC-007):
       `knowledge/`, `specs/`, `webvue3/`, `karaoke-public/`, бэкенд (`karaoke-app/`, `karaoke-web/`),
       gradle-конфиги (`build.gradle.kts`, `settings.gradle.kts`, `gradle/`), `deploy/`, `tools/`,
@@ -364,19 +364,19 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 ### Implementation for User Story 6
 
-- [ ] T043 [US6] `tools/ci-checks.py` — режим полного набора по событию: `push` в `master`,
+- [X] T043 [US6] `tools/ci-checks.py` — режим полного набора по событию: `push` в `master`,
       `schedule`, ручной `workflow_dispatch` с `full=true` → `all=true` (дифф не считается);
       явный флаг `--all` сохраняется. Источники события — env раннера (`GITHUB_EVENT_NAME`,
       `GITHUB_REF`, `GITHUB_BASE_REF`) и вход `full`, передаваемый в джоб `changes` через env.
       → проверка: `GITHUB_EVENT_NAME=schedule python3 tools/ci-checks.py --emit-outputs | head -1` → `all=true`
-- [ ] T044 [US6] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — `workflow_dispatch`
+- [X] T044 [US6] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — `workflow_dispatch`
       с входом `full` (boolean, default `false`); вход передаётся в джоб `changes` через env.
       → проверка: `grep -A6 'workflow_dispatch' .forgejo/workflows/lint.yml` → вход `full` присутствует
-- [ ] T045 [US6] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — `concurrency`:
+- [X] T045 [US6] `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` — `concurrency`:
       обычная группа — по ref с `cancel-in-progress: true` (как сейчас), отдельная группа для
       расписания и e2e — `cancel-in-progress: false` (полный прогон не отменяется обычным и наоборот).
       → проверка: `grep -n -A3 'concurrency' .forgejo/workflows/lint.yml` → есть группа с `cancel-in-progress: false`
-- [ ] T046 [US6] Проверка полного набора на фикстуре `tools/ci-checks.py --self-test`: при `all=true`
+- [X] T046 [US6] Проверка полного набора на фикстуре `tools/ci-checks.py --self-test`: при `all=true`
       применимы все записи манифеста (35) независимо от зон.
       → проверка: `python3 tools/ci-checks.py --self-test; echo rc=$?` → `0` (фикстура «all=true → применимы все»)
 
@@ -471,7 +471,7 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
       → проверка: `grep -A8 'ci-checks-manifest-guard:' .forgejo/workflows/lint.yml` → джоб есть и
       self-test-шаги присутствуют; то же в `.github/workflows/lint.yml`;
       `bash tools/check-ci-workflow-sync.sh; echo rc=$?` → `0`
-- [ ] T061 [US3] **Фаза 6 (US3)** — `tools/merge-pr.sh`: пересчёт применимости **самим гейтом**
+- [X] T061 [US3] **Фаза 6 (US3)** — `tools/merge-pr.sh`: пересчёт применимости **самим гейтом**
       (D-18 п. 2) — вызов
       `python3 tools/ci-checks.py --manifest config/ci/checks.yml --base origin/master --head <head_sha> --list`
       на head-коммите PR. Это независимый источник истины: гейт не доверяет заданию агрегата, а сам

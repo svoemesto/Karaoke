@@ -343,6 +343,52 @@ if E2E_JOB in forgejo:
     if "changes" not in needs:
         fail(1, f"M-11: needs джоба '{E2E_JOB}' не содержит 'changes'")
 
+# --- M-14: секция known_unmapped (утверждённо не читаемые пути) --------------
+# Правила: (а) запись не пересекается ни с одной зоной проверки (иначе избыточна),
+# (б) catch-all запрещён, (в) у каждой записи обязателен note, (г) размер списка
+# и число покрытых tracked-файлов печатаются всегда — рост списка должен быть
+# виден сразу, а не всплыть через полгода.
+zone_patterns = []
+for cid, raw in sorted(records.items()):
+    zone_patterns += list(raw.get("paths") or []) if raw.get("mode") == "paths" else []
+    zone_patterns += list(raw.get("watch") or [])
+
+known_unmapped = manifest.get("known_unmapped") or []
+ku_files = set()
+ku_entries = 0
+for entry in known_unmapped:
+    if not isinstance(entry, dict):
+        fail(1, "M-14: запись known_unmapped должна быть словарём")
+        continue
+    ku_entries += 1
+    paths = entry.get("paths") or []
+    note = (entry.get("note") or "").strip()
+    if not paths:
+        fail(1, "M-14: запись known_unmapped без paths")
+        continue
+    if not note:
+        fail(1, "M-14: запись known_unmapped требует note "
+                "(чем подтверждено, что путь не читается)")
+    for pattern in paths:
+        if pattern.strip() in ("**", "*", "/*", "**/*", "**/**"):
+            fail(1, f"M-14: known_unmapped не допускает catch-all {pattern!r}")
+            continue
+        rx = re.compile(pattern_to_regex(pattern))
+        matched = [p for p in tracked if rx.match(p)]
+        if not matched:
+            fail(1, f"M-14: known_unmapped → '{pattern}' не матчит ни одного tracked-файла")
+            continue
+        for path in matched:
+            ku_files.add(path)
+            for zp in zone_patterns:
+                if re.compile(pattern_to_regex(zp)).match(path):
+                    fail(1, f"M-14: known_unmapped → '{pattern}' пересекается с зоной "
+                            f"'{zp}' (файл {path}) — запись избыточна")
+                    break
+
+print(f"known_unmapped: {ku_entries} записей, {len(ku_files)} tracked-файлов "
+      f"(пустой список = строгое поведение FR-004)")
+
 if failures:
     for code, text in failures:
         print(f"[FAIL] {text}")

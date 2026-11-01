@@ -67,30 +67,30 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 **⚠️ CRITICAL**: ни одна пользовательская история не может быть реализована до завершения этой фазы.
 
-- [ ] T003 Создать `tools/ci-checks.py` — каркас CLI: argparse (`--manifest`, `--workflow`,
+- [X] T003 Создать `tools/ci-checks.py` — каркас CLI: argparse (`--manifest`, `--workflow`,
       `--base`, `--json`, `--all`), взаимоисключающие режимы `--emit-outputs` / `--summary` /
       `--local` / `--self-test`, коды возврата `0` / `1` / `2`, docstring с контрактом и ссылкой на
       `specs/692-selective-ci-checks/contracts/ci-checks-cli.md`.
       → проверка: `python3 tools/ci-checks.py --help` → rc=0, в списке все четыре режима
-- [ ] T004 [P] `tools/ci-checks.py` — загрузка и валидация манифеста: `version` (неизвестная →
+- [X] T004 [P] `tools/ci-checks.py` — загрузка и валидация манифеста: `version` (неизвестная →
       rc=2), `unknown_paths`, `groups`, `checks`; нечитаемый/невалидный YAML → rc=2
       («проверка не выполнена», FR-014).
       → проверка: `python3 tools/ci-checks.py --manifest /nonexistent.yml --emit-outputs; echo rc=$?` → `2`
-- [ ] T005 [P] `tools/ci-checks.py` — матчинг глобов: `**`, `*`, каталог без слэша, ведущий `/`
+- [X] T005 [P] `tools/ci-checks.py` — матчинг глобов: `**`, `*`, каталог без слэша, ведущий `/`
       (привязка к корню); функция должна быть чистой и покрытой фикстурами T-1…T-4.
       → проверка: `python3 tools/ci-checks.py --self-test` (после T009) → rc=0
-- [ ] T006 `tools/ci-checks.py` — вычисление изменённых путей: `git diff <base>...HEAD --name-only`
+- [X] T006 `tools/ci-checks.py` — вычисление изменённых путей: `git diff <base>...HEAD --name-only`
       (база `origin/master`, fallback `master`) + рабочее дерево (staged, unstaged, untracked);
       union, нормализация, переименование = оба пути (C-1); при отсутствии базы/истории → `all=true`.
       → проверка: `python3 tools/ci-checks.py --emit-outputs | head -3` → `all=…` и ключи проверок
-- [ ] T007 `tools/ci-checks.py` — вычисление применимости: `mode: paths` (зона = объединение глобов),
+- [X] T007 `tools/ci-checks.py` — вычисление применимости: `mode: paths` (зона = объединение глобов),
       `mode: always` (всегда применима), группы (применимость любого члена → применимы все),
       `unknown_paths: all` (путь вне зон → применимо всё), флаг полного набора.
       → проверка: `python3 tools/ci-checks.py --emit-outputs | grep -E '^(all|ssot_impact|knowledge_structure)='` → согласованная пара `ssot_impact`/`knowledge_structure`
-- [ ] T008 `tools/ci-checks.py --emit-outputs` — печать `all=<bool>` и по ключу на проверку
+- [X] T008 `tools/ci-checks.py --emit-outputs` — печать `all=<bool>` и по ключу на проверку
       (`id` с заменой `-` на `_`), значения `true`/`false` (D-15).
       → проверка: `python3 tools/ci-checks.py --emit-outputs | grep -c '='` → число ключей = 1 + 32
-- [ ] T009 `tools/ci-checks.py --self-test` — 10 фикстур контракта CLI §6 (T-1…T-10): глоб-совпадения
+- [X] T009 `tools/ci-checks.py --self-test` — 10 фикстур контракта CLI §6 (T-1…T-10): глоб-совпадения
       и не-совпадения, зона вне изменений, группа `ssoT`, `mode: always`, `unknown_paths: all`,
       неизвестная версия манифеста → rc=2, `--summary` с применимой проверкой без результата → rc=1.
       **Плюс две фикстуры по критериям успеха** (SC-001, SC-002):

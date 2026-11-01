@@ -63,6 +63,8 @@ checks:
     mode: paths
     paths:
       - .github/workflows/*.yml
+      - tools/check-actions-pinned.sh
+      - tools/fixtures/actions-pinned/**
     evidence: "tools/check-actions-pinned.sh:33,105; lint.yml:64"
 
   - id: root-junk-guard
@@ -74,6 +76,7 @@ checks:
     # (argparse, collections, os, re, subprocess, sys, json, typing) в корне.
     paths:
       - /*
+      - tools/check-root-junk.sh
     evidence: "tools/check-root-junk.sh:16,25,38; lint.yml:83"
 
   - id: heap-dump-retention-guard
@@ -96,6 +99,7 @@ checks:
       - deploy/admin-ip-allowlist.service
       - deploy/admin-ip-allowlist.timer
       - specs/677-admin-ip-allowlist/contracts/automation-cli.md
+      - tools/check-allowlist-guardrails.sh
     evidence: "tools/check-allowlist-guardrails.sh:67,165,205-207,272; lint.yml:119"
 
   - id: allowlist-automation-self-test
@@ -116,6 +120,7 @@ checks:
     paths:
       - deploy/docker-compose-app.yml
       - deploy/heap-dump-retention.sh
+      - tools/check-memory-guardrails.sh
     evidence: "tools/check-memory-guardrails.sh:112,113; lint.yml:155"
 
   - id: build-config-guard
@@ -135,6 +140,8 @@ checks:
       - .idea/misc.xml
       - tools/gradle-heap-dump.sh
       - deploy/**/*.sh
+      - tools/check-build-config.sh
+      - tools/check-gradle-wrapper.sh
     evidence: "tools/check-build-config.sh:108-127,194,215,258; tools/check-gradle-wrapper.sh:154-156,201; lint.yml:184-196"
 
   # === Backend (Kotlin) ===
@@ -193,6 +200,7 @@ checks:
     paths:
       - webvue3/**
       - karaoke-public/**
+      - tools/check-eslint-baseline.sh
     evidence: "lint.yml:344,372,379; tools/check-eslint-baseline.sh:50,93,101"
 
   - id: frontend-build
@@ -215,6 +223,8 @@ checks:
       - webvue3/src/**/*.js
       - config/frontend/confirm-safe-expressions.txt
       - tools/fixtures/confirm-escape/**
+      - tools/check-confirm-escape.py
+      - tools/check-confirm-escape-fixtures.sh
     evidence: "tools/check-confirm-escape.py:582,587,602; lint.yml:431,435"
 
   - id: webvue3-unit-tests
@@ -250,6 +260,7 @@ checks:
       - webvue3/src/components/SongEditor/useReviewModalFormat.js
       - webvue3/src/components/SongEditor/__tests__/useReviewModalFormat.test.js
       - tools/fixtures/marker-escape/**
+      - tools/check-marker-escape-guard.sh
     evidence: "tools/check-marker-escape-guard.sh:38,40-43,114-115; lint.yml:509"
 
   - id: secret-in-argv-guard
@@ -260,6 +271,7 @@ checks:
     # Guard обходит ВСЕ tracked-файлы *.sh / *.bash репозитория.
     paths:
       - "**/*.sh"
+      - tools/check-secret-in-argv.sh
     evidence: "tools/check-secret-in-argv.sh:141; lint.yml:528,532"
 
   - id: file-permissions-guard
@@ -272,6 +284,7 @@ checks:
       - karaoke-web/src/main/**/*.kt
       - deploy/**/*.sh
       - tools/**/*.sh
+      - tools/check-file-permissions.sh
     evidence: "tools/check-file-permissions.sh:136,145; lint.yml:551,554"
 
   # === End-to-end ===
@@ -301,6 +314,12 @@ checks:
       - archive/docs/features/*.md
       - .forgejo/workflows/lint.yml
       - .github/workflows/lint.yml
+      - tools/check-ci-workflow-sync.sh
+      - tools/check-feature-doc.sh
+      - tools/check-no-docs-dir.sh
+      - tools/fixtures/ci-workflow-sync/**
+      - tools/fixtures/no-docs-dir/**
+      - .forgejo/**
     evidence: "lint.yml:664-666,675,681,686; tools/check-no-docs-dir.sh:60,84; tools/check-ci-workflow-sync.sh:62-63"
 
   - id: baseline-stats
@@ -313,6 +332,7 @@ checks:
       - config/detekt/baseline*.xml
       - webvue3/.eslint-baseline.json
       - karaoke-public/.eslint-baseline.json
+      - tools/baseline-stats.sh
     # Расхождение в самом инструменте (не правило зоны): guard читает
     # "$DETEKT_DIR"/baseline-*.xml (baseline-stats.sh:84), а файл называется
     # config/detekt/baseline.xml — detekt-строка сейчас не печатается.
@@ -326,6 +346,7 @@ checks:
     paths:
       - karaoke-app/src/main/kotlin/**/*.kt
       - karaoke-web/src/main/kotlin/**/*.kt
+      - tools/check-kdoc-coverage.sh
     evidence: "tools/check-kdoc-coverage.sh:24-27,60; lint.yml:721"
 
   - id: jsdoc-coverage
@@ -338,6 +359,7 @@ checks:
       - webvue3/src/**/*.js
       - karaoke-public/src/**/*.vue
       - karaoke-public/src/**/*.js
+      - tools/check-jsdoc-coverage.sh
     evidence: "tools/check-jsdoc-coverage.sh:23-26,84; lint.yml:736"
 
   - id: ssot-impact
@@ -351,6 +373,8 @@ checks:
       - "karaoke-app/**/model/Subscription.kt"
       - "karaoke-app/**/mlt/**"
       - "karaoke-app/**/PlayerMp4RenderService.kt"
+      - tools/check-ssot-impact.py
+      - .ssot-map.yml
     # Зона = код, покрытый правилами .ssot-map.yml (инструмент читает diff и
     # правила карты). Правила для SiteUserService/AuthService/SongService/
     # StatsService/PublicSongEditorController ссылаются на karaoke-app/**, а
@@ -382,6 +406,18 @@ checks:
       - karaoke-app/**/docs/*.sql
       - config/knowledge/*.txt
       - .github/workflows/lint.yml
+      - tools/check-audit-registry.py
+      - tools/check-doc-references.py
+      - tools/check-knowledge-cross-links.sh
+      - tools/check-knowledge-structure.sh
+      - tools/check-no-legacy-tbl-settings.sh
+      - tools/check-recordhash-consistency.py
+      - tools/check-spec-issue-link.py
+      - tools/lint-knowledge.py
+      - tools/fixtures/audit-registry/**
+      - specs/**
+      - archive/docs/**
+      - .github/**
     evidence: "lint.yml:799-868; tools/check-knowledge-structure.sh:27-50; tools/check-recordhash-consistency.py:160-208; tools/check-doc-references.py:44-59; tools/check-spec-issue-link.py:316,324"
 
   # === Правила кода и текста ===
@@ -394,6 +430,7 @@ checks:
     # Guard обходит ВСЕ tracked-файлы **/Dockerfile* репозитория.
     paths:
       - "**/Dockerfile*"
+      - tools/check-docker-image-tags.sh
     evidence: "tools/check-docker-image-tags.sh:205-207; lint.yml:910"
 
   - id: no-jpa-imports-guard
@@ -404,6 +441,7 @@ checks:
     paths:
       - karaoke-app/src/main/**/*.kt
       - karaoke-web/src/main/**/*.kt
+      - tools/check-no-jpa-imports.sh
     evidence: "tools/check-no-jpa-imports.sh:41-43,89; lint.yml:926"
 
   - id: value-placeholders-guard
@@ -414,6 +452,7 @@ checks:
     paths:
       - karaoke-app/src/**/*.kt
       - karaoke-web/src/**/*.kt
+      - tools/check-value-placeholders.sh
     evidence: "tools/check-value-placeholders.sh:18-19,23; lint.yml:941"
 
   - id: no-mp4-mentions-guard
@@ -426,6 +465,7 @@ checks:
       - karaoke-public/src/**
       - karaoke-app/src/**
       - karaoke-web/src/**
+      - tools/check-no-mp4-mentions.sh
     evidence: "tools/check-no-mp4-mentions.sh:60,114; lint.yml:956"
 
   - id: personal-fixtures-guard
@@ -438,6 +478,7 @@ checks:
     paths:
       - karaoke-app/src/main/resources/**
       - karaoke-web/src/main/resources/**
+      - tools/check-no-personal-fixtures.sh
     evidence: "tools/check-no-personal-fixtures.sh:74-78,82,92-97; lint.yml:970"
 
   - id: security-headers-guard
@@ -449,6 +490,7 @@ checks:
       - deploy/prod-single-host/80to8897
       - deploy/prod-single-host/nginx_karaoke-public.conf
       - karaoke-public/nginx_karaoke-public.conf
+      - tools/check-security-headers.py
     evidence: "tools/check-security-headers.py:50-68; lint.yml:990"
 
   # === Служебные джобы контура (в конце — они зависят от остальных) ===

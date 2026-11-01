@@ -1,0 +1,47 @@
+# Фикстура гейта согласованности манифеста (не настоящий workflow).
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  changes:
+    name: changed files → applicable checks
+    runs-on: ubuntu-latest
+    steps:
+      - run: python3 tools/ci-checks.py --emit-outputs
+
+  backend-build:
+    name: backend build
+    needs: changes
+    if: needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./gradlew :karaoke-app:compileKotlin
+
+  karaoke-public-e2e:
+    name: e2e (karaoke-public)
+    needs: [changes, backend-build]
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.karaoke_public_e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: npx playwright test
+
+  docs-lint:
+    name: Docs (structure + offline links)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.docs_lint == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash tools/check-feature-doc.sh
+
+  ci-summary:
+    name: CI summary (applicable checks)
+    needs: [changes, backend-build, karaoke-public-e2e, docs-lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: python3 tools/ci-checks.py --summary

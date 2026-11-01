@@ -1,0 +1,5 @@
+knowledge/adr/local-0017-selective-ci-checks.md
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Main.kt
+karaoke-public/e2e/nginx-e2e.conf
+deploy/karaoke-public/Dockerfile
+build.gradle.kts

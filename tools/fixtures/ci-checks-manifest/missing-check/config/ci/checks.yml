@@ -1,0 +1,39 @@
+# Фикстура манифеста (не настоящий манифест).
+version: 1
+unknown_paths: all
+checks:
+  - id: changes
+    class: infrastructure
+    title: changed files → applicable checks
+    gate: false
+    cost: info
+    mode: always
+    evidence: "tools/ci-checks.py --emit-outputs"
+
+  - id: backend-build
+    title: backend build (Kotlin)
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - karaoke-app/**
+      - build.gradle.kts
+    evidence: "lint.yml:270"
+
+  - id: karaoke-public-e2e
+    title: e2e (karaoke-public)
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - karaoke-public/**
+      - deploy/karaoke-public/Dockerfile
+    evidence: "lint.yml:582"
+
+  - id: ci-summary
+    class: infrastructure
+    title: CI summary (applicable checks)
+    gate: false
+    cost: info
+    mode: always
+    evidence: "tools/ci-checks.py --summary"

@@ -41,16 +41,97 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-  workflow_dispatch: {}
+  # Полный набор проверок по расписанию — страховка от накопленных
+  # пропусков (FR-005). Cron-триггер поддерживается сервером (в API
+  # Forgejo 15 есть типы Cron/Schedule/ScheduleID).
+  # ВНИМАНИЕ (KARAOKE-379): в Forgejo v16+ правильная переменная ref в
+  # контексте расписания — `${{ forgejo.ref }}`, а не `github.ref`
+  # (release notes 16.0.0, PR 13081). Явный ref: здесь НЕ задаём: живёт
+  # сервер v15.0.10, трактовка ref версия-зависима, а для полного набора
+  # ref на применимость не влияет (all=true). После обновления до v17.0.1+ —
+  # задача T059 (спека 692).
+  schedule:
+    - cron: '0 4 * * 1'
+  # Ручной запуск: full=true -> полный набор проверок (в обход зон).
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 'Полный набор проверок (игнорировать зоны интереса)'
+        type: boolean
+        default: false
 
 concurrency:
-  group: lint-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Группа по событию: полный прогон по расписанию не отменяется обычным
+  # прогоном и наоборот (страховка FR-005 не должна теряться).
+  group: lint-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 permissions:
   contents: read
 
 jobs:
+  # === Правило выборочного запуска: какие проверки применимы ===
+  # Единственный носитель правила — config/ci/checks.yml (R-49, ADR
+  # knowledge/adr/local-0017-selective-ci-checks.md). Этот джоб считает
+  # применимые проверки и публикует их как outputs; каждая проверка
+  # запускается, только если её зона интереса затронута (FR-002).
+  changes:
+    name: changed files → applicable checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      all: ${{ steps.applicable.outputs.all }}
+      changes: ${{ steps.applicable.outputs.changes }}
+      actions_pinned_guard: ${{ steps.applicable.outputs.actions_pinned_guard }}
+      root_junk_guard: ${{ steps.applicable.outputs.root_junk_guard }}
+      heap_dump_retention_guard: ${{ steps.applicable.outputs.heap_dump_retention_guard }}
+      allowlist_guardrails_guard: ${{ steps.applicable.outputs.allowlist_guardrails_guard }}
+      allowlist_automation_self_test: ${{ steps.applicable.outputs.allowlist_automation_self_test }}
+      memory_guardrails_guard: ${{ steps.applicable.outputs.memory_guardrails_guard }}
+      build_config_guard: ${{ steps.applicable.outputs.build_config_guard }}
+      backend_lint: ${{ steps.applicable.outputs.backend_lint }}
+      backend_build: ${{ steps.applicable.outputs.backend_build }}
+      backend_test: ${{ steps.applicable.outputs.backend_test }}
+      frontend_lint: ${{ steps.applicable.outputs.frontend_lint }}
+      frontend_build: ${{ steps.applicable.outputs.frontend_build }}
+      confirm_escape_guard: ${{ steps.applicable.outputs.confirm_escape_guard }}
+      webvue3_unit_tests: ${{ steps.applicable.outputs.webvue3_unit_tests }}
+      karaoke_public_unit_tests: ${{ steps.applicable.outputs.karaoke_public_unit_tests }}
+      marker_escape_guard: ${{ steps.applicable.outputs.marker_escape_guard }}
+      secret_in_argv_guard: ${{ steps.applicable.outputs.secret_in_argv_guard }}
+      file_permissions_guard: ${{ steps.applicable.outputs.file_permissions_guard }}
+      karaoke_public_e2e: ${{ steps.applicable.outputs.karaoke_public_e2e }}
+      docs_lint: ${{ steps.applicable.outputs.docs_lint }}
+      baseline_stats: ${{ steps.applicable.outputs.baseline_stats }}
+      kdoc_coverage: ${{ steps.applicable.outputs.kdoc_coverage }}
+      jsdoc_coverage: ${{ steps.applicable.outputs.jsdoc_coverage }}
+      ssot_impact: ${{ steps.applicable.outputs.ssot_impact }}
+      direct_commits_guard: ${{ steps.applicable.outputs.direct_commits_guard }}
+      knowledge_structure: ${{ steps.applicable.outputs.knowledge_structure }}
+      docker_image_tags_guard: ${{ steps.applicable.outputs.docker_image_tags_guard }}
+      no_jpa_imports_guard: ${{ steps.applicable.outputs.no_jpa_imports_guard }}
+      value_placeholders_guard: ${{ steps.applicable.outputs.value_placeholders_guard }}
+      no_mp4_mentions_guard: ${{ steps.applicable.outputs.no_mp4_mentions_guard }}
+      personal_fixtures_guard: ${{ steps.applicable.outputs.personal_fixtures_guard }}
+      security_headers_guard: ${{ steps.applicable.outputs.security_headers_guard }}
+      ci_checks_manifest_guard: ${{ steps.applicable.outputs.ci_checks_manifest_guard }}
+      ci_summary: ${{ steps.applicable.outputs.ci_summary }}
+    steps:
+      - name: Checkout (полная история — нужен merge-base с origin/master)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: PyYAML (в образе раннера есть; pip install — запасной путь)
+        run: python3 -c "import yaml; print('pyyaml', yaml.__version__)" || pip install pyyaml
+
+      - name: Applicable checks
+        id: applicable
+        env:
+          # Ручной полный прогон (workflow_dispatch с full=true).
+          CI_CHECKS_FULL: ${{ inputs.full }}
+        run: python3 tools/ci-checks.py --manifest config/ci/checks.yml --emit-outputs
+
   # === Guard: actions закреплены по SHA коммита (BR-508, PKG-S3-19) ===
   # Плавающий тег (`actions/checkout@v4`) можно перенаправить на другой
   # коммит в чужом репозитории — CI исполнит новый код без ревью.
@@ -58,6 +139,8 @@ jobs:
   # SHA — отдельным PR (Dependabot — решение владельца).
   actions-pinned-guard:
     name: actions pinned by SHA (BR-508)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.actions_pinned_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -77,6 +160,8 @@ jobs:
   # от этого не спасают (обходятся `git add -f`) — поэтому отдельный guard.
   root-junk-guard:
     name: root junk files (BR-394)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.root_junk_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -94,6 +179,8 @@ jobs:
   # (hook heap-dump-retention-self-test) — политика не остаётся ручным шагом.
   heap-dump-retention-guard:
     name: heap dump retention policy (BR-630)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.heap_dump_retention_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -113,6 +200,8 @@ jobs:
   # tools/check-allowlist-guardrails.sh.
   allowlist-guardrails-guard:
     name: allowlist guardrails guard (BR-631)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.allowlist_guardrails_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -128,6 +217,8 @@ jobs:
   # недоступном проде, ограничение частоты, состав PR. Прод-хост не затрагивается.
   allowlist-automation-self-test:
     name: allowlist automation self-test (FR-018)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.allowlist_automation_self_test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -149,6 +240,8 @@ jobs:
   # ручной tools/check-deploy-hardening.sh делегирует тому же скрипту.
   memory-guardrails-guard:
     name: memory guardrails guard (BR-630)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.memory_guardrails_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -178,6 +271,8 @@ jobs:
   # выполнена (правило пакета #402).
   build-config-guard:
     name: build config guard (BR-499/BR-527/BR-528/BR-529/BR-530)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.build_config_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -205,6 +300,8 @@ jobs:
   # config/ktlint/baseline-<module>.xml для каждого subproject.
   backend-lint:
     name: ktlint (Kotlin/Java)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.backend_lint == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -240,6 +337,8 @@ jobs:
   # Секреты не нужны, деплой/контейнеры не задействованы.
   backend-build:
     name: backend build (Kotlin)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.backend_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -274,6 +373,8 @@ jobs:
   # сервисов, помечены @Disabled (Pass 465) — см. DEVELOPMENT.md.
   backend-test:
     name: backend unit tests
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.backend_test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -321,6 +422,8 @@ jobs:
   # падение в одном не маскировало успех в другом.
   frontend-lint:
     name: ESLint + Prettier (${{ matrix.spa }})
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.frontend_lint == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -365,6 +468,8 @@ jobs:
   # изменения», шаг 4): `cd <spa> && npm run build`.
   frontend-build:
     name: frontend build (${{ matrix.spa }})
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.frontend_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -398,6 +503,8 @@ jobs:
   # правки» — см. tools/check-confirm-escape-fixtures.sh.
   confirm-escape-guard:
     name: confirm escape guard (BR-123)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.confirm_escape_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -418,6 +525,8 @@ jobs:
   # базовой линией + 0 двойных экранирований» (прецедент спеки #215).
   webvue3-unit-tests:
     name: unit tests (webvue3)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.webvue3_unit_tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -446,6 +555,8 @@ jobs:
   # Теперь у пакета есть скрипт `npm run test:unit` и джоб, который его зовёт.
   karaoke-public-unit-tests:
     name: unit tests (karaoke-public)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.karaoke_public_unit_tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -473,6 +584,8 @@ jobs:
   # состоянию production-кода. Фикстуры «до/после» — tools/fixtures/marker-escape/.
   marker-escape-guard:
     name: marker escape guard (BR-523)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.marker_escape_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -497,6 +610,8 @@ jobs:
   # --password-stdin, `curl --config -`, .pgpass) нарушением не считаются.
   secret-in-argv-guard:
     name: secret in argv guard (BR-551/BR-552/BR-605)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.secret_in_argv_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -520,6 +635,8 @@ jobs:
   # допускаются.
   file-permissions-guard:
     name: file permissions guard (BR-115/BR-247)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.file_permissions_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -539,6 +656,16 @@ jobs:
   # + node:22-alpine), поднимает его и прогоняет Playwright.
   karaoke-public-e2e:
     name: e2e (karaoke-public)
+    needs: [changes, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, webvue3-unit-tests, karaoke-public-unit-tests]
+    # Отдельная concurrency-группа: e2e использует общий docker-демон
+    # раннера и фиксированный порт 17907, поэтому его прогон не
+    # отменяется (FR-018/FR-019).
+    concurrency:
+      group: lint-e2e-${{ github.ref }}
+      cancel-in-progress: false
+    # always(): у e2e несколько needs, и пропущенный (неприменимый)
+    # тяжёлый джоб иначе пропустил бы и e2e.
+    if: always() && (needs.changes.outputs.all == 'true' || needs.changes.outputs.karaoke_public_e2e == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -605,6 +732,8 @@ jobs:
   # блокировке IP-диапазонов GitHub).
   docs-lint:
     name: Docs (structure + offline links)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.docs_lint == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -649,6 +778,8 @@ jobs:
   # можно посмотреть в GitHub UI на странице запуска.
   baseline-stats:
     name: Baseline stats (informational)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.baseline_stats == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: true
@@ -668,6 +799,8 @@ jobs:
   # текущее фактическое покрытие ~97%, так что --strict здесь не блокер, а гарантия.
   kdoc-coverage:
     name: KDoc coverage
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.kdoc_coverage == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -683,6 +816,8 @@ jobs:
   # текущее фактическое покрытие 100%.
   jsdoc-coverage:
     name: JSDoc coverage
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.jsdoc_coverage == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -704,6 +839,8 @@ jobs:
   # изменение в knowledge/.
   ssot-impact:
     name: Knowledge SSoT impact
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.ssot_impact == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -734,6 +871,8 @@ jobs:
   # Подробности: knowledge/README.md, ADR-0007-adopt-knowledge-as-ssot.
   knowledge-structure:
     name: Knowledge SSoT structure
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.knowledge_structure == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -827,6 +966,23 @@ jobs:
         # Полный workflow: см. AGENTS.md § Issue-tracker OpenProject.
         run: python3 tools/check-spec-issue-link.py
 
+  # === Прямые коммиты в master (история git — не пропускается никогда) ===
+  # Проверяет историю git, а не файлы, поэтому вынесена из knowledge-structure
+  # в отдельную проверку: пока шаг лежал внутри, пропуск джоба выключал бы и
+  # её (FR-008).
+  direct-commits-guard:
+    name: direct commits to master
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: changes
+    # mode: always — проверка истории git не зависит от зон, пропуск недопустим.
+    if: always()
+    steps:
+      - name: Checkout (полная история обязательна для git log по origin/master)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
       - name: No direct commits to master (Pass 353, final safety net)
         # GitHub branch protection (server-side, admin-enforced) — primary defense.
         # Этот CI step — final safety net: detect any direct commit that somehow
@@ -854,8 +1010,11 @@ jobs:
   # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
   # (Pass 372-375 guards опущены намеренно: они падают в CI runner'е,
   #  требуют отдельного governance-PR для починки.)
+
   docker-image-tags-guard:
     name: docker-image-tags guard (Pass 379, R-04, R-05)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.docker_image_tags_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -874,6 +1033,8 @@ jobs:
   # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
   no-jpa-imports-guard:
     name: no-jpa-imports guard (Pass 379, R-07)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.no_jpa_imports_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -891,6 +1052,8 @@ jobs:
   # секретов всегда ложно (на проде отклонялась синхронизация и капча).
   value-placeholders-guard:
     name: "Value placeholders guard (@Value in Kotlin sources)"
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.value_placeholders_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -904,6 +1067,8 @@ jobs:
   # Локальный guard-скрипт enforce'ит R-11 (MP4/скачивание запрет по оферте).
   no-mp4-mentions-guard:
     name: no-mp4-mentions guard (Pass 379, R-11)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.no_mp4_mentions_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -920,6 +1085,8 @@ jobs:
   # PII-подобный образец запроса ЕГРН в каталогах ресурсов и MLT-фикстуры
   # с абсолютными личными путями. Baseline: tools/check-no-personal-fixtures.baseline.
   personal-fixtures-guard:
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.personal_fixtures_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -940,6 +1107,8 @@ jobs:
   # Регламент: knowledge/guidelines/security-headers.md.
   security-headers-guard:
     name: security headers guard (BR-558)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.security_headers_guard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -948,3 +1117,48 @@ jobs:
 
       - name: security headers guard (BR-558)
         run: python3 tools/check-security-headers.py
+
+  # === Гейт согласованности манифеста и обеих копий workflow ===
+  # Запускается ВСЕГДА (mode: always): его проверка «мёртвая зона» зависит
+  # от состава tracked-файлов — удаление файла может сделать зону мёртвой,
+  # поэтому привязать его к правке только workflow-файлов нельзя (FR-013).
+  ci-checks-manifest-guard:
+    name: CI checks manifest guard (R-47 п. 3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (полная история нужна self-test правила)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Manifest ↔ workflow consistency
+        run: bash tools/check-ci-checks-manifest.sh
+
+      - name: Self-test of the guard
+        run: bash tools/check-ci-checks-manifest.sh --self-test
+
+      - name: Self-test of the rule implementation
+        run: python3 tools/ci-checks.py --self-test
+
+  # === Агрегат прогона: единственный сигнал для merge-гейта ===
+  # Forgejo не умеет статус «skipped»: пропущенный джоб отдаётся как success
+  # с описанием «Has been skipped», поэтому по статус-чекам «неприменимо»
+  # неотличимо от «зелёного» (FR-003). Агрегат внутри прогона знает
+  # применимость из манифеста и сверяет её с фактическими результатами
+  # (fail-closed).
+  ci-summary:
+    name: ci-summary (applicable checks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [changes, actions-pinned-guard, root-junk-guard, heap-dump-retention-guard, allowlist-guardrails-guard, allowlist-automation-self-test, memory-guardrails-guard, build-config-guard, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, confirm-escape-guard, webvue3-unit-tests, karaoke-public-unit-tests, marker-escape-guard, secret-in-argv-guard, file-permissions-guard, karaoke-public-e2e, docs-lint, baseline-stats, kdoc-coverage, jsdoc-coverage, ssot-impact, direct-commits-guard, knowledge-structure, docker-image-tags-guard, no-jpa-imports-guard, value-placeholders-guard, no-mp4-mentions-guard, personal-fixtures-guard, security-headers-guard, ci-checks-manifest-guard]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Aggregate (applicable + results)
+        env:
+          CI_CHEKS_OUTPUTS: ${{ toJSON(needs.changes.outputs) }}
+          CI_CHEKS_RESULTS: ${{ toJSON(needs) }}
+        run: python3 tools/ci-checks.py --manifest config/ci/checks.yml --summary

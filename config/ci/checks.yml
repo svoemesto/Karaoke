@@ -1,0 +1,711 @@
+# config/ci/checks.yml — единственный носитель маппинга «правка → проверки».
+#
+# Правило (R-49, ADR knowledge/adr/local-0017-selective-ci-checks.md):
+#   Проверка запускается тогда и только тогда, когда изменение затрагивает её зону
+#   интереса. Иначе проверка помечается НЕПРИМЕНИМОЙ — это не «пройдена» и не
+#   «зелёная». Полный набор выполняется при пуше в master и по расписанию.
+#
+# Манифест — полный реестр job-id обеих копий CI-конфигурации (35 записей):
+# инвариант «джоб ↔ запись» тотальный, без списков исключений.
+#
+# Два класса записей:
+#   class: check          (по умолчанию) — проверка контура; zone = paths;
+#   class: infrastructure — служебные джобы контура (changes, ci-summary,
+#                          ci-checks-manifest-guard): mode: always, зон нет.
+#
+# Правка зоны обязана сопровождаться ссылкой на доказательство (поле evidence:
+# файл:строка). Зоны «на отсутствие» (например, мусор в корне репозитория)
+# выражаются МЕСТОМ, где запрещённый файл мог бы появиться (root-junk-guard → /*
+# — верхний уровень), а не его именем: имя запрещённого файла не матчит ни одного
+# tracked-файла, то есть было бы «мёртвой зоной». Само отсутствие ловится тем,
+# что такой путь не попадает ни в одну зону, а значит по unknown_paths: all
+# запускается полный набор проверок.
+#
+# Семантика глоба (git-стиль, от корня репозитория):
+#   **  — любой набор сегментов, включая ноль      (karaoke-app/**)
+#   *   — внутри одного сегмента                    (deploy/*/Dockerfile*)
+#   /   — ведущий слэш привязывает паттерн к корню (/* — верхний уровень)
+#   Имя каталога без слэша = каталог целиком        (knowledge = knowledge/**)
+#
+# Контракт: knowledge/system/infra/ci-tools.md § «Правило выборочного запуска»;
+# схема и инварианты: specs/692-selective-ci-checks/contracts/ci-checks-manifest.md.
+
+version: 1
+
+# Что делать с изменённым путём, который не попал ни в одну зону.
+#   all  — консервативно: запустить все проверки (решение владельца №3);
+#   none — запустить только те, чьи зоны совпали (риск пропустить регрессию).
+unknown_paths: all
+
+# Связанные проверки применяются вместе: применимость группы = применимость
+# любого её члена, применяются все члены (FR-009).
+# Секция known_unmapped — пути, которые УТВЕРЖДЁННО не читает ни одна CI-проверка.
+#
+# По умолчанию секция пуста → поведение строго по FR-004: путь вне объединения зон
+# ⇒ полный набор проверок («сомнение → запуск»). Список НЕ является ослаблением
+# правила по умолчанию: он включается только явным решением владельца.
+#
+# Смысл записи: «этот путь никто не проверяет, поэтому его правка не должна
+# запускать тяжёлые проверки». Правила гейта (tools/check-ci-checks-manifest.sh):
+#   * запись не должна пересекаться ни с одной зоной проверки (иначе избыточна);
+#   * catch-all запрещён (`**`, `*`, `/*`, `**/*`);
+#   * у каждой записи обязателен note — чем подтверждено, что путь не читается;
+#   * гейт печатает размер списка и число покрытых tracked-файлов, чтобы рост
+#     списка был виден сразу, а не всплыл через полгода.
+#
+# Секция подготовлена (перечень остатка покрытия) и НЕ ВКЛЮЧЕНА по умолчанию:
+# поведение остаётся строго по FR-004.
+#
+# ВКЛЮЧЕНО по решению владельца (2026-11-01): перечень известно-непокрытых путей
+# утверждён, FR-004 ослаблен ровно на эти пути (см. spec.md, FR-004 и Changelog).
+# Строгий вариант остаётся доступен для замеров и отката — теми же переключателями:
+#   * переменная окружения CI_CHECKS_KNOWN_UNMAPPED=0 (в CI — env джоба changes);
+#   * ключ known_unmapped_enabled: false в этом же файле;
+#   * ключ --known-unmapped у tools/ci-checks.py и tools/measure-selective-ci.py.
+# Приоритет: ключ CLI > переменная окружения > поле манифеста.
+known_unmapped_enabled: true
+known_unmapped:
+  - paths:
+      - .idea/compiler.xml
+      - .idea/dataSources.xml
+      - .idea/gradle.xml
+      - .idea/jarRepositories.xml
+      - .idea/modules.xml
+      - .idea/modules/Karaoke.karaoke-web.main.iml
+      - .idea/modules/Karaoke.main.iml
+      - .idea/modules/Karaoke.test.iml
+      - .idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml
+      - .idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml
+      - .idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml
+      - .idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml
+      - .idea/vcs.xml
+    note: "IDE-конфигурация IntelliJ: CI читает только .idea/misc.xml (build-config-guard)"
+  - paths:
+      - .specify/.preflight-drop-empty-song-voices.ok
+      - .specify/.preflight-forgejo-ci-plugin.ok
+      - .specify/.preflight-kortege-execution.ok
+      - .specify/.preflight-lyrics-search-preserve-song-fields.ok
+      - .specify/.preflight-selective-ci-checks.ok
+      - .specify/.preflight-song-artifact-cleanup.ok
+      - .specify/extensions.yml
+      - .specify/init-options.json
+      - .specify/integration.json
+      - .specify/integrations/dsh.manifest.json
+      - .specify/integrations/opencode.manifest.json
+      - .specify/integrations/speckit.manifest.json
+      - .specify/memory/.constitution-template.json
+      - .specify/memory/constitution.md
+      - .specify/memory/feature-121-vk-news-auto-publish.md
+      - .specify/templates/checklist-template.md
+      - .specify/templates/constitution-template.md
+      - .specify/templates/plan-template.md
+      - .specify/templates/spec-template.md
+      - .specify/templates/tasks-template.md
+      - .specify/workflows/speckit/workflow.yml
+      - .specify/workflows/workflow-registry.json
+    note: "фреймворк Spec Kit (шаблоны, память, интеграции); CI читает только его *.sh (secret-in-argv)"
+  - paths:
+      - openspec/**
+    note: "второй фреймворк спецификаций; CI не читает"
+  - paths:
+      - alignment-ml/.gitignore
+      - alignment-ml/README.md
+      - alignment-ml/align.py
+      - alignment-ml/chunking.py
+      - alignment-ml/evaluate.py
+      - alignment-ml/manifest.py
+      - alignment-ml/requirements.txt
+      - alignment-ml/serve.py
+      - alignment-ml/syllables.py
+      - alignment-ml/tests/test_align_modes.py
+      - alignment-ml/tests/test_chunking_boundaries.py
+      - alignment-ml/tests/test_dataset_exclusion.py
+      - alignment-ml/tests/test_evaluate_errors.py
+      - alignment-ml/tests/test_requirements_pin.py
+      - alignment-ml/tests/test_serve_limits.py
+      - alignment-ml/tests/test_train_scripts.py
+      - alignment-ml/tests/test_vocab_binding.py
+      - alignment-ml/train.py
+    note: "экспериментальный ML-контур; CI читает только его *.sh (secret-in-argv)"
+  - paths:
+      - karaoke-vue/**
+    note: "legacy-SPA: не собирается и не проверяется CI"
+  - paths:
+      - .agents/**
+    note: "скиллы агентов; CI не читает"
+  - paths:
+      - tools/dsh-agent-command-guard/README.md
+      - tools/dsh-agent-command-guard/cordis.patch.yml
+      - tools/dsh-agent-command-guard/icon.svg
+      - tools/dsh-agent-command-guard/index.js
+      - tools/dsh-agent-command-guard/locale/en.json
+      - tools/dsh-agent-command-guard/locale/ru.json
+      - tools/dsh-agent-command-guard/package.json
+      - tools/dsh-agent-command-guard/policy/deny-commands.json
+      - tools/dsh-agent-command-guard/test-guard.mjs
+    note: "плагин DSH (ADR local-0016); его ставит tools/install-agent-command-guard.sh — в CI не выполняется"
+  - paths:
+      - .scratch/**
+    note: "локальные артефакты рабочих прогонов; CI не читает"
+  - paths:
+      - logs/**
+    note: "служебный каталог логов; CI не читает"
+  - paths:
+      - tools/README.md
+      - tools/auto-jsdoc.py
+      - tools/auto-kdoc-quality.py
+      - tools/auto-kdoc.py
+      - tools/check-direct-commits.baseline
+      - tools/check-endpoint-field-coverage.whitelist.yml
+      - tools/check-songedit-field-coverage.whitelist.yml
+      - tools/cleanup-test-songs.sql
+      - tools/dsh-agent-command-guard/README.md
+      - tools/dsh-agent-command-guard/cordis.patch.yml
+      - tools/dsh-agent-command-guard/icon.svg
+      - tools/dsh-agent-command-guard/index.js
+      - tools/dsh-agent-command-guard/locale/en.json
+      - tools/dsh-agent-command-guard/locale/ru.json
+      - tools/dsh-agent-command-guard/package.json
+      - tools/dsh-agent-command-guard/policy/deny-commands.json
+      - tools/dsh-agent-command-guard/test-guard.mjs
+      - tools/dsh-command-ledger.py
+      - tools/endpoint-pairs.yml
+      - tools/measure-selective-ci.py
+      - tools/spec-kit/commands-cheatsheet.md
+    note: "хелперы и списки, которые читают только pre-commit-хуки или человек; CI-джобами не исполняются"
+  - paths:
+      - config/detekt/detekt.yml
+    note: "конфигурация, которую в CI не читает ни одна проверка"
+  - paths:
+      - deploy/.version
+      - deploy/ci-image/README.md
+      - deploy/create_tbl_users.sql
+      - deploy/do.env.example
+      - deploy/docker-compose-app.gpu.yml
+      - deploy/docker-compose-database.yml
+      - deploy/docker-compose-ollama.yml
+      - deploy/docker-compose-public.yml
+      - deploy/docker-compose-storage.yml
+      - deploy/docker-compose-telegram-proxy.yml
+      - deploy/docker-compose-web.yml
+      - deploy/docker-compose-webvue3.yml
+      - deploy/docker-compose-whisper.yml
+      - deploy/docker-compose.yml
+      - deploy/heap-dump-retention.service
+      - deploy/heap-dump-retention.timer
+      - deploy/karaoke-app/files/FiraSansExtraCondensed-Medium.ttf
+      - deploy/karaoke-app/files/Roboto-Black.ttf
+      - deploy/karaoke-app/files/demucs2
+      - deploy/karaoke-app/files/demucs5
+      - deploy/karaoke-app/files/demucs7
+      - deploy/karaoke-app/files/test.mp3
+      - deploy/karaoke-app/files/www.sm-karaoke.ru.crt
+      - deploy/karaoke-db-backup.service
+      - deploy/karaoke-db-backup.timer
+      - deploy/karaoke-db/dumps/.gitkeep
+      - deploy/karaoke-web/Roboto-Black.ttf
+      - deploy/karaoke-web/minio-proxy-local.conf
+      - deploy/searxng-settings/settings.yml
+      - deploy/tracker-db-backup.service
+      - deploy/tracker-db-backup.timer
+      - deploy/tracker-docker-compose.yml
+      - deploy/tts/silero_say.py
+      - deploy/Заметки
+      - deploy/Комманды Linux.md
+      - deploy/Настройка виртуальной машины.md
+      - deploy/Настройка сервера.md
+    note: "файлы deploy-контура, которые не читает ни одна CI-проверка"
+groups:
+  ssoT:
+    members: [ssot-impact, knowledge-structure]
+
+checks:
+  # === Служебный джоб контура: считает применимые проверки ===
+
+  - id: changes
+    class: infrastructure
+    title: changed files → applicable checks
+    gate: false
+    cost: info
+    mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
+    watch_note: "читает манифест config/ci/checks.yml и реализацию правила tools/ci-checks.py"
+    evidence: "tools/ci-checks.py --emit-outputs"
+
+  # === Инфраструктура сборки и runtime ===
+
+  - id: actions-pinned-guard
+    title: actions pinned by SHA (BR-508)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - .github/workflows/*.yml
+      - tools/check-actions-pinned.sh
+      - tools/fixtures/actions-pinned/**
+    evidence: "tools/check-actions-pinned.sh:33,105; lint.yml:64"
+
+  - id: root-junk-guard
+    title: root junk files (BR-394)
+    gate: true
+    cost: light
+    mode: paths
+    # Зона — корень репозитория: проверка ищет ОТСУТСТВИЕ мусорных файлов
+    # (argparse, collections, os, re, subprocess, sys, json, typing) в корне.
+    paths:
+      - /*
+      - tools/check-root-junk.sh
+    evidence: "tools/check-root-junk.sh:16,25,38; lint.yml:83"
+
+  - id: heap-dump-retention-guard
+    title: heap dump retention policy (BR-630)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - deploy/heap-dump-retention.sh
+    evidence: "deploy/heap-dump-retention.sh:47,50,168; lint.yml:100"
+
+  - id: allowlist-guardrails-guard
+    title: allowlist guardrails guard (BR-631)
+    gate: true
+    cost: light
+    mode: paths
+    # Область prod-single-host обслуживают проверки allow-list'а и заголовков
+    # безопасности; читают они не все файлы области (nginx.conf и два nginx-файла),
+    # но область подчинена им.
+    paths:
+      - deploy/prod-single-host/**
+      - deploy/admin-ip-allowlist.sh
+      - deploy/admin-ip-allowlist.service
+      - deploy/admin-ip-allowlist.timer
+      - specs/677-admin-ip-allowlist/contracts/automation-cli.md
+      - tools/check-allowlist-guardrails.sh
+    evidence: "tools/check-allowlist-guardrails.sh:67,165,205-207,272; lint.yml:119"
+
+  - id: allowlist-automation-self-test
+    title: allowlist automation self-test (FR-018)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - deploy/admin-ip-allowlist.sh
+      - tools/check-allowlist-guardrails.sh
+    evidence: "deploy/admin-ip-allowlist.sh:960,1368; tools/check-allowlist-guardrails.sh:350-352; lint.yml:134,137"
+
+  - id: memory-guardrails-guard
+    title: memory guardrails guard (BR-630)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - deploy/docker-compose-app.yml
+      - deploy/heap-dump-retention.sh
+      - tools/check-memory-guardrails.sh
+    evidence: "tools/check-memory-guardrails.sh:112-113; lint.yml:155"
+
+  - id: build-config-guard
+    title: build config guard (BR-499/527/528/529/530)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - build.gradle.kts
+      - settings.gradle.kts
+      - gradle.properties
+      - karaoke-app/build.gradle.kts
+      - karaoke-web/build.gradle.kts
+      - gradle/wrapper/gradle-wrapper.properties
+      - karaoke-app/gradle/wrapper/gradle-wrapper.properties
+      - karaoke-web/gradle/wrapper/gradle-wrapper.properties
+      - .idea/misc.xml
+      - tools/gradle-heap-dump.sh
+      - deploy/**/*.sh
+      - tools/check-build-config.sh
+      - tools/check-gradle-wrapper.sh
+    evidence: "tools/check-build-config.sh:108-127,194,215,258; tools/check-gradle-wrapper.sh:154-156,201; lint.yml:184-196"
+
+  # === Backend (Kotlin) ===
+
+  - id: backend-lint
+    title: ktlint (Kotlin/Java)
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - karaoke-app/**
+      - karaoke-web/**
+      - config/ktlint/baseline-*.xml
+      - build.gradle.kts
+      - settings.gradle.kts
+      - gradle/wrapper/gradle-wrapper.properties
+    evidence: "build.gradle.kts:91,112; settings.gradle.kts:1-2; lint.yml:223"
+
+  - id: backend-build
+    title: backend build (Kotlin)
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - karaoke-app/**
+      - karaoke-web/**
+      - build.gradle.kts
+      - settings.gradle.kts
+      - gradle.properties
+      - gradle/wrapper/**
+    evidence: "lint.yml:270,275; settings.gradle.kts:1-2"
+
+  - id: backend-test
+    title: backend unit tests
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - karaoke-app/src/main/**
+      - karaoke-app/src/test/**
+      - karaoke-web/src/main/**
+      - karaoke-web/src/test/**
+      - build.gradle.kts
+      - settings.gradle.kts
+      - gradle.properties
+      - gradle/wrapper/**
+    evidence: "lint.yml:321"
+
+  # === Frontend (два SPA) ===
+
+  - id: frontend-lint
+    title: ESLint + Prettier (${{ matrix.spa }})
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - webvue3/**
+      - karaoke-public/**
+      - tools/check-eslint-baseline.sh
+    evidence: "lint.yml:344,372,379; tools/check-eslint-baseline.sh:50,93,101"
+
+  - id: frontend-build
+    title: frontend build (${{ matrix.spa }})
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - webvue3/**
+      - karaoke-public/**
+    evidence: "lint.yml:394,407,413"
+
+  - id: confirm-escape-guard
+    title: confirm escape guard (BR-123)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - webvue3/src/**/*.vue
+      - webvue3/src/**/*.js
+      - config/frontend/confirm-safe-expressions.txt
+      - tools/fixtures/confirm-escape/**
+      - tools/check-confirm-escape.py
+      - tools/check-confirm-escape-fixtures.sh
+    evidence: "tools/check-confirm-escape.py:582,587,602; lint.yml:431,435"
+
+  - id: webvue3-unit-tests
+    title: unit tests (webvue3)
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - webvue3/src/**/__tests__/*.test.js
+      - webvue3/package.json
+      - webvue3/package-lock.json
+    evidence: "lint.yml:461; webvue3/package.json (test:unit)"
+
+  - id: karaoke-public-unit-tests
+    title: unit tests (karaoke-public)
+    gate: true
+    cost: heavy
+    mode: paths
+    paths:
+      - karaoke-public/src/**/__tests__/*.test.js
+      - karaoke-public/package.json
+      - karaoke-public/package-lock.json
+    evidence: "lint.yml:489; karaoke-public/package.json (test:unit)"
+
+  - id: marker-escape-guard
+    title: marker escape guard (BR-523)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - karaoke-public/src/composables/useKaraokeEditor.js
+      - karaoke-public/src/composables/__tests__/formatText-escape.test.js
+      - webvue3/src/components/SongEditor/useReviewModalFormat.js
+      - webvue3/src/components/SongEditor/__tests__/useReviewModalFormat.test.js
+      - tools/fixtures/marker-escape/**
+      - tools/check-marker-escape-guard.sh
+    evidence: "tools/check-marker-escape-guard.sh:38,40-43,114-115; lint.yml:509"
+
+  - id: secret-in-argv-guard
+    title: secret in argv guard (BR-551/552/605)
+    gate: true
+    cost: light
+    mode: paths
+    # Guard обходит ВСЕ tracked-файлы *.sh / *.bash репозитория.
+    paths:
+      - "**/*.sh"
+      - deploy/web-server-deploy/**
+      - tools/check-secret-in-argv.sh
+      - tools/check-secret-in-argv.baseline
+    evidence: "tools/check-secret-in-argv.sh:141; lint.yml:528,532"
+
+  - id: file-permissions-guard
+    title: file permissions guard (BR-115/247)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - karaoke-app/src/main/**/*.kt
+      - karaoke-web/src/main/**/*.kt
+      - deploy/**/*.sh
+      - tools/**/*.sh
+      - tools/check-file-permissions.sh
+      - tools/check-file-permissions.baseline
+    evidence: "tools/check-file-permissions.sh:136,145; lint.yml:551,554"
+
+  # === End-to-end ===
+
+  - id: karaoke-public-e2e
+    title: e2e (karaoke-public)
+    gate: true
+    cost: heavy
+    mode: paths
+    # Общий docker-демон раннера и фиксированный порт 17907 → последовательное
+    # выполнение с остальными тяжёлыми проверками (FR-018/FR-019).
+    paths:
+      - karaoke-public/**
+      - deploy/karaoke-public/Dockerfile
+    evidence: "lint.yml:582,598,604,624,632; deploy/karaoke-public/Dockerfile:16,29"
+
+  # === Документация и SSoT ===
+
+  - id: docs-lint
+    title: Docs (structure + offline links)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - knowledge/**
+      - CONTRIBUTING.md
+      - archive/docs/features/*.md
+      - .forgejo/workflows/lint.yml
+      - .github/workflows/lint.yml
+      - tools/check-ci-workflow-sync.sh
+      - tools/check-feature-doc.sh
+      - tools/check-no-docs-dir.sh
+      - tools/fixtures/ci-workflow-sync/**
+      - tools/fixtures/no-docs-dir/**
+      - .forgejo/**
+    evidence: "lint.yml:664-666,675,681,686; tools/check-no-docs-dir.sh:60,84; tools/check-ci-workflow-sync.sh:62-63"
+
+  - id: baseline-stats
+    title: Baseline stats (informational)
+    gate: false
+    cost: info
+    mode: paths
+    paths:
+      - config/ktlint/baseline-*.xml
+      - config/detekt/baseline*.xml
+      - webvue3/.eslint-baseline.json
+      - karaoke-public/.eslint-baseline.json
+      - tools/baseline-stats.sh
+    # Расхождение в самом инструменте (не правило зоны): guard читает
+    # "$DETEKT_DIR"/baseline-*.xml (baseline-stats.sh:84), а файл называется
+    # config/detekt/baseline.xml — detekt-строка сейчас не печатается.
+    evidence: "tools/baseline-stats.sh:20-23,70,84,96-97; lint.yml:706"
+
+  - id: kdoc-coverage
+    title: KDoc coverage
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - karaoke-app/src/main/kotlin/**/*.kt
+      - karaoke-web/src/main/kotlin/**/*.kt
+      - tools/check-kdoc-coverage.sh
+    evidence: "tools/check-kdoc-coverage.sh:24-27,60; lint.yml:721"
+
+  - id: jsdoc-coverage
+    title: JSDoc coverage
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - webvue3/src/**/*.vue
+      - webvue3/src/**/*.js
+      - karaoke-public/src/**/*.vue
+      - karaoke-public/src/**/*.js
+      - tools/check-jsdoc-coverage.sh
+    evidence: "tools/check-jsdoc-coverage.sh:23-26,84; lint.yml:736"
+
+  - id: ssot-impact
+    title: Knowledge SSoT impact
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - "karaoke-app/**/model/SiteUser.kt"
+      - "karaoke-app/**/model/Song.kt"
+      - "karaoke-app/**/model/Subscription.kt"
+      - "karaoke-app/**/mlt/**"
+      - "karaoke-app/**/PlayerMp4RenderService.kt"
+      - tools/check-ssot-impact.py
+      - .ssot-map.yml
+    # Зона = код, покрытый правилами .ssot-map.yml (инструмент читает diff и
+    # правила карты). Правила для SiteUserService/AuthService/SongService/
+    # StatsService/PublicSongEditorController ссылаются на karaoke-app/**, а
+    # файлы живут в karaoke-web → эти глобы не матчат ни одного tracked-файла
+    # (мёртвая зона) и опущены; расхождение карты и кода — отдельный вопрос.
+    evidence: ".ssot-map.yml:28-78; tools/check-ssot-impact.py:27,32-62,87; lint.yml:767"
+
+  - id: direct-commits-guard
+    title: direct commits to master
+    gate: true
+    cost: light
+    mode: always
+    # Проверяет ИСТОРИЮ git, а не файлы → не пропускается никогда (FR-008).
+    evidence: "tools/check-direct-commits.sh:44-45,204; lint.yml:885,890"
+
+  - id: knowledge-structure
+    title: Knowledge SSoT structure
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - knowledge/**
+      - specs/**/spec.md
+      - deploy/karaoke-db/*.sql
+      - deploy/recordhash_*.sql
+      - deploy/new_comp/**
+      - karaoke-app/**/model/*.kt
+      - karaoke-app/**/KaraokeProcess.kt
+      - karaoke-app/**/docs/*.sql
+      - config/knowledge/*.txt
+      - .github/workflows/lint.yml
+      - tools/check-audit-registry.py
+      - tools/check-doc-references.py
+      - tools/check-knowledge-cross-links.sh
+      - tools/check-knowledge-structure.sh
+      - tools/check-no-legacy-tbl-settings.sh
+      - tools/check-no-legacy-tbl-settings.baseline
+      - tools/check-recordhash-consistency.py
+      - tools/check-spec-issue-link.py
+      - tools/lint-knowledge.py
+      - tools/fixtures/audit-registry/**
+      - specs/**
+      - archive/docs/**
+      - .github/**
+    evidence: "lint.yml:799-868; tools/check-knowledge-structure.sh:27-50; tools/check-recordhash-consistency.py:160-208; tools/check-doc-references.py:44-59; tools/check-spec-issue-link.py:316,324"
+
+  # === Правила кода и текста ===
+
+  - id: docker-image-tags-guard
+    title: docker-image-tags guard (Pass 379, R-04/R-05)
+    gate: true
+    cost: light
+    mode: paths
+    # Guard обходит ВСЕ tracked-файлы **/Dockerfile* репозитория.
+    paths:
+      - "**/Dockerfile*"
+      - tools/check-docker-image-tags.sh
+    evidence: "tools/check-docker-image-tags.sh:205-207; lint.yml:910"
+
+  - id: no-jpa-imports-guard
+    title: no-jpa-imports guard (Pass 379, R-07)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - karaoke-app/src/main/**/*.kt
+      - karaoke-web/src/main/**/*.kt
+      - tools/check-no-jpa-imports.sh
+    evidence: "tools/check-no-jpa-imports.sh:41-43,89; lint.yml:926"
+
+  - id: value-placeholders-guard
+    title: Value placeholders guard
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - karaoke-app/src/**/*.kt
+      - karaoke-web/src/**/*.kt
+      - tools/check-value-placeholders.sh
+    evidence: "tools/check-value-placeholders.sh:18-19,23; lint.yml:941"
+
+  - id: no-mp4-mentions-guard
+    title: no-mp4-mentions guard (Pass 379, R-11)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - webvue3/src/**
+      - karaoke-public/src/**
+      - karaoke-app/src/**
+      - karaoke-web/src/**
+      - tools/check-no-mp4-mentions.sh
+      - tools/check-no-mp4-mentions.baseline
+    evidence: "tools/check-no-mp4-mentions.sh:60,114; lint.yml:956"
+
+  - id: personal-fixtures-guard
+    title: no-personal-fixtures guard (BR-526/531)
+    gate: true
+    cost: light
+    mode: paths
+    # Ресурсные каталоги модулей; файлы *.mlt / *.kdenlive в репозитории
+    # не заведены — их появление попадёт вне зон и запустит полный набор.
+    paths:
+      - karaoke-app/src/main/resources/**
+      - karaoke-web/src/main/resources/**
+      - tools/check-no-personal-fixtures.sh
+    evidence: "tools/check-no-personal-fixtures.sh:74-78,82,92-97; lint.yml:970"
+
+  - id: security-headers-guard
+    title: security headers guard (BR-558)
+    gate: true
+    cost: light
+    mode: paths
+    paths:
+      - deploy/prod-single-host/**
+      - karaoke-public/nginx_karaoke-public.conf
+      - tools/check-security-headers.py
+    evidence: "tools/check-security-headers.py:50-68; lint.yml:990"
+
+  # === Служебные джобы контура (в конце — они зависят от остальных) ===
+
+  - id: ci-checks-manifest-guard
+    class: infrastructure
+    title: CI checks manifest guard (R-47 п. 3, FR-012/FR-013)
+    gate: true
+    cost: light
+    mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
+      - tools/check-ci-checks-manifest.sh
+      - tools/fixtures/ci-checks-manifest/**
+      - .forgejo/workflows/lint.yml
+      - .github/workflows/lint.yml
+    watch_note: "читает манифест, обе копии workflow, реализацию правила и свои фикстуры"
+    evidence: "tools/check-ci-checks-manifest.sh:1"
+
+  - id: ci-summary
+    class: infrastructure
+    title: ci-summary (applicable checks)
+    gate: false
+    cost: info
+    mode: always
+    watch:
+      - config/ci/checks.yml
+      - tools/ci-checks.py
+    watch_note: "читает манифест и реализацию правила (агрегирует результаты джобов)"
+    evidence: "tools/ci-checks.py --summary"

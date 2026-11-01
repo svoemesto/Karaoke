@@ -52,11 +52,16 @@
 | Трекер проекта (Plane) | `knowledge/guidelines/runbooks/tracker-setup.md`, `knowledge/system/infra/tracker.md` |
 | Настройка Claude Code | файла в репозитории нет (документ утрачен) |
 
+- **Выборочный запуск CI**: проверка запускается по своей зоне интереса (R-49) —
+  `knowledge/guidelines/architecture-conventions.md`.
+
 ## 🚦 Ключевые правила (Claude Code-specific)
 
 - **MCP**: использовать `codegraph` **ТОЛЬКО после** Knowledge-first pre-flight.
 - **Secrets**: НЕ коммитить. См. AGENTS.md v3.9.0 § «Hard Gate: Secrets».
-- **CI**: 7/7 PASS обязателен перед merge. `.github/workflows/lint.yml`.
+- **CI**: перед merge обязателен зелёный агрегат `ci-summary` (перечень применимых
+  и неприменимых проверок). `.forgejo/workflows/lint.yml`, `.github/workflows/lint.yml`.
+  Правило выборочного запуска — `config/ci/checks.yml` + `tools/ci-checks.py` (R-49).
 - **Force-push в main/master**: нельзя.
 - **`git commit --no-verify`**: только в крайнем случае.
 

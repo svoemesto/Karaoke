@@ -428,8 +428,19 @@ repos:
       # .forgejo/ и .github/ — копии одного workflow; расхождение означает,
       # что одна из копий проверяет меньше (FR-013).
       - id: ci-workflow-sync
-        name: CI workflow copies are in sync (same gate set)
+        name: CI workflow copies are in sync (same gate set and if-conditions)
         entry: bash tools/check-ci-workflow-sync.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # Манифест зон интереса (config/ci/checks.yml) и обе копии CI-конфигурации
+      # обязаны быть согласованы: джоб без записи, запись без джоба, расхождение
+      # if:/needs, мёртвая зона — ошибка (FR-012, FR-013, FR-019).
+      - id: ci-checks-manifest
+        name: CI checks manifest is in sync with both workflow copies
+        entry: bash tools/check-ci-checks-manifest.sh --quiet
         language: system
         pass_filenames: false
         always_run: true

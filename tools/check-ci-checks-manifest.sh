@@ -397,6 +397,9 @@ _env = (os.environ.get("CI_CHECKS_KNOWN_UNMAPPED") or "").strip().lower()
 if _force or _env in ("1", "true", "yes", "on"):
     _active = True
     _why = "включена переключателем (CLI/окружение)"
+elif _env in ("0", "false", "no", "off"):
+    _active = False
+    _why = "выключена переключателем (окружение) — поведение строго по FR-004"
 else:
     _active = bool(manifest.get("known_unmapped_enabled"))
     _why = ("known_unmapped_enabled: true" if _active

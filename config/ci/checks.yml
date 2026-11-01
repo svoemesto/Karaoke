@@ -56,12 +56,14 @@ unknown_paths: all
 # Секция подготовлена (перечень остатка покрытия) и НЕ ВКЛЮЧЕНА по умолчанию:
 # поведение остаётся строго по FR-004.
 #
-# ВКЛЮЧЕНИЕ — ОДНА НАСТРОЙКА (решение владельца применяется без правки перечня):
-#   * переменная окружения CI_CHECKS_KNOWN_UNMAPPED=1 (в CI — env джоба changes);
-#   * ключ known_unmapped_enabled: true в этом же файле;
+# ВКЛЮЧЕНО по решению владельца (2026-11-01): перечень известно-непокрытых путей
+# утверждён, FR-004 ослаблен ровно на эти пути (см. spec.md, FR-004 и Changelog).
+# Строгий вариант остаётся доступен для замеров и отката — теми же переключателями:
+#   * переменная окружения CI_CHECKS_KNOWN_UNMAPPED=0 (в CI — env джоба changes);
+#   * ключ known_unmapped_enabled: false в этом же файле;
 #   * ключ --known-unmapped у tools/ci-checks.py и tools/measure-selective-ci.py.
 # Приоритет: ключ CLI > переменная окружения > поле манифеста.
-known_unmapped_enabled: false
+known_unmapped_enabled: true
 known_unmapped:
   - paths:
       - .idea/compiler.xml

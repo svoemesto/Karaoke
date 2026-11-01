@@ -190,6 +190,7 @@ def load_manifest(path: Path) -> dict:
         "groups": groups,
         "checks": checks,
         "known_unmapped": known_unmapped,
+        "known_unmapped_enabled": bool(data.get("known_unmapped_enabled", False)),
     }
 
 
@@ -348,8 +349,8 @@ def known_unmapped_enabled(manifest: dict, env=None, cli_flag: bool | None = Non
     raw = (env.get(KNOWN_UNMAPPED_ENV) or "").strip().lower()
     if raw in ("1", "true", "yes", "on"):
         return True
-    if raw in ("0", "false", "no", "off", ""):
-        return bool(manifest.get("known_unmapped_enabled", False))
+    if raw in ("0", "false", "no", "off"):
+        return False  # явное значение окружения решает, даже если поле манифеста истинно
     return bool(manifest.get("known_unmapped_enabled", False))
 
 
@@ -386,10 +387,13 @@ def unknown_paths_of(manifest: dict, changed: list[str], active_only: bool = Tru
     return [path for path in changed if not any(match_path(pattern, path) for pattern in known)]
 
 
-def compute_applicability(manifest: dict, changed: list[str], force_all: bool = False) -> dict:
+def compute_applicability(manifest: dict, changed: list[str], force_all: bool = False,
+                          env=None, cli_flag: bool | None = None) -> dict:
     """Применимость каждой проверки.
 
     Возвращает {id: {"applicable": bool, "zones": [совпавшие зоны]}}.
+    env/cli_flag — переключатель секции known_unmapped (CLI > окружение > поле
+    манифеста); None означает «взять из окружения».
     """
     checks = manifest["checks"]
     result = {
@@ -406,7 +410,7 @@ def compute_applicability(manifest: dict, changed: list[str], force_all: bool = 
     # служебные записи (class: infrastructure, поле watch).
     known_patterns = [p for c in checks if c["mode"] == "paths" for p in c["paths"]]
     known_patterns += [p for c in checks for p in c.get("watch", [])]
-    known_patterns += known_unmapped_patterns_of(manifest)
+    known_patterns += known_unmapped_patterns_of(manifest, env=env, cli_flag=cli_flag)
 
     for c in checks:
         if c["mode"] != "paths":
@@ -707,12 +711,14 @@ def local_run(manifest: dict, applicability: dict, workflow_path: Path, as_json:
 # Фикстуры (--self-test)
 # --------------------------------------------------------------------------
 
-def _fixture_manifest(checks, groups=None, unknown_paths="all"):
+def _fixture_manifest(checks, groups=None, unknown_paths="all", known_unmapped=None):
     return {
         "version": 1,
         "unknown_paths": unknown_paths,
         "groups": groups or {},
         "checks": checks,
+        "known_unmapped": list(known_unmapped or []),
+        "known_unmapped_enabled": False,
     }
 
 
@@ -807,6 +813,27 @@ def self_test() -> int:
     app_p, _ = compute_applicability(split, ["karaoke-public/src/main.js"])
     check("T-34 правка в karaoke-public/ не запускает проверки webvue3",
           app_p["public-lint"]["applicable"] and not app_p["webvue3-lint"]["applicable"])
+
+    # Переключатель known_unmapped: приоритет CLI > окружение > поле манифеста.
+    ku_manifest = _fixture_manifest(
+        [_check("docs", paths=["knowledge/**"])],
+        known_unmapped=[{"paths": ["tools/legacy/**"], "note": "тест"}],
+    )
+    ku_manifest["known_unmapped_enabled"] = False
+    app_off, full_off = compute_applicability(ku_manifest, ["tools/legacy/x.sh"])
+    check("переключатель: по умолчанию секция выключена — путь неизвестен, полный набор",
+          full_off)
+    app_on, full_on = compute_applicability(ku_manifest, ["tools/legacy/x.sh"], cli_flag=True)
+    check("переключатель: CLI включает секцию — путь известен, полный набор не включается",
+          not full_on and not app_on["docs"]["applicable"])
+    app_env, full_env = compute_applicability(ku_manifest, ["tools/legacy/x.sh"], env={"CI_CHECKS_KNOWN_UNMAPPED": "1"})
+    check("переключатель: окружение включает секцию", not full_env)
+    ku_manifest["known_unmapped_enabled"] = True
+    app_field, full_field = compute_applicability(ku_manifest, ["tools/legacy/x.sh"])
+    check("переключатель: поле манифеста включает секцию", not full_field)
+    app_off_env, full_off_env = compute_applicability(
+        ku_manifest, ["tools/legacy/x.sh"], env={"CI_CHECKS_KNOWN_UNMAPPED": "0"})
+    check("переключатель: окружение 0 важнее поля манифеста (откат)", full_off_env)
 
     check("FR-004 неизвестный путь → полный набор",
           all(v["applicable"] for v in unknown.values()))

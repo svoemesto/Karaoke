@@ -117,11 +117,13 @@ checks:
     gate: true
     cost: light
     mode: paths
+    # Зона — deploy-контур целиком: BR-630/BR-631 — инварианты контура, и
+    # полный обход контура делает deploy-guard (tools/check-deploy-hardening.sh:195,
+    # git grep по 'deploy/*'), CI-видимая часть которого — memory-guardrails
+    # (tools/check-memory-guardrails.sh:112-113).
     paths:
-      - deploy/docker-compose-app.yml
-      - deploy/heap-dump-retention.sh
-      - tools/check-memory-guardrails.sh
-    evidence: "tools/check-memory-guardrails.sh:112,113; lint.yml:155"
+      - deploy/**
+    evidence: "tools/check-memory-guardrails.sh:112-113; tools/check-deploy-hardening.sh:195; lint.yml:155"
 
   - id: build-config-guard
     title: build config guard (BR-499/527/528/529/530)
@@ -272,6 +274,7 @@ checks:
     paths:
       - "**/*.sh"
       - tools/check-secret-in-argv.sh
+      - tools/check-secret-in-argv.baseline
     evidence: "tools/check-secret-in-argv.sh:141; lint.yml:528,532"
 
   - id: file-permissions-guard
@@ -285,6 +288,7 @@ checks:
       - deploy/**/*.sh
       - tools/**/*.sh
       - tools/check-file-permissions.sh
+      - tools/check-file-permissions.baseline
     evidence: "tools/check-file-permissions.sh:136,145; lint.yml:551,554"
 
   # === End-to-end ===
@@ -411,6 +415,7 @@ checks:
       - tools/check-knowledge-cross-links.sh
       - tools/check-knowledge-structure.sh
       - tools/check-no-legacy-tbl-settings.sh
+      - tools/check-no-legacy-tbl-settings.baseline
       - tools/check-recordhash-consistency.py
       - tools/check-spec-issue-link.py
       - tools/lint-knowledge.py
@@ -466,6 +471,7 @@ checks:
       - karaoke-app/src/**
       - karaoke-web/src/**
       - tools/check-no-mp4-mentions.sh
+      - tools/check-no-mp4-mentions.baseline
     evidence: "tools/check-no-mp4-mentions.sh:60,114; lint.yml:956"
 
   - id: personal-fixtures-guard

@@ -68,7 +68,8 @@ checks:
 | Проверка контура | `check` (default) | 31 существующий job-id + `direct-commits-guard` | `mode: paths` — зона обязательна; `mode: always` — зоны нет | `paths` \| `always` | `gate: true` (по умолчанию) |
 | Инфраструктурная | `infrastructure` | `changes`, `ci-summary`, `ci-checks-manifest-guard` | нет | `always` | `changes`/`ci-summary` — `gate: false`; `ci-checks-manifest-guard` — `gate: true` |
 
-Правила класса `infrastructure`: `mode: always`, `paths` и `evidence` пустые, зон нет;
+Правила класса `infrastructure`: `mode: always`, `paths` пустые, зон нет; `evidence` указывает,
+чем реализована служебная запись, и потому допускается;
 «мёртвая зона» к ним не применяется. Гейт согласованности (`ci-checks-manifest-guard`) —
 инфраструктурная запись с `gate: true`: он запускается **всегда** (дешёвый, а его проверка
 «мёртвая зона» зависит от состава tracked-файлов), и его падение блокирует слияние.
@@ -121,7 +122,7 @@ Git-стиль, матчинг по всему пути файла.
 | M-6 | каждый глоб из `paths` матчит ≥ 1 tracked-файл (мёртвая зона) — **только для записей с `mode: paths`** | 1 |
 | M-7 | `cost` ∈ {`heavy`, `light`, `info`}; `gate: false` ⇒ `cost: info` | 1 |
 | M-8 | члены групп существуют; проверка — максимум в одной группе | 1 |
-| M-9 | `class: infrastructure` ⇒ `mode: always`, `paths` и `evidence` пустые | 1 |
+| M-9 | `class: infrastructure` ⇒ `mode: always`, `paths` пустые (`evidence` допускается — он указывает, чем реализована служебная запись) | 1 |
 | M-10 | `if:`-условия в двух копиях идентичны по job-id | 1 |
 | M-11 | `needs` джоба `karaoke-public-e2e` покрывает все записи с `cost: heavy` (FR-018/FR-019) | 1 |
 | M-12 | `needs` в двух копиях идентичны по job-id (порядок выполнения одинаков, FR-019) | 1 |

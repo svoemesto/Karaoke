@@ -31,8 +31,13 @@
 #   2 — проверка не выполнена (нет git/файла копии, корень не найден,
 #       PyYAML недоступен — проверить валидность нечем).
 #
-# Что НЕ сравнивается (по контракту guards.md C2): `runs-on:`, `timeout-minutes:`,
-# `if:` / `needs:` / порядок шагов, комментарии. Это инфраструктурные и
+# Третья проверка того же guard'а — ИДЕНТИЧНОСТЬ УСЛОВИЙ ЗАПУСКА (`if:`) между
+# копиями: с правилом выборочного запуска условие `if:` стало частью СОСТАВА
+# проверки (зона интереса -> условие), и расхождение условий означает, что одна
+# из копий запускает другой набор проверок (FR-019).
+#
+# Что НЕ сравнивается (по контракту guards.md C2): `runs-on:`,
+# `timeout-minutes:`, порядок шагов, комментарии — это инфраструктурные и
 # оформительские различия, а не состав проверок.
 
 set -uo pipefail
@@ -125,7 +130,7 @@ done
 # Извлечение набора гейтовых команд: строки с вызовом инструмента.
 # Комментарии (строки и хвостовые) отбрасываются, пробелы по краям обрезаются.
 extract_gates() {
-  grep -E '(bash|python3|python|npx)[[:space:]]+tools/|markdownlint|actionlint' "$1" \
+  grep -E '(bash|python3|python|npx)[[:space:]]+(tools|deploy)/|markdownlint|actionlint' "$1" \
     | grep -vE '^[[:space:]]*#' \
     | sed -E 's/[[:space:]]+#.*$//' \
     | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' \
@@ -153,6 +158,73 @@ if [ -n "$ONLY_FORGEJO" ] || [ -n "$ONLY_GITHUB" ]; then
   exit 1
 fi
 
+# Сверка if:-условий по job-id: правило выборочного запуска живёт в условии,
+# значит расхождение условий = расхождение состава проверок (FR-019).
+compare_if_conditions() {
+  python3 - "$FORGEJO" "$GITHUB" <<'PYCOND'
+import sys
+
+try:
+    import yaml
+except ImportError:
+    print("PyYAML недоступен — условия запуска сравнить нечем.")
+    sys.exit(2)
+
+
+def conditions(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+    except Exception as exc:
+        print(f"не удалось разобрать {path}: {exc}")
+        sys.exit(1)
+    out = {}
+    for jid, job in (data.get("jobs") or {}).items():
+        raw = (job or {}).get("if")
+        out[jid] = " ".join(str(raw).split()) if raw is not None else None
+    return out
+
+
+forgejo = conditions(sys.argv[1])
+github = conditions(sys.argv[2])
+
+diffs = []
+for jid in sorted(set(forgejo) | set(github)):
+    left = forgejo.get(jid)
+    right = github.get(jid)
+    if left != right:
+        diffs.append((jid, left, right))
+
+if diffs:
+    for jid, left, right in diffs:
+        print(f"[FAIL] if:-условие джоба '{jid}' различается между копиями:")
+        print(f"       .forgejo: {left}")
+        print(f"       .github:  {right}")
+    sys.exit(1)
+sys.exit(0)
+PYCOND
+}
+
+IF_OUT="$(compare_if_conditions 2>&1)"
+IF_RC=$?
+case "$IF_RC" in
+  0) ;;
+  1)
+    if [ "$QUIET" != "1" ]; then
+      printf '%s\n' "$IF_OUT"
+      echo "       Расхождение условий запуска = расхождение состава проверок (FR-019)."
+    fi
+    exit 1
+    ;;
+  *)
+    if [ "$QUIET" != "1" ]; then
+      printf '%s\n' "$IF_OUT" >&2
+      echo "       проверка не выполнена (BR-597: неизвестно != нарушений нет)." >&2
+    fi
+    exit 2
+    ;;
+esac
+
 COUNT="$(printf '%s\n' "$FORGEJO_GATES" | grep -c . || true)"
-echo "OK: наборы гейтовых команд совпадают ($COUNT гейт(ов) в каждой копии)."
+echo "OK: наборы гейтовых команд и if:-условия совпадают ($COUNT гейт(ов) в каждой копии)."
 exit 0

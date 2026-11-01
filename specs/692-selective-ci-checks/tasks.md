@@ -115,56 +115,56 @@ description: "Task list for selective CI checks by zone of interest (spec 692)"
 
 ### Implementation for User Story 4
 
-- [ ] T010 [P] [US4] Создать `tools/check-ci-checks-manifest.sh` — каркас guard'а: шапка с
+- [X] T010 [P] [US4] Создать `tools/check-ci-checks-manifest.sh` — каркас guard'а: шапка с
       контрактом кодов (`0`/`1`/`2`), опции `--root <dir>`, `--quiet`, `--self-test`; разбор YAML
       через `python3` + PyYAML; недоступные данные (нет git, нет PyYAML, нет файла) → rc=2.
       → проверка: `bash tools/check-ci-checks-manifest.sh --help` → rc=0
-- [ ] T011 [US4] `tools/check-ci-checks-manifest.sh` — проверка 1:1 «джоб ↔ запись манифеста»: джобы
+- [X] T011 [US4] `tools/check-ci-checks-manifest.sh` — проверка 1:1 «джоб ↔ запись манифеста»: джобы
       извлекаются из обеих копий workflow; соответствие **тотальное, без списков исключений**
       (M-2): расхождение в любую сторону → rc=1.
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/missing-check; echo rc=$?` → ≠0
-- [ ] T012 [US4] `tools/check-ci-checks-manifest.sh` — проверка идентичности `if:`-условий **и**
+- [X] T012 [US4] `tools/check-ci-checks-manifest.sh` — проверка идентичности `if:`-условий **и**
       `needs` по job-id между двумя копиями (FR-019: порядок выполнения обязан быть одинаковым и
       проверяться гейтом; инвариант M-12); расхождение → rc=1.
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/divergent-condition; echo rc=$?` → ≠0
-- [ ] T013 [US4] `tools/check-ci-checks-manifest.sh` — проверка зон: `paths` непустой при
+- [X] T013 [US4] `tools/check-ci-checks-manifest.sh` — проверка зон: `paths` непустой при
       `mode: paths`; `evidence` непустой; каждый глоб матчит хотя бы один tracked-файл (мёртвая зона
       → ошибка, FR-013) — **проверка применяется только к записям с `mode: paths`**;
       `mode: always` ⇒ без `paths`; `class: infrastructure` ⇒ `mode: always` и без зон (M-9).
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/dead-zone; echo rc=$?` → ≠0
-- [ ] T014 [US4] `tools/check-ci-checks-manifest.sh` — проверка `version`, `unknown_paths`,
+- [X] T014 [US4] `tools/check-ci-checks-manifest.sh` — проверка `version`, `unknown_paths`,
       `gate: false` ⇒ `cost: info`, уникальности `id`, членов групп и «проверка — максимум в одной
       группе».
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/synced; echo rc=$?` → `0`
-- [ ] T015 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/synced/` — согласованное
+- [X] T015 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/synced/` — согласованное
       дерево: `tools/fixtures/ci-checks-manifest/synced/config/ci/checks.yml` + обе копии
       workflow `.forgejo/workflows/lint.yml` и `.github/workflows/lint.yml` (зоны манифеста матчат
       tracked-файлы фикстуры).
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/synced; echo rc=$?` → `0`
-- [ ] T016 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/missing-check/` — джоб без
+- [X] T016 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/missing-check/` — джоб без
       записи в манифесте: `tools/fixtures/ci-checks-manifest/missing-check/config/ci/checks.yml`
       (на один job-id меньше, чем в workflow-фикстуре).
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/missing-check; echo rc=$?` → ≠0
-- [ ] T017 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/divergent-condition/` —
+- [X] T017 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/divergent-condition/` —
       расхождение `if:`-условий между копиями
       `tools/fixtures/ci-checks-manifest/divergent-condition/.forgejo/workflows/lint.yml` и
       `.../.github/workflows/lint.yml`.
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/divergent-condition; echo rc=$?` → ≠0
-- [ ] T018 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/dead-zone/` — глоб, не
+- [X] T018 [P] [US4] Создать фикстуру `tools/fixtures/ci-checks-manifest/dead-zone/` — глоб, не
       матчащий ни одного tracked-файла:
       `tools/fixtures/ci-checks-manifest/dead-zone/config/ci/checks.yml`.
       → проверка: `bash tools/check-ci-checks-manifest.sh --root tools/fixtures/ci-checks-manifest/dead-zone; echo rc=$?` → ≠0
-- [ ] T019 [US4] `tools/check-ci-checks-manifest.sh --self-test` — прогон четырёх фикстур:
+- [X] T019 [US4] `tools/check-ci-checks-manifest.sh --self-test` — прогон четырёх фикстур:
       `synced` → 0, `missing-check` / `divergent-condition` / `dead-zone` → ненулевой код; плюс
       третья фикстура «данные недоступны» (например, `--root` на каталоге без workflow) → rc=2.
       → проверка: `bash tools/check-ci-checks-manifest.sh --self-test; echo rc=$?` → `0`
-- [ ] T020 [P] [US4] Расширить `tools/check-ci-workflow-sync.sh` — извлечение вызовов
+- [X] T020 [P] [US4] Расширить `tools/check-ci-workflow-sync.sh` — извлечение вызовов
       инструментов репозитория расширить с `tools/...` на `deploy/...` (дыра: вызовы
       `deploy/heap-dump-retention.sh` и `deploy/admin-ip-allowlist.sh` сейчас не контролируются) и
       добавить сверку `if:`-условий по job-id между копиями; фикстуры
       `tools/fixtures/ci-workflow-sync/` расширить негативным случаем расхождения.
       → проверка: `bash tools/check-ci-workflow-sync.sh; echo rc=$?` → `0`
-- [ ] T021 [US4] `.pre-commit-config.yaml` — зарегистрировать хук `ci-checks-manifest`
+- [X] T021 [US4] `.pre-commit-config.yaml` — зарегистрировать хук `ci-checks-manifest`
       (`entry: bash tools/check-ci-checks-manifest.sh --quiet`, `language: system`,
       `pass_filenames: false`, `files: '^(config/ci/checks\.yml|\.forgejo/workflows/|\.github/workflows/)'`).
       → проверка: `grep -A6 'id: ci-checks-manifest' .pre-commit-config.yaml` → блок хука присутствует

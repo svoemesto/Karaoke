@@ -32,7 +32,7 @@
 | M-6 | каждый глоб из `paths` матчит хотя бы один tracked-файл (мёртвая зона) — **только для `mode: paths`** | ошибка |
 | M-7 | `cost` ∈ {`heavy`, `light`, `info`}, `gate: false` ⇒ `cost: info` | ошибка |
 | M-8 | члены `groups.*.members` существуют среди `checks[].id`; проверка — максимум в одной группе | ошибка |
-| M-9 | `class: infrastructure` ⇒ `mode: always`, `paths` и `evidence` пустые | ошибка |
+| M-9 | `class: infrastructure` ⇒ `mode: always`, `paths` пустые (`evidence` допускается) | ошибка |
 | M-10 | `if:`-условия в двух копиях идентичны по job-id | ошибка |
 | M-11 | `needs` джоба `karaoke-public-e2e` покрывает все записи с `cost: heavy` | ошибка |
 | M-12 | `needs` в двух копиях идентичны по job-id (порядок выполнения одинаков) | ошибка |

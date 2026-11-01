@@ -194,8 +194,23 @@ Tier-1 «Hard Gate — Git — CI-gate для master»). Токены он чи�
 | Эндпоинт | Ответ |
 |---|---|
 | `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs` | `text/plain` — лог одного задания |
-| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs` | ZIP со всеми логами прогона (файлы `{джоб}-{id}-attempt-1.log`) |
-| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` | список джобов прогона с их id |
+| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs` | ZIP со всеми логами прогона (файлы `{джоб}-{id}-attempt-1.log`; у пропущенных джобов — запись `.MISSING`) |
+| `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` | плоский JSON-массив джобов прогона: `id`, `name`, `status` (в т.ч. `skipped`), `run_id`, `attempt` |
+
+**`run_id` — это `id` прогона из `GET /actions/runs`, а не номер из интерфейса.**
+Номер в веб-интерфейсе — это `index_in_repo`; для UI-номера 217 `id` = 583.
+Подстановка UI-номера даёт `404 run with id 217: resource does not exist`
+(проверено 2026-11-01). `id` из `GET /actions/tasks` — это id **задания**, а не
+прогона, и для этих эндпоинтов тоже не подходит.
+
+```bash
+# id прогона по его номеру в интерфейсе:
+printf 'header = "Authorization: token %s"\n' "$FJ_TOKEN" \
+  | curl -sS --config - "$FJ_URL/api/v1/repos/svoemesto/Karaoke/actions/runs" \
+  | python3 -c 'import json,sys
+for r in json.load(sys.stdin).get("workflow_runs") or []:
+    if r.get("index_in_repo") == 217: print(r.get("id"))'
+```
 
 Токен — через stdin-конфиг curl (иначе он виден в `ps -eo args`):
 

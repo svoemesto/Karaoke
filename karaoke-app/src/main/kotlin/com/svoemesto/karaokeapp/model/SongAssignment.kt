@@ -10,6 +10,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import java.sql.Timestamp
+import com.svoemesto.karaokeapp.AppLog
 
 // Назначение песни пользователю публичного сайта на разметку в онлайн-редакторе + вердикт админа.
 // Направление sync SERVER_TO_LOCAL (SyncRegistry: songassignments) — как pull пользователей/статистики:
@@ -87,6 +88,9 @@ class SongAssignment(
         )
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.model.SongAssignment"
+
         const val TABLE_NAME = "tbl_song_assignments"
 
         private val log = LoggerFactory.getLogger(SongAssignment::class.java)
@@ -312,7 +316,13 @@ class SongAssignment(
             } catch (e: Exception) {
                 // SNS в unit-тестах не инициализирован (lateinit) — это не повод
                 // откатывать уже выполненный переход статуса.
-                log.warn("Не удалось разослать SSE recordChange для {}: {}", TABLE_NAME, e.message, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SSE-001",
+                    event = "sse.record_change.failed",
+                    fields = mapOf("table" to TABLE_NAME),
+                    error = e,
+                )
             }
             return true
         }

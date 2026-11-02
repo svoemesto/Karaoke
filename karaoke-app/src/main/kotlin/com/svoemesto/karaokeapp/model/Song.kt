@@ -37,6 +37,7 @@ import kotlin.io.path.Path
 import kotlin.jvm.Transient
 import kotlin.math.abs
 import org.slf4j.LoggerFactory
+import com.svoemesto.karaokeapp.AppLog
 
 // @Component
 
@@ -7395,6 +7396,9 @@ class Song(
         Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.model.Song"
+
         const val TABLE_NAME = "tbl_songs"
 
         /**
@@ -8486,13 +8490,25 @@ class Song(
                 }
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "getLastUpdated"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "getLastUpdated"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -8644,13 +8660,25 @@ class Song(
                 result.sort()
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "loadListAuthors"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "loadListAuthors"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -8694,13 +8722,25 @@ class Song(
                 }
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "loadAuthorSongCounts"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close()
                     statement?.close()
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "loadAuthorSongCounts"),
+                        error = e,
+                    )
                 }
             }
             return emptyMap()
@@ -8728,13 +8768,25 @@ class Song(
                 result.sort()
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "loadListAlbums"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "loadListAlbums"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -8762,13 +8814,25 @@ class Song(
                 }
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "loadListIds"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "loadListIds"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -8801,14 +8865,26 @@ class Song(
                 }
                 println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt")
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "listHashes"),
+                    error = e,
+                )
                 result = null
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "listHashes"),
+                        error = e,
+                    )
                 }
             }
             return result
@@ -9375,14 +9451,26 @@ class Song(
                 return result
             } catch (e: SQLException) {
                 if (throwOnError) throw e
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "loadListFromDb"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                     preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "loadListFromDb"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -9460,14 +9548,26 @@ class Song(
                     try {
                         lockRs.close()
                     } catch (e: SQLException) {
-                        e.printStackTrace()
+                        AppLog.warn(
+                            category = CATEGORY,
+                            code = "SONG-DB-001",
+                            event = "song.db.failed",
+                            fields = mapOf("operation" to "loadFromDbByIdForUpdate"),
+                            error = e,
+                        )
                     }
                 }
             } finally {
                 try {
                     lockPs.close()
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "loadFromDbByIdForUpdate"),
+                        error = e,
+                    )
                 }
             }
 
@@ -9835,13 +9935,25 @@ class Song(
                 }
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "SONG-DB-001",
+                    event = "song.db.failed",
+                    fields = mapOf("operation" to "getSetOfTags"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "SONG-DB-001",
+                        event = "song.db.failed",
+                        fields = mapOf("operation" to "getSetOfTags"),
+                        error = e,
+                    )
                 }
             }
             return emptySet()

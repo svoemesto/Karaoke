@@ -16,6 +16,7 @@ import java.io.Serializable
 import java.sql.SQLException
 import javax.imageio.ImageIO
 import org.slf4j.LoggerFactory
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * Сущность «Альбом» — отдельная таблица `tbl_albums` (один автор — много альбомов,
@@ -144,6 +145,9 @@ class Album(
     }
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.model.Album"
+
         const val TABLE_NAME = "tbl_albums"
 
         /**
@@ -661,7 +665,13 @@ class Album(
                         throwOnError = true,
                     )
                 } catch (e: SQLException) {
-                    log.error("Не удалось прочитать автора '{}' из БД — альбом не создаётся: {}", authorName, e.message, e)
+                    AppLog.error(
+                        category = CATEGORY,
+                        code = "ALBUM-DB-001",
+                        event = "album.author.read.failed",
+                        fields = mapOf("author" to authorName),
+                        error = e,
+                    )
                     return null
                 } ?: Author
                     .createNewAuthor(
@@ -728,7 +738,13 @@ class Album(
                         throwOnError = true,
                     )
                 } catch (e: SQLException) {
-                    log.error("Не удалось прочитать автора '{}' из БД — альбом не создаётся: {}", authorName, e.message, e)
+                    AppLog.error(
+                        category = CATEGORY,
+                        code = "ALBUM-DB-001",
+                        event = "album.author.read.failed",
+                        fields = mapOf("author" to authorName),
+                        error = e,
+                    )
                     return Pair(null, false)
                 } ?: Author
                     .createNewAuthor(

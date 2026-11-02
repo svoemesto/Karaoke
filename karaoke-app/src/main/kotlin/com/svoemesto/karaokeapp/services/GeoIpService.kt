@@ -7,6 +7,10 @@ import java.net.URLEncoder
 import java.sql.SQLException
 import java.sql.Statement
 import java.util.concurrent.ConcurrentHashMap
+import com.svoemesto.karaokeapp.AppLog
+
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.services.GeoIpService"
 
 /**
  * Определение страны по IP клиента для админ-дашборда статистики.
@@ -155,7 +159,13 @@ object GeoIpService {
             while (rs.next()) res[rs.getString("ip")] = rs.getString("country") ?: ""
             rs.close()
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "GEOIP-001",
+                event = "geoip.failed",
+                fields = mapOf("operation" to "loadFromDb"),
+                error = e,
+            )
         } finally {
             try {
                 st?.close()
@@ -180,7 +190,13 @@ object GeoIpService {
                     "on conflict (ip) do update set country = excluded.country, resolved_at = now()",
             )
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "GEOIP-001",
+                event = "geoip.failed",
+                fields = mapOf("operation" to "saveToDb"),
+                error = e,
+            )
         } finally {
             try {
                 st?.close()

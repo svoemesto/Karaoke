@@ -684,6 +684,9 @@ class KaraokeProcess(
     }
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.KaraokeProcess"
+
         private val logger = org.slf4j.LoggerFactory.getLogger(KaraokeProcess::class.java)
 
         /**
@@ -766,13 +769,25 @@ class KaraokeProcess(
                 result = rs.getLong("cnt")
             } catch (e: SQLException) {
                 if (throwOnError) throw e
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "PROCESS-DB-001",
+                    event = "process.db.failed",
+                    fields = mapOf("operation" to "getCountWaiting"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "PROCESS-DB-001",
+                        event = "process.db.failed",
+                        fields = mapOf("operation" to "getCountWaiting"),
+                        error = e,
+                    )
                 }
             }
             return result
@@ -804,13 +819,25 @@ class KaraokeProcess(
                 }
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "PROCESS-DB-001",
+                    event = "process.db.failed",
+                    fields = mapOf("operation" to "getLastUpdated"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "PROCESS-DB-001",
+                        event = "process.db.failed",
+                        fields = mapOf("operation" to "getLastUpdated"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -1327,13 +1354,25 @@ class KaraokeProcess(
                 }
             } catch (e: SQLException) {
                 if (throwOnError) throw e
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "PROCESS-DB-001",
+                    event = "process.db.failed",
+                    fields = mapOf("operation" to "getProcessesToStart"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "PROCESS-DB-001",
+                        event = "process.db.failed",
+                        fields = mapOf("operation" to "getProcessesToStart"),
+                        error = e,
+                    )
                 }
             }
             return result
@@ -1461,14 +1500,26 @@ class KaraokeProcess(
 
                 return result
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "PROCESS-DB-001",
+                    event = "process.db.failed",
+                    fields = mapOf("operation" to "addNumeric"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                     preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "PROCESS-DB-001",
+                        event = "process.db.failed",
+                        fields = mapOf("operation" to "addNumeric"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()

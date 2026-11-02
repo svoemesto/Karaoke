@@ -8,6 +8,7 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.util.concurrent.ConcurrentHashMap
 import org.slf4j.LoggerFactory
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * Класс Uuids.
@@ -59,6 +60,9 @@ class Uuids(
     }
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.model.Uuids"
+
         /**
          * BR-199 (аудит #336, пакет `PKG-S3-24`): логгер по конвенции ADR local-0005.
          */
@@ -203,7 +207,13 @@ class Uuids(
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    log.warn("Uuids.loadList: не удалось закрыть ресурсы чтения: {}", e.message, e)
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "UUID-CLOSE-001",
+                        event = "uuid.close.failed",
+                        fields = mapOf("operation" to "loadList"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()

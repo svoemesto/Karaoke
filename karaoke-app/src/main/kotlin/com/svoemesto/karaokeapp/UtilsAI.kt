@@ -26,6 +26,9 @@ import javax.net.ssl.HttpsURLConnection
 import kotlin.String
 import kotlin.text.replace
 
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.UtilsAI"
+
 suspend fun main000() {
 //    println(findSongText("Nautilus Pompilius", "Мальчик зима"))
 }
@@ -480,7 +483,13 @@ fun getYandexSearch(
         }
     } catch (e: Exception) {
         println("Exception details: ${e.message}")
-        e.printStackTrace()
+        AppLog.warn(
+            category = CATEGORY,
+            code = "AI-001",
+            event = "ai.failed",
+            fields = mapOf("operation" to "getYandexSearch"),
+            error = e,
+        )
         throw RuntimeException("HTTP request failed: ${e.message}", e)
     } finally {
         connection.disconnect()
@@ -632,7 +641,13 @@ fun extractLyricsBySearchResultId(
         searchResult
     } catch (e: Exception) {
         println("extractLyricsBySearchResultId: ошибка при извлечении по $link: ${e.message}")
-        e.printStackTrace()
+        AppLog.warn(
+            category = CATEGORY,
+            code = "AI-001",
+            event = "ai.failed",
+            fields = mapOf("operation" to "extractLyricsBySearchResultId"),
+            error = e,
+        )
         searchResult.save()
         searchResult
     }
@@ -865,7 +880,13 @@ fun searchSongInYandex(
         }
     } catch (e: Exception) {
         println("Exception details: ${e.message}")
-        e.printStackTrace()
+        AppLog.warn(
+            category = CATEGORY,
+            code = "AI-001",
+            event = "ai.failed",
+            fields = mapOf("operation" to "searchSongInYandex"),
+            error = e,
+        )
         throw RuntimeException("HTTP request failed: ${e.message}", e)
     } finally {
         connection.disconnect()

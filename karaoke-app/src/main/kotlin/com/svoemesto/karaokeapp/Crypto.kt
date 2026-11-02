@@ -47,6 +47,9 @@ class CryptoConfigurationException(
  */
 class Crypto {
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.Crypto"
+
         private val log = LoggerFactory.getLogger(Crypto::class.java)
 
         // ENV-имена (Pass 343+)
@@ -144,7 +147,13 @@ class Crypto {
             } catch (ex: Exception) {
                 // BR-291: SLF4J вместо printStackTrace в stdout; в лог — только тип
                 // операции и класс/сообщение исключения (без значений и ключей).
-                log.error("crypto: decrypt failed op=decrypt error={}", "${ex::class.simpleName}: ${ex.message}", ex)
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "CRYPTO-001",
+                    event = "crypto.decrypt.failed",
+                    fields = mapOf("op" to "decrypt"),
+                    error = ex,
+                )
                 null
             }
         }
@@ -161,7 +170,13 @@ class Crypto {
                 Base64.getEncoder().encodeToString(encrypted)
             } catch (ex: Exception) {
                 // BR-291: SLF4J вместо printStackTrace в stdout; значения в лог не пишем.
-                log.error("crypto: encrypt failed op=encrypt error={}", "${ex::class.simpleName}: ${ex.message}", ex)
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "CRYPTO-002",
+                    event = "crypto.encrypt.failed",
+                    fields = mapOf("op" to "encrypt"),
+                    error = ex,
+                )
                 null
             }
         }

@@ -11,6 +11,7 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
+import com.svoemesto.karaokeapp.AppLog
 
 // «История прослушиваний» пользователя публичного сайта (karaoke-public), QW-13. Одна строка на
 // пару (site_user_id, song_id) — апсертится при каждом прослушивании (play_count++,
@@ -63,6 +64,9 @@ class ListeningHistory(
         )
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.model.ListeningHistory"
+
         const val TABLE_NAME = "tbl_listening_history"
 
         /**
@@ -92,13 +96,25 @@ class ListeningHistory(
                 )
                 return true
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "HIST-DB-001",
+                    event = "history.db.failed",
+                    fields = mapOf("operation" to "upsert"),
+                    error = e,
+                )
                 return false
             } finally {
                 try {
                     statement?.close()
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "HIST-DB-001",
+                        event = "history.db.failed",
+                        fields = mapOf("operation" to "upsert"),
+                        error = e,
+                    )
                 }
             }
         }
@@ -148,13 +164,25 @@ class ListeningHistory(
                     )
                 }
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "HIST-DB-001",
+                    event = "history.db.failed",
+                    fields = mapOf("operation" to "getForUser"),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close()
                     statement?.close()
                 } catch (e: SQLException) {
-                    e.printStackTrace()
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "HIST-DB-001",
+                        event = "history.db.failed",
+                        fields = mapOf("operation" to "getForUser"),
+                        error = e,
+                    )
                 }
             }
             return result

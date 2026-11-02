@@ -46,6 +46,33 @@ event=db.connect.failed code=DB-CONNECT-001 target=SERVER thread=http-nio-1 host
 | `DB-UNAVAILABLE-002` | `db.unavailable` | Нет соединения перед операцией (`operation=` `loadList`/`getListHashes`/`getTotalCount`, `table=`) | То же, что `DB-CONNECT-001`; проверить, единичное это или пачка |
 | `DB-RETRY-001` | `db.retry` | Идемпотентная операция повторилась после обрыва (`operation=`, `attempt=`, `reason=`) | Действий не требует; если идут пачками — искать причину обрыва |
 | `CHAT-UNREAD-001` | `chat.unread.count.failed` | Не посчитались непрочитанные сообщения чата (`sqlState=`) | Смотреть БД; на интерфейс не влияет (счётчик показывается без числа) |
+| `STAT-DB-001` | `stat.db.failed` | Статистика по песне не прочитана (`operation=` — метод) | Смотреть БД; на интерфейс влияет только на блок статистики |
+| `HIST-DB-001` | `history.db.failed` | История прослушиваний: операция `upsert`/`getForUser` упала | Смотреть БД |
+| `SONG-DB-001` | `song.db.failed` | Загрузка песен/авторов/альбомов упала (`operation=`) | Смотреть БД; при `loadListFromDb` — вероятен обрыв соединения |
+| `PROCESS-DB-001` | `process.db.failed` | Очередь заданий: счётчики/выборка/обновление упали (`operation=`) | Смотреть БД; очередь может копить задания |
+| `WORKER-001` | `worker.failed` | Главный цикл воркера упал необработанным исключением | Смотреть `operation=` и причину; воркер перезапускает цикл сам |
+| `DB-001` | `db.failed` | Прочее место слоя БД (`operation=`) | Смотреть БД |
+| `ALBUM-DB-001` | `album.author.read.failed` | Автор альбома не прочитан — альбом не создаётся (`author=`) | Смотреть БД |
+| `UTIL-DB-001` | `util.author.read.failed` | Автор не прочитан — запись не создаётся (`author=`) | Смотреть БД |
+| `UUID-CLOSE-001` | `uuid.close.failed` | Не закрылись ресурсы чтения UUID | Шум; смотреть только при серии |
+| `SSE-001` | `sse.record_change.failed` | Не разослано SSE-событие изменения (`table=`) | Клиенты не увидят изменение до следующего опроса |
+| `UTIL-SYNC-001/002` | `util.sync.autocommit.failed` / `util.sync.enqueue.failed` | Песня не поставлена в sync-таблицу REMOTE (`songId=`) | Проверить очередь синка; песня не уедет на внешний сервер |
+| `UTIL-VPN-001/002` | `util.vpn.request.failed` / `util.vpn.close.failed` | Проверка VPN-доступности упала (`url=`) | Влияет на определение VPN; проверять вручную |
+| `UTIL-FS-001/002` | `util.fs.walk.failed` / `util.fs.chmod.failed` | Ошибка файловой системы (`path=`) | Проверить права/диск |
+| `UTIL-INDEX-001` | `util.parent_candidates.load.failed` | Не загрузились кандидаты-родители | Смотреть БД |
+| `CRYPTO-001/002/003` | `crypto.decrypt.failed` / `crypto.encrypt.failed` / `crypto.failed` | Ошибка шифрования | Значения и ключи в лог не пишутся — только операция и тип ошибки |
+| `EDITOR-001/002` | `editor.apply.failed` / `editor.render_demo.failed` | Редактор песен: разметка не применилась (`songId=`) | Смотреть интерфейс редактора |
+| `API-CLOSE-001` | `api.jdbc.close.failed` | Не закрылись JDBC-ресурсы эндпоинта (`endpoint=`) | Шум; серия — признак утечки соединений |
+| `API-BG-001` | `api.background.interrupted` | Фоновая операция прервана (`operation=`) | Смотреть причину прерывания |
+| `HEALTH-POOL-001/002` | `health.recompute.failed` / `health.waiting_task.failed` | Не пересчиталось здоровье песни (`songId=`/`task=`) | Смотреть БД |
+| `HEALTH-REPORT-001` | `health.enqueue.waiting.failed` | Не встали в очередь ожидающие задачи | Смотреть БД и очередь |
+| `SYNC-SCHED-001/002` | `sync.scheduler.target.failed` / `sync.scheduler.tick.failed` | Ошибка автосинка (`target=`/`startedAt=`) | Смотреть лог синка; синк не состоится |
+| `GEOIP-001` | `geoip.failed` | GeoIP-lookup упал | Влияет на статистику по странам |
+| `PLAYWRIGHT-001` | `playwright.browser.failed` | Ошибка браузера (Playwright) | Перезапуск задачи |
+| `AI-001` | `ai.failed` | Ошибка AI-обработки | Смотреть причину; задача уйдёт в ERROR |
+| `SHARE-001` | `share_links.failed` | Ошибка админки ссылок | Смотреть причину |
+| `STREAM-001` | `dual_stream.failed` | Ошибка двойного потока | Смотреть причину |
+| `UTIL-001` | `util.failed` | Прочая утилита (`operation=`) | Смотреть причину |
 | `STORAGE-POLICY-OK` / `STORAGE-POLICY-REPAIRED` / `STORAGE-POLICY-UNCONFIRMED` | `stemjobs:storage:policy …` | Политика бакетов MinIO: подтверждена / дожата / не подтверждена | Для `UNCONFIRMED` — проверить канал до MinIO (порт 9000) и повторить; самопроверка идёт каждые 5 минут (KARAOKE-385) |
 
 ## 1b. Guard гигиены логов (KARAOKE-387, продолжение)
@@ -57,7 +84,9 @@ event=db.connect.failed code=DB-CONNECT-001 target=SERVER thread=http-nio-1 host
 - `printStackTrace` — прямой вывод стека в stdout;
 - `log.<level>(…)` с объектом исключения последним аргументом — SLF4J печатает стек после сообщения.
 
-Модель — как у eslint-baseline: `config/log-hygiene-baseline.txt` хранит текущие счётчики. Проверка падает, если появился **новый** файл с этими паттернами или счётчик в файле **вырос**. Уменьшение счётчика — не ошибка, но baseline стоит обновить:
+Модель — как у eslint-baseline: `config/log-hygiene-baseline.txt` хранит текущие счётчики. Проверка падает, если появился **новый** файл с этими паттернами или счётчик в файле **вырос**. Уменьшение счётчика — не ошибка, но baseline стоит обновить.
+
+Состояние на 2026-11-02: baseline **пуст** — в `karaoke-app` не осталось ни одного реального `printStackTrace()` и ни одного `log.<level>(…, e)`. Комментарии в подсчёте не участвуют (упоминание «printStackTrace» в тексте комментария — не источник стектрейсов), поэтому baseline может обнулиться.
 
 ```bash
 bash tools/check-log-hygiene.sh --report            # текущие счётчики

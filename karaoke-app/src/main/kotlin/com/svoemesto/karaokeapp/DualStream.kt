@@ -4,6 +4,9 @@ import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.SNS
 import java.io.PrintStream
 
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.DualStream"
+
 /**
  * Класс Dual Stream.
  *
@@ -25,7 +28,13 @@ class DualStream(
             SNS.send(SseNotification.log(txt))
 //            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.error(
+                category = CATEGORY,
+                code = "STREAM-001",
+                event = "dual_stream.failed",
+                fields = mapOf("operation" to "write"),
+                error = e,
+            )
         }
     }
 }

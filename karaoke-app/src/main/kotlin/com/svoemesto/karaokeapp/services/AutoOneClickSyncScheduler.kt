@@ -14,6 +14,10 @@ import org.springframework.stereotype.Component
 import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicBoolean
+import com.svoemesto.karaokeapp.AppLog
+
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.services.AutoOneClickSyncScheduler"
 
 /**
  * Периодический автозапуск «Синхронизации в 1 клик» (spec 235).
@@ -213,7 +217,13 @@ class AutoOneClickSyncScheduler {
                         // FR-012: одна упавшая сущность не ломает остальные.
                         // Логируем стек и подставляем "skipped"-результат,
                         // чтобы в `perTarget[]` сохранилась позиция для UI.
-                        log.error("[AutoOneClickSyncScheduler] target={} failed", target.key, t)
+                        AppLog.error(
+                            category = CATEGORY,
+                            code = "SYNC-SCHED-001",
+                            event = "sync.scheduler.target.failed",
+                            fields = mapOf("target" to target.key),
+                            error = t,
+                        )
                         SyncOneClickResultDto(
                             key = target.key,
                             displayName = target.displayName,
@@ -256,7 +266,13 @@ class AutoOneClickSyncScheduler {
                     status = "FAILED",
                     reason = "${t::class.simpleName}: ${t.message ?: "(no message)"}",
                 )
-            log.error("[AutoOneClickSyncScheduler] tick={} FAILED", run.startedAt, t)
+            AppLog.error(
+                category = CATEGORY,
+                code = "SYNC-SCHED-002",
+                event = "sync.scheduler.tick.failed",
+                fields = mapOf("startedAt" to run.startedAt),
+                error = t,
+            )
             appendHistory(failed)
         } finally {
             running.set(false)

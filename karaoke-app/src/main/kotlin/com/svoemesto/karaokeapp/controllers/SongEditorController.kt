@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.ResponseBody
 import java.io.File
 import java.sql.Timestamp
 import org.slf4j.LoggerFactory
+import com.svoemesto.karaokeapp.AppLog
 
 // Админская сторона онлайн-редактора караоке-разметки (webvue3). Живёт в karaoke-app (admin-машина):
 // назначение песни пользователю с автозаливкой стемов в MinIO, просмотр черновиков, апрув (применение
@@ -483,7 +484,13 @@ class SongEditorController(
                 } catch (e: Exception) {
                     // BR-224: SLF4J со стеком (ADR local-0005) — `println` с одним
                     // `e.message` терял и категорию, и уровень, и стек.
-                    log.error("approve: применение разметки к песне songId={} не удалось", song.id, e)
+                    AppLog.error(
+                        category = CATEGORY,
+                        code = "EDITOR-001",
+                        event = "editor.apply.failed",
+                        fields = mapOf("songId" to song.id),
+                        error = e,
+                    )
                     return@withDb mapOf("ok" to false, "status" to "error", "error" to "song_save_failed")
                 }
 
@@ -1253,11 +1260,20 @@ class SongEditorController(
         } catch (e: Exception) {
             // BR-224: SLF4J со стеком (ADR local-0005) — `println` с одним
             // `e.message` терял и уровень, и категорию, и стек.
-            log.error("approve: render-demo helper: EXCEPTION songId={}", song.id, e)
+            AppLog.error(
+                category = CATEGORY,
+                code = "EDITOR-002",
+                event = "editor.render_demo.failed",
+                fields = mapOf("songId" to song.id),
+                error = e,
+            )
         }
     }
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.controllers.SongEditorController"
+
         /** BR-223: число полос локов апрува (степень двойной параллельности). */
         private const val APPROVE_LOCKS = 16
     }

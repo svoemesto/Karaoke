@@ -20,6 +20,7 @@ import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.isAccessible
+import com.svoemesto.karaokeapp.DbAvailability
 
 /**
  * Базовый интерфейс для всех персистентных сущностей Karaoke
@@ -488,20 +489,22 @@ interface KaraokeDbTable {
             throwOnError: Boolean = false,
             orderBy: String? = null,
         ): List<KaraokeDbTable> =
-            loadListInternal(
-                clazz = clazz,
-                tableName = tableName,
-                where = where,
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                sync = sync,
-                ignoreUseInList = ignoreUseInList,
-                throwOnError = throwOnError,
-                orderBy = orderBy,
-            )
+            DbAvailability.withRetryOnConnectionFailure(database, "loadList:$tableName") {
+                loadListInternal(
+                    clazz = clazz,
+                    tableName = tableName,
+                    where = where,
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    sync = sync,
+                    ignoreUseInList = ignoreUseInList,
+                    throwOnError = throwOnError,
+                    orderBy = orderBy,
+                )
+            }
 
         fun loadList(
             clazz: KClass<*>,
@@ -517,20 +520,22 @@ interface KaraokeDbTable {
             throwOnError: Boolean = false,
             orderBy: String? = null,
         ): List<KaraokeDbTable> =
-            loadListInternal(
-                clazz = clazz,
-                tableName = tableName,
-                where = SqlWhere(whereList, emptyList()),
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                sync = sync,
-                ignoreUseInList = ignoreUseInList,
-                throwOnError = throwOnError,
-                orderBy = orderBy,
-            )
+            DbAvailability.withRetryOnConnectionFailure(database, "loadList:$tableName") {
+                loadListInternal(
+                    clazz = clazz,
+                    tableName = tableName,
+                    where = SqlWhere(whereList, emptyList()),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    sync = sync,
+                    ignoreUseInList = ignoreUseInList,
+                    throwOnError = throwOnError,
+                    orderBy = orderBy,
+                )
+            }
 
         @Suppress("LongMethod", "CyclomaticComplexMethod")
         private fun loadListInternal(
@@ -826,6 +831,15 @@ interface KaraokeDbTable {
             tableName: String,
             database: KaraokeConnection,
             whereText: String = "",
+        ): List<RecordHash>? =
+            DbAvailability.withRetryOnConnectionFailure(database, "getListHashes:$tableName") {
+                getListHashesOnce(tableName, database, whereText)
+            }
+
+        private fun getListHashesOnce(
+            tableName: String,
+            database: KaraokeConnection,
+            whereText: String = "",
         ): List<RecordHash>? {
             var result: MutableList<RecordHash>? = mutableListOf()
             val sql = "SELECT id, recordhash FROM $tableName $whereText"
@@ -868,6 +882,14 @@ interface KaraokeDbTable {
 
         @Suppress("unused")
         fun getTotalCount(
+            tableName: String,
+            database: KaraokeConnection,
+        ): Int =
+            DbAvailability.withRetryOnConnectionFailure(database, "getTotalCount:$tableName") {
+                getTotalCountOnce(tableName, database)
+            }
+
+        private fun getTotalCountOnce(
             tableName: String,
             database: KaraokeConnection,
         ): Int {

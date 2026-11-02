@@ -341,13 +341,20 @@ class PkgS324Batch1SourceContractsTest {
             table.contains("println("),
             "println заменён на SLF4J (BR-187)",
         )
+        // KARAOKE-387: ошибки пишутся через AppLog (одна строка с кодом, без стектрейса),
+        // а не «сырым» log.warn/error с объектом исключения. Требование BR-187 (SLF4J вместо
+        // printStackTrace/println) сохраняется — AppLog пишет именно в SLF4J.
         assertTrue(
-            table.contains("log.warn("),
+            table.contains("AppLog.warn(") || table.contains("log.warn("),
             "ошибки чтения/закрытия ресурсов логируются (BR-187)",
         )
         assertTrue(
-            table.contains("log.error("),
+            table.contains("AppLog.error(") || table.contains("log.error("),
             "недоступность БД логируется как ошибка (BR-187)",
+        )
+        assertFalse(
+            table.contains("log.error(\"Не удалось сохранить запись в таблице {}: {}\", getTableName(), e.message, e)"),
+            "лог с объектом исключения заменён на AppLog (KARAOKE-387): стек печатается только при LOG_STACKTRACES=true",
         )
     }
 }

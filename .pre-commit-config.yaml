@@ -267,6 +267,16 @@ repos:
       # Структура allow-list, уникальность и публичность адресов, ограничение
       # частоты, отсутствие секретов, период таймера. Единственная реализация
       # правил BR-631 — tools/check-allowlist-guardrails.sh.
+      # KARAOKE-387: не плодить новые стектрейсы в логах karaoke-app. Модель — как у
+      # eslint-baseline: config/log-hygiene-baseline.txt хранит текущие счётчики
+      # printStackTrace и log.*(…, e); новые источники и рост счётчиков — отказ коммита.
+      - id: log-hygiene-guard
+        name: log hygiene guard (KARAOKE-387)
+        entry: bash tools/check-log-hygiene.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
       - id: allowlist-guardrails-guard
         name: allowlist guardrails guard (BR-631)
         entry: bash tools/check-allowlist-guardrails.sh --quiet

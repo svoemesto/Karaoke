@@ -148,7 +148,13 @@ interface KaraokeDbTable {
                             "«${it.recordDiffValueNew}», несовместимое с форматом данных этого поля в БД. " +
                             "Оригинальный текст ошибки: «${e.message}»"
                     // BR-187: SLF4J вместо println (ADR local-0005) — с объектом исключения.
-                    log.error("Не удалось сохранить запись в БД: {}", errorMessage, e)
+                    AppLog.error(
+                        category = CATEGORY,
+                        code = "DB-SAVE-001",
+                        event = "db.save.failed",
+                        fields = mapOf("table" to getTableName(), "reason" to errorMessage),
+                        error = e,
+                    )
                 }
                 index++
             }
@@ -159,7 +165,13 @@ interface KaraokeDbTable {
                 // BR-176 (аудит #336): раньше ошибка только логировалась, и вызывающий
                 // получал «успех» (ложный 200 в админке). ADR local-0002 требует
                 // пробрасывать ошибки БД, а не подменять их пустым результатом.
-                log.error("Не удалось сохранить запись в таблице {}: {}", getTableName(), e.message, e)
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "DB-SAVE-002",
+                    event = "db.save.failed",
+                    fields = mapOf("table" to getTableName(), "id" to id),
+                    error = e,
+                )
                 throw IllegalStateException(
                     "Не удалось сохранить запись в таблице '${getTableName()}' (id=$id): ${e.message}",
                     e,
@@ -174,7 +186,13 @@ interface KaraokeDbTable {
             try {
                 SNS.send(messageRecordChange)
             } catch (e: Exception) {
-                log.warn("Не удалось разослать SSE recordChange для {}: {}", getTableName(), e.message, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-SSE-001",
+                    event = "db.sse.failed",
+                    fields = mapOf("table" to getTableName()),
+                    error = e,
+                )
             }
             val saved =
                 loadById(
@@ -202,7 +220,13 @@ interface KaraokeDbTable {
                     SNS.send(messageRecordChangeNew)
                 } catch (e: Exception) {
                     // BR-187: SLF4J вместо println (ADR local-0005).
-                    log.warn("Не удалось разослать SSE recordChange для {}: {}", getTableName(), e.message, e)
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "DB-SSE-001",
+                        event = "db.sse.failed",
+                        fields = mapOf("table" to getTableName()),
+                        error = e,
+                    )
                 }
             }
         }
@@ -343,13 +367,25 @@ interface KaraokeDbTable {
                 return result
             } catch (e: SQLException) {
                 // BR-187: SLF4J + объект исключения (ADR local-0005) — стек больше не теряется.
-                log.warn("Не удалось прочитать список колонок таблицы {} (sqlState={})", tableName, e.sqlState, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-SCHEMA-001",
+                    event = "db.schema.failed",
+                    fields = mapOf("table" to tableName, "sqlState" to e.sqlState),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close()
                     statement?.close()
                 } catch (e: SQLException) {
-                    log.warn("Не удалось закрыть ресурсы чтения схемы таблицы {}: {}", tableName, e.message, e)
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "DB-CLOSE-002",
+                        event = "db.close.failed",
+                        fields = mapOf("table" to tableName, "stage" to "schema"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -687,7 +723,13 @@ interface KaraokeDbTable {
                 return result
             } catch (e: SQLException) {
                 // BR-187: SLF4J + объект исключения (ADR local-0005).
-                log.warn("Не удалось загрузить записи таблицы {} (sqlState={})", tableName, e.sqlState, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-READ-001",
+                    event = "db.read.failed",
+                    fields = mapOf("table" to tableName, "sqlState" to e.sqlState),
+                    error = e,
+                )
                 // BR-184: в строгом режиме сбой чтения НЕ выглядит как «строк нет».
                 if (throwOnError) throw e
             } finally {
@@ -697,7 +739,13 @@ interface KaraokeDbTable {
                     preparedStatement?.close() // close prepared statement
                 } catch (e: SQLException) {
                     // BR-187: SLF4J вместо printStackTrace (ADR local-0005).
-                    log.warn("Не удалось закрыть ресурсы чтения таблицы {}: {}", tableName, e.message, e)
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "DB-CLOSE-002",
+                        event = "db.close.failed",
+                        fields = mapOf("table" to tableName, "stage" to "read"),
+                        error = e,
+                    )
                 }
             }
             return emptyList()
@@ -871,14 +919,26 @@ interface KaraokeDbTable {
                 log.debug("Получено хешей для таблицы {}: {}", tableName, cnt)
             } catch (e: SQLException) {
                 // BR-187: SLF4J + объект исключения (ADR local-0005).
-                log.warn("Не удалось получить хеши таблицы {} (sqlState={})", tableName, e.sqlState, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-HASHES-001",
+                    event = "db.hashes.failed",
+                    fields = mapOf("table" to tableName, "sqlState" to e.sqlState),
+                    error = e,
+                )
                 result = null
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    log.warn("Не удалось закрыть ресурсы чтения хешей таблицы {}: {}", tableName, e.message, e)
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "DB-CLOSE-002",
+                        event = "db.close.failed",
+                        fields = mapOf("table" to tableName, "stage" to "hashes"),
+                        error = e,
+                    )
                 }
             }
             return result
@@ -915,13 +975,25 @@ interface KaraokeDbTable {
                 }
             } catch (e: SQLException) {
                 // BR-187: SLF4J + объект исключения (ADR local-0005).
-                log.warn("Не удалось получить счётчик таблицы {} (sqlState={})", tableName, e.sqlState, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-COUNT-001",
+                    event = "db.count.failed",
+                    fields = mapOf("table" to tableName, "sqlState" to e.sqlState),
+                    error = e,
+                )
             } finally {
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
                 } catch (e: SQLException) {
-                    log.warn("Не удалось закрыть ресурсы чтения счётчика таблицы {}: {}", tableName, e.message, e)
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "DB-CLOSE-002",
+                        event = "db.close.failed",
+                        fields = mapOf("table" to tableName, "stage" to "count"),
+                        error = e,
+                    )
                 }
             }
             return -1
@@ -979,7 +1051,13 @@ interface KaraokeDbTable {
                 return true
             } catch (e: Exception) {
                 // BR-187: SLF4J + объект исключения (ADR local-0005).
-                log.warn("Не удалось удалить запись id={} из таблицы {}: {}", id, tableName, e.message, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-DELETE-001",
+                    event = "db.delete.failed",
+                    fields = mapOf("table" to tableName, "id" to id),
+                    error = e,
+                )
             }
             return false
         }
@@ -1013,7 +1091,13 @@ interface KaraokeDbTable {
                 n
             } catch (e: Exception) {
                 // BR-187: SLF4J + объект исключения (ADR local-0005).
-                log.warn("Не удалось батч-удалить {} записей из таблицы {}: {}", ids.size, tableName, e.message, e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-DELETE-002",
+                    event = "db.delete.failed",
+                    fields = mapOf("table" to tableName, "count" to ids.size),
+                    error = e,
+                )
                 0
             }
         }

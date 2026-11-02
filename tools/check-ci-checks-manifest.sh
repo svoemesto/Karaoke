@@ -19,6 +19,7 @@
 #   M-10 if:-условия в двух копиях идентичны по job-id
 #   M-11 needs джоба karaoke-public-e2e покрывает все записи с cost: heavy
 #   M-12 needs в двух копиях идентичны по job-id (порядок выполнения одинаков)
+#   M-13 needs агрегата ci-summary покрывает все проверки манифеста
 #
 # КОДЫ ВОЗВРАТА (контракт guard'ов проекта):
 #   0 — расхождений нет;
@@ -349,6 +350,23 @@ if E2E_JOB in forgejo:
         fail(1, f"M-11: needs джоба '{E2E_JOB}' не покрывает тяжёлые проверки: {missing}")
     if "changes" not in needs:
         fail(1, f"M-11: needs джоба '{E2E_JOB}' не содержит 'changes'")
+
+# --- M-13: агрегат ci-summary видит все проверки манифеста -------------------
+# Прецедент (2026-11-02, KARAOKE-388): джоб добавлен в workflow и в манифест, но
+# забыт в needs агрегата ci-summary. Агрегат тогда видел проверку как применимую
+# (output от changes есть) и без результата (нуж нет) → «SUMMARY: red» при полностью
+# зелёных джобах. Правило закрывает весь класс таких ошибок.
+AGGREGATE_JOB = "ci-summary"
+for copy_name, wf in ((".forgejo", forgejo), (".github", github)):
+    if AGGREGATE_JOB not in wf:
+        fail(1, f"M-13: в копии {copy_name} нет джоба агрегата '{AGGREGATE_JOB}'")
+        continue
+    agg_needs = set(wf[AGGREGATE_JOB]["needs"])
+    not_covered = sorted(cid for cid in records if cid != AGGREGATE_JOB and cid not in agg_needs)
+    if not_covered:
+        fail(1, f"M-13: needs джоба '{AGGREGATE_JOB}' ({copy_name}) не покрывает проверки "
+                f"манифеста: {not_covered} — агрегат увидит их применимыми без результата "
+                f"(SUMMARY: red при зелёных джобах)")
 
 # --- M-14: секция known_unmapped (утверждённо не читаемые пути) --------------
 # Правила: (а) запись не пересекается ни с одной зоной проверки (иначе избыточна),

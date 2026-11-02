@@ -70,7 +70,7 @@ pre-commit run --all-files    # прогнать все хуки вручную 
 | `docker-image-tags-guard` | `tools/check-docker-image-tags.sh` | R-04/R-05: теги базовых образов (`nginx:stable`, `node:22-alpine`) | всегда |
 | `no-jpa-imports-guard` | `tools/check-no-jpa-imports.sh` | R-07: запрет импортов JPA/Hibernate | всегда |
 | `no-mp4-mentions-guard` | `tools/check-no-mp4-mentions.sh` | R-11: запрет упоминаний mp4/скачивания | всегда |
-| `subagent-isolation-guard` | `tools/check-subagent-isolation.sh` | изоляция worktree для параллельных субагентов; fail-closed при неразрешённом git-ref | всегда |
+| `subagent-isolation-guard` | `tools/check-subagent-isolation.sh` | изоляция worktree для параллельных субагентов; fail-closed при неразрешённом git-ref. База для сравнения — `origin/master` (локальный `master` в общем checkout бывает устаревшим), а **смерженные ветки не считаются чужими** (их head уже в базовой ветке) — иначе guard блокировал каждый коммит после merge (KARAOKE-387 follow-up, 2026-11-02) | всегда |
 | `security-headers-guard` | `tools/check-security-headers.py` | заголовки безопасности в прод-nginx | всегда |
 | `recordhash-consistency-guard` | `tools/check-recordhash-consistency.py` | контракт recordhash (sync-движок сравнивает строки только по recordhash) | всегда |
 | `confirm-escape-guard` | `tools/check-confirm-escape.py` | R1/R2/R3 экранирования текста подтверждений | `webvue3/src/**`, сам guard, `config/frontend/confirm-safe-expressions.txt` |

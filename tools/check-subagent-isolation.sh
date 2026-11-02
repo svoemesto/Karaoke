@@ -58,7 +58,11 @@ color_cyan() { printf '\033[0;36m%s\033[0m\n' "$*"; }
 # master. Возвращает имя ref'а или пустую строку, если базу найти нельзя.
 resolve_base_ref() {
   local candidate
-  for candidate in master origin/master main origin/main; do
+  # Порядок важен: origin/master предпочтительнее локального master — локальная ветка
+  # в общем checkout бывает устаревшей (другой агент работает на своей), и тогда в
+  # "base..branch" попадают коммиты, которые уже давно влиты в master (KARAOKE-387
+  # follow-up, инцидент 2026-11-02: guard блокировал коммиты после каждого merge).
+  for candidate in origin/master master origin/main main; do
     if git rev-parse --verify --quiet "${candidate}" >/dev/null 2>&1; then
       printf '%s' "${candidate}"
       return 0
@@ -151,6 +155,22 @@ check_isolation() {
     # (Trim пробелов обязателен — git выводит branches с leading whitespace.)
     local foreign_branches
     foreign_branches=$(echo "$containing_branches" | sed 's|[[:space:]]*$||' | grep -v "^${current_branch}$" | grep -v '^$')
+
+    # Смерженные ветки — не «чужие»: их head уже влит в базовую ветку, поэтому коммит
+    # присутствует и в master, и в самой ветке. Такие ветки остаются в репозитории по
+    # конвенции (merge-pr.sh их не удаляет), и раньше они блокировали каждый следующий
+    # коммит после merge (KARAOKE-387 follow-up, 2026-11-02).
+    local foreign_open=""
+    local fb
+    while IFS= read -r fb; do
+      [[ -z "$fb" ]] && continue
+      if git merge-base --is-ancestor "origin/${fb}" "${base_ref}" 2>/dev/null ||
+        git merge-base --is-ancestor "${fb}" "${base_ref}" 2>/dev/null; then
+        continue
+      fi
+      foreign_open="${foreign_open}${fb}"$'\n'
+    done <<< "${foreign_branches}"
+    foreign_branches=$(printf '%s' "${foreign_open}" | sed '/^$/d')
 
     if [[ -n "$foreign_branches" ]]; then
       color_red "❌ Commit ${commit_hash:0:8} принадлежит нескольким PR-веткам:"

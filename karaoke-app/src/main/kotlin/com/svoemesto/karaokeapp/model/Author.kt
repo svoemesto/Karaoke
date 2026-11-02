@@ -12,6 +12,7 @@ import java.io.Serializable
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * Сущность «Автор» (исполнитель) — отдельная таблица `tbl_authors` для
@@ -178,6 +179,9 @@ class Author(
     override fun toDTO(): AuthorDTO = toDTOWithPictures(picturesByName = null)
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.model.Author"
+
         const val TABLE_NAME = "tbl_authors"
 
         @Suppress("unused")
@@ -524,7 +528,13 @@ class Author(
                     }
                 }
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "AUTHOR-DB-001",
+                    event = "author.db.failed",
+                    fields = mapOf("operation" to "loadAuthorTilesWithCounts"),
+                    error = e,
+                )
             }
             return result
         }

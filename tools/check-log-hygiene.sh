@@ -52,15 +52,26 @@ if [ ! -d "${SCOPE}" ]; then
 fi
 
 # Счётчики по файлу: "printstacktrace logexc" (две эвристики, см. заголовок).
+#
+# ВАЖНО: комментарии не считаются. Упоминание «printStackTrace» в комментарии («BR-165:
+# printStackTrace() уходил в stderr…») — это документация, а не источник стектрейсов;
+# без такой фильтрации baseline не может обнулиться и перестаёт быть полезным.
 count_file() {
   local file="$1"
   local ps logexc
-  ps=$(grep -c "printStackTrace" "${file}" 2>/dev/null || true)
+  ps=$(strip_comments "${file}" | grep -c "printStackTrace" || true)
   # log.<level>(...) с исключением последним аргументом. Эвристика по строке вызова:
   # ", e)" / ", ex)" / ", err)" / ", throwable)". Многострочные вызовы ловятся, когда
   # аргумент стоит в той же строке; остальные — предметом отдельных проходов.
-  logexc=$(grep -cE "log\.(trace|debug|info|warn|error)\([^)]*,[[:space:]]*(e|ex|err|exception|throwable|cause|t)\)" "${file}" 2>/dev/null || true)
+  logexc=$(strip_comments "${file}" \
+    | grep -cE "log\.(trace|debug|info|warn|error)\([^)]*,[[:space:]]*(e|ex|err|exception|throwable|cause|t)\)" || true)
   printf '%s %s\n' "${ps:-0}" "${logexc:-0}"
+}
+
+# Печатает файл без комментариев (строковые литералы не разбираются — достаточно).
+strip_comments() {
+  local file="$1"
+  sed -e 's://.*::' -e 's:^[[:space:]]*\*.*::' -e 's:^[[:space:]]*/\*.*::' "${file}"
 }
 
 declare -A CURRENT_PS=()

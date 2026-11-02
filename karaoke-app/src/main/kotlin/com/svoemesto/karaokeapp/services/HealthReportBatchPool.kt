@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * Асинхронный пул с приоритетной очередью для батч-запросов healthReportList
@@ -86,6 +87,9 @@ class HealthReportBatchPool(
     )
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.services.HealthReportBatchPool"
+
         private const val POOL_SIZE = 10
 
         /**
@@ -421,7 +425,13 @@ class HealthReportBatchPool(
             } catch (e: Exception) {
                 // Одна проблемная песня не должна валить worker. Логируем через
                 // SLF4J-категорию `infra.cache.hrpool` (Pass 128).
-                log.warn("recomputeAndBroadcast failed for songId=$id: ${e.message}", e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "HEALTH-POOL-001",
+                    event = "health.recompute.failed",
+                    fields = mapOf("songId" to id),
+                    error = e,
+                )
             } finally {
                 exit(id)
             }
@@ -477,7 +487,13 @@ class HealthReportBatchPool(
                 // запросы по одной песне.
                 enqueue(listOf(task.songId))
             } catch (e: Exception) {
-                log.warn("waiting task failed for $task: ${e.message}", e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "HEALTH-POOL-002",
+                    event = "health.waiting_task.failed",
+                    fields = mapOf("task" to task),
+                    error = e,
+                )
             } finally {
                 exitWaiting(task)
             }

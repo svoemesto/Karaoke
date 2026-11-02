@@ -290,8 +290,11 @@ class PkgS324Batch1SourceContractsTest {
             album.contains("throwOnError = true"),
             "create-or-get читает автора строго (BR-184)",
         )
+        // KARAOKE-387: ошибки пишутся через AppLog (одна строка с кодом, стек — только при
+        // LOG_STACKTRACES=true). Требование BR-184 — «сбой чтения отличается от отсутствия
+        // данных» — сохраняется: строгий режим и логирование ошибки на месте.
         assertTrue(
-            album.contains("log.error("),
+            album.contains("AppLog.error(") || album.contains("log.error("),
             "сбой чтения логируется (BR-184)",
         )
         val utils = readCode("$appMain/Utils.kt")

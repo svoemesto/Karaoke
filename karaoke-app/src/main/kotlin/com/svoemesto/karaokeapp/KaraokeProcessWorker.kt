@@ -595,6 +595,9 @@ class KaraokeProcessThread(
 @Component
 class KaraokeProcessWorker {
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.KaraokeProcessWorker"
+
         /**
          * Список имён subprocess, stdout которых не логируется (мелкие
          * файловые операции — `ln`, `rm`, `chmod` и т.п. генерируют
@@ -821,7 +824,13 @@ class KaraokeProcessWorker {
                                 )}] ProcessWorker: главный цикл очереди упал с необработанным исключением " +
                                     "(попытка $attempt/$MAX_START_ATTEMPTS): ${e.message}",
                             )
-                            e.printStackTrace()
+                            AppLog.error(
+                                category = CATEGORY,
+                                code = "WORKER-001",
+                                event = "worker.failed",
+                                fields = mapOf("operation" to "start"),
+                                error = e,
+                            )
                             if (attempt >= MAX_START_ATTEMPTS || !isWork) {
                                 println(
                                     "[${Timestamp.from(Instant.now())}] ProcessWorker: " +
@@ -847,7 +856,13 @@ class KaraokeProcessWorker {
                     println(
                         "[${Timestamp.from(Instant.now())}] ProcessWorker: retry-цикл прерван необработанным исключением: ${e.message}",
                     )
-                    e.printStackTrace()
+                    AppLog.error(
+                        category = CATEGORY,
+                        code = "WORKER-001",
+                        event = "worker.failed",
+                        fields = mapOf("operation" to "start"),
+                        error = e,
+                    )
                 } finally {
                     // Не оставляем isWork=true, если цикл завершился сам (штатно, после исчерпания retry,
                     // либо из-за исключения выше) - иначе очередь выглядит "работающей" в UI/мониторинге,
@@ -1092,7 +1107,13 @@ class KaraokeProcessWorker {
                                 println("Exception details: ${e.message}, пропускаем.")
                             } catch (e: Exception) {
                                 println("Exception details: ${e.message}")
-                                e.printStackTrace()
+                                AppLog.error(
+                                    category = CATEGORY,
+                                    code = "WORKER-001",
+                                    event = "worker.failed",
+                                    fields = mapOf("operation" to "doStart"),
+                                    error = e,
+                                )
                                 throw RuntimeException("HTTP request failed: ${e.message}", e)
                             } finally {
                                 connection.disconnect()

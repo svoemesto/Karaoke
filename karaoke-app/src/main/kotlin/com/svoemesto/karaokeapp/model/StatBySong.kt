@@ -12,6 +12,10 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
+import com.svoemesto.karaokeapp.AppLog
+
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.model.StatBySong"
 
 /**
  * DTO для stat by song: сериализуемое представление для API/UI.
@@ -232,14 +236,26 @@ object StatsByEvents {
                 )
             return if (rs.next()) rs.getInt("cnt") else 0
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getWebEventsCount"),
+                error = e,
+            )
             return 0
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getWebEventsCount"),
+                    error = e,
+                )
             }
         }
     }
@@ -367,13 +383,25 @@ object StatsByEvents {
                 )
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getWebEvents"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getWebEvents"),
+                    error = e,
+                )
             }
         }
 
@@ -439,14 +467,26 @@ object StatsByEvents {
             rs = statement.executeQuery("select count(distinct song_id) as cnt from tbl_events where song_id is not null and song_id > 0")
             return if (rs.next()) rs.getInt("cnt") else 0
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getStatBySongCount"),
+                error = e,
+            )
             return 0
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getStatBySongCount"),
+                    error = e,
+                )
             }
         }
     }
@@ -583,13 +623,25 @@ object StatsByEvents {
                 )
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getStatBySong"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getStatBySong"),
+                    error = e,
+                )
             }
         }
         return result
@@ -617,14 +669,26 @@ object StatsByEvents {
                 )
             return if (rs.next()) rs.getInt("cnt") else 0
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getTopListenedSongsCount"),
+                error = e,
+            )
             return 0
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getTopListenedSongsCount"),
+                    error = e,
+                )
             }
         }
     }
@@ -706,13 +770,25 @@ object StatsByEvents {
                 )
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getTopListenedSongs"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getTopListenedSongs"),
+                    error = e,
+                )
             }
         }
         return result
@@ -732,14 +808,26 @@ object StatsByEvents {
             rs = statement.executeQuery(sql)
             return if (rs.next()) rs.getInt(1) else 0
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "scalarInt"),
+                error = e,
+            )
             return 0
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "scalarInt"),
+                    error = e,
+                )
             }
         }
     }
@@ -782,13 +870,25 @@ object StatsByEvents {
                 result.add(NamedCountDto(channelLabel(rs.getString("link_name")), rs.getInt("cnt")))
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getChannelBreakdown"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getChannelBreakdown"),
+                    error = e,
+                )
             }
         }
         return result
@@ -823,13 +923,25 @@ object StatsByEvents {
                 result.add(NamedCountDto(rs.getString("referer") ?: "—", rs.getInt("cnt")))
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getTopReferrers"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getTopReferrers"),
+                    error = e,
+                )
             }
         }
         return result
@@ -893,14 +1005,26 @@ object StatsByEvents {
                 )
             while (rs.next()) ipCounts[rs.getString("client_ip")] = rs.getInt("cnt")
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getCountryBreakdown"),
+                error = e,
+            )
             return emptyList()
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getCountryBreakdown"),
+                    error = e,
+                )
             }
         }
         // Лимит внешних резолвов за один показ дашборда — кэш наполнится за несколько обновлений.
@@ -990,13 +1114,25 @@ object StatsByEvents {
                 result.add(NamedCountDto(et, rs.getInt("cnt")))
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getEventsByType"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getEventsByType"),
+                    error = e,
+                )
             }
         }
         return result
@@ -1056,13 +1192,25 @@ object StatsByEvents {
                 )
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getEventsTimeSeries"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getEventsTimeSeries"),
+                    error = e,
+                )
             }
         }
         return result
@@ -1173,13 +1321,25 @@ object StatsByEvents {
                 )
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getEventsDetailed"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getEventsDetailed"),
+                    error = e,
+                )
             }
         }
         return result
@@ -1241,13 +1401,25 @@ object StatsByEvents {
                 )
             }
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "STAT-DB-001",
+                event = "stat.db.failed",
+                fields = mapOf("operation" to "getTopUsers"),
+                error = e,
+            )
         } finally {
             try {
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "STAT-DB-001",
+                    event = "stat.db.failed",
+                    fields = mapOf("operation" to "getTopUsers"),
+                    error = e,
+                )
             }
         }
         return result

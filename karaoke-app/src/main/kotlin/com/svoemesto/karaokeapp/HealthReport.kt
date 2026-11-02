@@ -82,6 +82,9 @@ data class HealthReport(
     fun executeSolutionActions() = solutionActions.forEach { action -> action() }
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.HealthReport"
+
         /**
          * Static reference to [StorageMetadataCache], wired by
          * `StorageMetadataCacheWiring.@PostConstruct`. Спека #344 (OP #69).
@@ -2851,7 +2854,13 @@ data class HealthReport(
                 pool.enqueueWaiting(tasks)
             } catch (e: Exception) {
                 val log = LoggerFactory.getLogger("infra.cache.hrpool")
-                log.warn("failed to enqueue waiting tasks: ${e.message}", e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "HEALTH-REPORT-001",
+                    event = "health.enqueue.waiting.failed",
+                    fields = mapOf(),
+                    error = e,
+                )
             }
         }
 

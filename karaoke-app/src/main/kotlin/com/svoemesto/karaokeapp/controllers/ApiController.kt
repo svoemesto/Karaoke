@@ -70,6 +70,7 @@ import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import javax.imageio.ImageIO
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * DTO для family song: сериализуемое представление для API/UI.
@@ -579,7 +580,13 @@ class ApiController(
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                log.warn("songs/changed: ошибка закрытия JDBC-ресурсов", e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "API-CLOSE-001",
+                    event = "api.jdbc.close.failed",
+                    fields = mapOf("endpoint" to "songs/changed"),
+                    error = e,
+                )
             }
         }
     }
@@ -620,7 +627,13 @@ class ApiController(
                 rs?.close()
                 statement?.close()
             } catch (e: SQLException) {
-                log.warn("processes/changed: ошибка закрытия JDBC-ресурсов", e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "API-CLOSE-001",
+                    event = "api.jdbc.close.failed",
+                    fields = mapOf("endpoint" to "processes/changed"),
+                    error = e,
+                )
             }
         }
     }
@@ -2985,7 +2998,13 @@ class ApiController(
         try {
             block()
         } catch (t: Throwable) {
-            log.error("Фоновая операция '{}' прервана", head, t)
+            AppLog.error(
+                category = CATEGORY,
+                code = "API-BG-001",
+                event = "api.background.interrupted",
+                fields = mapOf("operation" to head),
+                error = t,
+            )
             try {
                 SNS.send(
                     SseNotification.error(
@@ -3421,6 +3440,9 @@ class ApiController(
     }
 
     companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.controllers.ApiController"
+
         /**
          * Размер пачки для батч-загрузки песен через `WHERE id IN (...)` — тот же порядок величины,
          * что `SongSyncTarget.rowChunkSize` (25). Строки `tbl_songs` тяжёлые (source_text,

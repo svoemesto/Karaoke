@@ -76,6 +76,9 @@ import kotlin.random.Random
 import kotlin.use
 import org.slf4j.LoggerFactory
 
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.Utils"
+
 /**
  * Логгер по конвенции ADR local-0005 (SLF4J, не println).
  *
@@ -992,11 +995,23 @@ fun setSongToSyncRemoteTable(id: Long) {
             try {
                 connection.autoCommit = previousAutoCommit
             } catch (e: Exception) {
-                log.warn("setSongToSyncRemoteTable: не удалось вернуть autoCommit для песни $id", e)
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "UTIL-SYNC-001",
+                    event = "util.sync.autocommit.failed",
+                    fields = mapOf("songId" to id),
+                    error = e,
+                )
             }
         }
     } catch (e: Exception) {
-        log.error("setSongToSyncRemoteTable: не удалось поставить песню $id в sync-таблицу REMOTE", e)
+        AppLog.error(
+            category = CATEGORY,
+            code = "UTIL-SYNC-002",
+            event = "util.sync.enqueue.failed",
+            fields = mapOf("songId" to id),
+            error = e,
+        )
         throw KaraokeSyncEnqueueFailedException(id, e.message ?: "не удалось выполнить DELETE+INSERT", e)
     }
 }
@@ -2230,13 +2245,25 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
         result.sort()
         return result
     } catch (e: SQLException) {
-        e.printStackTrace()
+        AppLog.warn(
+            category = CATEGORY,
+            code = "UTIL-DB-001",
+            event = "util.db.failed",
+            fields = mapOf("operation" to "getAuthorsForDigest"),
+            error = e,
+        )
     } finally {
         try {
             rs?.close() // close result set
             statement?.close() // close statement
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "UTIL-DB-001",
+                event = "util.db.failed",
+                fields = mapOf("operation" to "getAuthorsForDigest"),
+                error = e,
+            )
         }
     }
     return emptyList()
@@ -2763,7 +2790,13 @@ fun getFileNameByMasks(
         // см. BR-184/пакет `PKG-S3-24`). Раньше `catch (_: Exception) { return "" }`
         // глушил всё, и вызывающий не мог отличить «не найдено» от «не смогли
         // посмотреть».
-        log.warn("getFileNameByMasks: не удалось обойти каталог «$pathToFolder» — ${e.message}", e)
+        AppLog.warn(
+            category = CATEGORY,
+            code = "UTIL-FS-001",
+            event = "util.fs.walk.failed",
+            fields = mapOf("path" to pathToFolder),
+            error = e,
+        )
         return ""
     }
     return ""
@@ -3755,7 +3788,13 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
                     throwOnError = true,
                 )
             } catch (e: SQLException) {
-                log.error("Не удалось прочитать автора '{}' из БД — запись не создаётся: {}", authorForRequest, e.message, e)
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "UTIL-DB-001",
+                    event = "util.author.read.failed",
+                    fields = mapOf("author" to authorForRequest),
+                    error = e,
+                )
                 continue
             }
 
@@ -3889,14 +3928,26 @@ private fun fetchCountryCodeFromService(
         }
     } catch (e: Exception) {
         // BR-269: ошибка логируется (а не только печатается в stdout).
-        log.warn("isVpnActive: исключение при запросе $url: ${e.message}", e)
+        AppLog.warn(
+            category = CATEGORY,
+            code = "UTIL-VPN-001",
+            event = "util.vpn.request.failed",
+            fields = mapOf("url" to url),
+            error = e,
+        )
         null
     } finally {
         // BR-269: соединение закрывается ВСЕГДА (и в успешной ветке, и в catch).
         try {
             conn?.disconnect()
         } catch (e: Exception) {
-            log.warn("isVpnActive: не удалось закрыть соединение с $url", e)
+            AppLog.warn(
+                category = CATEGORY,
+                code = "UTIL-VPN-002",
+                event = "util.vpn.close.failed",
+                fields = mapOf("url" to url),
+                error = e,
+            )
         }
     }
 }
@@ -4025,7 +4076,13 @@ fun setProcessPriority(
         val exitCode = process.waitFor()
         return exitCode == 0
     } catch (e: Exception) {
-        e.printStackTrace()
+        AppLog.warn(
+            category = CATEGORY,
+            code = "UTIL-DB-001",
+            event = "util.db.failed",
+            fields = mapOf("operation" to "setProcessPriority"),
+            error = e,
+        )
         return false
     }
 }
@@ -4229,7 +4286,13 @@ fun applyLiveCpuLimitToRunningProcesses() {
         try {
             runCommand(updateArgs, ignoreErrors = true)
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "UTIL-DB-001",
+                event = "util.db.failed",
+                fields = mapOf("operation" to "applyLiveCpuLimitToRunningProcesses"),
+                error = e,
+            )
         }
     }
 }
@@ -4305,7 +4368,13 @@ fun killRunningDockerContainers() {
                 println("[${Timestamp.from(Instant.now())}] ProcessWorker: docker kill $ref (тип $type)")
                 runCommand(listOf("docker", "kill", ref), ignoreErrors = true)
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "UTIL-DB-001",
+                    event = "util.db.failed",
+                    fields = mapOf("operation" to "killRunningDockerContainers"),
+                    error = e,
+                )
             }
         }
     }
@@ -4408,7 +4477,13 @@ private fun setExecutableScriptPermissions(pathToFile: String) {
             ),
         )
     } catch (e: Exception) {
-        log.warn("createScriptForHost: не удалось выставить права 700 на '$pathToFile': ${e.message}", e)
+        AppLog.warn(
+            category = CATEGORY,
+            code = "UTIL-FS-002",
+            event = "util.fs.chmod.failed",
+            fields = mapOf("path" to pathToFile),
+            error = e,
+        )
     }
 }
 
@@ -5373,7 +5448,13 @@ internal fun loadParentCandidateIndex(database: KaraokeConnection): ParentCandid
                 }
             }
     } catch (e: Exception) {
-        log.error("loadParentCandidateIndex: не удалось загрузить кандидатов-родителей: ${e.message}", e)
+        AppLog.error(
+            category = CATEGORY,
+            code = "UTIL-INDEX-001",
+            event = "util.parent_candidates.load.failed",
+            fields = mapOf(),
+            error = e,
+        )
         return ParentCandidateIndex(emptyMap())
     }
     // Кандидаты сортируются по id — выбор «с наименьшим id» становится первым
@@ -5938,14 +6019,26 @@ fun getFreeTimeSlots(): List<String> {
             lastUsedDateByHour[hour] = rs.getDate("LAST_DATE").toLocalDate()
         }
     } catch (e: SQLException) {
-        e.printStackTrace()
+        AppLog.warn(
+            category = CATEGORY,
+            code = "UTIL-DB-001",
+            event = "util.db.failed",
+            fields = mapOf("operation" to "getFreeTimeSlots"),
+            error = e,
+        )
         return emptyList()
     } finally {
         try {
             rs?.close() // close result set
             statement?.close() // close statement
         } catch (e: SQLException) {
-            e.printStackTrace()
+            AppLog.warn(
+                category = CATEGORY,
+                code = "UTIL-DB-001",
+                event = "util.db.failed",
+                fields = mapOf("operation" to "getFreeTimeSlots"),
+                error = e,
+            )
         }
     }
 

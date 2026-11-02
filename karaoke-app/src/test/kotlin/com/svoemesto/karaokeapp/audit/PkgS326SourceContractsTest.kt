@@ -302,12 +302,14 @@ class PkgS326SourceContractsTest {
             source.contains("printStackTrace"),
             "ошибки шифрования не должны уходить в stdout через printStackTrace",
         )
+        // KARAOKE-387: формат линии — AppLog (event=… code=… cause=…), SLF4J под капотом.
+        // Требование BR-291 — «через SLF4J, а не в stdout, с типом операции» — сохраняется.
         assertTrue(
-            source.contains("log.error(\"crypto: decrypt failed op=decrypt"),
+            source.contains("event = \"crypto.decrypt.failed\"") && source.contains("code = \"CRYPTO-001\""),
             "ошибка расшифрования должна логироваться через SLF4J с типом операции",
         )
         assertTrue(
-            source.contains("log.error(\"crypto: encrypt failed op=encrypt"),
+            source.contains("event = \"crypto.encrypt.failed\"") && source.contains("code = \"CRYPTO-002\""),
             "ошибка шифрования должна логироваться через SLF4J с типом операции",
         )
         assertTrue(

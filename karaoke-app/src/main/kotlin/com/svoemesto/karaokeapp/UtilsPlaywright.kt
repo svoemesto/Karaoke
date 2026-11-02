@@ -12,6 +12,9 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import org.slf4j.LoggerFactory
 
+/** Категория логов (KARAOKE-387). */
+private const val CATEGORY = "com.svoemesto.karaokeapp.UtilsPlaywright"
+
 private val log = LoggerFactory.getLogger("UtilsPlaywright")
 
 @Suppress("unused")
@@ -136,7 +139,13 @@ private fun runAuthFlow(
 
                 onAuthorized(context)
             } catch (e: Exception) {
-                log.error("Ошибка при работе с браузером: ${e.message}", e)
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "PLAYWRIGHT-001",
+                    event = "playwright.browser.failed",
+                    fields = mapOf(),
+                    error = e,
+                )
             } finally {
                 closeContext()
             }

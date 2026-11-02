@@ -211,6 +211,7 @@ cd deploy && source ./sync_prod_config.sh && sync_prod_config web
    sudo bash /home/nsa/Karaoke/deploy/admin-ip-allowlist.sh --check-ssh
    ```
 
+<<<<<<< HEAD
 ### Где живёт allow-list админ-машины (все места!)
 
 | Место на проде | Файл | Что ограничивает | Обновляет автоматика |
@@ -232,6 +233,14 @@ bash deploy/admin-ip-allowlist.sh --diagnose
 
 Признак расхождения в репозитории — guard BR-631: «allow-list'ы в репозиторных копиях
 РАСХОДЯТСЯ» (он же ловит, что в канон-копии попали не все адреса).
+=======
+   Проверено 2026-11-02 под root: дефолтного ключа у root нет, автоподбор нашёл
+   `/home/nsa/.ssh/id_rsa` с его `known_hosts` — `event:ssh_identity source=auto`,
+   `event:check_ssh ok=true`. Пара запоминается в state-файле
+   (`ssh_identity=…`, `ssh_known_hosts=…`), поэтому **первый** прогон под новым service
+   занимает дольше обычного (сначала неудачная попытка дефолтным ssh, затем перебор
+   кандидатов — около 30 с), а дальше идентичность берётся из кэша.
+>>>>>>> origin/master
 
 ### Чего автоматизация не делает
 

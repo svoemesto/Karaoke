@@ -50,8 +50,8 @@ event=db.connect.failed code=DB-CONNECT-001 target=SERVER thread=http-nio-1 host
 
 ## 1b. Guard гигиены логов (KARAOKE-387, продолжение)
 
-Чтобы стектрейсы не возвращались, в CI есть проверка `log-hygiene-guard`
-(`tools/check-log-hygiene.sh`, зона — `karaoke-app/**`). Она считает по файлам:
+Чтобы стектрейсы не возвращались, есть проверка `log-hygiene-guard`
+(`tools/check-log-hygiene.sh`), включённая в pre-commit (каждый коммит). Она считает по файлам:
 
 - `printStackTrace` — прямой вывод стека в stdout;
 - `log.<level>(…)` с объектом исключения последним аргументом — SLF4J печатает стек после сообщения.

@@ -84,7 +84,6 @@ jobs:
       root_junk_guard: ${{ steps.applicable.outputs.root_junk_guard }}
       heap_dump_retention_guard: ${{ steps.applicable.outputs.heap_dump_retention_guard }}
       allowlist_guardrails_guard: ${{ steps.applicable.outputs.allowlist_guardrails_guard }}
-      log_hygiene_guard: ${{ steps.applicable.outputs.log_hygiene_guard }}
       allowlist_automation_self_test: ${{ steps.applicable.outputs.allowlist_automation_self_test }}
       memory_guardrails_guard: ${{ steps.applicable.outputs.memory_guardrails_guard }}
       build_config_guard: ${{ steps.applicable.outputs.build_config_guard }}
@@ -197,20 +196,6 @@ jobs:
   # репозитория, в скрипте и юнитах нет секретов (FR-016), таймер настроен на
   # 10 минут (Д-3). Единственная реализация правил BR-631 —
   # tools/check-allowlist-guardrails.sh.
-
-  log-hygiene-guard:
-    name: log hygiene guard (KARAOKE-387)
-    needs: changes
-    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.log_hygiene_guard == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - name: No new stack traces in logs (KARAOKE-387)
-        run: bash tools/check-log-hygiene.sh
-
   allowlist-guardrails-guard:
     name: allowlist guardrails guard (BR-631)
     needs: changes
@@ -694,7 +679,7 @@ jobs:
   # + node:22-alpine), поднимает его и прогоняет Playwright.
   karaoke-public-e2e:
     name: e2e (karaoke-public)
-    needs: [changes, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, webvue3-unit-tests, karaoke-public-unit-tests, log-hygiene-guard]
+    needs: [changes, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, webvue3-unit-tests, karaoke-public-unit-tests]
     # Отдельная concurrency-группа: e2e использует общий docker-демон
     # раннера, поэтому его прогон не отменяется (FR-018/FR-019).
     # Имя контейнера и хост-порт теперь уникальны для каждого прогона

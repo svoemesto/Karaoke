@@ -176,18 +176,21 @@ cd deploy && source ./sync_prod_config.sh && sync_prod_config web
    Токены в репозиторий не попадают (FR-016) и не видны в `ps` (Bot API вызывается
    через `curl -K` с конфиг-файлом `600`).
 
-3. **Задать ssh-идентичность сервиса** (обязательно — иначе механизм молча ничего не
-   применяет; прецедент 2026-11-02: IP сменился, allow-list не обновился, прод-БД
-   была недоступна 80 минут):
+3. **ssh-доступ сервиса** — *желательно*, но не обязательно: механизм сам находит
+   рабочий ключ (прецедент 2026-11-02: IP сменился, allow-list не обновился, прод-БД
+   была недоступна 80 минут — виноват был `root` без ключа).
+
+   Порядок выбора идентичности: явная настройка → кэш прошлого прогона → обычный `ssh`
+   учётной записи сервиса → **автоподбор** ключа оператора админ-машины
+   (`/home/*/.ssh/id_rsa|id_ed25519`), первый принятый продом запоминается в
+   state-файле. Явная настройка нужна, если автоподбор не подходит (другой хост,
+   нестандартный путь):
 
    ```
    ALLOWLIST_SSH_IDENTITY_FILE=/home/nsa/.ssh/id_rsa
    ALLOWLIST_SSH_KNOWN_HOSTS=/home/nsa/.ssh/known_hosts
    ALLOWLIST_SSH_STRICT_HOST_KEY=accept-new
    ```
-
-   Юнит работает под `root` и не имеет ни ключа, ни `known_hosts` для прод-хоста —
-   `ssh` падает с `rc=255`, и без этих переменных правка не применяется никогда.
 
 4. **Проверить состояние без правок**: `bash deploy/admin-ip-allowlist.sh --diagnose`.
 
@@ -199,7 +202,14 @@ cd deploy && source ./sync_prod_config.sh && sync_prod_config web
    ```
 
    `ok=false` с `detail=…` — причина отказа (например `Permission denied (publickey)`
-   или `Host key verification failed`).
+   или `Host key verification failed`). `identity_resolved=…` показывает, какая
+   идентичность выбрана и откуда (`explicit` / `auto_or_cache` / `default`).
+
+   Проверка **под учётной записью сервиса** (root) — то, что важно для таймера:
+
+   ```bash
+   sudo bash /home/nsa/Karaoke/deploy/admin-ip-allowlist.sh --check-ssh
+   ```
 
 ### Чего автоматизация не делает
 

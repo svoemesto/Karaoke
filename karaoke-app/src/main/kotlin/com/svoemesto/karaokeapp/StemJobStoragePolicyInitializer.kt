@@ -94,8 +94,12 @@ class StemJobStoragePolicyInitializer(
      * Самопроверка по расписанию (KARAOKE-385): тик раз в минуту, но фактическая проверка идёт не
      * чаще [currentIntervalMs] — 5 минут, пока политика не подтверждена, и час после подтверждения.
      * Так восстановление связи с MinIO дожимает политику без перезапуска приложения.
+     *
+     * `initialDelay`: первый тик — через интервал, а не сразу. Иначе при старте проверка идёт
+     * дважды (событие `ApplicationReadyEvent` + первый тик планировщика) и в лог попадают две
+     * пары одинаковых строк — шум, который противоречит цели KARAOKE-387.
      */
-    @Scheduled(fixedDelay = SELF_CHECK_TICK_MS)
+    @Scheduled(fixedDelay = SELF_CHECK_TICK_MS, initialDelay = SELF_CHECK_TICK_MS)
     fun scheduledSelfCheck() {
         val now = clock()
         if (now - lastCheckAtMs < currentIntervalMs()) return

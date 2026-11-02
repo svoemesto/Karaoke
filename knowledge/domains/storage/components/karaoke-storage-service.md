@@ -116,11 +116,16 @@ etag в сравнение. (TODO Pass 343+.)
 
 Где какой bucket — см. мини-словарь в [storage/domain.md](../domain.md#мини-словарь-buckets).
 
-**Кто применяет (спека 561, OpenProject #361):** `StemJobStoragePolicyInitializer`
-(`karaoke-app/.../StemJobStoragePolicyInitializer.kt`) при старте `karaoke-app`
-выставляет REMOTE-хранилище в безопасное состояние: бакет `stemjobs` →
-private, бакет `karaoke` → public. Ошибка связи с MinIO логируется
-(`infra.stemjobs.storage`) и **не** роняет старт приложения (fail-safe).
+**Кто применяет (спека 561, OpenProject #361; KARAOKE-385):**
+`StemJobStoragePolicyInitializer` (`karaoke-app/.../StemJobStoragePolicyInitializer.kt`)
+поддерживает REMOTE-хранилище в безопасном состоянии: бакет `stemjobs` → private,
+бакет `karaoke` → public. Порядок: прочитать фактическое состояние
+(`isBucketPublic`) → при расхождении применить политику и перечитать; при старте —
+до 5 попыток с backoff (2→4→8… до 30 с), ошибка не роняет приложение
+(fail-safe); далее самопроверка по расписанию (5 минут, пока не подтверждено,
+1 час после) — так политика дожимается после восстановления связи с MinIO без
+перезапуска. Логи — `infra.stemjobs.storage`, одна строка на событие с кодом
+`STORAGE-POLICY-*` (см. `monitoring/components/log-categories.md`).
 
 ### `decodeFileNameIfEncoded`
 

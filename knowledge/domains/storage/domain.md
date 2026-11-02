@@ -141,9 +141,14 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 
 1. Приватные объекты лежат в **бакете `stemjobs`** без публичной политики;
    публичный бакет `karaoke` не меняется (FR-002).
-2. **Инвариант закрытости обеспечивается программно при старте `karaoke-app`**:
-   `StemJobStoragePolicyInitializer` выставляет `stemjobs` → private и
-   `karaoke` → public (fail-safe: ошибка MinIO не роняет старт).
+2. **Инвариант закрытости обеспечивается программно**:
+   `StemJobStoragePolicyInitializer` поддерживает состояние `stemjobs` → private и
+   `karaoke` → public (fail-safe: ошибка MinIO не роняет старт). С KARAOKE-385 это
+   не одноразовое действие: при старте — проверка фактического состояния и
+   применение только при расхождении, с повтором и backoff (без блокировки старта);
+   далее — самопроверка по расписанию (5 минут, пока политика не подтверждена, и
+   1 час после подтверждения), поэтому после восстановления связи с MinIO политика
+   дожимается **без перезапуска** приложения.
 3. Отдаёт приватные объекты приложение, имеющее учётные данные (`karaoke-app`):
    `karaoke-web` читать MinIO с учётными данными не умеет
    (`WebKaraokeStorageServiceImpl` — заглушка), а presigned-URL через
@@ -362,9 +367,9 @@ black-hole, ломал SigV4-подпись). Поэтому — nginx-прок�
 - [ ] **Логирование MinIO-операций** — отдельная тема для
       `monitoring/domain.md` P2.
 - [x] **Bucket policies** (`setBucketPublic`/`setBucketPrivate`) —
-      `stemjobs` → private, `karaoke` → public; выставляются программно при
-      старте `karaoke-app` (`StemJobStoragePolicyInitializer`), вручную в
-      консоли MinIO править не нужно (спека 561).
+      `stemjobs` → private, `karaoke` → public; поддерживаются программно
+      (`StemJobStoragePolicyInitializer`: проверка + повтор + самопроверка,
+      KARAOKE-385), вручную в консоли MinIO править не нужно (спека 561).
 
 ## Ручной сброс кеша (UI, спека #446)
 

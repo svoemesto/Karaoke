@@ -107,9 +107,26 @@ object SyncRemoteClient {
                 if (ok) {
                     log.info("sync:remote:ok status={} attempt={}", response.statusCode(), attempt)
                 } else if (response.statusCode() == 403) {
-                    // Отказ по правам (нет/неверный внутренний секрет) — сетевой ошибки нет,
-                    // повтор её не исправит (FR-008): тихо отказываем.
-                    log.warn("sync:remote:denied status=403 attempt={} — внутренний секрет не принят, повтор не выполняется", attempt)
+                    // Отказ по правам — сетевой ошибки нет, повтор её не исправит (FR-008).
+                    //
+                    // ВАЖНО (инцидент 2026-11-02): 403 может прийти не от приложения, а от
+                    // nginx на проде — это фильтр по IP админ-машины (allow-list в
+                    // /etc/nginx/sites-enabled/80to8897), а вовсе не «секрет не принят».
+                    // Различаем по телу ответа: nginx отдаёт HTML, приложение — JSON.
+                    val body: String = response.body()
+                    val looksLikeNginx =
+                        body.contains("nginx", ignoreCase = true)
+                    val looksLikeHtml =
+                        body.contains("<html", ignoreCase = true)
+                    val nginxBlocked = looksLikeNginx || looksLikeHtml
+                    val reason =
+                        if (nginxBlocked) {
+                            "запрос заблокирован nginx (allow-list прод-хоста не содержит адрес админ-машины?) " +
+                                "— внутренний секрет тут ни при чём"
+                        } else {
+                            "внутренний секрет не принят"
+                        }
+                    log.warn("sync:remote:denied status=403 attempt={} — {}", attempt, reason)
                     return false
                 } else {
                     log.warn("sync:remote:failure attempt={} status={}", attempt, response.statusCode())

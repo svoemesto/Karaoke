@@ -40,6 +40,7 @@
 # Использование:
 #   bash deploy/admin-ip-allowlist.sh              основной цикл (по таймеру)
 #   bash deploy/admin-ip-allowlist.sh --diagnose   состояние и план, без правок
+#   bash deploy/admin-ip-allowlist.sh --check-ssh  проверка SSH-доступа к проду, без правок
 #   bash deploy/admin-ip-allowlist.sh --self-test  изолированная проверка правки
 #   bash deploy/admin-ip-allowlist.sh --help       справка
 #
@@ -61,7 +62,30 @@ PROBE_TIMEOUT="${ALLOWLIST_PROBE_TIMEOUT:-5}"
 # (FR-001) не меняется.
 PROBE_ATTEMPTS="${ALLOWLIST_PROBE_ATTEMPTS:-3}"
 PROBE_RETRY_PAUSE="${ALLOWLIST_PROBE_RETRY_PAUSE:-2}"
-SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10)
+# SSH-доступ к прод-хосту.
+#
+# Прецедент 2026-11-02: внешний IP админ-машины сменился (185.42.124.207 →
+# 185.191.59.143), а механизм самовосстановления не отработал — правка allow-list
+# не была применена, и владелец узнал об outage из интерфейса. Причина: юнит
+# запускает скрипт под root, у root нет ни ключа, ни known_hosts для прод-хоста,
+# поэтому ssh падал с rc=255, а stderr ssh подавлялся — в журнале оставалось только
+# «prod_unreachable_by_ssh» без причины.
+#
+# Идентичность и known_hosts задаются из окружения: по умолчанию поведение прежнее
+# (обычный ssh пользователя сервиса), но сервис может указать рабочую пару.
+SSH_CONNECT_TIMEOUT="${ALLOWLIST_SSH_CONNECT_TIMEOUT:-10}"
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}")
+if [ -n "${ALLOWLIST_SSH_IDENTITY_FILE:-}" ]; then
+  SSH_OPTS+=(-o IdentitiesOnly=yes -i "${ALLOWLIST_SSH_IDENTITY_FILE}")
+fi
+if [ -n "${ALLOWLIST_SSH_KNOWN_HOSTS:-}" ]; then
+  SSH_OPTS+=(-o UserKnownHostsFile="${ALLOWLIST_SSH_KNOWN_HOSTS}")
+fi
+if [ -n "${ALLOWLIST_SSH_STRICT_HOST_KEY:-}" ]; then
+  SSH_OPTS+=(-o StrictHostKeyChecking="${ALLOWLIST_SSH_STRICT_HOST_KEY}")
+fi
+# Последняя ошибка ssh — для журнала и уведомления (раньше она терялась).
+SSH_LAST_ERROR=""
 
 # --- адрес ---
 IP_SERVICES="${ALLOWLIST_IP_SERVICES:-https://api.ipify.org https://ifconfig.me/ip https://icanhazip.com https://checkip.amazonaws.com https://ifconfig.co/ip https://ipinfo.io/ip}"
@@ -535,17 +559,39 @@ SSH_RETRY_PAUSE="${ALLOWLIST_SSH_RETRY_PAUSE:-5}"
 # run_ssh <команда> — выполнить команду на прод-хосте с повторами при сбое.
 # Повтор безопасен: чтение конфига идемпотентно, а правка allow-list сводится
 # к одной и той же строке `allow <ip>;`.
+# Последняя строка stderr ssh — короткая причина отказа («Permission denied
+# (publickey)», «Host key verification failed», …). Без неё отказ был невидим.
+ssh_error_detail() {
+  local errfile="$1" line=""
+  [ -n "${errfile}" ] && [ -f "${errfile}" ] || { printf 'unknown'; return 0; }
+  line="$(grep -vE '^[[:space:]]*$' "${errfile}" | tail -1)"
+  line="$(printf '%s' "${line}" | tr -d '\r\n' | tr ' ' '_')"
+  [ -n "${line}" ] || line="unknown"
+  printf '%s' "$(printf '%s' "${line}" | cut -c1-160)"
+}
+
 run_ssh() {
-  local attempt=1 rc=0
+  local attempt=1 rc=0 errfile=""
+  errfile="$(mktemp "${TMPDIR:-/tmp}/allowlist-ssh-err.XXXXXX" 2>/dev/null || true)"
+  SSH_LAST_ERROR=""
   while [ "${attempt}" -le "${SSH_ATTEMPTS}" ]; do
-    ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*"
+    if [ -n "${errfile}" ]; then
+      ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*" 2>"${errfile}"
+    else
+      ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*"
+    fi
     rc=$?
-    [ "${rc}" -eq 0 ] && return 0
+    if [ "${rc}" -eq 0 ]; then
+      [ -n "${errfile}" ] && rm -f "${errfile}"
+      return 0
+    fi
+    SSH_LAST_ERROR="$(ssh_error_detail "${errfile}")"
     attempt=$((attempt + 1))
     [ "${attempt}" -le "${SSH_ATTEMPTS}" ] && sleep "${SSH_RETRY_PAUSE}"
     [ "${attempt}" -le "${SSH_ATTEMPTS}" ] || break
-    log_event "ssh_retry" "attempt=${attempt}" "rc=${rc}" "host=${PROD_HOST}"
+    log_event "ssh_retry" "attempt=${attempt}" "rc=${rc}" "host=${PROD_HOST}" "detail=${SSH_LAST_ERROR}"
   done
+  [ -n "${errfile}" ] && rm -f "${errfile}"
   return "${rc}"
 }
 
@@ -996,8 +1042,8 @@ run_cycle() {
   prod_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
   if ! run_ssh "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
     rm -f "${prod_conf}"
-    log_event "skip" "reason=prod_unreachable_by_ssh"
-    send_telegram "Karaoke allow-list: прод-хост недоступен по SSH — правка не применялась, состояние не менялось." || true
+    log_event "skip" "reason=prod_unreachable_by_ssh" "detail=${SSH_LAST_ERROR}"
+    send_telegram "Karaoke allow-list: прод-хост недоступен по SSH (${SSH_LAST_ERROR}) — правка не применялась, состояние не менялось. Проверьте ALLOWLIST_SSH_IDENTITY_FILE/ALLOWLIST_SSH_KNOWN_HOSTS и доступ по ssh с учётной записью сервиса." || true
     return "${EXIT_FAIL}"
   fi
 
@@ -1081,15 +1127,56 @@ run_diagnose() {
   fi
   local prod_conf
   prod_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
+  log_event "diagnose" "ssh_identity=$(ssh_identity_desc)" "ssh_known_hosts=$(ssh_known_hosts_desc)"
   if run_ssh "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
     log_event "diagnose" "prod_conf_read=true" "blocks=$(grep -cE '^[[:space:]]*allow[[:space:]]' "${prod_conf}")"
     check_mount_point remote "${PROD_CONF}"
   else
-    log_event "diagnose" "prod_conf_read=false" "detail=ssh_failed"
+    log_event "diagnose" "prod_conf_read=false" "detail=ssh_failed:${SSH_LAST_ERROR}"
   fi
   rm -f "${prod_conf}"
   log_event "diagnose" "plan=добавить_allow_в_2_блока_при_необходимости" "changes=none"
   return "${EXIT_OK}"
+}
+
+
+# Описание используемой ssh-идентичности — для журнала и --check-ssh.
+ssh_identity_desc() {
+  if [ -n "${ALLOWLIST_SSH_IDENTITY_FILE:-}" ]; then
+    if [ -r "${ALLOWLIST_SSH_IDENTITY_FILE}" ]; then
+      printf 'file:%s' "${ALLOWLIST_SSH_IDENTITY_FILE}"
+    else
+      printf 'file:%s(unreadable)' "${ALLOWLIST_SSH_IDENTITY_FILE}"
+    fi
+  else
+    printf 'default'
+  fi
+}
+
+ssh_known_hosts_desc() {
+  if [ -n "${ALLOWLIST_SSH_KNOWN_HOSTS:-}" ]; then
+    if [ -r "${ALLOWLIST_SSH_KNOWN_HOSTS}" ]; then
+      printf 'file:%s' "${ALLOWLIST_SSH_KNOWN_HOSTS}"
+    else
+      printf 'file:%s(unreadable)' "${ALLOWLIST_SSH_KNOWN_HOSTS}"
+    fi
+  else
+    printf 'default'
+  fi
+}
+
+# FR-019 (дополнение 2026-11-02): проверка SSH-доступа к прод-хосту без правок.
+# Команда, которой владелец проверяет, сможет ли таймер применить правку.
+run_check_ssh() {
+  log_event "check_ssh" "mode=check_ssh" "host=${PROD_HOST}" \
+    "identity=$(ssh_identity_desc)" "known_hosts=$(ssh_known_hosts_desc)"
+  if run_ssh "true"; then
+    log_event "check_ssh" "ok=true" "hint=правка allow-list применима"
+    return "${EXIT_OK}"
+  fi
+  log_event "check_ssh" "ok=false" "detail=${SSH_LAST_ERROR}" \
+    "hint=задайте ALLOWLIST_SSH_IDENTITY_FILE и ALLOWLIST_SSH_KNOWN_HOSTS для учётной записи сервиса"
+  return "${EXIT_FAIL}"
 }
 
 # ------------------------------------------------------- самопроверка ----
@@ -1567,7 +1654,8 @@ usage() {
 2 — ошибка использования, 3 — отказ по правилам (прод недоступен, источники
 адреса недоступны или расходятся, адрес невалиден, превышена частота).
 
-Переменные окружения: ALLOWLIST_PROD_HOST, ALLOWLIST_PROD_NGINX_CONF,
+Переменные окружения: ALLOWLIST_SSH_IDENTITY_FILE, ALLOWLIST_SSH_KNOWN_HOSTS, ALLOWLIST_SSH_STRICT_HOST_KEY,
+ALLOWLIST_SSH_CONNECT_TIMEOUT, ALLOWLIST_PROD_HOST, ALLOWLIST_PROD_NGINX_CONF,
 ALLOWLIST_PROD_PORTS, ALLOWLIST_HEALTH_URL, ALLOWLIST_IP_SERVICES,
 ALLOWLIST_IP_TIMEOUT, ALLOWLIST_PROBE_TIMEOUT, ALLOWLIST_MIN_INTERVAL_MINUTES,
 ALLOWLIST_LOG_FILE, ALLOWLIST_STATE_FILE, ALLOWLIST_TELEGRAM_BOT_TOKEN,
@@ -1581,6 +1669,12 @@ ALLOWLIST_NOTIFY_CHAT_ID — чат для СЛУЖЕБНЫХ уведомлен
 не используется: он публичный. Если переменная не задана — уведомления не
 отправляются, факт остаётся в журнале.
 
+ALLOWLIST_SSH_IDENTITY_FILE — приватный ключ для ssh на прод-хоста (нужен сервису
+под root: у root нет ни ключа, ни known_hosts, и правка не применяется).
+ALLOWLIST_SSH_KNOWN_HOSTS — файл known_hosts для прод-хоста (иначе проверка ключа
+хоста падает). ALLOWLIST_SSH_STRICT_HOST_KEY — режим проверки ключа хоста
+(accept-new — принять новый ключ, yes — требовать совпадения).
+
 ALLOWLIST_TELEGRAM_PROXY — прокси ТОЛЬКО для вызова Telegram Bot API
 (например socks5h://127.0.0.1:1080); по умолчанию пусто — прямое соединение.
 Определение внешнего адреса и пробы доступности прокси не используют никогда.
@@ -1592,6 +1686,7 @@ main() {
   case "${1:-}" in
     "") mode="cycle" ;;
     --diagnose) mode="diagnose" ;;
+    --check-ssh) mode="check-ssh" ;;
     --self-test) mode="self-test" ;;
     --help | -h) usage; return "${EXIT_OK}" ;;
     *)
@@ -1607,6 +1702,7 @@ main() {
   case "${mode}" in
     cycle) run_cycle "${host}" ;;
     diagnose) run_diagnose ;;
+    check-ssh) run_check_ssh ;;
     self-test) run_self_test ;;
   esac
 }

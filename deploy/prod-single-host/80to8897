@@ -160,6 +160,9 @@ server {
     allow 185.26.28.109;
     allow 83.137.50.231;
     allow 185.26.28.199;
+    allow 87.58.202.244;
+    allow 185.42.124.207;
+    allow 185.191.59.143;
     deny all;
     proxy_pass http://127.0.0.1:8897/api/properties/setproperty;
     proxy_set_header X-Real-IP $remote_addr;
@@ -187,6 +190,9 @@ server {
     allow 185.26.28.109;
     allow 83.137.50.231;
     allow 185.26.28.199;
+    allow 87.58.202.244;
+    allow 185.42.124.207;
+    allow 185.191.59.143;
     deny all;
     # SSE-стрим: те же fail-fast таймауты на подключение, что у /api/ (Pass 46, 2026-08-10),
     # чтобы при падении karaoke-web не держать клиента 60s в ожидании connect. Уже

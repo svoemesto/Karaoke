@@ -62,6 +62,78 @@ bad() {
 
 # --- правила ---
 
+
+# 1b. ЕДИНЫЙ allow-list во всех файлах (KARAOKE-389, инцидент 2026-11-02 вечер).
+#
+# На проде allow-list админ-машины живёт в ТРЁХ местах: stream-блоки 5433/9000
+# (/etc/nginx/nginx.conf) и HTTP-локации /changerecords, /api/properties/setproperty
+# (/etc/nginx/sites-enabled/80to8897). Править одно из них — значит оставить другие
+# со старым списком: nginx отдаёт 403, синхронизация не работает, и правки
+# выглядят «потерянными» (именно так пропали одобрения редакторов).
+#
+# Инвариант: во всех репозиторных копиях allow-list'ы содержат ОДИН И ТОТ ЖЕ набор
+# адресов. Расхождение = регресс, который ловится в CI до следующей смены IP.
+check_allowlist_consistency() {
+  local files=(
+    "$ROOT/deploy/prod-single-host/nginx.conf"
+    "$ROOT/deploy/prod-single-host/80to8897"
+  )
+  local sets=() f first=""
+  for f in "${files[@]}"; do
+    if [ ! -f "$f" ]; then
+      bad "нет репозиторной копии конфигурации: ${f#"$ROOT"/}"
+      continue
+    fi
+    local set
+    set="$(python3 - "$f" <<'CONSIST'
+import re
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    lines = fh.read().split("\n")
+
+sets = []
+current = []
+for line in lines:
+    if re.match(r"^\s*deny\s+all\s*;", line):
+        sets.append(tuple(current))
+        current = []
+        continue
+    m = re.match(r"^\s*allow\s+(\S+);\s*$", line)
+    if m:
+        current.append(m.group(1))
+if current:
+    sets.append(tuple(current))
+
+unique = sorted(set(sets))
+if len(unique) != 1:
+    sys.stderr.write("blocks differ\n")
+    sys.exit(2)
+print(",".join(unique[0]))
+CONSIST
+)"
+    if [ -z "${set}" ]; then
+      bad "allow-list'ы в ${f#"$ROOT"/} неодинаковы между блоками"
+      continue
+    fi
+    sets+=("${set}")
+    [ -z "${first}" ] && first="${set}"
+  done
+
+  if [ "${#sets[@]}" -lt 2 ]; then
+    return 0
+  fi
+  local s
+  for s in "${sets[@]}"; do
+    if [ "${s}" != "${first}" ]; then
+      bad "allow-list'ы в репозиторных копиях РАСХОДЯТСЯ: [${first}] против [${s}] — новое правило применится только к одному файлу, и доступ (или синхронизация) останется закрытым"
+      return 0
+    fi
+  done
+  ok "allow-list'ы во всех файлах совпадают: ${first}"
+}
+
 # 1-2. Структура и адреса allow-list в репозиторной копии.
 check_allowlist() {
   local conf="$ROOT/deploy/prod-single-host/nginx.conf"
@@ -337,6 +409,7 @@ check_proxy_rules() {
 }
 
 check_rules() {
+  check_allowlist_consistency
   check_allowlist
   check_limits_and_paths
   check_no_secrets
@@ -392,6 +465,15 @@ stream {
     }
 }
 NGX
+  cat >"$tmp/deploy/prod-single-host/80to8897" <<'NGX'
+server {
+    listen 80;
+    location /changerecords {
+        allow 185.26.28.109;
+        deny all;
+    }
+}
+NGX
   cat >"$tmp/deploy/admin-ip-allowlist.sh" <<'SH'
 MIN_INTERVAL_MINUTES="${ALLOWLIST_MIN_INTERVAL_MINUTES:-5}"
 LOG_FILE="${ALLOWLIST_LOG_FILE:-/home/nsa/Karaoke/deploy/admin-ip-allowlist.log}"
@@ -427,6 +509,21 @@ stream {
     }
     server {
         listen 9000;
+        allow 185.26.28.109;
+        allow 83.137.50.231;
+        deny all;
+    }
+}
+NGX
+  cat >"$tmp/deploy/prod-single-host/80to8897" <<'NGX'
+server {
+    listen 80;
+    location /api/properties/setproperty {
+        allow 185.26.28.109;
+        allow 83.137.50.231;
+        deny all;
+    }
+    location /changerecords {
         allow 185.26.28.109;
         allow 83.137.50.231;
         deny all;

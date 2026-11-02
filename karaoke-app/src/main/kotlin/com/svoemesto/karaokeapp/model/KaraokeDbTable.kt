@@ -21,6 +21,7 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.isAccessible
 import com.svoemesto.karaokeapp.DbAvailability
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * Базовый интерфейс для всех персистентных сущностей Karaoke
@@ -289,6 +290,9 @@ interface KaraokeDbTable {
          *
          * @see specs/243-db-table-schema-cache FR-007
          */
+        /** KARAOKE-387: категория логов (как раньше — полное имя класса). */
+        private const val CATEGORY = "com.svoemesto.karaokeapp.model.KaraokeDbTable"
+
         private fun isSchemaCacheEnabled(): Boolean =
             try {
                 KaraokeProperties.getBoolean("karaoke.db.schema_cache.enabled")
@@ -555,7 +559,7 @@ interface KaraokeDbTable {
             val connection = database.getConnection()
             if (connection == null) {
                 // BR-187: SLF4J вместо println (ADR local-0005).
-                log.error("Невозможно установить соединение с базой данных {} (загрузка {})", database.name, tableName)
+                AppLog.error(CATEGORY, "DB-UNAVAILABLE-002", "db.unavailable", mapOf("target" to database.name, "operation" to "loadList", "table" to tableName))
                 // BR-184: «нет соединения» — это ошибка, а не «строк нет». В строгих
                 // вызывающих пустой список приводил к созданию дубликата сущности.
                 if (throwOnError) throw SQLException("db.unavailable: нет соединения с БД (${database.name})")
@@ -847,7 +851,7 @@ interface KaraokeDbTable {
             val connection = database.getConnection()
             if (connection == null) {
                 // BR-187: SLF4J вместо println (ADR local-0005).
-                log.error("Невозможно установить соединение с базой данных {} (хеши {})", database.name, tableName)
+                AppLog.error(CATEGORY, "DB-UNAVAILABLE-002", "db.unavailable", mapOf("target" to database.name, "operation" to "getListHashes", "table" to tableName))
                 return null
             }
             var statement: Statement? = null
@@ -897,7 +901,7 @@ interface KaraokeDbTable {
             val connection = database.getConnection()
             if (connection == null) {
                 // BR-187: SLF4J вместо println (ADR local-0005).
-                log.error("Невозможно установить соединение с базой данных {} (счётчик {})", database.name, tableName)
+                AppLog.error(CATEGORY, "DB-UNAVAILABLE-002", "db.unavailable", mapOf("target" to database.name, "operation" to "getTotalCount", "table" to tableName))
                 return -1
             }
             var statement: Statement? = null

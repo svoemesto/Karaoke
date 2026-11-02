@@ -45,6 +45,11 @@ abstract class KaraokeConnection(
     // Spring Boot по умолчанию использует Logback (уже в classpath), без новых зависимостей.
     private val log = LoggerFactory.getLogger(KaraokeConnection::class.java)
 
+    private companion object {
+        /** Категория логов соединения (как раньше — полное имя класса). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.KaraokeConnection"
+    }
+
     private val threadLocalConnection = ThreadLocal<java.sql.Connection?>()
 
     /**
@@ -172,13 +177,19 @@ abstract class KaraokeConnection(
                 // FR-004 spec.md: структурированный SLF4J warn для диагностики.
                 // specs/236: добавляем urlHost (без credentials) — сразу видно, к какому
                 // хосту/порту шла попытка (полезно при пустом DB_REMOTE_HOST в env).
-                log.warn(
-                    "KaraokeConnection connect failure target={} thread={} urlHost={} cause={}",
-                    name,
-                    Thread.currentThread().name,
-                    url.substringAfter("://").substringBefore("/"),
-                    e.message ?: "unknown",
-                    e,
+                // KARAOKE-387: одна строка с кодом вместо стека Spring/Tomcat.
+                AppLog.warn(
+                    category = CATEGORY,
+                    code = "DB-CONNECT-001",
+                    event = "db.connect.failed",
+                    fields =
+                        mapOf(
+                            "target" to name,
+                            "thread" to Thread.currentThread().name,
+                            "host" to url.substringAfter("://").substringBefore("/"),
+                            "reason" to (e.message ?: "unknown"),
+                        ),
+                    error = e,
                 )
             }
         }
@@ -221,11 +232,17 @@ abstract class KaraokeConnection(
             // Сохраняем println для обратной совместимости (docker logs читают stdout).
             println("KaraokeConnection closeThreadConnection Exception: ${e.message}")
             // Симметричный SLF4J warn для диагностики сбоев закрытия.
-            log.warn(
-                "KaraokeConnection closeThreadConnection failure target={} thread={} cause={}",
-                name,
-                Thread.currentThread().name,
-                e.message ?: "unknown",
+            AppLog.warn(
+                category = CATEGORY,
+                code = "DB-CLOSE-001",
+                event = "db.close.failed",
+                fields =
+                    mapOf(
+                        "target" to name,
+                        "thread" to Thread.currentThread().name,
+                        "reason" to (e.message ?: "unknown"),
+                    ),
+                error = e,
             )
         } finally {
             threadLocalConnection.remove()

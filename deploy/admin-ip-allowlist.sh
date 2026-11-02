@@ -153,6 +153,56 @@ probe_tcp() {
   timeout "${timeout_s}" bash -c "exec 3<>/dev/tcp/${host}/${port}" >/dev/null 2>&1
 }
 
+# Протокольная проба Postgres-прокси (5433): SSLRequest и ожидание одного байта
+# ответа ('S' — SSL, 'N' — без SSL; оба означают «сервер принял запрос»).
+#
+# Почему не probe_tcp (BR-631, инцидент 2026-11-02): nginx в stream-блоке при
+# `deny all` ПРИНИМАЕТ TCP-соединение и сразу закрывает его. connect() при этом
+# успешен, поэтому автоматика решала «канал доступен» (event:probe ok=true →
+# action=none) и новый адрес админ-машины в allow-list не попадал, хотя доступ
+# был закрыт. Протокольный запрос отличает «открыто» от «закрыто»: закрытый
+# канал не отвечает ни одним байтом.
+probe_postgres() {
+  local host="$1" port="$2" timeout_s="$3" reply
+  reply="$(
+    timeout "${timeout_s}" bash -c "
+      exec 3<>/dev/tcp/${host}/${port} || exit 1
+      printf '\000\000\000\010\004\322\026\057' >&3 || exit 1
+      dd bs=1 count=1 <&3 2>/dev/null
+    " 2>/dev/null
+  )" || return 1
+  [ -n "${reply}" ]
+}
+
+# Протокольная проба HTTP-канала (MinIO на 9000): запрос к health-эндпоинту и
+# проверка кода 200 в первой строке ответа. Та же причина, что у probe_postgres.
+probe_http_ok() {
+  local host="$1" port="$2" timeout_s="$3" path="$4" first
+  first="$(
+    timeout "${timeout_s}" bash -c "
+      exec 3<>/dev/tcp/${host}/${port} || exit 1
+      printf 'GET ${path} HTTP/1.0\r\nHost: ${host}\r\n\r\n' >&3 || exit 1
+      head -n 1 <&3
+    " 2>/dev/null
+  )" || return 1
+  case "${first}" in
+    *" 200 "*) return 0 ;;
+    *" 200"*) return 0 ;;
+  esac
+  return 1
+}
+
+# Проба конкретного порта: для известных прод-каналов — протокольная, для
+# остальных — обычный TCP-connect (обратная совместимость с ALLOWLIST_PROD_PORTS).
+probe_port() {
+  local host="$1" port="$2" timeout_s="$3"
+  case "${port}" in
+    5433) probe_postgres "${host}" "${port}" "${timeout_s}" ;;
+    9000) probe_http_ok "${host}" "${port}" "${timeout_s}" "/minio/health/live" ;;
+    *) probe_tcp "${host}" "${port}" "${timeout_s}" ;;
+  esac
+}
+
 probe_https() {
   local url="$1" timeout_s="$2" code
   # --noproxy '*': проба идёт НАПРЯМУЮ — переменные прокси окружения не должны
@@ -161,14 +211,14 @@ probe_https() {
   [ "${code}" -ge 200 ] 2>/dev/null && [ "${code}" -lt 300 ] 2>/dev/null
 }
 
-# Проба TCP с ограниченным повтором. В PROBE_DURATION_MS — реальная
+# Проба порта с ограниченным повтором. В PROBE_DURATION_MS — реальная
 # длительность последней попытки, в PROBE_ATTEMPTS_USED — число попыток.
-probe_tcp_retry() {
+probe_port_retry() {
   local host="$1" port="$2" timeout_s="$3" attempts="${4:-${PROBE_ATTEMPTS}}"
   local i started ended
   started="$(now_ms)"
   for ((i = 1; i <= attempts; i++)); do
-    if probe_tcp "${host}" "${port}" "${timeout_s}"; then
+    if probe_port "${host}" "${port}" "${timeout_s}"; then
       ended="$(now_ms)"
       PROBE_DURATION_MS=$((ended - started))
       PROBE_ATTEMPTS_USED="${i}"
@@ -209,10 +259,10 @@ check_reachability() {
   ports="$(printf '%s' "${PROD_PORTS}" | tr ' ' '\n' | grep -v '^$' || true)"
 
   for port in ${ports}; do
-    if probe_tcp_retry "${host}" "${port}" "${PROBE_TIMEOUT}"; then
-      log_event "probe" "target=tcp:${port}" "ok=true" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}"
+    if probe_port_retry "${host}" "${port}" "${PROBE_TIMEOUT}"; then
+      log_event "probe" "target=port:${port}" "ok=true" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}"
     else
-      log_event "probe" "target=tcp:${port}" "ok=false" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}" "detail=connect_failed"
+      log_event "probe" "target=port:${port}" "ok=false" "duration_ms=${PROBE_DURATION_MS}" "attempts=${PROBE_ATTEMPTS_USED}" "detail=protocol_failed"
       case "${port}" in
         5433) pg_ok=0 ;;
         9000) minio_ok=0 ;;
@@ -313,7 +363,55 @@ validate_address() {
 # FR-005: присутствие адреса означает отсутствие любых действий.
 address_allowed() {
   local conf="$1" ip="$2"
-  grep -qE "^[[:space:]]*allow[[:space:]]+${ip//./\\.};[[:space:]]*$" "${conf}"
+  # BR-631 (инцидент 2026-11-02): «allow есть в файле» ≠ «доступ разрешён». nginx
+  # в stream-блоке проверяет allow/deny по порядку, поэтому строка, оказавшаяся
+  # ПОСЛЕ `deny all;`, не действует. Проверяем позицию: в каждом stream-блоке с
+  # listen 5433/9000 наш allow должен стоять до первого `deny all;`.
+  python3 - "${conf}" "${ip}" <<'PY'
+import re
+import sys
+
+conf, ip = sys.argv[1], sys.argv[2]
+TARGET_PORTS = ("5433", "9000")
+
+with open(conf, encoding="utf-8") as fh:
+    lines = fh.read().split("\n")
+
+allow_re = re.compile(r"^\s*allow\s+" + re.escape(ip) + r"\s*;\s*$")
+deny_re = re.compile(r"^\s*deny\s+all\s*;")
+
+allowed = set()
+i = 0
+while i < len(lines):
+    if re.match(r"^\s*server\s*\{", lines[i]):
+        j = i + 1
+        body = []
+        while j < len(lines) and not re.match(r"^\s*\}", lines[j]):
+            body.append(lines[j])
+            j += 1
+        ports = set()
+        for b in body:
+            m = re.search(r"\blisten\s+(\d+)", b)
+            if m:
+                ports.add(m.group(1))
+        targets = [p for p in ports if p in TARGET_PORTS]
+        if targets:
+            seen_deny = False
+            ok = False
+            for b in body:
+                if deny_re.match(b):
+                    seen_deny = True
+                elif allow_re.match(b) and not seen_deny:
+                    ok = True
+            if not ok:
+                sys.exit(1)
+            allowed.update(targets)
+        i = j
+        continue
+    i += 1
+
+sys.exit(0 if allowed == set(TARGET_PORTS) else 1)
+PY
 }
 
 # Подготовка нового содержимого: ровно одна строка `allow <ip>;` перед
@@ -326,6 +424,11 @@ import sys
 
 old_file, new_file, ip = sys.argv[1], sys.argv[2], sys.argv[3]
 TARGET_PORTS = ("5433", "9000")
+
+# BR-631: «наш» allow и маркер конца списка — для вставки в правильную позицию
+# и для удаления осиротевших строк после `deny all;`.
+deny_re_block = re.compile(r"^\s*deny\s+all\s*;")
+allow_re_block = re.compile(r"^\s*allow\s+" + re.escape(ip) + r"\s*;\s*$")
 
 with open(old_file, encoding="utf-8") as fh:
     lines = fh.read().split("\n")
@@ -349,12 +452,25 @@ while i < len(lines):
                 ports.append(m.group(1))
         if any(p in TARGET_PORTS for p in ports):
             inserted = False
+            seen_deny = False
             for b in body:
+                # BR-631 (инцидент 2026-11-02): allow обязан стоять ДО `deny all;` —
+                # nginx в stream-блоке проверяет allow/deny по порядку, и строка после
+                # `deny all;` не действует никогда. Прежняя реализация дописывала её
+                # после deny: правка «применялась успешно», доступ оставался закрытым.
+                # Заодно убираем «осиротевшие» allow <ip> после deny (след прошлых
+                # прогонов), чтобы файл не копил неработающие строки.
+                if deny_re_block.match(b):
+                    if not inserted:
+                        indent = b[: len(b) - len(b.lstrip())]
+                        out.append("{}allow {};".format(indent, ip))
+                        inserted = True
+                    seen_deny = True
+                    out.append(b)
+                    continue
+                if seen_deny and allow_re_block.match(b):
+                    continue
                 out.append(b)
-                if not inserted and re.match(r"^\s*deny\s+all\s*;", b):
-                    indent = b[: len(b) - len(b.lstrip())]
-                    out.append("{}allow {};".format(indent, ip))
-                    inserted = True
             if not inserted:
                 sys.stderr.write("no 'deny all;' in stream block for {}\n".format(ports))
                 sys.exit(2)
@@ -388,11 +504,16 @@ with open(new_file, encoding="utf-8") as fh:
 
 needle = "allow {};".format(ip)
 added = [l for l in new.split("\n") if l.strip() == needle]
-stripped = "\n".join(l for l in new.split("\n") if l.strip() != needle)
+# BR-631: строку allow нужно не только добавить, но и нормализовать — «осиротевшая»
+# строка после `deny all;`, оставшаяся от прошлых прогонов, должна исчезнуть.
+# Поэтому сравнение идёт по содержимому БЕЗ всех наших allow-строк: любые прочие
+# изменения по-прежнему запрещены.
+old_stripped = "\n".join(l for l in old.split("\n") if l.strip() != needle)
+new_stripped = "\n".join(l for l in new.split("\n") if l.strip() != needle)
 if len(added) != 2:
     sys.stderr.write("expected exactly 2 added allow lines, found {}\n".format(len(added)))
     sys.exit(1)
-if stripped != old:
+if new_stripped != old_stripped:
     sys.stderr.write("diff contains changes other than the added allow lines\n")
     sys.exit(1)
 PY
@@ -922,9 +1043,13 @@ run_cycle() {
   rm -f "${prod_conf}" "${new_conf}"
 
   # FR-009: контрольная проверка фактического ответа.
+  # BR-631 (инцидент 2026-11-02): проверка обязана быть ПРОТОКОЛЬНОЙ. Пока здесь
+  # стоял `probe_tcp`, контроль «проходил» и на конфигурации, где allow оказался
+  # после `deny all;`: TCP-соединение nginx принимает и сразу закрывает, connect()
+  # успешен. Из-за этого откат не срабатывал, а доступ оставался закрытым.
   local pg_ok=0 minio_ok=0 https_ok=0
-  probe_tcp "${host}" 5433 "${PROBE_TIMEOUT}" && pg_ok=1
-  probe_tcp "${host}" 9000 "${PROBE_TIMEOUT}" && minio_ok=1
+  probe_postgres "${host}" 5433 "${PROBE_TIMEOUT}" && pg_ok=1
+  probe_http_ok "${host}" 9000 "${PROBE_TIMEOUT}" "/minio/health/live" && minio_ok=1
   probe_https "${HEALTH_URL}" "${PROBE_TIMEOUT}" && https_ok=1
   log_event "control" "pg_ok=${pg_ok}" "minio_ok=${minio_ok}" "https_ok=${https_ok}"
   if [ "${pg_ok}" != 1 ] || [ "${minio_ok}" != 1 ] || [ "${https_ok}" != 1 ]; then
@@ -1201,7 +1326,7 @@ STUB
   local probe_calls=0
   local old_pause="${PROBE_RETRY_PAUSE}"
   PROBE_RETRY_PAUSE=0
-  probe_tcp() { probe_calls=$((probe_calls + 1)); [ "${probe_calls}" -ge 2 ]; }
+  probe_port() { probe_calls=$((probe_calls + 1)); [ "${probe_calls}" -ge 2 ]; }
   probe_https() { return 0; }
   check_reachability "127.0.0.1" >/dev/null 2>&1 || true
   if [ "${REACH_PG}" = 1 ] && [ "${REACH_MINIO}" = 1 ]; then
@@ -1210,9 +1335,13 @@ STUB
     echo "   FAIL: канал признан недоступным, хотя повтор был успешным (попыток: ${probe_calls})"; failed=1
   fi
   PROBE_RETRY_PAUSE="${old_pause}"
-  probe_tcp() {
+  probe_port() {
     local host="$1" port="$2" timeout_s="$3"
-    timeout "${timeout_s}" bash -c "exec 3<>/dev/tcp/${host}/${port}" >/dev/null 2>&1
+    case "${port}" in
+      5433) probe_postgres "${host}" "${port}" "${timeout_s}" ;;
+      9000) probe_http_ok "${host}" "${port}" "${timeout_s}" "/minio/health/live" ;;
+      *) probe_tcp "${host}" "${port}" "${timeout_s}" ;;
+    esac
   }
   probe_https() {
     local url="$1" timeout_s="$2" code

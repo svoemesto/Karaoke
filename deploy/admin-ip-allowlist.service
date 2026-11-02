@@ -16,6 +16,15 @@ Group=root
 #   /etc/admin-ip-allowlist.env
 # В нём: ALLOWLIST_TELEGRAM_BOT_TOKEN, ALLOWLIST_TELEGRAM_CHAT_ID,
 #        ALLOWLIST_FJ_TOKEN, ALLOWLIST_FJ_URL
+#
+# SSH-доступ к прод-хосту (прецедент 2026-11-02): сервис работает под root, у
+# root нет ни ключа, ни known_hosts для прода — ssh падал с rc=255, механизм
+# молча ничего не применял, и владелец узнавал об outage из интерфейса.
+# Владелец задаёт в /etc/admin-ip-allowlist.env (root читает файлы пользователя):
+#   ALLOWLIST_SSH_IDENTITY_FILE=/home/nsa/.ssh/id_rsa
+#   ALLOWLIST_SSH_KNOWN_HOSTS=/home/nsa/.ssh/known_hosts
+#   ALLOWLIST_SSH_STRICT_HOST_KEY=accept-new   # необязательно
+# Проверка: bash deploy/admin-ip-allowlist.sh --check-ssh
 # Прокси для вызова Telegram Bot API (необязательно, владелец):
 #   ALLOWLIST_TELEGRAM_PROXY=socks5h://127.0.0.1:1080
 # Применяется ТОЛЬКО к уведомлениям: определение внешнего адреса и пробы

@@ -176,7 +176,30 @@ cd deploy && source ./sync_prod_config.sh && sync_prod_config web
    Токены в репозиторий не попадают (FR-016) и не видны в `ps` (Bot API вызывается
    через `curl -K` с конфиг-файлом `600`).
 
-3. **Проверить состояние без правок**: `bash deploy/admin-ip-allowlist.sh --diagnose`.
+3. **Задать ssh-идентичность сервиса** (обязательно — иначе механизм молча ничего не
+   применяет; прецедент 2026-11-02: IP сменился, allow-list не обновился, прод-БД
+   была недоступна 80 минут):
+
+   ```
+   ALLOWLIST_SSH_IDENTITY_FILE=/home/nsa/.ssh/id_rsa
+   ALLOWLIST_SSH_KNOWN_HOSTS=/home/nsa/.ssh/known_hosts
+   ALLOWLIST_SSH_STRICT_HOST_KEY=accept-new
+   ```
+
+   Юнит работает под `root` и не имеет ни ключа, ни `known_hosts` для прод-хоста —
+   `ssh` падает с `rc=255`, и без этих переменных правка не применяется никогда.
+
+4. **Проверить состояние без правок**: `bash deploy/admin-ip-allowlist.sh --diagnose`.
+
+5. **Проверить, сможет ли таймер применить правку** (без правок):
+
+   ```bash
+   bash deploy/admin-ip-allowlist.sh --check-ssh
+   # ожидается: event:check_ssh ok=true
+   ```
+
+   `ok=false` с `detail=…` — причина отказа (например `Permission denied (publickey)`
+   или `Host key verification failed`).
 
 ### Чего автоматизация не делает
 
@@ -210,6 +233,19 @@ cd deploy && source ./sync_prod_config.sh && sync_prod_config web
 соединение установлено, но обмен ключами не идёт, это фильтрация на проде (по проверке
 выше её нет); если `connect to address … port 22: Connection timed out` — до sshd пакет
 не дошёл, вопрос в сети.
+
+**Причина отказа теперь видна.** С 2026-11-02 stderr `ssh` не подавляется: последняя
+строка ошибки попадает в журнал (`event:ssh_retry … detail=…`) и в уведомление.
+Раньше в журнале было только `reason=prod_unreachable_by_ssh`, и отличить «нет
+идентичности у учётной записи сервиса» от «сеть» было невозможно.
+
+**Две разные причины, которые теперь различимы:**
+
+| Симптом в журнале | Причина | Что делать |
+|---|---|---|
+| `detail=Permission denied (publickey)` | у учётной записи сервиса нет ключа для прода | задать `ALLOWLIST_SSH_IDENTITY_FILE` (см. «Что делать владельцу», п. 3) |
+| `detail=Host key verification failed` | нет `known_hosts` (или ключ хоста сменился) | задать `ALLOWLIST_SSH_KNOWN_HOSTS` |
+| `detail=Connection timed out` / `Connection refused` | сеть между машинами (пул провайдера, VPN) | см. ниже: это сетевой сбой, не фильтрация |
 
 **Что сделано.** `run_ssh` делает до `ALLOWLIST_SSH_ATTEMPTS` (по умолчанию 3) попыток
 с паузой `ALLOWLIST_SSH_RETRY_PAUSE` (5 с): кратковременный сетевой сбой больше не

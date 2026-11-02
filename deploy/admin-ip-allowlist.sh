@@ -86,6 +86,12 @@ if [ -n "${ALLOWLIST_SSH_STRICT_HOST_KEY:-}" ]; then
 fi
 # Последняя ошибка ssh — для журнала и уведомления (раньше она терялась).
 SSH_LAST_ERROR=""
+# Рабочая ssh-идентичность: явная настройка → кэш прошлого прогона →
+# автоподбор ключа оператора админ-машины (см. ensure_ssh_ready).
+SSH_IDENTITY_FILE=""
+SSH_KNOWN_HOSTS_FILE=""
+SSH_READY_RESOLVED=0
+SSH_READY_RC=0
 
 # --- адрес ---
 IP_SERVICES="${ALLOWLIST_IP_SERVICES:-https://api.ipify.org https://ifconfig.me/ip https://icanhazip.com https://checkip.amazonaws.com https://ifconfig.co/ip https://ipinfo.io/ip}"
@@ -574,11 +580,15 @@ run_ssh() {
   local attempt=1 rc=0 errfile=""
   errfile="$(mktemp "${TMPDIR:-/tmp}/allowlist-ssh-err.XXXXXX" 2>/dev/null || true)"
   SSH_LAST_ERROR=""
+  # Идентичность определяется один раз за запуск; если автоподбор не удался —
+  # пробуем обычный ssh (в журнале будет его реальная ошибка).
+  ensure_ssh_ready || true
+  ssh_build_opts
   while [ "${attempt}" -le "${SSH_ATTEMPTS}" ]; do
     if [ -n "${errfile}" ]; then
-      ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*" 2>"${errfile}"
+      ssh "${SSH_EFFECTIVE_OPTS[@]}" "${PROD_HOST}" "$*" 2>"${errfile}"
     else
-      ssh "${SSH_OPTS[@]}" "${PROD_HOST}" "$*"
+      ssh "${SSH_EFFECTIVE_OPTS[@]}" "${PROD_HOST}" "$*"
     fi
     rc=$?
     if [ "${rc}" -eq 0 ]; then
@@ -1140,9 +1150,112 @@ run_diagnose() {
 }
 
 
+
+# --- ssh-идентичность сервиса ------------------------------------------------
+# Прецедент 2026-11-02: юнит работает под root, у root нет ни ключа, ни
+# known_hosts для прод-хоста — ssh падал с rc=255, механизм молча ничего не
+# применял (правка allow-list не применена, прод-БД недоступна 80 минут).
+#
+# Порядок выбора:
+#   1) ALLOWLIST_SSH_IDENTITY_FILE — явная настройка владельца;
+#   2) кэш прошлого прогона (state-файл) — чтобы не проверять заново;
+#   3) обычный ssh учётной записи сервиса (прежнее поведение);
+#   4) перебор ключей оператора админ-машины (/home/*/.ssh/id_rsa|id_ed25519) —
+#      первый, который принимает прод, запоминается в state-файле.
+#
+# Ничего из этого не меняет прод: только выбор способа входа.
+
+ssh_identity_candidates() {
+  local f
+  for f in "${HOME:-/root}/.ssh/id_rsa" "${HOME:-/root}/.ssh/id_ed25519" \
+    /home/*/.ssh/id_rsa /home/*/.ssh/id_ed25519; do
+    [ -f "${f}" ] && [ -r "${f}" ] && printf '%s\n' "${f}"
+  done
+}
+
+# Собирает фактические опции ssh из выбранной идентичности.
+ssh_build_opts() {
+  SSH_EFFECTIVE_OPTS=(-o BatchMode=yes -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}")
+  if [ -n "${SSH_IDENTITY_FILE:-}" ]; then
+    SSH_EFFECTIVE_OPTS+=(-o IdentitiesOnly=yes -i "${SSH_IDENTITY_FILE}")
+    if [ -n "${SSH_KNOWN_HOSTS_FILE:-}" ]; then
+      SSH_EFFECTIVE_OPTS+=(-o UserKnownHostsFile="${SSH_KNOWN_HOSTS_FILE}")
+    fi
+  fi
+}
+
+# Определяет рабочую идентичность. 0 — вход возможен, 1 — нет.
+ensure_ssh_ready() {
+  [ "${SSH_READY_RESOLVED:-0}" = "1" ] && return "${SSH_READY_RC:-0}"
+  SSH_READY_RESOLVED=1
+
+  # 1) явная настройка.
+  if [ -n "${ALLOWLIST_SSH_IDENTITY_FILE:-}" ]; then
+    SSH_IDENTITY_FILE="${ALLOWLIST_SSH_IDENTITY_FILE}"
+    SSH_KNOWN_HOSTS_FILE="${ALLOWLIST_SSH_KNOWN_HOSTS:-}"
+    ssh_build_opts
+    SSH_READY_RC=0
+    return 0
+  fi
+
+  # 2) кэш прошлого прогона.
+  local cached cached_kh
+  cached="$(state_get ssh_identity)"
+  if [ -n "${cached}" ] && [ -r "${cached}" ]; then
+    cached_kh="$(state_get ssh_known_hosts)"
+    SSH_IDENTITY_FILE="${cached}"
+    SSH_KNOWN_HOSTS_FILE="${cached_kh}"
+    ssh_build_opts
+    log_event "ssh_identity" "source=cache" "identity=${cached}"
+    SSH_READY_RC=0
+    return 0
+  fi
+
+  # 3) обычный ssh учётной записи сервиса (прежнее поведение).
+  SSH_IDENTITY_FILE=""
+  SSH_KNOWN_HOSTS_FILE=""
+  ssh_build_opts
+  if ssh "${SSH_EFFECTIVE_OPTS[@]}" "${PROD_HOST}" true >/dev/null 2>&1; then
+    SSH_READY_RC=0
+    return 0
+  fi
+
+  # 4) автоподбор ключа оператора админ-машины.
+  local cand kh
+  while IFS= read -r cand; do
+    [ -n "${cand}" ] || continue
+    kh="$(dirname "$(dirname "${cand}")")/.ssh/known_hosts"
+    [ -r "${kh}" ] || kh=""
+    local -a opts=(-o BatchMode=yes -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" -o IdentitiesOnly=yes -i "${cand}")
+    [ -n "${kh}" ] && opts+=(-o UserKnownHostsFile="${kh}")
+    if ssh "${opts[@]}" "${PROD_HOST}" true >/dev/null 2>&1; then
+      SSH_IDENTITY_FILE="${cand}"
+      SSH_KNOWN_HOSTS_FILE="${kh}"
+      ssh_build_opts
+      state_set ssh_identity "${cand}"
+      [ -n "${kh}" ] && state_set ssh_known_hosts "${kh}"
+      log_event "ssh_identity" "source=auto" "identity=${cand}" "known_hosts=${kh:-default}"
+      SSH_READY_RC=0
+      return 0
+    fi
+  done <<<"$(ssh_identity_candidates)"
+
+  SSH_READY_RC=1
+  return 1
+}
+
+# Источник выбора идентичности (для журнала).
+ssh_identity_source() {
+  if [ -n "${ALLOWLIST_SSH_IDENTITY_FILE:-}" ]; then printf 'explicit'; return 0; fi
+  if [ -n "${SSH_IDENTITY_FILE:-}" ]; then printf 'auto_or_cache'; return 0; fi
+  printf 'default'
+}
+
 # Описание используемой ssh-идентичности — для журнала и --check-ssh.
 ssh_identity_desc() {
-  if [ -n "${ALLOWLIST_SSH_IDENTITY_FILE:-}" ]; then
+  if [ -n "${SSH_IDENTITY_FILE:-}" ]; then
+    printf 'file:%s' "${SSH_IDENTITY_FILE}"
+  elif [ -n "${ALLOWLIST_SSH_IDENTITY_FILE:-}" ]; then
     if [ -r "${ALLOWLIST_SSH_IDENTITY_FILE}" ]; then
       printf 'file:%s' "${ALLOWLIST_SSH_IDENTITY_FILE}"
     else
@@ -1154,7 +1267,9 @@ ssh_identity_desc() {
 }
 
 ssh_known_hosts_desc() {
-  if [ -n "${ALLOWLIST_SSH_KNOWN_HOSTS:-}" ]; then
+  if [ -n "${SSH_KNOWN_HOSTS_FILE:-}" ]; then
+    printf 'file:%s' "${SSH_KNOWN_HOSTS_FILE}"
+  elif [ -n "${ALLOWLIST_SSH_KNOWN_HOSTS:-}" ]; then
     if [ -r "${ALLOWLIST_SSH_KNOWN_HOSTS}" ]; then
       printf 'file:%s' "${ALLOWLIST_SSH_KNOWN_HOSTS}"
     else
@@ -1170,6 +1285,10 @@ ssh_known_hosts_desc() {
 run_check_ssh() {
   log_event "check_ssh" "mode=check_ssh" "host=${PROD_HOST}" \
     "identity=$(ssh_identity_desc)" "known_hosts=$(ssh_known_hosts_desc)"
+  ensure_ssh_ready || true
+  ssh_build_opts
+  log_event "check_ssh" "identity_resolved=$(ssh_identity_desc)" \
+    "known_hosts_resolved=$(ssh_known_hosts_desc)" "source=$(ssh_identity_source)"
   if run_ssh "true"; then
     log_event "check_ssh" "ok=true" "hint=правка allow-list применима"
     return "${EXIT_OK}"
@@ -1627,6 +1746,49 @@ STUB
     echo "   OK: успешная попытка вернула результат"
   else
     echo "   FAIL: успешная попытка не вернула результат ('${retry_out}')"; failed=1
+  fi
+
+  echo "== Сценарий 15: автоподбор ssh-идентичности, когда у сервиса нет ключа (KARAOKE-389)"
+  # Регрессия 2026-11-02: юнит работает под root, у root нет ни ключа, ни
+  # known_hosts для прод-хоста → ssh отвечал rc=255, механизм молча ничего не
+  # применял (allow-list не обновлён, прод-БД недоступна 80 минут). Механизм
+  # должен сам найти рабочий ключ оператора админ-машины и запомнить его.
+  local fake_home="${workdir}/fake-home"
+  mkdir -p "${fake_home}/.ssh"
+  printf 'fake-key\n' >"${fake_home}/.ssh/id_rsa"
+  chmod 600 "${fake_home}/.ssh/id_rsa"
+  ssh() {
+    local a
+    for a in "$@"; do
+      case "${a}" in
+        */.ssh/id_rsa) return 0 ;;
+      esac
+    done
+    return 255
+  }
+  local home_backup="${HOME}" state_backup="${STATE_FILE}"
+  local ready_backup="${SSH_READY_RESOLVED:-0}" id_backup="${SSH_IDENTITY_FILE:-}"
+  local kh_backup="${SSH_KNOWN_HOSTS_FILE:-}"
+  HOME="${fake_home}"
+  STATE_FILE="${workdir}/identity.state"
+  SSH_READY_RESOLVED=0
+  SSH_IDENTITY_FILE=""
+  SSH_KNOWN_HOSTS_FILE=""
+  local resolved_id=""
+  if ensure_ssh_ready; then resolved_id="${SSH_IDENTITY_FILE}"; fi
+  HOME="${home_backup}" STATE_FILE="${state_backup}"
+  SSH_READY_RESOLVED="${ready_backup}" SSH_IDENTITY_FILE="${id_backup}"
+  SSH_KNOWN_HOSTS_FILE="${kh_backup}"
+  unset -f ssh
+  if [ "${resolved_id}" = "${fake_home}/.ssh/id_rsa" ]; then
+    echo "   OK: идентичность подобрана автоматически (${resolved_id})"
+  else
+    echo "   FAIL: идентичность не подобрана (получено: ${resolved_id:-пусто})"; failed=1
+  fi
+  if grep -q "^ssh_identity=" "${workdir}/identity.state" 2>/dev/null; then
+    echo "   OK: найденная идентичность сохранена в state-файле"
+  else
+    echo "   FAIL: идентичность не сохранена в state-файле"; failed=1
   fi
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"

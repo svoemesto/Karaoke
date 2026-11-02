@@ -268,6 +268,19 @@ checks:
       - deploy/heap-dump-retention.sh
     evidence: "deploy/heap-dump-retention.sh:47,50,168; lint.yml:100"
 
+  - id: log-hygiene-guard
+    title: log hygiene guard (KARAOKE-387)
+    gate: true
+    cost: light
+    mode: paths
+    # Зона — весь бэкенд админки: именно там живут фоновые задачи и API, чьи ошибки
+    # попадают в лог; плюс сам guard и его baseline.
+    paths:
+      - karaoke-app/**
+      - tools/check-log-hygiene.sh
+      - config/log-hygiene-baseline.txt
+    evidence: "tools/check-log-hygiene.sh:1; karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt:1"
+
   - id: allowlist-guardrails-guard
     title: allowlist guardrails guard (BR-631)
     gate: true

@@ -1,0 +1,29 @@
+# config/log-hygiene-baseline.txt — KARAOKE-387
+# Текущие счётчики стектрейсов в karaoke-app/src/main/kotlin (baseline, как eslint).
+# Формат: <путь> <printStackTrace> <лог-с-исключением>
+# Пересобрать: bash tools/check-log-hygiene.sh --update-baseline
+# Правило: счётчики могут только уменьшаться; новый файл с паттернами — ошибка.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt 1 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ShareLinksAdminController.kt 1 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Crypto.kt 3 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/DualStream.kt 1 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt 8 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt 3 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt 1 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt 1 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ListeningHistory.kt 4 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignment.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt 18 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatBySong.kt 28 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Uuids.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AutoOneClickSyncScheduler.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/GeoIpService.kt 2 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/HealthReportBatchPool.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PremiumAutoPublishScheduler.kt 1 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishScheduler.kt 1 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt 3 0
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt 9 8
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt 0 1

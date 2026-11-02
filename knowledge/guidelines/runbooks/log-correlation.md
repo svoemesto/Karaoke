@@ -48,6 +48,24 @@ event=db.connect.failed code=DB-CONNECT-001 target=SERVER thread=http-nio-1 host
 | `CHAT-UNREAD-001` | `chat.unread.count.failed` | Не посчитались непрочитанные сообщения чата (`sqlState=`) | Смотреть БД; на интерфейс не влияет (счётчик показывается без числа) |
 | `STORAGE-POLICY-OK` / `STORAGE-POLICY-REPAIRED` / `STORAGE-POLICY-UNCONFIRMED` | `stemjobs:storage:policy …` | Политика бакетов MinIO: подтверждена / дожата / не подтверждена | Для `UNCONFIRMED` — проверить канал до MinIO (порт 9000) и повторить; самопроверка идёт каждые 5 минут (KARAOKE-385) |
 
+## 1b. Guard гигиены логов (KARAOKE-387, продолжение)
+
+Чтобы стектрейсы не возвращались, в CI есть проверка `log-hygiene-guard`
+(`tools/check-log-hygiene.sh`, зона — `karaoke-app/**`). Она считает по файлам:
+
+- `printStackTrace` — прямой вывод стека в stdout;
+- `log.<level>(…)` с объектом исключения последним аргументом — SLF4J печатает стек после сообщения.
+
+Модель — как у eslint-baseline: `config/log-hygiene-baseline.txt` хранит текущие счётчики. Проверка падает, если появился **новый** файл с этими паттернами или счётчик в файле **вырос**. Уменьшение счётчика — не ошибка, но baseline стоит обновить:
+
+```bash
+bash tools/check-log-hygiene.sh --report            # текущие счётчики
+bash tools/check-log-hygiene.sh                     # проверка (exit 1 при регрессе)
+bash tools/check-log-hygiene.sh --update-baseline   # пересобрать после миграции
+```
+
+Правило: новые ошибки пишутся через `AppLog` (код из реестра §1a, `cause=` цепочкой, стек — только `LOG_STACKTRACES=true`). Если правишь старый файл — переводи его строки на `AppLog` и уменьшай baseline.
+
 ## 2. Команды просмотра
 
 ### 2.1. PostgreSQL (`karaoke-db`)

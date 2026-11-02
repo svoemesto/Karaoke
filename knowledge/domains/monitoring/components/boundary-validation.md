@@ -63,6 +63,7 @@
 | Внешний процесс | таймаут + `destroyForcibly()` + лимит вывода | `runCommand(timeoutMs)` (BR-270) |
 | Скрипт для хоста | значения — позиционные параметры, экранирование | `buildHostScript` + `shellEscape` (BR-271) |
 | Соединение с БД | валидация не в горячем пути | `CONNECTION_VALIDATION_IDLE_MS` (BR-274) |
+| Соединение с БД | один прозрачный повтор идемпотентной операции при обрыве | `DbAvailability.withRetryOnConnectionFailure` (KARAOKE-386) |
 
 ### Механизмы в коде
 
@@ -70,6 +71,14 @@
   значение — «поле не передано, оставить как было»; нечисловое — 400 с
   machine-readable причиной (`bad_process_order`, `bad_process_priority`,
   `bad_process_status`). Наружу уходит `ResponseStatusException`, не 500.
+- **Мёртвое соединение не доходит до пользователя (KARAOKE-386).** `DbAvailability`
+  распознаёт ошибки уровня соединения (SQLState `08*`, `57P01/02/03`, сокетные исключения в
+  цепочке `cause`, тексты «Connection reset» / «Ошибка ввода/вывода…»), помечает кэш потока
+  битым (`markConnectionBroken`, specs/236) и повторяет **идемпотентную** операцию один раз на
+  свежем канале. Ошибки логики SQL (например `23505`) не повторяются никогда. После
+  исчерпания попыток — `DatabaseUnavailableException` с кодом `DB-UNAVAILABLE-001` и
+  человекочитаемым текстом; исходная причина остаётся в `cause`. Обёрнуты точки чтения
+  `KaraokeDbTable`: `loadList`, `getListHashes`, `getTotalCount`.
 - **Отказ не равен штатному результату.** Отсутствие песни — 404
   (`song_not_found`), неразобранные маркеры — 400 (`bad_source_markers`),
   сбой БД при загрузке альбомов — `AlbumTilesUnavailableException` → 503 на

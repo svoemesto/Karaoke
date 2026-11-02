@@ -10,6 +10,7 @@ import java.io.Serializable
 import java.sql.SQLException
 import java.sql.Timestamp
 import org.slf4j.LoggerFactory
+import com.svoemesto.karaokeapp.AppLog
 
 // «Чат с автором проекта». Одно сообщение в непрерывном треде site_user_id <-> автор (append-only,
 // сообщения не редактируются). Таблица живёт ЦЕЛИКОМ на PROD-БД (не участвует в LOCAL<->SERVER
@@ -323,7 +324,13 @@ class SiteChatMessage(
                     ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
                 }
             } catch (e: SQLException) {
-                chatLog.warn("SiteChatMessage.countUnreadFromUsers: SQL-ошибка (sqlState={})", e.sqlState, e)
+                AppLog.warn(
+                    category = "infra.chat",
+                    code = "CHAT-UNREAD-001",
+                    event = "chat.unread.count.failed",
+                    fields = mapOf("sqlState" to e.sqlState),
+                    error = e,
+                )
                 COUNT_ERROR
             }
         }

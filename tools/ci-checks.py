@@ -520,6 +520,7 @@ def summary(manifest: dict, env) -> int:
     missing = []
     applicable_rows = []
     inapplicable_rows = []
+    AGGREGATE_JOB = "ci-summary"
 
     for c in manifest["checks"]:
         cid = c["id"]
@@ -545,6 +546,16 @@ def summary(manifest: dict, env) -> int:
         elif result != "success":
             failures.append((cid, result))
 
+
+    if missing:
+        # Диагностика (KARAOKE-388): «нет результата» у применимой проверки почти всегда
+        # означает одно и то же — джоб не попал в needs агрегата (или не отработал).
+        # Раньше в сводке была только строка «нет результата», и разбор упирался в
+        # недоступные логи CI; теперь причина называется прямо.
+        print("== CI summary: применимые, но без результата ==")
+        for cid in missing:
+            print(f"  {cid}: НЕТ РЕЗУЛЬТАТА — джоб не отработал или не указан в needs "
+                  f"агрегата '{AGGREGATE_JOB}' (правило M-13 проверяет покрытие)")
 
     print("== CI summary: применимые проверки ==")
     for cid, gate, result in applicable_rows:

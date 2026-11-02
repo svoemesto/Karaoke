@@ -25,6 +25,11 @@
 `tools/install-tracker.sh`, `tools/auto-kdoc.py`) в CI не вызываются — они
 работают по вызову человека.
 
+> **M-13 (KARAOKE-388)**: `needs` агрегата `ci-summary` обязан покрывать все проверки
+> манифеста. Проверка добавлена в workflow, но забыта в `needs` агрегата — сводка видит
+> её применимой без результата и краснеет при полностью зелёных джобах (прецедент
+> 2026-11-02, `log-hygiene-guard`). Проверяет `tools/check-ci-checks-manifest.sh`.
+
 ## Где исполняется CI (с 2026-10-27)
 
 - **Workflow-файлы**: `.github/workflows/lint.yml` — для GitHub-зеркала;

@@ -84,6 +84,7 @@ jobs:
       root_junk_guard: ${{ steps.applicable.outputs.root_junk_guard }}
       heap_dump_retention_guard: ${{ steps.applicable.outputs.heap_dump_retention_guard }}
       allowlist_guardrails_guard: ${{ steps.applicable.outputs.allowlist_guardrails_guard }}
+      log_hygiene_guard: ${{ steps.applicable.outputs.log_hygiene_guard }}
       allowlist_automation_self_test: ${{ steps.applicable.outputs.allowlist_automation_self_test }}
       memory_guardrails_guard: ${{ steps.applicable.outputs.memory_guardrails_guard }}
       build_config_guard: ${{ steps.applicable.outputs.build_config_guard }}
@@ -196,6 +197,19 @@ jobs:
   # репозитория, в скрипте и юнитах нет секретов (FR-016), таймер настроен на
   # 10 минут (Д-3). Единственная реализация правил BR-631 —
   # tools/check-allowlist-guardrails.sh.
+  log-hygiene-guard:
+    name: log hygiene guard (KARAOKE-387)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.log_hygiene_guard == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: No new stack traces in logs (KARAOKE-387)
+        run: bash tools/check-log-hygiene.sh
+
   allowlist-guardrails-guard:
     name: allowlist guardrails guard (BR-631)
     needs: changes
@@ -1225,7 +1239,7 @@ jobs:
     name: ci-summary (applicable checks)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [changes, actions-pinned-guard, root-junk-guard, heap-dump-retention-guard, allowlist-guardrails-guard, allowlist-automation-self-test, memory-guardrails-guard, build-config-guard, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, confirm-escape-guard, webvue3-unit-tests, karaoke-public-unit-tests, marker-escape-guard, secret-in-argv-guard, file-permissions-guard, karaoke-public-e2e, docs-lint, baseline-stats, kdoc-coverage, jsdoc-coverage, ssot-impact, direct-commits-guard, knowledge-structure, docker-image-tags-guard, no-jpa-imports-guard, value-placeholders-guard, no-mp4-mentions-guard, personal-fixtures-guard, security-headers-guard, ci-checks-manifest-guard]
+    needs: [changes, actions-pinned-guard, root-junk-guard, heap-dump-retention-guard, allowlist-guardrails-guard, allowlist-automation-self-test, memory-guardrails-guard, build-config-guard, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, confirm-escape-guard, webvue3-unit-tests, karaoke-public-unit-tests, marker-escape-guard, secret-in-argv-guard, file-permissions-guard, karaoke-public-e2e, docs-lint, baseline-stats, kdoc-coverage, jsdoc-coverage, ssot-impact, direct-commits-guard, knowledge-structure, docker-image-tags-guard, no-jpa-imports-guard, value-placeholders-guard, no-mp4-mentions-guard, personal-fixtures-guard, security-headers-guard, ci-checks-manifest-guard, log-hygiene-guard]
     if: always()
     steps:
       - name: Checkout

@@ -53,7 +53,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- прод ---
 PROD_HOST="${ALLOWLIST_PROD_HOST:-root@188.127.240.124}"
-PROD_CONF="${ALLOWLIST_PROD_NGINX_CONF:-/etc/nginx/nginx.conf}"
+# ВСЕ файлы прод-конфигурации, где живёт allow-list админ-машины.
+#
+# ИНЦИДЕНТ 2026-11-02 (вечер): править ОДИН файл нельзя. Автоматика обновила
+# stream-блоки (5433/9000) в /etc/nginx/nginx.conf, а HTTP-локации /changerecords
+# и /api/properties/setproperty в /etc/nginx/sites-enabled/80to8897 остались со
+# старым списком адресов → nginx отдавал 403 на эндпоинт синхронизации, и одобренные
+# редакторами песни не доезжали до прода (правки выглядели «потерянными»).
+#
+# Теперь список: главный конфиг (stream) + http-конфиг сайта (locations).
+# Одиночный путь задаётся ALLOWLIST_PROD_NGINX_CONF (совместимость).
+if [ -n "${ALLOWLIST_PROD_NGINX_CONF:-}" ]; then
+  PROD_CONF_FILES="${ALLOWLIST_PROD_NGINX_CONF}"
+else
+  PROD_CONF_FILES="${ALLOWLIST_PROD_CONF_FILES:-/etc/nginx/nginx.conf /etc/nginx/sites-enabled/80to8897}"
+fi
+PROD_CONF="${PROD_CONF_FILES%% *}"
 PROD_PORTS="${ALLOWLIST_PROD_PORTS:-5433 9000}"
 HEALTH_URL="${ALLOWLIST_HEALTH_URL:-https://sm-karaoke.ru/health}"
 PROBE_TIMEOUT="${ALLOWLIST_PROBE_TIMEOUT:-5}"
@@ -126,6 +141,8 @@ FJ_TOKEN="${ALLOWLIST_FJ_TOKEN:-}"
 FJ_URL="${ALLOWLIST_FJ_URL:-https://git.sm-karaoke.ru}"
 FJ_REPO="${ALLOWLIST_REPO:-svoemesto/Karaoke}"
 REPO_CONF_PATH="${ALLOWLIST_REPO_PATH:-deploy/prod-single-host/nginx.conf}"
+# Канон http-конфига сайта: те же allow-list'ы, что и на проде (KARAOKE-389).
+REPO_CONF_PATH_SITE="${ALLOWLIST_REPO_PATH_SITE:-deploy/prod-single-host/80to8897}"
 REPO_COPY_LOCAL="${SCRIPT_DIR}/prod-single-host/nginx.conf"
 
 # --- прочее ---
@@ -641,6 +658,96 @@ WRITE_METHOD="cat"
 # переопределяется, чтобы сценарий не ходил в сеть.
 confirm_address() { detect_address; }
 
+
+# Подготовка конфигурации с allow-list'ом в ЛЮБОМ файле: в каждом блоке, где
+# есть `deny all;`, строка `allow <ip>;` должна стоять ПЕРЕД ним (nginx проверяет
+# allow/deny по порядку — строка после deny не действует никогда). Если в блоке
+# такой строки нет — она вставляется; «осиротевшие» allow после deny удаляются.
+#
+# Нужна для файлов, отличных от главного конфига nginx: там блоки — это
+# `location` (HTTP-локации синхронизации), а не `server` с listen 5433/9000,
+# поэтому потоковая версия prepare_new_config к ним неприменима.
+prepare_new_allow_config() {
+  local old_file="$1" new_file="$2" ip="$3"
+  python3 - "${old_file}" "${new_file}" "${ip}" <<'PYEOF'
+import re
+import sys
+
+old_file, new_file, ip = sys.argv[1], sys.argv[2], sys.argv[3]
+deny_re = re.compile(r"^\s*deny\s+all\s*;")
+allow_re = re.compile(r"^\s*allow\s+" + re.escape(ip) + r"\s*;\s*$")
+
+with open(old_file, encoding="utf-8") as fh:
+    lines = fh.read().split("\n")
+
+out = []
+inserted = 0
+removed = 0
+i = 0
+while i < len(lines):
+    line = lines[i]
+    if deny_re.match(line):
+        found = False
+        j = len(out) - 1
+        while j >= 0:
+            if lines[j].strip().startswith("}"):
+                break
+            if allow_re.match(lines[j]):
+                found = True
+                break
+            j -= 1
+        if not found:
+            indent = line[: len(line) - len(line.lstrip())]
+            out.append("{}allow {};".format(indent, ip))
+            inserted += 1
+        out.append(line)
+        i += 1
+        continue
+    if allow_re.match(line):
+        orphan = False
+        j = len(out) - 1
+        while j >= 0:
+            if lines[j].strip().startswith("}"):
+                break
+            if deny_re.match(lines[j]):
+                orphan = True
+                break
+            j -= 1
+        if orphan:
+            removed += 1
+            i += 1
+            continue
+    out.append(line)
+    i += 1
+
+if inserted == 0 and removed == 0:
+    sys.stderr.write("no allow-list blocks found\n")
+    sys.exit(2)
+
+with open(new_file, "w", encoding="utf-8") as fh:
+    fh.write("\n".join(out))
+sys.stderr.write("inserted={} removed={}\n".format(inserted, removed))
+PYEOF
+}
+
+# Подготовка файла: главный конфиг — потоковая версия (проверяет listen
+# 5433/9000 и ровно два блока), остальные — универсальная.
+prepare_conf_for_file() {
+  local target="$1" old_file="$2" new_file="$3" ip="$4"
+  case "${target}" in
+    */nginx.conf) prepare_new_config "${old_file}" "${new_file}" "${ip}" ;;
+    *) prepare_new_allow_config "${old_file}" "${new_file}" "${ip}" ;;
+  esac
+}
+
+# Репозиторный путь для файла на проде (канон в репозитории).
+repo_path_for_prod_conf() {
+  case "$1" in
+    */80to8897) printf '%s' "${REPO_CONF_PATH_SITE}" ;;
+    *) printf '%s' "${REPO_CONF_PATH}" ;;
+  esac
+}
+
 # apply_change <local|remote> <target_file> <new_file> <ip>
 # Порядок (контракт allow-list-surgery.md §4): перепроверка адреса → временный
 # файл → проверка синтаксиса временного файла → бэкап → подмена содержимым с
@@ -652,7 +759,14 @@ apply_change() {
 
   stamp="$(date -u +%Y%m%d-%H%M%S)"
   backup="${target}.bak-${stamp}"
-  remote_tmp="${target}.allowlist-new"
+  # Временный файл для НЕ-главного конфига кладём ВНЕ включаемых nginx-каталогов
+  # (sites-enabled/* подхватывается glob'ом — копия там продублировала бы location
+  # и ломала nginx -t). Для главного конфига — рядом, там проверка целиком.
+  local full_syntax=1
+  case "${target}" in
+    */nginx.conf) remote_tmp="${target}.allowlist-new" ;;
+    *) remote_tmp="/tmp/allowlist-$(basename "${target}").allowlist-new"; full_syntax=0 ;;
+  esac
 
   # Шаг 0: перепроверка адреса (гонка смены адреса).
   local confirmed
@@ -671,14 +785,21 @@ apply_change() {
     cp -f "${new_file}" "${remote_tmp}" || { REASON="transfer_failed"; return 1; }
   fi
 
-  # Шаг 2: синтаксис временного файла тем же nginx.
-  if ! run_target "${mode}" "${NGINX_BIN} -t -c '${remote_tmp}'" >/dev/null 2>&1; then
-    run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
-    log_event "syntax" "ok=false" "step=temp_file" "detail=nginxt_failed"
-    REASON="syntax_failed"
-    return 1
+  # Шаг 2: синтаксис временного файла тем же nginx. Для НЕ-главного конфига
+  # (location-блоки сайта) отдельный файл не является полным конфигом nginx —
+  # такая проверка невозможна; её заменяет проверка ЖИВОГО файла после записи
+  # (шаг 5) с откатом из бэкапа.
+  if [ "${full_syntax}" = "1" ]; then
+    if ! run_target "${mode}" "${NGINX_BIN} -t -c '${remote_tmp}'" >/dev/null 2>&1; then
+      run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
+      log_event "syntax" "ok=false" "step=temp_file" "detail=nginxt_failed"
+      REASON="syntax_failed"
+      return 1
+    fi
+    log_event "syntax" "ok=true" "step=temp_file"
+  else
+    log_event "syntax" "ok=true" "step=temp_file" "detail=partial_config_check_skipped"
   fi
-  log_event "syntax" "ok=true" "step=temp_file"
 
   # Шаг 3: бэкап.
   if ! run_target "${mode}" "cp '${target}' '${backup}'" >/dev/null 2>&1; then
@@ -937,92 +1058,103 @@ create_pull_request() {
     return 1
   fi
 
-  # 1. Репозиторная копия (канон) из API.
-  local raw sha content
-  raw="$(fj_api GET "/contents/${REPO_CONF_PATH}?ref=master")" || raw=""
-  content="$(printf '%s' "${raw}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("content") or "")' 2>/dev/null | base64 -d 2>/dev/null)"
-  sha="$(printf '%s' "${raw}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("sha") or "")' 2>/dev/null)"
-  if [ -z "${content}" ]; then
-    log_event "pr" "ok=false" "reason=repo_copy_unavailable"
-    return 1
-  fi
-
-  # 2. Дрейф прод↔репозиторий — информационно (не блокирует, в PR не выносится).
-  if [ -f "${REPO_COPY_LOCAL}" ]; then
-    if ! diff -q "${REPO_COPY_LOCAL}" <(printf '%s' "${content}") >/dev/null 2>&1; then
-      log_event "drift" "detail=repo_copy_differs_from_prod_or_local" \
-        "prod_conf=$(sanitize "${PROD_CONF}")"
-    fi
-  fi
-
-  # 3. Вставка ТОЛЬКО недостающей allow-строки в репозиторную копию.
-  local tmp_old tmp_new
-  tmp_old="$(mktemp "${TMPDIR:-/tmp}/allowlist-repo.XXXXXX")"
-  tmp_new="$(mktemp "${TMPDIR:-/tmp}/allowlist-repo.XXXXXX")"
-  printf '%s' "${content}" >"${tmp_old}"
-  if ! prepare_new_config "${tmp_old}" "${tmp_new}" "${ip}" 2>/dev/null; then
-    rm -f "${tmp_old}" "${tmp_new}"
-    log_event "pr" "ok=false" "reason=repo_copy_prepare_failed"
-    return 1
-  fi
-  if ! verify_diff "${tmp_old}" "${tmp_new}" "${ip}" 2>/dev/null; then
-    rm -f "${tmp_old}" "${tmp_new}"
-    log_event "pr" "ok=false" "reason=repo_copy_diff_failed"
-    return 1
-  fi
-  local b64
-  b64="$(base64 -w0 <"${tmp_new}" 2>/dev/null || base64 <"${tmp_new}" | tr -d '\n')"
-  rm -f "${tmp_old}" "${tmp_new}"
-
-  # 4. Ветка + коммит + PR.
   local branch="auto/allowlist-${ip//./-}-$(date -u +%Y%m%d%H%M%S)"
-  local body
-  body="$(python3 - "${ip}" "${backup}" <<'PY'
-import json
-import sys
-
-ip, backup = sys.argv[1], sys.argv[2]
-print(json.dumps({
-    "branch_name": None,
-    "old_branch_name": "master",
-    "pr_title": "chore(677): allow-list прод-хоста — добавлен адрес {} (KARAOKE-337)".format(ip),
-    "pr_body": "Автоматическая правка allow-list (спека 677, KARAOKE-337).\n\n"
-               "Добавлена строка `allow {};` в оба stream-блока (5433, 9000).\n"
-               "Бэкап на проде: {}\n\n"
-               "Одобрение и слияние — за владельцем.".format(ip, backup or "—"),
-}))
-PY
-)"
-  local branch_name old_name pr_title pr_body
-  branch_name="$(printf '%s' "${body}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["branch_name"])')"
-  pr_title="$(printf '%s' "${body}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pr_title"])')"
-  pr_body="$(printf '%s' "${body}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pr_body"])')"
-
   local br_body
   br_body="$(python3 -c 'import json,sys; print(json.dumps({"branch_name": sys.argv[1], "old_branch_name": "master"}))' "${branch}")"
   fj_api POST "/branches" "${br_body}" >/dev/null 2>&1 || true
 
-  local commit_body
-  commit_body="$(python3 -c 'import json,sys; print(json.dumps({"branch": sys.argv[1], "content": sys.argv[2], "message": sys.argv[3], "sha": sys.argv[4]}))' "${branch}" "${b64}" "chore(677): allow-list — добавлен адрес ${ip} (KARAOKE-337) [tracker-claim-337]" "${sha}")"
-  if ! fj_api POST "/contents/${REPO_CONF_PATH}" "${commit_body}" >/dev/null 2>&1; then
-    log_event "pr" "ok=false" "reason=commit_failed" "branch=$(sanitize "${branch}")"
+  # Репозиторные копии ВСЕХ файлов с allow-list'ом: главный конфиг (stream-блоки
+  # 5433/9000) и http-конфиг сайта (location /changerecords и
+  # /api/properties/setproperty). Править только один — значит оставить
+  # репозиторий расходящимся с продом, и следующая правка снова придёт «не туда»
+  # (KARAOKE-389, инцидент 2026-11-02).
+  local repo_path raw content tmp_old tmp_new b64 commit_body committed=0
+  for repo_path in "${REPO_CONF_PATH}" "${REPO_CONF_PATH_SITE}"; do
+    raw="$(fj_api GET "/contents/${repo_path}?ref=master")" || raw=""
+    content="$(printf '%s' "${raw}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("content") or "")' 2>/dev/null || true)"
+    if [ -z "${content}" ]; then
+      log_event "pr" "ok=false" "reason=repo_copy_unavailable" "file=$(sanitize "${repo_path}")"
+      continue
+    fi
+
+    tmp_old="$(mktemp "${TMPDIR:-/tmp}/allowlist-repo.XXXXXX")"
+    tmp_new="$(mktemp "${TMPDIR:-/tmp}/allowlist-repo.XXXXXX")"
+    printf '%s' "${content}" >"${tmp_old}"
+    if address_allowed "${tmp_old}" "${ip}"; then
+      rm -f "${tmp_old}" "${tmp_new}"
+      continue
+    fi
+    if ! prepare_conf_for_file "${repo_path}" "${tmp_old}" "${tmp_new}" "${ip}" 2>/dev/null; then
+      rm -f "${tmp_old}" "${tmp_new}"
+      log_event "pr" "ok=false" "reason=repo_copy_prepare_failed" "file=$(sanitize "${repo_path}")"
+      continue
+    fi
+    if ! verify_diff "${tmp_old}" "${tmp_new}" "${ip}" 2>/dev/null; then
+      rm -f "${tmp_old}" "${tmp_new}"
+      log_event "pr" "ok=false" "reason=repo_copy_diff_failed" "file=$(sanitize "${repo_path}")"
+      continue
+    fi
+    b64="$(base64 -w0 <"${tmp_new}" 2>/dev/null || base64 <"${tmp_new}" | tr -d '\n')"
+    rm -f "${tmp_old}" "${tmp_new}"
+
+    commit_body="$(python3 -c 'import json,sys; print(json.dumps({"branch": sys.argv[1], "content": sys.argv[2], "message": sys.argv[3]}))' \
+      "${branch}" "${b64}" "chore(677): allow-list — добавлен адрес ${ip} (${repo_path}) (KARAOKE-389)")"
+    if fj_api POST "/contents/${repo_path}" "${commit_body}" >/dev/null 2>&1; then
+      committed=$((committed + 1))
+      log_event "pr" "step=committed" "file=$(sanitize "${repo_path}")" "branch=$(sanitize "${branch}")"
+    else
+      log_event "pr" "ok=false" "reason=commit_failed" "file=$(sanitize "${repo_path}")" "branch=$(sanitize "${branch}")"
+    fi
+  done
+
+  if [ "${committed}" -eq 0 ]; then
+    log_event "pr" "ok=false" "reason=nothing_to_commit"
     return 1
   fi
 
-  local pull_body
-  pull_body="$(python3 -c 'import json,sys; print(json.dumps({"head": sys.argv[1], "base": "master", "title": sys.argv[2], "body": sys.argv[3]}))' "${branch}" "${pr_title}" "${pr_body}")"
-  local pr_json pr_url
+  local body pr_title pr_body pull_body pr_json pr_url
+  body="$(pr_body_text "${ip}" "${backup}" "${committed}")"
+  pr_title="$(printf '%s' "${body}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pr_title"])')"
+  pr_body="$(printf '%s' "${body}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pr_body"])')"
+
+  pull_body="$(python3 -c 'import json,sys; print(json.dumps({"head": sys.argv[1], "base": "master", "title": sys.argv[2], "body": sys.argv[3]}))' \
+    "${branch}" "${pr_title}" "${pr_body}")"
   pr_json="$(fj_api POST "/pulls" "${pull_body}")"
-  pr_url="$(printf '%s' "${pr_json}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("html_url") or "")' 2>/dev/null)"
+  pr_url="$(printf '%s' "${pr_json}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("html_url") or "")' 2>/dev/null || true)"
   if [ -z "${pr_url}" ]; then
     log_event "pr" "ok=false" "reason=pull_request_failed" "branch=$(sanitize "${branch}")"
     return 1
   fi
-  log_event "pr" "ok=true" "url=$(sanitize "${pr_url}")" "branch=$(sanitize "${branch}")"
+  log_event "pr" "ok=true" "url=$(sanitize "${pr_url}")" "branch=$(sanitize "${branch}")" "files=${committed}"
   PR_URL="${pr_url}"
   return 0
 }
 
+# Текст PR: заголовок и описание собираются отдельной функцией, чтобы в
+# create_pull_request не было вложенного heredoc внутри подстановки.
+pr_body_text() {
+  local ip="$1" backup="$2" committed="$3"
+  python3 - "${ip}" "${backup}" "${committed}" <<'PRBODYEOF'
+import json
+import sys
+
+ip, backup, committed = sys.argv[1], sys.argv[2], sys.argv[3]
+print(json.dumps({
+    "pr_title": "chore(677): allow-list прод-хоста — добавлен адрес {} (KARAOKE-337)".format(ip),
+    "pr_body": (
+        "Автоматическая правка allow-list (спека 677, KARAOKE-337, KARAOKE-389)."
+        "\n\n"
+        "Добавлена строка `allow {ip};` во все блоки с allow-list'ом: stream-блоки "
+        "5433/9000 и HTTP-локации /changerecords, /api/properties/setproperty "
+        "(файлов: {n})."
+        "\n\n"
+        "Бэкап на проде: {backup}"
+        "\n\n"
+        "Одобрение и слияние — за владельцем."
+    ).format(ip=ip, n=committed, backup=backup or "—"),
+}))
+PRBODYEOF
+}
 # ------------------------------------------------------------- режимы ----
 run_cycle() {
   # host — первый аргумент (хост, к которому идут TCP-пробы). Раньше он был
@@ -1047,56 +1179,72 @@ run_cycle() {
   ip="$(detect_address)" || return "${EXIT_DECLINED}"
   validate_address "${ip}" || return "${EXIT_DECLINED}"
 
-  # FR-005: адрес уже в allow-list — никаких действий, включая reload.
-  local prod_conf
-  prod_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
-  if ! run_ssh "cat '${PROD_CONF}'" >"${prod_conf}" 2>/dev/null; then
-    rm -f "${prod_conf}"
-    log_event "skip" "reason=prod_unreachable_by_ssh" "detail=${SSH_LAST_ERROR}"
-    send_telegram "Karaoke allow-list: прод-хост недоступен по SSH (${SSH_LAST_ERROR}) — правка не применялась, состояние не менялось. Проверьте ALLOWLIST_SSH_IDENTITY_FILE/ALLOWLIST_SSH_KNOWN_HOSTS и доступ по ssh с учётной записью сервиса." || true
-    return "${EXIT_FAIL}"
-  fi
+  # FR-005: адрес уже в allow-list ВСЕХ файлов — никаких действий, включая reload.
+  #
+  # ИНЦИДЕНТ 2026-11-02 (вечер): проверялся только главный конфиг (stream-блоки),
+  # а HTTP-локации /changerecords остались со старым списком → nginx отдавал 403,
+  # синхронизация молча не работала, и одобренные редакторами песни «терялись».
+  # Теперь читаются и правятся ВСЕ файлы с allow-list'ом.
+  local conf_files=() conf_temps=() conf_path conf_temp idx need_change=0
+  for conf_path in ${PROD_CONF_FILES}; do
+    conf_temp="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
+    if ! run_ssh "cat '${conf_path}'" >"${conf_temp}" 2>/dev/null; then
+      rm -f "${conf_temps[@]}" "${conf_temp}"
+      log_event "skip" "reason=prod_unreachable_by_ssh" "detail=${SSH_LAST_ERROR}" "file=$(sanitize "${conf_path}")"
+      send_telegram "Karaoke allow-list: прод-хост недоступен по SSH (${SSH_LAST_ERROR}) — правка не применялась, состояние не менялось. Проверьте ALLOWLIST_SSH_IDENTITY_FILE/ALLOWLIST_SSH_KNOWN_HOSTS и доступ по ssh с учётной записью сервиса." || true
+      return "${EXIT_FAIL}"
+    fi
+    conf_files+=("${conf_path}")
+    conf_temps+=("${conf_temp}")
+    address_allowed "${conf_temp}" "${ip}" || need_change=1
+  done
 
-  if address_allowed "${prod_conf}" "${ip}"; then
-    rm -f "${prod_conf}"
-    log_event "skip" "reason=already_allowed" "ip=$(sanitize "${ip}")"
+  if [ "${need_change}" -eq 0 ]; then
+    rm -f "${conf_temps[@]}"
+    log_event "skip" "reason=already_allowed" "ip=$(sanitize "${ip}")" "files=${#conf_files[@]}"
     return "${EXIT_OK}"
   fi
 
   # FR-010: ограничение частоты.
   if ! rate_limit_ok; then
-    rm -f "${prod_conf}"
+    rm -f "${conf_temps[@]}"
     send_telegram "Karaoke allow-list: правка отложена — с последней применённой правки прошло меньше ${MIN_INTERVAL_MINUTES} минут (адрес ${ip}). Следующая попытка — после истечения окна." || true
     return "${EXIT_DECLINED}"
   fi
 
-  # Подготовка содержимого и FR-020.
+  # Подготовка содержимого и FR-020 — по каждому файлу, где адреса ещё нет.
   local new_conf
-  new_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-new.XXXXXX")"
-  if ! prepare_new_config "${prod_conf}" "${new_conf}" "${ip}" 2>/dev/null; then
-    rm -f "${prod_conf}" "${new_conf}"
-    log_event "skip" "reason=config_mismatch" "detail=stream_blocks_or_deny_all_not_found"
-    send_telegram "Karaoke allow-list: структура конфигурации прод-хоста не совпала с ожидаемой (не найдены stream-блоки 5433/9000 или 'deny all;') — правка не выполнялась. Требуется взгляд владельца." || true
-    return "${EXIT_DECLINED}"
-  fi
-  if ! verify_diff "${prod_conf}" "${new_conf}" "${ip}" 2>/dev/null; then
-    rm -f "${prod_conf}" "${new_conf}"
-    log_event "skip" "reason=diff_check_failed" "ip=$(sanitize "${ip}")"
-    send_telegram "Karaoke allow-list: проверка diff'а не прошла — изменение содержало бы не только строку allow. Правка не выполнялась." || true
-    return "${EXIT_DECLINED}"
-  fi
-  log_event "edit" "step=prepared" "ip=$(sanitize "${ip}")" "blocks=2"
+  for idx in "${!conf_files[@]}"; do
+    conf_path="${conf_files[${idx}]}"
+    prod_conf="${conf_temps[${idx}]}"
+    address_allowed "${prod_conf}" "${ip}" && continue
+    new_conf="$(mktemp "${TMPDIR:-/tmp}/allowlist-new.XXXXXX")"
+    if ! prepare_conf_for_file "${conf_path}" "${prod_conf}" "${new_conf}" "${ip}" 2>/dev/null; then
+      rm -f "${conf_temps[@]}" "${new_conf}"
+      log_event "skip" "reason=config_mismatch" "detail=stream_blocks_or_deny_all_not_found" "file=$(sanitize "${conf_path}")"
+      send_telegram "Karaoke allow-list: структура конфигурации прод-хоста не совпала с ожидаемой (не найдены блоки с 'deny all;' или listen 5433/9000) — правка не выполнялась. Требуется взгляд владельца." || true
+      return "${EXIT_DECLINED}"
+    fi
+    if ! verify_diff "${prod_conf}" "${new_conf}" "${ip}" 2>/dev/null; then
+      rm -f "${conf_temps[@]}" "${new_conf}"
+      log_event "skip" "reason=diff_check_failed" "ip=$(sanitize "${ip}")" "file=$(sanitize "${conf_path}")"
+      send_telegram "Karaoke allow-list: проверка diff'а не прошла — изменение содержало бы не только строку allow. Правка не выполнялась." || true
+      return "${EXIT_DECLINED}"
+    fi
+    log_event "edit" "step=prepared" "ip=$(sanitize "${ip}")" "file=$(sanitize "${conf_path}")"
 
-  # Проверка: точка монтирования (findmnt) — результат в журнал.
-  check_mount_point remote "${PROD_CONF}"
+    # Проверка: точка монтирования (findmnt) — результат в журнал.
+    check_mount_point remote "${conf_path}"
 
-  # FR-006…FR-009: применение с откатом.
-  if ! apply_change remote "${PROD_CONF}" "${new_conf}" "${ip}"; then
-    rm -f "${prod_conf}" "${new_conf}"
-    send_telegram "Karaoke allow-list: правка НЕ применена (адрес ${ip}), выполнен откат из бэкапа, конфигурация прод-хоста восстановлена. Причина: ${REASON}." || true
-    return "${EXIT_FAIL}"
-  fi
-  rm -f "${prod_conf}" "${new_conf}"
+    # FR-006…FR-009: применение с откатом.
+    if ! apply_change remote "${conf_path}" "${new_conf}" "${ip}"; then
+      rm -f "${conf_temps[@]}" "${new_conf}"
+      send_telegram "Karaoke allow-list: правка НЕ применена (адрес ${ip}), выполнен откат из бэкапа, конфигурация прод-хоста восстановлена. Причина: ${REASON}." || true
+      return "${EXIT_FAIL}"
+    fi
+    rm -f "${new_conf}"
+  done
+  rm -f "${conf_temps[@]}"
 
   # FR-009: контрольная проверка фактического ответа.
   # BR-631 (инцидент 2026-11-02): проверка обязана быть ПРОТОКОЛЬНОЙ. Пока здесь
@@ -1789,6 +1937,41 @@ STUB
     echo "   OK: найденная идентичность сохранена в state-файле"
   else
     echo "   FAIL: идентичность не сохранена в state-файле"; failed=1
+  fi
+
+  echo "== Сценарий 16: правка ВСЕХ файлов с allow-list'ом, не только stream (KARAOKE-389)"
+  # Регрессия 2026-11-02 (вечер): автоматика обновила stream-блоки в
+  # /etc/nginx/nginx.conf, а HTTP-локации /changerecords в
+  # /etc/nginx/sites-enabled/80to8897 остались со старым списком → nginx отдавал
+  # 403, синхронизация не работала, одобренные редакторами песни не доезжали.
+  # Теперь файл с location-блоками обрабатывается универсальной подготовкой.
+  local site_old="${workdir}/site.conf" site_new="${workdir}/site.new"
+  cat >"${site_old}" <<'SITE'
+server {
+    listen 80;
+    location /api/properties/setproperty {
+        allow 185.26.28.109;
+        deny all;
+        proxy_pass http://127.0.0.1:8897;
+    }
+    location /changerecords {
+        allow 185.26.28.109;
+        deny all;
+        proxy_pass http://127.0.0.1:8897;
+    }
+}
+SITE
+  if prepare_new_allow_config "${site_old}" "${site_new}" "${test_ip}" 2>/dev/null &&
+    verify_diff "${site_old}" "${site_new}" "${test_ip}" 2>/dev/null; then
+    local got
+    got="$(grep -cE "^[[:space:]]*allow ${test_ip};$" "${site_new}" || true)"
+    if [ "${got}" = "2" ]; then
+      echo "   OK: allow добавлена в оба location-блока (${got})"
+    else
+      echo "   FAIL: в site-конфиге allow-строк ${got}, ожидалось 2"; failed=1
+    fi
+  else
+    echo "   FAIL: универсальная подготовка site-конфига не прошла"; failed=1
   fi
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"

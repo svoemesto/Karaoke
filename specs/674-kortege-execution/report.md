@@ -63,3 +63,53 @@
 ## Статус
 
 Закрыто 57/65 задач; остаток требует стенда/образов. Прод не затрагивался, push не делался.
+
+## Дополнение 2026-11-03: повтор без GPU не срабатывал (KARAOKE-391)
+
+### Симптом
+
+Песня 30428 «Песня друзей» (Король и Шут): при импорте из папки не определилась
+длительность (`song_ms=0`), демукс не прошёл, и починка HR упиралась в тот же сбой.
+
+### Разбор
+
+| Уровень | Что было |
+|---|---|
+| Железо | GPU занят локальной LLM (LM Studio `llama-server`, 10.3 ГБ) + `api_server` (1.15 ГБ) → свободно ~104 МиБ |
+| demucs | полный файл песни на `cuda` → `torch.cuda.OutOfMemoryError` (воспроизведено вручную; 6-секундный клип проходит, полный — нет) |
+| Контейнер | `demucs2` не проверяет код возврата `python3 -m demucs` → контейнер выходит с кодом **0**, сбой проглочен |
+| Цепочка | шаги `mv`/`chmod` стояли ПОСЛЕ `docker run` → на первом же `mv` цепочка рвалась («No such file or directory») |
+| Финальный шаг | `finalizeDemucs` (ставит повтор без GPU по FR-009 и пишет `song_ms`) не доходил **никогда** |
+
+Последний пункт — суть: спека требовала «ровно один автоматический повтор без GPU», но
+механизм повтора жил в недостижимом шаге. Поэтому «GPU занят → надо на CPU» не
+срабатывало ни разу, длительность не определялась, починка HR повторяла тот же путь.
+
+Доказательства: лог шага `/sm-karaoke/system/logs/[2026-11-03 22-17-24…] … - Демукс 2.log`
+(содержит `torch.cuda.OutOfMemoryError`); процессы песни 1652686–1652717 в `tbl_processes`
+(цепочка DEMUCS2 умерла на шаге `mv`, `finalizeDemucs` не выполнялся).
+
+### Исправление
+
+- `tuple/DemucsStems.move` — перенос `file-<stem>.flac` из папки кортежа в целевые файлы
+  (права 666) с отчётом о недостающих стемах.
+- `Song.argsDemucs2/5`, `argsDemucs2RetryCpu/5RetryCpu` — шаги `mv`/`chmod` убраны: между
+  `docker run` и `finalizeDemucs` шагов, зависящих от наличия файлов результата, больше нет.
+- `Utils.executeFinalizeDemucs` — сначала перенос, потом проверка содержимого; при
+  недостающих стемах — прежний повтор без GPU и явная причина в описании задания.
+- `KaraokeProcessWorker` — причина исключения функционального шага и хвост вывода шага
+  `docker` попадают в `process_description` (оператор видит их в админке).
+
+Инвариант «в цепочке демукса нет шагов `mv`/`chmod`» закреплён тестом
+`DemucsChainShapeTest`; поведение переноса — `DemucsStemsTest`; диагностика —
+`KaraokeProcessWorkerOutputTailTest`.
+
+### Проверки
+
+```
+:karaoke-app:compileKotlin          → BUILD SUCCESSFUL
+:karaoke-app:ktlintCheck             → BUILD SUCCESSFUL
+:karaoke-app:test --tests *Demucs*  → BUILD SUCCESSFUL (6 тестов)
+:karaoke-app:test --tests *OutputTail* → BUILD SUCCESSFUL (3 теста)
+lint-knowledge / check-doc-references → OK
+```

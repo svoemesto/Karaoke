@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.tuple.ArtifactIntegrity
 import com.svoemesto.karaokeapp.tuple.AudioProbe
+import com.svoemesto.karaokeapp.tuple.DemucsStems
 import com.svoemesto.karaokeapp.tuple.KeyBpmSidecar
 import com.svoemesto.karaokeapp.tuple.TupleScope
 
@@ -4669,6 +4670,16 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
             ?: return false
     val typeEnum = runCatching { KaraokeProcessTypes.valueOf(demucsType) }.getOrNull() ?: return false
 
+    // ИНЦИДЕНТ 2026-11-03 (песня 30428): перенос стемов — часть проверки, а не отдельные
+    // шаги цепочки (`mv` + `chmod` ПОСЛЕ `docker run`). Когда demucs ничего не создавал —
+    // типичный случай «GPU занят, torch.cuda.OutOfMemoryError» — цепочка рвалась на первом
+    // же `mv`, и этот шаг (повтор без GPU + длительность песни) не доходил никогда.
+    val moveResult =
+        DemucsStems.move(
+            File(PATH_TO_TEMP_DEMUCS_FOLDER, scopeId.toString()),
+            demucsStemDestinations(song, typeEnum),
+        )
+
     // 674 (FR-008): успех подтверждается содержимым — длина/свежесть каждого стема против источника.
     val sourceDuration = AudioProbe.durationMs(song.fileAbsolutePath)
     val findings = ArtifactIntegrity.verifyDemucsStems(song, typeEnum, sourceDuration)
@@ -4710,11 +4721,17 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
         retryProcess.args = prep + retryArgs
         retryProcess.envs = retryEnvs
         KaraokeProcess.createChain(KaraokeProcess.separate(retryProcess))
+        val missingList = moveResult.missing.joinToString()
+        val missingHint = if (missingList.isEmpty()) "" else " (не создано: $missingList)"
         println(
-            "[${Timestamp.from(Instant.now())}] finalizeDemucs: стемы не подтверждены (${findings.size} находок), " +
+            "[${Timestamp.from(Instant.now())}] finalizeDemucs: стемы не подтверждены (${findings.size} находок)$missingHint, " +
                 "поставлен повтор без GPU songId=$songId",
         )
-        return false
+        // Причина в описании задания: оператор видит её в админке, а не только в логе контейнера.
+        throw IllegalStateException(
+            "demucs не создал стемы$missingHint — типичная причина: GPU занят " +
+                "(torch.cuda.OutOfMemoryError). Поставлен один повтор без GPU.",
+        )
     }
 
     // Исчерпание повтора: чужие/битые стемы не удаляем безвозвратно — переименовываем.
@@ -4731,6 +4748,24 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
     deleteScopeDir(scopeId)
     return false
 }
+
+/**
+ * Целевые файлы стемов песни: имя стема → абсолютный путь.
+ * DEMUCS2 — два стема (accomp/vocals), DEMUCS5 — пять (плюс drums/bass/other).
+ */
+private fun demucsStemDestinations(
+    song: Song,
+    demucsType: KaraokeProcessTypes,
+): Map<String, File> =
+    buildMap {
+        put("accompaniment", File(song.accompanimentNameFlac))
+        put("vocals", File(song.vocalsNameFlac))
+        if (demucsType == KaraokeProcessTypes.DEMUCS5) {
+            put("drums", File(song.drumsNameFlac))
+            put("bass", File(song.bassNameFlac))
+            put("other", File(song.otherNameFlac))
+        }
+    }
 
 /** 674 (FR-005): удаляет только каталог своего scope, никогда — общий корень. */
 private fun deleteScopeDir(scopeId: Long) {

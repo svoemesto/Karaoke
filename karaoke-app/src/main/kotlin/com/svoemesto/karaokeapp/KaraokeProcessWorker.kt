@@ -181,6 +181,10 @@ class KaraokeProcessThread(
                             Instant.now(),
                         )}] KaraokeProcessThread[${kp.threadId}]: ERROR задание: ${kp.name} - [${kp.type}] - ${kp.description}: ${e.message}",
                     )
+                    // Причина сбоя — в описании задания: оператор видит её в админке.
+                    // Раньше текст исключения уходил только в лог контейнера, и в UI
+                    // задание выглядело «просто ERROR» без объяснения (инцидент 2026-11-03).
+                    kp.description = KaraokeProcess.appendErrorReason(kp.description, e)
                     kp.status = KaraokeProcessStatuses.ERROR.name
                     kp.end = Timestamp.from(Instant.now())
                     percentage = "100"
@@ -309,6 +313,12 @@ class KaraokeProcessThread(
                         )
                     }
                     log = args.joinToString(" ") + "\n\n" + log
+                    // Выход контейнера (docker) — в описание шага: без него оператор видит
+                    // «шаг прошёл», хотя контейнер молча проглотил сбой (demucs при занятом
+                    // GPU печатает torch.cuda.OutOfMemoryError и выходит с кодом 0).
+                    if (args.firstOrNull() == "docker") {
+                        kp.description = KaraokeProcessWorker.appendOutputTail(kp.description, outputTail(log))
+                    }
                     val logFileName =
                         "$PATH_TO_LOGS/[${Timestamp.from(
                             Instant.now(),
@@ -604,6 +614,22 @@ class KaraokeProcessWorker {
          * слишком много шума в логе).
          */
         val argsIgnoredToLog = listOf("ln", "rm", "chmod", "mkdir", "cp", "mv")
+
+        /**
+         * Дописывает хвост вывода внешней команды в описание задания.
+         * Нужно для шагов `docker`: контейнер может завершиться с кодом 0, не создав
+         * результат (demucs + CUDA OOM), и без вывода контейнера это не видно.
+         */
+        fun appendOutputTail(
+            description: String?,
+            tail: String,
+        ): String {
+            if (tail.isBlank()) return description ?: ""
+            val base = description ?: ""
+            val marker = " [вывод]:"
+            val clean = base.substringBefore(marker).trimEnd()
+            return "$clean$marker\n$tail"
+        }
 
         /**
          * Размер чанка SELECT LOCAL в sync-цикле `doStart()` (push LOCAL→SERVER).

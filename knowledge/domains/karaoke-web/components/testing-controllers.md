@@ -94,6 +94,38 @@ Mockito.`when`(resolver.resolve(request)).thenReturn(editor)
 
 **Source**: `PublicApiSongsCountTest` (KARAOKE-390) — на этом спотыкались прогоны 2026-11-03.
 
+## Правило 5. Тест, конструирующий модель karaoke-app, требует `setUpEnv()`
+
+Модели `karaoke-app` (`SiteUser`, `Subscription`) в конструкторе по умолчанию
+создают `Connection.local()` — то есть тянут `Constants.kt` с реальными
+настройками БД. Тест, который конструирует такую модель, обязан подготовить
+окружение **до** создания модели.
+
+**Действие** — скопировать рецепт из проекта, а не отлаживать с нуля:
+
+```kotlin
+companion object {
+    @JvmStatic
+    @BeforeAll
+    fun setUpEnv() {
+        KaraokeWebTestEnv.init()               // глобалы: WEB_WORK_ON_SERVER=false, DB_*="test" …
+        KSS_APP = Mockito.mock(KaraokeStorageService::class.java)
+        SAC_APP = Mockito.mock(StorageApiClient::class.java)
+    }
+}
+```
+
+`KaraokeWebTestEnv` — `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/services/KaraokeWebTestEnv.kt`,
+`init()` идемпотентен. Моки `KSS_APP`/`SAC_APP` обязательны: без них конструктор
+модели уходит в хранилище.
+
+**Failure**: `SiteUser()` падает с ошибкой подключения к БД, и тест чинят «добавлением
+@BeforeAll», но забывают про моки хранилища — падение переезжает на следующую
+статику.
+
+**Source**: `SubscriptionFulfillmentServiceTest`, `PkgS329BehaviorTest` — рабочие
+образцы в этом же модуле.
+
 ## Зависимости | Dependencies
 
 - JUnit 5 (`org.junit.jupiter`) и Mockito — как в остальных тестах модуля.

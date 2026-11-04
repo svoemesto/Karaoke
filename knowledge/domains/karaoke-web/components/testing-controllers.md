@@ -126,6 +126,29 @@ companion object {
 **Source**: `SubscriptionFulfillmentServiceTest`, `PkgS329BehaviorTest` — рабочие
 образцы в этом же модуле.
 
+## Правило 6. Стабить конкретным аргументом — и той же ссылкой, что уйдёт в контроллер
+
+В Kotlin параметры non-null, поэтому `Mockito.any()` вернёт `null` и уронит
+null-check параметра. Отсюда правило проекта: стабить **конкретным** значением.
+Но конкретный аргумент Mockito сопоставляет по `equals`, а `MockHttpServletRequest`
+`equals` не переопределяет — совпадение получается только по **той же ссылке**.
+
+**Действие**: создать объект запроса один раз и передать его и в стаб, и в вызов
+контроллера:
+
+```kotlin
+val request = MockHttpServletRequest()
+Mockito.doReturn(premiumSiteUser()).`when`(resolver.resolve(request))
+val response = controller.create(1L, 99L, request)   // тот же request
+```
+
+**Failure**: `UnfinishedStubbingException` при следующем взаимодействии с моком —
+стаб не сработал, потому что в стабе и в вызове контроллера оказались **разные**
+экземпляры запроса.
+
+**Source**: `PkgS329BehaviorTest` — тот же приём и объяснение в комментарии
+(«Аргументы — конкретные значения… а `any()` вернул бы null»).
+
 ## Зависимости | Dependencies
 
 - JUnit 5 (`org.junit.jupiter`) и Mockito — как в остальных тестах модуля.

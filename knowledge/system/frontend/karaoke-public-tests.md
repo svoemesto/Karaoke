@@ -58,6 +58,20 @@ TypeError: Cannot set property navigator of #<Object> which has only a getter
 `Object.defineProperty(globalThis, 'navigator', { value: …, configurable: true })`,
 либо не мокать его вовсе — проверять нужное поведение через параметры функции.
 
+### `release()` уходит через `navigator.sendBeacon`, если он есть
+
+`songShareLink.js` → `release()` сначала пробует `navigator.sendBeacon(...)` и
+**только при его отсутствии** уходит в `XMLHttpRequest`. Отсюда:
+
+- тест XHR/fetch-ветки обязан **убрать** `sendBeacon` из мока `navigator`;
+- тест sendBeacon-ветки обязан убедиться, что XHR/fetch **не вызывается**;
+- `navigator.sendBeacon` в Node отсутствует, поэтому ветка XHR достигается
+  естественно — но `navigator` при этом существует как глобал (см. выше), поэтому
+  подменять его нужно через `Object.defineProperty`.
+
+Признак неверной настройки: `lastRequest` пуст, а тест «проверяет payload»
+падает с `actual: null` — значит, тест ушёл не в ту ветку.
+
 ### Параллельность describe-блоков и общее состояние мока
 
 Встроенный раннер Node выполняет соседние `describe`-блоки **параллельно**, а

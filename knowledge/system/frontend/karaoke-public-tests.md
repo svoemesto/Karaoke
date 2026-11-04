@@ -42,6 +42,22 @@ CI-джобе**: регрессия (например, тихая поломка
 в прогон попадают и тесты composables, и регресс-тест экранирования админской
 копии `formatText`.
 
+### `globalThis.navigator` в Node 21+ только для чтения
+
+Node 21+ добавил Navigator API, поэтому `globalThis.navigator` — **геттер без
+сеттера**. В ES-модуле (строгий режим) присваивание падает:
+
+```
+TypeError: Cannot set property navigator of #<Object> which has only a getter
+```
+
+Модуль падает целиком, и все тесты в файле отмечаются как «test failed» — без
+указания на строку, где ошибка.
+
+**Что делать**: не подменять `navigator` присваиванием. Либо
+`Object.defineProperty(globalThis, 'navigator', { value: …, configurable: true })`,
+либо не мокать его вовсе — проверять нужное поведение через параметры функции.
+
 ### Параллельность describe-блоков и общее состояние мока
 
 Встроенный раннер Node выполняет соседние `describe`-блоки **параллельно**, а

@@ -20,10 +20,20 @@
 2. `grep -r '<keyword>' knowledge/` — минимум **3 попытки**.
 3. `domain.md` + **все** `components/*.md` — для каждого домена.
 4. **Все** `local-*.md` ADR из `knowledge/adr/`.
-5. Только после 1-4 — `codegraph_explore` / `grep` по `src/`.
+5. Только после 1-4 — поиск по коду. **Порядок инструментов**:
+   - `mcp__codegraph-karaoke__codegraph_explore` — исходник символа + связи в одном
+     вызове. Имя = `mcp__<serverName>__codegraph_explore`; в изолированной копии
+     `serverName` может быть другим (например `codegraph-eval`), поэтому ищи
+     инструмент по окончанию `codegraph_explore`.
+   - `mcp__codebase-memory-karaoke__search_graph` / `get_code_snippet` / `trace_path` —
+     граф знаний: кто вызывает, куда текут данные, что сломается.
+   - И только затем `grep` / `read` по `src/`.
 
 **Failure**: нет результатов → `spec.md` явно «Searched: ... → no relevant docs»;
 игнорирование → спека на `/speckit.clarify`.
+**Failure (поиск по коду)**: чтение файла в 1000+ строк подряд вместо запроса символа.
+Прецедент 2026-11-03: модель прочитала `Song.kt` (10 174 строки) 10 раз, не вызвав
+codegraph ни разу.
 
 **Прецедент**: spec #339 (2026-09-09) — агент изобрёл форму кеша вместо паттернов
 из `knowledge/domains/caching/components/caching-patterns.md`.

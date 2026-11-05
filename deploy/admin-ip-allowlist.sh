@@ -779,10 +779,43 @@ apply_change() {
   log_event "edit" "step=address_recheck" "ip=$(sanitize "${ip}")" "ok=true"
 
   # Шаг 1: временный файл на цели.
+  #
+  # ИНЦИДЕНТ 2026-11-05: scp вызывался БЕЗ ssh-опций (идентичность/known_hosts).
+  # Таймер работает под root, у root нет ключа по умолчанию → scp отваливался с
+  # «Permission denied (publickey)», шаг возвращал transfer_failed, и цикл завершался
+  # МОЛЧА: в журнале не было ни «applied», ни ошибки, а уведомление не уходило
+  # (нет токена Telegram). Итог: IP сменился — доступ к прод-БД остался закрытым,
+  # и механизм самовосстановления не сработал ни разу. Вручную механизм работал,
+  # потому что запускался от nsa (у него ключ по умолчанию есть).
+  #
+  # Теперь scp получает те же опции, что и ssh (идентичность, known_hosts,
+  # BatchMode, таймаут), а отказ пишется в журнал — как и остальные шаги.
   if [ "${mode}" = "remote" ]; then
-    scp -q "${new_file}" "${PROD_HOST}:${remote_tmp}" || { REASON="transfer_failed"; return 1; }
+    ensure_ssh_ready || true
+    ssh_build_opts
+    local scp_err scp_rc=0
+    scp_err="$(mktemp "${TMPDIR:-/tmp}/allowlist-scp-err.XXXXXX" 2>/dev/null || true)"
+    if [ -n "${scp_err}" ]; then
+      scp -q "${SSH_EFFECTIVE_OPTS[@]}" "${new_file}" "${PROD_HOST}:${remote_tmp}" 2>"${scp_err}" || scp_rc=$?
+    else
+      scp -q "${SSH_EFFECTIVE_OPTS[@]}" "${new_file}" "${PROD_HOST}:${remote_tmp}" || scp_rc=$?
+    fi
+    if [ "${scp_rc}" -ne 0 ]; then
+      local scp_detail=""
+      [ -n "${scp_err}" ] && scp_detail="$(tail -n 1 "${scp_err}" 2>/dev/null)"
+      rm -f "${scp_err}"
+      log_event "edit" "step=transfer" "ok=false" "reason=transfer_failed" "rc=${scp_rc}" "detail=$(sanitize "${scp_detail}")"
+      REASON="transfer_failed"
+      return 1
+    fi
+    rm -f "${scp_err}"
+    log_event "edit" "step=transfer" "ok=true"
   else
-    cp -f "${new_file}" "${remote_tmp}" || { REASON="transfer_failed"; return 1; }
+    cp -f "${new_file}" "${remote_tmp}" || {
+      log_event "edit" "step=transfer" "ok=false" "reason=transfer_failed"
+      REASON="transfer_failed"
+      return 1
+    }
   fi
 
   # Шаг 2: синтаксис временного файла тем же nginx. Для НЕ-главного конфига
@@ -1972,6 +2005,25 @@ SITE
     fi
   else
     echo "   FAIL: универсальная подготовка site-конфига не прошла"; failed=1
+  fi
+
+  echo "== Сценарий 17: scp передаёт временный файл с теми же ssh-опциями (KARAOKE-392)"
+  # Регрессия 2026-11-05: scp вызывался БЕЗ опций (идентичность/known_hosts).
+  # Таймер работает под root, у root нет ключа по умолчанию → scp отваливался,
+  # шаг возвращал transfer_failed МОЛЧА (в журнале не было ни ошибки, ни
+  # «applied»), механизм самовосстановления не сработал ни разу, а IP сменился —
+  # доступ к прод-БД остался закрытым.
+  local self_src="${BASH_SOURCE[0]}" scp_line
+  scp_line="$(grep -E '^[[:space:]]*scp -q' "${self_src}" | head -1)"
+  if printf '%s' "${scp_line}" | grep -q 'SSH_EFFECTIVE_OPTS'; then
+    echo "   OK: scp использует SSH_EFFECTIVE_OPTS (идентичность, known_hosts)"
+  else
+    echo "   FAIL: scp вызывается без ssh-опций — под root передача файла не пройдёт"; failed=1
+  fi
+  if grep -q 'step=transfer' "${self_src}"; then
+    echo "   OK: отказ передачи пишется в журнал (шаг transfer)"
+  else
+    echo "   FAIL: отказ передачи не попадает в журнал"; failed=1
   fi
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"

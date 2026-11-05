@@ -42,6 +42,25 @@ CI-джобе**: регрессия (например, тихая поломка
 в прогон попадают и тесты composables, и регресс-тест экранирования админской
 копии `formatText`.
 
+### Сторы Vuex под `node --test` не импортируются — только разбор исходника
+
+`store.js` в админском SPA импортирует модули **без расширения**
+(`import { promisedXMLHttpRequest } from '../../lib/utils'`). Это конвенция
+сборщика: Vite/webpack дописывают расширение, а Node ESM — нет:
+
+```
+Error: Cannot find module '.../src/lib/utils' imported from .../store.js
+```
+
+Поэтому тесты стор в проекте написаны **разбором исходника**:
+`readFileSync(new URL(relative, import.meta.url), 'utf-8')` + утверждения по
+тексту. Образец — `webvue3/src/components/__tests__/pkg-s3-33-admin.test.js`.
+
+**Ловушка**: если тест глушит ошибку импорта
+(`try { await import('../store.js') } catch { return null }`), то настоящая причина
+теряется, и падение выглядит как «Cannot read properties of null (reading
+'state')». Ошибку импорта не глушить — её видно сразу.
+
 ### `globalThis.navigator` в Node 21+ только для чтения
 
 Node 21+ добавил Navigator API, поэтому `globalThis.navigator` — **геттер без

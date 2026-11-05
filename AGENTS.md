@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 3.10.1 | **Last updated**: 2026-11-01 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
+> **Версия**: 3.11.0 | **Last updated**: 2026-11-04 (Plane: рабочий трекер — Plane, OpenProject — локальный архив для ручных задач).
 >
 > Compact TOP-style (296 → 200 строк). Каждое правило в формате Rule/Failure/Source.
 > Karaoke-override #1: AGENTS.md ≠ CLAUDE.md (см. `knowledge/README.md#Karaoke-overrides`).
@@ -20,10 +20,22 @@
 2. `grep -r '<keyword>' knowledge/` — минимум **3 попытки**.
 3. `domain.md` + **все** `components/*.md` — для каждого домена.
 4. **Все** `local-*.md` ADR из `knowledge/adr/`.
-5. Только после 1-4 — `codegraph_explore` / `grep` по `src/`.
+5. `knowledge/system/agent-mechanics.md` — **правила работы агента в этом
+   репозитории** (запреты, порядок работ, требования к проверке и отчёту).
+6. Только после 1-5 — поиск по коду. **Порядок инструментов**:
+   - `mcp__codegraph-karaoke__codegraph_explore` — исходник символа + связи в одном
+     вызове. Имя = `mcp__<serverName>__codegraph_explore`; в изолированной копии
+     `serverName` может быть другим (например `codegraph-eval`), поэтому ищи
+     инструмент по окончанию `codegraph_explore`.
+   - `mcp__codebase-memory-karaoke__search_graph` / `get_code_snippet` / `trace_path` —
+     граф знаний: кто вызывает, куда текут данные, что сломается.
+   - И только затем `grep` / `read` по `src/`.
 
 **Failure**: нет результатов → `spec.md` явно «Searched: ... → no relevant docs»;
 игнорирование → спека на `/speckit.clarify`.
+**Failure (поиск по коду)**: чтение файла в 1000+ строк подряд вместо запроса символа.
+Прецедент 2026-11-03: модель прочитала `Song.kt` (10 174 строки) 10 раз, не вызвав
+codegraph ни разу.
 
 **Прецедент**: spec #339 (2026-09-09) — агент изобрёл форму кеша вместо паттернов
 из `knowledge/domains/caching/components/caching-patterns.md`.
@@ -364,6 +376,15 @@ cd deploy && bash do.sh build_public && cd ..
 
 ## Changelog
 
+- **3.11.0** (2026-11-04, гайд по механике агента): в Tier-1 «Knowledge-first
+  pre-flight» добавлен шаг 5 — обязательное чтение `knowledge/system/agent-mechanics.md`
+  (правила работы агента в этом репозитории: запреты, порядок «правка → проверка →
+  коммит», требования к тесту и отчёту). Шаг 6 (поиск по коду) уточнён: порядок
+  инструментов — `mcp__<serverName>__codegraph_explore` → codebase-memory →
+  `grep`/`read`, с указанием точного имени инструмента. Основание: прогоны
+  локальных моделей 2026-11-03…04 (KARAOKE-390…404) — 20+ прогонов, в которых
+  модели искали по коду мимо codegraph и нарушали порядок работ. Изменение
+  аддитивное: Tier-2 не тронут.
 - **3.10.1** (2026-11-01, KARAOKE-379, обновление платформы): в Tier-1 «Hard Gate —
   Git — CI-gate для master» исправлено устаревшее утверждение «Forgejo не умеет
   статус `skipped`»: с 2026-11-01 (платформа обновлена до Forgejo 17) состояние

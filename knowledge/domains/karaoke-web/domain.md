@@ -226,6 +226,7 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
 - [internal-controllers](components/internal-controllers.md) — детальный обзор 6 non-Public контроллеров (admin/internal/debug).
 - [internal-stem-job-controller](components/internal-stem-job-controller.md) — `InternalStemJobController` — server-to-server для StemJob processing.
 - [main-controller](components/main-controller.md) — `MainController` — Thymeleaf-страницы + internal endpoints.
+- [testing-controllers](components/testing-controllers.md) — правила написания юнит-тестов на контроллеры karaoke-web.
 - [public-controllers-2](components/public-controllers-2.md) — детальный обзор 5 critical public controllers.
 - [public-controllers-3](components/public-controllers-3.md) — `PublicApiController` — главный public API контроллер.
 - [public-api-contracts](components/public-api-contracts.md) — контракты публичного API: видимость SKIP, публичные тарифы.

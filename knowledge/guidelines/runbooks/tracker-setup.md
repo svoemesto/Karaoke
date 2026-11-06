@@ -383,3 +383,6 @@ OpenProject (`openproject/community:13` + `openproject-db` на `nsa-i9`)
   как пользоваться таблицей соответствия.
 - При ручных запросах сверяться с API Plane v1: `https://tracker.sm-karaoke.ru/api/v1/`,
   заголовок `X-API-Key`.
+- Передать такую же связку другому проекту — пошаговая инструкция
+  [`knowledge/guidelines/runbooks/tracker-setup-for-other-project.md`](tracker-setup-for-other-project.md)
+  (Plane, CLI, workflow, wayfinder; все рецепты проверены на живом Plane).

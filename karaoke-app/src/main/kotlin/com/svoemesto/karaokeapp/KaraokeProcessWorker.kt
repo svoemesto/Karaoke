@@ -723,6 +723,50 @@ class KaraokeProcessWorker {
         private const val MAX_START_ATTEMPTS = 5
         private val START_RETRY_BACKOFF_MS = longArrayOf(2_000, 5_000, 15_000, 30_000, 60_000)
 
+        // specs/730-queue-resilience (FR-010/FR-011): после исчерпания MAX_START_ATTEMPTS
+        // очередь НЕ остаётся остановленной — попытки продолжаются с паузой не длиннее
+        // MAX_RETRY_PAUSE_MS (5 минут), чтобы очередь возвращалась в работу сама.
+        // Раньше здесь очередь оставалась мёртвой до ручного нажатия «Старт».
+        private const val MAX_RETRY_PAUSE_MS = 300_000L
+
+        // specs/730-queue-resilience (FR-010): счётчик попыток считает СЕРИЮ падений, а не все
+        // падения за время жизни контейнера. Если очередь отработала без падений дольше
+        // HEALTHY_RUN_MS — очередь была жива, и текущее падение начинает новую серию.
+        // Без этого пять разовых сбоев за несколько дней выключали очередь навсегда.
+        private const val HEALTHY_RUN_MS = 300_000L
+
+        /**
+         * Правила восстановления очереди после падения главного цикла
+         * (specs/730-queue-resilience).
+         *
+         * @param ranMs сколько миллисекунд очередь работала до падения
+         * @return `true`, если падение начинает новую серию (очередь до этого была жива)
+         */
+        internal fun isNewIncident(
+            ranMs: Long,
+        ): Boolean = ranMs > HEALTHY_RUN_MS
+
+        /**
+         * @param attempt номер попытки восстановления
+         * @return `true`, если попытки исчерпаны и очередь переходит в самоподъём
+         */
+        internal fun attemptsExhausted(
+            attempt: Int,
+        ): Boolean = attempt >= MAX_START_ATTEMPTS
+
+        /**
+         * @param attempt номер попытки восстановления
+         * @return пауза до следующей попытки (мс), не длиннее [MAX_RETRY_PAUSE_MS]
+         */
+        internal fun retryPauseMs(
+            attempt: Int,
+        ): Long =
+            if (attemptsExhausted(attempt)) {
+                MAX_RETRY_PAUSE_MS
+            } else {
+                START_RETRY_BACKOFF_MS[(attempt - 1).coerceAtMost(START_RETRY_BACKOFF_MS.lastIndex)]
+            }
+
         /**
          * Запустить воркер (если ещё не запущен).
          *
@@ -838,11 +882,21 @@ class KaraokeProcessWorker {
             ) {
                 try {
                     var attempt = 0
+                    var degradedNotified = false
                     while (true) {
+                        val startedAtMs = System.currentTimeMillis()
                         try {
                             doStart(database = database, storageService = storageService, storageApiClient = storageApiClient)
                             break
                         } catch (e: Exception) {
+                            // specs/730-queue-resilience (FR-010): падение после длительной
+                            // нормальной работы — это НОВЫЙ инцидент, а не продолжение серии:
+                            // счётчик попыток сбрасываем (иначе пять разовых сбоев за несколько
+                            // дней выключали очередь навсегда).
+                            if (isNewIncident(System.currentTimeMillis() - startedAtMs)) {
+                                attempt = 0
+                                degradedNotified = false
+                            }
                             attempt++
                             println(
                                 "[${Timestamp.from(
@@ -857,18 +911,49 @@ class KaraokeProcessWorker {
                                 fields = mapOf("operation" to "start"),
                                 error = e,
                             )
-                            if (attempt >= MAX_START_ATTEMPTS || !isWork) {
+                            if (!isWork) {
                                 println(
                                     "[${Timestamp.from(Instant.now())}] ProcessWorker: " +
-                                        if (!isWork) {
-                                            "очередь остановлена извне во время повторных попыток - retry прекращён"
-                                        } else {
-                                            "попытки восстановления ($MAX_START_ATTEMPTS) исчерпаны, очередь остановлена"
-                                        },
+                                        "очередь остановлена извне во время повторных попыток - retry прекращён",
                                 )
                                 break
                             }
-                            val pauseMs = START_RETRY_BACKOFF_MS[(attempt - 1).coerceAtMost(START_RETRY_BACKOFF_MS.lastIndex)]
+                            if (attemptsExhausted(attempt)) {
+                                // specs/730-queue-resilience (FR-010/FR-011/FR-012): не сдаёмся —
+                                // очередь продолжает подниматься сама (пауза ограничена 5 минутами),
+                                // владельцу уходит уведомление.
+                                if (!degradedNotified) {
+                                    degradedNotified = true
+                                    println(
+                                        "[${Timestamp.from(
+                                            Instant.now(),
+                                        )}] ProcessWorker: попытки восстановления ($MAX_START_ATTEMPTS) " +
+                                            "исчерпаны, очередь продолжает подниматься сама " +
+                                            "(пауза ${MAX_RETRY_PAUSE_MS / 1000}с)",
+                                    )
+                                    val degradedFields =
+                                        mapOf(
+                                            "attempts" to attempt.toString(),
+                                            "pauseMs" to MAX_RETRY_PAUSE_MS.toString(),
+                                        )
+                                    AppLog.error(
+                                        category = CATEGORY,
+                                        code = "WORKER-003",
+                                        event = "worker.degraded",
+                                        fields = degradedFields,
+                                        error = e,
+                                    )
+                                    notifyOwner(
+                                        "Очередь заданий упала",
+                                        "Главный цикл очереди падает $attempt раз подряд. Последняя ошибка: " +
+                                            "${e.message}. Очередь продолжает подниматься сама — вмешательство " +
+                                            "не требуется, но проверьте соединение с БД и доступ к Яндекс.Музыке.",
+                                    )
+                                }
+                                Thread.sleep(retryPauseMs(attempt))
+                                continue
+                            }
+                            val pauseMs = retryPauseMs(attempt)
                             println(
                                 "[${Timestamp.from(Instant.now())}] ProcessWorker: пробуем возобновить через ${pauseMs}мс",
                             )
@@ -938,6 +1023,38 @@ class KaraokeProcessWorker {
                 SNS.send(messageProcessWorkerState)
             } catch (e: Exception) {
                 println(e.message)
+            }
+        }
+
+        /**
+         * Отправляет владельцу SSE-уведомление (канал ошибок).
+         *
+         * specs/730-queue-resilience (FR-012): владелец должен узнать, что
+         * очередь упала и поднимается сама, — иначе «очередь стоит» обнаруживается
+         * только по факту (релиз не идёт).
+         *
+         * Безопасно вызывать из потока воркера: ошибка отправки не должна
+         * прерывать восстановление очереди.
+         *
+         * @param head заголовок уведомления
+         * @param body текст уведомления
+         */
+        private fun notifyOwner(
+            head: String,
+            body: String,
+        ) {
+            try {
+                SNS.send(
+                    SseNotification.error(
+                        Message(
+                            type = "error",
+                            head = head,
+                            body = body,
+                        ),
+                    ),
+                )
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] ProcessWorker: не удалось отправить уведомление: ${e.message}")
             }
         }
 

@@ -4005,10 +4005,29 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
      0 - поиск успешен, но новых альбомов нет
      1 - поиск успешен, найден новый альбом
      */
-    val author = getAuthorForRequest() ?: return Triple("", "", -2)
+    // specs/730-queue-resilience (FR-001/FR-002): сбой внешнего сервиса
+    // (таймаут Playwright на music.yandex.ru, обрыв сети) не должен пробрасываться
+    // наружу — иначе исключение прерывает главный цикл очереди и вся очередь
+    // встаёт. Сбой считаем «ошибкой поиска» (-1): существующий обработчик
+    // увеличит интервал до следующей проверки (backoff, FR-003).
+    val author =
+        try {
+            getAuthorForRequest()
+        } catch (e: Exception) {
+            logAlbumCheckFailure(e, "")
+            return Triple("", "", -1)
+        }
+    if (author == null) {
+        return Triple("", "", -2)
+    }
     val authorForRequest = author.author
 
-    return when (val searchResult = searchLastAlbumYm3(author.ymId)) {
+    val searchResult =
+        guardedAlbumCheck({ e -> logAlbumCheckFailure(e, authorForRequest) }) {
+            searchLastAlbumYm3(author.ymId)
+        } ?: return Triple(authorForRequest, "", -1)
+
+    return when (searchResult) {
         is AlbumSearchResult.VpnBlocked -> {
             println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН. Отключите ВПН.")
             Triple(authorForRequest, "", -3)
@@ -4061,6 +4080,56 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
             }
         }
     }
+}
+
+/**
+ * Выполнить проверку, не позволяя исключению внешнего сервиса выйти наружу.
+ *
+ * specs/730-queue-resilience (FR-001): таймаут Playwright на music.yandex.ru или
+ * обрыв сети прерывали главный цикл очереди — вся очередь вставала. Вызывающий
+ * код получает `null` вместо исключения и продолжает работу.
+ *
+ * @param onFailure обработчик сбоя (пишет структурированную запись в журнал)
+ * @param block проверка, которая может упасть
+ * @return результат проверки или `null`, если она упала
+ */
+internal fun <T> guardedAlbumCheck(
+    onFailure: (Exception) -> Unit,
+    block: () -> T,
+): T? =
+    try {
+        block()
+    } catch (e: Exception) {
+        onFailure(e)
+        null
+    }
+
+/**
+ * Единая запись о сбое периодической проверки нового альбома.
+ *
+ * specs/730-queue-resilience (FR-002): сбой внешнего сервиса — это событие
+ * проверки, а не падение очереди. В журнал пишется отдельная структурированная
+ * запись с кодом `YM-CHECK-001`, а не `WORKER-001` (падение главного цикла).
+ *
+ * @param error исключение, пришедшее из внешнего сервиса
+ * @param author автор, для которого выполнялась проверка (пусто — если автора не удалось получить)
+ */
+private fun logAlbumCheckFailure(
+    error: Exception,
+    author: String,
+) {
+    val subject = if (author.isEmpty()) "" else " для автора «$author»"
+    println(
+        "[${java.time.Instant.now()}] Проверка нового альбома$subject не удалась из-за сбоя внешнего " +
+            "сервиса: ${error.message}. Очередь продолжает работу.",
+    )
+    AppLog.error(
+        category = "com.svoemesto.karaokeapp.Utils",
+        code = "YM-CHECK-001",
+        event = "album.check.failed",
+        fields = mapOf("author" to author, "impact" to "queue_continues"),
+        error = error,
+    )
 }
 
 fun setProcessPriority(

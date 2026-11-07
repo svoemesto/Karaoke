@@ -579,6 +579,14 @@ PY
 SSH_ATTEMPTS="${ALLOWLIST_SSH_ATTEMPTS:-3}"
 SSH_RETRY_PAUSE="${ALLOWLIST_SSH_RETRY_PAUSE:-5}"
 
+# specs/730-queue-resilience (FR-020/FR-021): скачивание файла конфигурации с
+# прод-хоста повторяется целиком: обрыв передачи (пустой или обрезанный файл)
+# — это сетевой сбой, а не «структура конфигурации не совпала». Раньше такой файл
+# доходил до разбора и давал ложную причину config_mismatch, механизм молча
+# сдавался, правка allow-list не выполнялась.
+CONF_DOWNLOAD_ATTEMPTS="${ALLOWLIST_CONF_DOWNLOAD_ATTEMPTS:-2}"
+CONF_DOWNLOAD_RETRY_PAUSE="${ALLOWLIST_CONF_DOWNLOAD_RETRY_PAUSE:-5}"
+
 # run_ssh <команда> — выполнить команду на прод-хосте с повторами при сбое.
 # Повтор безопасен: чтение конфига идемпотентно, а правка allow-list сводится
 # к одной и той же строке `allow <ip>;`.
@@ -620,6 +628,46 @@ run_ssh() {
   done
   [ -n "${errfile}" ] && rm -f "${errfile}"
   return "${rc}"
+}
+
+# Скачать файл конфигурации с прод-хоста и убедиться, что он получен ЦЕЛИКОМ.
+#
+# specs/730-queue-resilience (FR-020/FR-021): различение «файл не получен»
+# (сетевой сбой) и «структура не совпала» (реальное несовпадение). Проверка
+# целостности: размер полученного файла сравнивается с размером на проде
+# (wc -c) — расхождение означает обрыв передачи.
+#
+# Причина отказа пишется в SSH_LAST_ERROR, чтобы вызывающий код записал её в
+# журнал отдельной причиной (download_failed), а не config_mismatch.
+download_prod_conf() {
+  local remote_path="$1" local_file="$2" attempt=1 rc=0
+  local local_bytes="" remote_bytes=""
+  while [ "${attempt}" -le "${CONF_DOWNLOAD_ATTEMPTS}" ]; do
+    : >"${local_file}"
+    run_ssh "cat '${remote_path}'" >"${local_file}" 2>/dev/null
+    rc=$?
+    if [ "${rc}" -eq 0 ]; then
+      local_bytes="$(wc -c <"${local_file}" 2>/dev/null | tr -d ' \r\n')"
+      case "${local_bytes}" in
+        '' | *[!0-9]*) local_bytes="0" ;;
+      esac
+      if [ "${local_bytes}" -gt 0 ] 2>/dev/null; then
+        remote_bytes="$(run_ssh "wc -c < '${remote_path}'" 2>/dev/null | tr -d ' \r\n')"
+        case "${remote_bytes}" in
+          '' | *[!0-9]*) remote_bytes="" ;;
+        esac
+        if [ -z "${remote_bytes}" ] || [ "${remote_bytes}" = "${local_bytes}" ]; then
+          return 0
+        fi
+        SSH_LAST_ERROR="truncated: got=${local_bytes} expected=${remote_bytes}"
+      else
+        SSH_LAST_ERROR="empty_response"
+      fi
+    fi
+    attempt=$((attempt + 1))
+    [ "${attempt}" -le "${CONF_DOWNLOAD_ATTEMPTS}" ] && sleep "${CONF_DOWNLOAD_RETRY_PAUSE}"
+  done
+  return 1
 }
 
 # run_target local|remote <команда> — выполнить команду на цели.
@@ -1221,10 +1269,10 @@ run_cycle() {
   local conf_files=() conf_temps=() conf_path conf_temp idx need_change=0
   for conf_path in ${PROD_CONF_FILES}; do
     conf_temp="$(mktemp "${TMPDIR:-/tmp}/allowlist-conf.XXXXXX")"
-    if ! run_ssh "cat '${conf_path}'" >"${conf_temp}" 2>/dev/null; then
+    if ! download_prod_conf "${conf_path}" "${conf_temp}"; then
       rm -f "${conf_temps[@]}" "${conf_temp}"
-      log_event "skip" "reason=prod_unreachable_by_ssh" "detail=${SSH_LAST_ERROR}" "file=$(sanitize "${conf_path}")"
-      send_telegram "Karaoke allow-list: прод-хост недоступен по SSH (${SSH_LAST_ERROR}) — правка не применялась, состояние не менялось. Проверьте ALLOWLIST_SSH_IDENTITY_FILE/ALLOWLIST_SSH_KNOWN_HOSTS и доступ по ssh с учётной записью сервиса." || true
+      log_event "skip" "reason=download_failed" "detail=${SSH_LAST_ERROR}" "file=$(sanitize "${conf_path}")"
+      send_telegram "Karaoke allow-list: файл конфигурации прод-хоста не получен (${SSH_LAST_ERROR}) — правка не применялась, состояние не менялось. Причина сетевая (обрыв передачи), а не несовпадение структуры: правка повторится на следующем цикле." || true
       return "${EXIT_FAIL}"
     fi
     conf_files+=("${conf_path}")
@@ -2025,6 +2073,50 @@ SITE
   else
     echo "   FAIL: отказ передачи не попадает в журнал"; failed=1
   fi
+
+  echo "== Сценарий 18: оборванный файл с прода — download_failed, а не config_mismatch (спека 730)"
+  # Регрессия 2026-11-07: оборванный (или пустой) файл с прод-хоста доходил до
+  # разбора и давал ложную причину config_mismatch («структура не совпала»):
+  # механизм молча сдавался, правка allow-list не выполнялась, владелец получал
+  # неверную причину. Теперь неполный файл — сетевой сбой (download_failed) с
+  # повтором скачивания, а несовпадение структуры остаётся config_mismatch.
+  local dl_remote="${workdir}/remote.conf" dl_local="${workdir}/downloaded.conf"
+  printf 'server {\n  listen 80;\n  deny all;\n}\n' >"${dl_remote}"
+  local dl_saved_run_ssh="$(declare -f run_ssh)" dl_saved_pause="${CONF_DOWNLOAD_RETRY_PAUSE}"
+  CONF_DOWNLOAD_RETRY_PAUSE=0
+  # Заглушка SSH: отдаём только начало файла (обрыв передачи).
+  run_ssh() {
+    case "$1" in
+      cat*) head -c 10 "${dl_remote}" ;;
+      *) wc -c <"${dl_remote}" | tr -d ' ' ;;
+    esac
+    return 0
+  }
+  if download_prod_conf "/etc/nginx/remote.conf" "${dl_local}"; then
+    echo "   FAIL: оборванный файл принят как целый"; failed=1
+  else
+    echo "   OK: оборванный файл отклонён (причина: ${SSH_LAST_ERROR})"
+  fi
+  if grep -q 'reason=download_failed' "${BASH_SOURCE[0]}" && grep -q 'download_prod_conf' "${BASH_SOURCE[0]}"; then
+    echo "   OK: сетевой сбой отделён от config_mismatch (download_failed)"
+  else
+    echo "   FAIL: причина download_failed не используется в цикле"; failed=1
+  fi
+  # Целый файл принимается и сохраняется без изменений.
+  run_ssh() {
+    case "$1" in
+      cat*) cat "${dl_remote}" ;;
+      *) wc -c <"${dl_remote}" | tr -d ' ' ;;
+    esac
+    return 0
+  }
+  if download_prod_conf "/etc/nginx/remote.conf" "${dl_local}" && cmp -s "${dl_remote}" "${dl_local}"; then
+    echo "   OK: целый файл принят и совпадает с оригиналом"
+  else
+    echo "   FAIL: целый файл отклонён"; failed=1
+  fi
+  eval "${dl_saved_run_ssh}"
+  CONF_DOWNLOAD_RETRY_PAUSE="${dl_saved_pause}"
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"
   if [ "${failed}" = 0 ]; then

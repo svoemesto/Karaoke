@@ -94,6 +94,26 @@
 - `knowledge/product/features/admin-ip-allowlist.md` — ловушка «оборванный файл
   с прода».
 
+## Выкат в прод (2026-11-07)
+
+- PR #76 смержен в `master` (`c8d061d1`), агрегат CI `ci-summary` — зелёный.
+- Образ `sm-karaoke.ru:5443/karaoke/karaoke-app:1` пересобран (`0aba883ae9f8`);
+  в собранном jar проверены маркеры нового кода (`guardedAlbumCheck`,
+  `WORKER-003`, `worker.degraded`).
+- Очередь остановлена **до** пересоздания контейнера (Pass 380): `isworking=false`,
+  активных заданий (`WORKING`/`CREATING`/`WAITING`) — 0. Контейнер пересоздан
+  через `deploy/do.sh start_app`, очередь включена обратно (`isworking=true`).
+- После старта в логах: `KaraokeProcess: нормализовано строк кортежей: 0`,
+  `ProcessWorker: Стартуем`; ни `WORKER-001`, ни `YM-CHECK-001`, ни
+  `worker.degraded` нет.
+- `deploy/admin-ip-allowlist.sh` обновлён на пути systemd-юнита
+  (`/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh`); `--self-test` — все 18
+  сценариев; цикл таймера после обновления отработал успешно
+  (`Result=success`, решение `all_ok`).
+- Побочно: первая сборка образа упала на `timeout awaiting response headers` к
+  `sm-karaoke.ru:5443` (тот же класс сетевого сбоя, что и в инциденте) —
+  базовые образы подтянуты отдельно, повторная сборка прошла успешно.
+
 ## Что осталось на владельца
 
 - `ALLOWLIST_TELEGRAM_BOT_TOKEN` / `ALLOWLIST_NOTIFY_CHAT_ID` не заданы —

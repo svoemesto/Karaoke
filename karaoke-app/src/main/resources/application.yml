@@ -152,3 +152,7 @@ lyrics-search:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n%causeChain%nopex"
+    # Тот же формат для файлового appender'а (logback base.xml пишет ещё и в
+    # ${LOG_FILE}): иначе в файле остались бы полные стектрейсы (%wEx из
+    # шаблона по умолчанию), хотя в консоли их уже нет.
+    file: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n%causeChain%nopex"

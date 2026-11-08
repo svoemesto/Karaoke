@@ -1,15 +1,22 @@
 package com.svoemesto.karaokeapp.logging
 
 import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.PatternLayout
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
+import ch.qos.logback.core.OutputStreamAppender
 import ch.qos.logback.core.read.ListAppender
+import ch.qos.logback.core.status.Status
 import java.net.URL
+import java.nio.file.Files
 import javax.xml.parsers.DocumentBuilderFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.boot.logging.LoggingInitializationContext
@@ -111,6 +118,88 @@ class CauseChainConverterTest {
         assertFalse(formatted.contains("at java."), "в логе не должно быть кадров: $formatted")
         assertTrue(formatted.contains("IOException: обрыв связи"), formatted)
         assertTrue(formatted.contains("IllegalStateException: нижняя причина"), formatted)
+    }
+
+    @Test
+    fun `реальный конфиг вешает CONSOLE на root и печатает исключение без кадров`() {
+        // Регресс, пойманный на проде 2026-11-08: в logback-spring.xml был подключён
+        // console-appender.xml БЕЗ <root> с appender-ref. Logback тогда писал
+        // «Appender named [CONSOLE] not referenced» и «No appenders present in
+        // context [default]» — то есть ВСЕ сообщения logback (включая ошибки
+        // приложения) пропадали из консоли. Проверяем РЕАЛЬНЫЙ файл конфигурации.
+        val xml: URL = checkNotNull(javaClass.getResource("/logback-spring.xml")) { "logback-spring.xml не найден" }
+        val previousPattern = System.getProperty("CONSOLE_LOG_PATTERN")
+        val previousLogFile = System.getProperty("LOG_FILE")
+        val logFile = Files.createTempFile("karaoke-logback", ".log")
+        System.setProperty("CONSOLE_LOG_PATTERN", "%msg%n%causeChain%nopex")
+        System.setProperty("LOG_FILE", logFile.toAbsolutePath().toString())
+        try {
+            val context = LoggerContext()
+            val configurator = JoranConfigurator()
+            configurator.context = context
+            configurator.doConfigure(xml)
+
+            val root = context.getLogger(Logger.ROOT_LOGGER_NAME)
+            val console = root.getAppender("CONSOLE")
+            assertNotNull(console, "у root нет appender CONSOLE — сообщения logback не попадут в консоль")
+
+            val warnings = context.statusManager.copyOfStatusList.filter { it.level >= Status.WARN }
+            val warningMessages = warnings.map { it.message }
+            assertTrue(
+                warningMessages.none { message -> message.contains("not referenced") || message.contains("No appenders present") },
+                "logback предупреждает о потере appender: $warningMessages",
+            )
+
+            val encoder = (console as OutputStreamAppender<ILoggingEvent>).encoder
+            assertTrue(encoder is PatternLayoutEncoder, "неожиданный encoder: $encoder")
+            val pattern = (encoder as PatternLayoutEncoder).pattern
+            assertTrue(pattern.contains("%causeChain"), "в шаблоне нет однострочной цепочки причин: $pattern")
+            assertTrue(pattern.contains("%nopex"), "в шаблоне нет %nopex (иначе logback допишет стек): $pattern")
+
+            // Сквозная проверка по РЕАЛЬНОМУ шаблону конфигурации.
+            val listAppender = ListAppender<ILoggingEvent>()
+            listAppender.start()
+            root.addAppender(listAppender)
+            context
+                .getLogger("test-console")
+                .error(
+                    "что-то сломалось",
+                    java.io.IOException("обрыв связи", IllegalStateException("нижняя причина")),
+                )
+            val layout = PatternLayout()
+            layout.context = context
+            layout.pattern = pattern
+            layout.start()
+            val formatted = layout.doLayout(listAppender.list.last())
+            assertFalse(formatted.contains("at java."), "в логе не должно быть кадров: $formatted")
+            assertFalse(formatted.contains("at com.svoemesto"), "в логе не должно быть кадров: $formatted")
+            assertTrue(formatted.contains("IOException: обрыв связи"), formatted)
+            assertTrue(formatted.contains("IllegalStateException: нижняя причина"), formatted)
+        } finally {
+            if (previousPattern == null) {
+                System.clearProperty("CONSOLE_LOG_PATTERN")
+            } else {
+                System.setProperty("CONSOLE_LOG_PATTERN", previousPattern)
+            }
+            if (previousLogFile == null) {
+                System.clearProperty("LOG_FILE")
+            } else {
+                System.setProperty("LOG_FILE", previousLogFile)
+            }
+            Files.deleteIfExists(logFile)
+        }
+    }
+
+    @Test
+    fun `шаблоны логирования заканчиваются однострочной цепочкой причин`() {
+        // Шаблон из application.yml — то, что реально применяет Spring Boot.
+        // %nopex обязателен: без него logback дописывает полный стек после цепочки.
+        val yaml: URL = checkNotNull(javaClass.getResource("/application.yml")) { "application.yml не найден" }
+        val text = yaml.readText()
+        val console = text.lineSequence().first { it.trimStart().startsWith("console: \"") }
+        val file = text.lineSequence().first { it.trimStart().startsWith("file: \"") }
+        assertTrue(console.contains("%causeChain%nopex"), console)
+        assertTrue(file.contains("%causeChain%nopex"), file)
     }
 
     @Test

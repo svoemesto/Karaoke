@@ -7,6 +7,7 @@
 #   external-not-api — путь внешнего сервиса (fourget/OpenProject), не наш API
 #   host-path        — путь на хосте вне репозитория (/sm-karaoke/...) или общее имя файла-артефакта
 #   generated        — артефакт генератора (.gitignore)
+#   dependency-resource — ресурс внутри внешней зависимости (Spring Boot jar), не файл репозитория
 archive/docs/features/llm-lyrics-search.md	endpoint	/api/v1/images	external-not-api
 archive/docs/features/llm-lyrics-search.md	endpoint	/api/v1/web	external-not-api
 knowledge/adr/0008-tracker-openproject-migration.md	endpoint	/api/v3/statuses	external-not-api
@@ -69,3 +70,7 @@ archive/docs/features/songs-table.md	path	songs2.html	archived-record
 archive/docs/features/songs-table.md	path	area_left_column.html	archived-record
 knowledge/system/infra/harbor-registry.md	endpoint	/api/v2.0/projects	external-not-api
 knowledge/system/infra/ci-tools.md	path	start.sh	host-path
+knowledge/guidelines/runbooks/log-correlation.md	path	console-appender.xml	dependency-resource
+knowledge/guidelines/runbooks/log-correlation.md	path	org/springframework/boot/logging/logback/base.xml	dependency-resource
+knowledge/system/error-handling.md	path	console-appender.xml	dependency-resource
+knowledge/system/error-handling.md	path	org/springframework/boot/logging/logback/base.xml	dependency-resource

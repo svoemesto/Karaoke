@@ -123,6 +123,24 @@ logback исчезли из вывода.
 не было вообще. Это и есть цена решения «свой `logback-spring.xml` вместо
 неизменённого дефолта Spring Boot».
 
+### Исправленная выкатка (PR #80)
+
+- Образ `sm-karaoke.ru:5443/karaoke/karaoke-app:1` = `5fbebb6c5a56` (собран из
+  ветки `732-no-stacktraces-in-logs`, коммит `1e78bd59`; merge в master — `26eaa888`).
+- Порядок Pass 380: очередь остановлена (`/process/stop`) → дренаж (активных
+  заданий нет) → `do.sh start_app` → старт очереди (`/process/start`).
+- Проверки после выката:
+  * в логе контейнера **0** строк `at com.svoemesto…` и `Caused by:`;
+  * сообщения logback **вернулись**: строки формата
+    `дата уровень PID --- [поток] логгер : сообщение` (раньше в выводе были только
+    `println`/`printStackTrace`);
+  * предупреждений logback («No appenders present», «not referenced») нет;
+  * причина — в той же строке, одной строкой. Примеры из боевого лога:
+    `event=db.connect.failed code=DB-CONNECT-001 target=SERVER … cause=PSQLException: Закончилось время ожидания`
+    и `event=check.failed code=MON-CHECK-001 check=UnreadChatMessagesCheck reason=IllegalStateException: chat.unread.count.unavailable: … cause=IllegalStateException: chat.unread.count.unavailable: …`;
+  * файловый appender (`/tmp/spring.log` в контейнере) — тот же однострочный формат;
+  * очередь работает (`isworking=true`), после прогрева — ни одного WARN/ERROR.
+
 ### Исправление
 
 - `karaoke-app/src/main/resources/logback-spring.xml` — подключается

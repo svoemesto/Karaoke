@@ -144,6 +144,24 @@ bash tools/check-log-hygiene.sh --update-baseline   # пересобрать п�
 
 Правило: новые ошибки пишутся через `AppLog` (код из реестра §1a, `cause=` цепочкой, стек — только `LOG_STACKTRACES=true`). Если правишь старый файл — переводи его строки на `AppLog` и уменьшай baseline.
 
+## 1c. В логе нет ни одной записи logback (2026-11-08)
+
+Симптом: в `docker logs karaoke-app` есть только строки вида
+`[2026-11-08 18:22:57.407] Текст…` (это `println`/`printStackTrace`), и НЕТ ни
+одной строки формата `дата уровень PID --- [поток] логгер : сообщение`.
+Значит, сообщения logback не доходят до консоли — ищи в начале вывода:
+
+```bash
+docker logs karaoke-app 2>&1 | grep -E "No appenders present|not referenced" | head
+```
+
+Причина: свой `logback-spring.xml` подключил `console-appender.xml` (appender
+без `<root>`), и root-логгер остался без appender'а. Лечится включением
+`org/springframework/boot/logging/logback/base.xml` (appenders CONSOLE и FILE
+плюс root level INFO) — см. `knowledge/system/error-handling.md` Правило 4.
+Проверка после выката: в логе есть строка формата `дата уровень PID --- [поток]
+логгер : …`.
+
 ## 2. Команды просмотра
 
 ### 2.1. PostgreSQL (`karaoke-db`)

@@ -82,7 +82,7 @@ Spring, Tomcat — без правки каждого места вызова. �
 | Проверка | Результат |
 |---|---|
 | `:karaoke-app:compileKotlin` | успешно |
-| `:karaoke-app:test --tests CauseChainConverterTest` | 4/4 успешно (новый тест) |
+| `:karaoke-app:test --tests CauseChainConverterTest` | 8/8 успешно (в т.ч. регресс-тест на «битую» конфигурацию) |
 | `bash tools/check-log-hygiene.sh --report` | видит реальные источники (до правки — 0); после перевода горячих путей — 34 файла |
 | `bash tools/check-log-hygiene.sh` | без регресса (baseline пересобран по факту: 34 файла) |
 | `:karaoke-app:test` (весь модуль) | 1000 тестов, зелёные (обновлён контрактный тест BR-151 под новый формат `AppLog`) |
@@ -90,16 +90,62 @@ Spring, Tomcat — без правки каждого места вызова. �
 | `python3 tools/lint-knowledge.py` | OK |
 | `bash tools/check-knowledge-structure.sh` | OK (9/9) |
 
-## Прод
+## Прод: выкатка и регресс, найденный на ней
 
-- Образ `karaoke-app` пересобран, контейнер пересоздан (Pass 380: очередь остановлена
-  → дренаж → старт → старт очереди).
+### Выкатка (PR #79, образ `77461d181314`)
+
+- Образ `karaoke-app` пересобран, контейнер пересоздан (Pass 380: очередь
+  остановлена → дренаж → старт → старт очереди). Очередь после старта — работает
+  (`ProcessWorker: Стартуем`).
 - Проверка после выката: в логе контейнера нет ни строки `at com.svoemesto…`, ни
-  `Caused by:`; причина присутствует в той же строке.
+  `Caused by:`.
+
+### Регресс: из консоли пропали ВСЕ сообщения logback
+
+На той же выкатке обнаружено: в `docker logs karaoke-app` остались только строки
+`println`/`printStackTrace` вида `[2026-11-08 18:22:57.40714527] Текст…`, а
+сообщений logback (формата `дата уровень PID --- [поток] логгер : …`) не было
+вообще. В начале вывода — предупреждения logback:
+
+```
+Appender named [CONSOLE] not referenced. Skipping further processing.
+No appenders present in context [default] for logger [com.svoemesto.karaokeapp.KaraokeAppApplicationKt].
+```
+
+Причина: в `logback-spring.xml` был подключён
+`org/springframework/boot/logging/logback/console-appender.xml` — он даёт
+appender, но **не** даёт `<root>` с `appender-ref`. Spring Boot подставляет
+конфигурацию целиком (`base.xml`: appenders CONSOLE и FILE + `root` level INFO),
+а частичная подмена оставила root-логгер без appender'а — и все сообщения
+logback исчезли из вывода.
+
+Итог: «стектрейсов в логе нет» оказалось правдой по не той причине — логов
+не было вообще. Это и есть цена решения «свой `logback-spring.xml` вместо
+неизменённого дефолта Spring Boot».
+
+### Исправление
+
+- `karaoke-app/src/main/resources/logback-spring.xml` — подключается
+  `base.xml` (appenders CONSOLE и FILE, `root` level INFO) — ровно то, что
+  Spring Boot подставляет сам; `<conversionRule causeChain>` остаётся.
+- `application.yml` — добавлен `logging.pattern.file` с тем же однострочным
+  шаблоном: файловый appender иначе писал бы полные стектрейсы (`%wEx` из
+  шаблона по умолчанию).
+- Регресс-тест `CauseChainConverterTest.реальный конфиг вешает CONSOLE на root и
+  печатает исключение без кадров` — разбирает **реальный** `logback-spring.xml`
+  через Joran, проверяет, что у root есть appender `CONSOLE`, что в шаблоне есть
+  `%causeChain` и `%nopex`, что logback не оставил предупреждений о потере
+  appender'а, и что по реальному шаблону исключение печатается без кадров.
+  Проверено: на «битой» конфигурации (`console-appender.xml` без `root`) тест
+  падает, на исправленной — зелёный.
+- База знаний: `knowledge/system/error-handling.md` (Правило 4 — требование
+  вешать appender на root и симптом), `knowledge/guidelines/runbooks/log-correlation.md`
+  (§1c «В логе нет ни одной записи logback» — симптом и команда поиска).
+
 
 ## Что осталось на владельца
 
 - Полный перевод остальных мест на `AppLog` (свои коды событий) — отдельный проход;
   на стектрейсы в логе это уже не влияет («пол» работает глобально), но диагностика
-  по кодам событий стане�� точнее.
+  по кодам событий станет точнее.
 - `LOG_STACKTRACES=true` включается на время разбора, если нужен точный кадр.

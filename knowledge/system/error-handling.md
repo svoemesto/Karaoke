@@ -93,6 +93,19 @@ catch (e: Exception) {
     Тот же флаг `LOG_STACKTRACES=true` возвращает полный стек.
   * Поэтому обычный `logger.error("…", e)` больше **не** даёт простыни кадров:
     причина видна, разбор не страдает.
+* **Логи должны вообще идти.** Свой `logback-spring.xml` обязан вешать
+  appender на root: подключать `org/springframework/boot/logging/logback/base.xml`
+  (это то, что Spring Boot подставляет сам, когда своего конфига нет), а не
+  `console-appender.xml` без `<root>`. Иначе logback пишет «Appender named
+  [CONSOLE] not referenced» и «No appenders present in context [default]» — и
+  ВСЕ сообщения logback (включая ошибки приложения) исчезают из консоли: в
+  `docker logs` остаются только `println` и `printStackTrace`.
+  Прецедент 2026-11-08: правка `logback-spring.xml` (спека 732) подключила
+  `console-appender.xml` без `root` — логи пропали на проде; поймано чтением
+  вывода контейнера. Контроль: тест `CauseChainConverterTest.реальный конфиг
+  вешает CONSOLE на root и печатает исключение без кадров` (падает на «битой»
+  конфигурации) и проверка выката «в логе есть строка формата
+  `дата уровень PID --- [поток] логгер : …`».
 * **Что всё ещё нельзя**: `e.printStackTrace()` (прямой вывод в stdout) и
   `println(...)` с текстом исключения вместо структурированной записи.
 

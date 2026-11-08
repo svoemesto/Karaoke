@@ -7,12 +7,17 @@
   заканчивается на `%causeChain` — это однострочная цепочка причин; полный стек
   печатается только при `LOG_STACKTRACES=true` (тот же флаг, что у AppLog).
 
-  Стандартные включения Spring Boot сохранены (цвета, уровни, приложение
-  CONSOLE) — меняется только способ вывода исключения.
+  Подключается ИМЕННО `base.xml`, а не `console-appender.xml`: `base.xml` — это
+  то, что Spring Boot и так подставляет, когда своего конфига нет (appendер
+  CONSOLE + FILE, root level INFO). `console-appender.xml` даёт только appender
+  без `<root>` с `appender-ref` — logback тогда пишет «Appender named [CONSOLE]
+  not referenced» и «No appenders present in context [default]», то есть ВСЕ
+  сообщения logback (включая ошибки приложения) пропадают из консоли. Регресс
+  пойман на проде 2026-11-08 и закрыт тестом
+  `CauseChainConverterTest.корневой логгер имеет appender CONSOLE`.
 -->
 <configuration>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
     <conversionRule
             conversionWord="causeChain"

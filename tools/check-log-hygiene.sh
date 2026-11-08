@@ -56,15 +56,19 @@ fi
 # ВАЖНО: комментарии не считаются. Упоминание «printStackTrace» в комментарии («BR-165:
 # printStackTrace() уходил в stderr…») — это документация, а не источник стектрейсов;
 # без такой фильтрации baseline не может обнулиться и перестаёт быть полезным.
+# Подсчёт ведёт tools/log_hygiene_scan.py (спека 732): прежняя регулярка по одной
+# строке видела только логгер, названный ровно `log` (в коде их нет — все `*Log`),
+# и пропускала многострочные вызовы и вызовы со скобками в аргументах
+# (`consumerLog.warn("… {}", Instant.now(), e)`). Поэтому baseline был пустым, а
+# стектрейсы в логах шли потоком (инцидент 2026-11-08).
+#
+# Сканер разбирает вызов по скобкам, снимает комментарии и строковые литералы и
+# считает вызовы логгера, у которых ПОСЛЕДНИЙ аргумент — переменная исключения.
 count_file() {
   local file="$1"
   local ps logexc
   ps=$(strip_comments "${file}" | grep -c "printStackTrace" || true)
-  # log.<level>(...) с исключением последним аргументом. Эвристика по строке вызова:
-  # ", e)" / ", ex)" / ", err)" / ", throwable)". Многострочные вызовы ловятся, когда
-  # аргумент стоит в той же строке; остальные — предметом отдельных проходов.
-  logexc=$(strip_comments "${file}" \
-    | grep -cE "log\.(trace|debug|info|warn|error)\([^)]*,[[:space:]]*(e|ex|err|exception|throwable|cause|t)\)" || true)
+  logexc=$(python3 "${ROOT}/tools/log_hygiene_scan.py" "${file}" | awk '{print $3}')
   printf '%s %s\n' "${ps:-0}" "${logexc:-0}"
 }
 
@@ -77,19 +81,19 @@ strip_comments() {
 declare -A CURRENT_PS=()
 declare -A CURRENT_LEXC=()
 
-while IFS= read -r -d '' file; do
-  read -r ps logexc < <(count_file "${file}")
-  if [ "${ps}" -gt 0 ] || [ "${logexc}" -gt 0 ]; then
-    rel="${file#"${ROOT}/"}"
-    CURRENT_PS["${rel}"]="${ps}"
-    CURRENT_LEXC["${rel}"]="${logexc}"
-  fi
-done < <(find "${SCOPE}" -name '*.kt' -print0)
+# Один проход сканера по всему каталогу (сканер сам снимает комментарии и
+# строковые литералы и разбирает вызов по скобкам).
+while read -r file ps logexc; do
+  [ -n "${file:-}" ] || continue
+  rel="${file#"${ROOT}/"}"
+  CURRENT_PS["${rel}"]="${ps}"
+  CURRENT_LEXC["${rel}"]="${logexc}"
+done < <(python3 "${ROOT}/tools/log_hygiene_scan.py" "${SCOPE}")
 
 print_report() {
   printf '%-70s %8s %8s\n' "файл" "pst" "logexc"
-  for rel in $(printf '%s\n' "${!CURRENT_PS[@]}" | sort); do
-    printf '%-70s %8s %8s\n' "${rel}" "${CURRENT_PS[${rel}]}" "${CURRENT_LEXC[${rel}]}"
+  python3 "${ROOT}/tools/log_hygiene_scan.py" "${SCOPE}" | sort | while read -r rel ps logexc; do
+    printf '%-70s %8s %8s\n' "${rel#"${ROOT}/"}" "${ps}" "${logexc}"
   done
 }
 

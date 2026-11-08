@@ -143,3 +143,12 @@ lyrics-search:
 #      springframework:
 #        security: DEBUG
 #        web: DEBUG
+
+# Логирование (KARAOKE-387, спека 732): исключение печатается ОДНОЙ строкой —
+# цепочкой причин без кадров стека (конвертер causeChain, см. logback-spring.xml).
+# Полный стек — только при LOG_STACKTRACES=true (тот же флаг, что у AppLog).
+# Формат строки прежний (дата, уровень, PID, поток, логгер, сообщение) — меняется
+# только вывод исключения: вместо `at com.svoemesto…` — `Тип: сообщение`.
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n%causeChain"

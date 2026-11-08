@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.Song
@@ -76,7 +77,14 @@ class TelegramAutoPublishScheduler {
             if (!publishScheduledSongs()) return
         } catch (e: Exception) {
             // BR-146: `printStackTrace()` уходил в stdout, вне структурированных логов.
-            telegramLog.error("TelegramAutoPublishScheduler.tick failed", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = "infra.telegram.publish",
+                code = "TG-PUB-001",
+                event = "telegram.publish.tick.failed",
+                fields = mapOf("phase" to "tick"),
+                error = e,
+            )
         }
     }
 

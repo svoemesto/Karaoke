@@ -140,7 +140,14 @@ fun backfillCacheEtagSize(
                 ),
             )
         } catch (e: Exception) {
-            cacheBackfillLog.error("cache:backfill failed error={}", "${e::class.simpleName}: ${e.message}", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+            AppLog.error(
+                category = "infra.cache.storage",
+                code = "CACHE-BACKFILL-001",
+                event = "cache.backfill.failed",
+                fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                error = e,
+            )
             SNS.send(
                 SseNotification.error(
                     Message(

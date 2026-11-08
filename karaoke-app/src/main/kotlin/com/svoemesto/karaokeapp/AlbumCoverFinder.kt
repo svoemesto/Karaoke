@@ -450,7 +450,14 @@ class AlbumCoverService(
                     .take(MAX_ALBUM_COVER_CANDIDATES)
             }
         } catch (e: Exception) {
-            logger.error("AlbumCoverService.searchSearxngImages: ошибка: ${e.message}", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+            AppLog.error(
+                category = "com.svoemesto.karaokeapp.AlbumCoverService",
+                code = "COVER-SEARCH-001",
+                event = "cover.search.searxng.failed",
+                fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                error = e,
+            )
             emptyList()
         }
 

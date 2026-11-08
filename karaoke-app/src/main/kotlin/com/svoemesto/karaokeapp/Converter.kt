@@ -201,7 +201,14 @@ class Converter {
                 try {
                     Font(fname, fstyle, fsize)
                 } catch (e: Exception) {
-                    converterLog.warn("converter: некорректный шрифт '{}' — взят дефолт", fname, e)
+                    // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                    AppLog.warn(
+                        category = "infra.converter",
+                        code = "CONVERTER-FONT-001",
+                        event = "converter.font.parse.failed",
+                        fields = mapOf("font" to fname),
+                        error = e,
+                    )
                     Font("Tahoma", fstyle, fsize)
                 }
             return MltText(

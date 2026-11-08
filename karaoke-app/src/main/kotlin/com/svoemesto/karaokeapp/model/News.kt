@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -498,7 +499,14 @@ class News(
                     }
             } catch (e: Exception) {
                 // BR-178 (аудит #336): SLF4J вместо println — по конвенции ADR local-0005.
-                newsLog.warn("News.isNewsAutoPublishKillSwitchActive: ошибка чтения kill-switch: {}", e.message, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+                AppLog.warn(
+                    category = "infra.admin.news",
+                    code = "NEWS-AUTO-001",
+                    event = "news.autopublish.killswitch.failed",
+                    fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                    error = e,
+                )
                 false
             }
         }

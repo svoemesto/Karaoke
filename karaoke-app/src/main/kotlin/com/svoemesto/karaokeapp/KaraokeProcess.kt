@@ -687,8 +687,6 @@ class KaraokeProcess(
         /** Категория логов (KARAOKE-387). */
         const val CATEGORY = "com.svoemesto.karaokeapp.KaraokeProcess"
 
-        private val logger = org.slf4j.LoggerFactory.getLogger(KaraokeProcess::class.java)
-
         /**
          * Маркер хвоста «причина ошибки» в `process_description` (BR-036, пакет PKG-S3-22).
          * Отдельной колонки под причину в схеме нет; описание видит оператор в админке,
@@ -885,7 +883,14 @@ class KaraokeProcess(
                 }
                 return purgeFinishedTuples(database)
             } catch (e: Exception) {
-                logger.error("KaraokeProcess: не удалось удалить DONE-задания при старте воркера", e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "PROCESS-CLEAN-001",
+                    event = "process.cleanup.done.failed",
+                    fields = mapOf("operation" to "deleteDone"),
+                    error = e,
+                )
                 return false
             }
         }
@@ -913,7 +918,14 @@ class KaraokeProcess(
                     ).use { ps -> ps.executeUpdate() }
                 true
             } catch (e: Exception) {
-                logger.error("KaraokeProcess: не удалось удалить завершённые кортежи", e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "PROCESS-CLEAN-002",
+                    event = "process.cleanup.tuples.failed",
+                    fields = mapOf("operation" to "purgeFinishedTuples"),
+                    error = e,
+                )
                 false
             }
         }
@@ -984,7 +996,14 @@ class KaraokeProcess(
                 )
                 changed
             } catch (e: Exception) {
-                logger.error("KaraokeProcess: не удалось нормализовать кортежи", e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "PROCESS-CLEAN-003",
+                    event = "process.normalize.tuples.failed",
+                    fields = mapOf("operation" to "normalizeTuples"),
+                    error = e,
+                )
                 changed
             }
         }
@@ -1112,7 +1131,14 @@ class KaraokeProcess(
                 connection.prepareStatement(sql).use { ps -> ps.executeUpdate() }
                 return true
             } catch (e: Exception) {
-                logger.error("KaraokeProcess: не удалось сбросить WORKING → WAITING при старте воркера", e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "PROCESS-RESET-001",
+                    event = "process.worker.reset.failed",
+                    fields = mapOf("operation" to "setWorkingToWaiting"),
+                    error = e,
+                )
                 return false
             }
         }

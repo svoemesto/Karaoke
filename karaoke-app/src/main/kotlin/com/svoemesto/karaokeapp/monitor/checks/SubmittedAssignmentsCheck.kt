@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.monitor.checks
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.monitor.MonitorAlert
@@ -30,7 +31,14 @@ object SubmittedAssignmentsCheck : MonitorCheck {
                 // BR-134 (аудит #336, пакет `PKG-S3-23`): зеркало StemJobsStuckCheck —
                 // ошибка не подменяется нулём «проблем нет», а пробрасывается:
                 // MonitoringService.tick() превратит её в WARNING `check.<Name>.failure`.
-                monitorCheckLog.error("SubmittedAssignmentsCheck: не удалось посчитать задания на проверке", e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = "infra.monitor.check",
+                    code = "MON-ASSIGN-001",
+                    event = "monitor.assignments.count.failed",
+                    fields = mapOf("check" to "SubmittedAssignmentsCheck"),
+                    error = e,
+                )
                 throw e
             } finally {
                 try {

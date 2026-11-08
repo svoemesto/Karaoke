@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.monitor.MonitorAlert
 import com.svoemesto.karaokeapp.monitor.MonitorCheck
 import com.svoemesto.karaokeapp.monitor.MonitorContext
 import com.svoemesto.karaokeapp.monitor.MonitorSeverity
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * BR-134 (аудит #336, пакет `PKG-S3-23`): категория логов проверок мониторинга,
@@ -30,7 +31,15 @@ object UnreadChatMessagesCheck : MonitorCheck {
                 // BR-134 (аудит #336, пакет `PKG-S3-23`): зеркало StemJobsStuckCheck —
                 // ошибка не подменяется нулём «проблем нет», а пробрасывается:
                 // MonitoringService.tick() превратит её в WARNING `check.<Name>.failure`.
-                monitorCheckLog.error("UnreadChatMessagesCheck: не удалось посчитать непрочитанные сообщения", e)
+                // KARAOKE-387 (спека 732): стектрейс не печатаем — причина в cause=.
+                // Полный стек — только при LOG_STACKTRACES=true.
+                AppLog.error(
+                    category = "infra.monitor.check",
+                    code = "CHAT-UNREAD-002",
+                    event = "chat.unread.count.query.failed",
+                    fields = mapOf("check" to "UnreadChatMessagesCheck", "reason" to "${e::class.simpleName}: ${e.message}"),
+                    error = e,
+                )
                 throw e
             } finally {
                 try {

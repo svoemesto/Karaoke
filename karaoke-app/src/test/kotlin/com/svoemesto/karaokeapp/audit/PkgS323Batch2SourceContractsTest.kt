@@ -212,9 +212,11 @@ class PkgS323Batch2SourceContractsTest {
     @Test
     fun `BR-151 тик VK-публикации логирует исключение и изолирует сбой одной новости`() {
         val source = readCode("$appMain/services/VkAutoPublishScheduler.kt")
+        // KARAOKE-387 (спека 732): исключение тика логируется через AppLog —
+        // одна строка с кодом события и цепочкой причин, без стектрейса.
         assertTrue(
-            source.contains("VkAutoPublishScheduler.tick failed"),
-            "исключение тика должно логироваться (BR-151)",
+            source.contains("VK-PUB-001") && source.contains("vk.publish.tick.failed"),
+            "исключение тика должно логироваться через AppLog (BR-151, KARAOKE-387)",
         )
         assertTrue(
             source.contains("runCatching"),

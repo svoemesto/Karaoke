@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.monitor.checks
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.model.StemJob
 import com.svoemesto.karaokeapp.monitor.MonitorAlert
@@ -34,7 +35,14 @@ object StemJobsStuckCheck : MonitorCheck {
                 // прод-БД недоступна), и в снапшоте не было ни алерта, ни ошибки. Теперь
                 // исключение пробрасывается — `MonitoringService.tick()` превращает его в
                 // WARNING-алерт `check.StemJobsStuckCheck.failure`.
-                monitorCheckLog.error("StemJobsStuckCheck: не удалось посчитать застрявшие задания", e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = "infra.monitor.check",
+                    code = "MON-STEM-001",
+                    event = "monitor.stemjobs.count.failed",
+                    fields = mapOf("check" to "StemJobsStuckCheck"),
+                    error = e,
+                )
                 throw e
             } finally {
                 try {

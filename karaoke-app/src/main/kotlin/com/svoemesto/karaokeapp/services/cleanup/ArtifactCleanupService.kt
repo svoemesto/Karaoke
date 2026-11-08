@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services.cleanup
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.KaraokeFileType
 import java.io.File
 import java.nio.file.Files
@@ -237,7 +238,18 @@ class ArtifactCleanupService(
                 putPlan(plan)
                 putPlanJob(CleanupPlanJob(planId = planId, classId = classId.name, state = CleanupPlanState.READY))
             } catch (e: Exception) {
-                cleanupLog.error("cleanup: не удалось построить отчёт по классу {}: {}", classId.name, e.message, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+                AppLog.error(
+                    category = "infra.cleanup",
+                    code = "CLEANUP-PLAN-002",
+                    event = "cleanup.plan.build.failed",
+                    fields =
+                        mapOf(
+                            "classId" to classId.name,
+                            "reason" to "${e::class.simpleName}: ${e.message}",
+                        ),
+                    error = e,
+                )
                 putPlanJob(
                     CleanupPlanJob(
                         planId = planId,
@@ -382,7 +394,18 @@ class ArtifactCleanupService(
             try {
                 planner.plan(classId)
             } catch (e: Exception) {
-                cleanupLog.error("cleanup: не удалось пересчитать состав класса {}: {}", classId.name, e.message, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+                AppLog.error(
+                    category = "infra.cleanup",
+                    code = "CLEANUP-PLAN-003",
+                    event = "cleanup.plan.recheck.failed",
+                    fields =
+                        mapOf(
+                            "classId" to classId.name,
+                            "reason" to "${e::class.simpleName}: ${e.message}",
+                        ),
+                    error = e,
+                )
                 putRun(
                     approved.copy(
                         state = CleanupRunState.FAILED,

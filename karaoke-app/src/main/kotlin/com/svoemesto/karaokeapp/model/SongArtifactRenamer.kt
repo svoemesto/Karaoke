@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.AppLog
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Files
@@ -169,7 +170,14 @@ object SongArtifactRenamer {
             true
         } catch (e: Exception) {
             // BR-131: причина сбоя — в SLF4J (категория + Throwable), а не в stdout.
-            renamerLog.warn("retargetSymlink: не удалось пересоздать ссылку '{}'", link.name, e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.warn(
+                category = "infra.catalog.rename",
+                code = "RENAME-LINK-001",
+                event = "artifact.rename.symlink.failed",
+                fields = mapOf("link" to link.name),
+                error = e,
+            )
             false
         }
 }

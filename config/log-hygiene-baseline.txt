@@ -3,3 +3,37 @@
 # Формат: <путь> <printStackTrace> <лог-с-исключением>
 # Пересобрать: bash tools/check-log-hygiene.sh --update-baseline
 # Правило: счётчики могут только уменьшаться; новый файл с паттернами — ошибка.
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/SecurityConfig.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt 0 5
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/NewsController.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ShareLinksAdminController.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongEditorController.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Converter.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt 0 8
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyTabs.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/News.kt 0 6
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteChatMessage.kt 0 5
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SiteUser.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongAssignmentDraft.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StemJob.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Uuids.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/AlignmentServiceClient.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/HealthReportBatchPool.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PremiumAutoPublishScheduler.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SponsrSyncService.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishScheduler.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishScheduler.kt 0 6
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkIdTokenRefreshScheduler.kt 0 1
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/WhisperAsrService.kt 0 2
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt 0 3
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt 0 1

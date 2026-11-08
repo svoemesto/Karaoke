@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import com.svoemesto.karaokeapp.AppLog
 
 /**
  * BR-135 (аудит #336, пакет `PKG-S3-23`): категория логов мониторинга.
@@ -86,7 +87,15 @@ class MonitoringService {
         e: Exception,
     ): MonitorAlert {
         val checkName = check::class.simpleName ?: check.javaClass.simpleName
-        monitorLog.warn("[MonitoringService] проверка {} упала", checkName, e)
+        // KARAOKE-387 (спека 732): стектрейс не печатаем — причина уходит в cause=.
+        // Полный стек — только при LOG_STACKTRACES=true (для диагностических проверок).
+        AppLog.warn(
+            category = "infra.monitor.tick",
+            code = "MON-CHECK-001",
+            event = "check.failed",
+            fields = mapOf("check" to checkName, "reason" to "${e::class.simpleName}: ${e.message}"),
+            error = e,
+        )
         return MonitorAlert(
             key = "check.$checkName.failure",
             severity = MonitorSeverity.WARNING,
@@ -107,7 +116,14 @@ class MonitoringService {
         try {
             SNS.send(SseNotification.monitorAlerts(currentDtos()))
         } catch (e: Exception) {
-            monitorLog.warn("[MonitoringService] ошибка broadcast", e)
+            // KARAOKE-387 (спека 732): одна строка с cause=, без стектрейса.
+            AppLog.warn(
+                category = "infra.monitor.tick",
+                code = "MON-BROADCAST-001",
+                event = "broadcast.failed",
+                fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                error = e,
+            )
         }
     }
 

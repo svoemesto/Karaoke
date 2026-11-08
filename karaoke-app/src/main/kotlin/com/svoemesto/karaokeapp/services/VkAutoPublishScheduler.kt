@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.News
@@ -71,7 +72,14 @@ class VkAutoPublishScheduler {
         } catch (e: Exception) {
             // BR-151 (аудит #336, пакет `PKG-S3-23`): тик больше не «падает молча» —
             // исключение логируется через SLF4J (категория + Throwable).
-            vkLog.error("VkAutoPublishScheduler.tick failed", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = "infra.vk.publish",
+                code = "VK-PUB-001",
+                event = "vk.publish.tick.failed",
+                fields = mapOf("phase" to "tick"),
+                error = e,
+            )
         }
     }
 

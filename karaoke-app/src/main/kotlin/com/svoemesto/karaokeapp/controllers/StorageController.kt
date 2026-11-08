@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.controllers
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.isValidFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageFileInfo
@@ -27,6 +28,11 @@ class StorageController(
     private val karaokeStorageService: KaraokeStorageService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(StorageController::class.java)
+
+    companion object {
+        /** Категория логов (KARAOKE-387). */
+        const val CATEGORY = "com.svoemesto.karaokeapp.controllers.StorageController"
+    }
 
     // Лимита размера здесь НЕТ намеренно. Раньше стояло
     //   @Suppress("unused") @Value(app.max-file-size) private val maxFileSize = "100MB"
@@ -74,7 +80,14 @@ class StorageController(
             logger.info("File uploaded successfully: $actualFileName to bucket: $bucketName")
             return ResponseEntity.ok("File uploaded successfully: $actualFileName")
         } catch (e: Exception) {
-            logger.error("Upload failed for file: $actualFileName in bucket: $bucketName", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = CATEGORY,
+                code = "STORAGE-API-001",
+                event = "storage.upload.failed",
+                fields = mapOf("file" to actualFileName, "bucket" to bucketName),
+                error = e,
+            )
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Upload failed: ${e.message}")
@@ -168,7 +181,14 @@ class StorageController(
                 .headers(headers)
                 .body(resource)
         } catch (e: Exception) {
-            logger.error("Download failed for file: $fileName in bucket: $bucketName", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = CATEGORY,
+                code = "STORAGE-API-002",
+                event = "storage.download.failed",
+                fields = mapOf("file" to fileName, "bucket" to bucketName),
+                error = e,
+            )
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
     }
@@ -194,7 +214,14 @@ class StorageController(
             logger.info("File deleted: $fileName from bucket: $bucketName")
             return ResponseEntity.ok("File deleted successfully: $fileName")
         } catch (e: Exception) {
-            logger.error("Deletion failed for file: $fileName in bucket: $bucketName", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = CATEGORY,
+                code = "STORAGE-API-003",
+                event = "storage.delete.failed",
+                fields = mapOf("file" to fileName, "bucket" to bucketName),
+                error = e,
+            )
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Deletion failed: ${e.message}")
@@ -246,7 +273,14 @@ class StorageController(
             logger.info("Bucket set to public: $bucketName")
             return ResponseEntity.ok("Bucket '$bucketName' is now public")
         } catch (e: Exception) {
-            logger.error("Failed to set bucket as public: $bucketName", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = CATEGORY,
+                code = "STORAGE-API-004",
+                event = "storage.bucket.public.failed",
+                fields = mapOf("bucket" to bucketName),
+                error = e,
+            )
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Failed to set bucket as public: ${e.message}")
@@ -266,7 +300,14 @@ class StorageController(
             logger.info("Bucket set to private: $bucketName")
             return ResponseEntity.ok("Bucket '$bucketName' is now private")
         } catch (e: Exception) {
-            logger.error("Failed to set bucket as private: $bucketName", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = CATEGORY,
+                code = "STORAGE-API-005",
+                event = "storage.bucket.private.failed",
+                fields = mapOf("bucket" to bucketName),
+                error = e,
+            )
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Failed to set bucket as private: ${e.message}")

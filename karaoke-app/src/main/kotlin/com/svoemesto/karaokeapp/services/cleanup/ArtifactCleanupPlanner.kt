@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services.cleanup
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.PROJECT_ROOT_FOLDERS
@@ -11,7 +12,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.streams.asSequence
-import org.slf4j.LoggerFactory
 
 /**
  * Одна запись отчёта сухого прогона.
@@ -82,9 +82,6 @@ data class CleanupPlan(
 class ArtifactCleanupPlanner(
     private val roots: List<String>? = null,
 ) {
-    // BR-169 (аудит #336, пакет `PKG-S3-23`): категория логов планировщика уборки.
-    private val cleanupLog = LoggerFactory.getLogger("infra.cleanup")
-
     /**
      * Корни обхода, вычисляемые **при первом обращении**, а не в конструкторе.
      *
@@ -174,7 +171,19 @@ class ArtifactCleanupPlanner(
             // набору. Теперь отчёт помечен, и `apply` такой отчёт отклоняет.
             val warning = "$WALK_INTERRUPTED_MARKER: '$root' — ${e.message ?: e.javaClass.simpleName}"
             warnings.add(warning)
-            cleanupLog.warn("ArtifactCleanupPlanner: план {}: {}", classId.name, warning, e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+            AppLog.warn(
+                category = "infra.cleanup",
+                code = "CLEANUP-PLAN-001",
+                event = "cleanup.plan.walk.interrupted",
+                fields =
+                    mapOf(
+                        "classId" to classId.name,
+                        "root" to root.path,
+                        "reason" to "${e::class.simpleName}: ${e.message}",
+                    ),
+                error = e,
+            )
         }
     }
 

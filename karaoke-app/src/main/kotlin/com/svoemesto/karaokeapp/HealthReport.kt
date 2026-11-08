@@ -3100,7 +3100,14 @@ data class HealthReport(
                     ),
                 )
             } catch (e: Exception) {
-                healthLog.error("repair: не удалось отправить SSE об ошибке ремонта songId={}", songId, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.error(
+                    category = CATEGORY,
+                    code = "HEALTH-REPAIR-001",
+                    event = "health.repair.notify.failed",
+                    fields = mapOf("songId" to songId),
+                    error = e,
+                )
             }
         }
 

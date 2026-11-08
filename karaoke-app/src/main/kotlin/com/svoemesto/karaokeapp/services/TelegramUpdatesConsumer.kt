@@ -11,6 +11,7 @@ import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
+import com.svoemesto.karaokeapp.AppLog
 
 // Автозапуск фонового потребителя апдейтов при старте приложения (если включён в свойствах) - не зависит
 // от ручного нажатия кнопки в UI, в отличие от KaraokeProcessWorker.
@@ -85,7 +86,14 @@ object TelegramUpdatesConsumer {
         try {
             client.deleteWebhook()
         } catch (e: Exception) {
-            consumerLog.warn("[{}] TelegramUpdatesConsumer: deleteWebhook не удался, продолжаем long-poll", Instant.now(), e)
+            // KARAOKE-387 (спека 732): одна строка с cause=, без стектрейса.
+            AppLog.warn(
+                category = "infra.telegram.polling",
+                code = "TG-POLL-002",
+                event = "webhook.delete.failed",
+                fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                error = e,
+            )
         }
         try {
             while (isWork) {
@@ -103,7 +111,15 @@ object TelegramUpdatesConsumer {
                     }
                     response.result.forEach { update -> processUpdate(update.updateId, update.channelPost) }
                 } catch (e: Exception) {
-                    consumerLog.warn("[{}] TelegramUpdatesConsumer: ошибка long-poll", Instant.now(), e)
+                    // KARAOKE-387 (спека 732): стектрейс не печатаем — причина в cause=.
+                    // Полный стек — только при LOG_STACKTRACES=true.
+                    AppLog.warn(
+                        category = "infra.telegram.polling",
+                        code = "TG-POLL-001",
+                        event = "poll.failed",
+                        fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                        error = e,
+                    )
                     Thread.sleep(5_000)
                 }
             }

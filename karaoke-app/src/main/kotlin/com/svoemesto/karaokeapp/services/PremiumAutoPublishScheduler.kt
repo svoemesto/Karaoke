@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.AppLog
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.PublicationType
@@ -90,7 +91,14 @@ class PremiumAutoPublishScheduler {
             if (!publishPendingSongs()) return
         } catch (e: Exception) {
             // BR-165: `printStackTrace()` уходил в stderr, мимо структурированных логов.
-            premiumLog.error("PremiumAutoPublishScheduler.tick failed", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+            AppLog.error(
+                category = "infra.premium.publish",
+                code = "PREMIUM-PUB-001",
+                event = "premium.publish.tick.failed",
+                fields = mapOf("phase" to "tick"),
+                error = e,
+            )
         }
     }
 
@@ -112,7 +120,14 @@ class PremiumAutoPublishScheduler {
             try {
                 resumeRenderingSong(songId)
             } catch (e: Exception) {
-                premiumLog.warn("PremiumAutoPublishScheduler: не удалось продолжить рендер песни {}", songId, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.warn(
+                    category = "infra.premium.publish",
+                    code = "PREMIUM-PUB-002",
+                    event = "premium.publish.render.resume.failed",
+                    fields = mapOf("songId" to songId, "phase" to "resumeRendering"),
+                    error = e,
+                )
             }
         }
         return true
@@ -189,7 +204,14 @@ class PremiumAutoPublishScheduler {
             try {
                 processSong(songId)
             } catch (e: Exception) {
-                premiumLog.warn("PremiumAutoPublishScheduler: не удалось обработать песню {}", songId, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.warn(
+                    category = "infra.premium.publish",
+                    code = "PREMIUM-PUB-003",
+                    event = "premium.publish.song.failed",
+                    fields = mapOf("songId" to songId, "phase" to "publishPending"),
+                    error = e,
+                )
             }
         }
         return true

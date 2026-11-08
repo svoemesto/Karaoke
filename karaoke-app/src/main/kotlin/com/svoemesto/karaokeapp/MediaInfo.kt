@@ -212,7 +212,14 @@ class MediaInfo {
             } catch (e: MediaInfoException) {
                 logger.warn("mediainfo: не удалось получить '{}' для '{}': {}", parameter, media, e.message)
             } catch (e: Exception) {
-                logger.warn("mediainfo: неожиданная ошибка при разборе '{}' для '{}'", parameter, media, e)
+                // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=.
+                AppLog.warn(
+                    category = "com.svoemesto.karaokeapp.MediaInfo",
+                    code = "MEDIAINFO-001",
+                    event = "mediainfo.parse.failed",
+                    fields = mapOf("parameter" to parameter, "media" to media),
+                    error = e,
+                )
             }
             return null
         }

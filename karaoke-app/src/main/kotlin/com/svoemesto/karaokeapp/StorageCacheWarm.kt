@@ -174,7 +174,14 @@ fun warmStorageCache(
                 ),
             )
         } catch (e: Exception) {
-            cacheWarmLog.error("cache:warm failed error={}", "${e::class.simpleName}: ${e.message}", e)
+            // BR/KARAOKE-730: стектрейс не печатаем — причина в cause=, текст ошибки — в reason=.
+            AppLog.error(
+                category = "infra.cache.storage",
+                code = "CACHE-WARM-001",
+                event = "cache.warm.failed",
+                fields = mapOf("reason" to "${e::class.simpleName}: ${e.message}"),
+                error = e,
+            )
             SNS.send(
                 SseNotification.error(
                     Message(

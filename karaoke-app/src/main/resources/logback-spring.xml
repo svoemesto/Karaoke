@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Логирование karaoke-app: конвертер исключений без кадров стека.
+
+  KARAOKE-387 (спека 732): в логах — нормальные сообщения, а не простыни
+  `at com.svoemesto…`. Свойство `logging.pattern.console` (см. application.yml)
+  заканчивается на `%causeChain` — это однострочная цепочка причин; полный стек
+  печатается только при `LOG_STACKTRACES=true` (тот же флаг, что у AppLog).
+
+  Стандартные включения Spring Boot сохранены (цвета, уровни, приложение
+  CONSOLE) — меняется только способ вывода исключения.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <conversionRule
+            conversionWord="causeChain"
+            class="com.svoemesto.karaokeapp.logging.CauseChainConverter"/>
+</configuration>

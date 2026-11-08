@@ -367,6 +367,51 @@ detect_address() {
   return 0
 }
 
+# Определение адреса, КОТОРЫЙ ВИДИТ ПРОД для нашего канала (SSH_CLIENT).
+#
+# ИНЦИДЕНТ 2026-11-08: внешние сервисы определения внешнего IP расходятся —
+# ipify/ifconfig.me отвечают через VPN-туннель с ротацией адресов (195.178.4.x),
+# остальные четыре — через адрес ISP (95.31.39.146). Правило «все источники должны
+# совпасть» давало sources_disagree, цикл отказывался править allow-list, и прод-БД
+# оставалась закрытой для приложения (DB-CONNECT-001 десятками раз в минуту).
+#
+# Адрес, который видит прод для SSH-канала, — тот же, что прод видит для трафика
+# приложения к 5433/9000 (проверено 2026-11-08 по stream-журналу nginx на проде:
+# клиент приложения и клиент хоста приходят с одного адреса). Поэтому прод —
+# авторитетный источник: он отвечает за тот канал, который мы и чиним.
+detect_prod_seen_address() {
+  REASON=""
+  local out=""
+  out="$(run_ssh 'printf "%s" "$SSH_CLIENT"' 2>/dev/null | tr -d '\r\n' | awk 'NR==1{print $1}')"
+  if [ -z "${out}" ]; then
+    REASON="prod_unreachable_by_ssh"
+    log_event "address" "source=prod_ssh" "value=" "ok=false" "detail=unreachable"
+    return 1
+  fi
+  log_event "address" "source=prod_ssh" "value=$(sanitize "${out}")" "ok=true"
+  printf '%s' "${out}"
+  return 0
+}
+
+# Единая точка определения ТЕКУЩЕГО адреса:
+#   1) адрес, который видит прод (SSH_CLIENT) — авторитетный источник;
+#   2) иначе — внешние сервисы (как раньше: все должны совпасть).
+#
+# Расхождение внешних сервисов больше НЕ блокирует правку: прод знает, какой
+# адрес мы имеем на том канале, который сам же и правим.
+current_address() {
+  REASON=""
+  local prod_seen=""
+  if prod_seen="$(detect_prod_seen_address)"; then
+    if validate_address "${prod_seen}" >/dev/null 2>&1; then
+      printf '%s' "${prod_seen}"
+      return 0
+    fi
+    log_event "address" "source=prod_ssh" "value=$(sanitize "${prod_seen}")" "ok=false" "detail=invalid"
+  fi
+  detect_address
+}
+
 # ------------------------------------------------------------- валидация ----
 # FR-004: формат IPv4, не loopback, не private, не multicast, не broadcast,
 # не 0.0.0.0. IPv6 не поддерживается (edge case спеки).
@@ -407,57 +452,61 @@ validate_address() {
 }
 
 # ------------------------------------------------------------ allow-list ----
-# FR-005: присутствие адреса означает отсутствие любых действий.
+# ПРАВИЛО ВЛАДЕЛЬЦА (2026-11-08): в allow-list прод-хоста держим РОВНО ОДИН
+# текущий адрес админ-машины. Старые адреса не копим: список из десяти адресов
+# «про запас» означает, что доступ остаётся открытым для всех, кто когда-либо
+# был админ-машиной.
+#
+# FR-005: если в файле в КАЖДОМ блоке с `deny all;` стоит ровно одна строка
+# `allow <ip>;` (с нашим текущим адресом) и больше никаких адресов — правка не
+# нужна, никаких действий.
 address_allowed() {
   local conf="$1" ip="$2"
   # BR-631 (инцидент 2026-11-02): «allow есть в файле» ≠ «доступ разрешён». nginx
   # в stream-блоке проверяет allow/deny по порядку, поэтому строка, оказавшаяся
-  # ПОСЛЕ `deny all;`, не действует. Проверяем позицию: в каждом stream-блоке с
-  # listen 5433/9000 наш allow должен стоять до первого `deny all;`.
+  # ПОСЛЕ `deny all;`, не действует. Проверяем позицию: наш allow должен стоять
+  # до первого `deny all;` и быть единственным адресом в блоке.
   python3 - "${conf}" "${ip}" <<'PY'
 import re
 import sys
 
 conf, ip = sys.argv[1], sys.argv[2]
-TARGET_PORTS = ("5433", "9000")
 
 with open(conf, encoding="utf-8") as fh:
     lines = fh.read().split("\n")
 
-allow_re = re.compile(r"^\s*allow\s+" + re.escape(ip) + r"\s*;\s*$")
+# Только обычные IPv4-адреса: правило «один текущий адрес» не должно молча
+# удалять намеренные правила вида `allow 10.0.0.0/8;` (сеть/подсеть).
+allow_re = re.compile(r"^\s*allow\s+([0-9]{1,3}(?:\.[0-9]{1,3}){3})\s*;\s*$")
 deny_re = re.compile(r"^\s*deny\s+all\s*;")
+block_start_re = re.compile(r"^\s*(server|location)\b[^\{]*\{")
 
-allowed = set()
+blocks_checked = 0
+stack = []
 i = 0
 while i < len(lines):
-    if re.match(r"^\s*server\s*\{", lines[i]):
+    line = lines[i]
+    if block_start_re.match(line):
+        stack.append(i)
+    elif re.match(r"^\s*\}", line):
+        if stack:
+            stack.pop()
+    elif deny_re.match(line):
+        start = stack[-1] if stack else 0
+        before = [m.group(1) for m in (allow_re.match(lines[k]) for k in range(start, i)) if m]
+        after = []
         j = i + 1
-        body = []
         while j < len(lines) and not re.match(r"^\s*\}", lines[j]):
-            body.append(lines[j])
-            j += 1
-        ports = set()
-        for b in body:
-            m = re.search(r"\blisten\s+(\d+)", b)
+            m = allow_re.match(lines[j])
             if m:
-                ports.add(m.group(1))
-        targets = [p for p in ports if p in TARGET_PORTS]
-        if targets:
-            seen_deny = False
-            ok = False
-            for b in body:
-                if deny_re.match(b):
-                    seen_deny = True
-                elif allow_re.match(b) and not seen_deny:
-                    ok = True
-            if not ok:
-                sys.exit(1)
-            allowed.update(targets)
-        i = j
-        continue
+                after.append(m.group(1))
+            j += 1
+        if before != [ip] or after:
+            sys.exit(1)
+        blocks_checked += 1
     i += 1
 
-sys.exit(0 if allowed == set(TARGET_PORTS) else 1)
+sys.exit(0 if blocks_checked > 0 else 1)
 PY
 }
 
@@ -474,8 +523,11 @@ TARGET_PORTS = ("5433", "9000")
 
 # BR-631: «наш» allow и маркер конца списка — для вставки в правильную позицию
 # и для удаления осиротевших строк после `deny all;`.
+#
+# ПРАВИЛО ВЛАДЕЛЬЦА (2026-11-08): в блоке остаётся РОВНО ОДИН allow — текущий
+# адрес. Все прежние адреса (список «про запас») удаляются.
 deny_re_block = re.compile(r"^\s*deny\s+all\s*;")
-allow_re_block = re.compile(r"^\s*allow\s+" + re.escape(ip) + r"\s*;\s*$")
+allow_ipv4_re = re.compile(r"^\s*allow\s+[0-9]{1,3}(?:\.[0-9]{1,3}){3}\s*;\s*$")
 
 with open(old_file, encoding="utf-8") as fh:
     lines = fh.read().split("\n")
@@ -499,23 +551,20 @@ while i < len(lines):
                 ports.append(m.group(1))
         if any(p in TARGET_PORTS for p in ports):
             inserted = False
-            seen_deny = False
             for b in body:
                 # BR-631 (инцидент 2026-11-02): allow обязан стоять ДО `deny all;` —
                 # nginx в stream-блоке проверяет allow/deny по порядку, и строка после
                 # `deny all;` не действует никогда. Прежняя реализация дописывала её
                 # после deny: правка «применялась успешно», доступ оставался закрытым.
-                # Заодно убираем «осиротевшие» allow <ip> после deny (след прошлых
-                # прогонов), чтобы файл не копил неработающие строки.
                 if deny_re_block.match(b):
                     if not inserted:
                         indent = b[: len(b) - len(b.lstrip())]
                         out.append("{}allow {};".format(indent, ip))
                         inserted = True
-                    seen_deny = True
                     out.append(b)
                     continue
-                if seen_deny and allow_re_block.match(b):
+                # Прежние адреса в этом блоке убираем — остаётся один текущий.
+                if allow_ipv4_re.match(b):
                     continue
                 out.append(b)
             if not inserted:
@@ -536,32 +585,66 @@ sys.stderr.write("blocks={}\n".format(blocks))
 PY
 }
 
-# FR-020: изменение MUST состоять только из добавленных строк `allow <ip>;`.
-# Возвращает 0, если изменение — ровно эти строки и ничего больше.
+# FR-020: изменение MUST состоять только из строк `allow` с IPv4-адресами.
+# Возвращает 0, если изменение — ровно замена allow-list на один текущий адрес
+# и ничего больше.
+#
+# ПРАВИЛО ВЛАДЕЛЬЦА (2026-11-08): список заменяется целиком — в блоке остаётся
+# ровно один `allow <текущий ip>;`. Значит, изменение затрагивает и УДАЛЕНИЕ
+# прежних адресов, и прежняя проверка «добавлено ровно 2 строки allow» больше
+# не годится: сравниваем содержимое без allow-строк — оно должно совпасть
+# байт-в-байт, — и отдельно проверяем итог.
 verify_diff() {
   local old_file="$1" new_file="$2" ip="$3"
   python3 - "${old_file}" "${new_file}" "${ip}" <<'PY'
+import re
 import sys
 
 old_file, new_file, ip = sys.argv[1], sys.argv[2], sys.argv[3]
+allow_re = re.compile(r"^\s*allow\s+([0-9]{1,3}(?:\.[0-9]{1,3}){3})\s*;\s*$")
+deny_re = re.compile(r"^\s*deny\s+all\s*;")
+block_start_re = re.compile(r"^\s*(server|location)\b[^\{]*\{")
+
 with open(old_file, encoding="utf-8") as fh:
     old = fh.read()
 with open(new_file, encoding="utf-8") as fh:
     new = fh.read()
 
-needle = "allow {};".format(ip)
-added = [l for l in new.split("\n") if l.strip() == needle]
-# BR-631: строку allow нужно не только добавить, но и нормализовать — «осиротевшая»
-# строка после `deny all;`, оставшаяся от прошлых прогонов, должна исчезнуть.
-# Поэтому сравнение идёт по содержимому БЕЗ всех наших allow-строк: любые прочие
-# изменения по-прежнему запрещены.
-old_stripped = "\n".join(l for l in old.split("\n") if l.strip() != needle)
-new_stripped = "\n".join(l for l in new.split("\n") if l.strip() != needle)
-if len(added) != 2:
-    sys.stderr.write("expected exactly 2 added allow lines, found {}\n".format(len(added)))
-    sys.exit(1)
+old_stripped = "\n".join(l for l in old.split("\n") if not allow_re.match(l))
+new_stripped = "\n".join(l for l in new.split("\n") if not allow_re.match(l))
 if new_stripped != old_stripped:
-    sys.stderr.write("diff contains changes other than the added allow lines\n")
+    sys.stderr.write("diff contains changes other than allow lines\n")
+    sys.exit(1)
+
+lines = new.split("\n")
+blocks = 0
+stack = []
+i = 0
+while i < len(lines):
+    line = lines[i]
+    if block_start_re.match(line):
+        stack.append(i)
+    elif re.match(r"^\s*\}", line):
+        if stack:
+            stack.pop()
+    elif deny_re.match(line):
+        start = stack[-1] if stack else 0
+        before = [m.group(1) for m in (allow_re.match(lines[k]) for k in range(start, i)) if m]
+        after = []
+        j = i + 1
+        while j < len(lines) and not re.match(r"^\s*\}", lines[j]):
+            m = allow_re.match(lines[j])
+            if m:
+                after.append(m.group(1))
+            j += 1
+        if before != [ip] or after:
+            sys.stderr.write("prepared config does not keep exactly one current allow per block\n")
+            sys.exit(1)
+        blocks += 1
+    i += 1
+
+if blocks == 0:
+    sys.stderr.write("no allow-list blocks found\n")
     sys.exit(1)
 PY
 }
@@ -704,7 +787,7 @@ WRITE_METHOD="cat"
 
 # Перепроверка адреса перед применением (гонка смены адреса). В self-test
 # переопределяется, чтобы сценарий не ходил в сеть.
-confirm_address() { detect_address; }
+confirm_address() { current_address; }
 
 
 # Подготовка конфигурации с allow-list'ом в ЛЮБОМ файле: в каждом блоке, где
@@ -723,7 +806,9 @@ import sys
 
 old_file, new_file, ip = sys.argv[1], sys.argv[2], sys.argv[3]
 deny_re = re.compile(r"^\s*deny\s+all\s*;")
-allow_re = re.compile(r"^\s*allow\s+" + re.escape(ip) + r"\s*;\s*$")
+# Только обычные IPv4-адреса: правило «один текущий адрес» не должно молча
+# удалять намеренные правила вида `allow 10.0.0.0/8;` (сеть/подсеть).
+allow_re = re.compile(r"^\s*allow\s+[0-9]{1,3}(?:\.[0-9]{1,3}){3}\s*;\s*$")
 
 with open(old_file, encoding="utf-8") as fh:
     lines = fh.read().split("\n")
@@ -735,19 +820,21 @@ i = 0
 while i < len(lines):
     line = lines[i]
     if deny_re.match(line):
-        found = False
+        # ПРАВИЛО ВЛАДЕЛЬЦА (2026-11-08): в блоке — ровно ОДИН allow, текущий.
+        # Все прежние адреса этого блока (и осиротевшие после deny) убираем.
+        # Сканируем И НАКОПЛЕННЫЙ список out, а не исходный lines: индексы в них
+        # расходятся после удаления строк, и обход по lines вырезал чужие строки.
         j = len(out) - 1
         while j >= 0:
-            if lines[j].strip().startswith("}"):
+            if out[j].strip().startswith("}"):
                 break
-            if allow_re.match(lines[j]):
-                found = True
-                break
+            if allow_re.match(out[j]):
+                del out[j]
+                removed += 1
             j -= 1
-        if not found:
-            indent = line[: len(line) - len(line.lstrip())]
-            out.append("{}allow {};".format(indent, ip))
-            inserted += 1
+        indent = line[: len(line) - len(line.lstrip())]
+        out.append("{}allow {};".format(indent, ip))
+        inserted += 1
         out.append(line)
         i += 1
         continue
@@ -755,9 +842,9 @@ while i < len(lines):
         orphan = False
         j = len(out) - 1
         while j >= 0:
-            if lines[j].strip().startswith("}"):
+            if out[j].strip().startswith("}"):
                 break
-            if deny_re.match(lines[j]):
+            if deny_re.match(out[j]):
                 orphan = True
                 break
             j -= 1
@@ -768,7 +855,7 @@ while i < len(lines):
     out.append(line)
     i += 1
 
-if inserted == 0 and removed == 0:
+if inserted == 0:
     sys.stderr.write("no allow-list blocks found\n")
     sys.exit(2)
 
@@ -956,7 +1043,30 @@ apply_change() {
   run_target "${mode}" "rm -f '${remote_tmp}'" >/dev/null 2>&1 || true
 
   BACKUP_PATH="${backup}"
+  APPLY_BACKUP_PATH="${backup}"
+  APPLY_WRITE_METHOD="${WRITE_METHOD}"
   return 0
+}
+
+# Файлы, к которым правка уже применена (путь, СВОЙ бэкап, способ записи).
+#
+# ИНЦИДЕНТ 2026-11-08: откат контрольной проверки восстанавливал ПОСЛЕДНИЙ бэкап
+# в ПЕРВЫЙ файл — /etc/nginx/nginx.conf получал содержимое файла сайта, `nginx -t`
+# падал, и прод остался с битым конфигом (доступ к прод-БД был закрыт). Теперь у
+# каждого файла свой бэкап, и откат идёт по каждому файлу отдельно.
+APPLIED_FILES=()
+APPLIED_BACKUPS=()
+APPLIED_METHODS=()
+
+rollback_applied() {
+  local i rc=0
+  for (( i = ${#APPLIED_FILES[@]} - 1; i >= 0; i-- )); do
+    rollback_change remote "${APPLIED_FILES[i]}" "${APPLIED_BACKUPS[i]}" "${APPLIED_METHODS[i]}" || rc=1
+  done
+  APPLIED_FILES=()
+  APPLIED_BACKUPS=()
+  APPLIED_METHODS=()
+  return "${rc}"
 }
 
 rollback_change() {
@@ -1242,6 +1352,9 @@ run_cycle() {
   # необъявленным локальным именем и не инициализировался: под `set -u` цикл
   # падал целиком ещё до первой пробы.
   local host="${1:-}" ip
+  APPLIED_FILES=()
+  APPLIED_BACKUPS=()
+  APPLIED_METHODS=()
 
   # FR-001/FR-002: пробы и различение причины недоступности.
   if ! check_reachability "${host}"; then
@@ -1257,7 +1370,12 @@ run_cycle() {
   fi
 
   # FR-003/FR-004: адрес и валидация.
-  ip="$(detect_address)" || return "${EXIT_DECLINED}"
+  #
+  # Источник адреса — ПРОД (SSH_CLIENT): он знает, какой адрес мы имеем на том
+  # самом канале, который мы и чиним. Внешние сервисы определения IP могут
+  # отвечать через другой (ротируемый) VPN-туннель — их расхождение больше не
+  # блокирует правку.
+  ip="$(current_address)" || return "${EXIT_DECLINED}"
   validate_address "${ip}" || return "${EXIT_DECLINED}"
 
   # FR-005: адрес уже в allow-list ВСЕХ файлов — никаких действий, включая reload.
@@ -1320,9 +1438,15 @@ run_cycle() {
     # FR-006…FR-009: применение с откатом.
     if ! apply_change remote "${conf_path}" "${new_conf}" "${ip}"; then
       rm -f "${conf_temps[@]}" "${new_conf}"
+      # Откат всех УЖЕ применённых файлов — каждый из своего бэкапа.
+      rollback_applied || true
       send_telegram "Karaoke allow-list: правка НЕ применена (адрес ${ip}), выполнен откат из бэкапа, конфигурация прод-хоста восстановлена. Причина: ${REASON}." || true
       return "${EXIT_FAIL}"
     fi
+    # Файл применён — запоминаем его СВОЙ бэкап и способ записи (для отката).
+    APPLIED_FILES+=("${conf_path}")
+    APPLIED_BACKUPS+=("${APPLY_BACKUP_PATH}")
+    APPLIED_METHODS+=("${APPLY_WRITE_METHOD}")
     rm -f "${new_conf}"
   done
   rm -f "${conf_temps[@]}"
@@ -1338,10 +1462,16 @@ run_cycle() {
   probe_https "${HEALTH_URL}" "${PROBE_TIMEOUT}" && https_ok=1
   log_event "control" "pg_ok=${pg_ok}" "minio_ok=${minio_ok}" "https_ok=${https_ok}"
   if [ "${pg_ok}" != 1 ] || [ "${minio_ok}" != 1 ] || [ "${https_ok}" != 1 ]; then
-    rollback_change remote "${PROD_CONF}" "${BACKUP_PATH}"
+    # Откат каждого файла из ЕГО СВОЕГО бэкапа (инцидент 2026-11-08: прежний код
+    # восстанавливал последний бэкап в первый файл и ломал конфиг nginx.conf).
+    rollback_applied || true
     send_telegram "Karaoke allow-list: контрольная проверка не прошла — выполнен откат из бэкапа, конфигурация прод-хоста восстановлена (адрес ${ip})." || true
     return "${EXIT_FAIL}"
   fi
+  # Правка прошла контрольную проверку — откатывать нечего.
+  APPLIED_FILES=()
+  APPLIED_BACKUPS=()
+  APPLIED_METHODS=()
 
   # Правка применена — состояние и частота.
   state_set last_applied_at "$(date -u +%s)"
@@ -1359,7 +1489,7 @@ run_diagnose() {
   log_event "diagnose" "mode=diagnose"
   check_reachability "${PROD_HOST##*@}" || true
   local ip
-  if ip="$(detect_address)"; then
+  if ip="$(current_address)"; then
     log_event "diagnose" "address=$(sanitize "${ip}")" "valid=$(validate_address "${ip}" && echo yes || echo no)"
   else
     log_event "diagnose" "address=" "reason=$(sanitize "${REASON:-}")"
@@ -2117,6 +2247,106 @@ SITE
   fi
   eval "${dl_saved_run_ssh}"
   CONF_DOWNLOAD_RETRY_PAUSE="${dl_saved_pause}"
+
+  echo "== Сценарий 19: адрес берётся у прода — расхождение внешних IP-сервисов не блокирует (спека 731)"
+  # ИНЦИДЕНТ 2026-11-08: ipify/ifconfig.me отвечали через VPN-туннель с ротацией
+  # адресов (195.178.4.x), остальные четыре источника — через адрес ISP
+  # (95.31.39.146). Правило «все источники должны совпасть» давало
+  # sources_disagree → цикл отказывался править allow-list, и приложение не
+  # достучалось до прод-БД. Прод знает наш адрес на том канале, который мы чиним
+  # (SSH_CLIENT), — он и became источником истины.
+  local s19_saved_run_ssh="$(declare -f run_ssh)" s19_saved_detect="$(declare -f detect_address)"
+  run_ssh() {
+    printf '95.31.39.146 51234 22'
+    return 0
+  }
+  # Внешние источники расходятся (как было в проде 2026-11-08).
+  detect_address() {
+    REASON="sources_disagree"
+    log_event "skip" "reason=sources_disagree" "detail=195.178.4.160_95.31.39.146"
+    return 1
+  }
+  local s19_addr=""
+  s19_addr="$(current_address 2>/dev/null || true)"
+  if [ "${s19_addr}" = "95.31.39.146" ]; then
+    echo "   OK: адрес взят у прода (SSH_CLIENT) = ${s19_addr}"
+  else
+    echo "   FAIL: current_address вернул '${s19_addr}' вместо адреса, который видит прод"; failed=1
+  fi
+  if grep -q 'detect_prod_seen_address' "${BASH_SOURCE[0]}" && grep -q 'current_address' "${BASH_SOURCE[0]}"; then
+    echo "   OK: в скрипте есть источник адреса «прод» и единая точка определения адреса"
+  else
+    echo "   FAIL: нет источника адреса «прод»"; failed=1
+  fi
+  eval "${s19_saved_detect}"
+  eval "${s19_saved_run_ssh}"
+
+  echo "== Сценарий 20: в allow-list остаётся ровно ОДИН текущий адрес (спека 731)"
+  # ПРАВИЛО ВЛАДЕЛЬЦА (2026-11-08): старые адреса не копим — в списке прод-хоста
+  # держим один текущий адрес админ-машины. Прежняя реализация только ДОПИСЫВАЛА
+  # новый адрес, и список разрастался до десятка записей.
+  local s20_old="${workdir}/s20.conf" s20_new="${workdir}/s20.new"
+  cat >"${s20_old}" <<S20
+server {
+    listen 80;
+    location /changerecords {
+        allow 185.26.28.109;
+        allow 83.137.50.231;
+        allow 185.42.125.73;
+        deny all;
+        proxy_pass http://127.0.0.1:8897;
+    }
+    location /api/properties/setproperty {
+        allow 185.26.28.109;
+        deny all;
+        proxy_pass http://127.0.0.1:8897;
+    }
+}
+S20
+  if prepare_new_allow_config "${s20_old}" "${s20_new}" "${test_ip}" 2>/dev/null &&
+    verify_diff "${s20_old}" "${s20_new}" "${test_ip}" 2>/dev/null; then
+    local s20_count s20_others
+    s20_count="$(grep -cE "^[[:space:]]*allow ${test_ip};$" "${s20_new}" || true)"
+    s20_others="$(grep -cE "^[[:space:]]*allow [0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+;$" "${s20_new}" || true)"
+    if [ "${s20_count}" = "2" ] && [ "${s20_others}" = "2" ]; then
+      echo "   OK: в каждом блоке остался ровно один allow (текущий), старые удалены"
+    else
+      echo "   FAIL: allow-строк с текущим адресом ${s20_count}, всего IPv4-allow ${s20_others}, ожидалось 2 и 2"; failed=1
+    fi
+  else
+    echo "   FAIL: подготовка конфига с заменой списка не прошла"; failed=1
+  fi
+  # Уже «правильный» файл правки не требует.
+  local s20_ok="${workdir}/s20.ok"
+  cp "${s20_new}" "${s20_ok}"
+  if address_allowed "${s20_ok}" "${test_ip}"; then
+    echo "   OK: файл с одним текущим адресом распознан как не требующий правки"
+  else
+    echo "   FAIL: файл с одним текущим адресом распознан как требующий правки"; failed=1
+  fi
+
+  echo "== Сценарий 21: откат восстанавливает каждый файл из СВОЕГО бэкапа (спека 731)"
+  # ИНЦИДЕНТ 2026-11-08: откат контрольной проверки восстанавливал ПОСЛЕДНИЙ бэкап
+  # в ПЕРВЫЙ файл — /etc/nginx/nginx.conf получал содержимое файла сайта, `nginx -t`
+  # падал, и прод остался с битым конфигом. Теперь у каждого файла свой бэкап.
+  local s21_saved_rollback="$(declare -f rollback_change)" s21_log="${workdir}/s21.log"
+  rollback_change() {
+    printf '%s|%s|%s\n' "$2" "$3" "${4:-}" >>"${s21_log}"
+    return 0
+  }
+  APPLIED_FILES=("/etc/nginx/nginx.conf" "/etc/nginx/sites-enabled/80to8897")
+  APPLIED_BACKUPS=("/etc/nginx/nginx.conf.bak-a" "/etc/nginx/sites-enabled/80to8897.bak-b")
+  APPLIED_METHODS=("mv" "cat")
+  rollback_applied >/dev/null 2>&1 || true
+  local s21_content
+  s21_content="$(cat "${s21_log}" 2>/dev/null || true)"
+  if printf '%s\n' "${s21_content}" | grep -qF '/etc/nginx/nginx.conf|/etc/nginx/nginx.conf.bak-a|mv' &&
+    printf '%s\n' "${s21_content}" | grep -qF '/etc/nginx/sites-enabled/80to8897|/etc/nginx/sites-enabled/80to8897.bak-b|cat'; then
+    echo "   OK: каждый файл откатан из своего бэкапа (бэкапы не перепутаны)"
+  else
+    echo "   FAIL: откат восстановил не тот бэкап (см. ${s21_log})"; failed=1
+  fi
+  eval "${s21_saved_rollback}"
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"
   if [ "${failed}" = 0 ]; then

@@ -827,16 +827,23 @@ jobs:
         uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: lychee (offline links check)
-        uses: https://github.com/lycheeverse/lychee-action@22134d37a1fff6c2974df9c92a7c7e1e86a08f9c # v1.9.0
-        with:
-          args: >-
-            --offline
-            --no-progress
-            --exclude-loopback
-            --exclude-mail
-            --accept 200,203,206,301,302,303,304,307,308,403,429
-            knowledge/product/features/
-            knowledge/
+        # act_runner не добавляет $HOME/.local/bin в PATH, поэтому action
+        # lycheeverse/lychee-action ставит бинарник, но не может его запустить
+        # («lychee: command not found», BR-508 — обход через action). Ставим
+        # зафиксированную версию в /usr/local/bin и запускаем сами; набор
+        # проверяемых путей и коды ответа те же.
+        run: |
+          set -e
+          LYCHEE_VERSION=0.14.0
+          curl -sSL --retry 3 --retry-delay 5 -o /tmp/lychee.tgz \
+            "https://github.com/lycheeverse/lychee/releases/download/v${LYCHEE_VERSION}/lychee-v${LYCHEE_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xzf /tmp/lychee.tgz -C /usr/local/bin
+          lychee --offline \
+            --no-progress \
+            --exclude-loopback \
+            --accept 200,203,206,301,302,303,304,307,308,403,429 \
+            knowledge/product/features/ \
+            knowledge/ \
             CONTRIBUTING.md
 
       - name: Check per-feature doc structure

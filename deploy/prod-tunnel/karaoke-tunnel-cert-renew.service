@@ -1,0 +1,21 @@
+# Автопродление клиентского сертификата mTLS к прод-БД (спека 733, FR-014).
+#
+# Решение владельца 2026-11-09: срок 90 дней подходит, продление автоматическое.
+# Скрипт продлевает сертификат, когда до истечения остаётся 21 день или меньше;
+# ключ клиента генерируется на админской машине, на прод уходит только CSR.
+#
+# Установка (root на админской машине):
+#   install -m 755 deploy/prod-tunnel/renew-client-cert.sh /usr/local/sbin/karaoke-tunnel-renew-cert.sh
+#   cp deploy/prod-tunnel/karaoke-tunnel-cert-renew.{service,timer} /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now karaoke-tunnel-cert-renew.timer
+
+[Unit]
+Description=Автопродление клиентского сертификата mTLS к прод-БД (спека 733, FR-014)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/karaoke-tunnel-renew-cert.sh --apply
+StandardOutput=journal
+StandardError=journal

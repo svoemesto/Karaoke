@@ -151,6 +151,38 @@ curl -sS -X POST https://sm-karaoke.ru/api/properties/setproperty \
 контейнер по Pass 380, открыть порты, вернуть allow-list из бэкапа. Ориентир —
 не дольше 15 минут (SC-006).
 
+### 3.5 Установка mTLS к БД на прод-хосте (однократно)
+
+Вариант C спеки 733: доступ к прод-БД подтверждается клиентским сертификатом,
+а не только адресом. Порядок (менять местами нельзя — потеряется доступ к БД):
+
+1. Выпустить собственный CA и два сертификата (на прод-хосте, ключи наружу не
+   уходят): сертификат сервера БД (SAN: `DNS:sm-karaoke.ru`, `IP:10.77.0.2`) и
+   клиентский сертификат админ-машины (CN = `nsa-i9`, срок 90 дней).
+2. Положить на прод-хосте в `deploy/certs/postgres/` (каталог прокинут в контейнер
+   read-only): `ca.crt`, `server.crt`, `server.key` (ключ `600`).
+3. Включить TLS в PostgreSQL: `DB_SSL_ON=on` в `.env` прод-хоста. В контейнере
+   Postgres дополнительно нужен `ssl_ca_file` (`DB_SSL_CA_FILE`, по умолчанию
+   `/certs/postgres/ca.crt`) — без него Postgres не может проверить клиентский
+   сертификат по правилу `clientcert=verify-ca`.
+4. Добавить правило в `pg_hba.conf` (файл в `PGDATA`, каталог данных БД):
+   `hostssl karaoke SvoeMestoKaraokeUser905 10.77.0.1/32 scram-sha-256 clientcert=verify-ca`.
+   Правило с паролем остаётся запасным путём (FR-015).
+5. Перезапустить `karaoke-db` (кратковременная недоступность БД — сайт переживает:
+   правила для локальных подключений `trust`/`scram-sha-256` не меняются).
+6. Доставить клиентский сертификат и ключ на админскую машину в
+   `/etc/karaoke/tunnel` (`db-client.crt` `644`, `db-client.key` `600`, `ca.crt` `644`).
+7. Включить проверку на клиенте: `DB_REMOTE_SSL_MODE=verify-full`,
+   `DB_REMOTE_SSL_CERT=/run/karaoke/tunnel/db-client.crt`,
+   `DB_REMOTE_SSL_KEY=/run/karaoke/tunnel/db-client.key`,
+   `DB_REMOTE_SSL_ROOT_CERT=/run/karaoke/tunnel/ca.crt`; перезапустить
+   `karaoke-app` по Pass 380.
+8. Проверить: приложение работает (`DB-CONNECT-001` = 0), а соединение **без**
+   клиентского сертификата отклоняется (проверка из контейнера через туннель).
+
+Откат: `DB_SSL_ON=off` + перезапуск `karaoke-db`, удаление правила `hostssl` из
+`pg_hba.conf`, `DB_REMOTE_SSL_MODE=prefer` + перезапуск `karaoke-app`.
+
 ## 4. Секреты
 
 * Приватные ключи и сертификаты — только в `/etc/karaoke/tunnel` (каталог `700`,

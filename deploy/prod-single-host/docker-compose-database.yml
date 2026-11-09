@@ -27,6 +27,12 @@ services:
       - ssl_cert_file=${DB_SSL_CERT_FILE:-/certs/postgres/server.crt}
       - -c
       - ssl_key_file=${DB_SSL_KEY_FILE:-/certs/postgres/server.key}
+      # Спека 733 (KARAOKE-407), вариант C (mTLS): корневой сертификат CA нужен
+      # PostgreSQL, чтобы проверять клиентские сертификаты в правиле
+      # pg_hba.conf `clientcert=verify-ca`. Без него правило с clientcert
+      # не работает (Postgres не может построить цепочку доверия).
+      - -c
+      - ssl_ca_file=${DB_SSL_CA_FILE:-/certs/postgres/ca.crt}
       # BR-606 (аудит #336, P1-операционка): приложение держит соединение на поток
       # (ThreadLocal, ADR-0001) и закрывает его только при завершении потока.
       # Пул Tomcat и Dispatchers.IO создают/уничтожают потоки — часть соединений не

@@ -89,6 +89,7 @@ jobs:
       log_hygiene_guard: ${{ steps.applicable.outputs.log_hygiene_guard }}
       allowlist_automation_self_test: ${{ steps.applicable.outputs.allowlist_automation_self_test }}
       memory_guardrails_guard: ${{ steps.applicable.outputs.memory_guardrails_guard }}
+      prod_tunnel_guardrails_guard: ${{ steps.applicable.outputs.prod_tunnel_guardrails_guard }}
       build_config_guard: ${{ steps.applicable.outputs.build_config_guard }}
       backend_lint: ${{ steps.applicable.outputs.backend_lint }}
       backend_build: ${{ steps.applicable.outputs.backend_build }}
@@ -244,6 +245,24 @@ jobs:
 
       - name: Self-test of allowlist guardrails
         run: bash tools/check-allowlist-guardrails.sh --self-test
+
+  # === Guard: инварианты постоянного туннеля к проду (спека 733) ===
+  # Проверяет, что конфигурация туннеля объявлена декларативно и безопасно:
+  # NET_ADMIN + /dev/net/tun + ip_forward в compose, wireguard-tools в образе,
+  # монтирование каталога с ключами read-only, отсутствие ключей в репозитории,
+  # свободная подсеть туннеля и режим туннеля у автоматики allow-list.
+  prod-tunnel-guardrails-guard:
+    name: prod tunnel guardrails guard (спека 733)
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.prod_tunnel_guardrails_guard == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check prod tunnel guardrails (спека 733)
+        run: bash tools/check-prod-tunnel-guardrails.sh
 
   # === Guard: превентивные меры против OOM (BR-630, спека 676 / KARAOKE-245) ===
   # Предел памяти контейнера karaoke-app, максимум heap JVM и их соотношение
@@ -1207,7 +1226,7 @@ jobs:
     name: ci-summary (applicable checks)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [changes, actions-pinned-guard, root-junk-guard, heap-dump-retention-guard, allowlist-guardrails-guard, allowlist-automation-self-test, memory-guardrails-guard, build-config-guard, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, confirm-escape-guard, webvue3-unit-tests, karaoke-public-unit-tests, marker-escape-guard, secret-in-argv-guard, file-permissions-guard, karaoke-public-e2e, docs-lint, baseline-stats, kdoc-coverage, jsdoc-coverage, ssot-impact, direct-commits-guard, knowledge-structure, docker-image-tags-guard, no-jpa-imports-guard, value-placeholders-guard, no-mp4-mentions-guard, personal-fixtures-guard, security-headers-guard, ci-checks-manifest-guard, log-hygiene-guard]
+    needs: [changes, actions-pinned-guard, root-junk-guard, heap-dump-retention-guard, allowlist-guardrails-guard, allowlist-automation-self-test, memory-guardrails-guard, prod-tunnel-guardrails-guard, build-config-guard, backend-lint, backend-build, backend-test, frontend-lint, frontend-build, confirm-escape-guard, webvue3-unit-tests, karaoke-public-unit-tests, marker-escape-guard, secret-in-argv-guard, file-permissions-guard, karaoke-public-e2e, docs-lint, baseline-stats, kdoc-coverage, jsdoc-coverage, ssot-impact, direct-commits-guard, knowledge-structure, docker-image-tags-guard, no-jpa-imports-guard, value-placeholders-guard, no-mp4-mentions-guard, personal-fixtures-guard, security-headers-guard, ci-checks-manifest-guard, log-hygiene-guard]
     if: always()
     steps:
       - name: Checkout

@@ -63,6 +63,13 @@ db-remote-postgres-user: ${DB_SERVER_POSTGRES_USER}
 db-remote-postgres-password: ${DB_SERVER_POSTGRES_PASSWORD}
 db-remote-host: ${DB_REMOTE_HOST:188.127.240.124}
 db-remote-port: ${DB_REMOTE_PORT:5433}
+# Спека 733 (FR-011, FR-012): клиентский сертификат для mTLS-доступа к прод-БД.
+# Пусто — mTLS не используется (прежнее поведение). Файлы лежат в смонтированном
+# secret-каталоге (права 600), в репозитории их нет (FR-013).
+db-remote-ssl-mode: ${DB_REMOTE_SSL_MODE:prefer}
+db-remote-ssl-cert: ${DB_REMOTE_SSL_CERT:}
+db-remote-ssl-key: ${DB_REMOTE_SSL_KEY:}
+db-remote-ssl-root-cert: ${DB_REMOTE_SSL_ROOT_CERT:}
 
 # BR-173 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): блок `app:` удалён.
 #

@@ -1,0 +1,36 @@
+[Unit]
+# Маршрут хоста админской машины в подсеть постоянного туннеля к проду.
+#
+# Спека 733 (FR-031, FR-032): туннель живёт в контейнере `karaoke-app`
+# (владельцем туннеля является приложение — FR-027), но хост админской машины
+# должен ходить в прод-БД по ТОМУ ЖЕ постоянному внутреннему адресу.
+# Этот юнит — «проброс адреса в хост»: маршрут 10.77.0.0/24 через контейнер.
+#
+# Установку выполняет владелец:
+#   sudo cp deploy/prod-tunnel/karaoke-tunnel-host-route.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now karaoke-tunnel-host-route.service
+#
+# Юнит НЕ управляет туннелем и НЕ ходит на прод — только маршрут в локальной сети.
+Description=Маршрут хоста в подсеть туннеля к проду (WireGuard, спека 733)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+Group=root
+# Путь ExecStart должен совпадать с каталогом deploy/ на целевой машине
+# (admin-машина: /home/nsa/Karaoke/deploy). Установка и включение юнита —
+# действие владельца; сам скрипт работает и без установки:
+#   bash deploy/prod-tunnel/host-route.sh --check
+Environment=PROD_TUNNEL_SUBNET=10.77.0.0/24
+Environment=PROD_TUNNEL_CONTAINER=karaoke-app
+ExecStart=/home/nsa/Karaoke/deploy/prod-tunnel/host-route.sh --apply
+ExecStop=/home/nsa/Karaoke/deploy/prod-tunnel/host-route.sh --remove
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

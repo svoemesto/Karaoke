@@ -112,6 +112,20 @@ SSH_READY_RC=0
 IP_SERVICES="${ALLOWLIST_IP_SERVICES:-https://api.ipify.org https://ifconfig.me/ip https://icanhazip.com https://checkip.amazonaws.com https://ifconfig.co/ip https://ipinfo.io/ip}"
 IP_TIMEOUT="${ALLOWLIST_IP_TIMEOUT:-8}"
 
+# --- режим туннеля (спека 733, FR-009) ---
+# ALLOWLIST_MODE=public  — обычный режим: определяем публичный адрес админской
+#                           машины и пишем его в allow-list прод-хоста.
+# ALLOWLIST_MODE=tunnel  — канал к проду идёт через постоянный туннель
+#                           (WireGuard, спека 733). В этом режиме автоматика
+#                           НЕ определяет и НЕ записывает публичный адрес:
+#                           иначе она вернула бы прежнюю уязвимость (доступ по
+#                           «узнавшему адрес») и сломала бы доступ через туннель.
+#                           Вместо этого — read-only проверка: во всех блоках с
+#                           `deny all;` должен стоять ровно один адрес —
+#                           постоянный внутренний адрес туннеля.
+ALLOWLIST_MODE="${ALLOWLIST_MODE:-public}"
+ALLOWLIST_TUNNEL_ADDR="${ALLOWLIST_TUNNEL_ADDR:-10.77.0.1}"
+
 # --- ограничения и состояние ---
 MIN_INTERVAL_MINUTES="${ALLOWLIST_MIN_INTERVAL_MINUTES:-30}"
 LOG_FILE="${ALLOWLIST_LOG_FILE:-/var/log/admin-ip-allowlist.log}"
@@ -1347,6 +1361,46 @@ print(json.dumps({
 PRBODYEOF
 }
 # ------------------------------------------------------------- режимы ----
+# --------------------------------------------------------------- туннель ----
+# Read-only проверка allow-list'а прод-хоста в режиме туннеля (спека 733,
+# FR-009). Ничего не применяет: постоянный внутренний адрес туннеля ставится
+# декларативно (шаблон конфигурации прод-хоста), а автоматика лишь следит, что
+# он на месте, и сигналит владельцу, если правило нарушено.
+#
+# Почему не «просто выключить таймер»: тогда при пропаже туннеля или при
+# чужой правке allow-list агент молчал бы, а «прод недоступен» осталось бы
+# без причины. Здесь проверка есть, но ПУБЛИЧНЫЙ адрес не пишется никогда.
+tunnel_allowlist_ok() {
+  local conf="$1"
+  address_allowed "${conf}" "${ALLOWLIST_TUNNEL_ADDR}"
+}
+
+run_tunnel_check() {
+  local conf_path conf_temp files=0 mismatch=0
+  log_event "tunnel" "mode=tunnel" "addr=$(sanitize "${ALLOWLIST_TUNNEL_ADDR}")" "action=check"
+  for conf_path in ${PROD_CONF_FILES}; do
+    conf_temp="$(mktemp "${TMPDIR:-/tmp}/allowlist-tunnel.XXXXXX")"
+    if ! download_prod_conf "${conf_path}" "${conf_temp}"; then
+      rm -f "${conf_temp}"
+      log_event "tunnel" "status=unreachable" "file=$(sanitize "${conf_path}")" "detail=${SSH_LAST_ERROR}"
+      return "${EXIT_FAIL}"
+    fi
+    files=$((files + 1))
+    if ! tunnel_allowlist_ok "${conf_temp}"; then
+      mismatch=$((mismatch + 1))
+      log_event "tunnel" "status=mismatch" "file=$(sanitize "${conf_path}")" "addr=$(sanitize "${ALLOWLIST_TUNNEL_ADDR}")"
+    fi
+    rm -f "${conf_temp}"
+  done
+  if [ "${mismatch}" -eq 0 ]; then
+    log_event "tunnel" "status=ok" "files=${files}" "addr=$(sanitize "${ALLOWLIST_TUNNEL_ADDR}")"
+    return "${EXIT_OK}"
+  fi
+  log_event "decision" "reason=tunnel_address_mismatch" "action=skip" "files=${files}" "mismatch=${mismatch}"
+  send_telegram "Karaoke allow-list: в режиме туннеля постоянный внутренний адрес (${ALLOWLIST_TUNNEL_ADDR}) не найден в allow-list прод-хоста (файлов с расхождением: ${mismatch}). Доступ к прод-каналам может быть закрыт. Правка автоматически не выполнялась — требуется решение владельца." || true
+  return "${EXIT_DECLINED}"
+}
+
 run_cycle() {
   # host — первый аргумент (хост, к которому идут TCP-пробы). Раньше он был
   # необъявленным локальным именем и не инициализировался: под `set -u` цикл
@@ -1355,6 +1409,14 @@ run_cycle() {
   APPLIED_FILES=()
   APPLIED_BACKUPS=()
   APPLIED_METHODS=()
+
+  # Спека 733 (FR-009): режим туннеля. Публичный адрес админской машины в
+  # allow-list прод-хоста НЕ пишется — вместо него там постоянный внутренний
+  # адрес туннеля. Скрипт только ПРОВЕРЯЕТ (read-only), что адрес на месте.
+  if [ "${ALLOWLIST_MODE}" = "tunnel" ]; then
+    run_tunnel_check
+    return $?
+  fi
 
   # FR-001/FR-002: пробы и различение причины недоступности.
   if ! check_reachability "${host}"; then
@@ -2347,6 +2409,77 @@ S20
     echo "   FAIL: откат восстановил не тот бэкап (см. ${s21_log})"; failed=1
   fi
   eval "${s21_saved_rollback}"
+
+  echo "== Сценарий 22: режим туннеля — публичный адрес в allow-list НЕ попадает (спека 733, FR-009)"
+  # КАНАЛ К ПРОДУ ИДЁТ ЧЕРЕЗ ПОСТОЯННЫЙ ТУННЕЛЬ (WireGuard, спека 733). В allow-list
+  # прод-хоста должен стоять постоянный внутренний адрес туннеля (10.77.0.1), а НЕ
+  # публичный адрес админской машины. Если бы автоматика продолжала писать
+  # публичный адрес, механизм вернул бы прежнюю уязвимость (доступ по «узнавшему
+  # адрес») и сломал бы доступ через туннель.
+  local s22_tunnel="${workdir}/s22.tunnel.conf" s22_public="${workdir}/s22.public.conf"
+  local s22_addr="10.77.0.1"
+  cat >"${s22_tunnel}" <<S22
+server {
+    listen 5433;
+    allow 10.77.0.1;
+    deny all;
+}
+server {
+    listen 9000;
+    allow 10.77.0.1;
+    deny all;
+}
+S22
+  cp "${s22_tunnel}" "${s22_public}"
+  # Файл с публичным адресом — как было до перехода на туннель.
+  sed -i "s/allow 10.77.0.1;/allow ${test_ip};/g" "${s22_public}"
+  local s22_mode_backup="${ALLOWLIST_MODE}" s22_tunnel_backup="${ALLOWLIST_TUNNEL_ADDR}"
+  ALLOWLIST_MODE="tunnel"
+  ALLOWLIST_TUNNEL_ADDR="${s22_addr}"
+  if tunnel_allowlist_ok "${s22_tunnel}"; then
+    echo "   OK: файл с постоянным адресом туннеля признан корректным"
+  else
+    echo "   FAIL: файл с постоянным адресом туннеля признан расхождением"; failed=1
+  fi
+  if tunnel_allowlist_ok "${s22_public}"; then
+    echo "   FAIL: файл с публичным адресом признан корректным (должен быть расхождением)"; failed=1
+  else
+    echo "   OK: файл с публичным адресом распознан как расхождение (правка не применяется)"
+  fi
+  # Публичный адрес не должен ни появиться, ни исчезнуть: файл не трогаем.
+  local s22_before s22_after
+  s22_before="$(sha256sum "${s22_public}" | awk '{print $1}')"
+  # Пробуем цикл в режиме туннеля на локальном файле (без SSH к проду).
+  local s22_saved_run_ssh="$(declare -f run_ssh)"
+  run_ssh() {
+    case "$1" in
+      cat*) cat "${s22_public}" ;;
+      *) wc -c <"${s22_public}" | tr -d ' ' ;;
+    esac
+    return 0
+  }
+  PROD_CONF_FILES="/etc/nginx/nginx.conf"
+  local s22_rc=0
+  run_tunnel_check >/dev/null 2>&1 || s22_rc=$?
+  s22_after="$(sha256sum "${s22_public}" | awk '{print $1}')"
+  eval "${s22_saved_run_ssh}"
+  if [ "${s22_before}" = "${s22_after}" ]; then
+    echo "   OK: файл allow-list не изменён (публичный адрес не записан)"
+  else
+    echo "   FAIL: файл allow-list изменён — публичный адрес мог попасть в туннельный режим"; failed=1
+  fi
+  if [ "${s22_rc}" = "${EXIT_DECLINED}" ]; then
+    echo "   OK: расхождение в режиме туннеля — отказ (код ${EXIT_DECLINED}), владелец уведомлён"
+  else
+    echo "   FAIL: код расхождения = ${s22_rc} (ожидался ${EXIT_DECLINED})"; failed=1
+  fi
+  if grep -q 'reason=tunnel_address_mismatch' "${LOG_FILE}" 2>/dev/null; then
+    echo "   OK: в журнале есть событие о расхождении (reason=tunnel_address_mismatch)"
+  else
+    echo "   FAIL: в журнале нет события о расхождении"; failed=1
+  fi
+  ALLOWLIST_MODE="${s22_mode_backup}"
+  ALLOWLIST_TUNNEL_ADDR="${s22_tunnel_backup}"
 
   [ -z "${SELFTEST_DIR:-}" ] && rm -rf "${workdir}"
   if [ "${failed}" = 0 ]; then

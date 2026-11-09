@@ -308,6 +308,24 @@ checks:
       - tools/check-allowlist-guardrails.sh
     evidence: "deploy/admin-ip-allowlist.sh:960,1368; tools/check-allowlist-guardrails.sh:350-352; lint.yml:134,137"
 
+  - id: prod-tunnel-guardrails-guard
+    title: prod tunnel guardrails guard (спека 733)
+    gate: true
+    cost: light
+    mode: paths
+    # Постоянный туннель к проду (WireGuard, спека 733): инварианты конфигурации
+    # (NET_ADMIN, /dev/net/tun, ip_forward, монтирование секретов read-only),
+    # отсутствие ключей в репозитории и режим туннеля у автоматики allow-list.
+    paths:
+      - deploy/prod-tunnel/**
+      - deploy/docker-compose-app.yml
+      - deploy/karaoke-app/Dockerfile
+      - deploy/admin-ip-allowlist.sh
+      - karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/tunnel/**
+      - tools/check-prod-tunnel-guardrails.sh
+      - specs/733-prod-tunnel-mtls/**
+    evidence: "tools/check-prod-tunnel-guardrails.sh:1; deploy/prod-tunnel/README.md:1"
+
   - id: memory-guardrails-guard
     title: memory guardrails guard (BR-630)
     gate: true

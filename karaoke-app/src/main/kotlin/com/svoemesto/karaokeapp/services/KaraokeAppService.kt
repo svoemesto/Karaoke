@@ -36,6 +36,25 @@ lateinit var DB_REMOTE_PORT: String
  */
 lateinit var DB_REMOTE_SSL_MODE: String
 
+/**
+ * Путь к клиентскому сертификату для mTLS-доступа к прод-БД (спека 733, FR-011).
+ *
+ * Пустая строка — mTLS не используется (прежнее поведение). Файл лежит в
+ * смонтированном secret-каталоге (права 600), в репозитории его нет (FR-013).
+ */
+var DB_REMOTE_SSL_CERT: String = ""
+
+/**
+ * Путь к приватному ключу клиентского сертификата (FR-011). Пустая строка — не задан.
+ */
+var DB_REMOTE_SSL_KEY: String = ""
+
+/**
+ * Путь к корневому сертификату CA — цепочка доверия для проверки сертификата
+ * сервера БД (FR-012). Пустая строка — не задан.
+ */
+var DB_REMOTE_SSL_ROOT_CERT: String = ""
+
 // @Component
 
 /** BR-291: логгер проверки конфигурации крипты при старте приложения. */
@@ -60,6 +79,9 @@ class KaraokeAppService(
     @Value($$"${db-remote-host}") val dbRemoteHost: String,
     @Value($$"${db-remote-port}") val dbRemotePort: String,
     @Value($$"${db-remote-ssl-mode:prefer}") val dbRemoteSslMode: String,
+    @Value($$"${db-remote-ssl-cert:}") val dbRemoteSslCert: String,
+    @Value($$"${db-remote-ssl-key:}") val dbRemoteSslKey: String,
+    @Value($$"${db-remote-ssl-root-cert:}") val dbRemoteSslRootCert: String,
 ) {
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
@@ -71,6 +93,9 @@ class KaraokeAppService(
         DB_REMOTE_HOST = dbRemoteHost
         DB_REMOTE_PORT = dbRemotePort
         DB_REMOTE_SSL_MODE = dbRemoteSslMode
+        DB_REMOTE_SSL_CERT = dbRemoteSslCert
+        DB_REMOTE_SSL_KEY = dbRemoteSslKey
+        DB_REMOTE_SSL_ROOT_CERT = dbRemoteSslRootCert
         SNS = sseNotificationService
         KSS_APP = karaokeStorageService
         SAC_APP = storageApiClient

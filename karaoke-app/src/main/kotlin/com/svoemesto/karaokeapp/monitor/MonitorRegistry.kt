@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.monitor
 import com.svoemesto.karaokeapp.monitor.checks.HeapUsageCheck
 import com.svoemesto.karaokeapp.monitor.checks.LaneStalledCheck
 import com.svoemesto.karaokeapp.monitor.checks.ProdContainerCheck
+import com.svoemesto.karaokeapp.monitor.checks.ProdTunnelCheck
 import com.svoemesto.karaokeapp.monitor.checks.RenderQueueStalledCheck
 import com.svoemesto.karaokeapp.monitor.checks.StemJobsStuckCheck
 import com.svoemesto.karaokeapp.monitor.checks.SubmittedAssignmentsCheck
@@ -25,5 +26,8 @@ object MonitorRegistry {
             StemJobsStuckCheck,
             // BR-630 (спека 676): загрузка heap JVM — пороги 75 % / 90 % (FR-015).
             HeapUsageCheck,
+            // Спека 733 (FR-008, FR-028): состояние постоянного туннеля к проду —
+            // отдельный признак, чтобы отличать «упал туннель» от «упал прод».
+            ProdTunnelCheck,
         )
 }

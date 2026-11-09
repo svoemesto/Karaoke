@@ -15,6 +15,8 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.TelegramAutoPublishService
 import com.svoemesto.karaokeapp.services.startOneShotThread
+import com.svoemesto.karaokeapp.tunnel.ChannelFailureClassifier
+import com.svoemesto.karaokeapp.tunnel.ProdTunnelConfig
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
@@ -175,6 +177,33 @@ class KaraokeProcessThread(
                     )
                     kp.status = KaraokeProcessStatuses.WAITING.name
                     kp.save()
+                } else if (KaraokeProcessWorker.shouldRetryAfterChannelFailure(kp.id, e)) {
+                    // Спека 733 (FR-033): кратковременный обрыв внешней сети (до ~60 с)
+                    // не должен губить задание — оно возвращается в очередь и
+                    // завершается повторной попыткой. Прежде здесь был безусловный
+                    // ERROR: обрыв WAN (runbook § 1d) переводил задание в ошибку.
+                    val reason = ChannelFailureClassifier.classify(e).code
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[$kp.threadId]: WAITING (канальный отказ: $reason) задание: $kp.name - [$kp.type] - $kp.description",
+                    )
+                    kp.status = KaraokeProcessStatuses.WAITING.name
+                    kp.end = null
+                    kp.description = KaraokeProcess.appendErrorReason(kp.description, e)
+                    kp.save()
+                    AppLog.warn(
+                        category = "infra.queue.channel",
+                        code = "QUEUE-CHANNEL-001",
+                        event = "queue.channel.retry",
+                        fields =
+                            mapOf(
+                                "processId" to kp.id,
+                                "kind" to reason,
+                                "attempt" to KaraokeProcessWorker.channelRetryAttempts(kp.id),
+                            ),
+                        error = e,
+                    )
                 } else {
                     println(
                         "[${Timestamp.from(
@@ -607,6 +636,48 @@ class KaraokeProcessWorker {
     companion object {
         /** Категория логов (KARAOKE-387). */
         const val CATEGORY = "com.svoemesto.karaokeapp.KaraokeProcessWorker"
+
+        /**
+         * Счётчик канальных повторов по заданиям (спека 733, FR-033).
+         *
+         * Ключ — id задания. Счётчик живёт в памяти процесса: обрыв WAN длится
+         * секунды-минуты, переживать его должны те же экземпляры воркера.
+         */
+        private val channelRetries = java.util.concurrent.ConcurrentHashMap<Long, Int>()
+
+        /**
+         * Сколько раз задание уже возвращалось в очередь из-за канального отказа.
+         */
+        fun channelRetryAttempts(processId: Long): Int = channelRetries[processId] ?: 0
+
+        /**
+         * Нужно ли вернуть задание в очередь из-за канального отказа.
+         *
+         * @param processId id задания.
+         * @param error исключение задания.
+         * @return `true`, если отказ канальный и число попыток не исчерпано.
+         */
+        fun shouldRetryAfterChannelFailure(
+            processId: Long,
+            error: Throwable?,
+        ): Boolean {
+            if (!ChannelFailureClassifier.isChannelFailure(error)) return false
+            val limit =
+                runCatching {
+                    ProdTunnelConfig.fromEnv().maxChannelRetries
+                }.getOrDefault(3)
+            val attempts = (channelRetries[processId] ?: 0) + 1
+            channelRetries[processId] = attempts
+            return attempts <= limit
+        }
+
+        /**
+         * Сбрасывает счётчик канальных повторов (задание завершилось успешно
+         * или ушло в ошибку по существу).
+         */
+        fun resetChannelRetries(processId: Long) {
+            channelRetries.remove(processId)
+        }
 
         /**
          * Список имён subprocess, stdout которых не логируется (мелкие

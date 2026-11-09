@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.tunnel.CertFailureClassifier
+import com.svoemesto.karaokeapp.tunnel.CertFailureReason
 import org.slf4j.LoggerFactory
 import java.sql.DriverManager
 
@@ -191,6 +193,25 @@ abstract class KaraokeConnection(
                         ),
                     error = e,
                 )
+                // Спека 733 (FR-016): отказ по сертификату MUST попадать в наблюдаемость
+                // как событие с указанием причины (просрочен / недоверенный / отозван),
+                // а не как безымянная ошибка соединения. Тот же отказ порождает и
+                // DB-CONNECT-001 — здесь появляется код участника «сертификат».
+                val certReason = CertFailureClassifier.classify(e)
+                if (certReason != CertFailureReason.UNKNOWN) {
+                    AppLog.warn(
+                        category = CATEGORY,
+                        code = "DB-CERT-001",
+                        event = "db.cert.rejected",
+                        fields =
+                            mapOf(
+                                "target" to name,
+                                "certReason" to certReason.code,
+                                "host" to url.substringAfter("://").substringBefore("/"),
+                            ),
+                        error = e,
+                    )
+                }
             }
         }
         return threadLocalConnection.get()

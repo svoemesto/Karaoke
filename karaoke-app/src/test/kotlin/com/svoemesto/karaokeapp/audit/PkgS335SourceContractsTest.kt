@@ -288,8 +288,14 @@ class PkgS335SourceContractsTest {
             ci.contains("bash tools/check-feature-doc.sh knowledge/product/features/*.md archive/docs/features/*.md"),
             "CI проверяет оба каталога per-feature документов (BR-510)",
         )
-        val lycheeArgs = ci.substringAfter("lychee-action@").substringBefore("CONTRIBUTING.md")
-        val lycheeTargets = lycheeArgs.lines().map { it.trim() }
+        // Ищем блок самого вызова lychee: действие lychee-action@ было убрано
+        // из CI (бинарник ставится вручную), поэтому привязка к нему больше не
+        // работает. Отрезок — от «lychee --offline» до последнего аргумента
+        // (CONTRIBUTING.md).
+        val lycheeArgs = ci.substringAfter("lychee --offline").substringBefore("CONTRIBUTING.md")
+        // Строки команды lychee в CI перенесены с «\» в конце — приводим к виду
+        // «путь», чтобы сравнение с целями было точным.
+        val lycheeTargets = lycheeArgs.lines().map { it.trim().trimEnd('\\').trim() }
         assertTrue(
             lycheeTargets.contains("knowledge/product/features/"),
             "lychee (offline-ссылки) проверяет живые per-feature документы (BR-510)",

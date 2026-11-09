@@ -24,4 +24,4 @@
 
 ## Структура компонентов (C4 L3)
 Список основных компонентов домена со ссылками на их спецификации в `components/`.
-- [Component Name](components/component-name.md) — Краткое описание ответственности.
+- `components/component-name.md` — Component Name — Краткое описание ответственности.

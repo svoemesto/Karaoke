@@ -166,19 +166,39 @@ curl -sS -X POST https://sm-karaoke.ru/api/properties/setproperty \
    `/certs/postgres/ca.crt`) — без него Postgres не может проверить клиентский
    сертификат по правилу `clientcert=verify-ca`.
 4. Добавить правило в `pg_hba.conf` (файл в `PGDATA`, каталог данных БД):
-   `hostssl karaoke SvoeMestoKaraokeUser905 10.77.0.1/32 scram-sha-256 clientcert=verify-ca`.
+   `hostssl karaoke SvoeMestoKaraokeUser905 172.18.0.1/32 scram-sha-256 clientcert=verify-ca`.
    Правило с паролем остаётся запасным путём (FR-015).
+
+   **Адрес в правиле — `172.18.0.1`, а не `10.77.0.1` и не `127.0.0.1`.**
+   Причина: канал приходит из туннеля в nginx (`:5433`), nginx проксирует на
+   `127.0.0.1:8832` (docker-proxy), и только потом в контейнер БД; внутри
+   контейнера источником виден **docker-шлюз `172.18.0.1`**. Правило на
+   `10.77.0.1` не сработает никогда, правило на `127.0.0.1` — тоже (оно
+   относится только к прямым локальным соединениям). Проверять фактический
+   источник: `select client_addr from pg_stat_activity`.
 5. Перезапустить `karaoke-db` (кратковременная недоступность БД — сайт переживает:
    правила для локальных подключений `trust`/`scram-sha-256` не меняются).
+   Перечитывания конфигурации (`pg_reload_conf()`) достаточно для `pg_hba.conf`,
+   но параметры `ssl*` применяются только перезапуском.
 6. Доставить клиентский сертификат и ключ на админскую машину в
    `/etc/karaoke/tunnel` (`db-client.crt` `644`, `db-client.key` `600`, `ca.crt` `644`).
+
+   **Ключ обязан быть в формате PKCS-8 DER (двоичный), не PEM.** Драйвер
+   `pgjdbc` (в отличие от `libpq`/`psql`) читает `sslkey` только как PKCS-8 DER;
+   на PEM-ключ он отвечает `Could not read SSL key file`. Конвертация:
+
+   ```bash
+   openssl pkcs8 -topk8 -inform PEM -outform DER -in db-client.key.pem -nocrypt -out db-client.key
+   ```
 7. Включить проверку на клиенте: `DB_REMOTE_SSL_MODE=verify-full`,
    `DB_REMOTE_SSL_CERT=/run/karaoke/tunnel/db-client.crt`,
    `DB_REMOTE_SSL_KEY=/run/karaoke/tunnel/db-client.key`,
    `DB_REMOTE_SSL_ROOT_CERT=/run/karaoke/tunnel/ca.crt`; перезапустить
    `karaoke-app` по Pass 380.
 8. Проверить: приложение работает (`DB-CONNECT-001` = 0), а соединение **без**
-   клиентского сертификата отклоняется (проверка из контейнера через туннель).
+   клиентского сертификата отклоняется — сервер отвечает
+   `FATAL: connection requires a valid client certificate` (проверка из
+   контейнера через туннель, см. п. 5 «Проверки»).
 
 Откат: `DB_SSL_ON=off` + перезапуск `karaoke-db`, удаление правила `hostssl` из
 `pg_hba.conf`, `DB_REMOTE_SSL_MODE=prefer` + перезапуск `karaoke-app`.

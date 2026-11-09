@@ -27,6 +27,7 @@
 | `python3 tools/lint-knowledge.py --baseline …` | без нарушений |
 | `bash tools/check-ci-checks-manifest.sh` | 37 записей / 37 job-id, мёртвых зон нет |
 | `pre-commit run --files <мои файлы>` | все хуки Passed |
+| **CI на head-коммите PR #85** (`f5cfaf58`) | **30/30 success, state=success** — гейт `ci-summary` зелёный, PR готов к merge (`tools/merge-pr.sh <85>` — действие ведущего) |
 
 ## Осталось за владельцем (4 шага, изменений на проде — ноль)
 

@@ -105,6 +105,15 @@ event=db.connect.failed code=DB-CONNECT-001 target=SERVER thread=http-nio-1 host
 | `MEDIAINFO-001` | `mediainfo.parse.failed` | Разбор метаданных медиа упал (`file=`) | Плейер может не показать длительность |
 | `PROCESS-CLEAN-001/002/003`, `PROCESS-RESET-001` | `process.*` | Очистка/нормализация/сброс заданий при старте воркера упали | Смотреть БД; на очередь влияет сброс `WORKING → WAITING` |
 | `STORAGE-POLICY-OK` / `STORAGE-POLICY-REPAIRED` / `STORAGE-POLICY-UNCONFIRMED` | `stemjobs:storage:policy …` | Политика бакетов MinIO: подтверждена / дожата / не подтверждена | Для `UNCONFIRMED` — проверить канал до MinIO (порт 9000) и повторить; самопроверка идёт каждые 5 минут (KARAOKE-385) |
+| `TUNNEL-001` | `tunnel.up` | Туннель к прод-хосту поднят (`interface`, `peer`, `handshakeAgeSec`) | — (информационное) |
+| `TUNNEL-002` | `tunnel.down` | Туннель не поднят/потерян (`reason=` `no_permission`/`no_key`/`no_config`/`udp_blocked`/`command_failed`/`interface_missing`/`no_handshake`) | Смотреть `reason`: `no_permission` → в контейнере нет `NET_ADMIN`/`/dev/net/tun`; `no_key` → не смонтирован каталог с ключом; `udp_blocked` → закрыт UDP на пути |
+| `TUNNEL-003` | `tunnel.stale` | Рукопожатие старше порога — туннель перезапускается (`handshakeAgeSec`, `timeoutSec`) | Проверить WAN шлюза `10.0.1.1` (см. § 1d) |
+| `TUNNEL-004` | `tunnel.restored` | Туннель восстановлен после сбоя (`restarts`) | — |
+| `TUNNEL-005` | `tunnel.disabled` | Туннель выключен конфигурацией (`PROD_TUNNEL_ENABLED=false`) | Канал идёт по публичному пути; при смене IP провайдера нужна автоматика allow-list |
+| `TUNNEL-006` | `tunnel.config.invalid` | Конфигурация не прошла валидацию (`rule=`) | Править конфигурацию; туннель не поднимается |
+| `TUNNEL-007` | `tunnel.fallback` | Туннель недоступен, канал ушёл в fallback (`fallback=` `public`/`disabled`) | `disabled` — канал закрыт намеренно |
+| `DB-CERT-001` | `db.cert.rejected` | Сервер БД отклонил клиентский сертификат (`target`, `certReason=` `expired`/`revoked`/`untrusted`) | `expired` → перевыпустить (runbook `prod-tunnel.md` § 3.3); `untrusted` → проверить `sslrootcert` |
+| `QUEUE-CHANNEL-001` | `queue.channel.retry` | Задание возвращено в очередь из-за канального отказа (`processId`, `kind`, `attempt`) | Действие не требуется; серия — ищите обрыв WAN/туннеля |
 
 ## 1b. Guard гигиены логов (KARAOKE-387, продолжение)
 
@@ -261,6 +270,23 @@ OpenVPN-туннель до pfSense — на прод-канал они не в�
   идёт через тот же шлюз, поэтому обрывы WAN останутся, пока канал один.
 - Устойчивость приложения к обрыву (FR-033 спеки 733) — единственная защита,
   которая в нашей власти и работает при любой причине обрыва.
+
+**Спека 733 (2026-11-09): «прод недоступен» теперь различает участников.**
+Постоянный туннель к проду (WireGuard) добавил в лог отдельные коды:
+`TUNNEL-001…007` (состояние туннеля) и `DB-CERT-001` (отказ по сертификату).
+Правило дежурного:
+
+| Что сломалось | Код |
+|---|---|
+| туннель | `TUNNEL-002` / `TUNNEL-003` / `TUNNEL-006` / `TUNNEL-007` |
+| сертификат | `DB-CERT-001` |
+| БД (не туннель и не сертификат) | `DB-CONNECT-001` / `DB-UNAVAILABLE-002` |
+| сайт | `MON-CHECK-001` с `check=ProdContainerCheck` |
+
+В мониторинге состояние туннеля — отдельный признак (`prod.tunnel`), а проверка
+прод-канала при упавшем туннеле пишет «Канал к проду недоступен (туннель не
+поднят)» вместо «Прод-сервер недоступен» — ложный CRITICAL при живом проде
+больше не возникает. Диагностика по шагам — runbook `prod-tunnel.md` § 2.
 
 **Если окна вернулись** — сначала повторить измерение из таблицы выше: если LAN
 жив, а WAN нет — причина на шлюзе; если упал и LAN — причина в машине (новый

@@ -6,7 +6,10 @@ import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
 import com.svoemesto.karaokeapp.services.DB_REMOTE_HOST
 import com.svoemesto.karaokeapp.services.DB_REMOTE_PORT
+import com.svoemesto.karaokeapp.services.DB_REMOTE_SSL_CERT
+import com.svoemesto.karaokeapp.services.DB_REMOTE_SSL_KEY
 import com.svoemesto.karaokeapp.services.DB_REMOTE_SSL_MODE
+import com.svoemesto.karaokeapp.services.DB_REMOTE_SSL_ROOT_CERT
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
 
@@ -159,7 +162,15 @@ class Connection(
                 "jdbc:postgresql://localhost:8832/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
             }
 
-        private fun connectionRemoteUrl(): String = buildRemoteJdbcUrl(DB_REMOTE_HOST, DB_REMOTE_PORT, DB_REMOTE_SSL_MODE)
+        private fun connectionRemoteUrl(): String =
+            buildRemoteJdbcUrl(
+                DB_REMOTE_HOST,
+                DB_REMOTE_PORT,
+                DB_REMOTE_SSL_MODE,
+                DB_REMOTE_SSL_CERT,
+                DB_REMOTE_SSL_KEY,
+                DB_REMOTE_SSL_ROOT_CERT,
+            )
 
         private fun connectionVirtualUrl(): String =
             "jdbc:postgresql://localhost:2230/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
@@ -181,13 +192,31 @@ class Connection(
  * `deploy/prod-single-host/docker-compose-database.yml`, DB_SSL_ON).
  *
  * Пустое значение → параметр не добавляется вовсе (поведение драйвера).
+ *
+ * Спека 733 (FR-011, FR-012): в режиме mTLS добавляются параметры клиентского
+ * сертификата — `sslcert` (сертификат), `sslkey` (приватный ключ) и
+ * `sslrootcert` (корневой сертификат CA). При `sslmode=verify-full` драйвер
+ * проверяет **полную цепочку** и имя сервера, а не только шифрует канал.
+ * Пустые значения → параметры не добавляются (прежнее поведение).
  */
 internal fun buildRemoteJdbcUrl(
     host: String,
     port: String,
     sslMode: String,
+    sslCert: String = "",
+    sslKey: String = "",
+    sslRootCert: String = "",
 ): String {
     val base = "jdbc:postgresql://$host:$port/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
+    val params = mutableListOf<String>()
     val mode = sslMode.trim()
-    return if (mode.isEmpty()) base else "$base&sslmode=$mode"
+    if (mode.isNotEmpty()) params += "sslmode=$mode"
+    val cert = sslCert.trim()
+    if (cert.isNotEmpty()) params += "sslcert=$cert"
+    val key = sslKey.trim()
+    if (key.isNotEmpty()) params += "sslkey=$key"
+    val rootCert = sslRootCert.trim()
+    if (rootCert.isNotEmpty()) params += "sslrootcert=$rootCert"
+    if (params.isEmpty()) return base
+    return "$base&" + params.joinToString("&")
 }

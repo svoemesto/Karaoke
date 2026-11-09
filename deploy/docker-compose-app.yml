@@ -55,6 +55,31 @@ services:
       # если сервер без TLS). Целевое состояние — require/verify-full после
       # включения TLS на сервере (DB_SSL_ON на прод-хосте).
       - DB_REMOTE_SSL_MODE=${DB_REMOTE_SSL_MODE:-prefer}
+      # Спека 733 (FR-011, FR-012): клиентский сертификат для mTLS-доступа
+      # к прод-БД. Пусто — mTLS не используется (прежнее поведение).
+      # Файлы лежат в смонтированном secret-каталоге (права 600).
+      - DB_REMOTE_SSL_CERT=${DB_REMOTE_SSL_CERT:-}
+      - DB_REMOTE_SSL_KEY=${DB_REMOTE_SSL_KEY:-}
+      - DB_REMOTE_SSL_ROOT_CERT=${DB_REMOTE_SSL_ROOT_CERT:-}
+      # Спека 733 (FR-001, FR-027): постоянный туннель к проду (WireGuard).
+      # PROD_TUNNEL_ENABLED=false — туннель выключен, приложение работает по
+      # публичному пути (прежнее поведение). При true приложение само поднимает
+      # интерфейс wg0, следит за рукопожатием и восстанавливает туннель.
+      - PROD_TUNNEL_ENABLED=${PROD_TUNNEL_ENABLED:-false}
+      - PROD_TUNNEL_INTERFACE=${PROD_TUNNEL_INTERFACE:-wg0}
+      - PROD_TUNNEL_SECRET_DIR=/run/karaoke/tunnel
+      - PROD_TUNNEL_PRIVATE_KEY_PATH=${PROD_TUNNEL_PRIVATE_KEY_PATH:-/run/karaoke/tunnel/tunnel.key}
+      - PROD_TUNNEL_LOCAL_ADDRESS=${PROD_TUNNEL_LOCAL_ADDRESS:-10.77.0.1/24}
+      - PROD_TUNNEL_PEER_ADDRESS=${PROD_TUNNEL_PEER_ADDRESS:-10.77.0.2/24}
+      - PROD_TUNNEL_PEER_PUBLIC_KEY=${PROD_TUNNEL_PEER_PUBLIC_KEY:-}
+      - PROD_TUNNEL_ENDPOINT=${PROD_TUNNEL_ENDPOINT:-188.127.240.124:51820}
+      - PROD_TUNNEL_KEEPALIVE=${PROD_TUNNEL_KEEPALIVE:-25}
+      - PROD_TUNNEL_HANDSHAKE_TIMEOUT=${PROD_TUNNEL_HANDSHAKE_TIMEOUT:-180}
+      - PROD_TUNNEL_CHECK_INTERVAL=${PROD_TUNNEL_CHECK_INTERVAL:-30}
+      - PROD_TUNNEL_PROD_HOST=${PROD_TUNNEL_PROD_HOST:-10.77.0.2}
+      - PROD_TUNNEL_DNS_OVERRIDE_HOST=${PROD_TUNNEL_DNS_OVERRIDE_HOST:-sm-karaoke.ru}
+      - PROD_TUNNEL_FALLBACK_ENABLED=${PROD_TUNNEL_FALLBACK_ENABLED:-true}
+      - PROD_TUNNEL_MAX_CHANNEL_RETRIES=${PROD_TUNNEL_MAX_CHANNEL_RETRIES:-3}
       # BR-630 (спека 676, FR-015): пороги алерта загрузки heap JVM — 75 %
       # (предупреждение) и 90 % (критический уровень), % от максимума heap.
       # Конфигурация, а не код (ADR local-0001): значения видны здесь, рядом с
@@ -84,8 +109,27 @@ services:
       # читается с хоста. Политика хранения (последние 2, ≤ 20 ГБ, вытеснение по
       # возрасту) — deploy/heap-dump-retention.sh.
       - ./karaoke-db/dumps:/dumps
+      # Спека 733 (FR-013, FR-030): каталог с ключом туннеля и сертификатами
+      # для mTLS к прод-БД. Монтируется read-only; содержимое — вне репозитория
+      # (на хосте: /etc/karaoke/tunnel, права 700, файлы 600).
+      # Каталог может отсутствовать — тогда туннель не поднимется (TUNNEL-002,
+      # причина no_key), а приложение продолжит работать по публичному пути.
+      - ${TUNNEL_SECRET_DIR_HOST:-/etc/karaoke/tunnel}:/run/karaoke/tunnel:ro
     devices:
       - /dev/dri:/dev/dri
+      # Спека 733 (FR-027): туннель к проду (WireGuard) поднимает САМО
+      # приложение — интерфейс wg0 живёт в сетевом пространстве этого
+      # контейнера. Для этого нужны NET_ADMIN и устройство /dev/net/tun.
+      # Приватный ключ приходит монтированием из secret-каталога (600) и
+      # приложением НЕ читается (его получает `wg` по пути файла) — FR-030.
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    # ip_forward нужен, чтобы трафик хоста админской машины (DBeaver → 10.77.0.2)
+    # проходил через контейнер в туннель с тем же постоянным адресом назначения
+    # и тем же адресом источника 10.77.0.1 — FR-031, FR-032.
+    sysctls:
+      net.ipv4.ip_forward: "1"
     networks:
       - karaokenet
     # BR-630 (спека 676, FR-006/FR-007): предел памяти контейнера karaoke-app.

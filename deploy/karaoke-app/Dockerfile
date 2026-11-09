@@ -69,7 +69,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libmanette-0.2-0 \
     libgles2 \
     libgstreamer-gl1.0-0 \
-    libgstreamer-plugins-bad1.0-0
+    libgstreamer-plugins-bad1.0-0 \
+    wireguard-tools \
+    iproute2 \
+    iptables
 
 # Блок 2: Docker CE (нужен для запуска docker run / docker compose внутри контейнера)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

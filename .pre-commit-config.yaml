@@ -285,6 +285,20 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: инварианты постоянного туннеля к проду (спека 733) ===
+      # Проверяет декларативность и безопасность конфигурации туннеля:
+      # NET_ADMIN + /dev/net/tun + ip_forward в compose, wireguard-tools в
+      # образе, монтирование каталога с ключами read-only, отсутствие ключей
+      # и сертификатов в репозитории, свободная подсеть туннеля, режим
+      # туннеля у автоматики allow-list (публичный адрес туда не пишется).
+      - id: prod-tunnel-guardrails-guard
+        name: prod tunnel guardrails guard (спека 733)
+        entry: bash tools/check-prod-tunnel-guardrails.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Guard: изолированная проверка автоматизации allow-list (FR-018) ===
       # Сценарий «IP сменился» на изолированном конфиге: добавление, проверка
       # синтаксиса, откат при ошибке, отказ при недоступном проде, частота.

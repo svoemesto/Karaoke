@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.monitor.MonitorContext
 import com.svoemesto.karaokeapp.monitor.MonitorSeverity
 import com.svoemesto.karaokeapp.services.DB_REMOTE_HOST
 import com.svoemesto.karaokeapp.services.DB_REMOTE_PORT
+import com.svoemesto.karaokeapp.services.ProdTunnelHolder
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.net.http.HttpClient
@@ -104,17 +105,36 @@ object ProdContainerCheck : MonitorCheck {
                 if (!dbUp) "БД прод-сервера" else null,
             ).joinToString(" и ")
 
+        // Спека 733 (FR-028, FR-033): «прод недоступен» без указания участника —
+        // ложная тревога. Если туннель к проду не поднят, недоступность сайта и БД
+        // объясняется туннелем (или обрывом WAN админской машины), а не продом.
+        val tunnelState = ProdTunnelHolder.supervisor?.state
+        val tunnelDown = tunnelState != null && !tunnelState.up
+        val title = if (tunnelDown) "Канал к проду недоступен (туннель не поднят)" else "Прод-сервер недоступен"
+        val body =
+            if (tunnelDown) {
+                "Туннель к прод-хосту не поднят (причина: ${tunnelState?.reason ?: "неизвестна"}). " +
+                    "Недоступен(ы): $whatIsDown. Прод при этом может быть жив — канал идёт через WAN админской машины."
+            } else {
+                "Недоступен(ы): $whatIsDown."
+            }
+
         return listOf(
             MonitorAlert(
                 key = "infra.prod.down",
                 severity = severity,
-                title = "Прод-сервер недоступен",
-                body = "Недоступен(ы): $whatIsDown.",
+                title = title,
+                body = body,
                 category = "Инфраструктура",
                 detail = "недоступен уже $downForMinutes мин.",
                 recommendations =
-                    "Проверьте сервер $DB_REMOTE_HOST по SSH: nginx (`nginx -t`, `systemctl status nginx`), " +
-                        "`docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`).",
+                    if (tunnelDown) {
+                        "Проверить туннель: docker exec karaoke-app wg show wg0; " +
+                            "если рукопожатия нет — проверить WAN админской машины (ping 10.0.1.1, ping 1.1.1.1)."
+                    } else {
+                        "Проверьте сервер $DB_REMOTE_HOST по SSH: nginx (`nginx -t`, `systemctl status nginx`), " +
+                            "`docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`)."
+                    },
             ),
         )
     }

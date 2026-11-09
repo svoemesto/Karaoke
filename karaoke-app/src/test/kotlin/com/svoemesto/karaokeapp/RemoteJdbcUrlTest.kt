@@ -53,4 +53,42 @@ class RemoteJdbcUrlTest {
         assertTrue(url.contains("socketTimeout=30"))
         assertTrue(url.contains("loginTimeout=10"))
     }
+
+    // Спека 733 (FR-011, FR-012): клиентский сертификат для mTLS-доступа к
+    // прод-БД. Сертификат сервера проверяется ПОЛНОСТЬЮ (verify-full) — цепочка
+    // и имя сервера, а не только шифрование канала.
+
+    @Test
+    fun `параметры клиентского сертификата добавляются в URL`() {
+        val url =
+            buildRemoteJdbcUrl(
+                "10.77.0.2",
+                "5433",
+                "verify-full",
+                "/run/karaoke/tunnel/db-client.crt",
+                "/run/karaoke/tunnel/db-client.key",
+                "/run/karaoke/tunnel/ca.crt",
+            )
+        assertTrue(url.contains("sslmode=verify-full"), "ожидался verify-full: $url")
+        assertTrue(url.contains("sslcert=/run/karaoke/tunnel/db-client.crt"), "ожидался sslcert: $url")
+        assertTrue(url.contains("sslkey=/run/karaoke/tunnel/db-client.key"), "ожидался sslkey: $url")
+        assertTrue(url.contains("sslrootcert=/run/karaoke/tunnel/ca.crt"), "ожидался sslrootcert: $url")
+    }
+
+    @Test
+    fun `пустые параметры сертификата не добавляются`() {
+        val url = buildRemoteJdbcUrl("db.prod", "5432", "require", "  ", "", "")
+        assertFalse(url.contains("sslcert="), "пустой sslcert не должен добавляться: $url")
+        assertFalse(url.contains("sslkey="), "пустой sslkey не должен добавляться: $url")
+        assertFalse(url.contains("sslrootcert="), "пустой sslrootcert не должен добавляться: $url")
+    }
+
+    @Test
+    fun `без режима TLS и сертификатов URL не меняется`() {
+        val url = buildRemoteJdbcUrl("db.prod", "5432", "   ", "", "", "")
+        assertEquals(
+            "jdbc:postgresql://db.prod:5432/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10",
+            url,
+        )
+    }
 }

@@ -220,8 +220,8 @@ FR-017, FR-018, SC-005).
 - [x] T062 Прогнать обязательные проверки из `AGENTS.md`: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`, `./gradlew :karaoke-app:test`, `./gradlew :karaoke-web:ktlintCheck`
 - [x] T063 Прогнать pre-commit-чеклист `karaoke-pre-commit` (скилл) по своим файлам
 - [x] T064 Написать финальный отчёт `specs/733-prod-tunnel-mtls/report.md` (критерии → команда → результат; что сделано; что требует согласия владельца; откат)
-- [ ] T065 Добавить комментарий в Plane: `bash tools/tracker.sh add-comment 407 --file specs/733-prod-tunnel-mtls/report.md`
-- [ ] T066 Запушить ветку `733-prod-tunnel-mtls` и создать PR через API Forgejo; номер PR указать в отчёте
+- [x] T065 Добавить комментарий в Plane: `bash tools/tracker.sh add-comment 407 --file specs/733-prod-tunnel-mtls/report.md`
+- [x] T066 Запушить ветку `733-prod-tunnel-mtls` и создать PR через API Forgejo; номер PR указать в отчёте
 
 ---
 

@@ -93,17 +93,33 @@ ping -c1 -W2 188.127.240.124 # прод-хост
 
 ```text
 host: 10.77.0.2      port: 5433      dbname: karaoke
-user: SvoeMestoKaraokeUser905
-SSL: require (или verify-full, если настроен mTLS)
-client certificate: db-client.crt / db-client.key (из /etc/karaoke/tunnel)
+user: SvoeMestoKaraokeUser905        password: как в deploy/.env прод-хоста
+SSL: verify-full
+client certificate: /etc/karaoke/tunnel/db-client.crt
+client key (PKCS-8 DER): /etc/karaoke/tunnel/db-client.key
+root CA: /etc/karaoke/tunnel/ca.crt
 ```
 
-Маршрут на хосте держит юнит `karaoke-tunnel-host-route.service`; если маршрута
-нет:
+Каталог `/etc/karaoke/tunnel` — `700 root`, поэтому читать его может только
+root. Для рабочего места оператора сертификат и ключ копируются в личный
+каталог с правами `600` (ключ) — например `~/.config/karaoke/tunnel/`.
+
+Маршрут на хосте и SNAT в контейнере держит юнит
+`karaoke-tunnel-host-route.service` + таймер (проверка раз в минуту): маршрут
+`10.77.0.0/24` через IP контейнера и SNAT `-o wg0 → 10.77.0.1`. Таймер нужен
+потому, что пересоздание контейнера меняет его IP и сбрасывает `iptables`
+внутри. Состояние и ручной запуск:
 
 ```bash
-sudo bash deploy/prod-tunnel/host-route.sh --apply
+bash deploy/prod-tunnel/host-route.sh --check     # маршрут и SNAT
+sudo /usr/local/sbin/karaoke-tunnel-host-route.sh --apply
 ```
+
+**Если маршрут есть, а связи нет** — почти всегда отсутствует SNAT: пакеты
+доходят до контейнера, уходят в туннель с адресом docker-шлюза (`172.18.0.1`)
+и молча отбрасываются на проде, потому что пир принимает только `10.77.0.1`
+(`AllowedIPs`). Признак: `ping 10.77.0.2` не проходит, `wg show` в контейнере
+показывает свежее рукопожатие.
 
 ### 3.2 Включение kill-switch публикации через туннель
 

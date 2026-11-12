@@ -6991,6 +6991,11 @@ class Song(
     fun renameCascadeExtraArtifacts(oldFileName: String) {
         if (oldFileName == fileName) return
 
+        // KARAOKE-429 (FR-013): прежнее имя фиксируется ДО переименования — в этот
+        // момент старое имя ещё актуально и по нему ещё лежат объекты хранилищ.
+        // По истории имён удаление песни потом уберёт и их (миграция 59).
+        SongNameHistory.record(songId = id, oldFileName = oldFileName, database = database)
+
         val oldKdenliveFileName = "$rootFolder/$oldFileName.kdenlive"
         val oldKdenliveSubsFileName = "$rootFolder/$oldFileName.kdenlive.srt"
 
@@ -7080,6 +7085,11 @@ class Song(
      */
     fun renameAllArtifacts(oldFileName: String): List<SongArtifactRenamer.RenameFailure> {
         if (oldFileName == fileName) return emptyList()
+
+        // KARAOKE-429 (FR-013): прежнее имя фиксируется ДО переименования.
+        // По истории имён удаление песни потом уберёт объекты хранилищ, оставшиеся
+        // под старым именем (миграция 59).
+        SongNameHistory.record(songId = id, oldFileName = oldFileName, database = database)
 
         // BR-131 (аудит #336, пакет `PKG-S3-23`): неудачи переименования возвращаются
         // наружу, а не теряются. Раньше `renameTo == false` молча пропускался, и песня

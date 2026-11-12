@@ -22,6 +22,13 @@ CREATE TABLE IF NOT EXISTS public.tbl_song_cleanup_runs (
     author varchar(255) NOT NULL DEFAULT '',
     album varchar(255) NOT NULL DEFAULT '',
     root_folder varchar(500) NOT NULL DEFAULT '',
+    -- KARAOKE-429: снимок контекста песни для фоновой уборки. Строка песни удаляется
+    -- ДО начала уборки, поэтому уборщику нужен снимок: имя ФАЙЛА песни (по нему
+    -- работает правило владения — SongArtifactOwnership) и год (по нему строится
+    -- префикс ключей хранилища «$автор/$год - $альбом/»).
+    file_name varchar(255) NOT NULL DEFAULT '',
+    song_year int NOT NULL DEFAULT 0,
+    album_id int NOT NULL DEFAULT 0,
     run_kind varchar(32) NOT NULL DEFAULT 'SONG_DELETE',
     state varchar(16) NOT NULL DEFAULT 'PLANNED',
     initiator varchar(64) NOT NULL DEFAULT '',
@@ -55,6 +62,14 @@ CREATE INDEX IF NOT EXISTS idx_tbl_song_cleanup_runs_song_id
 
 CREATE INDEX IF NOT EXISTS idx_tbl_song_cleanup_runs_state
     ON public.tbl_song_cleanup_runs (state);
+
+-- Добавление снимка контекста песни к уже созданной таблице (идемпотентно).
+ALTER TABLE public.tbl_song_cleanup_runs
+    ADD COLUMN IF NOT EXISTS file_name varchar(255) NOT NULL DEFAULT '';
+ALTER TABLE public.tbl_song_cleanup_runs
+    ADD COLUMN IF NOT EXISTS song_year int NOT NULL DEFAULT 0;
+ALTER TABLE public.tbl_song_cleanup_runs
+    ADD COLUMN IF NOT EXISTS album_id int NOT NULL DEFAULT 0;
 
 -- 2) Запись журнала: одно действие (путь или ключ, размер, результат, причина,
 --    номер попытки, дата, инициатор, идентификатор прогона).

@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.services.songdeletion
 
 import com.svoemesto.karaokeapp.model.SongArtifactRenamer
 import java.io.File
+import java.nio.file.Files
 
 /**
  * ЕДИНЫЙ модуль правил владения артефактом песни (KARAOKE-429, спека 739).
@@ -141,6 +142,58 @@ object SongArtifactOwnership {
             }
         }
         return result
+    }
+
+    /**
+     * Живая символическая ссылка (цель существует) — такой файл уборка НЕ трогает
+     * (FR-015: удаляются только БИТЫЕ симлинки).
+     *
+     * Функция симметрична уборке и предпросмотру: обе стороны считают удаляемые
+     * файлы одинаково, иначе предпросмотр разошёлся бы с фактом (SC-004).
+     */
+    fun isAliveSymlink(file: File): Boolean {
+        if (!Files.isSymbolicLink(file.toPath())) return false
+        return try {
+            Files.exists(file.toPath().toRealPath())
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Файлы песни, которые будут удалены (те, что не живые симлинки).
+     *
+     * @param rootFolder папка альбома.
+     * @param songFileName имя файла песни.
+     */
+    fun collectFilesToDelete(
+        rootFolder: String,
+        songFileName: String,
+    ): List<File> = collectOwnArtifacts(rootFolder, songFileName).filterNot { isAliveSymlink(it) }
+
+    /**
+     * Ключи объектов хранилища, принадлежащих песне.
+     *
+     * Ключ песни: `$автор/$год - $альбом/$имя песни` + продолжение артефакта.
+     * Обложка альбома и картинка автора начинаются с другого префикса, поэтому
+     * структурно не попадают в выборку (FR-014).
+     *
+     * @param author автор песни; @param year год; @param album альбом.
+     * @param songFileNames имена песни: текущее и прежние (из истории переименований).
+     * @param keys ключи бакета.
+     */
+    fun ownStorageKeys(
+        author: String,
+        year: String,
+        album: String,
+        songFileNames: Collection<String>,
+        keys: Collection<String>,
+    ): List<String> {
+        if (songFileNames.isEmpty()) return emptyList()
+        val names = songFileNames.filter { it.isNotBlank() }
+        return keys.filter { key ->
+            names.any { name -> isOwnStorageKey(author, year, album, name, key) }
+        }
     }
 
     /**

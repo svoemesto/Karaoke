@@ -49,4 +49,10 @@ enum class KaraokeProcessTypes {
     // для Song/песни (songId=0). См. StemJobProcessing.kt.
     STEM_JOB_DEMUCS2,
     STEM_JOB_DEMUCS5,
+
+    // KARAOKE-429 (спека 739): фоновая каскадная уборка артефактов удалённой песни.
+    // Задание ставится в lane THREAD_LANE_LIGHT_BACKGROUND (-1): операция сетевая и
+    // файловая, не тяжёлый рендер. Аргументы:
+    // ["runFunctionWithArgs", "songDeleteCleanup", "songId=<id>", "runId=<runId>"].
+    SONG_DELETE_CLEANUP,
 }

@@ -5172,24 +5172,88 @@ export default {
     doSetDateTimeAuthor() {
       this.$store.dispatch('setDateTimeAuthorPromise')
     },
-    deleteSong() {
+    /**
+     * KARAOKE-429 (FR-023…FR-027): окно подтверждения показывает фактические
+     * числа — сколько файлов и мегабайт, сколько объектов в каждом хранилище,
+     * удаляется ли альбом, сколько родственных песен.
+     *
+     * Значения подставляются с экранированием (`knowledge/system/frontend/confirm-escape.md`),
+     * дополнительного ввода не требуется (FR-027).
+     */
+    async deleteSong() {
+      let preview = null
+      try {
+        preview = await this.$store.dispatch('getSongDeletePreview')
+      } catch (error) {
+        preview = null
+      }
       this.customConfirmParams = {
         allowHtml: true,
         header: 'Подтвердите удаление песни',
-        body: `Удалить песню <strong>«${escapeHtml(this.song.songName)}»</strong>?`,
+        body:
+          `Удалить песню <strong>«${escapeHtml(this.song.songName)}»</strong>?` +
+          `<br>${escapeHtml(this.deletePreviewText(preview)).replace(/\n/g, '<br>')}`,
         timeout: 10,
         callback: this.doDeleteSong,
       }
       this.isCustomConfirmVisible = true
+    },
+    /**
+     * Текст предпросмотра удаления (FR-023…FR-026) — простой текст, строки
+     * разделены переводом строки. Значения экранируются на входе в HTML-буфер
+     * (`knowledge/system/frontend/confirm-escape.md`).
+     *
+     * @param {Object|null} preview — ответ `/api/song/deletepreview` (может быть null,
+     *   если предпросмотр недоступен: подтверждение всё равно показывается).
+     * @returns {string} текст предпросмотра.
+     */
+    deletePreviewText(preview) {
+      const lines = []
+      if (!preview) {
+        return lines.join('\n')
+      }
+      lines.push(
+        `Будет удалено: ${preview.filesCount} файлов (${preview.filesMb} МБ), ` +
+          `${preview.localStorageObjects} объектов в локальном хранилище, ` +
+          `${preview.remoteStorageObjects} объектов в удалённом хранилище.`,
+      )
+      if (preview.albumWillBeDeleted) {
+        let albumLine = 'Вместе с песней будет удалён альбом'
+        if (preview.albumPictureWillBeDeleted) {
+          albumLine += ' (вместе с обложкой)'
+        }
+        if (!preview.albumFolderWillBeDeleted) {
+          albumLine += ' (папка не удаляется: в папке есть файлы живых песен)'
+        }
+        lines.push(`${albumLine}.`)
+      } else {
+        lines.push('Альбом остаётся: в нём есть другие живые песни.')
+      }
+      if (preview.descendantsCount > 0) {
+        lines.push(`Родственных песен: ${preview.descendantsCount} (связь с ними будет обнулена).`)
+      }
+      if (preview.blocked) {
+        lines.push(`Удаление заблокировано: ${preview.blockReason}.`)
+      }
+      return lines.join('\n')
     },
     doDeleteSong() {
       // BR-127: удаление дожидается ответа. Раньше запрос не ожидался, а карточка
       // закрывалась сразу — при отказе сервера песня оставалась, но админ видел
       // «удалено». Теперь карточка закрывается только при успехе, при отказе —
       // сообщение об ошибке.
+      // KARAOKE-429 (FR-003): то же и для структурированного ответа: карточка не
+      // закрывается, если статус не `deleted`/`already_deleted`/`partially_deleted`.
       return this.$store
         .dispatch('deleteCurrentSong')
-        .then(() => {
+        .then((result) => {
+          if (result && result.status === 'partially_deleted') {
+            this.showTelegramToast(
+              (result && result.message) ||
+                'Песня удалена локально, удаление на серверной БД — на добор.',
+              'Удаление: частично',
+            )
+          }
           this.$emit('close')
         })
         .catch((error) => {

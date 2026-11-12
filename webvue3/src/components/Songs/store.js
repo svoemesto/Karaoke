@@ -2869,20 +2869,62 @@ export default {
     deleteSongByUserEvent(ctx, userEventData) {
       ctx.commit('deleteSongByUserEvent', userEventData)
     },
+    /**
+     * KARAOKE-429 (FR-023…FR-026): предпросмотр удаления — что именно будет удалено.
+     *
+     * Числа считаются бэкендом тем же правилом владения, что и уборка, поэтому
+     * расхождение между показанным и фактическим — 0 (SC-004).
+     *
+     * @returns {Promise<Object>} тело ответа `/api/song/deletepreview`.
+     */
+    async getSongDeletePreview(ctx) {
+      const response = await promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/song/deletepreview',
+        params: { id: ctx.state.currentSongId },
+      })
+      return JSON.parse(response)
+    },
+    /**
+     * KARAOKE-429 (FR-002, FR-003): удаление песни.
+     *
+     * Ответ теперь структурированный (`status`, `deletedLocal`, `deletedServer`,
+     * `runId`), а не пустой `200`. Карточка песни закрывается ТОЛЬКО при успехе:
+     * при отказе БД (`db_error`), активной обработке (`process_running`) или
+     * чужой записи (`not_owned`) действие бросает ошибку, и вызывающий показывает
+     * сообщение, не закрывая карточку (SC-003 — «ложного успеха» не бывает).
+     *
+     * @returns {Promise<Object>} тело ответа `/api/song/delete`.
+     */
     async deleteCurrentSong(ctx) {
       let previousSongId = ctx.state.previousSongId
       let nextSongId = ctx.state.nextSongId
       let deletedId = ctx.state.currentSongId
-      await promisedXMLHttpRequest({
+      const response = await promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/song/delete',
         params: { id: deletedId },
       })
+      let result = null
+      try {
+        result = JSON.parse(response)
+      } catch (error) {
+        result = null
+      }
+      const successStatuses = ['deleted', 'already_deleted', 'partially_deleted']
+      if (!result || !result.ok || !successStatuses.includes(result.status)) {
+        const error = new Error(
+          (result && (result.message || result.error)) || 'Не удалось удалить песню.',
+        )
+        error.responseBody = response
+        throw error
+      }
       // Даты публикаций других песен при удалении НЕ пересчитываем (см. DEVELOPMENT.md).
       let targetId = previousSongId || nextSongId
       if (targetId) {
         await ctx.dispatch('setCurrentSongId', targetId)
       }
+      return result
     },
     loadSongsDigests(ctx, params) {
       // BR-093: ответ применяется только если он принадлежит последнему запросу.

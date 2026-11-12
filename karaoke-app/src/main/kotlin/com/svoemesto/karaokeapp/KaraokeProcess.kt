@@ -2582,6 +2582,24 @@ class KaraokeProcess(
                             )
                     }
 
+                    KaraokeProcessTypes.SONG_DELETE_CLEANUP -> {
+                        // KARAOKE-429 (контракт § 7): уборка запускается как штатное
+                        // задание очереди. Связь с прогоном журнала — в аргументах
+                        // (runId), потому что process_chain_id у кортежа обязан совпадать
+                        // с id его головы (инвариант выборки голов в очереди).
+                        val runId = (context["runId"] as? Number)?.toLong() ?: 0L
+                        description = "Каскадная уборка артефактов удалённой песни"
+                        prioritet = 5
+                        args =
+                            listOf(
+                                listOf(
+                                    "runFunctionWithArgs",
+                                    "songDeleteCleanup",
+                                    "songId=${song.id}",
+                                    "runId=$runId",
+                                ),
+                            )
+                    }
                     else -> {}
                 }
             }

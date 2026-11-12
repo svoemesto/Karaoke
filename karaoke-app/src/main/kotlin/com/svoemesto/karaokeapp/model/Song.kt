@@ -6894,19 +6894,27 @@ class Song(
      * Теперь: ошибка DELETE → строка остаётся, файлы НЕ трогаются (fail-closed, расхождение
      * «файл есть, строка есть» лучше, чем «строка есть, звука нет»); удаление файлов —
      * best-effort с записью результата в лог.
+     *
+     * **KARAOKE-429 (FR-002, SC-003).** Метод возвращает [SongDeleteResult] и НЕ глотает
+     * исключения БД: раньше он возвращал `Unit`, и вызывающий (`ApiController.doDeleteSong`)
+     * отвечал `200` с пустым телом даже при отказе базы — «ложный успех». Теперь отказ
+     * виден вызывающему, а решение об ответе принимает он.
+     *
+     * @return результат удаления: `DELETED` / `NOT_FOUND` / `DB_ERROR` с причиной.
      */
     fun deleteFromDb(
         withFiles: Boolean = true,
         sync: Boolean = false,
-    ) {
+    ): SongDeleteResult {
         val connection = database.getConnection()
         if (connection == null) {
+            val reason = "нет соединения с БД ${database.name}"
             persistenceLog.warn(
-                "song.delete.failed: songId={} нет соединения с БД {} — строка НЕ удалена, файлы сохранены",
+                "song.delete.failed: songId={} {} — строка НЕ удалена, файлы сохранены",
                 id,
-                database.name,
+                reason,
             )
-            return
+            return SongDeleteResult(status = SongDeleteStatus.DB_ERROR, error = reason)
         }
         val sql = "DELETE FROM tbl_songs${if (sync) "_sync" else ""} WHERE id = ?"
         val deletedRows =
@@ -6921,14 +6929,14 @@ class Song(
                     id,
                     e.toString(),
                 )
-                return
+                return SongDeleteResult(status = SongDeleteStatus.DB_ERROR, error = e.toString())
             }
         if (deletedRows <= 0) {
             persistenceLog.warn(
                 "song.delete.no_rows: songId={} DELETE затронул 0 строк (строка уже удалена) — файлы НЕ удалены",
                 id,
             )
-            return
+            return SongDeleteResult(status = SongDeleteStatus.NOT_FOUND, deletedRows = deletedRows)
         }
 
         if (withFiles) {
@@ -6957,6 +6965,7 @@ class Song(
                 ),
             )
         SNS.send(messageRecordDelete)
+        return SongDeleteResult(status = SongDeleteStatus.DELETED, deletedRows = deletedRows)
     }
 
     // specs/544-song-artifact-cleanup (FR-006): saveToFile() удалён — сериализованное
@@ -9590,22 +9599,34 @@ class Song(
             id: Long,
             database: KaraokeConnection,
             sync: Boolean = false,
-        ) {
+        ): SongDeleteResult {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return
+                return SongDeleteResult(
+                    status = SongDeleteStatus.DB_ERROR,
+                    error = "нет соединения с БД ${database.name}",
+                )
             }
             val sql = "DELETE FROM tbl_songs${if (sync) "_sync" else ""} WHERE id = ?"
             // BR-106: statement закрывается в use{}, ошибка DELETE — в лог (раньше исключение
             // уходило наружу, а statement не закрывался).
-            try {
-                connection.prepareStatement(sql).use { ps ->
-                    ps.setLong(1, id)
-                    ps.executeUpdate()
+            // KARAOKE-429 (FR-002): результат возвращается вызывающему — отказ БД не должен
+            // выглядеть как успешное удаление.
+            return try {
+                val deletedRows =
+                    connection.prepareStatement(sql).use { ps ->
+                        ps.setLong(1, id)
+                        ps.executeUpdate()
+                    }
+                if (deletedRows <= 0) {
+                    SongDeleteResult(status = SongDeleteStatus.NOT_FOUND, deletedRows = deletedRows)
+                } else {
+                    SongDeleteResult(status = SongDeleteStatus.DELETED, deletedRows = deletedRows)
                 }
             } catch (e: Exception) {
                 println("[${Timestamp.from(Instant.now())}] WARN song.delete.failed: songId=$id DELETE не выполнен: ${e.message}")
+                SongDeleteResult(status = SongDeleteStatus.DB_ERROR, error = e.toString())
             }
         }
 

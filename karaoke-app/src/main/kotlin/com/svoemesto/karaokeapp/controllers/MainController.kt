@@ -421,8 +421,10 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         if (song == null) return 0
-        song.deleteFromDb()
-        return 1
+        // KARAOKE-429 (FR-002): считаем только фактически удалённые строки — отказ
+        // БД больше не выглядит как успешное удаление.
+        val result = song.deleteFromDb()
+        return if (result.isDeleted) 1 else 0
     }
 
     @GetMapping("/song/{id}/setpublishdatetimetoauthor")

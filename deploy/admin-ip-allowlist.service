@@ -38,5 +38,13 @@ EnvironmentFile=-/etc/admin-ip-allowlist.env
 # Журнал: файл + journald (контракт journal-format.md).
 Environment=ALLOWLIST_LOG_FILE=/var/log/admin-ip-allowlist.log
 Environment=ALLOWLIST_STATE_FILE=/var/log/admin-ip-allowlist.state
+# Режим туннеля (спека 733): публичный адрес админской машины в allow-list прод-хоста
+# НЕ пишется никогда — только read-only проверка «ровно один адрес 10.77.0.1» и
+# код выхода 3 (юнит уходит в failed — сигнал владельцу, runbook § 3.7).
+# ВАЖНО: без этой переменной скрипт работает в public-режиме и ПЕРЕЗАПИСЫВАЕТ
+# allow-list прод-хоста, заменяя туннельный адрес публичным IP — туннель
+# отрезается, и приложение не может подключиться к серверной БД (прецедент
+# 2026-11-12). Не удаляйте эту строку при обновлении юнита на хосте.
+Environment=ALLOWLIST_MODE=tunnel
 StandardOutput=journal
 StandardError=journal

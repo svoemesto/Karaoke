@@ -55,6 +55,27 @@ abstract class KaraokeConnection(
     private val threadLocalConnection = ThreadLocal<java.sql.Connection?>()
 
     /**
+     * Реестр физических соединений этого экземпляра: соединение → время последнего
+     * использования (мс).
+     *
+     * Зачем: соединение живёт в [ThreadLocal], то есть привязано к потоку. Потоки
+     * пула (Tomcat, `@Scheduled`) живут долго — их соединения переиспользуются, и это
+     * нормально. Но потоки `ForkJoinPool` (`parallel-*`, в т.ч. `Dispatchers.IO`) и
+     * прочие недолговечные потоки создаются и умирают, а их thread-local соединение
+     * НЕ закрывается: `closeThreadConnection()` из чужого потока не вызвать, а
+     * финализатор JDBC недетерминирован. Так соединения накапливаются: инцидент
+     * 2026-11-12 — 241 простаивающее соединение к LOCAL из 300 (`FATAL: sorry, too
+     * many clients already`), очередь встала.
+     *
+     * Реестр даёт то, чего у [ThreadLocal] нет: увидеть ВСЕ открытые соединения
+     * экземпляра и закрыть простаивающие дольше порога ([reapIdleConnections]).
+     * Закрытие из другого потока безопасно: владелец обнаружит `isClosed` в
+     * [needsValidation] и переоткроет соединение — штатный путь self-healing.
+     */
+    private val openConnections =
+        java.util.concurrent.ConcurrentHashMap<java.sql.Connection, java.util.concurrent.atomic.AtomicLong>()
+
+    /**
      * BR-274: время последней успешной валидации соединения (мс, системное время).
      *
      * `conn.isValid(3)` в pgjdbc — это НЕ локальная проверка флага, а отдельный
@@ -163,7 +184,11 @@ abstract class KaraokeConnection(
                 val opened = DriverManager.getConnection(url, username, password)
                 // BR-274: соединение оборачивается в прокси, который помечает его
                 // «битым» при SQLException — это заменяет горячую проверку isValid.
-                threadLocalConnection.set(wrapForBrokenDetection(opened))
+                val wrapped = wrapForBrokenDetection(opened)
+                threadLocalConnection.set(wrapped)
+                openConnections[wrapped] =
+                    java.util.concurrent.atomic
+                        .AtomicLong(System.currentTimeMillis())
                 // BR-274: валидация выполнена — метка времени обновляется, чтобы
                 // следующие обращения не платили ещё за один round-trip.
                 threadLocalLastValidationMs.set(System.currentTimeMillis())
@@ -173,9 +198,11 @@ abstract class KaraokeConnection(
                 // логировался только `e.message`, и в stdout/централизованных
                 // логах не оставалось ни стека, ни причины, ни типа исключения.
                 //
-                // Сохраняем println для обратной совместимости (docker logs читают
-                // stdout), но с полным текстом исключения.
-                println("KaraokeConnection getConnection Exception: ${e.message}")
+                // Неинформативный println убран (2026-11-12): он печатал только текст
+                // исключения — без цели (LOCAL/SERVER), хоста и кода события, поэтому
+                // по нему нельзя было понять, к какой базе не удалось подключиться.
+                // Строка ниже (AppLog) содержит target, host и reason и идёт в тот же
+                // stdout через logback — дублировать её не нужно.
                 // FR-004 spec.md: структурированный SLF4J warn для диагностики.
                 // specs/236: добавляем urlHost (без credentials) — сразу видно, к какому
                 // хосту/порту шла попытка (полезно при пустом DB_REMOTE_HOST в env).
@@ -214,8 +241,45 @@ abstract class KaraokeConnection(
                 }
             }
         }
-        return threadLocalConnection.get()
+        val cached = threadLocalConnection.get()
+        if (cached != null) {
+            openConnections[cached]?.set(System.currentTimeMillis())
+        }
+        return cached
     }
+
+    /**
+     * Закрывает соединения экземпляра, простаивающие дольше [maxIdleMs], и возвращает
+     * число закрытых.
+     *
+     * Вызывается периодически (см. `LocalConnectionReaper`). Уборка нужна для
+     * соединений, чьи потоки умерли: их никто не закроет, а место в `max_connections`
+     * они занимают (инцидент 2026-11-12).
+     *
+     * Закрытие чужого соединения не ломает владельца: если поток ещё жив, следующий
+     * `getConnection()` увидит `isClosed` и откроет новое — штатный путь self-healing
+     * (specs/236), а не ошибка.
+     */
+    open fun reapIdleConnections(maxIdleMs: Long): Int {
+        val now = System.currentTimeMillis()
+        var closed = 0
+        val iterator = openConnections.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (now - entry.value.get() <= maxIdleMs) continue
+            iterator.remove()
+            try {
+                entry.key.close()
+            } catch (_: Exception) {
+                // соединение уже мертво — считаем освобождённым
+            }
+            closed++
+        }
+        return closed
+    }
+
+    /** Сколько физических соединений экземпляра сейчас учтено реестром (для наблюдаемости). */
+    open fun openConnectionCount(): Int = openConnections.size
 
     /**
      * Явно закрывает и освобождает физическое соединение **текущего потока**, если оно
@@ -266,6 +330,7 @@ abstract class KaraokeConnection(
                 error = e,
             )
         } finally {
+            openConnections.remove(conn)
             threadLocalConnection.remove()
         }
     }

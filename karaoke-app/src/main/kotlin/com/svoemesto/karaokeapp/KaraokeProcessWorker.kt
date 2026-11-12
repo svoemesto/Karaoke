@@ -973,7 +973,15 @@ class KaraokeProcessWorker {
                                 "[${Timestamp.from(
                                     Instant.now(),
                                 )}] ProcessWorker: главный цикл очереди упал с необработанным исключением " +
-                                    "(попытка $attempt/$MAX_START_ATTEMPTS): ${e.message}",
+                                    // Пишем порог отдельно, когда он уже превышен: «попытка 7/5» читается
+                                    // как ошибка счётчика, хотя это штатное поведение — очередь продолжает
+                                    // подниматься сама (спека 730, FR-010/FR-011: «не сдаёмся»).
+                                    if (attempt <= MAX_START_ATTEMPTS) {
+                                        "(попытка $attempt/$MAX_START_ATTEMPTS): ${e.message}"
+                                    } else {
+                                        "(попытка $attempt, порог $MAX_START_ATTEMPTS превышен — " +
+                                            "очередь продолжает подниматься): ${e.message}"
+                                    },
                             )
                             AppLog.error(
                                 category = CATEGORY,

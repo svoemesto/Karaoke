@@ -149,14 +149,19 @@ object SongDeletionPlanner {
 
     /**
      * Шаг обнуления связи потомков (FR-008): у родственных песен
-     * `audio_parent_id` становится `NULL`, сами потомки остаются живыми.
+     * `audio_parent_id` становится «нет родителя», сами потомки остаются живыми.
+     *
+     * **Значение «нет родителя» — `0`, а не `NULL`** (факт схемы LOCAL/SERVER:
+     * `tbl_songs.audio_parent_id integer NOT NULL DEFAULT 0`, см. также
+     * `SongDTO.audioParentId` — «используется 0 как «нет значения»»). Запись `NULL`
+     * нарушала бы NOT NULL и роняла всю транзакцию фазы A.
      *
      * @param songId идентификатор удаляемого родителя.
      */
     fun descendantsStep(songId: Long): CascadeStep =
         CascadeStep(
             table = TABLE_SONGS,
-            sql = "UPDATE $TABLE_SONGS SET audio_parent_id = NULL WHERE audio_parent_id = ?",
+            sql = "UPDATE $TABLE_SONGS SET audio_parent_id = 0 WHERE audio_parent_id = ?",
             params = listOf(songId),
         )
 

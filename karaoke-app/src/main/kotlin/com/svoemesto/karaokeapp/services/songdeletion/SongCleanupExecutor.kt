@@ -55,6 +55,35 @@ class SongCleanupExecutor(
         /** Паузы между попытками, миллисекунды (FR-032): 2s → 60s. */
         val BACKOFF_MS: List<Long> = listOf(2_000L, 5_000L, 15_000L, 30_000L, 60_000L)
 
+        /**
+         * Остались ли в папке альбома файлы ПОСЛЕ уборки песни (FR-020, FR-021).
+         *
+         * Папка альбома удаляется, только если в ней не осталось ни одного файла:
+         * удалять папку с файлами нельзя — среди них могут быть файлы живых песен
+         * (альбом-«близнец») или неопознанные файлы, которые по FR-016 остаются
+         * на месте.
+         *
+         * @param rootFolder папка альбома.
+         * @param filesToDelete файлы, которые уборка удалит (считаются вычтенными).
+         * @return число файлов, остающихся в папке.
+         */
+        fun remainingFilesCount(
+            rootFolder: String,
+            filesToDelete: Collection<java.io.File> = emptyList(),
+        ): Int {
+            if (rootFolder.isBlank()) return 0
+            val root = java.io.File(rootFolder)
+            if (!root.isDirectory) return 0
+            val deletedPaths = filesToDelete.map { it.absolutePath }.toSet()
+            var count = 0
+            root.walkTopDown().forEach { file ->
+                if (file.isDirectory) return@forEach
+                if (file.absolutePath in deletedPaths) return@forEach
+                count++
+            }
+            return count
+        }
+
         private val log = LoggerFactory.getLogger(CATEGORY)
     }
 
@@ -621,7 +650,7 @@ class SongCleanupExecutor(
         val root = File(rootFolder)
         if (!root.isDirectory) return
 
-        val remainingFiles = countFilesRecursively(root)
+        val remainingFiles = remainingFilesCount(rootFolder)
         if (remainingFiles > 0) {
             SongCleanupJournal.addEntry(
                 runId = run.runId,

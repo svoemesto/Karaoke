@@ -14,6 +14,8 @@ import com.svoemesto.karaokeapp.services.songdeletion.SongCleanupExecutor
 import com.svoemesto.karaokeapp.services.songdeletion.SongCleanupJournal
 import com.svoemesto.karaokeapp.services.songdeletion.SongDeletionPreview
 import com.svoemesto.karaokeapp.services.songdeletion.SongDeletionService
+import com.svoemesto.karaokeapp.services.songdeletion.SongOneTimeCleanupPlanner
+import com.svoemesto.karaokeapp.services.songdeletion.SongOneTimeCleanupService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -4523,7 +4525,13 @@ class ApiController(
             SongCleanupJournal.runSummary(runId, WORKING_DATABASE)
                 ?: return ResponseEntity
                     .status(404)
-                    .body(mapOf("ok" to false, "error" to "run_not_found", "message" to "Прогон не найден."))
+                    .body(
+                        mapOf(
+                            "ok" to false,
+                            "error" to "run_not_found",
+                            "message" to "Прогон не найден.",
+                        ),
+                    )
         val entries = SongCleanupJournal.listEntries(runId, WORKING_DATABASE)
         return ResponseEntity.ok(
             mapOf(
@@ -4547,7 +4555,13 @@ class ApiController(
             SongCleanupJournal.runSummary(runId, WORKING_DATABASE)
                 ?: return ResponseEntity
                     .status(404)
-                    .body(mapOf("ok" to false, "error" to "run_not_found", "message" to "Прогон не найден."))
+                    .body(
+                        mapOf(
+                            "ok" to false,
+                            "error" to "run_not_found",
+                            "message" to "Прогон не найден.",
+                        ),
+                    )
         if (run.state == CleanupRunState.RUNNING) {
             return ResponseEntity
                 .status(409)
@@ -4569,6 +4583,111 @@ class ApiController(
                 "runId" to runId,
                 "state" to (SongCleanupJournal.currentState(runId, WORKING_DATABASE)?.name ?: "RUNNING"),
                 "message" to "Прогон добран",
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-039…FR-042): перечень кандидатов разовой уборки с размерами
+     * и отпечатком набора. Ничего не удаляет — только читает.
+     */
+    @PostMapping("/song/cleanup/one-time/plan")
+    @ResponseBody
+    fun planSongOneTimeCleanup(
+        @RequestParam(required = false, defaultValue = "true") includeStorage: Boolean,
+        @RequestParam(required = false, defaultValue = "true") includeFiles: Boolean,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val plan = SongOneTimeCleanupPlanner().plan(includeStorage, includeFiles)
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "fingerprint" to plan.fingerprint,
+                "total_bytes" to plan.totalBytes,
+                "live_songs" to plan.liveSongsCount,
+                "generated_at" to plan.generatedAt,
+                "candidates" to
+                    plan.candidates.map { candidate ->
+                        mapOf(
+                            "kind" to candidate.reason.name,
+                            "location" to candidate.location.name,
+                            "path" to candidate.pathOrKey,
+                            "bytes" to candidate.sizeBytes,
+                            "reason" to candidate.detail,
+                        )
+                    },
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-040, FR-043): применение разовой уборки строго по
+     * утверждённому отпечатку. Без отпечатка — 400 `not_confirmed`; при изменившемся
+     * составе набора — 409 `one_time_set_changed` (уборка не выполняется).
+     */
+    @PostMapping("/song/cleanup/one-time/apply")
+    @ResponseBody
+    fun applySongOneTimeCleanup(
+        @RequestParam(required = false) fingerprint: String?,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        if (fingerprint.isNullOrBlank()) {
+            return ResponseEntity
+                .status(400)
+                .body(mapOf("ok" to false, "error" to "not_confirmed", "message" to "Требуется отпечаток утверждённого набора."))
+        }
+        val result = SongOneTimeCleanupService().apply(fingerprint, initiator = "owner")
+        if (!result.applied) {
+            val status = if (result.reason == "not_confirmed") 400 else 409
+            return ResponseEntity
+                .status(status)
+                .body(
+                    mapOf(
+                        "ok" to false,
+                        "error" to (result.reason ?: "one_time_failed"),
+                        "message" to "Уборка не выполнена: требуется новое утверждение набора.",
+                    ),
+                )
+        }
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "run_id" to result.runId,
+                "deleted" to result.deletedCount,
+                "failed" to result.failedCount,
+                "bytes_deleted" to result.bytesDeleted,
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-043, SC-007): сводка по последнему проходу разовой уборки.
+     */
+    @GetMapping("/song/cleanup/one-time/status")
+    @ResponseBody
+    fun songOneTimeCleanupStatus(): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val service = SongOneTimeCleanupService()
+        val run =
+            service.status()
+                ?: return ResponseEntity
+                    .status(404)
+                    .body(
+                        mapOf(
+                            "ok" to false,
+                            "error" to "no_runs",
+                            "message" to "Проходов разовой уборки ещё не было.",
+                        ),
+                    )
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "run_id" to run.runId,
+                "state" to run.state.name,
+                "entries" to (run.filesTotal + run.objectsTotal),
+                "bytes_deleted" to run.bytesDeleted,
+                "total_bytes_deleted" to service.totalBytesDeleted(),
+                "finished_at" to run.finishedAt,
             ),
         )
     }

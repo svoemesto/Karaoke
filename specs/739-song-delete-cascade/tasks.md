@@ -33,6 +33,20 @@ description: "Task list for feature: удаление песни с каскад
 
 ---
 
+## Phase 0: Подготовка окружения (только для шага implement)
+
+**Purpose**: подготовить worktree к сборке и фронтенд-проверкам до начала кода.
+
+**Зависит от**: ничего. **Блокирует**: фазу 10 (тесты фронтенда) и фазу 12 (pre-commit).
+
+> **Про ID**: задача получила ID `T080` вне последовательности — список T001…T079 уже
+> прошёл ревью лида, перенумерация сломала бы ссылки из ревью. Порядок выполнения —
+> Phase 0 → Phase 1 → …
+
+- [ ] T080 Подготовить рабочее окружение worktree: выполнить `npm ci` в `webvue3` и `karaoke-public` (или, при отсутствии сети, создать документированные симлинки `webvue3/node_modules` и `karaoke-public/node_modules` на каталоги главного checkout `/home/nsa/Karaoke/*/node_modules`); при недоступном на запись `~/.npm/_cacache` задать writable-кеш (`npm_config_cache=/home/nsa/Karaoke/.scratch/npm-cache`); после прогона pre-commit симлинки из дерева удалить — критерий: `npx prettier --check "src/**/*.{vue,js,ts,json}"` в обоих фронтендах завершается кодом 0; `git status --porcelain` не показывает артефактов в `webvue3/` и `karaoke-public/`
+
+---
+
 ## Phase 1: Миграции схемы
 
 **Purpose**: разблокировать удаление песни в БД и завести хранение для журнала и истории имён.
@@ -40,10 +54,10 @@ description: "Task list for feature: удаление песни с каскад
 **Зависит от**: ничего. **Блокирует**: фазы 4, 5, 6, 7.
 
 - [ ] T001 Создать `deploy/karaoke-db/58_news_song_id_on_delete_set_null.sql` — пересоздать FK `tbl_news.song_id` с `ON DELETE SET NULL` и FK `tbl_song_news_announced.song_id` с `ON DELETE CASCADE` (FR-009, FR-046) — критерий: файл применяется без ошибок на LOCAL; `SELECT confdeltype FROM pg_constraint WHERE conrelid='public.tbl_news'::regclass AND contype='f'` даёт `'n'`, для `tbl_song_news_announced` — `'c'`; повторное применение идемпотентно
-- [ ] T002 [P] Создать `deploy/karaoke-db/59_song_name_history.sql` — таблица `tbl_song_name_history (id, song_id, file_name, changed_at)` с `UNIQUE (song_id, file_name)` и индексом по `song_id` (FR-013) — критерий: `\d tbl_song_name_history` показывает уникальный индекс и индекс по `song_id`; повторное применение не падает
-- [ ] T003 [P] Создать `deploy/karaoke-db/60_song_cleanup_journal.sql` — таблицы `tbl_song_cleanup_runs` и `tbl_song_cleanup_entries` с `CHECK`-ограничениями состояний, результатов и согласованности `DONE` (FR-034, FR-035, SC-003) — критерий: обе таблицы созданы, все `CHECK`-ограничения из `data-model.md` § 6 присутствуют; повторное применение идемпотентно
-- [ ] T004 Применить миграции 58 → 59 → 60 на LOCAL (psql, `-v ON_ERROR_STOP=1`) по runbook `knowledge/system/infra/sql-migrations.md` § Решение 4 — критерий: `\d tbl_song_name_history`, `\d tbl_song_cleanup_runs`, `\d tbl_song_cleanup_entries` показывают ожидаемые колонки; порядок применения соблюдён
-- [ ] T005 Применить миграции 58 → 59 → 60 на PROD (серверная БД, порт 5433) — критерий: те же проверки, что в T004, на SERVER; `confdeltype` = `'n'` для `tbl_news` и `'c'` для `tbl_song_news_announced`
+- [ ] T002 [P] Создать `deploy/karaoke-db/59_song_name_history.sql` (файл можно писать параллельно с T001/T003; **применение** — строго в порядке 58 → 59 → 60, см. T004/T005) — таблица `tbl_song_name_history (id, song_id, file_name, changed_at)` с `UNIQUE (song_id, file_name)` и индексом по `song_id` (FR-013) — критерий: `\d tbl_song_name_history` показывает уникальный индекс и индекс по `song_id`; повторное применение не падает
+- [ ] T003 [P] Создать `deploy/karaoke-db/60_song_cleanup_journal.sql` (файл можно писать параллельно с T001/T002; **применение** — строго в порядке 58 → 59 → 60, см. T004/T005) — таблицы `tbl_song_cleanup_runs` и `tbl_song_cleanup_entries` с `CHECK`-ограничениями состояний, результатов и согласованности `DONE` (FR-034, FR-035, SC-003) — критерий: обе таблицы созданы, все `CHECK`-ограничения из `data-model.md` § 6 присутствуют; повторное применение идемпотентно
+- [ ] T004 Применить миграции 58 → 59 → 60 на LOCAL (FR-001, FR-009 — миграции снимают блокировку удаления; правило «миграция → код»: применяются **до** реализации фаз 3–7) (psql, `-v ON_ERROR_STOP=1`) по runbook `knowledge/system/infra/sql-migrations.md` § Решение 4 — критерий: `\d tbl_song_name_history`, `\d tbl_song_cleanup_runs`, `\d tbl_song_cleanup_entries` показывают ожидаемые колонки; порядок применения соблюдён
+- [ ] T005 Применить миграции 58 → 59 → 60 на PROD (FR-001, FR-045 — обе базы должны быть готовы до включения флага) (серверная БД, порт 5433) — критерий: те же проверки, что в T004, на SERVER; `confdeltype` = `'n'` для `tbl_news` и `'c'` для `tbl_song_news_announced`
 
 **Checkpoint**: удаление песни в БД больше не блокируется FK; место для журнала и истории имён есть.
 
@@ -74,7 +88,7 @@ description: "Task list for feature: удаление песни с каскад
 - [ ] T011 [P] [US1] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionPreview.kt` подсчёт файлов и байтов обходом папки альбома по правилу владения (FR-023) — критерий: `filesCount` и `filesBytes` совпадают с числом файлов, реально удаляемых уборкой (расхождение 0 — SC-004)
 - [ ] T012 [P] [US1] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionPreview.kt` листинг бакета по префиксу `$автор/$год - $альбом/` в локальном и удалённом хранилищах, подсчёт объектов по каждому хранилищу отдельно (FR-024, В-05) — критерий: `localStorageObjects` и `remoteStorageObjects` равны фактическому числу объектов песни; отсутствие объекта в одном хранилище не считается ошибкой
 - [ ] T013 [US1] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionPreview.kt` признаки каскада на альбом: `albumWillBeDeleted`, `albumPictureWillBeDeleted`, `albumFolderWillBeDeleted` + причина `album_has_live_songs`, и счётчик родственных песен `descendantsCount` (FR-025, FR-026) — критерий: при наличии живых песен в альбоме `albumWillBeDeleted = false`; число потомков совпадает с `SELECT count(*) FROM tbl_songs WHERE audio_parent_id = ?`
-- [ ] T014 [US1] Добавить эндпоинт `POST /api/song/deletepreview` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt` по контракту `specs/739-song-delete-cascade/contracts/song-delete-api.md` § 2 — критерий: `curl -X POST .../api/song/deletepreview -d 'id=<ID>'` возвращает 200 со всеми полями контракта; при несуществующей песни — 404 `song_not_found`; при активном процессе — 409 `process_running`
+- [ ] T014 [US1] Добавить эндпоинт `POST /api/song/deletepreview` (FR-023…FR-026) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt` по контракту `specs/739-song-delete-cascade/contracts/song-delete-api.md` § 2 — критерий: `curl -X POST .../api/song/deletepreview -d 'id=<ID>'` возвращает 200 со всеми полями контракта; при несуществующей песни — 404 `song_not_found`; при активном процессе — 409 `process_running`
 - [ ] T015 [US1] Показать числа в окне подтверждения в `webvue3/src/components/Songs/edit/SongEdit.vue` (файлы, мегабайты, объекты по хранилищам, строка про альбом, число родственных песен) с экранированием значений (FR-023…FR-027, `knowledge/system/frontend/confirm-escape.md`) — критерий: в окне видны все пять показателей; `bash tools/check-confirm-escape.py` зелёный; дополнительного ввода от пользователя не требуется (FR-027)
 
 **Checkpoint**: предпросмотр даёт точные числа, расхождение с фактом — 0.
@@ -93,7 +107,7 @@ description: "Task list for feature: удаление песни с каскад
 - [ ] T019 [US1] Изменить `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`: `deleteFromDb` возвращает результат (`deleted` / `not_found` / `db_error` с причиной) вместо `Unit` и не глотает исключения БД; обновить 4 вызывающих в `Utils.kt`, `controllers/ApiController.kt`, `controllers/MainController.kt`, `sync/SyncTarget.kt` (FR-002, SC-003) — критерий: ошибка DELETE не приводит к удалению файлов и видна вызывающему; проект компилируется
 - [ ] T020 [US1] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionService.kt` защиту от удаления «не нашей» песни: `root_folder` начинается с одного из `PROJECT_ROOT_FOLDERS` (`/sm-karaoke/work|done1|done2`), `file_name` непустой и без разделителей пути (FR-011, FR-046) — критерий: запись с чужим `root_folder` отклоняется с 409 `not_owned`, ничего не удаляется
 - [ ] T021 [US1] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionService.kt` отказ при активной фоновой обработке через `KaraokeProcess.hasActiveProcess` (`KaraokeProcess.kt:1537`) (FR-004) — критерий: при задании в статусе `WAITING` удаление отклоняется с 409 `process_running`; проверка повторяется в начале фоновой уборки
-- [ ] T022 [US1] Изменить эндпоинт `POST /api/song/delete` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`: структурированный ответ вместо пустого `200` (FR-002, FR-003) — критерий: ответ содержит `status` (`deleted` / `already_deleted` / `partially_deleted`), `deletedLocal`, `deletedServer`, `runId`; при отказе БД — 500 `db_error`, а не `200`
+- [ ] T022 [US1] Изменить эндпоинт `POST /api/song/delete` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`: структурированный ответ вместо пустого `200`, параметр `confirm` по контракту § 3 (FR-002, FR-003, FR-027) — критерий: ответ содержит `status` (`deleted` / `already_deleted` / `partially_deleted`), `deletedLocal`, `deletedServer`, `runId`; при отказе БД — 500 `db_error`, а не `200`
 - [ ] T023 [US1] Реализовать идемпотентность повторного удаления в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionService.kt` (FR-002, edge case спеки) — критерий: повторный вызов на удалённую песню возвращает 200 `already_deleted`, не ошибку; первый вызов на несуществующую песню — 404 `song_not_found`
 - [ ] T024 [US1] Разобрать новое тело ответа в `webvue3/src/components/Songs/store.js` (действие `deleteCurrentSong`) — карточка не закрывается при неуспехе (FR-003, SC-003) — критерий: при ответе `db_error` карточка песни остаётся открытой и показывается сообщение об ошибке; unit-тест `webvue3/src/components/Songs/edit/__tests__/pkg-s3-31-songedit.test.js` зелёный
 
@@ -121,14 +135,15 @@ description: "Task list for feature: удаление песни с каскад
 
 **Зависит от**: Phase 2, Phase 4. **Блокирует**: US3.
 
-- [ ] T028 [US3] Добавить значение `SONG_DELETE_CLEANUP` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt` (FR-029) — критерий: значение есть в enum; `KaraokeProcess.createProcess` принимает его
-- [ ] T029 [US3] Добавить ветку `songDeleteCleanup` в диспетчер `runFunctionWithArgs` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt` (`Utils.kt:5047`) (FR-029) — критерий: вызов возвращает `Success for 'songDeleteCleanup'` при успехе; параметры `songId` и `runId` разбираются верно
+- [ ] T028 [US3] Добавить значение `SONG_DELETE_CLEANUP` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt`; задание ставится в lane `-1` (`THREAD_LANE_LIGHT_BACKGROUND`), `process_chain_id` = id прогона `tbl_song_cleanup_runs` (FR-029, контракт § 7) — критерий: значение есть в enum; `KaraokeProcess.createProcess` принимает его
+- [ ] T029 [US3] Добавить ветку `songDeleteCleanup` в диспетчер `runFunctionWithArgs` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt` (`Utils.kt:5047`); аргументы задания — `["runFunctionWithArgs", "songDeleteCleanup", "songId=<id>", "runId=<runId>"]` (FR-029, контракт § 7) — критерий: вызов возвращает `Success for 'songDeleteCleanup'` при успехе; параметры `songId` и `runId` разбираются верно
 - [ ] T030 [US3] Реализовать шаг «диск» в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt`: удаление всех файлов песни в корне папки альбома и в `hdemucs_mmi`, `done_files`, `done_chords`, `sheetsage` по строгому правилу владения (FR-010, FR-012) — критерий: файлы песни удалены; исходники и файлы проектов рендера удалены (вердикты `PROTECTED` реестра уборки не применяются); файлы соседней песни не тронуты
 - [ ] T031 [US3] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` удаление битых симлинков и сохранение живых (FR-015) — критерий: симлинки с несуществующей целью удалены; симлинки живых песен на месте
 - [ ] T032 [US3] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` пометку неопознанных файлов как «оставлено» без удаления (FR-016) — критерий: файл, не подошедший ни под одно правило, остался на месте и попал в журнал с `result = KEPT`, `reason = not_recognized`
 - [ ] T033 [US3] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` шаг «хранилища»: удаление объектов по префиксу `$автор/$год - $альбом/<имя>` в локальном MinIO и в удалённом, по текущему имени и по всем именам из `tbl_song_name_history` (FR-013) — критерий: свои объекты удалены в обоих хранилищах; обложка альбома и картинка автора не тронуты (FR-014); отсутствие объекта в одном хранилище — не ошибка
+- [ ] T081 [US3] После удаления объектов хранилища инвалидировать строки `tbl_storage_metadata_cache` по удалённым ключам `(source, bucket, fileName)` — тем же механизмом, что `POST /api/song/resetStorageCache` (`StorageMetadataCache.refreshKeys`), для обоих источников (LOCAL и REMOTE) (FR-037) — критерий: после уборки в `tbl_storage_metadata_cache` нет записей по удалённым ключам; проверка здоровья не считает удалённые объекты существующими
 - [ ] T034 [US2] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` шаг «альбом»: удаление записи `tbl_albums`, записи `tbl_pictures` картинки альбома, обложки и превью альбома в обоих хранилищах — только если удаляемая песня была последней в альбоме (FR-018, FR-019) — критерий: при непустом альбоме альбом не тронут; при последней песне запись альбома и его картинки удалены
-- [ ] T035 [US2] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` шаг «папка альбома»: удалить папку только если в ней не осталось файлов живых песен; иначе оставить с причиной `album_has_live_songs` (FR-020, FR-021, FR-022) — критерий: для альбома-«близнеца» запись удалена, папка и её содержимое целы; пустые подпапки удаляются только вместе с альбомом (FR-017)
+- [ ] T035 [US2] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` шаг «папка альбома»: удалить папку только если в ней не осталось файлов живых песен; иначе оставить с причиной `album_has_live_songs` (FR-020, FR-021, FR-022, SC-005) — критерий: для альбома-«близнеца» запись удалена, папка и её содержимое целы; пустые подпапки удаляются только вместе с альбомом (FR-017)
 - [ ] T036 [US3] Зафиксировать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` порядок шагов «диск → хранилища → альбом → папка альбома» (FR-031) — критерий: порядок записей в журнале соответствует FR-031
 - [ ] T037 [US3] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` повторы при недоступности хранилища: до 5 попыток с паузами 2s → 60s, каждая попытка — отдельная запись журнала (FR-032) — критерий: в журнале видны 5 попыток с возрастающими `attempt`
 - [ ] T038 [US3] Реализовать в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupExecutor.kt` остановку после исчерпания попыток с записью остатка в журнал (FR-033) — критерий: прогон получает статус `PARTIAL`/`FAILED`, остаток перечислен в журнале; повторный запуск уже удалённого файла даёт `SKIPPED`, а не `FAILED` (идемпотентность шагов)
@@ -158,8 +173,14 @@ description: "Task list for feature: удаление песни с каскад
 
 **Зависит от**: ничего. **Блокирует**: раскатку.
 
+> **Порядок выполнения.** Флаг — предохранитель, а не декорация: эндпоинты фичи
+> не должны быть доступны, пока флаг выключен. Поэтому T045/T046 реализуются
+> **до** фаз 3–7 (или, что эквивалентно, фазы 3–8 мержатся одним PR — флаг
+> присутствует в коде с первого дня). Откат фичи = установка
+> `songDeleteEnabled = false`: код и миграции остаются, файлы и объекты не трогаются.
+
 - [ ] T045 Зарегистрировать свойство `songDeleteEnabled` (по умолчанию `false`) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt` и читать его через `KaraokeProperties.getBoolean("songDeleteEnabled")` (ADR `local-0001`, R-010) — критерий: `getBoolean("songDeleteEnabled")` возвращает `false` по умолчанию; ключ доступен через `/api/properties/setproperty`
-- [ ] T046 Отключать все эндпоинты фичи при выключенном флаге в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt` — ответ 503 `song_delete_disabled` (FR-027, R-010) — критерий: при флаге `false` `POST /api/song/delete` и `POST /api/song/deletepreview` отвечают 503 и ничего не удаляют
+- [ ] T046 Отключать все эндпоинты фичи при выключенном флаге (FR-027 — откат без правки кода) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt` — ответ 503 `song_delete_disabled` (FR-027, R-010) — критерий: при флаге `false` `POST /api/song/delete` и `POST /api/song/deletepreview` отвечают 503 и ничего не удаляют
 
 **Checkpoint**: фича выключается одним свойством; откат не требует отката кода.
 
@@ -175,6 +196,7 @@ description: "Task list for feature: удаление песни с каскад
 - [ ] T048 [US4] Исключать из кандидатов объекты и файлы, совпадающие с именем живой песни после нормализации (FR-042, SC-008) — критерий: near-match (регистр, `ё`/`е`, кавычки, `01`/`01`) в перечень не попадает
 - [ ] T049 [US4] Создать `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongOneTimeCleanupService.kt` — применение только по утверждённому отпечатку; при изменении состава набора — отказ (FR-040) — критерий: `apply` с изменившимся отпечатком отклоняется и ничего не удаляет
 - [ ] T050 [US4] Писать каждое разовое удаление в журнал `tbl_song_cleanup_entries` с `run_kind = ONE_TIME_CLEANUP` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongCleanupJournal.kt` (FR-043) — критерий: по каждому удалённому объекту есть запись журнала
+- [ ] T083 [US4] Замерить фактически освобождённый объём по прогонам разовой уборки: сумма `bytes_deleted` из `tbl_song_cleanup_runs` и `tbl_song_cleanup_entries` за все проходы (SC-007) — критерий: замер зафиксирован в отчёте прогона; сумма не меньше 10 ГБ, иначе проходы считаются невыполненными и владельцу докладывается фактический объём
 - [ ] T051 [US4] Добавить эндпоинты плана, применения и статуса разовой уборки в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt` с обязательным отпечатком в ответе на применение (FR-039…FR-043) — критерий: без корректного отпечатка применение отклоняется
 
 **Checkpoint**: разовая уборка возможна по протоколу утверждённого набора и журналируется.
@@ -193,7 +215,7 @@ description: "Task list for feature: удаление песни с каскад
 - [ ] T055 [P] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/CleanupRunStateMachineTest.kt` — переходы состояний прогона; `DONE` невозможен при `*_failed > 0` (FR-034, SC-003) — критерий: тест падает при попытке выставить `DONE` с отказами
 - [ ] T056 [P] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletionPreviewTest.kt` — предпросмотр совпадает с фактом уборки, расхождение 0 (FR-023, SC-004) — критерий: числа предпросмотра равны числам удалённых файлов и объектов
 - [ ] T057 [P] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/StorageKeyOwnershipTest.kt` — свои и чужие ключи MinIO: обложка альбома и картинка автора не попадают в удаляемые (FR-013, FR-014) — критерий: ключи обложек отсутствуют в списке удаляемых
-- [ ] T058 [P] [US2] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/AlbumFolderGuardTest.kt` — папка альбома не удаляется при наличии файлов живых песен (FR-020, FR-021, FR-022) — критерий: тест падает, если папка удаляется при живых песнях
+- [ ] T058 [P] [US2] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/AlbumFolderGuardTest.kt` — папка альбома не удаляется при наличии файлов живых песен; ни один файл живой песни не удалён (FR-020, FR-021, FR-022, SC-005) — критерий: тест падает, если папка удаляется при живых песнях
 
 **Integration** (живая БД, оба контура, тестовое хранилище) — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/`:
 
@@ -203,9 +225,12 @@ description: "Task list for feature: удаление песни с каскад
 - [ ] T062 [P] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteBothDatabasesTest.kt` — строка удалена в LOCAL и в SERVER; в SERVER удалена и строка `tbl_songs_sync`; новость осталась с `song_id IS NULL` (FR-001, FR-009, FR-045) — критерий: обе базы проверены; тест падает, если строка осталась в SERVER
 - [ ] T063 Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteStorageRetryTest.kt` — 5 попыток с backoff → `PARTIAL` + остаток в журнале → добор → `DONE` (FR-032, FR-033, SC-006) — критерий: в журнале видны 5 попыток и итоговый статус `DONE` после добора
 - [ ] T064 [P] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteNewsFkTest.kt` — регрессия: песня с новостью удаляется после миграции 58 (FR-009) — критерий: тест падает на схеме с FK `NO ACTION` и зеленеет после миграции
-- [ ] T065 [P] [US2] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteAlbumTwinTest.kt` — альбом-«близнец»: запись удалена, папка осталась (FR-022) — критерий: папка и её содержимое целы
+- [ ] T065 [P] [US2] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteAlbumTwinTest.kt` — альбом-«близнец»: запись удалена, папка осталась; ни один файл живой песни не удалён (FR-022, SC-005) — критерий: папка и её содержимое целы
 - [ ] T066 [P] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteDescendantTest.kt` — потомки живы, `audio_parent_id` обнулён (FR-008) — критерий: число строк у потомков не изменилось
 - [ ] T067 Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteRestartResumeTest.kt` — перезапуск в середине уборки → продолжение (FR-030, SC-009) — критерий: после «перезапуска» уборка доходит до конца, журнал содержит обе попытки
+- [ ] T082 [P] [US1] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteAdminAccessTest.kt` — удаление доступно администратору с текущими правами; отдельная роль «удаление песен» не вводится, новых прав в конфигурации доступа не появляется (FR-028) — критерий: тест падает, если удаление требует новой роли или если в коде/конфигурации добавлена отдельная роль на удаление
+- [ ] T084 [P] [US1] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeletePublicBehaviourTest.kt` — публичное поведение не изменилось: публичные эндпоинты и страницы не тронуты, страница удалённой песни отвечает как раньше (FR-044, SC-010) — критерий: diff по `karaoke-web`/`karaoke-public` пуст; тест фиксирует прежний ответ публичного эндпоинта
+- [ ] T085 [P] [US3] Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongDeleteTracesUnchangedTest.kt` — удаление песни не изменяет системные следы: `songs_history.txt`, `audit_log`, старые записи кеша хранилища (FR-038) — критерий: контрольные суммы перечисленных следов до и после удаления совпадают
 - [ ] T068 Создать `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/audit/SongDeleteRegressionTest.kt` — регрессы, которые не должны сломаться: `RenameAllArtifactsTest`, `StorageCacheResetTest`, `ArtifactCleanupGuardTest`, `CleanupJournalTest`, `PkgS322ProcessTest` (FR-011, FR-013, FR-038) — критерий: перечисленные наборы остаются зелёными
 - [ ] T069 Прогнать `./gradlew :karaoke-app:test --parallel` и `cd webvue3 && npm run test:unit` — критерий: оба набора зелёные; новые тесты не помечены `@Disabled`
 
@@ -215,9 +240,9 @@ description: "Task list for feature: удаление песни с каскад
 
 ## Phase 11: Документация (FR-009)
 
-- [ ] T070 Дополнить `knowledge/product/features/song-delete-cascade.md` фактами реализации (классы, команды, ловушки) и прогнать `bash tools/check-feature-doc.sh knowledge/product/features/song-delete-cascade.md` (FR-009) — критерий: скрипт завершается с кодом 0; все 6 обязательных секций на месте; `slug` == имя файла
-- [ ] T071 Создать `knowledge/domains/catalog/components/song-artifact-ownership.md` (компонент L3 «правило владения артефактом») и добавить ссылку на него в `knowledge/domains/catalog/domain.md` — Linking Protocol L3 → L2 (FR-009) — критерий: `python3 tools/lint-knowledge.py` зелёный; ссылка из `domain.md` присутствует; компонент перечислен в `knowledge/domains/README.md`, если изменился состав компонентов
-- [ ] T072 Привести в соответствие фактам `knowledge/domains/catalog/components/song-lifecycle.md` (журнал уборки в БД, каскад удаления), `knowledge/domains/storage/domain.md` (`tbl_songs_sync` — write-only очередь на SERVER; бакет `karaoke-cache` не существует) и `knowledge/domains/processing/components/two-db-sync.md` (журнал уборки не участвует в sync) — критерий: `python3 tools/lint-knowledge.py` зелёный; расхождения, отмеченные в `spec.md` § Knowledge References, сняты
+- [ ] T070 Дополнить `knowledge/product/features/song-delete-cascade.md` фактами реализации (классы, команды, ловушки) и прогнать `bash tools/check-feature-doc.sh knowledge/product/features/song-delete-cascade.md` (FR-009 **Конституции** § VI — не путать с FR-009 спеки, который про новости песни) — критерий: скрипт завершается с кодом 0; все 6 обязательных секций на месте; `slug` == имя файла
+- [ ] T071 Создать `knowledge/domains/catalog/components/song-artifact-ownership.md` (компонент L3 «правило владения артефактом») и добавить ссылку на него в `knowledge/domains/catalog/domain.md` — Linking Protocol L3 → L2 (FR-009 **Конституции** § VI — не путать с FR-009 спеки, который про новости песни) — критерий: `python3 tools/lint-knowledge.py` зелёный; ссылка из `domain.md` присутствует; компонент перечислен в `knowledge/domains/README.md`, если изменился состав компонентов
+- [ ] T072 Привести в соответствие фактам (FR-009 **Конституции** § VI — не путать с FR-009 спеки, который про новости песни) `knowledge/domains/catalog/components/song-lifecycle.md` (журнал уборки в БД, каскад удаления), `knowledge/domains/storage/domain.md` (`tbl_songs_sync` — write-only очередь на SERVER; бакет `karaoke-cache` не существует) и `knowledge/domains/processing/components/two-db-sync.md` (журнал уборки не участвует в sync) — критерий: `python3 tools/lint-knowledge.py` зелёный; расхождения, отмеченные в `spec.md` § Knowledge References, сняты
 - [ ] T073 Обновить каталог миграций в `knowledge/system/infra/sql-migrations.md` — добавить строки 58, 59, 60 и исправить счётчик файлов — критерий: в каталоге есть три новые миграции; счётчик соответствует `ls deploy/karaoke-db/*.sql`
 
 **Checkpoint**: SSoT отражает фактическое состояние.
@@ -228,6 +253,7 @@ description: "Task list for feature: удаление песни с каскад
 
 - [ ] T074 Выполнить `./gradlew :karaoke-app:compileKotlin :karaoke-app:ktlintCheck` с `GRADLE_USER_HOME="${GRADLE_USER_HOME:-$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.gradle}"` — критерий: обе задачи зелёные, без новых нарушений ktlint
 - [ ] T075 Выполнить `bash tools/check-feature-doc.sh knowledge/product/features/song-delete-cascade.md` — критерий: код возврата 0
+- [ ] T086 Выполнить `python3 tools/lint-knowledge.py` — структурный и стилевой линтер SSoT (Constitution § VI, Knowledge SSoT) — критерий: код возврата 0, «All documentation passes architectural style and structural checks»
 - [ ] T076 Выполнить `python3 tools/check-ssot-impact.py` — критерий: код возврата 0; изменения кода сопровождены обновлением `knowledge/`
 - [ ] T077 Выполнить `PRE_COMMIT_HOME=/home/nsa/Karaoke/.scratch/pre-commit pre-commit run --all-files` — критерий: все хуки пройдены; ни один guard не падает
 - [ ] T078 Выполнить `./gradlew :karaoke-app:test --parallel`, `./gradlew :karaoke-web:ktlintCheck`, `cd webvue3 && npm run lint && npm run test:unit && npm run format:check && cd ..` — критерий: все наборы зелёные
@@ -239,6 +265,7 @@ description: "Task list for feature: удаление песни с каскад
 
 ### Phase Dependencies
 
+- **Phase 0 (окружение)**: без зависимостей; блокирует фазы 10 и 12 (нужны `node_modules` для фронтенд-проверок и pre-commit).
 - **Phase 1 (миграции)**: без зависимостей; блокирует фазы 4, 5, 6, 7.
 - **Phase 2 (правило владения)**: зависит от T009 (Phase 1) частично; блокирует фазы 3, 4, 6, 9.
 - **Phase 3 (предпросмотр)**: зависит от Phase 2; независим от фаз 4–7.
@@ -246,7 +273,7 @@ description: "Task list for feature: удаление песни с каскад
 - **Phase 5 (удаление SERVER)**: зависит от Phase 4.
 - **Phase 6 (фоновая уборка)**: зависит от Phase 2, Phase 4; блокирует Phase 7.
 - **Phase 7 (журнал)**: зависит от Phase 1, Phase 6.
-- **Phase 8 (флаг)**: независима; нужна до раскатки.
+- **Phase 8 (флаг)**: независима по зависимостям, но выполняется **до** фаз 3–7 (предохранитель: эндпоинты недоступны при выключенном флаге); нужна до раскатки.
 - **Phase 9 (разовая уборка)**: зависит от Phase 2, Phase 7.
 - **Phase 10 (тесты)**: зависит от всех фаз реализации.
 - **Phase 11 (документация)**: зависит от реализации (факты) — частично может идти параллельно.
@@ -256,10 +283,10 @@ description: "Task list for feature: удаление песни с каскад
 
 | История | Задачи | Независимая проверка |
 |---|---|---|
-| **US1 (P1)** — админ удаляет песню | T011–T015, T016–T027, T059–T062, T064, T066 | удалить тестовую песню: строка gone в обеих базах, файлы и объекты gone, предпросмотр совпал с фактом |
+| **US1 (P1)** — админ удаляет песню | T011–T015, T016–T027, T059–T062, T064, T066, T082, T084 | удалить тестовую песню: строка gone в обеих базах, файлы и объекты gone, предпросмотр совпал с фактом |
 | **US2 (P2)** — каскад на альбом | T034, T035, T058, T065 | удалить последнюю песню альбома: запись альбома, картинки и папка удалены; для «близнеца» папка осталась |
-| **US3 (P3)** — фоновая уборка с журналом и повторами | T028–T044, T063, T067 | смоделировать недоступность хранилища: повторы, остаток в журнале, статус «не завершено», добор вручную |
-| **US4 (P4)** — разовая уборка | T047–T051, T048 | сформировать перечень на тестовом наборе, утвердить, применить, перезамерить: список пуст, живые объекты нетронуты |
+| **US3 (P3)** — фоновая уборка с журналом и повторами | T028–T044, T063, T067, T081, T085 | смоделировать недоступность хранилища: повторы, остаток в журнале, статус «не завершено», добор вручную |
+| **US4 (P4)** — разовая уборка | T047–T051, T083 | сформировать перечень на тестовом наборе, утвердить, применить, перезамерить: список пуст, живые объекты нетронуты |
 
 ### Story dependencies
 
@@ -281,8 +308,9 @@ description: "Task list for feature: удаление песни с каскад
 - Phase 1: T002 и T003 параллельны (разные файлы миграций).
 - Phase 2: T007, T008, T009 параллельны (разные функции/файлы).
 - Phase 3: T011, T012, T013 параллельны.
-- Phase 10: все unit-тесты (T052–T058) параллельны; integration-тесты (T060, T061, T062, T064–T066) — параллельно между собой, если тестовая БД позволяет.
+- Phase 10: все unit-тесты (T052–T058) параллельны; integration-тесты (T060, T061, T062, T064–T066, T082, T084, T085) — параллельно между собой, если тестовая БД позволяет.
 - Phase 11: T071, T073 — разные файлы, параллельны.
+- Phase 12: проверки T074–T078, T086 — последовательно (каждая опирается на результат предыдущей).
 
 ---
 
@@ -310,6 +338,7 @@ Task: "T065 Создать SongDeleteAlbumTwinTest.kt"
 
 ### MVP First (User Story 1 only)
 
+0. Phase 0 — подготовка окружения (T080).
 1. Phase 1 — миграции 58/59/60 на LOCAL (T001–T004).
 2. Phase 2 — правило владения (T006–T010).
 3. Phase 4 — удаление в LOCAL (T016–T024).

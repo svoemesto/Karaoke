@@ -91,6 +91,48 @@ class SongCleanupExecutor(
             return count
         }
 
+        /**
+         * Живых песен, чьи файлы лежат в папке альбома (FR-021).
+         *
+         * Проверяются оба признака: папка (`tbl_songs.root_folder`) и альбом
+         * (`tbl_songs.album_id`) — альбом-«близнец» может иметь другую запись
+         * альбома, но те же файлы на диске.
+         *
+         * При недоступной БД возвращается 1 (папку НЕ удаляем): сбой проверки не
+         * должен приводить к удалению папки с живыми песнями.
+         */
+        fun liveSongsInAlbumFolder(
+            database: KaraokeConnection,
+            rootFolder: String,
+            albumId: Long,
+        ): Int {
+            val connection = database.getConnection() ?: return 1
+            return try {
+                val sql =
+                    if (albumId > 0L) {
+                        "SELECT count(*) FROM tbl_songs " +
+                            "WHERE rtrim(root_folder, '/') = rtrim(?, '/') OR album_id = ?"
+                    } else {
+                        "SELECT count(*) FROM tbl_songs WHERE rtrim(root_folder, '/') = rtrim(?, '/')"
+                    }
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setString(1, rootFolder)
+                    if (albumId > 0L) ps.setLong(2, albumId)
+                    ps.executeQuery().use { rs ->
+                        if (rs.next()) rs.getInt(1) else 1
+                    }
+                }
+            } catch (e: Exception) {
+                log.warn(
+                    "song.cleanup.album_folder.count_failed: rootFolder={} albumId={} — {}",
+                    rootFolder,
+                    albumId,
+                    e.toString(),
+                )
+                1
+            }
+        }
+
         private val log = LoggerFactory.getLogger(CATEGORY)
     }
 
@@ -659,9 +701,13 @@ class SongCleanupExecutor(
     /**
      * Шаг «папка альбома» (FR-020, FR-021, FR-022, FR-017).
      *
-     * Папка удаляется, только если в ней не осталось НИ ОДНОГО файла: удалять папку
-     * с файлами нельзя — среди них могут быть файлы живых песен (альбом-«близнец»)
-     * или неопознанные файлы, которые по FR-016 остаются на месте.
+     * Папка удаляется, если в ней нет файлов ЖИВЫХ песен (FR-020); если файлы
+     * песен, заведённых в базе, лежат в папке — папка остаётся (FR-021).
+     *
+     * Проверка идёт по БД, а не по наличию файлов: неопознанные файлы (мусор
+     * `[key].json` от прежних удалений) папку не удерживают — иначе папка
+     * альбома удалённой песни оставалась бы навсегда. Каждый удалённый файл
+     * попадает в журнал отдельно (FR-016: что осталось / что ушло — видно).
      */
     private fun cleanupAlbumFolder(
         run: SongCleanupJournal.RunSummary,
@@ -673,8 +719,16 @@ class SongCleanupExecutor(
         val root = File(rootFolder)
         if (!root.isDirectory) return
 
-        val remainingFiles = remainingFilesCount(rootFolder)
-        if (remainingFiles > 0) {
+        // FR-020/FR-021: папка удаляется, если в ней НЕТ файлов живых песен.
+        // Проверка — по БД: песни, заведённые в базе, живут в папке альбома
+        // (tbl_songs.root_folder) и держат альбом (tbl_songs.album_id).
+        //
+        // Важно: файлы, которые не удалось опознать как артефакты песни (мусор
+        // `[key].json` от прежних удалений), папку НЕ удерживают. Иначе папка
+        // альбома удалённой песни оставалась бы навсегда (дефект, найден на
+        // приёмке 2026-11-12: альбом был последним, а папка осталась).
+        val liveSongs = countLiveSongsInAlbumFolder(rootFolder, run.albumId)
+        if (liveSongs > 0) {
             SongCleanupJournal.addEntry(
                 runId = run.runId,
                 kind = SongCleanupJournal.EntryKind.ALBUM_FOLDER,
@@ -688,16 +742,34 @@ class SongCleanupExecutor(
             )
             return
         }
+        // Снимок содержимого папки ДО удаления: после удаления размеры файлов
+        // недоступны, а в журнале должны лежать реальные пути и объём.
+        val removedFiles = collectFilesWithSizes(root)
+        val removedBytes = removedFiles.sumOf { it.second }
         val deleted = deleteRecursively(root)
-        counters.filesTotal++
         if (deleted) {
-            counters.filesDeleted++
+            counters.filesTotal += removedFiles.size
+            counters.filesDeleted += removedFiles.size
+            counters.bytesDeleted += removedBytes
+            removedFiles.forEach { (path, size) ->
+                SongCleanupJournal.addEntry(
+                    runId = run.runId,
+                    kind = SongCleanupJournal.EntryKind.FILE,
+                    location = SongCleanupJournal.EntryLocation.LOCAL_FILESYSTEM,
+                    pathOrKey = path,
+                    sizeBytes = size,
+                    result = SongCleanupJournal.EntryResult.DELETED,
+                    reason = "removed_with_album",
+                    initiator = initiator,
+                    database = database,
+                )
+            }
             SongCleanupJournal.addEntry(
                 runId = run.runId,
                 kind = SongCleanupJournal.EntryKind.ALBUM_FOLDER,
                 location = SongCleanupJournal.EntryLocation.LOCAL_FILESYSTEM,
                 pathOrKey = rootFolder,
-                sizeBytes = 0,
+                sizeBytes = removedBytes,
                 result = SongCleanupJournal.EntryResult.DELETED,
                 initiator = initiator,
                 database = database,
@@ -747,6 +819,37 @@ class SongCleanupExecutor(
     }
 
     // ------------------------------------------------------------- утилиты
+
+    /**
+     * Живых песен, чьи файлы лежат в папке альбома (FR-021).
+     *
+     * Проверка — по БД: песни, заведённые в базе, живут в папке альбома
+     * (`tbl_songs.root_folder`) и держат альбом (`tbl_songs.album_id`).
+     */
+    private fun countLiveSongsInAlbumFolder(rootFolder: String, albumId: Long): Int =
+        SongCleanupExecutor.liveSongsInAlbumFolder(database, rootFolder, albumId)
+
+    /**
+     * Файлы каталога (рекурсивно) с размерами — снимаются ДО удаления.
+     *
+     * После удаления размер недоступен, а в журнал должны лечь реальные пути
+     * и объём (FR-016: администратор видит, что ушло вместе с папкой).
+     */
+    private fun collectFilesWithSizes(root: File): List<Pair<String, Long>> {
+        val result = mutableListOf<Pair<String, Long>>()
+
+        fun walk(dir: File) {
+            dir.listFiles()?.forEach { file ->
+                if (file.isDirectory) {
+                    walk(file)
+                } else {
+                    result.add(file.path to file.length())
+                }
+            }
+        }
+        walk(root)
+        return result
+    }
 
     /** Живых песен в альбоме (после удаления песни). */
     private fun countLiveSongsInAlbum(albumId: Long): Int {

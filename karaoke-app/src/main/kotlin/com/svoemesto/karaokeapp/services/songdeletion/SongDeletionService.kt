@@ -7,10 +7,13 @@ import com.svoemesto.karaokeapp.KaraokeProcess
 import com.svoemesto.karaokeapp.KaraokeProcessTypes
 import com.svoemesto.karaokeapp.PROJECT_ROOT_FOLDERS
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.model.RecordDeleteMessage
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.slf4j.LoggerFactory
 import java.sql.Connection as SqlConnection
@@ -190,6 +193,24 @@ class SongDeletionService(
             "event=song.delete.db.local.ok code=SONG-DELETE-002 songId={}",
             songId,
         )
+        // SSE-событие об удалении строки: админка убирает строку из таблицы песен
+        // БЕЗ перезагрузки таблицы. Прежний путь (Song.deleteFromDb) слал это
+        // событие; новая точка удаления обходит тот метод — событие потерялось,
+        // и строка оставалась в таблице до ручной перезагрузки (дефект, найден
+        // владельцем 2026-11-12 на живой приёмке).
+        try {
+            SNS.send(
+                SseNotification.recordDelete(
+                    RecordDeleteMessage(
+                        recordId = songId,
+                        tableName = "tbl_songs",
+                        databaseName = database.name,
+                    ),
+                ),
+            )
+        } catch (e: Exception) {
+            log.warn("song.delete.sse.failed: songId={} — {}", songId, e.toString())
+        }
         SongCleanupJournal.updateRunState(runId, CleanupRunState.APPROVED, database)
 
         // Фаза B — SERVER-БД, отдельная транзакция (В-07: чистим и tbl_songs_sync).

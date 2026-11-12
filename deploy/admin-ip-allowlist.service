@@ -1,5 +1,5 @@
 [Unit]
-Description=Karaoke: самовосстановление доступа к прод-каналу при смене внешнего IP (BR-631)
+Description=Karaoke: проверка allow-list прод-канала (расхождение → юнит в failed)
 After=network-online.target
 Wants=network-online.target
 

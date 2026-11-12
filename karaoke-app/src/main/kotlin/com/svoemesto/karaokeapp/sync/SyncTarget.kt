@@ -272,8 +272,10 @@ object SongSyncTarget : SyncTarget<Song>(
         id: Long,
         db: KaraokeConnection,
     ): Boolean {
-        Song.deleteFromDb(id = id, database = db)
-        return true
+        // KARAOKE-429 (FR-002): результат удаления известен вызывающему — отказ БД
+        // больше не выглядит как успешное удаление строки.
+        val result = Song.deleteFromDb(id = id, database = db)
+        return result.isDeleted || result.isNotFound
     }
 
     override fun label(item: Song): String = item.fileName

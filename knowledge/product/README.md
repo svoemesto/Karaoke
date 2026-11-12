@@ -58,6 +58,7 @@ Per-feature документ — `knowledge/product/features/<slug>.md`, фор�
 | 19 | [Feature: Заголовки безопасности публичного сайта](features/security-headers.md) | `security-headers` |
 | 20 | [Song air access (эфир и окно бесплатного доступа)](features/song-air-access.md) | `song-air-access` |
 | 21 | [Автоуборка артефактов песни (OpenProject #321, спека #544)](features/song-artifact-cleanup.md) | `song-artifact-cleanup` |
+| 22 | [Удаление песни с каскадной уборкой (спека #739, KARAOKE-429)](features/song-delete-cascade.md) | `song-delete-cascade` |
 | 22 | [Превентивные меры против OOM в `karaoke-app` (лимит памяти, дампы, мониторинг heap)](features/heap-memory-guardrails.md) | `heap-memory-guardrails` |
 | 22 | [Тональность и темп в таблице песен (Ton / BPM)](features/tonality-bpm-songs-table.md) | `tonality-bpm-songs-table` |
 | 22 | [Автоматизация allow-list админ-машины (самовосстановление доступа к прод-каналу)](features/admin-ip-allowlist.md) | `admin-ip-allowlist` |

@@ -1,11 +1,11 @@
 # SQL migrations (deploy/karaoke-db/)
 
 > **Домен**: system (infrastructure)
-> **Компонента**: каталог SQL-миграций проекта (55 файлов на 2026-10-24).
+> **Компонента**: каталог SQL-миграций проекта (68 файлов на 2026-11-12).
 
 ## Назначение
 
-`deploy/karaoke-db/*.sql` — **54 миграции** в формате `NN_<name>.sql`.
+`deploy/karaoke-db/*.sql` — **68 миграций** в формате `NN_<name>.sql`.
 Каждая добавляет/изменяет таблицу или индекс.
 
 ## Каталог миграций (по NNN)
@@ -45,6 +45,9 @@
 | 27 | listening_history | tbl_listening_history (ListeningHistory) |
 | 51 | subscriptions_on_delete_restrict | `tbl_subscriptions.site_user_id` → `ON DELETE RESTRICT` (BR-041) |
 | 57 | authors_unique_author | UNIQUE-индекс на `tbl_authors.author` (BR-628) |
+| 58 | news_song_id_on_delete_set_null | FK `tbl_news.song_id` → `ON DELETE SET NULL`; FK `tbl_song_news_announced.song_id` → `ON DELETE CASCADE` (если таблица есть — она удалена миграцией 34) — разблокировка удаления песни (KARAOKE-429) |
+| 59 | song_name_history | `tbl_song_name_history` — история прежних имён песни (FK на `tbl_songs` нет: переживает удаление песни) (KARAOKE-429) |
+| 60 | song_cleanup_journal | `tbl_song_cleanup_runs` + `tbl_song_cleanup_entries` — журнал уборки в БД с CHECK-ограничениями состояний и результатов (KARAOKE-429) |
 | ... (ещё ~25, см. `ls deploy/karaoke-db/*.sql`) | | |
 
 **NB**: номера не строго последовательные (есть 04 дважды, 17
@@ -124,6 +127,9 @@
 | `deploy/recordhash_authors.sql` | применён | применён | канонический `recordhash` авторов → 17 слагаемых |
 | `deploy/recordhash_processes.sql` | применён | применён | канонический `recordhash` процессов → 18 слагаемых |
 | `deploy/karaoke-db/57_authors_unique_author.sql` | применён | применён | UNIQUE-индекс на `tbl_authors.author` (применён 2026-10-26; перед применением проверено: 132 автора, 0 групп-дубликатов на обеих БД) |
+| `deploy/karaoke-db/58_news_song_id_on_delete_set_null.sql` | применён | применён | FK `tbl_news.song_id` → SET NULL; `tbl_song_news_announced.song_id` → CASCADE, если таблица есть (на обеих БД её нет — удалена миграцией 34, DO-блок это учитывает) |
+| `deploy/karaoke-db/59_song_name_history.sql` | применён | применён | `tbl_song_name_history` (id, song_id, file_name, changed_at), UNIQUE (song_id, file_name) + индекс по song_id |
+| `deploy/karaoke-db/60_song_cleanup_journal.sql` | применён | применён | `tbl_song_cleanup_runs` + `tbl_song_cleanup_entries` (12 CHECK-ограничений), индексы по run_id и (run_id, result) |
 
 **Почему 54 пропущен.** На обеих базах индекс уже существует и его определение
 ровно такое, какое создаёт миграция:

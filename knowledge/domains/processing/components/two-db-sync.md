@@ -106,6 +106,17 @@ DTO контрактов (`SyncEntityInfoDto`, `SyncRunResultDto`,
 `SearchAsync`, `SearchResult`, `PromoRule`, `CrossSong` — только
 LOCAL. Это значит, что **repair-процессы не видны прод-серверу**.
 
+**Журнал уборки песни** (`tbl_song_cleanup_runs`, `tbl_song_cleanup_entries`) и
+**история имён песни** (`tbl_song_name_history`, KARAOKE-429) — тоже **не в
+sync**: это локальная хроника администратора, и её синхронизация переносила бы
+пути к файлам admin-машины на прод. Осознанное исключение из Principle III
+(зафиксировано в `specs/739-song-delete-cascade/plan.md` § «Constitution Check»).
+
+**`tbl_songs_sync`** — write-only очередь на SERVER: её пишет
+`Utils.setSongToSyncRemoteTable` через `Connection.remote()`, а читающего кода в
+проекте нет. Удаление строки песни из неё (KARAOKE-429) — гигиена, а не условие
+корректности.
+
 ### Per-target флаги
 
 144 флага в `KaraokeProperties.kt` (уникальных `sync_*_allowed`; сверено в Pass 473) (`sync_<key>_<push|pull>_<insert|update|delete|move>_allowed`),

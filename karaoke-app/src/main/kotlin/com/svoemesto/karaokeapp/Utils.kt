@@ -14,6 +14,7 @@ import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.services.cleanup.ArtifactCleanupAutomation
+import com.svoemesto.karaokeapp.services.songdeletion.SongCleanupExecutor
 import com.svoemesto.karaokeapp.mlt.MltObject
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
@@ -1831,8 +1832,14 @@ fun delDublicates(
         )
     songList.forEach { song ->
         if (song.tags == "DD") {
-            song.deleteFromDb()
-            counter++
+            // KARAOKE-429 (FR-002): считаем только фактически удалённые строки —
+            // отказ БД раньше выглядел как успешное удаление.
+            val result = song.deleteFromDb()
+            if (result.isDeleted) {
+                counter++
+            } else {
+                println("[${Timestamp.from(Instant.now())}] WARN song.delete.failed: songId=${song.id} ${result.status} ${result.error ?: ""}")
+            }
         }
     }
     return counter
@@ -5113,6 +5120,21 @@ fun executeRenderMp4(
     return true
 }
 
+/**
+ * Исполнить фоновую уборку артефактов удалённой песни (KARAOKE-429, FR-029).
+ *
+ * Шаг очереди `KaraokeProcess` типа `SONG_DELETE_CLEANUP`. Аргументы:
+ * `songId=<id>`, `runId=<runId>` (прогон журнала `tbl_song_cleanup_runs`).
+ *
+ * @return `true`, если уборка выполнена (возможно, частично — остаток виден в журнале).
+ */
+fun executeSongDeleteCleanup(params: Map<String, String>): Boolean {
+    val songId = params["songId"]?.toLongOrNull() ?: return false
+    val runId = params["runId"]?.toLongOrNull() ?: 0L
+    val executor = SongCleanupExecutor()
+    return executor.execute(runId = runId, songId = songId, initiator = "cleanup")
+}
+
 fun runFunctionWithArgs(args: List<String>): String {
     if (args.size <= 1) return ""
     val func = args[1]
@@ -5122,6 +5144,7 @@ fun runFunctionWithArgs(args: List<String>): String {
         "uploadToLocalStore" -> if (executeUploadToLocalStore(params)) "Success for '$func'" else ""
         "uploadToRemoteStore" -> if (executeUploadToRemoteStore(params)) "Success for '$func'" else ""
         "renderMp4" -> if (executeRenderMp4(params)) "Success for '$func'" else ""
+        "songDeleteCleanup" -> if (executeSongDeleteCleanup(params)) "Success for '$func'" else ""
         else -> ""
     }
 }

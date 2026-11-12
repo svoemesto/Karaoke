@@ -9,6 +9,13 @@ import com.svoemesto.karaokeapp.services.AutoOneClickSyncScheduler
 import com.svoemesto.karaokeapp.services.HealthReportBatchPool
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.songdeletion.CleanupRunState
+import com.svoemesto.karaokeapp.services.songdeletion.SongCleanupExecutor
+import com.svoemesto.karaokeapp.services.songdeletion.SongCleanupJournal
+import com.svoemesto.karaokeapp.services.songdeletion.SongDeletionPreview
+import com.svoemesto.karaokeapp.services.songdeletion.SongDeletionService
+import com.svoemesto.karaokeapp.services.songdeletion.SongOneTimeCleanupPlanner
+import com.svoemesto.karaokeapp.services.songdeletion.SongOneTimeCleanupService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -4354,11 +4361,85 @@ class ApiController(
     }
 
     // Удаляем песню
+    //
+    // KARAOKE-429 (спека 739): контракт ответа — `contracts/song-delete-api.md` § 3.
+    // Раньше эндпоинт отвечал `200` с пустым телом при ЛЮБОМ исходе, включая отказ
+    // БД (Song.deleteFromDb возвращал Unit и глотал исключения) — это и есть
+    // «ложный успех» (SC-003): карточка песни закрывалась, песня оставалась в базе.
+    //
+    // Теперь ответ структурированный: `deleted` / `already_deleted` /
+    // `partially_deleted` / `not_found` / `db_error` / `process_running` /
+    // `not_owned`; ошибки — с кодом 4xx/5xx, а не 200.
     @PostMapping("/song/delete")
     @ResponseBody
     fun doDeleteSong(
         @RequestParam id: Long,
-    ) {
+        @RequestParam(required = false, defaultValue = "true") confirm: Boolean,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        if (!confirm) {
+            return ResponseEntity
+                .status(409)
+                .body(mapOf("ok" to false, "error" to "not_confirmed", "message" to "Удаление не подтверждено."))
+        }
+        val service = SongDeletionService()
+        val outcome = service.delete(id, initiator = "admin")
+        return when (outcome) {
+            is SongDeletionService.Outcome.Deleted ->
+                ResponseEntity.ok(
+                    mapOf(
+                        "ok" to true,
+                        "status" to if (outcome.deletedServer) "deleted" else "partially_deleted",
+                        "songId" to outcome.songId,
+                        "deletedLocal" to outcome.deletedLocal,
+                        "deletedServer" to outcome.deletedServer,
+                        "runId" to outcome.runId,
+                        "serverError" to outcome.serverError,
+                        "message" to
+                            if (outcome.deletedServer) {
+                                "Песня удалена, уборка запущена в фоне"
+                            } else {
+                                "Песня удалена локально; удаление на серверной БД — в очереди на добор"
+                            },
+                    ),
+                )
+            is SongDeletionService.Outcome.AlreadyDeleted ->
+                ResponseEntity.ok(
+                    mapOf(
+                        "ok" to true,
+                        "status" to "already_deleted",
+                        "songId" to outcome.songId,
+                        "deletedLocal" to true,
+                        "deletedServer" to true,
+                        "runId" to null,
+                    ),
+                )
+            is SongDeletionService.Outcome.NotFound ->
+                ResponseEntity
+                    .status(404)
+                    .body(mapOf("ok" to false, "error" to "song_not_found", "message" to "Песня не найдена."))
+            is SongDeletionService.Outcome.Blocked ->
+                ResponseEntity
+                    .status(409)
+                    .body(mapOf("ok" to false, "error" to outcome.reason, "message" to outcome.message))
+            is SongDeletionService.Outcome.DbError ->
+                ResponseEntity
+                    .status(500)
+                    .body(mapOf("ok" to false, "error" to "db_error", "message" to outcome.message))
+        }
+    }
+
+    /**
+     * KARAOKE-429 (FR-023…FR-026): предпросмотр удаления — что именно будет удалено.
+     *
+     * Числа считаются тем же правилом владения, что и уборка (SC-004: расхождение 0).
+     */
+    @PostMapping("/song/deletepreview")
+    @ResponseBody
+    fun doDeleteSongPreview(
+        @RequestParam id: Long,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
         val song =
             Song.loadFromDbById(
                 id = id,
@@ -4366,8 +4447,307 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        song?.deleteFromDb()
+                ?: return ResponseEntity
+                    .status(404)
+                    .body(mapOf("ok" to false, "error" to "song_not_found", "message" to "Песня не найдена."))
+        val service = SongDeletionService()
+        val ownership = service.ownershipProblem(song)
+        val blockedReason =
+            when {
+                ownership != null -> ownership.first
+                KaraokeProcess.hasActiveProcess(id, WORKING_DATABASE) -> "process_running"
+                else -> null
+            }
+        val preview = SongDeletionPreview().preview(song, blockedReason)
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "songId" to preview.songId,
+                "songName" to preview.songName,
+                "author" to preview.author,
+                "year" to preview.year,
+                "album" to preview.album,
+                "rootFolder" to preview.rootFolder,
+                "filesCount" to preview.filesCount,
+                "filesBytes" to preview.filesBytes,
+                "filesMb" to preview.filesMb,
+                "localStorageObjects" to preview.localStorageObjects,
+                "remoteStorageObjects" to preview.remoteStorageObjects,
+                "storageBytes" to preview.storageBytes,
+                "albumWillBeDeleted" to preview.albumWillBeDeleted,
+                "albumPictureWillBeDeleted" to preview.albumPictureWillBeDeleted,
+                "albumFolderWillBeDeleted" to preview.albumFolderWillBeDeleted,
+                "albumFolderReason" to preview.albumFolderReason,
+                "descendantsCount" to preview.descendantsCount,
+                "newsCount" to preview.newsCount,
+                "linksCount" to preview.linksCount,
+                "playlistItemsCount" to preview.playlistItemsCount,
+                "assignmentsCount" to preview.assignmentsCount,
+                "draftsCount" to preview.draftsCount,
+                "historyCount" to preview.historyCount,
+                "blocked" to preview.blocked,
+                "blockReason" to preview.blockReason,
+            ),
+        )
     }
+
+    /**
+     * KARAOKE-429 (FR-036): список прогонов уборки.
+     */
+    @GetMapping("/song/cleanup/runs")
+    @ResponseBody
+    fun listSongCleanupRuns(
+        @RequestParam(required = false) songId: Long?,
+        @RequestParam(required = false, defaultValue = "50") limit: Int,
+        @RequestParam(required = false, defaultValue = "0") offset: Int,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val runs = SongCleanupJournal.listRuns(songId, limit, offset, WORKING_DATABASE)
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "total" to runs.size,
+                "runs" to runs.map { runSummaryDto(it) },
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-034…FR-036): прогон уборки и его записи журнала.
+     */
+    @GetMapping("/song/cleanup/runs/{runId}")
+    @ResponseBody
+    fun getSongCleanupRun(
+        @PathVariable runId: Long,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val run =
+            SongCleanupJournal.runSummary(runId, WORKING_DATABASE)
+                ?: return ResponseEntity
+                    .status(404)
+                    .body(
+                        mapOf(
+                            "ok" to false,
+                            "error" to "run_not_found",
+                            "message" to "Прогон не найден.",
+                        ),
+                    )
+        val entries = SongCleanupJournal.listEntries(runId, WORKING_DATABASE)
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "run" to runSummaryDto(run),
+                "entries" to entries.map { entryDto(it) },
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-033): ручной добор остатка тем же прогоном.
+     */
+    @PostMapping("/song/cleanup/runs/{runId}/resume")
+    @ResponseBody
+    fun resumeSongCleanupRun(
+        @PathVariable runId: Long,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val run =
+            SongCleanupJournal.runSummary(runId, WORKING_DATABASE)
+                ?: return ResponseEntity
+                    .status(404)
+                    .body(
+                        mapOf(
+                            "ok" to false,
+                            "error" to "run_not_found",
+                            "message" to "Прогон не найден.",
+                        ),
+                    )
+        if (run.state == CleanupRunState.RUNNING) {
+            return ResponseEntity
+                .status(409)
+                .body(mapOf("ok" to false, "error" to "run_running", "message" to "Прогон уже выполняется."))
+        }
+        if (run.state == CleanupRunState.DONE) {
+            return ResponseEntity
+                .status(409)
+                .body(mapOf("ok" to false, "error" to "run_done", "message" to "Остатка нет: прогон завершён."))
+        }
+        // Добор: серверная БД (если она была недоступна) и сама уборка.
+        SongDeletionService().retryServerDeletion(run.songId)
+        SongCleanupJournal.updateRunState(runId, CleanupRunState.APPROVED, WORKING_DATABASE)
+        val executor = SongCleanupExecutor()
+        executor.execute(runId = runId, songId = run.songId, initiator = run.initiator)
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "runId" to runId,
+                "state" to (SongCleanupJournal.currentState(runId, WORKING_DATABASE)?.name ?: "RUNNING"),
+                "message" to "Прогон добран",
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-039…FR-042): перечень кандидатов разовой уборки с размерами
+     * и отпечатком набора. Ничего не удаляет — только читает.
+     */
+    @PostMapping("/song/cleanup/one-time/plan")
+    @ResponseBody
+    fun planSongOneTimeCleanup(
+        @RequestParam(required = false, defaultValue = "true") includeStorage: Boolean,
+        @RequestParam(required = false, defaultValue = "true") includeFiles: Boolean,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val plan = SongOneTimeCleanupPlanner().plan(includeStorage, includeFiles)
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "fingerprint" to plan.fingerprint,
+                "total_bytes" to plan.totalBytes,
+                "live_songs" to plan.liveSongsCount,
+                "generated_at" to plan.generatedAt,
+                "candidates" to
+                    plan.candidates.map { candidate ->
+                        mapOf(
+                            "kind" to candidate.reason.name,
+                            "location" to candidate.location.name,
+                            "path" to candidate.pathOrKey,
+                            "bytes" to candidate.sizeBytes,
+                            "reason" to candidate.detail,
+                        )
+                    },
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-040, FR-043): применение разовой уборки строго по
+     * утверждённому отпечатку. Без отпечатка — 400 `not_confirmed`; при изменившемся
+     * составе набора — 409 `one_time_set_changed` (уборка не выполняется).
+     */
+    @PostMapping("/song/cleanup/one-time/apply")
+    @ResponseBody
+    fun applySongOneTimeCleanup(
+        @RequestParam(required = false) fingerprint: String?,
+    ): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        if (fingerprint.isNullOrBlank()) {
+            return ResponseEntity
+                .status(400)
+                .body(mapOf("ok" to false, "error" to "not_confirmed", "message" to "Требуется отпечаток утверждённого набора."))
+        }
+        val result = SongOneTimeCleanupService().apply(fingerprint, initiator = "owner")
+        if (!result.applied) {
+            val status = if (result.reason == "not_confirmed") 400 else 409
+            return ResponseEntity
+                .status(status)
+                .body(
+                    mapOf(
+                        "ok" to false,
+                        "error" to (result.reason ?: "one_time_failed"),
+                        "message" to "Уборка не выполнена: требуется новое утверждение набора.",
+                    ),
+                )
+        }
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "run_id" to result.runId,
+                "deleted" to result.deletedCount,
+                "failed" to result.failedCount,
+                "bytes_deleted" to result.bytesDeleted,
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-043, SC-007): сводка по последнему проходу разовой уборки.
+     */
+    @GetMapping("/song/cleanup/one-time/status")
+    @ResponseBody
+    fun songOneTimeCleanupStatus(): ResponseEntity<Map<String, Any?>> {
+        if (!songDeleteEnabled()) return songDeleteDisabledResponse()
+        val service = SongOneTimeCleanupService()
+        val run =
+            service.status()
+                ?: return ResponseEntity
+                    .status(404)
+                    .body(
+                        mapOf(
+                            "ok" to false,
+                            "error" to "no_runs",
+                            "message" to "Проходов разовой уборки ещё не было.",
+                        ),
+                    )
+        return ResponseEntity.ok(
+            mapOf(
+                "ok" to true,
+                "run_id" to run.runId,
+                "state" to run.state.name,
+                "entries" to (run.filesTotal + run.objectsTotal),
+                "bytes_deleted" to run.bytesDeleted,
+                "total_bytes_deleted" to service.totalBytesDeleted(),
+                "finished_at" to run.finishedAt,
+            ),
+        )
+    }
+
+    /**
+     * KARAOKE-429 (FR-027): фича выключена флагом — все эндпоинты отвечают 503 и
+     * ничего не удаляют. Откат фичи = установка `songDeleteEnabled = false`.
+     */
+    private fun songDeleteEnabled(): Boolean = KaraokeProperties.getBoolean("songDeleteEnabled")
+
+    /** Ответ «фича выключена» (503). */
+    private fun songDeleteDisabledResponse(): ResponseEntity<Map<String, Any?>> =
+        ResponseEntity
+            .status(503)
+            .body(
+                mapOf(
+                    "ok" to false,
+                    "error" to "song_delete_disabled",
+                    "message" to "Удаление песни выключено настройкой songDeleteEnabled.",
+                ),
+            )
+
+    /** DTO сводки прогона (контракт § 4). */
+    private fun runSummaryDto(run: SongCleanupJournal.RunSummary): Map<String, Any?> =
+        mapOf(
+            "runId" to run.runId,
+            "songId" to run.songId,
+            "songName" to run.songName,
+            "runKind" to run.runKind.name,
+            "state" to run.state.name,
+            "initiator" to run.initiator,
+            "startedAt" to run.startedAt,
+            "finishedAt" to run.finishedAt,
+            "filesTotal" to run.filesTotal,
+            "filesDeleted" to run.filesDeleted,
+            "filesKept" to run.filesKept,
+            "filesFailed" to run.filesFailed,
+            "objectsTotal" to run.objectsTotal,
+            "objectsDeleted" to run.objectsDeleted,
+            "objectsKept" to run.objectsKept,
+            "objectsFailed" to run.objectsFailed,
+            "bytesDeleted" to run.bytesDeleted,
+            "error" to run.error,
+        )
+
+    /** DTO записи журнала (контракт § 5): ровно семь полей FR-035. */
+    private fun entryDto(entry: SongCleanupJournal.Entry): Map<String, Any?> =
+        mapOf(
+            "id" to entry.id,
+            "runId" to entry.runId,
+            "kind" to entry.kind.name,
+            "location" to entry.location.name,
+            "pathOrKey" to entry.pathOrKey,
+            "sizeBytes" to entry.sizeBytes,
+            "result" to entry.result.name,
+            "reason" to entry.reason,
+            "attempt" to entry.attempt,
+            "createdAt" to entry.createdAt,
+            "initiator" to entry.initiator,
+        )
 
 //    // Создаём MP3 KARAOKE для песни
 //    @PostMapping("/song/mp3karaoke")

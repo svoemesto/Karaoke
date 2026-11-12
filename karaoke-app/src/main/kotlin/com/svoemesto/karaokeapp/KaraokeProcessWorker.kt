@@ -145,6 +145,10 @@ class KaraokeProcessThread(
                         KaraokeProcessTypes.RENDER_MP4_DEMO,
                         -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
                         KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> executeForcedAlignMarkers(params)
+                        // KARAOKE-429: фоновая каскадная уборка артефактов удалённой песни.
+                        // Без этой ветки задание падало бы в `else -> false` и завершалось
+                        // статусом ERROR, а уборка не выполнялась.
+                        KaraokeProcessTypes.SONG_DELETE_CLEANUP -> executeSongDeleteCleanup(params)
                         else -> false
                     }
                 if (forceStopped) {

@@ -270,7 +270,7 @@ root админской машины; ключ пользователя `nsa` д
 Откат: `DB_SSL_ON=off` + перезапуск `karaoke-db`, удаление правила `hostssl` из
 `pg_hba.conf`, `DB_REMOTE_SSL_MODE=prefer` + перезапуск `karaoke-app`.
 
-### 3.6 Автоматика allow-list в режиме туннеля: проверка и уведомления
+### 3.6 Автоматика allow-list в режиме туннеля: что проверяется
 
 В режиме туннеля (`ALLOWLIST_MODE=tunnel`) автоматика на прод **ничего не
 пишет**: публичный адрес админской машины в allow-list не попадает никогда.
@@ -284,27 +284,108 @@ root админской машины; ключ пользователя `nsa` д
 События режима туннеля: `event=tunnel status=ok|mismatch|unreachable`, при
 расхождении — `event=decision reason=tunnel_address_mismatch action=skip`.
 
-**Уведомления.** Без токена скрипт пишет **только в журнал**:
+**Уведомления не используются.** Решение владельца (2026-11-12): **Telegram-токен
+не выдаём** — сигналом о расхождении служит код выхода юнита (§ 3.7).
+
+Что это значит технически: без токена скрипт пишет **только в журнал**:
 
 ```text
 event:notify channel=none ok=false reason=token_absent
 ```
 
-Чтобы владелец получал уведомления, нужны переменные:
+То есть в `/etc/admin-ip-allowlist.env` на хосте `ALLOWLIST_TELEGRAM_BOT_TOKEN`
+не задаётся, и уведомлений не будет — наблюдение ведётся по журналу и по
+состоянию юнита. Справочно: чат уведомлений брался бы из
+`ALLOWLIST_NOTIFY_CHAT_ID` (не из `ALLOWLIST_TELEGRAM_CHAT_ID` — канал проекта
+для служебных уведомлений не используется), прокси для вызова Bot API —
+`ALLOWLIST_TELEGRAM_PROXY` (на хосте `socks5h://127.0.0.1:1080`, xray); токен и
+адрес прокси не попадали бы ни в `argv`, ни в журнал — `curl` читает их из
+конфиг-файла с правами `600`, который удаляется сразу после вызова.
 
-| Переменная | Что это |
+### 3.7 Как заметить расхождение allow-list без Telegram-уведомлений
+
+Сигнал — **ненулевой код выхода юнита**: systemd помечает
+`admin-ip-allowlist.service` как `failed`, и это видно без Telegram.
+
+Механика уже работает: в режиме туннеля скрипт возвращает `EXIT_DECLINED=3`
+при расхождении, а `main` пробрасывает код выхода (`run_tunnel_check; return
+$?`). Реальный случай 2026-11-12 13:16 MSK в журнале:
+
+```text
+event:decision reason=tunnel_address_mismatch action=skip files=2 mismatch=2
+admin-ip-allowlist.service: Main process exited, code=exited, status=3/NOTIMPLEMENTED
+Failed with result 'exit-code'
+```
+
+Коды выхода:
+
+| Код | Что означает |
 |---|---|
-| `ALLOWLIST_TELEGRAM_BOT_TOKEN` | токен бота Telegram |
-| `ALLOWLIST_NOTIFY_CHAT_ID` | чат для **служебных** уведомлений (allow-list, откат, «прод недоступен по SSH») |
-| `ALLOWLIST_TELEGRAM_PROXY` | необязательно: прокси **только** для вызова Bot API (на хосте — `socks5h://127.0.0.1:1080`, xray) |
+| `0` | расхождения нет (`event:tunnel status=ok`) |
+| `3` | расхождение: в allow-list прод-хоста не ровно один адрес `10.77.0.1` |
+| `1` | прод-хост недоступен — проверку выполнить не удалось (`event:tunnel status=unreachable`) |
 
-`ALLOWLIST_TELEGRAM_CHAT_ID` (канал проекта) для уведомлений **не
-используется** — это публичный канал, туда уведомления не пишутся.
+Как увидеть:
 
-Токен не попадает ни в `argv`, ни в журнал: `curl` читает его из
-конфиг-файла с правами `600`, который удаляется сразу после вызова. Про адрес
-прокси в журнал пишется только сам факт — само значение в URL прокси может
-содержать учётные данные.
+```bash
+systemctl --failed                                   # юнит в списке failed
+systemctl status admin-ip-allowlist.service --no-pager
+journalctl -u admin-ip-allowlist.service --since "1 hour ago"
+tail -n 50 /var/log/admin-ip-allowlist.log
+```
+
+В списке `systemctl --failed` бывают **посторонние** failed-юниты — на хосте
+замечены `casper-md5check.service` и `NetworkManager-wait-online.service`.
+Смотреть надо **конкретно** `admin-ip-allowlist.service`, а не «есть ли вообще
+что-то failed».
+
+События в журнале: `event:tunnel status=mismatch` (файлы с расхождением) и
+`event:decision reason=tunnel_address_mismatch action=skip` (правка не
+применялась — автоматика в режиме туннеля ничего не пишет).
+
+Проверка кода выхода (выполнена 2026-11-12; в режиме туннеля проверка
+read-only — конфигурация прод-хоста не меняется):
+
+```bash
+# свой журнал и состояние — боевые файлы не трогаются
+ALLOWLIST_MODE=tunnel ALLOWLIST_TUNNEL_ADDR=10.77.0.99 \
+ALLOWLIST_LOG_FILE=/tmp/allowlist-check.log \
+ALLOWLIST_STATE_FILE=/tmp/allowlist-check.state \
+  bash deploy/admin-ip-allowlist.sh ; echo "rc=$?"   # rc=3 — расхождение (status=mismatch x2)
+
+ALLOWLIST_MODE=tunnel ALLOWLIST_TUNNEL_ADDR=10.77.0.1 \
+ALLOWLIST_LOG_FILE=/tmp/allowlist-check.log \
+ALLOWLIST_STATE_FILE=/tmp/allowlist-check.state \
+  bash deploy/admin-ip-allowlist.sh ; echo "rc=$?"   # rc=0 — расхождения нет (status=ok)
+```
+
+### 3.8 Обновление юнита на хосте (root)
+
+Юнит лежит в репозитории (`deploy/admin-ip-allowlist.service`), на хосте
+админской машины — `/etc/systemd/system/admin-ip-allowlist.service`. После
+правки `Description` владелец обновляет юнит на хосте:
+
+```bash
+sudo cp deploy/admin-ip-allowlist.service /etc/systemd/system/admin-ip-allowlist.service
+sudo systemctl daemon-reload
+systemctl status admin-ip-allowlist.service --no-pager
+```
+
+**ExecStart после копирования возвращают к хостовому.** Репозиторный юнит
+указывает `ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh` — путь в
+рабочем дереве, где есть незакоммиченные правки; на хосте юнит запускает
+установленный экземпляр `/usr/local/sbin/admin-ip-allowlist.sh`. Поэтому
+после копирования строку ExecStart возвращают к хостовой:
+
+```bash
+sudo sed -i 's#^ExecStart=.*#ExecStart=/usr/local/sbin/admin-ip-allowlist.sh#' \
+  /etc/systemd/system/admin-ip-allowlist.service
+sudo systemctl daemon-reload
+```
+
+Обновлённый `Description` виден в `systemctl --failed` прямо в списке:
+«Karaoke: проверка allow-list прод-канала (расхождение → юнит в failed)» —
+по нему юнит опознаётся без чтения самого файла.
 
 ## 4. Секреты
 

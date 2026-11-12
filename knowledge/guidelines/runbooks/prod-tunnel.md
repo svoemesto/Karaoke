@@ -379,6 +379,28 @@ systemctl status admin-ip-allowlist.service --no-pager
 переключало бы систему на скрипт из checkout'а. Теперь шаг с `sed` не нужен:
 достаточно установить скрипт и скопировать юнит.
 
+**После копирования — проверьте, что сохранился режим туннеля.** В юните есть
+`Environment=ALLOWLIST_MODE=tunnel` (добавлено 2026-11-12). Если этой строки
+нет, скрипт работает в **public-режиме** и каждые 10 минут **перезаписывает**
+allow-list прод-хоста, заменяя туннельный адрес `10.77.0.1` на публичный IP
+админской машины. Туннель отрезается: прод начинает отвечать «access forbidden by
+rule» на источник `10.77.0.1`, а приложение получает `connection reset` к БД.
+Проверка:
+
+```bash
+systemctl show admin-ip-allowlist.service -p Environment | tr ' ' '\n' | grep ALLOWLIST_MODE
+```
+
+Ожидается `ALLOWLIST_MODE=tunnel`. Если строки нет — вернуть её (см. ниже) либо
+добавить override-файл:
+
+```bash
+sudo mkdir -p /etc/systemd/system/admin-ip-allowlist.service.d
+sudo sh -c 'printf "[Service]\nEnvironment=ALLOWLIST_MODE=tunnel\n" \
+  > /etc/systemd/system/admin-ip-allowlist.service.d/10-tunnel-mode.conf'
+sudo systemctl daemon-reload
+```
+
 Обновлённый `Description` виден в `systemctl --failed` прямо в списке:
 «Karaoke: проверка allow-list прод-канала (расхождение → юнит в failed)» —
 по нему юнит опознаётся без чтения самого файла.
@@ -519,6 +541,46 @@ sudo sh -c 'echo "10.77.0.2 sm-karaoke.ru" >> /etc/hosts'
 сейчас закрыт (публичного IP админской машины в allow-list нет, § 3.4), то
 есть работающего запасного пути нет нигде: восстановление — это починить
 туннель.
+
+### 6.5 Образ `karaoke-app` обязан содержать mTLS — иначе «сломан» канал к серверной БД
+
+Прецедент 2026-11-12: приложение не могло подключиться к серверной БД, и в
+админке горел алярм «нет связи с БД прод», хотя туннель, маршрут и allow-list
+были в порядке. Причина: контейнер работал на образе, собранном из кода **без**
+поддержки клиентского сертификата — в `ConnectionKt.class` (top-level функция
+`buildRemoteJdbcUrl`) не было строк `sslcert` / `sslkey` / `sslrootcert`, поэтому
+драйвер не предъявлял сертификат, а сервер отвечал
+`FATAL: connection requires a valid client certificate` (в логах прод-БД — с
+09.11 12:27 MSK).
+
+**Как отличить этот случай от «сломанного туннеля»:**
+
+| Проверка | Неверный образ | Проблема в туннеле |
+|---|---|---|
+| `docker exec karaoke-app sh -c 'wg show wg0 latest-handshakes'` | рукопожатие свежее | рукопожатие протухшее |
+| `ss -tn` на проде, порт 5433 | соединения **есть** | соединений нет |
+| логи прод-БД | `FATAL: connection requires a valid client certificate` | `could not accept SSL connection: EOF detected` |
+
+**Проверка образа:**
+
+```bash
+docker cp karaoke-app:/app.jar /tmp/app.jar
+python3 - <<'EOF'
+import zipfile
+z = zipfile.ZipFile('/tmp/app.jar')
+for n in z.namelist():
+    if n.endswith('karaokeapp/ConnectionKt.class'):
+        d = z.read(n)
+        print([w.decode() for w in (b'sslcert', b'sslkey', b'sslrootcert') if w in d])
+EOF
+```
+
+Пустой список — образ собран из кода без mTLS: пересобрать из master
+(`deploy/do.sh build_app`) и перезапустить контейнер по Pass 380. Условия
+подключения: `DB_REMOTE_SSL_MODE=verify-full`, `DB_REMOTE_SSL_CERT`,
+`DB_REMOTE_SSL_KEY`, `DB_REMOTE_SSL_ROOT_CERT` в окружении контейнера
+(`deploy/.env`), а также монтирование `/etc/karaoke/tunnel` в
+`/run/karaoke/tunnel` (read-only).
 
 ## 7. Ссылки
 

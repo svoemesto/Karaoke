@@ -319,6 +319,11 @@ check_units() {
     else
       bad "ExecStart в сервисе не указывает абсолютный путь к скрипту"
     fi
+    if grep -qE '^Environment=ALLOWLIST_MODE=tunnel' "$service"; then
+      ok "юнит работает в режиме туннеля (ALLOWLIST_MODE=tunnel) — публичный адрес в allow-list не пишется"
+    else
+      bad "в юните нет Environment=ALLOWLIST_MODE=tunnel — скрипт перейдёт в public-режим и ПЕРЕЗАПИШЕТ allow-list прод-хоста, заменив туннельный адрес публичным (прецедент 2026-11-12: туннель отрезан, приложение не может подключиться к серверной БД)"
+    fi
     if grep -qE '^StandardOutput=journal' "$service"; then
       ok "журнал сервиса идёт в journald (FR-012)"
     else
@@ -560,6 +565,7 @@ UNIT
   cat >"$tmp/deploy/admin-ip-allowlist.service" <<'UNIT'
 [Service]
 ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh
+Environment=ALLOWLIST_MODE=tunnel
 StandardOutput=journal
 UNIT
   cat >"$tmp/specs/677-admin-ip-allowlist/contracts/automation-cli.md" <<'MD'
@@ -607,8 +613,20 @@ MD
 MD
   expect_fail "переменная не описана в контракте"
 
+  # Правило 8: юнит обязан работать в режиме туннеля. Без этой строки скрипт
+  # переходит в public-режим и перезаписывает allow-list прод-хоста, заменяя
+  # туннельный адрес публичным — туннель отрезается (прецедент 2026-11-12).
+  sed -i '/^Environment=ALLOWLIST_MODE=tunnel$/d' "$tmp/deploy/admin-ip-allowlist.service"
+  expect_fail "юнит без ALLOWLIST_MODE=tunnel"
+
   # Возврат к корректному состоянию.
   cp "$tmp/good-script.sh" "$tmp/deploy/admin-ip-allowlist.sh"
+  cat >"$tmp/deploy/admin-ip-allowlist.service" <<'UNIT'
+[Service]
+ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh
+Environment=ALLOWLIST_MODE=tunnel
+StandardOutput=journal
+UNIT
   cat >"$tmp/specs/677-admin-ip-allowlist/contracts/automation-cli.md" <<'MD'
 # Contract: CLI автоматизации allow-list
 

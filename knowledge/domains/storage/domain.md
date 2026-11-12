@@ -57,7 +57,7 @@ Storage — слой абстракции над **двумя физически
 | **`StorageApiClientImpl`** | Реализация: прямой MinioClient SDK к remote MinIO | `karaoke-app/.../services/StorageApiClient.kt:133` |
 | **`StorageApiClientWeb`** | Реализация для `karaoke-web`: WebClient (reactor) к nginx-прокси | `karaoke-web/.../services/StorageApiClientWeb.kt:29` |
 | **`StorageFileInfo`** | Data class: `bucketName`, `fileName`, `etag`, `size` | `karaoke-app/.../services/KaraokeStorageService.kt:119` |
-| **`bucket`** | MinIO bucket. Имена: `karaoke`, `karaoke-cache`, `stemjobs`, и др. | см. мини-словарь ниже |
+| **`bucket`** | MinIO bucket. Имена: `karaoke`, `stemjobs`, и др. | см. мини-словарь ниже |
 | **`minio-proxy`** | nginx path-proxy на проде, через который идёт весь доступ к MinIO | `deploy/prod-single-host/80to8897` (location `/minio/`); локальный аналог — `deploy/karaoke-web/minio-proxy-local.conf` |
 
 ### Мини-словарь buckets
@@ -67,7 +67,7 @@ Storage — слой абстракции над **двумя физически
 | Bucket | Что хранит | Кто пишет | Кто читает |
 |---|---|---|---|
 | `karaoke` | Основной: **mp3-стемы и картинки** (в т.ч. обложки). Видео, исходники, субтитры и сериализованное состояние песни сюда НЕ загружаются (specs/544, FR-016). **Публичная bucket policy** (`s3:GetObject` на весь бакет) — раздаётся анонимно через `/minio/karaoke/...` | `karaoke-app` | `karaoke-app`, `karaoke-web` (через nginx-proxy) |
-| `karaoke-cache` | Кеш изображений (см. `local-0003-shared-minio-image-cache.md`) | `karaoke-app` | `karaoke-app`, `karaoke-web` |
+| ~~`karaoke-cache`~~ | **Бакет не существует.** Ни в одном хранилище его нет (замер бакетов 2026-11-11). Описание в ADR `local-0003-shared-minio-image-cache.md` и в самом домене — устаревшее; «кеш изображений» фактически лежит в общем бакете `karaoke` | — | — |
 | `stemjobs` | Премиум-фича «Создать минусовку»: загруженные + результаты. **Приватный** бакет: bucket policy пустая, анонимное чтение закрыто (спека 561, OpenProject #361, аудит BR-258). Ключи: `<jobId>/<stem>.mp3`, `<jobId>/original.<ext>` | `karaoke-app` | `karaoke-app` (с учётными данными); `karaoke-web` получает объекты по внутреннему каналу `X-Internal-Secret` и отдаёт владельцу |
 
 ## Ключевые компоненты

@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: song-delete-cascade
-> **Last Updated**: 2026-11-12
+> **Last Updated**: 2026-11-12 (реализация)
 > **Spec**: [specs/739-song-delete-cascade/spec.md](../../../specs/739-song-delete-cascade/spec.md)
 > **Issue**: KARAOKE-429 (Plane), карта решений KARAOKE-409
 > **Branch**: `739-plan`
@@ -73,6 +73,40 @@
    журнал как «оставлено». Файлы и объекты, похожие на артефакты удаляемой песни,
    но принадлежащие живой песне с другим написанием, не удаляются никогда.
 
+## Факты реализации
+
+Реализовано в ветке `739-plan` (KARAOKE-429). Классы и точки входа:
+
+| Что | Где |
+|---|---|
+| Единый модуль правил владения (строгое + нормализация) | `karaoke-app/.../services/songdeletion/SongArtifactOwnership.kt` |
+| План каскада по белому списку таблиц | `.../songdeletion/SongDeletionPlanner.kt` |
+| Сервис удаления (фаза A — LOCAL, фаза B — SERVER) | `.../songdeletion/SongDeletionService.kt` |
+| Предпросмотр (те же числа, что и уборка) | `.../songdeletion/SongDeletionPreview.kt` |
+| Фоновая уборка (диск → хранилища → альбом → папка) | `.../songdeletion/SongCleanupExecutor.kt` |
+| Журнал уборки в БД + машина состояний | `.../songdeletion/SongCleanupJournal.kt`, `.../songdeletion/CleanupRunStateMachine.kt` |
+| Разовая уборка (перечень → утверждение → применение) | `.../songdeletion/SongOneTimeCleanupPlanner.kt`, `.../songdeletion/SongOneTimeCleanupService.kt` |
+| История прежних имён песни | `karaoke-app/.../model/SongNameHistory.kt` |
+| Результат удаления строки песни | `karaoke-app/.../model/SongDeleteResult.kt` |
+| Эндпоинты | `karaoke-app/.../controllers/ApiController.kt` (`/api/song/deletepreview`, `/api/song/delete`, `/api/song/cleanup/**`) |
+| Фоновый шаг очереди | `Utils.runFunctionWithArgs` → `songDeleteCleanup`; тип `KaraokeProcessTypes.SONG_DELETE_CLEANUP`, lane `-1` |
+| Миграции | `deploy/karaoke-db/58_news_song_id_on_delete_set_null.sql`, `59_song_name_history.sql`, `60_song_cleanup_journal.sql` |
+| Флаг | свойство `songDeleteEnabled` (по умолчанию `false`), `KaraokeProperties.kt` |
+
+**Схема.** Таблицы журнала: `tbl_song_cleanup_runs` (прогон) и `tbl_song_cleanup_entries`
+(действия); история имён — `tbl_song_name_history`. FK на `tbl_songs` у них
+намеренно нет: строка песни удаляется раньше журнала, и журнал должен её пережить.
+
+**Значение «нет родителя» — `0`, а не `NULL`.** В `tbl_songs` колонка
+`audio_parent_id` объявлена `NOT NULL DEFAULT 0`; запись `NULL` нарушала бы
+ограничение и роняла транзакцию фазы A. Поэтому у потомков связь с удаляемым
+родителем сбрасывается в `0`.
+
+**Связь задания очереди с прогоном журнала** идёт через аргументы задания
+(`runId=<id>`), а не через `process_chain_id`: у кортежа `process_chain_id`
+обязан совпадать с `id` его головы (инвариант выборки голов в очереди), и
+подстановка туда `id` прогона сделала бы задание неисполнимым.
+
 ## Инварианты
 
 1. **Чужое не удаляется.** Файл или объект считается принадлежащим песне только
@@ -125,6 +159,16 @@
   песни не должно уносить общие картинки.
 - **Журнал уборки — в базе, а не в файле.** Файловый журнал не переживает
   переустановку контейнера и не даёт выборки «что осталось» по прогону.
+- **`audio_parent_id` — `NOT NULL DEFAULT 0`.** «Обнулить связь» в этом каталоге
+  означает «поставить 0», а не `NULL`: попытка записать `NULL` роняет всю
+  транзакцию удаления.
+- **`process_chain_id` у задания нельзя занять под прогон журнала.** Голова
+  кортежа выбирается по условию «`process_chain_id = id`»; подстановка туда
+  `id` прогона делает задание неисполнимым. Связь прогона и задания держится
+  в аргументах задания (`runId=…`).
+- **Предпросмотр обязан считать тем же кодом, что и уборка.** Оценка «по БД»
+  расходится с фактом: на диске и в MinIO лежат файлы и объекты, которых нет в
+  строках каталога. Общие счётчики живут в `SongArtifactOwnership`.
 
 ## Ссылки
 
@@ -134,11 +178,9 @@
 - Модель данных: [specs/739-song-delete-cascade/data-model.md](../../../specs/739-song-delete-cascade/data-model.md)
 - Контракт API: [specs/739-song-delete-cascade/contracts/song-delete-api.md](../../../specs/739-song-delete-cascade/contracts/song-delete-api.md)
 - Сценарии приёмки: [specs/739-song-delete-cascade/quickstart.md](../../../specs/739-song-delete-cascade/quickstart.md)
-- Компонент домена: `catalog/song-lifecycle`, `catalog/song-entity`,
+- Компонент домена: [`catalog/song-artifact-ownership`](../../domains/catalog/components/song-artifact-ownership.md)
+  (правило владения артефактом), `catalog/song-lifecycle`, `catalog/song-entity`,
   `storage/domain`, `processing/async-process-queue`, `processing/two-db-sync`.
-  Отдельный компонент L3 «правило владения артефактом»
-  (`knowledge/domains/catalog/components/song-artifact-ownership.md`) будет заведён
-  вместе с реализацией — на момент написания документа этого файла ещё нет.
 - Соседние фичи: [song-artifact-cleanup](song-artifact-cleanup.md) (реестр классов уборки),
   [complete-song-rename](complete-song-rename.md) (правило владения артефактом)
 - Карта решений: KARAOKE-409 (тикеты KARAOKE-410…427)

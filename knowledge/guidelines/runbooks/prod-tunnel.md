@@ -366,22 +366,18 @@ ALLOWLIST_STATE_FILE=/tmp/allowlist-check.state \
 правки `Description` владелец обновляет юнит на хосте:
 
 ```bash
+sudo install -m 755 deploy/admin-ip-allowlist.sh /usr/local/sbin/admin-ip-allowlist.sh
 sudo cp deploy/admin-ip-allowlist.service /etc/systemd/system/admin-ip-allowlist.service
 sudo systemctl daemon-reload
 systemctl status admin-ip-allowlist.service --no-pager
 ```
 
-**ExecStart после копирования возвращают к хостовому.** Репозиторный юнит
-указывает `ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh` — путь в
-рабочем дереве, где есть незакоммиченные правки; на хосте юнит запускает
-установленный экземпляр `/usr/local/sbin/admin-ip-allowlist.sh`. Поэтому
-после копирования строку ExecStart возвращают к хостовой:
-
-```bash
-sudo sed -i 's#^ExecStart=.*#ExecStart=/usr/local/sbin/admin-ip-allowlist.sh#' \
-  /etc/systemd/system/admin-ip-allowlist.service
-sudo systemctl daemon-reload
-```
+**ExecStart в репозиторном юните — канонический хостовый путь**
+`/usr/local/sbin/admin-ip-allowlist.sh` (исправлено 2026-11-12). Раньше он
+указывал на `/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh` — путь в рабочем
+дереве, где возможны незакоммиченные правки; копирование юнита «как есть»
+переключало бы систему на скрипт из checkout'а. Теперь шаг с `sed` не нужен:
+достаточно установить скрипт и скопировать юнит.
 
 Обновлённый `Description` виден в `systemctl --failed` прямо в списке:
 «Karaoke: проверка allow-list прод-канала (расхождение → юнит в failed)» —

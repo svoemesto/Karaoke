@@ -5,11 +5,16 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-# Путь ExecStart должен совпадать с каталогом deploy/ на целевой машине
-# (admin-машина: /home/nsa/Karaoke/deploy). Установка и включение юнита —
-# действие владельца; сам скрипт работает и без установки:
+# ExecStart указывает на УСТАНОВЛЕННЫЙ экземпляр скрипта, а не на файл в
+# рабочем дереве: checkout может содержать незакоммиченные правки, и юнит
+# не должен зависеть от его состояния. Установка на целевой машине (root) —
+# по runbook knowledge/guidelines/runbooks/prod-tunnel.md § 3.8:
+#   sudo install -m 755 deploy/admin-ip-allowlist.sh /usr/local/sbin/admin-ip-allowlist.sh
+#   sudo cp deploy/admin-ip-allowlist.service /etc/systemd/system/admin-ip-allowlist.service
+#   sudo systemctl daemon-reload
+# Без установки юнита скрипт работает вручную:
 #   bash deploy/admin-ip-allowlist.sh --diagnose
-ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh
+ExecStart=/usr/local/sbin/admin-ip-allowlist.sh
 User=root
 Group=root
 # Токены Telegram и Forgejo — из файла с правами 600 (создаёт владелец):

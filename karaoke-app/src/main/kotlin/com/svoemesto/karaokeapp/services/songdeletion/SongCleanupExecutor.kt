@@ -41,6 +41,13 @@ class SongCleanupExecutor(
     private val database: KaraokeConnection = WORKING_DATABASE,
     private val storageService: KaraokeStorageService = KSS_APP,
     private val storageApiClient: StorageApiClient = SAC_APP,
+    /**
+     * Паузы между попытками удаления объекта хранилища (FR-032).
+     *
+     * Параметр — чтобы тест повторов не ждал реальные 2s→60s. По умолчанию —
+     * боевые значения из [BACKOFF_MS].
+     */
+    private val backoffMs: List<Long> = BACKOFF_MS,
 ) {
     companion object {
         /** Категория структурированных логов фичи (ADR local-0005). */
@@ -125,7 +132,7 @@ class SongCleanupExecutor(
             runId,
             songId,
         )
-        SongCleanupJournal.updateRunState(runId, CleanupRunState.RUNNING, database)
+        markRunning(runId)
 
         val counters = Counters()
         try {
@@ -179,6 +186,22 @@ class SongCleanupExecutor(
         )
         notifyTerminalState(run, finalState, counters)
         return true
+    }
+
+    /**
+     * Перевести прогон в состояние `RUNNING`.
+     *
+     * Цепочка состояний — `PLANNED → APPROVED → RUNNING → …`. Если прогон ещё в
+     * `PLANNED` (например, уборку запустили вручную, минуя сервис удаления),
+     * сначала фиксируется `APPROVED` — иначе переход в `RUNNING` был бы отклонён
+     * машиной состояний, и прогон остался бы в `PLANNED`.
+     */
+    private fun markRunning(runId: Long) {
+        val current = SongCleanupJournal.currentState(runId, database)
+        if (current == CleanupRunState.PLANNED) {
+            SongCleanupJournal.updateRunState(runId, CleanupRunState.APPROVED, database)
+        }
+        SongCleanupJournal.updateRunState(runId, CleanupRunState.RUNNING, database)
     }
 
     // ---------------------------------------------------------------- диск
@@ -438,7 +461,7 @@ class SongCleanupExecutor(
                     database = database,
                 )
                 if (attempt < MAX_ATTEMPTS) {
-                    val pause = BACKOFF_MS.getOrElse(attempt - 1) { BACKOFF_MS.last() }
+                    val pause = backoffMs.getOrElse(attempt - 1) { backoffMs.lastOrNull() ?: 0L }
                     try {
                         Thread.sleep(pause)
                     } catch (e: InterruptedException) {

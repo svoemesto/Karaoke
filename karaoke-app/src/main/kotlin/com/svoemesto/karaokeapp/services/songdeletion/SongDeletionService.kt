@@ -38,9 +38,17 @@ import java.sql.Connection as SqlConnection
  */
 class SongDeletionService(
     private val database: KaraokeConnection = WORKING_DATABASE,
-    private val remoteDatabase: KaraokeConnection = Connection.remote(),
-    private val storageService: KaraokeStorageService = KSS_APP,
-    private val storageApiClient: StorageApiClient = SAC_APP,
+    /**
+     * Провайдеры зависимостей — лямбды, а не готовые объекты.
+     *
+     * Глобали приложения (`KSS_APP`, `SAC_APP`, `Connection.remote()`) инициализирует
+     * Spring в `KaraokeAppService`; в юнит-тесте их нет, и обращение к ним в
+     * конструкторе роняло бы тест. Через лямбды зависимости запрашиваются только
+     * в момент реального использования.
+     */
+    private val remoteDatabaseProvider: () -> KaraokeConnection = { Connection.remote() },
+    private val storageServiceProvider: () -> KaraokeStorageService = { KSS_APP },
+    private val storageApiClientProvider: () -> StorageApiClient = { SAC_APP },
 ) {
     companion object {
         /** Категория структурированных логов фичи (ADR local-0005). */
@@ -102,8 +110,8 @@ class SongDeletionService(
             Song.loadFromDbById(
                 id = songId,
                 database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
+                storageService = storageServiceProvider(),
+                storageApiClient = storageApiClientProvider(),
             )
         if (song == null) {
             // FR-002: отсутствие песни — не ошибка, если удаление уже состоялось.
@@ -277,7 +285,7 @@ class SongDeletionService(
      * @return `true`, если строка удалена и в SERVER-БД.
      */
     private fun deleteRemote(songId: Long): Boolean {
-        val connection: SqlConnection = remoteDatabase.getConnection() ?: return false
+        val connection: SqlConnection = remoteDatabaseProvider().getConnection() ?: return false
         val previousAutoCommit = connection.autoCommit
         return try {
             connection.autoCommit = false

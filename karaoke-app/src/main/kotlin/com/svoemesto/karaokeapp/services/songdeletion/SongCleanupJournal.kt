@@ -523,6 +523,33 @@ object SongCleanupJournal {
         }
     }
 
+    /**
+     * Удалить прогон вместе с его записями.
+     *
+     * Порядок важен: записи журнала ссылаются на прогон (FK), поэтому сначала
+     * удаляются записи, потом сам прогон.
+     */
+    fun deleteRunWithEntries(
+        runId: Long,
+        database: KaraokeConnection = WORKING_DATABASE,
+    ): Boolean {
+        val connection = database.getConnection() ?: return false
+        return try {
+            connection.prepareStatement("DELETE FROM $TABLE_ENTRIES WHERE run_id = ?").use { ps ->
+                ps.setLong(1, runId)
+                ps.executeUpdate()
+            }
+            connection.prepareStatement("DELETE FROM $TABLE_RUNS WHERE id = ?").use { ps ->
+                ps.setLong(1, runId)
+                ps.executeUpdate()
+            }
+            true
+        } catch (e: Exception) {
+            log.warn("song.cleanup.run.delete_failed: runId={} — {}", runId, e.toString())
+            false
+        }
+    }
+
     /** Текущее время БД — для отметок в журнале. */
     fun now(): Timestamp = Timestamp.valueOf(java.time.LocalDateTime.now())
 }

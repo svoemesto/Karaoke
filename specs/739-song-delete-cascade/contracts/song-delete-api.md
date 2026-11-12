@@ -348,13 +348,26 @@ MUST отражать это, а не показывать успех».
 | `process_type` | `SONG_DELETE_CLEANUP` (новое значение `KaraokeProcessTypes`) |
 | `thread_id` | `-1` (`THREAD_LANE_LIGHT_BACKGROUND`) |
 | `song_id` | id удаляемой песни |
-| `process_chain_id` | id прогона уборки (`tbl_song_cleanup_runs.id`) — связь журнала с заданием |
-| `process_args` | `[["runFunctionWithArgs", "songDeleteCleanup", "songId=<id>", "runId=<runId>"]]` |
+| `process_chain_id` | id кортежа (= `id` его головы, см. примечание ниже) |
+| `process_args` | `[["runFunctionWithArgs", "songDeleteCleanup", "songId=<id>", "runId=<runId>"]]` — **связь журнала с заданием** |
 | `process_status` | `CREATING` → `WAITING` → `WORKING` → `DONE` \| `ERROR` |
 
+**Связь прогона журнала с заданием — через `runId` в аргументах, а не через
+`process_chain_id`.** `process_chain_id` у кортежа — резерв очереди: он обязан
+совпадать с `id` головы кортежа (`KaraokeProcess.markAsHead`:
+`SET process_chain_id = id, process_order = 0`; выбор головы — условие
+`process_chain_id = id`). Подстановка туда `id` прогона из другого пространства
+идентификаторов дала бы коллизию с чужой головой и «неисполнимое задание»:
+задание никогда не было бы выбрано в работу. Поэтому `runId` передаётся
+аргументом задания (`process_args`), а сам прогон лежит в
+`tbl_song_cleanup_runs` и связан с журналом записей по `run_id`.
+
 **Исполнение.** `KaraokeProcessWorker` при `args[0][0] == "runFunctionWithArgs"`
-вызывает `Utils.runFunctionWithArgs` (`Utils.kt:5047`). В диспетчер добавляется
-функция `songDeleteCleanup`.
+разбирает аргументы и вызывает исполнитель по типу задания: для
+`SONG_DELETE_CLEANUP` — `executeSongDeleteCleanup(params)`
+(`KaraokeProcessWorker.run`), а тот — `SongCleanupExecutor.execute(runId, songId,
+initiator)`. Общий диспетчер `Utils.runFunctionWithArgs` (`Utils.kt:5047`) также
+поддерживает функцию `songDeleteCleanup` — тем же исполнителем.
 
 **Контракт функции** `songDeleteCleanup(params)`:
 

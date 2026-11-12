@@ -114,7 +114,7 @@ psql -h 188.127.240.124 -p 5433 -U postgres -d karaoke \
 | 1.4 | Проверить `tbl_song_assignments`, `tbl_song_assignment_drafts`, `tbl_site_playlist_items`, `tbl_song_share_links` | Связанных строк нет | FR-005 |
 | 1.5 | Проверить `tbl_listening_history`, `tbl_search_results`, `tbl_search_async` | Связанных строк нет | FR-006 |
 | 1.6 | Проверить `tbl_events` | Строк с `song_id = <ID>` нет; строки с `song_id = 0` (без привязки) **на месте** | FR-007 |
-| 1.7 | Проверить потомков (`audio_parent_id`) | У потомков `audio_parent_id IS NULL`, сами потомки на месте | FR-008 |
+| 1.7 | Проверить потомков (`audio_parent_id`) | У потомков `audio_parent_id = 0` (колонка `NOT NULL DEFAULT 0`; 0 = «нет родителя», конвенция `SongDTO.audioParentId`), сами потомки на месте | FR-008 |
 | 1.8 | Дождаться фоновой уборки | На диске не осталось файлов песни; в обоих MinIO не осталось её объектов | FR-010, FR-013, SC-001 |
 | 1.9 | Проверить обложки | Обложка альбома и картинка автора на месте (если альбом не удалён) | FR-014 |
 | 1.10 | Проверить битые симлинки | Симлинки на удалённые цели удалены | FR-015 |

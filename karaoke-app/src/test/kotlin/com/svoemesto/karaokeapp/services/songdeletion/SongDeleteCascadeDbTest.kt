@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.services.songdeletion
 
-import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
@@ -76,7 +75,7 @@ class SongDeleteCascadeDbTest {
             "реквизиты LOCAL-БД не заданы в окружении — интеграционный тест неприменим",
         )
         val connection: Connection =
-            WORKING_DATABASE.getConnection()
+            SongDeleteTestDatabase.local().getConnection()
                 ?: run {
                     Assumptions.assumeTrue(false, "LOCAL-БД недоступна — интеграционный тест неприменим")
                     return

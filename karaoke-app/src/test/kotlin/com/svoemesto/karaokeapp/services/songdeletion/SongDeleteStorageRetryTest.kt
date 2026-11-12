@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.services.songdeletion
 
-import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.StorageFileInfo
@@ -102,21 +101,21 @@ class SongDeleteStorageRetryTest {
                 albumId = 0,
                 runKind = CleanupRunKind.SONG_DELETE,
                 initiator = "test",
-                database = WORKING_DATABASE,
+                database = SongDeleteTestDatabase.local(),
             )
         Assumptions.assumeTrue(createdRun > 0, "журнал уборки недоступен — тест неприменим")
 
         try {
             val executor =
                 SongCleanupExecutor(
-                    database = WORKING_DATABASE,
+                    database = SongDeleteTestDatabase.local(),
                     storageService = storage,
                     storageApiClient = storageApi,
                     backoffMs = listOf(1L, 1L, 1L, 1L),
                 )
             executor.execute(runId = createdRun, songId = 0, initiator = "test")
 
-            val entries = SongCleanupJournal.listEntries(createdRun, WORKING_DATABASE)
+            val entries = SongCleanupJournal.listEntries(createdRun, SongDeleteTestDatabase.local())
             val attempts =
                 entries.filter { it.pathOrKey == key && it.result == SongCleanupJournal.EntryResult.FAILED }
             assertEquals(5, attempts.size, "должно быть ровно 5 попыток (FR-032)")
@@ -131,11 +130,11 @@ class SongDeleteStorageRetryTest {
             )
             assertEquals(
                 CleanupRunState.PARTIAL,
-                SongCleanupJournal.currentState(createdRun, WORKING_DATABASE),
+                SongCleanupJournal.currentState(createdRun, SongDeleteTestDatabase.local()),
                 "прогон с отказами не может быть DONE (SC-003)",
             )
         } finally {
-            SongCleanupJournal.deleteRun(createdRun, WORKING_DATABASE)
+            SongCleanupJournal.deleteRunWithEntries(createdRun, SongDeleteTestDatabase.local())
         }
     }
 }

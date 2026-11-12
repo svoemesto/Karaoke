@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.services.songdeletion
 
-import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
@@ -27,8 +26,17 @@ import org.mockito.Mockito
  * @see specs/739-song-delete-cascade/spec.md FR-002 (edge case «Песня уже удалена»)
  */
 class SongDeleteIdempotencyTest {
-    /** Заведомо несуществующая песня. */
+    /** Заведомо несуществующая песня (для сценария «уже удалена»). */
     private val missingSongId = 900_000_201L
+
+    /**
+     * Вторая заведомо несуществующая песня (для сценария «никогда не удалялась»).
+     *
+     * Идентификаторы разные намеренно: прогон «уже удалена» создаёт запись журнала
+     * для своей песни, и общий id сделал бы второй тест зависимым от порядка
+     * выполнения тестов.
+     */
+    private val unknownSongId = 900_000_202L
 
     companion object {
         /** Подготовка окружения БД (реквизиты — из переменных окружения). */
@@ -53,6 +61,7 @@ class SongDeleteIdempotencyTest {
     /** Сервис с подменёнными хранилищами: глобали `KSS_APP`/`SAC_APP` в тесте не инициализированы. */
     private fun serviceWithMocks(): SongDeletionService =
         SongDeletionService(
+            database = SongDeleteTestDatabase.local(),
             storageServiceProvider = { Mockito.mock(KaraokeStorageService::class.java) },
             storageApiClientProvider = { Mockito.mock(StorageApiClient::class.java) },
         )
@@ -65,7 +74,7 @@ class SongDeleteIdempotencyTest {
         )
         val service = serviceWithMocks()
 
-        val outcome = service.delete(missingSongId, initiator = "test")
+        val outcome = service.delete(unknownSongId, initiator = "test")
 
         assertTrue(
             outcome is SongDeletionService.Outcome.NotFound,
@@ -91,11 +100,11 @@ class SongDeleteIdempotencyTest {
                 albumId = 0,
                 runKind = CleanupRunKind.SONG_DELETE,
                 initiator = "test",
-                database = WORKING_DATABASE,
+                database = SongDeleteTestDatabase.local(),
             )
         Assumptions.assumeTrue(runId > 0, "журнал уборки недоступен — тест неприменим")
         // Прогон состояния PLANNED означает «удаление не состоялось» — повтор не считается успехом.
-        SongCleanupJournal.updateRunState(runId, CleanupRunState.APPROVED, WORKING_DATABASE)
+        SongCleanupJournal.updateRunState(runId, CleanupRunState.APPROVED, SongDeleteTestDatabase.local())
 
         try {
             val service = serviceWithMocks()
@@ -106,7 +115,7 @@ class SongDeleteIdempotencyTest {
                 "повторное удаление — already_deleted, а не ошибка: $outcome",
             )
         } finally {
-            SongCleanupJournal.deleteRun(runId, WORKING_DATABASE)
+            SongCleanupJournal.deleteRunWithEntries(runId, SongDeleteTestDatabase.local())
         }
     }
 }

@@ -345,7 +345,22 @@ class SongDeletionService(
                     context = mapOf("runId" to runId),
                 )
             if (chainId <= 0L) {
+                // Задание не создано (например, межсетевая гонка: активный процесс
+                // песни появился между проверкой и постановкой). Остаток уборки не
+                // теряется: прогон остаётся в состоянии APPROVED, а запись в журнале
+                // объясняет, что уборку нужно добрать вручную (FR-033).
                 log.warn("song.cleanup.enqueue_failed: runId={} задание уборки не создано", runId)
+                SongCleanupJournal.addEntry(
+                    runId = runId,
+                    kind = SongCleanupJournal.EntryKind.FILE,
+                    location = SongCleanupJournal.EntryLocation.DATABASE,
+                    pathOrKey = "cleanup:run:$runId",
+                    sizeBytes = 0,
+                    result = SongCleanupJournal.EntryResult.FAILED,
+                    reason = "enqueue_failed",
+                    initiator = "song-delete",
+                    database = database,
+                )
             }
         } catch (e: Exception) {
             AppLog.error(

@@ -74,9 +74,14 @@ curl -s http://localhost:7906/api/song/cleanup/runs?songId=<ID_ТЕСТОВОЙ_
 curl -s http://localhost:7906/api/song/cleanup/runs/<RUN_ID> | python3 -m json.tool
 ```
 
-### Проверка состояния БД
+### Проверка состояния БД (LOCAL и SERVER)
+
+SERVER-БД доступна с 2026-11-12 (починка туннеля и allow-list, KARAOKE-407
+закрыта) — проверять нужно **обе** базы: FR-001 требует удаления из рабочей и
+из серверной базы, FR-045 — честного ответа при недоступности серверной.
 
 ```bash
+# LOCAL (admin-машина)
 psql -d karaoke -c "SELECT id, song_name FROM tbl_songs WHERE id = <ID>;"
 psql -d karaoke -c "SELECT id, song_id FROM tbl_news WHERE song_id = <ID>;"
 psql -d karaoke -c "SELECT count(*) FROM tbl_song_assignment_drafts d
@@ -85,6 +90,14 @@ psql -d karaoke -c "SELECT count(*) FROM tbl_song_assignment_drafts d
 psql -d karaoke -c "SELECT run_id, kind, result, reason, path_or_key
                      FROM tbl_song_cleanup_entries WHERE run_id = <RUN_ID>
                      ORDER BY id;"
+
+# SERVER (прод-БД; доступ — прямое соединение Connection.remote(), порт 5433)
+psql -h 188.127.240.124 -p 5433 -U postgres -d karaoke \
+  -c "SELECT id, song_name FROM tbl_songs WHERE id = <ID>;"
+psql -h 188.127.240.124 -p 5433 -U postgres -d karaoke \
+  -c "SELECT id, song_id FROM tbl_news WHERE song_id = <ID>;"
+psql -h 188.127.240.124 -p 5433 -U postgres -d karaoke \
+  -c "SELECT id FROM tbl_songs_sync WHERE id = <ID>;"
 ```
 
 ---
@@ -97,7 +110,7 @@ psql -d karaoke -c "SELECT run_id, kind, result, reason, path_or_key
 |---|---|---|---|
 | 1.1 | Открыть карточку песни, нажать «Удалить песню» | В окне подтверждения видны: число файлов, объём в МБ, число объектов в каждом хранилище, отдельная строка про альбом | FR-023, FR-024, FR-025 |
 | 1.2 | Подтвердить | Ответ `status = deleted`; карточка закрывается; песня пропала из списка | FR-001, FR-003 |
-| 1.3 | Проверить БД | В `tbl_songs` строки нет; в `tbl_news` строка есть, но `song_id IS NULL`; в `tbl_song_authors` строки нет (CASCADE) | FR-002, FR-009, FR-008 |
+| 1.3 | Проверить БД **в обеих базах** | В LOCAL и в SERVER: в `tbl_songs` строки нет; в `tbl_news` строка есть, но `song_id IS NULL`; в `tbl_song_authors` строки нет (CASCADE); в SERVER удалена и строка `tbl_songs_sync` | FR-001, FR-002, FR-009, FR-045 |
 | 1.4 | Проверить `tbl_song_assignments`, `tbl_song_assignment_drafts`, `tbl_site_playlist_items`, `tbl_song_share_links` | Связанных строк нет | FR-005 |
 | 1.5 | Проверить `tbl_listening_history`, `tbl_search_results`, `tbl_search_async` | Связанных строк нет | FR-006 |
 | 1.6 | Проверить `tbl_events` | Строк с `song_id = <ID>` нет; строки с `song_id = 0` (без привязки) **на месте** | FR-007 |
@@ -167,7 +180,7 @@ psql -d karaoke -c "SELECT run_id, kind, result, reason, path_or_key
 | SC | Как проверяется | Сценарий |
 |---|---|---|
 | SC-001 | Обход диска + листинг обоих MinIO после уборки: ни одного артефакта песни (включая старые имена) | 1.8, 3.5 |
-| SC-002 | Поиск по всем таблицам: ни одной ссылки на удалённую песню как на существующую | 1.3–1.6 |
+| SC-002 | Поиск по всем таблицам **в LOCAL и в SERVER**: ни одной ссылки на удалённую песню как на существующую | 1.3–1.6 |
 | SC-003 | 100 прогонов уборки: каждый завершается `DONE` или `PARTIAL`/`FAILED` с перечнем остатка; «ложного успеха» нет (в т.ч. при отказе БД — `500 db_error`, а не `200`) | 1.2, 3.3, 3.4 |
 | SC-004 | Сравнение `filesCount`/`filesBytes` предпросмотра с фактом удаления: расхождение **0** | 1.1 → 1.8 |
 | SC-005 | Для каждого удалённого альбома — проверка, что в его папке не было файлов живых песен; ни один файл живой песни не удалён | 2.1, 2.2, E-06 |

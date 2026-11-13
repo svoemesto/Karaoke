@@ -7,7 +7,8 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.slf4j.LoggerFactory
-import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 
 /**
  * Применение разовой уборки по УТВЕРЖДЁННОМУ набору (KARAOKE-429, спека 739, US4).
@@ -31,6 +32,28 @@ class SongOneTimeCleanupService(
         const val CATEGORY = "infra.song.delete"
 
         private val log = LoggerFactory.getLogger(CATEGORY)
+
+        /**
+         * Удалить файл с диска — **сам симлинк**, а не его цель.
+         *
+         * `File.exists()` идёт ПО ССЫЛКЕ: битый симлинк (цель уже удалена) даёт
+         * `exists() = false`, и проверка «`!file.exists() || file.delete()`» короткозамыкает —
+         * симлинк помечался удалённым, но оставался на диске (инцидент 2026-11-13,
+         * прогон №210: 60 битых симлинков в `symlink_sponsr`).
+         *
+         * `Files.deleteIfExists` удаляет сам симлинк и не различает «уже удалено» и
+         * «нечего удалять» — оба случая считаются успехом.
+         *
+         * @param path путь к файлу или симлинку.
+         * @return `true`, если файл удалён или его уже не было.
+         */
+        internal fun deleteLocalFile(path: String): Boolean =
+            try {
+                Files.deleteIfExists(Paths.get(path))
+                true
+            } catch (e: Exception) {
+                false
+            }
     }
 
     /** Итог применения. */
@@ -135,8 +158,14 @@ class SongOneTimeCleanupService(
                     true to candidate.sizeBytes
                 }
                 SongOneTimeCleanupPlanner.CandidateLocation.LOCAL_FILESYSTEM -> {
-                    val file = File(candidate.pathOrKey)
-                    val ok = !file.exists() || file.delete()
+                    val ok = deleteLocalFile(candidate.pathOrKey)
+                    if (!ok) {
+                        log.warn(
+                            "event=song.cleanup.one_time.delete_failed code=SONG-CLEANUP-011 key='{}' — {}",
+                            candidate.pathOrKey,
+                            "не удалось удалить файл",
+                        )
+                    }
                     ok to candidate.sizeBytes
                 }
                 SongOneTimeCleanupPlanner.CandidateLocation.DATABASE -> true to 0L

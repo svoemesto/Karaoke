@@ -2296,6 +2296,12 @@ class Song(
         // 674 (FR-012/FR-013): применяем только файл, чей sidecar-отпечаток совпадает с источником.
         val sidecar = KeyBpmSidecar.read(pathToFileKeyBpmFinder) ?: return false
         val sourceDuration = AudioProbe.durationMs(fileAbsolutePath) ?: refreshDurationMsFromAudioFile()
+        // Длительность источника измерена — сохраняем её. Без этого у песен, добавленных из
+        // папки, `song_ms` оставался 0: измеряли длительность, но в БД её не клали
+        // (инцидент 2026-11-13, «Концертные синглы»).
+        if (ms <= 0L && sourceDuration > 0L) {
+            refreshDurationMsFromAudioFile(sourceDuration)
+        }
         if (!sidecar.matches(fileAbsolutePath, sourceDuration)) return false
 
         fields[SongField.KEY] = data.key!!

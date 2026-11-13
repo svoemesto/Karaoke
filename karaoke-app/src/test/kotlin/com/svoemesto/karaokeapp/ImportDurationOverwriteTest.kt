@@ -100,6 +100,26 @@ class ImportDurationOverwriteTest {
     }
 
     @Test
+    fun `есть починка уже испорченных песен`() {
+        val controller =
+            repoFile("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ArtifactAdminController.kt")
+        val service =
+            repoFile("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/DurationBackfillService.kt")
+        assertTrue(
+            controller.readText().contains("@PostMapping(\"/backfill-duration\")"),
+            "нужен админский маршрут починки длительности",
+        )
+        assertTrue(
+            service.readText().contains("song.ms > 0L"),
+            "починка не должна трогать песни, у которых длительность уже есть",
+        )
+        assertTrue(
+            service.readText().contains("dryRun: Boolean = true"),
+            "по умолчанию — сухой прогон",
+        )
+    }
+
+    @Test
     fun `есть перечитка песни перед применением правок`() {
         val text = song.readText()
         assertTrue(

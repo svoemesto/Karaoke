@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.services.ArtifactIntegrityScheduler
+import com.svoemesto.karaokeapp.services.DurationBackfillService
 import com.svoemesto.karaokeapp.services.SidecarBackfillService
 import com.svoemesto.karaokeapp.services.SongArtifactRepairService
 import org.springframework.http.ResponseEntity
@@ -21,6 +22,7 @@ class ArtifactAdminController(
     private val repairService: SongArtifactRepairService,
     private val integrityScheduler: ArtifactIntegrityScheduler,
     private val sidecarBackfill: SidecarBackfillService,
+    private val durationBackfill: DurationBackfillService,
 ) {
     data class RepairRequest(
         val songIds: List<Long> = emptyList(),
@@ -78,5 +80,30 @@ class ArtifactAdminController(
             integrityScheduler.lastReport
                 ?: return ResponseEntity.noContent().build()
         return ResponseEntity.ok(report)
+    }
+
+    data class DurationBackfillRequest(
+        val songIds: List<Long> = emptyList(),
+        val dryRun: Boolean = true,
+    )
+
+    /**
+     * Разовая починка длительности песен (`song_ms = 0`) — инцидент 2026-11-13.
+     *
+     * Пересчитываются только песни с нулевой длительностью; у остальных значение не трогается.
+     */
+    @PostMapping("/backfill-duration")
+    fun backfillDuration(
+        @RequestBody request: DurationBackfillRequest,
+    ): ResponseEntity<Any> {
+        if (request.songIds.isEmpty() || request.songIds.size > 100) {
+            return ResponseEntity.badRequest().body(mapOf("error" to "songIds: 1..100"))
+        }
+        return ResponseEntity.ok(
+            mapOf(
+                "dryRun" to request.dryRun,
+                "results" to durationBackfill.run(request.songIds, request.dryRun),
+            ),
+        )
     }
 }

@@ -34,6 +34,52 @@ class SongOneTimeCleanupService(
         private val log = LoggerFactory.getLogger(CATEGORY)
 
         /**
+         * Удалить строки-сироты в таблице БД (FR-041, KARAOKE-426).
+         *
+         * Запрос **не приходит из перечня кандидатов**: по имени таблицы выбирается
+         * фиксированный критерий из [SongOneTimeCleanupPlanner.DB_ORPHAN_TABLES].
+         * Если таблица в списке не найдена — ничего не удаляется (fail-closed).
+         *
+         * @param candidate кандидат-таблица.
+         * @return успех и число удалённых строк.
+         */
+        internal fun deleteDatabaseRows(
+            candidate: SongOneTimeCleanupPlanner.Candidate,
+            database: KaraokeConnection,
+        ): Pair<Boolean, Int> {
+            val spec =
+                SongOneTimeCleanupPlanner.DB_ORPHAN_TABLES.firstOrNull { it.table == candidate.pathOrKey }
+                    ?: return false to 0
+            val connection = database.getConnection() ?: return false to 0
+            return try {
+                connection.autoCommit = false
+                try {
+                    val deleted =
+                        connection
+                            .prepareStatement("DELETE FROM ${spec.table} WHERE ${spec.where}")
+                            .use { ps -> ps.executeUpdate() }
+                    connection.commit()
+                    true to deleted
+                } catch (e: Exception) {
+                    try {
+                        connection.rollback()
+                    } catch (rollbackError: Exception) {
+                        // откат не удался — транзакция откатывается при закрытии соединения
+                    }
+                    false to 0
+                } finally {
+                    try {
+                        connection.autoCommit = true
+                    } catch (e: Exception) {
+                        // соединение вернёт состояние при закрытии
+                    }
+                }
+            } catch (e: Exception) {
+                false to 0
+            }
+        }
+
+        /**
          * Удалить файл с диска — **сам симлинк**, а не его цель.
          *
          * `File.exists()` идёт ПО ССЫЛКЕ: битый симлинк (цель уже удалена) даёт
@@ -146,16 +192,16 @@ class SongOneTimeCleanupService(
         runId: Long,
         candidate: SongOneTimeCleanupPlanner.Candidate,
         initiator: String,
-    ): Pair<Boolean, Long> =
+    ): Triple<Boolean, Long, String?> =
         try {
             when (candidate.location) {
                 SongOneTimeCleanupPlanner.CandidateLocation.LOCAL_STORAGE -> {
                     storageService.deleteFile(SongOneTimeCleanupPlanner.BUCKET, candidate.pathOrKey)
-                    true to candidate.sizeBytes
+                    Triple(true, candidate.sizeBytes, null)
                 }
                 SongOneTimeCleanupPlanner.CandidateLocation.REMOTE_STORAGE -> {
                     storageApiClient.deleteFile(SongOneTimeCleanupPlanner.BUCKET, candidate.pathOrKey).block()
-                    true to candidate.sizeBytes
+                    Triple(true, candidate.sizeBytes, null)
                 }
                 SongOneTimeCleanupPlanner.CandidateLocation.LOCAL_FILESYSTEM -> {
                     val ok = deleteLocalFile(candidate.pathOrKey)
@@ -166,17 +212,20 @@ class SongOneTimeCleanupService(
                             "не удалось удалить файл",
                         )
                     }
-                    ok to candidate.sizeBytes
+                    Triple(ok, candidate.sizeBytes, null)
                 }
-                SongOneTimeCleanupPlanner.CandidateLocation.DATABASE -> true to 0L
-            }.also { (ok, size) ->
+                SongOneTimeCleanupPlanner.CandidateLocation.DATABASE -> {
+                    val (ok, deletedRows) = deleteDatabaseRows(candidate, database)
+                    Triple(ok, candidate.sizeBytes, "удалено строк: $deletedRows")
+                }
+            }.also { (ok, size, note) ->
                 SongCleanupJournal.addEntry(
                     runId = runId,
                     kind =
-                        if (candidate.kind == SongOneTimeCleanupPlanner.CandidateKind.FILE) {
-                            SongCleanupJournal.EntryKind.FILE
-                        } else {
-                            SongCleanupJournal.EntryKind.STORAGE_OBJECT
+                        when (candidate.kind) {
+                            SongOneTimeCleanupPlanner.CandidateKind.FILE -> SongCleanupJournal.EntryKind.FILE
+                            SongOneTimeCleanupPlanner.CandidateKind.DB_ROWS -> SongCleanupJournal.EntryKind.DB_ROWS
+                            else -> SongCleanupJournal.EntryKind.STORAGE_OBJECT
                         },
                     location =
                         when (candidate.location) {
@@ -193,7 +242,7 @@ class SongOneTimeCleanupService(
                         } else {
                             SongCleanupJournal.EntryResult.FAILED
                         },
-                    reason = if (ok) null else "delete_failed",
+                    reason = if (ok) note else "delete_failed",
                     attempt = 1,
                     initiator = initiator,
                     database = database,
@@ -217,7 +266,7 @@ class SongOneTimeCleanupService(
                 initiator = initiator,
                 database = database,
             )
-            false to 0L
+            Triple(false, 0L, null)
         }
 
     /**

@@ -36,6 +36,49 @@ class SongOneTimeCleanupPlanner(
         /** Имя бакета с объектами песен. */
         const val BUCKET = "karaoke"
 
+        /** Таблица и критерий сироты (условие WHERE). */
+        data class DbOrphanTable(
+            val table: String,
+            val where: String,
+            val description: String,
+        )
+
+        /**
+         * Таблицы с сиротами, которые владелец разрешил чистить (KARAOKE-426):
+         * черновики заданий без задания и исторические ссылки на несуществующие песни.
+         *
+         * Порядок — из инвентаризации: черновики раньше истории, события раньше тяжёлых
+         * таблиц поиска.
+         */
+        val DB_ORPHAN_TABLES: List<DbOrphanTable> =
+            listOf(
+                DbOrphanTable(
+                    table = "tbl_song_assignment_drafts",
+                    where = "assignment_id NOT IN (SELECT id FROM tbl_song_assignments)",
+                    description = "черновики заданий без задания",
+                ),
+                DbOrphanTable(
+                    table = "tbl_events",
+                    where = "song_id IS NOT NULL AND song_id <> 0 AND song_id NOT IN (SELECT id FROM tbl_songs)",
+                    description = "события несуществующих песен",
+                ),
+                DbOrphanTable(
+                    table = "tbl_search_results",
+                    where = "song_id IS NOT NULL AND song_id NOT IN (SELECT id FROM tbl_songs)",
+                    description = "результаты поиска по несуществующим песням",
+                ),
+                DbOrphanTable(
+                    table = "tbl_search_async",
+                    where = "song_id IS NOT NULL AND song_id NOT IN (SELECT id FROM tbl_songs)",
+                    description = "асинхронные снимки поиска по несуществующим песням",
+                ),
+                DbOrphanTable(
+                    table = "tbl_listening_history",
+                    where = "song_id NOT IN (SELECT id FROM tbl_songs)",
+                    description = "история прослушиваний несуществующих песен",
+                ),
+            )
+
         /** Хвосты mp3-стемов в имени объекта песни. */
         private val storageStemTails =
             listOf(
@@ -82,6 +125,7 @@ class SongOneTimeCleanupPlanner(
     enum class CandidateKind {
         STORAGE_OBJECT,
         FILE,
+        DB_ROWS,
     }
 
     /** Где лежит объект. */
@@ -123,6 +167,11 @@ class SongOneTimeCleanupPlanner(
                     digest.update(candidate.pathOrKey.toByteArray(Charsets.UTF_8))
                     digest.update('\t'.code.toByte())
                     digest.update(candidate.sizeBytes.toString().toByteArray(Charsets.UTF_8))
+                    digest.update('\t'.code.toByte())
+                    // Пояснение входит в отпечаток: для кандидатов в БД там число строк —
+                    // состав набора меняется при изменении числа строк, и такое изменение
+                    // MUST требовать нового утверждения (FR-040).
+                    digest.update(candidate.detail.toByteArray(Charsets.UTF_8))
                     digest.update('\n'.code.toByte())
                 }
             "sha256:" + digest.digest().joinToString("") { "%02x".format(it) }
@@ -146,6 +195,7 @@ class SongOneTimeCleanupPlanner(
     fun plan(
         includeStorage: Boolean = true,
         includeFiles: Boolean = true,
+        includeDatabase: Boolean = true,
     ): Plan {
         val liveSongs = loadLiveSongs()
         val liveNames = liveSongs.map { SongArtifactOwnership.normalizeForMatch(it.fileName) }.toSet()
@@ -158,6 +208,9 @@ class SongOneTimeCleanupPlanner(
         }
         if (includeFiles) {
             candidates.addAll(diskCandidates(liveSongs))
+        }
+        if (includeDatabase) {
+            candidates.addAll(databaseCandidates())
         }
         return Plan(
             candidates = candidates.distinctBy { candidate -> candidate.location to candidate.pathOrKey },
@@ -404,6 +457,67 @@ class SongOneTimeCleanupPlanner(
     private fun isAlbumCoverKey(key: String): Boolean {
         val name = key.substringAfterLast('/')
         return name.endsWith(".album.png") || name.endsWith(".preview.album.png")
+    }
+
+    /**
+     * Кандидаты в БД (FR-041): черновики заданий без задания и исторические ссылки
+     * на несуществующие песни (KARAOKE-426).
+     *
+     * Критерии — утверждённые в инвентаризации (KARAOKE-420, артефакт
+     * `T10-db-orphans.md` § «Готовый список к удалению»). Таблицы и условия **зашиты
+     * в код**: SQL из перечня кандидатов не исполняется никогда — кандидат несёт только
+     * имя таблицы, а удаление выполняет фиксированный запрос для этой таблицы.
+     *
+     * Важно: у `tbl_events` критерий содержит `song_id <> 0` — без него снесли бы живые
+     * плейсхолдерные строки (11 253 строки «событие не про песню»).
+     */
+    private fun databaseCandidates(): List<Candidate> {
+        val result = mutableListOf<Candidate>()
+        DB_ORPHAN_TABLES.forEach { spec ->
+            val count = countRows(spec) ?: return@forEach
+            if (count <= 0) return@forEach
+            val bytes = payloadBytes(spec) ?: 0L
+            result.add(
+                Candidate(
+                    kind = CandidateKind.DB_ROWS,
+                    location = CandidateLocation.DATABASE,
+                    pathOrKey = spec.table,
+                    sizeBytes = bytes,
+                    reason = Reason.ORPHAN,
+                    detail = "${spec.description}: $count строк",
+                ),
+            )
+        }
+        return result
+    }
+
+    /** Число строк по критерию сироты. */
+    private fun countRows(spec: DbOrphanTable): Int? {
+        val connection = database.getConnection() ?: return null
+        return try {
+            connection
+                .prepareStatement("SELECT count(*) FROM ${spec.table} WHERE ${spec.where}")
+                .use { ps ->
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getInt(1) else null }
+                }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Примерный объём строк-сирот (payload, байт) — для оценки освобождаемого места. */
+    private fun payloadBytes(spec: DbOrphanTable): Long? {
+        val connection = database.getConnection() ?: return null
+        return try {
+            connection
+                .prepareStatement(
+                    "SELECT coalesce(sum(pg_column_size(t.*)), 0) FROM ${spec.table} t WHERE ${spec.where}",
+                ).use { ps ->
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getLong(1) else null }
+                }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /**

@@ -40,6 +40,17 @@ object StorageObjectMigration {
         storageApiClient: StorageApiClient,
     ): Boolean {
         var moved = false
+        // KARAOKE-428: новый ключ может быть уже занят — например, в целевом альбоме
+        // есть другая песня с тем же именем файла. Перезаписывать её объекты нельзя:
+        // перенос пропускается, старый объект остаётся (его подберёт разовая уборка).
+        if (exists(newKey, storageService, storageApiClient)) {
+            log.warn(
+                "event=storage.migration.skipped reason=target_exists key='{}' — {}",
+                newKey,
+                description,
+            )
+            return false
+        }
         try {
             if (storageService.fileExists(BUCKET, oldKey)) {
                 val source = localSourcePath?.takeIf { File(it).exists() }
@@ -118,6 +129,18 @@ object StorageObjectMigration {
         }
         return moved
     }
+
+    /** Есть ли объект по ключу хотя бы в одном из хранилищ. */
+    private fun exists(
+        key: String,
+        storageService: KaraokeStorageService,
+        storageApiClient: StorageApiClient,
+    ): Boolean =
+        try {
+            storageService.fileExists(BUCKET, key) || storageApiClient.fileExists(BUCKET, key)
+        } catch (e: Exception) {
+            false
+        }
 
     /** Имя бакета с объектами песен. */
     const val BUCKET = "karaoke"

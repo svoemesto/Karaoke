@@ -58,4 +58,28 @@ class StoragePrefixMigrationTest {
             "при смене префикса объекты хранилищ переносятся",
         )
     }
+
+    @Test
+    fun `перенос не перезаписывает уже занятый новый ключ`() {
+        val helper = repoFile("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageObjectMigration.kt")
+        val text = helper.readText()
+        assertTrue(
+            text.contains("if (exists(newKey, storageService, storageApiClient))"),
+            "если новый ключ уже занят — перенос пропускается (чужая песня с тем же именем)",
+        )
+        assertTrue(
+            text.contains("event=storage.migration.skipped reason=target_exists"),
+            "пропуск фиксируется в логе",
+        )
+    }
+
+    private fun repoFile(relativePath: String): File {
+        var dir = File(System.getProperty("user.dir")).absoluteFile
+        while (!File(dir, "settings.gradle.kts").isFile) {
+            dir = dir.parentFile ?: error("не найден корень репозитория (settings.gradle.kts)")
+        }
+        val file = File(dir, relativePath)
+        assertTrue(file.isFile, "файл не найден: $relativePath")
+        return file
+    }
 }

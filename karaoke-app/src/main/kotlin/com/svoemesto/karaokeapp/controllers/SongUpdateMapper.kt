@@ -228,6 +228,12 @@ object SongUpdateMapper {
         var fileNameRenameError: String? = null
         var baselineAutoFilled = false
 
+        // KARAOKE-428: префикс ключа объектов песни в хранилищах — `$автор/$год - $альбом/`.
+        // Смена альбома, автора или года меняет префикс, и объекты в MinIO оставались
+        // под старым путём — накапливались устаревшие копии (745 объектов, 4,38 ГБ).
+        // Префикс запоминаем ДО правок, чтобы перенести объекты по старому пути.
+        val oldStoragePrefix = song.storagePrefix()
+
         // ===== Phase A: Special-case fields =====
         // fileName — sanitize + collision + active-process check (FR-014, behavior 1:1).
         params["fileName"]?.let { requestedFileName ->
@@ -346,6 +352,12 @@ object SongUpdateMapper {
                     }
                 }
             }
+        }
+
+        // ===== Phase C2: Перенос объектов хранилищ при смене префикса (KARAOKE-428) =====
+        val newStoragePrefix = song.storagePrefix()
+        if (newStoragePrefix != oldStoragePrefix) {
+            song.migrateStorageObjectsToNewPrefix(oldStoragePrefix)
         }
 
         // ===== Phase D: Baseline =====

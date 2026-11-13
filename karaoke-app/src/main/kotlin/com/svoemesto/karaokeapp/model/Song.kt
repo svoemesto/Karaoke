@@ -7169,6 +7169,46 @@ class Song(
     }
 
     /**
+     * Префикс ключа объектов песни в хранилищах: `$автор/$год - $альбом/`.
+     *
+     * KARAOKE-428: смена альбома, автора или года меняет префикс ключа, но объекты
+     * в MinIO оставались под старым — накапливались устаревшие копии (745 объектов,
+     * 4,38 ГБ, замер 2026-11-12).
+     */
+    fun storagePrefix(): String = "$author/$year - $album/"
+
+    /**
+     * Перенести объекты песни в хранилищах при смене префикса ключа (KARAOKE-428).
+     *
+     * Переносятся все типы объектов песни, которые лежат в хранилищах: mp3-стемы
+     * (`.vocals.mp3`, `.accompaniment.mp3`, …) и публикационные картинки
+     * (` [karaoke].png`, ` [lyrics].png`, …). Переименование **имени песни** переносило
+     * их и раньше, но смена **альбома/автора/года** меняет весь путь — и объекты
+     * оставались под старым.
+     *
+     * Старый ключ удаляется только после успешной записи нового (см. [moveStorageObject]).
+     *
+     * @param oldPrefix прежний префикс ключа (`$автор/$год - $альбом/`).
+     * @return число перенесённых объектов.
+     */
+    fun migrateStorageObjectsToNewPrefix(oldPrefix: String): Int {
+        val newPrefix = storagePrefix()
+        if (newPrefix == oldPrefix) return 0
+        var moved = 0
+        val oldKeys = storageObjectKeys(oldPrefix, fileName)
+        val newKeys = storageObjectKeys(newPrefix, fileName)
+        oldKeys.forEachIndexed { index, oldKey ->
+            moveStorageObject(
+                oldKey = oldKey,
+                newKey = newKeys[index],
+                description = "объект ${storageObjectSuffixes()[index]}",
+            )
+            moved++
+        }
+        return moved
+    }
+
+    /**
      * Перенести объект из старого ключа в новый в обоих хранилищах (локальном и удалённом).
      *
      * Если объект есть локально на диске — он используется как источник, иначе объект
@@ -7180,45 +7220,14 @@ class Song(
         newKey: String,
         description: String,
     ) {
-        val localSourcePath = localPathForStorageKey(oldKey)?.takeIf { File(it).exists() }
-
-        try {
-            if (storageService.fileExists(storageBucketName, oldKey)) {
-                if (localSourcePath != null) {
-                    storageService.uploadFile(storageBucketName, newKey, localSourcePath)
-                } else {
-                    val tmp = File.createTempFile("song-rename-", ".png")
-                    try {
-                        storageService.downloadFile(storageBucketName, oldKey, tmp.absolutePath)
-                        storageService.uploadFile(storageBucketName, newKey, tmp.absolutePath)
-                    } finally {
-                        tmp.delete()
-                    }
-                }
-                storageService.deleteFile(storageBucketName, oldKey)
-            }
-        } catch (e: Exception) {
-            println("[renameAllArtifacts] локальное хранилище, $description: ${e.message}")
-        }
-
-        try {
-            if (storageApiClient.fileExists(storageBucketName, oldKey)) {
-                if (localSourcePath != null) {
-                    storageApiClient.uploadFile(storageBucketName, newKey, localSourcePath)
-                } else {
-                    val tmp = File.createTempFile("song-rename-remote-", ".png")
-                    try {
-                        storageApiClient.downloadFile(storageBucketName, oldKey, tmp.absolutePath)
-                        storageApiClient.uploadFile(storageBucketName, newKey, tmp.absolutePath)
-                    } finally {
-                        tmp.delete()
-                    }
-                }
-                storageApiClient.deleteFile(storageBucketName, oldKey).block()
-            }
-        } catch (e: Exception) {
-            println("[renameAllArtifacts] удалённое хранилище, $description: ${e.message}")
-        }
+        StorageObjectMigration.move(
+            oldKey = oldKey,
+            newKey = newKey,
+            description = description,
+            localSourcePath = localPathForStorageKey(oldKey)?.takeIf { File(it).exists() },
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     }
 
     /**
@@ -7434,6 +7443,36 @@ class Song(
         const val CATEGORY = "com.svoemesto.karaokeapp.model.Song"
 
         const val TABLE_NAME = "tbl_songs"
+
+        /**
+         * Суффиксы объектов песни, которые лежат в хранилищах: mp3-стемы и
+         * публикационные картинки (KARAOKE-428).
+         *
+         * Ключ объекта: `$автор/$год - $альбом/$имя песни` + суффикс.
+         * Множество совпадает с фактически найденными устаревшими копиями
+         * (инвентаризация KARAOKE-418, замер 2026-11-12): и mp3-стемы, и
+         * публикационные картинки оставались под старым путём.
+         */
+        internal fun storageObjectSuffixes(): List<String> =
+            listOf(
+                KaraokeFileType.MP3_ACCOMPANIMENT,
+                KaraokeFileType.MP3_VOCAL,
+                KaraokeFileType.MP3_BASS,
+                KaraokeFileType.MP3_DRUMS,
+                KaraokeFileType.MP3_OTHER,
+            ).map { type -> "${type.suffix}.${type.extention}" } +
+                PUBLICATION_PICTURE_NAME_SUFFIXES.map { suffix -> " $suffix.png" }
+
+        /**
+         * Ключи объектов песни в хранилище по префиксу и имени песни.
+         *
+         * @param prefix префикс пути (`$автор/$год - $альбом/`).
+         * @param fileName имя файла песни.
+         */
+        internal fun storageObjectKeys(
+            prefix: String,
+            fileName: String,
+        ): List<String> = storageObjectSuffixes().map { suffix -> "$prefix$fileName$suffix" }
 
         /**
          * Логгер операций записи песни в БД (BR-073/075/106/107, аудит #336).

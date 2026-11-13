@@ -19,6 +19,7 @@ import com.svoemesto.karaokeapp.services.songdeletion.SongOneTimeCleanupService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageObjectMigration
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.WVP
 import com.svoemesto.karaokeapp.services.startOneShotThread
@@ -7059,6 +7060,9 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )?.let {
+                // KARAOKE-428: ключ обложки автора — `$автор/$автор.author.png`.
+                // Смена имени меняет ключ — прежние ключи снимаем ДО изменения.
+                val oldAuthorName = it.author
                 author?.let { v -> it.author = v }
                 ymId?.let { v -> it.ymId = v }
                 vkId?.let { v -> it.vkId = v }
@@ -7076,6 +7080,15 @@ class ApiController(
                 // отрицательное. Если фронт не передал параметр — оставляем прежнее значение.
                 sortOrder?.let { v -> it.sortOrder = v }
                 it.save()
+                if (!oldAuthorName.isNullOrBlank() && it.author != oldAuthorName) {
+                    StorageObjectMigration.moveAll(
+                        oldKeys = Pictures.authorCoverKeys(oldAuthorName),
+                        newKeys = Pictures.authorCoverKeys(it.author),
+                        description = "обложка автора «${it.author}»",
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                }
                 return id
             }
         return 0L
@@ -7290,25 +7303,63 @@ class ApiController(
         @RequestParam(required = false) shortDescription: String?,
         @RequestParam(required = false) warning: String?,
     ): Long {
-        Album
-            .getAlbumById(
-                id = id,
-                database = WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            )?.let {
-                it.authorId = authorId
-                it.year = year
-                it.name = name
-                it.albumType = albumType
-                it.sortOrder = sortOrder
-                description?.let { v -> it.description = v }
-                shortDescription?.let { v -> it.shortDescription = v }
-                warning?.let { v -> it.warning = v }
-                it.save()
-                return id
+        val albumBefore =
+            Album
+                .getAlbumById(
+                    id = id,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ) ?: return 0L
+
+        // KARAOKE-428: ключ обложки альбома — `$автор/$год - $альбом/$автор - $год - $альбом.album.png`.
+        // Смена имени, автора или года альбома меняет ключ, и обложка оставалась под старым
+        // путём. Прежние ключи снимаем ДО изменения, новые — ПОСЛЕ.
+        val oldAuthorName =
+            Author
+                .getAuthorById(
+                    id = albumBefore.authorId,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )?.author
+        val oldCoverKeys =
+            if (oldAuthorName.isNullOrBlank()) {
+                emptyList()
+            } else {
+                Pictures.albumCoverKeys(oldAuthorName, albumBefore.year, albumBefore.name)
             }
-        return 0L
+
+        albumBefore.authorId = authorId
+        albumBefore.year = year
+        albumBefore.name = name
+        albumBefore.albumType = albumType
+        albumBefore.sortOrder = sortOrder
+        description?.let { v -> albumBefore.description = v }
+        shortDescription?.let { v -> albumBefore.shortDescription = v }
+        warning?.let { v -> albumBefore.warning = v }
+        albumBefore.save()
+
+        if (oldCoverKeys.isNotEmpty()) {
+            val newAuthorName =
+                Author
+                    .getAuthorById(
+                        id = authorId,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )?.author
+            if (!newAuthorName.isNullOrBlank()) {
+                StorageObjectMigration.moveAll(
+                    oldKeys = oldCoverKeys,
+                    newKeys = Pictures.albumCoverKeys(newAuthorName, year, name),
+                    description = "обложка альбома «$name»",
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            }
+        }
+        return id
     }
 
     @PostMapping("/albums/deletealbum")

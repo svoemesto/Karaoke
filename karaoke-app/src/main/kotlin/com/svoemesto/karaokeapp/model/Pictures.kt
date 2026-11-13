@@ -212,6 +212,32 @@ class Pictures(
     }
 
     companion object {
+        /**
+         * Ключи обложки альбома в хранилищах: обложка и превью (KARAOKE-428).
+         *
+         * Ключ совпадает с [Pictures.storageFileName] для картинки альбома.
+         */
+        fun albumCoverKeys(
+            author: String,
+            year: Int,
+            album: String,
+        ): List<String> =
+            listOf(
+                "$author/$year - $album/$author - $year - $album.album.png",
+                "$author/$year - $album/$author - $year - $album.preview.album.png",
+            )
+
+        /**
+         * Ключи обложки автора в хранилищах: обложка и превью (KARAOKE-428).
+         *
+         * Ключ совпадает с [Pictures.storageFileName] для картинки автора.
+         */
+        fun authorCoverKeys(author: String): List<String> =
+            listOf(
+                "$author/$author.author.png",
+                "$author/$author.preview.author.png",
+            )
+
         const val TABLE_NAME = "tbl_pictures"
 
         fun listHashes(

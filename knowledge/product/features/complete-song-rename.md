@@ -52,6 +52,31 @@
 - **Список суффиксов картинок — один на два места**: `PUBLICATION_PICTURE_NAME_SUFFIXES`
   используется и реестром уборки (specs/544), и переименованием.
 
+## Смена префикса ключа: альбом, автор, год (KARAOKE-428)
+
+Ключ объекта песни в хранилищах — `$автор/$год - $альбом/$имя песни` + суффикс артефакта.
+Переименование **имени песни** меняет только конец ключа, и объекты переносились
+(`renameCascadeExtraArtifacts` — mp3-стемы, `renameAllArtifacts` — публикационные картинки).
+
+Смена **альбома, автора или года** меняет **префикс** ключа целиком. Раньше объекты при
+этом не переносились, и в бакете накапливались устаревшие копии: 745 объектов, 4,38 ГБ
+(замер 2026-11-12, инвентаризация KARAOKE-418). Устаревшими оказывались и mp3-стемы, и
+публикационные картинки — то есть ровно те два множества, которые переносятся при смене
+имени песни.
+
+Теперь:
+
+- `Song.migrateStorageObjectsToNewPrefix(oldPrefix)` переносит все объекты песни в
+  хранилищах (5 mp3-темов + 9 публикационных картинок) при смене префикса; прежний
+  префикс снимается **до** правок, новый — **после**;
+- вызов — из `SongUpdateMapper.apply`: сравнение префикса до и после применения полей;
+- обложка альбома переносится при смене имени/автора/года альбома
+  (`Pictures.albumCoverKeys`), обложка автора — при смене имени автора
+  (`Pictures.authorCoverKeys`);
+- общий перенос ключей — `StorageObjectMigration.move/moveAll`: старый ключ удаляется
+  только после успешной записи нового; локальный файл используется как источник, если он
+  есть, иначе объект скачивается.
+
 ## Известные ловушки
 
 - Проверка здоровья на **холодном кеше** хранилища отвечает «нет» на первый запрос
@@ -62,6 +87,8 @@
 - Перенос объектов в удалённое хранилище идёт по сети и может занять больше двух минут;
   обрыв клиента по таймауту **не отменяет** работу на сервере — проверять надо фактическое
   состояние файлов, базы и хранилища.
+- Смена альбома/автора/года переносит **объекты хранилища**, но не файлы на диске: папка
+  песни задаётся полем `root_folder` и физически не переезжает.
 - Переименование запрещено, пока над песней идёт фоновая обработка
   (`KaraokeProcess.hasActiveProcess`) — это защита самого эндпоинта.
 
@@ -72,4 +99,7 @@
 - [Song.kt](../../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `renameAllArtifacts` и перенос объектов хранилищ
 - [SongUpdateMapper.kt](../../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SongUpdateMapper.kt) — точка входа переименования в админке
 - [RenameAllArtifactsTest.kt](../../../karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/RenameAllArtifactsTest.kt) — юнит-тесты
+- [StorageObjectMigration.kt](../../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StorageObjectMigration.kt) — перенос объектов между ключами хранилища (KARAOKE-428)
+- [StoragePrefixMigrationTest.kt](../../../karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/StoragePrefixMigrationTest.kt) — суффиксы и ключи объектов песни
+- [StorageCoverMigrationTest.kt](../../../karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/model/StorageCoverMigrationTest.kt) — ключи обложек альбома и автора
 - [Автоуборка артефактов песни](song-artifact-cleanup.md) — соседняя фича, из которой взят реестр суффиксов картинок

@@ -34,14 +34,14 @@ class SongDeletionPreview(
         const val BUCKET = "karaoke"
 
         /**
-         * TTL кеша листингов бакета, мс (владелец, 2026-11-13).
+         * TTL кеша листингов, мс (владелец, 2026-11-13).
          *
-         * Предпросмотр ходит в оба хранилища полным листингом бакета: бакет
-         * большой (десятки тысяч объектов), а MinIO без префикса листинга не
-         * умеет — один только листинг занимал ~6 с на хранилище, и админ видел
-         * «ничего не происходит» десяток секунд после клика. Кеш на полминуты
-         * делает повторный предпросмотр (обычно подряд идут несколько песен)
-         * мгновенным.
+         * Предпросмотр ходит в оба хранилища за объектами песни. Листинг идёт
+         * по префиксу «автор/год - альбом/» — ровно тот, который требует правило
+         * владения (`SongArtifactOwnership.isOwnStorageKey`), поэтому набор
+         * объектов тот же, а листинг в сотни раз дешевле полного по бакету.
+         * Кеш на полминуты делает повторный предпросмотр (обычно подряд идут
+         * несколько песен) мгновенным.
          *
          * Кеш живёт ТОЛЬКО в предпросмотре: уборка всегда смотрит в хранилище
          * своими глазами — по кешу удалять объекты нельзя.
@@ -65,7 +65,12 @@ class SongDeletionPreview(
         )
 
         private val listingLock = Any()
-        private var cachedListing: BucketListing? = null
+
+        /** Кеш листингов по префиксу (альбом) — последние альбомы. */
+        private val listingCache = LinkedHashMap<String, BucketListing>()
+
+        /** Предел числа альбомов в кеше. */
+        private const val LISTING_CACHE_MAX = 32
     }
 
     /** Снимок предпросмотра — ровно поля контракта § 2. */
@@ -119,7 +124,11 @@ class SongDeletionPreview(
         val names = LinkedHashSet<String>()
         fileName.takeIf { it.isNotBlank() }?.let { names.add(it) }
         names.addAll(SongNameHistory.listForSong(song.id, database))
-        val (localListing, remoteListing) = bucketListings()
+        // Префикс листинга — ровно тот, что требует правило владения
+        // (`isOwnStorageKey`): набор объектов тот же, а листинг в сотни раз
+        // дешевле полного по бакету.
+        val storagePrefix = "${song.author}/${song.year} - ${song.album}/"
+        val (localListing, remoteListing) = bucketListings(storagePrefix)
         val localObjects = ownObjects(song.author, song.year.toString(), song.album, names, localListing)
         val remoteObjects = ownObjects(song.author, song.year.toString(), song.album, names, remoteListing)
 
@@ -207,27 +216,29 @@ class SongDeletionPreview(
     }
 
     /**
-     * Листинги обоих хранилищ: параллельно и с коротким кешем.
+     * Листинги обоих хранилищ: параллельно, по префиксу и с коротким кешем.
      *
-     * Листинг бакета — тяжёлая операция (десятки тысяч объектов, без префикса),
-     * поэтому оба хранилища читаются одновременно, а повторный предпросмотр в
-     * течение [LISTING_TTL_MS] берёт кеш.
-     *
+     * @param prefix префикс ключа (папка альбома) — тот же, что требует правило
+     *   владения; пустой — полный листинг бакета.
      * @return пара (локальный листинг, удалённый листинг) — ключ → размер.
      */
-    private fun bucketListings(): Pair<Map<String, Long>, Map<String, Long>> {
+    private fun bucketListings(prefix: String): Pair<Map<String, Long>, Map<String, Long>> {
         synchronized(listingLock) {
             val now = System.currentTimeMillis()
-            cachedListing
+            listingCache[prefix]
                 ?.takeIf { now - it.at < LISTING_TTL_MS }
                 ?.let { return it.local to it.remote }
         }
-        val localFuture = CompletableFuture.supplyAsync({ listBucket(local = true) }, listingExecutor)
-        val remoteFuture = CompletableFuture.supplyAsync({ listBucket(local = false) }, listingExecutor)
+        val localFuture = CompletableFuture.supplyAsync({ listBucket(prefix, local = true) }, listingExecutor)
+        val remoteFuture = CompletableFuture.supplyAsync({ listBucket(prefix, local = false) }, listingExecutor)
         val local = awaitListing(localFuture)
         val remote = awaitListing(remoteFuture)
         synchronized(listingLock) {
-            cachedListing = BucketListing(System.currentTimeMillis(), local, remote)
+            listingCache[prefix] = BucketListing(System.currentTimeMillis(), local, remote)
+            while (listingCache.size > LISTING_CACHE_MAX) {
+                val oldest = listingCache.entries.minByOrNull { it.value.at }?.key ?: break
+                listingCache.remove(oldest)
+            }
         }
         return local to remote
     }
@@ -244,13 +255,13 @@ class SongDeletionPreview(
         }
 
     /** Листинг бакета одного хранилища (ключ → размер). */
-    private fun listBucket(local: Boolean): Map<String, Long> {
+    private fun listBucket(prefix: String, local: Boolean): Map<String, Long> {
         val all =
             try {
                 if (local) {
-                    storageService.listFilesInfo(BUCKET)
+                    storageService.listFilesInfo(BUCKET, prefix)
                 } else {
-                    storageApiClient.listFilesInfo(BUCKET).block() ?: emptyList()
+                    storageApiClient.listFilesInfo(BUCKET, prefix).block() ?: emptyList()
                 }
             } catch (e: Exception) {
                 emptyList()

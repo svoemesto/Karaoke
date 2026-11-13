@@ -4568,9 +4568,26 @@ class ApiController(
                 .body(mapOf("ok" to false, "error" to "run_running", "message" to "Прогон уже выполняется."))
         }
         if (run.state == CleanupRunState.DONE) {
-            return ResponseEntity
-                .status(409)
-                .body(mapOf("ok" to false, "error" to "run_done", "message" to "Остатка нет: прогон завершён."))
+            // Уборка завершена, но остаться могла строка песни в серверной БД:
+            // фаза B удаления отвечает отдельно от уборки (FR-045). Раньше здесь
+            // был отказ 409 `run_done`, из-за чего остаток нельзя было добрать
+            // вручную — только ждать штатный sync-движок. Теперь прогон даёт
+            // добор именно того, что осталось: строки в серверной БД.
+            val serverDeleted = SongDeletionService().retryServerDeletion(run.songId)
+            return ResponseEntity.ok(
+                mapOf(
+                    "ok" to true,
+                    "runId" to runId,
+                    "state" to run.state.name,
+                    "serverDeleted" to serverDeleted,
+                    "message" to
+                        if (serverDeleted) {
+                            "Строка песни удалена из серверной БД."
+                        } else {
+                            "Серверная БД недоступна — строка песни осталась в ней."
+                        },
+                ),
+            )
         }
         // Добор: серверная БД (если она была недоступна) и сама уборка.
         SongDeletionService().retryServerDeletion(run.songId)

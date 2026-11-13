@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Locale
 
 /**
  * Фоновая уборка артефактов удалённой песни (KARAOKE-429, спека 739, US3).
@@ -130,6 +131,25 @@ class SongCleanupExecutor(
                     e.toString(),
                 )
                 1
+            }
+        }
+
+        /**
+         * Размер в человекочитаемых единицах — МБ/ГБ (FR-036).
+         *
+         * Сырые байты в уведомлении администратору неинформативны: песня —
+         * это десятки-сотни мегабайт, а альбом — гигабайты.
+         *
+         * @param bytes количество освобождённых байт.
+         * @return строка вида «12,3 МБ» или «1,05 ГБ».
+         */
+        fun formatBytes(bytes: Long): String {
+            if (bytes <= 0L) return "0 МБ"
+            val megabytes = bytes.toDouble() / (1024.0 * 1024.0)
+            return if (megabytes >= 1024.0) {
+                String.format(Locale.ROOT, "%.2f ГБ", megabytes / 1024.0)
+            } else {
+                String.format(Locale.ROOT, "%.1f МБ", megabytes)
             }
         }
 
@@ -809,7 +829,7 @@ class SongCleanupExecutor(
                         body =
                             "Прогон ${run.runId}, состояние ${state.name}. " +
                                 "Удалено файлов: ${counters.filesDeleted}, объектов: ${counters.objectsDeleted}, " +
-                                "освобождено: ${counters.bytesDeleted} байт.",
+                                "освобождено: ${formatBytes(counters.bytesDeleted)}.",
                     ),
                 ),
             )

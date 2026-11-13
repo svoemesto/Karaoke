@@ -128,7 +128,7 @@ class SongOneTimeCleanupPlanner(
             candidates.addAll(storageCandidates(liveSongs, ownKeys, historyNames, liveNames))
         }
         if (includeFiles) {
-            candidates.addAll(diskCandidates(liveSongs, liveNames))
+            candidates.addAll(diskCandidates(liveSongs))
         }
         return Plan(
             candidates = candidates.distinctBy { candidate -> candidate.location to candidate.pathOrKey },
@@ -240,15 +240,25 @@ class SongOneTimeCleanupPlanner(
         return result
     }
 
-    /** Кандидаты среди файлов на диске (FR-041): файлы, не принадлежащие живым песням. */
-    private fun diskCandidates(
-        liveSongs: List<LiveSong>,
-        liveNames: Set<String>,
-    ): List<Candidate> {
+    /**
+     * Кандидаты среди файлов на диске (FR-041, FR-042): настоящие сироты.
+     *
+     * Классификация — [SongOrphanFileClassifier], то есть утверждённое правило
+     * инвентаризации (KARAOKE-424): кандидатом является только файл, чьё имя
+     * похоже на артефакт песни и для которого песни с таким именем нет в БД
+     * ни в каком виде. Обложки альбомов и авторов, `key_bpm.csv`, ручные файлы
+     * и проекты рендера под правило не попадают — удалять их нельзя.
+     */
+    private fun diskCandidates(liveSongs: List<LiveSong>): List<Candidate> {
         val result = mutableListOf<Candidate>()
         // Множество «своих» имён по папкам альбомов: файл принадлежит песне, если
         // его имя — артефакт одной из живых песен его альбома.
         val byFolder = liveSongs.groupBy { folderOf(it) }
+        val classifier =
+            SongOrphanFileClassifier(
+                liveByFolder = byFolder.mapValues { (_, songs) -> songs.map { it.fileName } },
+                allLiveNames = liveSongs.map { it.fileName },
+            )
         PROJECT_ROOT_FOLDERS.forEach { root ->
             val rootDir = File(root)
             if (!rootDir.isDirectory) return@forEach
@@ -261,12 +271,8 @@ class SongOneTimeCleanupPlanner(
                     SongArtifactOwnership.artifactDirs(albumDir).forEach { dir ->
                         dir.listFiles()?.forEach { file ->
                             if (file.isDirectory) return@forEach
-                            val own =
-                                live.any { song ->
-                                    SongArtifactOwnership.isOwnArtifact(song.fileName, file.name)
-                                }
-                            if (own) return@forEach
-                            if (SongArtifactOwnership.isNearMatchOfLiveSong(liveNames, file.name)) return@forEach
+                            val verdict = classifier.classify(file.name, albumDir.path)
+                            if (verdict.verdict != SongOrphanFileClassifier.Verdict.ORPHAN) return@forEach
                             result.add(
                                 Candidate(
                                     kind = CandidateKind.FILE,
@@ -274,7 +280,7 @@ class SongOneTimeCleanupPlanner(
                                     pathOrKey = file.absolutePath,
                                     sizeBytes = safeLength(file),
                                     reason = Reason.ORPHAN,
-                                    detail = "файл не принадлежит ни одной живой песне альбома",
+                                    detail = "песни с таким именем нет в БД (ни в каком виде)",
                                 ),
                             )
                         }

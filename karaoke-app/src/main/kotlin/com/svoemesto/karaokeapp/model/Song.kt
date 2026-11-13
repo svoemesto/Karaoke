@@ -349,34 +349,15 @@ class Song(
      * Вызывать осознанно (импорт, анализ, рендер), а не из геттера. Ошибка внешнего CLI —
      * `WARN` с путём и `0`, без исключения: шаг цепочки не должен падать из-за метаданных.
      *
+     * @param measuredDurationMs уже измеренная длительность (мс). Если задана — повторный
+     *   запуск `ffprobe` не делается: кортеж уже измерил длительность источника (см.
+     *   [com.svoemesto.karaokeapp.tuple.AudioProbe]), а второй прогон — лишний процесс.
      * @return длительность в мс (0 — файл недоступен/`ffprobe` не ответил)
      */
-    fun refreshDurationMsFromAudioFile(): Long {
+    fun refreshDurationMsFromAudioFile(measuredDurationMs: Long? = null): Long {
         val stored = ms
         if (stored > 0L) return stored
-        val args =
-            listOf(
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                fileAbsolutePath,
-            )
-        val durationMs =
-            try {
-                ((runCommand(args).trim().toDoubleOrNull() ?: 0.0) * 1000L).toLong()
-            } catch (e: Exception) {
-                sourceMarkersLog.warn(
-                    "refreshDurationMsFromAudioFile: ffprobe не дал длительность (songId={}, файл='{}'): {}",
-                    id,
-                    fileAbsolutePath,
-                    e.toString(),
-                )
-                0L
-            }
+        val durationMs = measuredDurationMs ?: measureDurationMsFromAudioFile()
         if (durationMs <= 0L) return 0L
         fields[SongField.MS] = durationMs.toString()
         val connection = database.getConnection()
@@ -394,6 +375,62 @@ class Song(
             }
         }
         return durationMs
+    }
+
+    /**
+     * Измерить длительность аудиофайла песни (`ffprobe`), ничего не сохраняя.
+     *
+     * @return длительность в мс (0 — файл недоступен/`ffprobe` не ответил).
+     */
+    fun measureDurationMsFromAudioFile(): Long {
+        val args =
+            listOf(
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                fileAbsolutePath,
+            )
+        return try {
+            ((runCommand(args).trim().toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+        } catch (e: Exception) {
+            sourceMarkersLog.warn(
+                "refreshDurationMsFromAudioFile: ffprobe не дал длительность (songId={}, файл='{}'): {}",
+                id,
+                fileAbsolutePath,
+                e.toString(),
+            )
+            0L
+        }
+    }
+
+    /**
+     * Перечитать песню из БД перед применением правок (паттерн «reload-from-db-before-save»).
+     *
+     * **Зачем.** Песня, созданная импортом из папки, живёт в памяти десятки секунд: за это время
+     * параллельный кортеж (демукс → mp3 → загрузка) успевает записать в БД длительность
+     * (`song_ms`) и тональность/темп (`song_tone`/`song_bpm`). Если применить правки к
+     * устаревшему объекту, `getDiff()` увидит расхождение по этим полям и `UPDATE` затрёт их
+     * пустыми значениями из устаревшего объекта — песня останется с нулевой длительностью.
+     *
+     * Тот же приём применён в импорте для текста (specs/278-fix-key-loss-on-lyrics-search,
+     * specs/281-find-lyrics-overwrites-key-bpm) — здесь он нужен и для применения правок
+     * родителя/аудио-родителя.
+     *
+     * @return свежий объект песни или `null`, если песни в БД нет (тогда вызывающий решает сам).
+     */
+    fun reloadForApply(): Song? {
+        if (id <= 0L) return null
+        return Song.loadFromDbById(
+            id = id,
+            database = database,
+            sync = false,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     }
 
     var fileName: String = ""
@@ -2259,6 +2296,12 @@ class Song(
         // 674 (FR-012/FR-013): применяем только файл, чей sidecar-отпечаток совпадает с источником.
         val sidecar = KeyBpmSidecar.read(pathToFileKeyBpmFinder) ?: return false
         val sourceDuration = AudioProbe.durationMs(fileAbsolutePath) ?: refreshDurationMsFromAudioFile()
+        // Длительность источника измерена — сохраняем её. Без этого у песен, добавленных из
+        // папки, `song_ms` оставался 0: измеряли длительность, но в БД её не клали
+        // (инцидент 2026-11-13, «Концертные синглы»).
+        if (ms <= 0L && sourceDuration > 0L) {
+            refreshDurationMsFromAudioFile(sourceDuration)
+        }
         if (!sidecar.matches(fileAbsolutePath, sourceDuration)) return false
 
         fields[SongField.KEY] = data.key!!

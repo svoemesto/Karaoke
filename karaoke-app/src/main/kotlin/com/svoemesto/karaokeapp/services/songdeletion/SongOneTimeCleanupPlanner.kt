@@ -36,6 +36,16 @@ class SongOneTimeCleanupPlanner(
         /** Имя бакета с объектами песен. */
         const val BUCKET = "karaoke"
 
+        /**
+         * Альбомы, медиа которых списывается по решению владельца (KARAOKE-425):
+         * автор и папка альбома на диске.
+         */
+        val MEDIA_WRITEOFF_ALBUMS: List<Pair<String, String>> =
+            listOf(
+                "АукцЫон" to "1996 - Жилец вершин",
+                "Сектор Газа" to "2023 - Лирика (сингл)",
+            )
+
         /** Таблица и критерий сироты (условие WHERE). */
         data class DbOrphanTable(
             val table: String,
@@ -116,6 +126,9 @@ class SongOneTimeCleanupPlanner(
 
         /** Устаревшая копия: объект лежит под прежним именем живой песни. */
         STALE_COPY,
+
+        /** Медиа альбома, списанного по решению владельца (KARAOKE-425). */
+        WRITEOFF,
 
         /** Не опознан: подходящего правила не нашлось. */
         UNKNOWN,
@@ -293,6 +306,41 @@ class SongOneTimeCleanupPlanner(
             val keys =
                 StorageCacheReset.storageFileNamesForSong(song.author, song.year, song.album, song.fileName)
             keys.forEach { result.add(it) }
+        }
+        return result
+    }
+
+    /**
+     * Медиа альбомов, списанных по решению владельца (KARAOKE-425, FR-041).
+     *
+     * Списываются альбомы медиа удалённых песен: «Жилец вершин» (АукцЫон, 1996) и
+     * «Лирика (сингл)» (Сектор Газа, 2023). Их файлы не подпадают под правило «сирота»
+     * (в папке нет живых песен → обход не заходит), поэтому список задан явно.
+     *
+     * Перечень — из решения владельца (KARAOKE-425, инвентаризация KARAOKE-417).
+     * Исключения, которые не удаляются: mp3 песни «Где (2007)» (17282) — её копия
+     * существует только в префиксе сироты, и обложки канонических альбомов.
+     */
+    private fun mediaWriteoffCandidates(): List<Candidate> {
+        val result = mutableListOf<Candidate>()
+        MEDIA_WRITEOFF_ALBUMS.forEach { (author, album) ->
+            PROJECT_ROOT_FOLDERS.forEach { root ->
+                val albumDir = File(root, "$author/$album")
+                if (!albumDir.isDirectory) return@forEach
+                albumDir.walkTopDown().forEach { file ->
+                    if (file.isDirectory) return@forEach
+                    result.add(
+                        Candidate(
+                            kind = CandidateKind.FILE,
+                            location = CandidateLocation.LOCAL_FILESYSTEM,
+                            pathOrKey = file.absolutePath,
+                            sizeBytes = safeLength(file),
+                            reason = Reason.WRITEOFF,
+                            detail = "медиа альбома «$album», списанного по решению владельца",
+                        ),
+                    )
+                }
+            }
         }
         return result
     }
@@ -531,6 +579,7 @@ class SongOneTimeCleanupPlanner(
      */
     private fun diskCandidates(liveSongs: List<LiveSong>): List<Candidate> {
         val result = mutableListOf<Candidate>()
+        result.addAll(mediaWriteoffCandidates())
         // Множество «своих» имён по папкам альбомов: файл принадлежит песне, если
         // его имя — артефакт одной из живых песен его альбома.
         val byFolder = liveSongs.groupBy { folderOf(it) }
@@ -587,6 +636,7 @@ class SongOneTimeCleanupPlanner(
         when (reason) {
             Reason.STALE_COPY -> "объект лежит под прежним именем живой песни"
             Reason.ORPHAN -> if (!key.contains('/')) "мусор в корне бакета" else "объект не принадлежит ни одной живой песне"
+            Reason.WRITEOFF -> "медиа альбома, списанного по решению владельца"
             Reason.UNKNOWN -> "не опознан"
         }
 

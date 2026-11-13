@@ -200,16 +200,30 @@ describe('PKG-S3-31 / SongEdit', () => {
       assert.match(body, /if \(!voices\)/, 'BR-127: без voices модалка не открывается')
     })
 
-    test('doDeleteSong дожидается ответа и закрывает карточку только при успехе', () => {
+    test('doDeleteSong закрывает карточку сразу и показывает итог удаления', () => {
       const body = methodBody(SONG_EDIT, 'doDeleteSong')
       assert.ok(body, 'BR-127: не найден метод doDeleteSong')
       assert.match(body, /\.then\(/, 'BR-127: удаление должно дожидаться ответа')
       assert.match(body, /catch/, 'BR-127: отказ удаления обязан обрабатываться')
-      const thenBody = body.slice(body.indexOf('.then('), body.indexOf('.catch('))
+      // KARAOKE-429 (FR-003, правка владельца 2026-11-13): карточка закрывается
+      // СРАЗУ после подтверждения, а признак фактического удаления приходит
+      // уведомлением — «ложного успеха» не бывает.
+      const closeIndex = body.indexOf("$emit('close')")
+      const dispatchIndex = body.indexOf("dispatch('deleteCurrentSong')")
+      assert.ok(closeIndex >= 0, 'BR-127: карточка должна закрываться')
+      assert.ok(
+        closeIndex < dispatchIndex,
+        'BR-127: карточка закрывается сразу — до запроса удаления',
+      )
       assert.match(
-        thenBody,
-        /\$emit\('close'\)/,
-        'BR-127: карточка закрывается только после успешного удаления',
+        body,
+        /Удаление: ошибка/,
+        'BR-127: отказ удаления обязан быть виден администратору',
+      )
+      assert.match(
+        body,
+        /Удаление: успешно/,
+        'BR-127: успешное удаление обязано быть подтверждено администратору',
       )
     })
 

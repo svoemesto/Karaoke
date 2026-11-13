@@ -2921,8 +2921,18 @@ export default {
       }
       // Даты публикаций других песен при удалении НЕ пересчитываем (см. DEVELOPMENT.md).
       let targetId = previousSongId || nextSongId
-      if (targetId) {
-        await ctx.dispatch('setCurrentSongId', targetId)
+      if (targetId && ctx.state.currentSongId === deletedId) {
+        // Переход к соседней песне НЕ задерживает закрытие карточки песни:
+        // карточка закрывается сразу после подтверждения удаления (владелец,
+        // 2026-11-13), а загрузка соседней песни идёт в фоне. Раньше ожидание
+        // `setCurrentSongId` держало форму SongEdit открытой на всё время
+        // загрузки соседней песни.
+        //
+        // Переход делаем, только если админ сам не открыл другую песню, пока
+        // ждал ответ: иначе переход «украдёт» выбор админа.
+        ctx.dispatch('setCurrentSongId', targetId).catch((error) => {
+          console.warn('song.delete.navigate_failed:', error)
+        })
       }
       return result
     },

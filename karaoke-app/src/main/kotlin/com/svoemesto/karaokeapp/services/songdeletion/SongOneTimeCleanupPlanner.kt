@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.services.songdeletion
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.PROJECT_ROOT_FOLDERS
+import com.svoemesto.karaokeapp.PUBLICATION_PICTURE_NAME_SUFFIXES
 import com.svoemesto.karaokeapp.StorageCacheReset
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -101,6 +102,14 @@ class SongOneTimeCleanupPlanner(
 
         /** Публикационная картинка песни: `&lt;имя песни&gt; [метка].png`. */
         private val PUBLICATION_PICTURE_REGEX = Regex("^(.*) \\[([^\\]]+)]\\.png$")
+
+        /**
+         * Ключи публикационных картинок песни: `$base [метка].png`.
+         *
+         * @param base ключ песни без артефакта (`$автор/$год - $альбом/$имя песни`).
+         */
+        internal fun publicationPictureKeys(base: String): List<String> =
+            PUBLICATION_PICTURE_NAME_SUFFIXES.map { suffix -> "$base $suffix.png" }
 
         /**
          * Хвост артефакта песни в имени объекта: mp3-стем или публикационная картинка.
@@ -299,13 +308,24 @@ class SongOneTimeCleanupPlanner(
         }
     }
 
-    /** Ключи хранилища, принадлежащие живым песням (текущие имена). */
+    /**
+     * Ключи хранилища, принадлежащие живым песням (текущие имена).
+     *
+     * Кроме типов файлов из [StorageCacheReset.storageFileNamesForSong] сюда входят
+     **публикационные картинки** песни (`$storageFileName [метка].png`): их нет в
+     перечислении типов файлов, метки живут отдельным списком
+     * [PUBLICATION_PICTURE_NAME_SUFFIXES]. Без них «свои» картинки живых песен
+     * принимались за устаревшие копии (инцидент 2026-11-13: в перечень попали
+     * 43 678 объектов, из которых большинство — картинки живых песен).
+     */
     private fun ownStorageKeys(liveSongs: List<LiveSong>): Set<String> {
         val result = HashSet<String>()
         liveSongs.forEach { song ->
             val keys =
                 StorageCacheReset.storageFileNamesForSong(song.author, song.year, song.album, song.fileName)
             keys.forEach { result.add(it) }
+            val base = "${song.author}/${song.year} - ${song.album}/${song.fileName}"
+            result.addAll(publicationPictureKeys(base))
         }
         return result
     }
@@ -405,7 +425,8 @@ class SongOneTimeCleanupPlanner(
                 if (isSharedCoverKey(key)) return@forEach
                 // Устаревшая копия: объект живой песни под прежним путём.
                 val canonicalKeys = canonicalKeysOfStaleCopy(filePart, liveByName, historySongs)
-                if (canonicalKeys.isNotEmpty()) {
+                // Свой объект живой песни (путь совпал) — не устаревшая копия.
+                if (canonicalKeys.isNotEmpty() && canonicalKeys.none { canonical -> canonical == key }) {
                     // Удаляем, только если у живой песни ЕСТЬ актуальный объект: иначе
                     // устаревшая копия — единственная (FR-042).
                     if (canonicalKeys.all { canonical -> objectExists(location, canonical) }) {

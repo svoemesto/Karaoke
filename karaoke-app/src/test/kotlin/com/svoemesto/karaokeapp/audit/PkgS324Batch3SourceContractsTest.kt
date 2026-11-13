@@ -110,12 +110,21 @@ class PkgS324Batch3SourceContractsTest {
         // Легаси-страница songs.html удалена 2026-10-26. Современный носитель —
         // SPA: идентификатор удаляемой песни запоминается ДО запроса, а после
         // удаления выбирается соседняя строка, и её удаление не затрагивает.
+        //
+        // KARAOKE-429 (FR-003, правка владельца 2026-11-13): соседняя строка
+        // выбирается по-прежнему, но переход НЕ ожидается — карточка песни
+        // закрывается сразу после подтверждения удаления, а загрузка соседней
+        // песни идёт в фоне.
         val store = read("webvue3/src/components/Songs/store.js")
         assertTrue(store.contains("let deletedId = ctx.state.currentSongId"), "id запоминается до запроса (BR-208)")
         assertTrue(store.contains("params: { id: deletedId }"), "удаляется именно запомненная песня (BR-208)")
         assertTrue(
-            store.contains("await ctx.dispatch('setCurrentSongId', targetId)"),
+            store.contains("ctx.dispatch('setCurrentSongId', targetId)"),
             "после удаления выбирается соседняя строка (BR-208)",
+        )
+        assertTrue(
+            !store.contains("await ctx.dispatch('setCurrentSongId', targetId)"),
+            "переход к соседней песне не должен задерживать закрытие карточки песни (BR-208, FR-003)",
         )
         val controller = readCode("karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt")
         assertTrue(

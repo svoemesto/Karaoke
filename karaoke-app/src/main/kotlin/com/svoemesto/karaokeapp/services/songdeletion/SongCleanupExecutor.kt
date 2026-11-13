@@ -101,24 +101,35 @@ class SongCleanupExecutor(
          *
          * При недоступной БД возвращается 1 (папку НЕ удаляем): сбой проверки не
          * должен приводить к удалению папки с живыми песнями.
+         *
+         * @param database база данных.
+         * @param rootFolder папка альбома.
+         * @param albumId альбом (0 — не задан).
+         * @param excludeSongId песня, которую считаем удалённой (её строка ещё в
+         *   базе при предпросмотре, но в уборке её уже нет). 0 — ничего не
+         *   исключать.
+         * @return число живых песен в папке.
          */
         fun liveSongsInAlbumFolder(
             database: KaraokeConnection,
             rootFolder: String,
             albumId: Long,
+            excludeSongId: Long = 0L,
         ): Int {
             val connection = database.getConnection() ?: return 1
             return try {
                 val sql =
                     if (albumId > 0L) {
                         "SELECT count(*) FROM tbl_songs " +
-                            "WHERE rtrim(root_folder, '/') = rtrim(?, '/') OR album_id = ?"
+                            "WHERE (rtrim(root_folder, '/') = rtrim(?, '/') OR album_id = ?) AND id <> ?"
                     } else {
-                        "SELECT count(*) FROM tbl_songs WHERE rtrim(root_folder, '/') = rtrim(?, '/')"
+                        "SELECT count(*) FROM tbl_songs " +
+                            "WHERE rtrim(root_folder, '/') = rtrim(?, '/') AND id <> ?"
                     }
                 connection.prepareStatement(sql).use { ps ->
                     ps.setString(1, rootFolder)
                     if (albumId > 0L) ps.setLong(2, albumId)
+                    ps.setLong(if (albumId > 0L) 3 else 2, excludeSongId)
                     ps.executeQuery().use { rs ->
                         if (rs.next()) rs.getInt(1) else 1
                     }

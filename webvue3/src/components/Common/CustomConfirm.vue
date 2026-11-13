@@ -225,13 +225,21 @@ export default {
         }
       },
     },
-  },
-  mounted() {
-    if (this.params.timeout) {
-      this.timeToClose = this.params.timeout
-      // BR-372: id таймера сохраняется, чтобы его можно было остановить.
-      this.timer = setInterval(this.decreaseTimeToClose, 1000)
-    }
+    'params.timeout': {
+      // Обратный отсчёт запускается, когда задан `params.timeout`. Раньше он
+      // стартовал ТОЛЬКО в `mounted()` — подтверждение, у которого содержимое
+      // считается асинхронно (предпросмотр удаления песни: числа считаются
+      // по листингу хранилищ), не могло запустить отсчёт позже: окно
+      // закрывалось само, пока числа ещё считались (жалоба владельца
+      // 2026-11-13).
+      immediate: true,
+      handler(value) {
+        if (value && this.timer === undefined) {
+          this.timeToClose = value
+          this.timer = setInterval(this.decreaseTimeToClose, 1000)
+        }
+      },
+    },
   },
   beforeUnmount() {
     // BR-372: размонтирование модалки обязано останавливать таймер, иначе он

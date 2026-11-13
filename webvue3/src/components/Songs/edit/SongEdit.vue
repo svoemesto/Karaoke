@@ -5180,23 +5180,48 @@ export default {
      * Значения подставляются с экранированием (`knowledge/system/frontend/confirm-escape.md`),
      * дополнительного ввода не требуется (FR-027).
      */
-    async deleteSong() {
-      let preview = null
-      try {
-        preview = await this.$store.dispatch('getSongDeletePreview')
-      } catch (error) {
-        preview = null
-      }
+    deleteSong() {
+      // Клик по «Удалить песню» не должен выглядеть как «ничего не происходит»
+      // (жалоба владельца 2026-11-13): предпросмотр считает объекты в обоих
+      // хранилищах полным листингом бакета и занимал около десяти секунд.
+      // Поэтому окно подтверждения открывается СРАЗУ, а числа подставляются,
+      // когда предпросмотр придёт. Обратный отсчёт подтверждения стартует
+      // вместе с числами (CustomConfirm запускает отсчёт по `params.timeout`).
       this.customConfirmParams = {
         allowHtml: true,
         header: 'Подтвердите удаление песни',
         body:
           `Удалить песню <strong>«${escapeHtml(this.song.songName)}»</strong>?` +
-          `<br>${escapeHtml(this.deletePreviewText(preview)).replace(/\n/g, '<br>')}`,
-        timeout: 10,
+          `<br>Считаю, что будет удалено…`,
+        timeout: undefined,
         callback: this.doDeleteSong,
       }
       this.isCustomConfirmVisible = true
+      this.$store
+        .dispatch('getSongDeletePreview')
+        .then((preview) => {
+          this.applyDeletePreview(preview)
+        })
+        .catch(() => {
+          this.applyDeletePreview(null)
+        })
+    },
+    /**
+     * Подставить числа предпросмотра в открытое окно подтверждения.
+     *
+     * @param {Object|null} preview — ответ `/api/song/deletepreview` (null —
+     *   предпросмотр не удался получить: подтверждение всё равно показывается).
+     * @returns {void}
+     */
+    applyDeletePreview(preview) {
+      if (!this.customConfirmParams) return
+      const body = preview
+        ? `Удалить песню <strong>«${escapeHtml(this.song.songName)}»</strong>?` +
+          `<br>${escapeHtml(this.deletePreviewText(preview)).replace(/\n/g, '<br>')}`
+        : `Удалить песню <strong>«${escapeHtml(this.song.songName)}»</strong>?` +
+          `<br>Не удалось посчитать, что будет удалено.`
+      this.customConfirmParams.body = body
+      this.customConfirmParams.timeout = 10
     },
     /**
      * Текст предпросмотра удаления (FR-023…FR-026) — простой текст, строки
@@ -5222,8 +5247,13 @@ export default {
         if (preview.albumPictureWillBeDeleted) {
           albumLine += ' (вместе с обложкой)'
         }
-        if (!preview.albumFolderWillBeDeleted) {
-          albumLine += ' (папка не удаляется: в папке есть файлы живых песен)'
+        if (preview.albumFolderWillBeDeleted) {
+          albumLine += ' и папка альбома'
+          if (preview.albumFolderLeftoverFiles > 0) {
+            albumLine += ` (вместе с ней уйдут ещё ${preview.albumFolderLeftoverFiles} файлов)`
+          }
+        } else {
+          albumLine += ' (папка остаётся: в ней есть файлы живых песен)'
         }
         lines.push(`${albumLine}.`)
       } else {

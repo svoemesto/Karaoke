@@ -98,6 +98,7 @@
   "albumPictureWillBeDeleted": true,
   "albumFolderWillBeDeleted": false,
   "albumFolderReason": "album_has_live_songs",
+  "albumFolderLeftoverFiles": 2,
 
   "descendantsCount": 2,
   "newsCount": 3,
@@ -123,6 +124,7 @@
 | `albumPictureWillBeDeleted` | у альбома есть запись в `tbl_pictures` | FR-019, FR-025 |
 | `albumFolderWillBeDeleted` | в папке альбома нет файлов живых песен | FR-020, FR-021 |
 | `albumFolderReason` | `album_has_live_songs` \| `empty` | FR-021 |
+| `albumFolderLeftoverFiles` | файлы в папке альбома, не относящиеся к песне: уйдут вместе с альбомом | FR-020, FR-021 |
 | `descendantsCount` | `tbl_songs.audio_parent_id = id` | FR-026 |
 | `newsCount`, `linksCount`, `playlistItemsCount`, `assignmentsCount`, `draftsCount`, `historyCount` | счётчики связанных записей | FR-025, FR-026 |
 | `blocked`, `blockReason` | `process_running` (FR-004) \| `not_owned` (R-009) | FR-004 |

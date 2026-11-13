@@ -9,6 +9,9 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.File
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * Предпросмотр удаления песни (KARAOKE-429, спека 739, FR-023…FR-026, SC-004).
@@ -29,6 +32,40 @@ class SongDeletionPreview(
     companion object {
         /** Имя бакета с объектами песен. */
         const val BUCKET = "karaoke"
+
+        /**
+         * TTL кеша листингов бакета, мс (владелец, 2026-11-13).
+         *
+         * Предпросмотр ходит в оба хранилища полным листингом бакета: бакет
+         * большой (десятки тысяч объектов), а MinIO без префикса листинга не
+         * умеет — один только листинг занимал ~6 с на хранилище, и админ видел
+         * «ничего не происходит» десяток секунд после клика. Кеш на полминуты
+         * делает повторный предпросмотр (обычно подряд идут несколько песен)
+         * мгновенным.
+         *
+         * Кеш живёт ТОЛЬКО в предпросмотре: уборка всегда смотрит в хранилище
+         * своими глазами — по кешу удалять объекты нельзя.
+         */
+        const val LISTING_TTL_MS = 30_000L
+
+        /** Предел ожидания листинга одного хранилища, с. */
+        private const val LISTING_TIMEOUT_SEC = 120L
+
+        /** Пул для параллельных листингов (локальный и удалённый — одновременно). */
+        private val listingExecutor =
+            Executors.newFixedThreadPool(2) { runnable ->
+                Thread(runnable, "song-delete-preview-listing").apply { isDaemon = true }
+            }
+
+        /** Снимок листингов обоих хранилищ с меткой времени. */
+        private data class BucketListing(
+            val at: Long,
+            val local: Map<String, Long>,
+            val remote: Map<String, Long>,
+        )
+
+        private val listingLock = Any()
+        private var cachedListing: BucketListing? = null
     }
 
     /** Снимок предпросмотра — ровно поля контракта § 2. */
@@ -49,6 +86,7 @@ class SongDeletionPreview(
         val albumPictureWillBeDeleted: Boolean,
         val albumFolderWillBeDeleted: Boolean,
         val albumFolderReason: String?,
+        val albumFolderLeftoverFiles: Int,
         val descendantsCount: Int,
         val newsCount: Int,
         val linksCount: Int,
@@ -81,22 +119,43 @@ class SongDeletionPreview(
         val names = LinkedHashSet<String>()
         fileName.takeIf { it.isNotBlank() }?.let { names.add(it) }
         names.addAll(SongNameHistory.listForSong(song.id, database))
-        val localObjects = ownObjects(song.author, song.year.toString(), song.album, names, local = true)
-        val remoteObjects = ownObjects(song.author, song.year.toString(), song.album, names, local = false)
+        val (localListing, remoteListing) = bucketListings()
+        val localObjects = ownObjects(song.author, song.year.toString(), song.album, names, localListing)
+        val remoteObjects = ownObjects(song.author, song.year.toString(), song.album, names, remoteListing)
 
         // Каскад на альбом.
         val albumId = song.albumId ?: 0L
         val liveSongsInAlbum = if (albumId > 0L) countSongsInAlbum(albumId, excludeSongId = song.id) else 0
         val albumWillBeDeleted = albumId > 0L && liveSongsInAlbum == 0
         val albumPictureWillBeDeleted = albumWillBeDeleted && hasPictureRecord(song)
-        val remainingFiles = countFilesInFolder(rootFolder) - filesToDelete.size
-        val albumFolderWillBeDeleted = rootFolder.isNotBlank() && remainingFiles <= 0
+        // Папка альбома — ТОТ ЖЕ код, что и уборка (FR-020, FR-021): папка уходит,
+        // если в ней нет файлов ЖИВЫХ песен; неопознанные остатки (мусор
+        // `[key].json` от прежних удалений) уходят вместе с альбомом.
+        // Раньше предпросмотр считал «в папке не должно быть НИКАКИХ файлов» —
+        // и врал: альбом был последним, папку уборка удаляла, а в окне
+        // подтверждения значилось «папка не удаляется» (жалоба владельца
+        // 2026-11-13).
+        val liveSongsInFolder =
+            if (rootFolder.isNotBlank()) {
+                SongCleanupExecutor.liveSongsInAlbumFolder(
+                    database = database,
+                    rootFolder = rootFolder,
+                    albumId = albumId,
+                    excludeSongId = song.id,
+                )
+            } else {
+                0
+            }
+        val albumFolderWillBeDeleted = rootFolder.isNotBlank() && liveSongsInFolder == 0
         val albumFolderReason =
             if (albumFolderWillBeDeleted) {
                 null
             } else {
                 "album_has_live_songs"
             }
+        // Файлы, которые не относятся к песне, но лежат в папке альбома: они уйдут
+        // вместе с альбомом (остатки прежних удалений).
+        val albumFolderLeftoverFiles = (countFilesInFolder(rootFolder) - filesToDelete.size).coerceAtLeast(0)
 
         return Preview(
             songId = song.id,
@@ -115,6 +174,7 @@ class SongDeletionPreview(
             albumPictureWillBeDeleted = albumPictureWillBeDeleted,
             albumFolderWillBeDeleted = albumFolderWillBeDeleted,
             albumFolderReason = albumFolderReason,
+            albumFolderLeftoverFiles = albumFolderLeftoverFiles,
             descendantsCount = countDescendants(song.id),
             newsCount = countBy("tbl_news", "song_id", song.id),
             linksCount = countBy("tbl_song_share_links", "song_id", song.id),
@@ -133,8 +193,58 @@ class SongDeletionPreview(
         year: String,
         album: String,
         names: Set<String>,
-        local: Boolean,
+        listing: Map<String, Long>,
     ): List<Pair<String, Long>> {
+        val ownKeys =
+            SongArtifactOwnership.ownStorageKeys(
+                author = author,
+                year = year,
+                album = album,
+                songFileNames = names,
+                keys = listing.keys,
+            )
+        return ownKeys.map { it to (listing[it] ?: 0L) }
+    }
+
+    /**
+     * Листинги обоих хранилищ: параллельно и с коротким кешем.
+     *
+     * Листинг бакета — тяжёлая операция (десятки тысяч объектов, без префикса),
+     * поэтому оба хранилища читаются одновременно, а повторный предпросмотр в
+     * течение [LISTING_TTL_MS] берёт кеш.
+     *
+     * @return пара (локальный листинг, удалённый листинг) — ключ → размер.
+     */
+    private fun bucketListings(): Pair<Map<String, Long>, Map<String, Long>> {
+        synchronized(listingLock) {
+            val now = System.currentTimeMillis()
+            cachedListing
+                ?.takeIf { now - it.at < LISTING_TTL_MS }
+                ?.let { return it.local to it.remote }
+        }
+        val localFuture = CompletableFuture.supplyAsync({ listBucket(local = true) }, listingExecutor)
+        val remoteFuture = CompletableFuture.supplyAsync({ listBucket(local = false) }, listingExecutor)
+        val local = awaitListing(localFuture)
+        val remote = awaitListing(remoteFuture)
+        synchronized(listingLock) {
+            cachedListing = BucketListing(System.currentTimeMillis(), local, remote)
+        }
+        return local to remote
+    }
+
+    /**
+     * Результат листинга одного хранилища; сбой хранилища — пустой листинг
+     * (как и раньше: предпросмотр не должен падать из-за одного хранилища).
+     */
+    private fun awaitListing(future: CompletableFuture<Map<String, Long>>): Map<String, Long> =
+        try {
+            future.get(LISTING_TIMEOUT_SEC, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            emptyMap()
+        }
+
+    /** Листинг бакета одного хранилища (ключ → размер). */
+    private fun listBucket(local: Boolean): Map<String, Long> {
         val all =
             try {
                 if (local) {
@@ -145,16 +255,7 @@ class SongDeletionPreview(
             } catch (e: Exception) {
                 emptyList()
             }
-        val byKey = all.associate { it.fileName to it.size }
-        val ownKeys =
-            SongArtifactOwnership.ownStorageKeys(
-                author = author,
-                year = year,
-                album = album,
-                songFileNames = names,
-                keys = byKey.keys,
-            )
-        return ownKeys.map { it to (byKey[it] ?: 0L) }
+        return all.associate { it.fileName to it.size }
     }
 
     /** Живых песен в альбоме (кроме удаляемой). */

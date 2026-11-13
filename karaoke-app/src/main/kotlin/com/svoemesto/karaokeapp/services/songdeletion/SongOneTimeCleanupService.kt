@@ -81,6 +81,12 @@ class SongOneTimeCleanupService(
         if (runId <= 0L) {
             return ApplyResult(0, applied = false, deletedCount = 0, failedCount = 0, bytesDeleted = 0, reason = "db_error")
         }
+        // Прогон создан в состоянии PLANNED, а машина состояний допускает PLANNED → APPROVED →
+        // RUNNING → DONE/PARTIAL. Совпадение отпечатка с утверждённым — это и есть утверждение
+        // набора владельцем, поэтому сначала APPROVED. Без этого переход PLANNED → RUNNING
+        // отвергался, и завершённый прогон оставался в состоянии PLANNED без finished_at
+        // (инцидент 2026-11-13, прогон №210).
+        SongCleanupJournal.updateRunState(runId, CleanupRunState.APPROVED, database)
         SongCleanupJournal.updateRunState(runId, CleanupRunState.RUNNING, database)
 
         var deleted = 0

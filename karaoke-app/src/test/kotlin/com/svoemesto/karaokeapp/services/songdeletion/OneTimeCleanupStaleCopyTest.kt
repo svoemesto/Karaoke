@@ -80,4 +80,25 @@ class OneTimeCleanupStaleCopyTest {
             "общие обложки альбомов и авторов не трогаются (FR-014)",
         )
     }
+
+    @Test
+    fun `публикационные картинки живой песни считаются своими`() {
+        // ИНЦИДЕНТ 2026-11-13: публикационных картинок нет в перечислении типов файлов,
+        // поэтому «свои» ключи их не покрывали — картинки живых песен попадали в перечень
+        // как «устаревшие копии» (43 678 объектов вместо 379).
+        val keys = SongOneTimeCleanupPlanner.publicationPictureKeys("7Б/2002 - Молодые ветра/2002 (01) [7Б] - Кино")
+        assertTrue(keys.contains("7Б/2002 - Молодые ветра/2002 (01) [7Б] - Кино [karaoke].png"))
+        assertTrue(keys.contains("7Б/2002 - Молодые ветра/2002 (01) [7Б] - Кино [lyrics].png"))
+        assertTrue(keys.size >= 5, "меток публикации несколько: ${keys.size}")
+
+        val text = planner.readText()
+        assertTrue(
+            text.contains("result.addAll(publicationPictureKeys(base))"),
+            "публикационные картинки входят в множество «своих» ключей",
+        )
+        assertTrue(
+            text.contains("canonicalKeys.none { canonical -> canonical == key }"),
+            "объект, совпавший с актуальным ключом, — не устаревшая копия",
+        )
+    }
 }

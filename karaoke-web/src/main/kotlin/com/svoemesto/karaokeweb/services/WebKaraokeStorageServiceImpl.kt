@@ -120,5 +120,5 @@ class WebKaraokeStorageServiceImpl : KaraokeStorageService {
         storageFileInfo: StorageFileInfo,
     ): Boolean = nope()
 
-    override fun listFilesInfo(bucketName: String): List<StorageFileInfo> = nope()
+    override fun listFilesInfo(bucketName: String, prefix: String): List<StorageFileInfo> = nope()
 }

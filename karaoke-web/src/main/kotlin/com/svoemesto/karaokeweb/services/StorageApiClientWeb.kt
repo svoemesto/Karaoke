@@ -401,7 +401,16 @@ class StorageApiClientWeb(
     }
 
     // --- POST /api/storage/listInfo ---
-    override fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>> { // Предполагаем, что StorageFileInfo определён
+
+    /**
+     * Список объектов бакета.
+     *
+     * @param bucketName бакет.
+     * @param prefix префикс ключа. HTTP-хранилище отдаёт список целиком, поэтому
+     *   префикс применяется на стороне клиента (в админском контуре
+     *   `karaoke-app` листинг идёт напрямую в MinIO и префикс задаётся серверу).
+     */
+    override fun listFilesInfo(bucketName: String, prefix: String): Mono<List<StorageFileInfo>> { // Предполагаем, что StorageFileInfo определён
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
 
         return webClient
@@ -411,5 +420,8 @@ class StorageApiClientWeb(
             .retrieve()
             .bodyToMono<Array<StorageFileInfo>>() // Сервер возвращает List, WebClient десериализует в Array
             .map { it.toList() } // Конвертируем в List
+            .map { files ->
+                if (prefix.isBlank()) files else files.filter { it.fileName.startsWith(prefix) }
+            }
     }
 }

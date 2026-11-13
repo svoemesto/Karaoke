@@ -35,6 +35,35 @@ class SongOneTimeCleanupPlanner(
     companion object {
         /** Имя бакета с объектами песен. */
         const val BUCKET = "karaoke"
+
+        /** Хвосты mp3-стемов в имени объекта песни. */
+        private val storageStemTails =
+            listOf(
+                ".vocals.mp3",
+                ".accompaniment.mp3",
+                ".bass.mp3",
+                ".drums.mp3",
+                ".other.mp3",
+            )
+
+        /** Публикационная картинка песни: `&lt;имя песни&gt; [метка].png`. */
+        private val PUBLICATION_PICTURE_REGEX = Regex("^(.*) \\[([^\\]]+)]\\.png$")
+
+        /**
+         * Хвост артефакта песни в имени объекта: mp3-стем или публикационная картинка.
+         *
+         * @param filePart имя объекта (после `$автор/$год - $альбом/`).
+         * @return пара (имя песни, хвост артефакта) либо `null`, если это не артефакт песни.
+         */
+        internal fun storageTailOf(filePart: String): Pair<String, String>? {
+            storageStemTails.forEach { tail ->
+                if (filePart.endsWith(tail) && filePart.length > tail.length) {
+                    return filePart.dropLast(tail.length) to tail
+                }
+            }
+            val match = PUBLICATION_PICTURE_REGEX.matchEntire(filePart) ?: return null
+            return match.groupValues[1] to " [${match.groupValues[2]}].png"
+        }
     }
 
     /** Причина кандидата. */
@@ -121,11 +150,11 @@ class SongOneTimeCleanupPlanner(
         val liveSongs = loadLiveSongs()
         val liveNames = liveSongs.map { SongArtifactOwnership.normalizeForMatch(it.fileName) }.toSet()
         val ownKeys = ownStorageKeys(liveSongs)
-        val historyNames = loadHistoryNames()
+        val historySongs = loadHistorySongs()
 
         val candidates = mutableListOf<Candidate>()
         if (includeStorage) {
-            candidates.addAll(storageCandidates(liveSongs, ownKeys, historyNames, liveNames))
+            candidates.addAll(storageCandidates(liveSongs, ownKeys, historySongs, liveNames))
         }
         if (includeFiles) {
             candidates.addAll(diskCandidates(liveSongs))
@@ -169,23 +198,38 @@ class SongOneTimeCleanupPlanner(
         }
     }
 
-    /** Прежние имена песен (tbl_song_name_history) → объекты под ними считаются STALE_COPY. */
-    private fun loadHistoryNames(): Set<String> {
-        val connection = database.getConnection() ?: return emptySet()
+    /**
+     * Прежние имена песен (tbl_song_name_history) → живая песня, которой они принадлежали.
+     *
+     * Объекты под прежним именем — устаревшие копии (FR-041): удаляются, только если у живой
+     * песни на месте актуальный объект (иначе устаревшая копия — единственная).
+     */
+    private fun loadHistorySongs(): Map<String, LiveSong> {
+        val connection = database.getConnection() ?: return emptyMap()
         return try {
             connection
-                .prepareStatement("SELECT DISTINCT file_name FROM tbl_song_name_history")
-                .use { ps ->
+                .prepareStatement(
+                    "SELECT h.file_name, s.song_author, s.song_year, s.song_album, s.file_name " +
+                        "FROM tbl_song_name_history h JOIN tbl_songs s ON s.id = h.song_id",
+                ).use { ps ->
                     ps.executeQuery().use { rs ->
-                        val result = mutableSetOf<String>()
+                        val result = mutableMapOf<String, LiveSong>()
                         while (rs.next()) {
-                            rs.getString("file_name")?.let { result.add(it) }
+                            val oldName = rs.getString("file_name") ?: continue
+                            val currentName = rs.getString("file_name") ?: continue
+                            result[oldName] =
+                                LiveSong(
+                                    author = rs.getString("song_author") ?: "",
+                                    year = rs.getInt("song_year").toString(),
+                                    album = rs.getString("song_album") ?: "",
+                                    fileName = currentName,
+                                )
                         }
                         result
                     }
                 }
         } catch (e: Exception) {
-            emptySet()
+            emptyMap()
         }
     }
 
@@ -200,44 +244,166 @@ class SongOneTimeCleanupPlanner(
         return result
     }
 
-    /** Кандидаты среди объектов хранилища (FR-041). */
+    /**
+     * Кандидаты среди объектов хранилища (FR-041).
+     *
+     * Порядок проверок (каждый шаг — «не трогаем»):
+     * 1. ключ принадлежит живой песне по текущему пути — не трогаем;
+     * 2. обложка альбома, которого больше нет в каталоге, — кандидат (FR-041);
+     * 3. общая обложка альбома/автора живого альбома — не трогаем (FR-014);
+     * 4. устаревшая копия: объект живой песни под прежним путём (переименование) — кандидат,
+     *    **но только если у живой песни на месте актуальный объект**; иначе устаревшая
+     *    копия — единственная, и её удаление сломало бы песню (FR-042);
+     * 5. near-match живой песни (совпадение после нормализации) — не сирота (FR-042);
+     * 6. прочее — сирота (ORPHAN).
+     */
     private fun storageCandidates(
         liveSongs: List<LiveSong>,
         ownKeys: Set<String>,
-        historyNames: Set<String>,
+        historySongs: Map<String, LiveSong>,
         liveNames: Set<String>,
     ): List<Candidate> {
         val result = mutableListOf<Candidate>()
+        // Живые песни по нормализованному имени файла — основа для поиска устаревших копий.
+        val liveByName: Map<String, List<LiveSong>> =
+            liveSongs.groupBy { SongArtifactOwnership.normalizeForMatch(it.fileName) }
+        // Ключи обложек альбомов каталога: обложка альбома, которого больше нет, — сирота.
+        val liveAlbumCovers: Set<String> =
+            liveSongs
+                .map { Triple(it.author, it.year, it.album) }
+                .distinct()
+                .flatMap { (author, year, album) ->
+                    listOf(
+                        "$author/$year - $album/$author - $year - $album.album.png",
+                        "$author/$year - $album/$author - $year - $album.preview.album.png",
+                    )
+                }.toSet()
         listOf(
             CandidateLocation.LOCAL_STORAGE to listLocalObjects(),
             CandidateLocation.REMOTE_STORAGE to listRemoteObjects(),
         ).forEach { (location, objects) ->
             objects.forEach { (key, size) ->
                 if (ownKeys.contains(key)) return@forEach
-                // FR-042: near-match живой песни — не сирота.
-                val baseName = key.substringAfterLast('/')
-                if (SongArtifactOwnership.isNearMatchOfLiveSong(liveNames, baseName)) return@forEach
-                // Общие обложки альбомов/авторов — не объекты песни.
-                if (isSharedCoverKey(key)) return@forEach
-                val reason =
-                    if (isStaleCopy(key, liveSongs, historyNames)) {
-                        Reason.STALE_COPY
-                    } else {
-                        Reason.ORPHAN
+                val filePart = key.substringAfterLast('/')
+                // Обложка альбома, которого больше нет в каталоге (FR-041).
+                if (isAlbumCoverKey(key)) {
+                    if (!liveAlbumCovers.contains(key)) {
+                        result.add(
+                            storageCandidate(
+                                location,
+                                key,
+                                size,
+                                Reason.ORPHAN,
+                                "обложка альбома, которого больше нет в каталоге",
+                            ),
+                        )
                     }
+                    return@forEach
+                }
+                // Общая обложка альбома/автора (FR-014) — не объект песни.
+                if (isSharedCoverKey(key)) return@forEach
+                // Устаревшая копия: объект живой песни под прежним путём.
+                val canonicalKeys = canonicalKeysOfStaleCopy(filePart, liveByName, historySongs)
+                if (canonicalKeys.isNotEmpty()) {
+                    // Удаляем, только если у живой песни ЕСТЬ актуальный объект: иначе
+                    // устаревшая копия — единственная (FR-042).
+                    if (canonicalKeys.all { canonical -> objectExists(location, canonical) }) {
+                        result.add(
+                            storageCandidate(
+                                location,
+                                key,
+                                size,
+                                Reason.STALE_COPY,
+                                "устаревшая копия под прежним путём; актуальный объект живой песни на месте",
+                            ),
+                        )
+                    }
+                    return@forEach
+                }
+                // FR-042: near-match живой песни — не сирота.
+                if (SongArtifactOwnership.isNearMatchOfLiveSong(liveNames, filePart)) return@forEach
                 result.add(
-                    Candidate(
-                        kind = CandidateKind.STORAGE_OBJECT,
-                        location = location,
-                        pathOrKey = key,
-                        sizeBytes = size,
-                        reason = reason,
-                        detail = detailFor(key, reason),
+                    storageCandidate(
+                        location,
+                        key,
+                        size,
+                        Reason.ORPHAN,
+                        detailFor(key, Reason.ORPHAN),
                     ),
                 )
             }
         }
         return result
+    }
+
+    /** Кандидат-объект хранилища. */
+    private fun storageCandidate(
+        location: CandidateLocation,
+        key: String,
+        size: Long,
+        reason: Reason,
+        detail: String,
+    ): Candidate =
+        Candidate(
+            kind = CandidateKind.STORAGE_OBJECT,
+            location = location,
+            pathOrKey = key,
+            sizeBytes = size,
+            reason = reason,
+            detail = detail,
+        )
+
+    /**
+     * Канонические ключи живой песни, которой принадлежит объект под прежним путём.
+     *
+     * Путь объекта: `$автор/$год - $альбом/$имя песни[хвост артефакта]`. Если имя песни
+     * совпадает с именем живой песни (после нормализации) или с её прежним именем
+     * (`tbl_song_name_history`), объект — устаревшая копия этой песни: актуальный объект
+     * лежит под другим путём (переименование не мигрирует ключи — KARAOKE-428).
+     *
+     * @return список актуальных ключей; пустой список — объект не устаревшая копия.
+     */
+    private fun canonicalKeysOfStaleCopy(
+        filePart: String,
+        liveByName: Map<String, List<LiveSong>>,
+        historySongs: Map<String, LiveSong>,
+    ): List<String> {
+        val tail = storageTailOf(filePart) ?: return emptyList()
+        val (songName, artifactTail) = tail
+        val normalized = SongArtifactOwnership.normalizeForMatch(songName)
+        val matches = liveByName[normalized].orEmpty()
+        if (matches.isNotEmpty()) {
+            return matches.map { song -> canonicalKey(song, artifactTail) }
+        }
+        val historical = historySongs[songName] ?: return emptyList()
+        return listOf(canonicalKey(historical, artifactTail))
+    }
+
+    /** Актуальный ключ объекта песни: `$автор/$год - $альбом/$имя песни[хвост]`. */
+    private fun canonicalKey(
+        song: LiveSong,
+        artifactTail: String,
+    ): String = "${song.author}/${song.year} - ${song.album}/${song.fileName}$artifactTail"
+
+    /** Есть ли объект в хранилище (проверка «актуальный объект живой песни на месте»). */
+    private fun objectExists(
+        location: CandidateLocation,
+        key: String,
+    ): Boolean =
+        try {
+            when (location) {
+                CandidateLocation.LOCAL_STORAGE -> storageService.fileExists(BUCKET, key)
+                CandidateLocation.REMOTE_STORAGE -> storageApiClient.fileExists(BUCKET, key)
+                else -> false
+            }
+        } catch (e: Exception) {
+            false
+        }
+
+    /** Ключ обложки альбома (не автора). */
+    private fun isAlbumCoverKey(key: String): Boolean {
+        val name = key.substringAfterLast('/')
+        return name.endsWith(".album.png") || name.endsWith(".preview.album.png")
     }
 
     /**
@@ -298,21 +464,6 @@ class SongOneTimeCleanupPlanner(
             .firstOrNull { it.isDirectory }
             ?.path
             ?: ""
-
-    /** Устаревшая копия: ключ соответствует прежнему имени живой песни. */
-    private fun isStaleCopy(
-        key: String,
-        liveSongs: List<LiveSong>,
-        historyNames: Set<String>,
-    ): Boolean {
-        val baseName = key.substringAfterLast('/')
-        if (historyNames.isEmpty()) return false
-        return liveSongs.any { song ->
-            historyNames.any { oldName ->
-                SongArtifactOwnership.isOwnArtifact(oldName, baseName)
-            }
-        }
-    }
 
     /** Пояснение к кандидату. */
     private fun detailFor(

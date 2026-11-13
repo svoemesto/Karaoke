@@ -90,6 +90,7 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishState
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:a9df1388f63ea38b  # "маркер: если присутствует — бот прикрепит демо-MP4 видео к посту; сам маркер из текста удаляется",
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:b2e6e703f12b41ff  # * отрендеренный текст поста + флаг прикрепления демо-MP4 (маркер `{demoVideo}`).
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkTemplateService.kt:e69fc027126b4bb6  # * - `{demoVideo}` — **маркер**: если присутствует в шаблоне, бот прикрепит демо-MP4
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/songdeletion/SongOrphanFileClassifier.kt:e8abb79d1d1012a9  # "flac", "mp3", "mp4", "png", "json", "txt", "mlt", "run", "kdenlive",
 karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/ProcessExitWiringTest.kt:99650c61235a74b2  # assertTrue(text.contains("File(outputPath).delete()"), "недописанный output.mp4 должен удаляться")
 karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt:ae926df2ff8b9cc5  # "Ария - Дай жару [Official Video].mp4",
 karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxExitCodeTest.kt:20327ec237b7c9a2  # assertTrue(output.exists(), "успешный ffmpeg оставляет output.mp4")

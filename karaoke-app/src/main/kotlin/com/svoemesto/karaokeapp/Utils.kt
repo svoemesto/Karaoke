@@ -4631,6 +4631,15 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     // 674 (FR-013): key/bpm пишутся только после проверки происхождения файла.
     val scopeId = params["scopeId"]?.toLongOrNull() ?: 0L
     val sourceDuration = AudioProbe.durationMs(song.fileAbsolutePath) ?: song.refreshDurationMsFromAudioFile()
+    // Длительность источника измерена — её надо СОХРАНИТЬ. Раньше шаг только измерял
+    // (значение уходило в sidecar), а в БД оставался `song_ms = 0`: финализатор демукса
+    // пишет длительность, но его шаг может не дойти (GPU занят → повтор без GPU), и при
+    // импорте из папки песня оставалась с нулевой длительностью.
+    // Значение кладём в объект — следующий `saveToDbLocked()` (ниже в этом же шаге) запишет
+    // его в БД вместе с key/bpm.
+    if (song.ms <= 0L && sourceDuration > 0L) {
+        song.fields[SongField.MS] = sourceDuration.toString()
+    }
     val existing = KeyBpmSidecar.read(song.pathToFileKeyBpmFinder)
     if (existing != null && !existing.matches(song.fileAbsolutePath, sourceDuration)) {
         println("[${Timestamp.from(Instant.now())}] keybpm: sidecar не совпадает с источником (songId=$songId) — шаг ERROR")
@@ -4761,9 +4770,10 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
     val findings = ArtifactIntegrity.verifyDemucsStems(song, typeEnum, sourceDuration)
     if (findings.isEmpty()) {
         // 674: импорт/ремонт мог оставить song_ms = 0 (HR показывает «нет длительности»).
-        // Длительность источника уже известна — записываем её, не полагаясь на ручной пересчёт.
+        // Длительность источника уже измерена — записываем её, не полагаясь на ручной пересчёт
+        // и не запуская второй ffprobe.
         if (song.ms <= 0L && (sourceDuration ?: 0L) > 0L) {
-            song.refreshDurationMsFromAudioFile()
+            song.refreshDurationMsFromAudioFile(sourceDuration)
         }
         deleteScopeDir(scopeId)
         return true
@@ -5667,15 +5677,25 @@ fun applyDuplicateOriginal(
     // напрямую и сохраняем через `saveToDbLocked()` — это обеспечивает атомарность записи
     // (SELECT ... FOR NO KEY UPDATE + UPDATE в одной транзакции, см. research.md R1).
     // Заменяет Pass 281 паттерн `reload-from-db-before-save`, который НЕ был атомарен.
-    newSong.rootId = original.id
-    newSong.sourceText = original.sourceText
-    newSong.resultText = original.resultText
-    newSong.sourceMarkers = original.sourceMarkers
-    newSong.formattedTextSong = original.formattedTextSong
-    newSong.formattedTextTabs = original.formattedTextTabs
-    newSong.formattedTextChords = original.formattedTextChords
-    newSong.fields[SongField.ID_STATUS] = "1"
-    newSong.saveToDbLocked()
+    //
+    // ИНЦИДЕНТ 2026-11-13 («Концертные синглы», Король и Шут): объект песни из импорта из
+    // папки живёт в памяти десятки секунд (поиск текста), и за это время параллельный кортеж
+    // (демукс → mp3 → загрузка) записывает в БД длительность (`song_ms`) и тональность/темп.
+    // Применение правок к УСТАРЕВШЕМУ объекту включало эти поля в diff и затирало их пустыми
+    // значениями — все импортированные песни оставались с нулевой длительностью (а key/bpm
+    // восстанавливались пост-хуком кортежа, поэтому были не видны).
+    // Поэтому правки применяем к СВЕЖЕЙ загрузке песни (паттерн reload-from-db-before-save,
+    // как в specs/278 и specs/281).
+    val target = newSong.reloadForApply() ?: newSong
+    target.rootId = original.id
+    target.sourceText = original.sourceText
+    target.resultText = original.resultText
+    target.sourceMarkers = original.sourceMarkers
+    target.formattedTextSong = original.formattedTextSong
+    target.formattedTextTabs = original.formattedTextTabs
+    target.formattedTextChords = original.formattedTextChords
+    target.fields[SongField.ID_STATUS] = "1"
+    target.saveToDbLocked()
 }
 
 /**
@@ -5702,14 +5722,21 @@ fun applyAudioParentMarkers(
     // Заменяет Pass 281 паттерн `reload-from-db-before-save`, который НЕ был атомарен.
     // deltaMs рассчитывается от song.ms (длительность песни уже не изменится за время reload'а,
     // но мы используем song.ms — это безопасно, см. Pass 278 KDoc).
-    song.sourceText = audioParent.sourceText
-    song.resultText = audioParent.resultText
-    song.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, song.ms)
-    song.formattedTextSong = audioParent.formattedTextSong
-    song.formattedTextTabs = audioParent.formattedTextTabs
-    song.formattedTextChords = audioParent.formattedTextChords
-    song.fields[SongField.ID_STATUS] = "5"
-    song.saveToDbLocked()
+    //
+    // ИНЦИДЕНТ 2026-11-13 («Концертные синглы»): правки применялись к УСТАРЕВШЕМУ объекту
+    // песни из импорта, и diff включал поля, уже записанные параллельным кортежом (длительность,
+    // тональность, темп) — они затирались пустыми значениями. Применяем к свежей загрузке.
+    // Побочный плюс: сдвиг маркеров считается от ФАКТИЧЕСКОЙ длительности песни (song.ms),
+    // а не от нуля.
+    val target = song.reloadForApply() ?: song
+    target.sourceText = audioParent.sourceText
+    target.resultText = audioParent.resultText
+    target.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, target.ms)
+    target.formattedTextSong = audioParent.formattedTextSong
+    target.formattedTextTabs = audioParent.formattedTextTabs
+    target.formattedTextChords = audioParent.formattedTextChords
+    target.fields[SongField.ID_STATUS] = "5"
+    target.saveToDbLocked()
 }
 
 fun applyFamilySongSelection(

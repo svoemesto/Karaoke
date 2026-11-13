@@ -47,8 +47,8 @@ class RepairCascadeContractTest {
         val text = utils.readText()
         assertTrue(text.contains("song.ms <= 0L"), "finalize должен проверять нулевую длительность")
         assertTrue(
-            text.contains("refreshDurationMsFromAudioFile()"),
-            "нулевая длительность должна восстанавливаться из источника",
+            text.contains("refreshDurationMsFromAudioFile(sourceDuration)"),
+            "нулевая длительность должна восстанавливаться из уже измеренного источника",
         )
     }
 }

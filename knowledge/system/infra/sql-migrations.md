@@ -48,6 +48,7 @@
 | 58 | news_song_id_on_delete_set_null | FK `tbl_news.song_id` → `ON DELETE SET NULL`; FK `tbl_song_news_announced.song_id` → `ON DELETE CASCADE` (если таблица есть — она удалена миграцией 34) — разблокировка удаления песни (KARAOKE-429) |
 | 59 | song_name_history | `tbl_song_name_history` — история прежних имён песни (FK на `tbl_songs` нет: переживает удаление песни) (KARAOKE-429) |
 | 60 | song_cleanup_journal | `tbl_song_cleanup_runs` + `tbl_song_cleanup_entries` — журнал уборки в БД с CHECK-ограничениями состояний и результатов (KARAOKE-429) |
+| 61 | song_cleanup_entries_kind_db_rows | CHECK ограничения вида записи журнала: добавляет `DB_ROWS` — строки-сироты в БД (KARAOKE-429) |
 | ... (ещё ~25, см. `ls deploy/karaoke-db/*.sql`) | | |
 
 **NB**: номера не строго последовательные (есть 04 дважды, 17
@@ -130,6 +131,7 @@
 | `deploy/karaoke-db/58_news_song_id_on_delete_set_null.sql` | применён | применён | FK `tbl_news.song_id` → SET NULL; `tbl_song_news_announced.song_id` → CASCADE, если таблица есть (на обеих БД её нет — удалена миграцией 34, DO-блок это учитывает) |
 | `deploy/karaoke-db/59_song_name_history.sql` | применён | применён | `tbl_song_name_history` (id, song_id, file_name, changed_at), UNIQUE (song_id, file_name) + индекс по song_id |
 | `deploy/karaoke-db/60_song_cleanup_journal.sql` | применён | применён | `tbl_song_cleanup_runs` + `tbl_song_cleanup_entries` (12 CHECK-ограничений), индексы по run_id и (run_id, result) |
+| `deploy/karaoke-db/61_song_cleanup_entries_kind_db_rows.sql` | применён (2026-11-13) | не обязателен | CHECK `tbl_song_cleanup_entries_kind_chk` разрешает вид записи `DB_ROWS` (строки-сироты в БД, FR-041/FR-043). На SERVER-БД не обязателен: вид `DB_ROWS` использует только разовая уборка в LOCAL-БД |
 
 **Почему 54 пропущен.** На обеих базах индекс уже существует и его определение
 ровно такое, какое создаёт миграция:

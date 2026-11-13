@@ -4478,6 +4478,7 @@ class ApiController(
                 "albumPictureWillBeDeleted" to preview.albumPictureWillBeDeleted,
                 "albumFolderWillBeDeleted" to preview.albumFolderWillBeDeleted,
                 "albumFolderReason" to preview.albumFolderReason,
+                "albumFolderLeftoverFiles" to preview.albumFolderLeftoverFiles,
                 "descendantsCount" to preview.descendantsCount,
                 "newsCount" to preview.newsCount,
                 "linksCount" to preview.linksCount,

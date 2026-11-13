@@ -121,7 +121,14 @@ interface StorageApiClient {
         fileName: String,
     ): Mono<StorageFileInfo>
 
-    fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>>
+    /**
+     * Список объектов бакета с их размерами.
+     *
+     * @param bucketName бакет.
+     * @param prefix префикс ключа (пустой — весь бакет). MinIO умеет листинг по
+     *   префиксу: он в сотни раз дешевле полного листинга большого бакета.
+     */
+    fun listFilesInfo(bucketName: String, prefix: String = ""): Mono<List<StorageFileInfo>>
 }
 
 /**
@@ -574,20 +581,21 @@ class StorageApiClientImpl(
 
     // Спека #449: LIST-ответ MinIO уже содержит etag/size, поэтому `getFileInfo`
     // (statObject) на каждый файл не нужен — один LIST-проход вместо 59k+ HTTP.
-    override fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>> =
+    override fun listFilesInfo(bucketName: String, prefix: String): Mono<List<StorageFileInfo>> =
         Mono.fromCallable {
             val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
             if (!exists) {
                 emptyList()
             } else {
+                val args =
+                    ListObjectsArgs
+                        .builder()
+                        .bucket(bucketName)
+                        .recursive(true)
+                if (prefix.isNotBlank()) args.prefix(prefix)
                 storageClient
-                    .listObjects(
-                        ListObjectsArgs
-                            .builder()
-                            .bucket(bucketName)
-                            .recursive(true)
-                            .build(),
-                    ).mapNotNull { it.get() }
+                    .listObjects(args.build())
+                    .mapNotNull { it.get() }
                     .filter { !it.isDir }
                     .map { obj ->
                         StorageFileInfo(

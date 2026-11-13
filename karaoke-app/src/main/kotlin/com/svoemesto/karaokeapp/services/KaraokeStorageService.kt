@@ -115,7 +115,14 @@ interface KaraokeStorageService {
         storageFileInfo: StorageFileInfo,
     ): Boolean
 
-    fun listFilesInfo(bucketName: String): List<StorageFileInfo>
+    /**
+     * Список объектов бакета с их размерами.
+     *
+     * @param bucketName бакет.
+     * @param prefix префикс ключа (пустой — весь бакет). MinIO умеет листинг по
+     *   префиксу: он в сотни раз дешевле полного листинга большого бакета.
+     */
+    fun listFilesInfo(bucketName: String, prefix: String = ""): List<StorageFileInfo>
 }
 
 /**
@@ -217,17 +224,18 @@ class KaraokeStorageServiceImpl(
     // Спека #449: LIST-ответ MinIO уже содержит etag/size каждого объекта, поэтому
     // `statObject` на каждый файл не нужен (было: 59k+ statObject → десятки минут;
     // стало: один LIST-проход). `Item` может быть каталогом (isDir) — пропускаем.
-    override fun listFilesInfo(bucketName: String): List<StorageFileInfo> {
+    override fun listFilesInfo(bucketName: String, prefix: String): List<StorageFileInfo> {
         if (!bucketExists(bucketName)) return emptyList()
         return try {
+            val args =
+                ListObjectsArgs
+                    .builder()
+                    .bucket(bucketName)
+                    .recursive(true)
+            if (prefix.isNotBlank()) args.prefix(prefix)
             storageClient
-                .listObjects(
-                    ListObjectsArgs
-                        .builder()
-                        .bucket(bucketName)
-                        .recursive(true)
-                        .build(),
-                ).mapNotNull { it.get() }
+                .listObjects(args.build())
+                .mapNotNull { it.get() }
                 .filter { !it.isDir }
                 .map { obj ->
                     StorageFileInfo(

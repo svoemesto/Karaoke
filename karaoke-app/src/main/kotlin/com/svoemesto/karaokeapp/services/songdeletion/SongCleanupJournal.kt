@@ -37,6 +37,7 @@ object SongCleanupJournal {
         ALBUM,
         PICTURE,
         ALBUM_FOLDER,
+        DB_ROWS,
     }
 
     /** Где лежит объект (location в журнале). */

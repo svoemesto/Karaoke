@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS public.tbl_song_cleanup_entries (
     created_at timestamp without time zone NOT NULL DEFAULT now(),
     initiator varchar(64) NOT NULL DEFAULT '',
     CONSTRAINT tbl_song_cleanup_entries_kind_chk
-        CHECK (kind IN ('FILE', 'STORAGE_OBJECT', 'ALBUM', 'PICTURE', 'ALBUM_FOLDER')),
+        CHECK (kind IN ('FILE', 'STORAGE_OBJECT', 'ALBUM', 'PICTURE', 'ALBUM_FOLDER', 'DB_ROWS')),
     CONSTRAINT tbl_song_cleanup_entries_location_chk
         CHECK (location IN ('LOCAL_FILESYSTEM', 'LOCAL_STORAGE', 'REMOTE_STORAGE', 'DATABASE')),
     CONSTRAINT tbl_song_cleanup_entries_result_chk

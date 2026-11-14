@@ -5,6 +5,7 @@ import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
@@ -30,12 +31,33 @@ class SongReleaseAnnouncementScheduler(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
 ) {
+    /**
+     * Своя категория журнала (BR-008, аудит #336, находка P-37-08): по логам планировщика
+     * видно, что проверка окна эфира падает — раньше ошибка уходила в stdout через `println`,
+     * теряя стектрейс, уровень логирования и correlation-id.
+     */
+    private val log = LoggerFactory.getLogger("infra.songrelease.announcement")
+
     @Scheduled(fixedDelay = 5 * 60_000L, initialDelay = 60_000L)
     fun checkOnAir() {
-        try {
+        checkOnAirGuarded {
             SongReleaseAnnouncementService.checkOnAirWindow(WORKING_DATABASE, storageService, storageApiClient)
+        }
+    }
+
+    /**
+     * Тело тика с границей ошибки — вынесено отдельно, чтобы обработку исключения можно
+     * было проверить без БД (шов-параметр, как и в остальных местах модуля).
+     *
+     * Ошибка не пробрасывается: следующий тик не прерывается, но она попадает в журнал
+     * со стектрейсом (BR-008, аудит #336, находка P-37-08) — раньше она уходила в stdout
+     * через `println`, без уровня логирования и без correlation-id.
+     */
+    internal fun checkOnAirGuarded(check: () -> Unit) {
+        try {
+            check()
         } catch (e: Exception) {
-            println("[SongReleaseAnnouncementScheduler] checkOnAir error: ${e.message}")
+            log.warn("songrelease:announcement:check_on_air_failed", e)
         }
     }
 }

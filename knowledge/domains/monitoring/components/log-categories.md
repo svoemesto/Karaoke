@@ -63,6 +63,8 @@
 | `infra.admin.processes` | `karaoke-app/.../controllers/MainController.kt` (аудит #336, BR-236) | Ошибки admin-контроллера: разбор маркеров песни (`songId=`, `voice=`), отсутствующая песня (`songId=`, `voice=`) | WARN |
 | `infra.render.tabs` | `karaoke-app/.../mlt/mko/MkoMelodyTabs.kt` (аудит #336, BR-239) | Некорректные данные маркеров при генерации `.mlt`: неверный `stringLad` (таб пропущен), строка без TEXT-элемента (слой пуст) | WARN |
 | `infra.render.counters` | `karaoke-app/.../mlt/mko/MkoCounter.kt` (аудит #336, BR-243) | Некорректная конфигурация счётчиков: свойство `voices` без голосов/групп, свойство `countersColors` короче числа счётчиков или пусто | WARN |
+| `infra.songrelease.announcement` | `karaoke-web/.../services/SongReleaseAnnouncementScheduler.kt` (аудит #336, BR-008, P-37-08) | Падение тика проверки окна эфира: `songrelease:announcement:check_on_air_failed` — Throwable последним аргументом, стектрейс в журнале. Раньше ошибка уходила в stdout через `println` — без уровня и без correlation-id | WARN |
+| `infra.web.start` | `karaoke-web/.../services/KaraokeWebService.kt` (аудит #336, BR-008, P-37-08) | Старт `karaoke-web`: `web:start:WEB_WORK_ON_SERVER=`. Раньше признак режима печатался в stdout через `println` — мимо системы логов | INFO |
 | `infra.settings.write` | `karaoke-app/.../KaraokeProperties.kt` (аудит #336, BR-249) | Не удалось записать файл настроек на диск (нет каталога, read-only ФС, ошибка `Files.move`) — значение изменено только в памяти и будет потеряно при рестарте | ERROR |
 | `infra.ai.search` | `karaoke-app/.../UtilsAI.kt` (аудит #336, BR-265) | Сбои загрузки HTML в AI-поиске: сетевой сбой, не-2xx код ответа, пустой документ (`url=`, причина) | WARN |
 
@@ -211,5 +213,9 @@ ERROR→ERROR, **CRITICAL→ERROR** (уровня CRITICAL в SLF4J нет, вн
 
 ## Changelog
 
+- **2026-11-14** (KARAOKE-394, аудит #336, BR-008 / P-37-08): добавлены категории
+  `infra.songrelease.announcement` (падение тика проверки окна эфира — раньше `println` в stdout)
+  и `infra.web.start` (признак режима работы при старте `karaoke-web` — раньше `println` в stdout).
+  Автор: agent (Karaoke).
 - **Спека 732** (2026-11-08): глобальный «пол» — исключение печатается одной строкой (цепочка причин, без кадров) для всех логгеров; полный стек — только при `LOG_STACKTRACES=true`; guard гигиены логов переведён на сканер `tools/log_hygiene_scan.py` (прежняя регулярка видела 0 источников при 43 реальных файлах). Автор: agent (Karaoke).
 - **Спека 676** (2026-10-30, KARAOKE-245, BR-630): категория `infra.monitor.heap` (загрузка heap JVM); требование WARN для recovery заменено на INFO — прежнее требование противоречило `domain.md`; добавлено правило «severity алерта ≠ уровень журнала» (CRITICAL→ERROR). Автор: agent (Karaoke).

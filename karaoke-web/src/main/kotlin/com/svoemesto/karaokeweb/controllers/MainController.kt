@@ -77,6 +77,68 @@ class MainController(
 
         /** Тело ответа при внутренней ошибке обработки: без текста ошибки БД (FR-006). */
         const val INTERNAL_ERROR_BODY = "Internal error"
+
+        /**
+         * Сколько последних новостей показывать в блоке «последние новости» на главной.
+         *
+         * Блок — витрина, а не выгрузка: пять свежих новостей закрывают потребность
+         * посетителя, а полный архив новостей доступен постранично (`/api/public/news`).
+         */
+        const val LATEST_NEWS_LIMIT = 5
+
+        /**
+         * Сколько песен показывает страница `/statbysong` (Thymeleaf) — верх выборки.
+         *
+         * Страховка на полную выборку: до FR-007 (Pass 241) здесь был `limit = 100_000` —
+         * минутный запрос на всю `tbl_events` с 17 условными `count(*) filter (...)`.
+         * Сейчас страница показывает топ-1000, а полная выгрузка — через REST
+         * `/statbysong-export?page=N&pageSize=50`.
+         *
+         * @see specs/272-statbysong-pagination FR-001
+         */
+        const val STAT_BY_SONG_PAGE_LIMIT = 1000
+
+        /**
+         * Размер страницы по умолчанию в выгрузке `/statbysong-export`.
+         *
+         * Значение совпадает с размером страницы, который баннер на странице `/statbysong`
+         * предлагает в ссылке «полная выгрузка» (`?page=N&pageSize=50`) — чтобы
+         * переход по баннеру выглядел для администратора так же, как выборка по умолчанию.
+         *
+         * Строка, а не число: значение подставляется в `@RequestParam(defaultValue = …)`,
+         * где нужен compile-time constant строкового типа.
+         */
+        const val STAT_BY_SONG_DEFAULT_PAGE_SIZE = "50"
+
+        /**
+         * Номер страницы по умолчанию в выгрузке `/statbysong-export` — первая.
+         *
+         * Строка — по той же причине, что и у [STAT_BY_SONG_DEFAULT_PAGE_SIZE].
+         */
+        const val STAT_BY_SONG_DEFAULT_PAGE = "1"
+
+        /**
+         * Минимальный номер страницы в выгрузке `/statbysong-export`.
+         *
+         * Страницы нумеруются с единицы; нулевая и отрицательная — приводим к первой.
+         */
+        const val STAT_BY_SONG_MIN_PAGE = 1
+
+        /**
+         * Минимальный размер страницы в выгрузке `/statbysong-export` (safety-guard).
+         *
+         * Страница нулевого размера бессмысленна (offset не двигается) — приводим к 1.
+         */
+        const val STAT_BY_SONG_MIN_PAGE_SIZE = 1
+
+        /**
+         * Верхний размер страницы в выгрузке `/statbysong-export` (safety-guard).
+         *
+         * Совпадает с `MAX_STAT_BY_SONG_LIMIT` в `karaoke-app` (`StatBySong.kt`) — там же
+         * SQL clamp'ит `limit` в диапазон `[1, 1000]`. Дублируем значение осознанно:
+         * контроллер отсекает слишком большую страницу ДО похода в БД.
+         */
+        const val STAT_BY_SONG_MAX_PAGE_SIZE = 1000
     }
 
     init {
@@ -121,7 +183,7 @@ class MainController(
             "latestNews",
             try {
                 News
-                    .loadPublished(database = WORKING_DATABASE, limit = 5, offset = 0)
+                    .loadPublished(database = WORKING_DATABASE, limit = LATEST_NEWS_LIMIT, offset = 0)
                     .map { news ->
                         if (SafeLink.isSafe(news.link)) {
                             news
@@ -671,7 +733,7 @@ class MainController(
         model.addAttribute(
             "stats",
             com.svoemesto.karaokeapp.model.StatsByEvents
-                .getStatBySong(database = WORKING_DATABASE, limit = 1000),
+                .getStatBySong(database = WORKING_DATABASE, limit = STAT_BY_SONG_PAGE_LIMIT),
         )
         // FR-004: totalCount для баннера «Показано топ-1000 из ~N доступных».
         model.addAttribute(
@@ -703,11 +765,11 @@ class MainController(
      */
     @GetMapping("/statbysong-export")
     fun statBySongExport(
-        @RequestParam(required = false, defaultValue = "1") page: Int,
-        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+        @RequestParam(required = false, defaultValue = STAT_BY_SONG_DEFAULT_PAGE) page: Int,
+        @RequestParam(required = false, defaultValue = STAT_BY_SONG_DEFAULT_PAGE_SIZE) pageSize: Int,
     ): ResponseEntity<Map<String, Any?>> {
-        val safePage = page.coerceAtLeast(1)
-        val safePageSize = pageSize.coerceIn(1, 1000)
+        val safePage = page.coerceAtLeast(STAT_BY_SONG_MIN_PAGE)
+        val safePageSize = pageSize.coerceIn(STAT_BY_SONG_MIN_PAGE_SIZE, STAT_BY_SONG_MAX_PAGE_SIZE)
         val offset = (safePage - 1) * safePageSize
         val items =
             com.svoemesto.karaokeapp.model.StatsByEvents.getStatBySong(

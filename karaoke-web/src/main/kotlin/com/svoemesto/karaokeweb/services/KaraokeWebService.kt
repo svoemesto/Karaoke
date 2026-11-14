@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
@@ -46,6 +47,14 @@ class KaraokeWebService(
     @Value($$"${db-remote-host}") val dbRemoteHost: String,
     @Value($$"${db-remote-port}") val dbRemotePort: String,
 ) {
+    /**
+     * Категория журнала старта `karaoke-web` (BR-008, аудит #336, находка P-37-08).
+     *
+     * Раньше признак режима работы печатался в stdout через `println` — вне системы логов,
+     * без уровня и без correlation-id.
+     */
+    private val log = LoggerFactory.getLogger("infra.web.start")
+
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
         WEB_WORK_ON_SERVER = (wos != 0L)
@@ -83,6 +92,6 @@ class KaraokeWebService(
         // к MinIO напрямую (см. DEVELOPMENT.md, MTU black-hole; бин KaraokeStorageService здесь — заглушка,
         // KaraokeStorageServiceImplWeb.kt). Прежний вызов ходил к недоступному karaoke-storage:9000 и ронял
         // старт в crash-loop. Это забота admin/karaoke-app.
-        println("WEB_WORK_ON_SERVER = $WEB_WORK_ON_SERVER")
+        log.info("web:start:WEB_WORK_ON_SERVER={}", WEB_WORK_ON_SERVER)
     }
 }

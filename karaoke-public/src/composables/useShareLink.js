@@ -5,6 +5,11 @@ import { isRevokeConfirmed } from '../utils/shareRevoke'
 // кнопка «Временный полный доступ» рядом с ShareButton. Бэкенд: /api/public/share/* (см.
 // PublicShareController.kt).
 
+// Допустимые сроки действия ссылки. Список продублирован на границе двух приложений:
+// бэкенд проверяет TTL по `ShareTtlOptions.ALLOWED_SECONDS`
+// (`karaoke-web/.../util/ShareTtlOptions.kt`) и отвечает 400 `share.invalidTtl`
+// на недопустимый срок. При изменении списка здесь — менять и там.
+// KARAOKE-399.
 export const SHARE_TTL_OPTIONS = [
   { value: 3600, label: '1 час' },
   { value: 86400, label: '24 часа' },

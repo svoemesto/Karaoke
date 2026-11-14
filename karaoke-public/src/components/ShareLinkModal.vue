@@ -95,6 +95,7 @@ import {
   SHARE_TTL_OPTIONS,
 } from '../composables/useShareLink'
 import { isRevokeConfirmed } from '../utils/shareRevoke.js'
+import { shareCreateErrorMessage } from '../utils/shareCreateError.js'
 import { formatDate } from '../utils/dateFormat.js'
 import { copyTextToClipboard } from '../utils/clipboard.js'
 import {
@@ -317,24 +318,9 @@ async function copyToClipboard(text) {
 }
 
 function handleError(status, body) {
-  const code = body && body.errorCode
-  if (status === 403 && code === 'share.notOwner')
-    errorMessage.value = 'Только премиум-пользователи могут создавать ссылки'
-  else if (status === 409 && code === 'share.songUnavailable')
-    errorMessage.value = 'Песня недоступна для share-ссылки'
-  else if (status === 429 && code === 'share.linkAlreadyActive') {
-    // Бэкенд сообщает reason + limit/actual — без жёстко прошитого текста.
-    const reason = body.reason
-    const limit = body.limit
-    const actual = body.actual
-    if (reason === 'maxActivePerUser')
-      errorMessage.value = `Превышен лимит активных ссылок (${actual}/${limit}). Отзовите старые ссылки и попробуйте снова.`
-    else if (reason === 'maxGenerationsPerDay')
-      errorMessage.value = `Превышен дневной лимит созданий (${actual}/${limit}).`
-    else if (reason === 'maxReissuesPerSongPerHour')
-      errorMessage.value = `Превышен часовой лимит перевыпусков этой песни (${actual}/${limit}).`
-    else errorMessage.value = 'Превышен лимит ссылок'
-  } else errorMessage.value = 'Не удалось создать ссылку'
+  // KARAOKE-399: коды и тексты ошибок — в utils/shareCreateError.js (вместе с
+  // бэкендовым enum ShareErrorCode). Здесь только подстановка.
+  errorMessage.value = shareCreateErrorMessage(status, body)
 }
 
 function close() {

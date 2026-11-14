@@ -3,6 +3,8 @@ package com.svoemesto.karaokeweb.controllers
 import com.svoemesto.karaokeapp.services.PollingCache
 import com.svoemesto.karaokeweb.services.SongShareLinkService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
+import com.svoemesto.karaokeweb.util.ShareErrorCode
+import com.svoemesto.karaokeweb.util.ShareTtlOptions
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
@@ -56,10 +58,14 @@ class PublicShareController(
         if (!user.isEffectivePremium) {
             return ResponseEntity
                 .status(403)
-                .body(mapOf("errorCode" to "share.notOwner"))
+                .body(mapOf("errorCode" to ShareErrorCode.NOT_OWNER.dbValue))
         }
-        if (ttlSeconds != 3600L && ttlSeconds != 86_400L && ttlSeconds != 604_800L) {
-            return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
+        // KARAOKE-399: допустимые сроки — в ShareTtlOptions (единый источник правды,
+        // зеркалится во фронте в SHARE_TTL_OPTIONS). Недопустимый TTL — отдельный код
+        // share.invalidTtl: раньше здесь отдавался share.tokenMissing, из-за чего фронт
+        // показывал текст про отсутствие токена вместо текста про недопустимый срок.
+        if (!ShareTtlOptions.isAllowed(ttlSeconds)) {
+            return ResponseEntity.status(400).body(mapOf("errorCode" to ShareErrorCode.INVALID_TTL.dbValue))
         }
         return try {
             val result =
@@ -104,7 +110,7 @@ class PublicShareController(
             // Системная (не доменная) ошибка при создании ссылки — БД недоступна,
             // конфликт IDENTITY и т.п. Раньше маскировалось под 500 share.notFound
             // (FR-010, FR-014, spec 167-fix-share-claim-500).
-            ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
+            ResponseEntity.status(500).body(mapOf("errorCode" to ShareErrorCode.INTERNAL.dbValue))
         }
     }
 
@@ -155,10 +161,10 @@ class PublicShareController(
     ): ResponseEntity<Map<String, Any?>> {
         val secret =
             (body["secret"] as? String)?.takeIf { it.isNotBlank() }
-                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         val browserHash =
             (body["browserHash"] as? String)?.takeIf { it.isNotBlank() }
-                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         return try {
             val result = shareService.tryClaim(secret, browserHash, request)
             ResponseEntity.ok(
@@ -197,13 +203,13 @@ class PublicShareController(
         } catch (e: SongShareLinkService.RateLimited) {
             ResponseEntity.status(429).body(mapOf("errorCode" to e.code.dbValue))
         } catch (_: SongShareLinkService.NotFound) {
-            ResponseEntity.status(404).body(mapOf("errorCode" to "share.notFound"))
+            ResponseEntity.status(404).body(mapOf("errorCode" to ShareErrorCode.NOT_FOUND.dbValue))
         } catch (_: SongShareLinkService.InternalError) {
             // Системная (не доменная) ошибка: БД недоступна, relation does not exist,
             // NPE в SQL-обёртке и т.п. До Pass 50 это маскировалось под 404
             // share.notFound — невозможно отличить «ссылка битая» от «у нас всё
             // сломалось». Сейчас отдаём 500 share.internal (FR-010, FR-014).
-            ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
+            ResponseEntity.status(500).body(mapOf("errorCode" to ShareErrorCode.INTERNAL.dbValue))
         }
     }
 
@@ -211,7 +217,7 @@ class PublicShareController(
     fun heartbeat(@RequestBody body: Map<String, Any?>): ResponseEntity<Map<String, Any?>> {
         val sessionTokenHash =
             (body["sessionTokenHash"] as? String)?.takeIf { it.isNotBlank() }
-                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         // Cache-key: per sessionTokenHash — разные share-link'и = разные ключи.
         // НЕ кешируем share.tokenMissing (400) — это всегда no-op, и так не даёт DB-нагрузки.
         // Кешируем и ok/leaseExpired (200/410) — они одинаковы для одного и того же token'а
@@ -229,14 +235,14 @@ class PublicShareController(
                 shareService.heartbeat(sessionTokenHash)
                 ResponseEntity.ok(mapOf("ok" to true))
             } catch (_: SongShareLinkService.LeaseExpired) {
-                ResponseEntity.status(410).body(mapOf("errorCode" to "share.leaseExpired"))
+                ResponseEntity.status(410).body(mapOf("errorCode" to ShareErrorCode.LEASE_EXPIRED.dbValue))
             } catch (_: SongShareLinkService.InternalError) {
                 // Системная (не доменная) ошибка heartbeat — БД недоступна и т.п.
                 // Раньше маскировалось под 410 share.leaseExpired — невозможно было отличить
                 // «lease действительно истёк» от «у нас БД упала» (FR-010, FR-014,
                 // spec 167-fix-share-claim-500). Внутренние ошибки НЕ кешируем — нам важно
                 // быстро узнать о падении БД, а не закэшировать его на 15 сек.
-                ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
+                ResponseEntity.status(500).body(mapOf("errorCode" to ShareErrorCode.INTERNAL.dbValue))
             }
         }
     }
@@ -253,7 +259,7 @@ class PublicShareController(
         val finalHash =
             sessionTokenHash?.takeIf { it.isNotBlank() }
                 ?: (body?.get("sessionTokenHash") as? String)?.takeIf { it.isNotBlank() }
-                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         val finalResult = result ?: (body?.get("result") as? String) ?: "closed"
         shareService.release(finalHash, finalResult)
         return ResponseEntity.ok(mapOf("ok" to true))
@@ -269,11 +275,11 @@ class PublicShareController(
     fun debug(@RequestBody body: Map<String, Any?>): ResponseEntity<Map<String, Any?>> {
         val secret =
             (body["secret"] as? String)?.takeIf { it.isNotBlank() }
-                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(400).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         val diagnostics = shareService.debugTryClaim(secret)
         return ResponseEntity.ok(diagnostics)
     }
 
     private fun unauthorized(): ResponseEntity<Map<String, Any?>> =
-        ResponseEntity.status(401).body(mapOf("errorCode" to "share.tokenMissing"))
+        ResponseEntity.status(401).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
 }

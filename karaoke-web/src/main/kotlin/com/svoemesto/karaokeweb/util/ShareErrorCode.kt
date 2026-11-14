@@ -39,6 +39,18 @@ enum class ShareErrorCode(
     // Не используется на текущий момент; оставлено для будущих расширений.
     NOT_OWNER("share.notOwner"),
 
+    // KARAOKE-399: запрошен недопустимый срок действия ссылки (`ttlSeconds` не из
+    // [ShareTtlOptions.ALLOWED_SECONDS]). Отдельный код — раньше здесь отдавался
+    // `share.tokenMissing`, хотя токен тут ни при чём: фронт по коду показывал
+    // пользователю текст про отсутствие токена вместо текста про недопустимый срок.
+    INVALID_TTL("share.invalidTtl"),
+
+    // KARAOKE-399: вызывающий не редактор (`SiteShareLinksController` — admin-эндпоинты
+    // по чужим share-ссылкам). Код и раньше отдавался в ответе, но строковым литералом
+    // и в enum не был — из-за чего правило «enum — единственный источник правды» для
+    // него не выполнялось.
+    NOT_EDITOR("share.notEditor"),
+
     // Превышен лимит генераций / перевыпусков / живых ссылок.
     LINK_ALREADY_ACTIVE("share.linkAlreadyActive"),
 

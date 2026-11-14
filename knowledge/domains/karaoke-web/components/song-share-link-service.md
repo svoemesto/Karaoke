@@ -71,15 +71,23 @@ CRUD + lifecycle для `SongShareLink` (см.
 | `TokenMissing` | `share.tokenMissing` | 400 |
 | `InternalError(cause)` | `share.internal` | 500 |
 
-Коды — enum `ShareErrorCode` в `karaoke-web/.../util/ShareErrorCode.kt`;
+Коды — enum `ShareErrorCode` в `karaoke-web/.../util/ShareErrorCode.kt`; контроллеры
+берут `dbValue` из enum, а не строковые литералы (KARAOKE-399);
 секрет в логах/`referer` маскируется `ShareSecretMask.mask`
 (первые 4 + `***` + последние 4 символа).
+
+Коды, которых нет среди исключений сервиса, но которые отдают контроллеры:
+
+| Код | HTTP | Когда |
+|---|---|---|
+| `share.invalidTtl` | 400 | недопустимый срок действия ссылки (`ttlSeconds` не из `ShareTtlOptions.ALLOWED_SECONDS`) |
+| `share.notEditor` | 403 | вызывающий не редактор (admin-эндпоинты `SiteShareLinksController`) |
 
 ### Endpoints-обёртка (`PublicShareController`, `/api/public/share`)
 
 | Метод | Тело/параметры → ответ |
 |---|---|
-| `POST /{songId}/create` | `ttlSeconds` (query, default 3600; допустимы 3600/86400/604800) → `linkId`, `secret`, `url`, `expiresAt`, `ttlSeconds`; только `isEffectivePremium` |
+| `POST /{songId}/create` | `ttlSeconds` (query, default 3600; допустимы 3600/86400/604800 — `ShareTtlOptions.ALLOWED_SECONDS`) → `linkId`, `secret`, `url`, `expiresAt`, `ttlSeconds`; только `isEffectivePremium`. Недопустимый TTL → 400 `share.invalidTtl` |
 | `GET /mine/{songId}` | → `{ "link": {...} \| null }` |
 | `POST /mine/{songId}/revoke` | `reason` (query, default `manual`) → `{ "revoked": true }` |
 | `POST /claim` | `{ secret, browserHash }` → `linkId`, `songId`, `sessionTokenHash`, `linkExpiresAt`, `expiresAt`, `redirectTo`, карточка песни |
@@ -220,6 +228,9 @@ BR-516 (#378): раньше ключ включал минуту и карта �
 
 ## Changelog
 
+- **2026-11-14** (KARAOKE-399): добавлен код `share.invalidTtl` (недопустимый срок
+  действия ссылки) и `share.notEditor` в перечень кодов, которые отдают контроллеры;
+  допустимые TTL — в `ShareTtlOptions.ALLOWED_SECONDS`. Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 365** (2026-09-09): Initial. Прецедент: задачи #65, #69 +
   общий Knowledge-аудит. Автор: agent (Karaoke).

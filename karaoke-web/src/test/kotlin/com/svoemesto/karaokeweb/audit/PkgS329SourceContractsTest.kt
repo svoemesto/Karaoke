@@ -64,6 +64,7 @@ class PkgS329SourceContractsTest {
     private val shareController = "karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicShareController.kt"
     private val mainController = "karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt"
     private val shareLinkService = "karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/SongShareLinkService.kt"
+    private val shareErrorCodeEnum = "karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/util/ShareErrorCode.kt"
     private val cleanupScheduler = "karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StemJobTempCleanupScheduler.kt"
     private val captchaService = "karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/YandexCaptchaValidationService.kt"
 
@@ -83,8 +84,25 @@ class PkgS329SourceContractsTest {
             code.contains("@RestControllerAdvice(assignableTypes = [SiteShareLinksController::class])"),
             "нужен обработчик исключений, ограниченный этим контроллером",
         )
-        assertTrue(code.contains("\"share.notEditor\""), "код отказа должен быть share.notEditor")
-        assertTrue(code.contains("\"share.internal\""), "IllegalStateException должен давать 500 share.internal")
+        assertTrue(
+            code.contains("ShareErrorCode.NOT_EDITOR.dbValue"),
+            "код отказа должен браться из enum ShareErrorCode (ShareErrorCode.NOT_EDITOR.dbValue)",
+        )
+        assertTrue(
+            code.contains("ShareErrorCode.INTERNAL.dbValue"),
+            "IllegalStateException должен давать 500 share.internal (ShareErrorCode.INTERNAL.dbValue)",
+        )
+        // KARAOKE-399: значения кодов — в enum ShareErrorCode (единственный источник правды),
+        // а не строковые литералы в контроллере. Проверяем, что enum их содержит.
+        val shareErrorCode = readCode(shareErrorCodeEnum)
+        assertTrue(
+            shareErrorCode.contains("\"share.notEditor\""),
+            "в enum ShareErrorCode должен быть код share.notEditor",
+        )
+        assertTrue(
+            shareErrorCode.contains("\"share.internal\""),
+            "в enum ShareErrorCode должен быть код share.internal",
+        )
         assertFalse(
             code.contains("private class ShareAccessDeniedException"),
             "исключение должно быть видно обработчику исключений",

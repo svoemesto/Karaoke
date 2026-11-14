@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
 import com.svoemesto.karaokeweb.services.SongShareLinkService
+import com.svoemesto.karaokeweb.util.ShareErrorCode
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -46,7 +47,7 @@ class SiteShareLinksController(
         val caller = resolveEditorOrThrow(request)
         val siteUserId =
             (body["siteUserId"] as? Number)?.toLong()
-                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         val activeOnly = (body["activeOnly"] as? Boolean) ?: false
         val limit = (body["limit"] as? Number)?.toInt() ?: 50
         val database =
@@ -69,7 +70,7 @@ class SiteShareLinksController(
         val caller = resolveEditorOrThrow(request)
         val shareLinkId =
             (body["shareLinkId"] as? Number)?.toLong()
-                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         val reason = (body["reason"] as? String) ?: "admin"
         val database =
             resolveDatabase(body["target"] as? String)
@@ -91,7 +92,7 @@ class SiteShareLinksController(
         resolveEditorOrThrow(request)
         val shareLinkId =
             (body["shareLinkId"] as? Number)?.toLong()
-                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
+                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to ShareErrorCode.TOKEN_MISSING.dbValue))
         val database =
             resolveDatabase(body["target"] as? String)
                 ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
@@ -170,7 +171,7 @@ class SiteShareLinksExceptionHandler {
     fun onAccessDenied(e: ShareAccessDeniedException): ResponseEntity<Map<String, Any?>> =
         ResponseEntity
             .status(HttpStatus.FORBIDDEN)
-            .body(mapOf("errorCode" to "share.notEditor", "message" to (e.message ?: "not editor")))
+            .body(mapOf("errorCode" to ShareErrorCode.NOT_EDITOR.dbValue, "message" to (e.message ?: "not editor")))
 
     @ExceptionHandler(IllegalStateException::class)
     fun onIllegalState(e: IllegalStateException): ResponseEntity<Map<String, Any?>> {
@@ -179,6 +180,6 @@ class SiteShareLinksExceptionHandler {
             .warn("share-links:internal error", e)
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(mapOf("errorCode" to "share.internal"))
+            .body(mapOf("errorCode" to ShareErrorCode.INTERNAL.dbValue))
     }
 }

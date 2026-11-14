@@ -28,7 +28,13 @@ return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 
 Существующие значения (не выдумывать новые без нужды):
 `share.tokenMissing`, `share.notFound`, `share.notOwner`, `share.notEditor`,
-`share.leaseExpired`, `share.internal`, `site.remote_unavailable`.
+`share.leaseExpired`, `share.internal`, `share.invalidTtl`, `site.remote_unavailable`.
+
+Источник правды для кодов share-флоу — enum `ShareErrorCode`
+(`karaoke-web/.../util/ShareErrorCode.kt`): контроллеры берут `dbValue` из enum,
+а не пишут строковые литералы (KARAOKE-399). Фронт выбирает пользовательский текст
+по коду — `karaoke-public/src/utils/shareCreateError.js` (создание ссылки) и
+`karaoke-public/src/utils/shareClaim.js` (остальной флоу).
 
 **Failure**: тело с `exception.message`, HTML-страница ошибки в ответе JSON-эндпоинта,
 стектрейс в теле ответа.
@@ -125,3 +131,10 @@ catch (e: Exception) {
 Разбор 374 задач проекта Караоке (201 комментарий, 120 задач) — тема «обработка
 ошибок» 86 комментариев; сверено с кодом: `SiteShareLinksController`,
 `PublicAuthController`, `CaptchaValidationResult`.
+
+## Changelog
+
+- **2026-11-14** (KARAOKE-399): в перечень кодов добавлен `share.invalidTtl`;
+  зафиксировано, что источник правды для кодов share-флоу — enum `ShareErrorCode`,
+  а фронт выбирает текст по коду в `karaoke-public/src/utils/shareCreateError.js`.
+  Автор: agent (Karaoke).

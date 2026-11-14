@@ -46,7 +46,7 @@
 |---|---|
 | `webvue3/src/lib/list-loader.js` | `loadListWith({request, commit, generation, requestOptions, loadingCommit, errorCommit, applyCommit, errorMessage})` -> `Promise<{applied, stale, result?, error?}>`; флаг загрузки снимает только владелец поколения, `finally` снимает при любом исходе, текст ошибки кладётся в state |
 | `webvue3/src/lib/target-request-guard.js` | `createRequestGeneration()` -> `{next, isCurrent, current}` — монотонная эпоха запросов |
-| `webvue3/src/lib/song-numeric-fields.js` | `isValidNumericSongField(name, value)`, `findInvalidNumericSongFields(items)`, `SONG_NUMERIC_FIELDS` — числовые поля карточки песни (`year`, `track`, `bpm`, `rootId`, `audioParentId`, `audioSimilarityPercent`, `audioDeltaMs`) |
+| `webvue3/src/lib/song-numeric-fields.js` | `isValidNumericSongField(name, value)`, `findInvalidNumericSongFields(items)`, `SONG_NUMERIC_FIELDS` — числовые поля карточки песни (`year`, `track`, `bpm`, `rootId`, `audioParentId`, `audioSimilarityPercent`, `audioDeltaMs`); контракт зафиксирован тестом `webvue3/src/lib/__tests__/song-numeric-fields.test.js` (KARAOKE-401) |
 | `webvue3/src/lib/utils.js` | `setWebvueProp(field, key, value)` -> `Promise<boolean>`; отказ записи обрабатывается (без unhandled rejection) |
 | `Songs/store.js` | `songIdInSyncIds(rawIds, songId)` -> `boolean` — сравнение по элементам списка «Sync Ids», не по подстроке; `changeToSync` — action (не мутация), фиксирует `dictAction` и ставит флаг по подтверждённому сервером результату; `restoreLastSettings` — восстановление без записи на сервер |
 | `Albums/store.js`, `Authors/store.js`, `Pictures/store.js` | `loadXxxDigests` возвращают промис, снимают флаг в `finally`, кладут текст ошибки в state, применяют ответ только владельцем поколения |

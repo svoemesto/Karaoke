@@ -77,6 +77,20 @@ TypeError: Cannot set property navigator of #<Object> which has only a getter
 `Object.defineProperty(globalThis, 'navigator', { value: …, configurable: true })`,
 либо не мокать его вовсе — проверять нужное поведение через параметры функции.
 
+То же касается `globalThis.crypto` (геттер без сеттера в Node 19+) и
+`globalThis.localStorage` (в Node вообще отсутствует, пока не включён
+экспериментальный `--experimental-webstorage`): подменять через
+`Object.defineProperty` с `configurable: true` и восстанавливать исходный
+дескриптор в `afterEach`.
+
+### Перед XHR нужно разрядить микроtask'и
+
+`claimShare()` сначала **ждёт** `getBrowserHash()` (а тот — `crypto.subtle.digest`),
+и только потом создаёт `XMLHttpRequest`. Поэтому сразу после вызова
+`FakeXHR.last()` ещё `null` — экземпляр появляется после микроtask'ов.
+Достаточно `await new Promise((r) => setTimeout(r, 0))`; одного
+`await Promise.resolve()` может не хватить (в `authApi` цепочка короче).
+
 ### `release()` уходит через `navigator.sendBeacon`, если он есть
 
 `songShareLink.js` → `release()` сначала пробует `navigator.sendBeacon(...)` и
@@ -186,8 +200,8 @@ cd karaoke-public && npm run test:e2e
 
 ## Контрактные тесты «до/после»
 
-В публичном SPA — 16 файлов
-тестов и 279 кейсов. Ключевая особенность — **два уровня проверки**:
+В публичном SPA — 17 файлов
+тестов и 299 кейсов. Ключевая особенность — **два уровня проверки**:
 
 1. **Поведенческий** — чистые функции из `karaoke-public/src/utils/` и `karaoke-public/src/player/playerGuards.js`
    проверяются напрямую (с депленными `navigator`/`document`/`Storage`).
@@ -221,6 +235,7 @@ cd karaoke-public && npm run test:e2e
 | `karaoke-public/src/utils/__tests__/pricing.test.js` | BR-326: цены из API, а не из текста страницы |
 | `karaoke-public/src/utils/__tests__/searchPagination.test.js` | BR-344, BR-345: восстановление среза и разные флаги ошибок |
 | `karaoke-public/src/player/__tests__/playerGuards.test.js` | BR-304…BR-311: инварианты плеера |
+| `karaoke-public/src/services/__tests__/songShareLink.test.js` | KARAOKE-400: контракты `services/songShareLink.js` — анонимный claim по секрету, heartbeat lease, release через `navigator.sendBeacon` (и XHR без него) |
 | `karaoke-public/src/utils/__tests__/sourceContract.js` | хелпер чтения исходников (не тест) |
 
 ## Ограничения и известные TODO

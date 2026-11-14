@@ -207,6 +207,94 @@ cd <admin> && bash deploy/deploy_public.sh
   ненулевой код и останавливает деплой. Проверка —
   `bash tools/check-do-sh-guards.sh --prod`.
 
+## 2б. Сбои операционки, найденные на деплое 2026-11-14
+
+> Три симптома, каждый из которых останавливал деплой. Проверено на проде
+> 2026-11-14 (выкладка `karaoke-web` и `karaoke-public`).
+
+### 2б.1. `library/**` — pull-through зона, синк с Docker Hub зависает
+
+`config.json` включает sync-on-demand с `"syncTimeout": "2h"` и префиксом
+`library/**`. `library/**` — **read-only** зона: правило в `images.lock` —
+«в `library/**` не пушим никогда».
+
+**Симптом.** `docker pull sm-karaoke.ru:5443/library/eclipse-temurin:22-jre-jammy` →
+`Head …: net/http: timeout awaiting response headers`. В логах Zot:
+`trying to get updated image by syncing on demand` → `syncing image (remote
+docker.io/library/eclipse-temurin@sha256:dbcae8b5…)` — и синк **не завершается**.
+
+Проверено: запрос к **любому** `library/*` с авторизацией виснет (в том числе
+`library/node` и `library/nonexistent-xyz`), а анонимный отвечает мгновенно (401) —
+то есть зависает именно путь «авторизоваться → пойти в upstream».
+
+**Обход (без правки репозитория).** Базовый образ тянется напрямую с Docker Hub и
+тегуется под имя из репозитория — buildkit берёт образ из локального хранилища и
+registry не опрашивает:
+
+```bash
+docker pull eclipse-temurin:22-jre-jammy
+docker tag eclipse-temurin:22-jre-jammy sm-karaoke.ru:5443/library/eclipse-temurin:22-jre-jammy
+```
+
+В логе сборки видно, что взят **тот же digest**, что синкает Zot.
+
+**Корень проблемы — не наш, но чинить надо у себя:** upstream-синк Zot виснет на
+втором Docker Hub с этого IP. Варианты: (а) вендорить базовые образы в
+`mirror/**` через `tools/registry-vendor.sh` и переключить `FROM` в
+`deploy/karaoke-{web,app,public}/Dockerfile`; (б) отключить sync-on-demand для
+`library/**` и держать базовые образы только вендоренными.
+
+### 2б.2. Реестр пишет медленно — docker-клиент отваливается, запись всё равно проходит
+
+PUT манифеста в Zot отвечает `201` через **41–45 с**. Docker-клиент ждёт 30 с и
+падает с `timeout awaiting response headers`, **хотя запись на сервере состоялась**:
+манифест лежит по своему digest, но **тег остался на старом**. Проверено:
+`docker push` → ошибка, а `HEAD /v2/<repo>/manifests/<digest>` → 200.
+
+**Обход.** Проставить тег вручную (curl не имеет клиентского таймаута):
+
+```bash
+D=sha256:<digest манифеста образа>
+curl -s -u "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+     -H 'Accept: application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json' \
+     -o manifest.json "https://sm-karaoke.ru:5443/v2/<repo>/manifests/$D"
+curl -s -u "$REGISTRY_USER:$REGISTRY_PASSWORD" -X PUT \
+     -H 'Content-Type: application/vnd.oci.image.manifest.v1+json' \
+     --data-binary @manifest.json \
+     "https://sm-karaoke.ru:5443/v2/<repo>/manifests/<тег>"
+```
+
+Проверка после: `HEAD` тега должен вернуть **новый** `Docker-Content-Digest`.
+
+### 2б.3. С прод-хоста registry доступен по `127.0.0.1:5000`, а не по имени
+
+На проде `sm-karaoke.ru` резолвится в собственный публичный IP (`188.127.240.124`),
+и HTTPS к 5443 **оттуда виснет** (curl без ответа), тогда как
+`http://127.0.0.1:5000/v2/` отвечает за 0.002 с. Поэтому `do.sh pull_web`/`pull_public`
+на проде падают на «логин в registry не удался — контейнер НЕ трогаем».
+
+**Рабочий путь на проде:**
+
+```bash
+printf '%s' "$REGISTRY_PASSWORD" | docker login 127.0.0.1:5000 -u "$REGISTRY_USER" --password-stdin
+docker pull 127.0.0.1:5000/karaoke/karaoke-web:1
+docker tag 127.0.0.1:5000/karaoke/karaoke-web:1 sm-karaoke.ru:5443/karaoke/karaoke-web:1
+bash do.sh start_web   # compose поднимает уже локальный образ с правильным именем
+```
+
+### 2б.4. `sync_prod_config` требует `PROD_HOST` в окружении
+
+`deploy/sync_prod_config.sh` берёт хост из `PROD_HOST`; без него `scp`/`ssh` уходят
+с пустым хостом («Could not resolve hostname»), а проверка валидности конфига
+проваливается и скрипт откатывает «замену». Штатные `deploy_web.sh`/`deploy_public.sh`
+задают `PROD_HOST` из `deploy/.env` **до** sourcing. При ручном вызове:
+
+```bash
+export PROD_HOST="$(sed -n 's/^PROD_HOST=//p' deploy/.env | tail -1 | tr -d ' \r')"
+```
+
+---
+
 ## 3. Срок TLS-сертификата
 
 **Зависимость.** Доступность registry держится на сертификате домена
@@ -257,4 +345,5 @@ bash tools/check-cert-expiry.sh sm-karaoke.ru:443 sm-karaoke.ru:5443 --warn-days
 
 | Дата | Что |
 |---|---|
+| 2026-11-14 | Раздел «2б. Сбои операционки»: pull-through `library/**` с зависающим синком, медленные PUT манифеста (docker-клиент отваливается по таймауту, запись проходит), доступ к registry с прод-хоста по `127.0.0.1:5000`, требование `PROD_HOST` для `sync_prod_config` |
 | 2026-10-11 | Создан каркас (T007) |

@@ -182,6 +182,18 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
 `registry/images.lock`. Guard R-04/R-05 (`tools/check-docker-image-tags.sh`)
 расширен под registry-квалифицированные имена.
 
+### Известные сбои операционки (деплой 2026-11-14)
+
+Три симптома, каждый останавливал выкладку; все три — **инфраструктура** registry,
+не код проекта. Разбор и обходы — в
+[registry/RUNBOOK.md § 2б](../../../deploy/prod-single-host/registry/RUNBOOK.md):
+
+| Симптом | Причина | Обход |
+|---|---|---|
+| `docker pull …/library/<образ>` → `timeout awaiting response headers` | `library/**` — read-only pull-through зона; sync-on-demand с Docker Hub (`syncTimeout: 2h`) зависает | тянуть базовый образ напрямую с Hub и теговать под имя из репозитория — buildkit берёт его из локального хранилища |
+| `docker push` падает по таймауту, хотя запись на сервере прошла (тег остался старый) | PUT манифеста в Zot отвечает 41–45 с, docker-клиент ждёт 30 с | проставить тег вручную `curl -X PUT` (у curl нет клиентского таймаута) и сверить `Docker-Content-Digest` |
+| `do.sh pull_web` на проде: «логин в registry не удался» | с прод-хоста HTTPS к своему же публичному IP на 5443 виснет | работать с локальным registry: `docker login 127.0.0.1:5000` → `pull` → `tag` под имя из compose → `do.sh start_*` |
+
 ## Hardening S2 (аудит #336, пакет PKG-S2-08 / OpenProject #371)
 
 Пакет закрыл 15 записей аудита по deploy-контуру. Инварианты, которые нельзя
@@ -340,6 +352,13 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 - **Constitution.md** — запрет на коммит секретов.
 
 ## Changelog
+
+- **2026-11-14** (деплой на прод): подраздел «Известные сбои операционки» — три
+  проверенных симптома приватного registry (зависающий sync-on-demand в
+  `library/**`, медленный PUT манифеста, недоступность registry с прод-хоста по
+  имени) и обходы; подробности — в
+  [registry/RUNBOOK.md § 2б](../../../deploy/prod-single-host/registry/RUNBOOK.md).
+  Автор: agent (Karaoke).
 
 - **Спека 676** (2026-10-30, KARAOKE-245, BR-630): раздел о пределе памяти контейнера `karaoke-app` (8 ГБ / 6 ГБ), дампах heap и retention-политике; строка BR-630 в таблице Hardening S3. Автор: agent (Karaoke).
 

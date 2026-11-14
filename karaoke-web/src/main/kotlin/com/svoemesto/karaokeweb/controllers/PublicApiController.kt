@@ -3,6 +3,7 @@ package com.svoemesto.karaokeweb.controllers
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 
 import com.svoemesto.karaokeapp.model.Author
+import com.svoemesto.karaokeapp.model.AuthorAliasMatch
 import com.svoemesto.karaokeapp.model.Album
 import com.svoemesto.karaokeapp.model.AlbumTilesUnavailableException
 import com.svoemesto.karaokeapp.model.EventType
@@ -22,6 +23,7 @@ import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
 import com.svoemesto.karaokeweb.dto.AlbumTilePublicDto
 import com.svoemesto.karaokeweb.dto.PagedSongsDto
 import com.svoemesto.karaokeweb.dto.SongPublicDto
+import com.svoemesto.karaokeweb.dto.SongsCountDto
 import com.svoemesto.karaokeweb.dto.ZakromaAlbumMetaPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaAlbumSongPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
@@ -916,31 +918,61 @@ class PublicApiController(
         @RequestParam(required = false) page: Int?,
         @RequestParam(required = false) pageSize: Int?,
         request: HttpServletRequest,
+    ): Any =
+        songsWith(
+            songName = songName,
+            author = author,
+            text = text,
+            album = album,
+            anonId = anonId,
+            referrer = referrer,
+            page = page,
+            pageSize = pageSize,
+            request = request,
+        )
+
+    /**
+     * Тело `GET /songs` — вынесено из обработчика, чтобы поведение можно было проверить
+     * без БД: загрузка песен, подсчёт и резолв автора — зависимости-параметры (швы),
+     * прод-значения те же, что и раньше.
+     *
+     * Логику за статикой в проекте не мокают, а тестируют шов
+     * (`knowledge/domains/karaoke-web/components/testing-controllers.md`, Правило 3):
+     * `mockStatic`/`mockito-inline` в проекте нет, поэтому единственный способ проверить
+     * счётчик — подменить его лямбдой.
+     *
+     * @see specs/390-songs-count
+     */
+    internal fun songsWith(
+        songName: String?,
+        author: String?,
+        text: String?,
+        album: String?,
+        anonId: String?,
+        referrer: String?,
+        page: Int?,
+        pageSize: Int?,
+        request: HttpServletRequest,
+        resolveAuthor: (String) -> List<AuthorAliasMatch> = { term -> Author.resolveByTerm(term, WORKING_DATABASE) },
+        loadSongs: (Map<String, String>) -> List<Song> = { args ->
+            Song.loadListFromDb(
+                args,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                withoutMarkersAndText = true,
+            )
+        },
+        countSongs: (Map<String, String>) -> Int = { args -> Song.countMatchingAttr(args, database = WORKING_DATABASE) },
     ): Any {
-        val attr: MutableMap<String, String> = mutableMapOf()
-        if (!songName.isNullOrEmpty()) attr["song_name"] = songName
         // Поиск по автору: сначала резолвим term (может быть и реальным именем, и алиасом —
         // солист/участник группы) через tbl_authors, затем ищем песни по НАБОРУ реальных имён.
         // Если совпадений в tbl_authors нет (автор не заведён как отслеживаемый) — фолбэк на
         // прежнее строгое равенство, чтобы не потерять существующее поведение поиска.
-        var aliasByAuthor: Map<String, String> = emptyMap()
-        if (!author.isNullOrEmpty()) {
-            val matches = Author.resolveByTerm(author, WORKING_DATABASE)
-            if (matches.isNotEmpty()) {
-                attr["author_in"] = matches.joinToString(Song.AUTHOR_IN_DELIMITER) { it.author }
-                aliasByAuthor =
-                    matches
-                        .filter { it.matchedAliases.isNotEmpty() }
-                        .associate { it.author.lowercase() to it.matchedAliases.joinToString(", ") }
-            } else {
-                attr["author"] = author
-            }
-        }
-        if (!text.isNullOrEmpty()) attr["text"] = text
-        if (!album.isNullOrEmpty()) attr["song_album"] = album
-        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
-        // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
-        if (onlyPublishedFor(request)) attr["id_status"] = ">=6"
+        val matches: List<AuthorAliasMatch> = if (!author.isNullOrEmpty()) resolveAuthor(author) else emptyList()
+        val aliasByAuthor: Map<String, String> = aliasMapFor(matches)
+        val attr: Map<String, String> =
+            songFilterArgs(songName, author, text, album, onlyPublishedFor(request), matches)
 
         // Spec 262-search-pagination: нормализация параметров пагинации.
         // pageSize — whitelist [10, 25, 35, 50, 100]; не из списка → 35.
@@ -963,16 +995,10 @@ class PublicApiController(
             }
 
         val song: List<Song> =
-            if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
+            if (isSearchTooShort(songName, author, album, text)) {
                 emptyList()
             } else {
-                Song.loadListFromDb(
-                    attrForItems,
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    withoutMarkersAndText = true,
-                )
+                loadSongs(attrForItems)
             }
 
         val data: MutableMap<String, Any> = mutableMapOf()
@@ -1018,10 +1044,10 @@ class PublicApiController(
         // `List<SongPublicDto>` (FR-003, обратная совместимость).
         return if (usePagedResponse) {
             val totalCount =
-                if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
+                if (isSearchTooShort(songName, author, album, text)) {
                     0
                 } else {
-                    Song.countMatchingAttr(attr, database = WORKING_DATABASE)
+                    countSongs(attr)
                 }
             val hasMore = (pageNormalized.toLong() * pageSizeNormalized) < totalCount
             PagedSongsDto(
@@ -1034,6 +1060,112 @@ class PublicApiController(
         } else {
             items
         }
+    }
+
+    /**
+     * Аргументы фильтра публичного поиска — общий источник правды для `GET /songs`
+     * (и его `totalCount`) и `GET /songs/count` (счётчик). Оба эндпоинта зовут эту
+     * функцию, поэтому `count` и `totalCount` для одних и тех же фильтров совпадают
+     * структурно, а не «по совпадению» (KARAOKE-390).
+     *
+     * Функция чистая: БД не трогает — резолв автора (алиасы солиста/участника группы)
+     * делает вызывающий и передаёт готовый список [matches].
+     *
+     * Ключи повторяют соглашения `Song.getWhereList`: `song_name`, `author` (строгое
+     * равенство — фолбэк), `author_in` (набор имён, склейка [Song.AUTHOR_IN_DELIMITER]),
+     * `text`, `song_album`, `id_status` (только для не-редактора).
+     */
+    internal fun songFilterArgs(
+        songName: String?,
+        author: String?,
+        text: String?,
+        album: String?,
+        onlyPublishedFor: Boolean,
+        matches: List<AuthorAliasMatch>,
+    ): Map<String, String> {
+        val attr: MutableMap<String, String> = mutableMapOf()
+        if (!songName.isNullOrEmpty()) attr["song_name"] = songName
+        if (!author.isNullOrEmpty()) {
+            if (matches.isNotEmpty()) {
+                attr["author_in"] = matches.joinToString(Song.AUTHOR_IN_DELIMITER) { it.author }
+            } else {
+                attr["author"] = author
+            }
+        }
+        if (!text.isNullOrEmpty()) attr["text"] = text
+        if (!album.isNullOrEmpty()) attr["song_album"] = album
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
+        // кроме "редактора" — для него фильтр по статусу снят целиком (specs/017-editor-status-bypass).
+        if (onlyPublishedFor) attr["id_status"] = ">=6"
+        return attr
+    }
+
+    /**
+     * Алиасы авторов, по которым реально совпал term — для поля `authorAlias` в DTO.
+     * Ключ — имя автора в нижнем регистре (как сравнивается с `dto.author.lowercase()`).
+     */
+    internal fun aliasMapFor(matches: List<AuthorAliasMatch>): Map<String, String> =
+        matches
+            .filter { it.matchedAliases.isNotEmpty() }
+            .associate { it.author.lowercase() to it.matchedAliases.joinToString(", ") }
+
+    /**
+     * Порог «слишком короткий поиск»: суммарная длина фильтров < 3 — результат пустой,
+     * БД не спрашивается. Правило то же, что в `GET /songs` (обе проверки — одна
+     * и та же функция, чтобы `/songs` и `/songs/count` вели себя одинаково).
+     */
+    internal fun isSearchTooShort(
+        songName: String?,
+        author: String?,
+        album: String?,
+        text: String?,
+    ): Boolean = "${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3
+
+    /**
+     * `GET /api/public/songs/count` — число песен по тем же фильтрам, что и у `GET /songs`.
+     *
+     * Ответ — ровно одно поле `{"count": N}`: фронту нужен счётчик (плашка «найдено N»,
+     * превью фильтров, пагинация) там, где тянуть страницу песен ради одного числа невыгодно.
+     *
+     * Нового SQL нет: счёт — тот же `Song.countMatchingAttr`, что и `totalCount` в
+     * `PagedSongsDto`, и по той же карте аргументов (`songFilterArgs`), поэтому значения
+     * совпадают (KARAOKE-390). Видимость — та же (`onlyPublishedFor`), порог «< 3
+     * символов» — тот же, и он срабатывает ДО любого обращения к БД (включая резолв
+     * автора), то есть короткий запрос не ходит в базу вообще.
+     *
+     * Событие `RestName.FILTER` не пишется: фильтр в аналитике уже считается по
+     * `GET /songs`, а второй вызов удвоил бы статистику фильтров.
+     */
+    @GetMapping("/songs/count")
+    fun songsCount(
+        @RequestParam(required = false) songName: String?,
+        @RequestParam(required = false) author: String?,
+        @RequestParam(required = false) text: String?,
+        @RequestParam(required = false) album: String?,
+        request: HttpServletRequest,
+    ): SongsCountDto = songsCountWith(songName, author, text, album, request)
+
+    /**
+     * Тело `GET /songs/count` — вынесено из обработчика ради тестируемости без БД
+     * (швы вместо моков статики — `testing-controllers.md`, Правило 3).
+     *
+     * @see specs/390-songs-count
+     */
+    internal fun songsCountWith(
+        songName: String?,
+        author: String?,
+        text: String?,
+        album: String?,
+        request: HttpServletRequest,
+        resolveAuthor: (String) -> List<AuthorAliasMatch> = { term -> Author.resolveByTerm(term, WORKING_DATABASE) },
+        countSongs: (Map<String, String>) -> Int = { args -> Song.countMatchingAttr(args, database = WORKING_DATABASE) },
+    ): SongsCountDto {
+        // Короткий запрос — 0 без обращения к БД (в том числе без резолва автора).
+        if (isSearchTooShort(songName, author, album, text)) return SongsCountDto(count = 0)
+        val matches: List<AuthorAliasMatch> = if (!author.isNullOrEmpty()) resolveAuthor(author) else emptyList()
+        val attr: Map<String, String> =
+            songFilterArgs(songName, author, text, album, onlyPublishedFor(request), matches)
+        return SongsCountDto(count = countSongs(attr).toLong())
     }
 
     // Spec 261 (FR-006): превью автора — `${author}/${author}.preview.author.png`. Дубль

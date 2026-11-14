@@ -1,4 +1,4 @@
-# Public controllers: PublicApiController (13 endpoints)
+# Public controllers: PublicApiController (14 endpoints)
 
 > **Домен**: [karaoke-web](../domain.md)
 > **Компонента**: `PublicApiController` — главный public API контроллер.
@@ -11,7 +11,7 @@
 
 ## Файл
 
-`karaoke-web/.../controllers/PublicApiController.kt` (**1297 строк**,
+`karaoke-web/.../controllers/PublicApiController.kt` (**1564 строки**,
 самый длинный public-контроллер)
 
 ## Интерфейсы и Контракты | Interfaces and Contracts
@@ -20,7 +20,7 @@ Class-level `@RequestMapping("/api/public")`; ниже — пути
 относительно него. Все ответы — JSON, кроме `/zakroma/stream`
 (NDJSON) и `/picture` (302-redirect).
 
-### Endpoints (13)
+### Endpoints (14)
 
 | # | URL | Метод | Назначение |
 |---|---|---|---|
@@ -31,12 +31,13 @@ Class-level `@RequestMapping("/api/public")`; ниже — пути
 | 5 | `/api/public/zakroma/stream` | GET (NDJSON) | **Streaming** Закромов (см. [composable-zakroma-stream.md](../../../system/frontend/composable-zakroma-stream.md)) |
 | 6 | `/api/public/zakroma/stream/metrics` | POST | Метрики стрима (FR-FE-010) |
 | 7 | `/api/public/songs` | GET | Список песен (с пагинацией) |
-| 8 | `/api/public/song/{id}` | GET | Одна песня (см. [song-public-dto.md](../../integration/components/song-public-dto.md)) |
-| 9 | `/api/public/events` | POST | Регистрация события (см. [composable-engagement-tracking.md](../../../system/frontend/composable-engagement-tracking.md)) |
-| 10 | `/api/public/song-picture/{id}` | GET | URL обложки песни |
-| 11 | `/api/public/song-vk-image/{id}` | GET | URL превью VK |
-| 12 | `/api/public/picture` | GET | URL обложки автора/альбома |
-| 13 | `/api/public/authors/{authorId}/albums` | GET | Тайлы альбомов автора (кеш 60с, spec 356) |
+| 8 | `/api/public/songs/count` | GET | Число песен по тем же фильтрам, что и `/songs` (KARAOKE-390) |
+| 9 | `/api/public/song/{id}` | GET | Одна песня (см. [song-public-dto.md](../../integration/components/song-public-dto.md)) |
+| 10 | `/api/public/events` | POST | Регистрация события (см. [composable-engagement-tracking.md](../../../system/frontend/composable-engagement-tracking.md)) |
+| 11 | `/api/public/song-picture/{id}` | GET | URL обложки песни |
+| 12 | `/api/public/song-vk-image/{id}` | GET | URL превью VK |
+| 13 | `/api/public/picture` | GET | URL обложки автора/альбома |
+| 14 | `/api/public/authors/{authorId}/albums` | GET | Тайлы альбомов автора (кеш 60с, spec 356) |
 
 ## Логика и Алгоритмы | Logic and Algorithms
 
@@ -111,6 +112,26 @@ Class-level `@RequestMapping("/api/public")`; ниже — пути
    размер страницы), а `items` — с `limit/offset`.
 5. Если суммарная длина поисковых строк `< 3` — возвращается пустой
    список без запроса в БД.
+
+**`GET /songs/count`** (KARAOKE-390) — число песен по тем же фильтрам, что
+и у `/songs`. Ответ — ровно одно поле `{"count": N}` (`SongsCountDto`);
+значение `Long`, как `totalCount` в `PagedSongsDto`.
+
+1. Фильтр собирает **та же** функция `songFilterArgs(songName, author, text,
+   album, onlyPublishedFor, matches)`, что и `/songs`, — поэтому `count` и
+   `totalCount` совпадают структурно, а не «по совпадению». Тот же порог
+   «< 3 символов» (функция `isSearchTooShort`) и та же видимость
+   (`onlyPublishedFor`) — редактор видит все песни, аноним — только
+   `id_status >= 6`.
+2. Считает тот же `Song.countMatchingAttr` по той же карте аргументов —
+   **нового SQL нет**.
+3. Короткий запрос (< 3 символов) даёт `count = 0` и **не обращается к БД**
+   вообще: ни к счётчику, ни к резолву автора.
+4. Событие `RestName.FILTER` не пишется: фильтр в аналитике уже считается
+   по `/songs`, второй вызов удвоил бы статистику фильтров.
+5. Мусорные параметры дают `200` и `count = 0` (условия строятся
+   параметризованно, невалидные значения не приводят к исключению), а не
+   `500`.
 
 **`POST /events`**: делегирует в `mainController.doRegisterEvent(data,
 request, userId)` и возвращает `{ok, meta}`.
@@ -191,6 +212,13 @@ rate limit 60/min per IP (через `RateLimitInterceptor`, см.
 
 ## Changelog
 
+- **2026-11-14** (KARAOKE-390): добавлен 14-й маппинг
+  `GET /api/public/songs/count` — число песен по тем же фильтрам, что и у
+  `/songs`; ответ `{"count": N}`. Сборка фильтра вынесена в общую
+  `songFilterArgs`, поэтому `count` и `totalCount` совпадают структурно;
+  нового SQL нет (тот же `Song.countMatchingAttr`). Актуализированы счётчик
+  эндпоинтов (13 → 14) и размер файла (1564 строки).
+  Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секция
   «Endpoints (12)» перенесена под «Интерфейсы и Контракты»; добавлена
   «Логика и Алгоритмы» с проверенными по коду потоками (`stats`, кеши

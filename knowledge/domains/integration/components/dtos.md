@@ -64,7 +64,7 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 | `SubscriptionDto` | Подписка | `/api/subscriptions/digest` |
 | `WebEventDTO` | WebEvent | (analytics) |
 
-### DTO в karaoke-web (8 публичных)
+### DTO в karaoke-web (9 публичных)
 
 | DTO | Что | Используется в |
 |---|---|---|
@@ -72,6 +72,7 @@ karaoke-web). DTO НЕ содержат бизнес-логики, только 
 | `HistoryEntryDto` | Запись истории | `/api/public/history/...` |
 | `PagedSongsDto` | Страница песен (public) | `GET /api/public/songs` |
 | `SongPublicDto` | Песня (public) | `GET /api/public/song/{id}` |
+| `SongsCountDto` | Число песен по фильтрам | `GET /api/public/songs/count` |
 | `ZakromaAlbumMetaPublicDto` | Мета альбома «Закрома» | `/api/public/zakroma/...` |
 | `ZakromaPublicDto` | «Закрома» автора | (тот же) |
 | `ZakromaStreamMessageDto` | Сообщение стрима «Закрома» | `/api/public/zakroma/stream` |

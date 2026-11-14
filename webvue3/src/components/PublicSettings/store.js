@@ -1,4 +1,6 @@
-import { promisedXMLHttpRequest } from '../../lib/utils'
+// Расширение `.js` — как у сторов Pictures/Processes/Promotions/Properties: без него
+// Node ESM не резолвит модуль, и стор нельзя проверить юнит-тестом (node --test).
+import { promisedXMLHttpRequest } from '../../lib/utils.js'
 
 // Небольшая key/value таблица tbl_public_settings (Postgres) — настройки, нужные сервисам, реально
 // работающим на боевом сервере (karaoke-web), в отличие от ~150 файловых KaraokeProperties, которые
@@ -13,6 +15,9 @@ export default {
   state: {
     publicSettingsDigest: [],
     publicSettingsDigestIsLoading: false,
+    // BR-413 (та же правка, что в сторе Properties): отказ загрузки кладётся в state,
+    // а не остаётся только в консоли — иначе пустой список выглядит как «настроек нет».
+    publicSettingsDigestError: '',
     publicSettingsTarget: 'local',
   },
   getters: {
@@ -21,6 +26,9 @@ export default {
     },
     getPublicSettingsDigestIsLoading(state) {
       return state.publicSettingsDigestIsLoading
+    },
+    getPublicSettingsDigestError(state) {
+      return state.publicSettingsDigestError
     },
     getPublicSettingsTarget(state) {
       return state.publicSettingsTarget
@@ -33,11 +41,23 @@ export default {
     setPublicSettingsDigestIsLoading(state, isLoading) {
       state.publicSettingsDigestIsLoading = isLoading
     },
+    setPublicSettingsDigestError(state, message) {
+      state.publicSettingsDigestError = message || ''
+    },
     setPublicSettingsTarget(state, target) {
       state.publicSettingsTarget = target
     },
   },
   actions: {
+    /**
+     * Загрузка дайджеста публичных настроек.
+     *
+     * Флаг загрузки снимается при любом исходе, а отказ кладётся в state
+     * (`publicSettingsDigestError`) — как в сторе Properties (BR-413).
+     *
+     * @param {object} ctx — контекст Vuex action.
+     * @returns {Promise<void>}
+     */
     loadPublicSettingsDigest(ctx) {
       let request = {
         method: 'POST',
@@ -45,14 +65,20 @@ export default {
         params: { target: ctx.state.publicSettingsTarget },
       }
       ctx.commit('setPublicSettingsDigestIsLoading', true)
+      ctx.commit('setPublicSettingsDigestError', '')
       return promisedXMLHttpRequest(request)
         .then((data) => {
           let result = JSON.parse(data)
           ctx.commit('setPublicSettingsDigest', result.publicSettingsDigest)
           ctx.commit('setPublicSettingsDigestIsLoading', false)
+          ctx.commit('setPublicSettingsDigestError', '')
         })
         .catch((error) => {
           ctx.commit('setPublicSettingsDigestIsLoading', false)
+          ctx.commit(
+            'setPublicSettingsDigestError',
+            (error && error.message) || 'Не удалось загрузить настройки',
+          )
           console.log(error)
         })
     },

@@ -76,7 +76,7 @@ Dockerfile'ы `deploy/karaoke-webvue3/Dockerfile` и
 `deploy/karaoke-public/Dockerfile`:
 
 - базовые образы вынесены в `ARG NODE_IMAGE` / `ARG NGINX_IMAGE` (дефолты —
-  registry-образы `sm-karaoke.ru:5443/library/...`);
+  registry-образы `sm-karaoke.ru:5443/mirror/library/...`);
 - зависимости ставятся `npm ci --prefer-offline --no-audit --no-fund` с
   cache-mount `/root/.npm` и `fetch-retries`/`fetch-timeout`.
 

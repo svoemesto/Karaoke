@@ -56,14 +56,41 @@ Harbor и потому остаётся актуальным зеркалом о
 |---|---|---|
 | `karaoke/**` | образы проекта Караоке | admin, `do.sh push_*` |
 | `mirror/<путь upstream>` | перенесённые сторонние образы, исходный путь сохранён | admin, `tools/registry-vendor.sh` |
-| `library/**` | кэш pull-through из `docker.io` | **только** Zot (sync) |
+| `library/**` | пустая зона, оставленная как read-only pull-through | **никто** (sync отключён) |
 
-**`library/**` — read-only зона.** Этот же префикс стоит в
+**`library/**` — read-only зона, и с 2026-11-15 она ПУСТАЯ.** Этот же префикс стоит в
 `extensions.sync.registries[].content` (allow-list upstream'а). `docker push` перед
 заливкой манифеста делает `HEAD`; промах по allow-list заставляет Zot идти наверх.
 Для чужого образа upstream ответит `unauthorized` → **503** и push оборвётся
 (измерено на стенде #275). Поэтому в `library/**` не пушим никогда, а вендоренные
 копии библиотечных образов кладутся в `mirror/library/**`.
+
+**Почему зона пустая (решение владельца 2026-11-15).** Pull-through через Zot
+оказался нерабочим: синк с Docker Hub идёт **15–17 минут** (`maxRetries: 3`,
+`retryDelay: 5m`), клиент отваливается по таймауту раньше; а storage-GC
+(`storage.gc: true`, `gcDelay: 2h`) вычищает то, что Zot насинкал, — зона
+опустела целиком, и любая сборка с `FROM …/library/*` падала. Разбор — в
+[deploy/prod-single-host/registry/RUNBOOK.md § 2б](../../../deploy/prod-single-host/registry/RUNBOOK.md),
+решение — **вендорить базовые образы в `mirror/library/**`** (пины в
+`images.lock`) и отключить on-demand sync (`"onDemand": false`).
+
+### Базовые образы сборки — в `mirror/library/**` (с 2026-11-15)
+
+Раньше базовые образы брались из pull-through-зоны (`§ 3.3` контракта
+`specs/540-private-docker-registry/contracts/image-naming.md`). Теперь все пять
+вендорены в `mirror/library/**` и переключены в `FROM`:
+
+| Образ | our_ref | Dockerfile |
+|---|---|---|
+| `eclipse-temurin:22-jre-jammy` | `mirror/library/eclipse-temurin:22-jre-jammy` | `deploy/karaoke-web/Dockerfile` |
+| `node:22-alpine` | `mirror/library/node:22-alpine` | `deploy/karaoke-public`, `deploy/karaoke-webvue3` |
+| `nginx:stable` | `mirror/library/nginx:stable` | `deploy/karaoke-public`, `deploy/karaoke-webvue3` |
+| `ubuntu:22.04` | `mirror/library/ubuntu:22.04` | `deploy/karaoke-app/Dockerfile` |
+| `openjdk:17-ea-jdk-slim` | `mirror/library/openjdk:17-ea-jdk-slim` | `deploy/karaoke-app/Dockerfile` |
+
+Пин — дайджест в `images.lock` (в `FROM` — тег без дайджеста, как в
+`DockerfileDemucs`; пины сверяются `tools/registry-vendor.sh --verify`). Переключение
+проверено сборкой всех четырёх образов: ни одного обращения к `library/**`.
 
 ### Зависимость от Docker Hub (на время перехода)
 

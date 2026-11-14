@@ -653,6 +653,9 @@ interface KaraokeDbTable {
                         preparedStatement.executeQuery()
                     }
                 val result: MutableList<KaraokeDbTable> = mutableListOf()
+                // Пары «таблица/поле», для которых уже сообщили про NULL в NOT NULL-колонке —
+                // чтобы лог не засорялся на каждой строке с аномалией.
+                val nullAssignedFields: MutableSet<String> = mutableSetOf()
                 while (rs.next()) {
                     val constructor = clazz.primaryConstructor
                     if (constructor != null) {
@@ -702,14 +705,79 @@ interface KaraokeDbTable {
                                                                     it
                                                                 }
                                                             }
-                                                        Double::class -> rs.getDouble(fieldName)
-                                                        Boolean::class -> rs.getBoolean(fieldName)
+                                                        Double::class ->
+                                                            rs.getDouble(fieldName).let {
+                                                                if (rs.wasNull() &&
+                                                                    property.returnType.isMarkedNullable
+                                                                ) {
+                                                                    null
+                                                                } else {
+                                                                    it
+                                                                }
+                                                            }
+                                                        Boolean::class ->
+                                                            rs.getBoolean(fieldName).let {
+                                                                if (rs.wasNull() &&
+                                                                    property.returnType.isMarkedNullable
+                                                                ) {
+                                                                    null
+                                                                } else {
+                                                                    it
+                                                                }
+                                                            }
                                                         Timestamp::class -> rs.getTimestamp(fieldName)
-                                                        Float::class -> rs.getFloat(fieldName)
+                                                        Float::class ->
+                                                            rs.getFloat(fieldName).let {
+                                                                if (rs.wasNull() &&
+                                                                    property.returnType.isMarkedNullable
+                                                                ) {
+                                                                    null
+                                                                } else {
+                                                                    it
+                                                                }
+                                                            }
                                                         else -> rs.getString(fieldName)
                                                     }
-                                                property.setter.call(entity, newValue)
+                                                // SQL NULL в поле, объявленном в Kotlin как non-null: сеттер НЕ
+                                                // вызываем — остаётся значение по умолчанию из конструктора.
+                                                // Раньше здесь бросался NPE («Parameter specified as non-null is
+                                                // null: method …setLastAlbumProcessed, parameter <set-?>») на
+                                                // ЛЮБОЙ строке с NULL в таком поле. Этот NPE не PSQLException —
+                                                // catch (_: PSQLException) его не брал, поэтому падала загрузка
+                                                // ВСЕЙ таблицы, а с ней — весь target синхронизации: автор с
+                                                // last_album_processed=NULL ронял и авторов, и альбомы (FK
+                                                // albums.author_id), и песни (FK songs.album_id) — инцидент
+                                                // 2026-11-14 (KARAOKE-429, прод: 34 песни не доехали).
+                                                if (shouldAssignColumnValue(
+                                                        newValue,
+                                                        property.returnType.isMarkedNullable,
+                                                    )
+                                                ) {
+                                                    property.setter.call(entity, newValue)
+                                                } else {
+                                                    // Аномалия данных (NULL в NOT NULL-колонке) — один раз на
+                                                    // пару «таблица/поле», чтобы не заспамить лог на каждой строке.
+                                                    if (nullAssignedFields.add("$tableName.$fieldName")) {
+                                                        AppLog.warn(
+                                                            category = CATEGORY,
+                                                            code = "DB-READ-003",
+                                                            event = "db.read.null.in.not.null.column",
+                                                            fields = mapOf("table" to tableName, "field" to fieldName),
+                                                        )
+                                                    }
+                                                }
                                             } catch (_: PSQLException) {
+                                                // Колонка не попала в SELECT (useInList=false) — пропускаем поле.
+                                            } catch (e: Exception) {
+                                                // Одна «плохая» строка/поле не должна ронять загрузку ВСЕЙ
+                                                // таблицы: иначе один битый рекорд отключает target целиком.
+                                                AppLog.warn(
+                                                    category = CATEGORY,
+                                                    code = "DB-READ-004",
+                                                    event = "db.read.field.failed",
+                                                    fields = mapOf("table" to tableName, "field" to fieldName),
+                                                    error = e,
+                                                )
                                             }
                                         }
                                     }
@@ -1135,6 +1203,27 @@ internal fun bindRecordDiffValue(
         else -> ps.setString(index, value.toString())
     }
 }
+
+/**
+ * Решение по одному полю при чтении строки: вызывать ли Kotlin-сеттер.
+ *
+ * SQL NULL в колонке, объявленной в Kotlin как non-null, сеттеру передать НЕЛЬЗЯ —
+ * `property.setter.call(entity, null)` бросает NPE («Parameter specified as
+ * non-null is null: method …setLastAlbumProcessed, parameter <set-?>»). Такой NPE
+ * не является `PSQLException`, поэтому прежний `catch (_: PSQLException)` его не
+ * перехватывал — падала загрузка ВСЕЙ таблицы, а с ней весь target синхронизации
+ * (инцидент 2026-11-14, KARAOKE-429: автор с `last_album_processed=NULL` ронял
+ * и авторов, и альбомы, и песни на проде).
+ *
+ * @param value значение из ResultSet (`null` = SQL NULL)
+ * @param isMarkedNullable объявлено ли Kotlin-поле nullable
+ * @return true — значение можно передать сеттеру; false — сеттер пропускается,
+ *   остаётся значение по умолчанию из конструктора
+ */
+internal fun shouldAssignColumnValue(
+    value: Any?,
+    isMarkedNullable: Boolean,
+): Boolean = value != null || isMarkedNullable
 
 /** SQL-тип для null-значения по типу прежнего значения колонки (BR-176). */
 internal fun sqlTypeForNull(oldValue: Any?): Int =

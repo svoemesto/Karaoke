@@ -551,12 +551,40 @@ object SyncRegistry {
     // 169k событий при move; с 200 — на порядок меньше round-trip'ов.
     const val DELETE_CHUNK_SIZE = 200
 
+    /**
+     * Порядок таргетов синхронизации.
+     *
+     * **Инвариант (KARAOKE-429, инцидент 2026-11-14)**: порядок обязан быть
+     * FK-безопасным — «родитель» раньше «ребёнка». Прод применяет тело
+     * `POST /changerecords` ЦЕЛИКОМ в одной транзакции (`autoCommit=false`,
+     * `commit()` в конце): одна строка, нарушающая FK, откатывает весь батч
+     * (HTTP 500). Проверенный на проде FK-граф синхронизируемых таблиц:
+     *
+     * - `tbl_albums.author_id` → `tbl_authors(id)` — `ON DELETE RESTRICT`;
+     * - `tbl_songs.album_id` → `tbl_albums(id)` — `ON DELETE SET NULL`;
+     * - `tbl_song_authors.song_id` → `tbl_songs(id)`, `.author_id` → `tbl_authors(id)`;
+     * - `tbl_news.song_id` → `tbl_songs(id)`;
+     * - `tbl_site_playlists.owner_id` → `tbl_site_users(id)`;
+     * - `tbl_site_playlist_items.playlist_id` → `tbl_site_playlists(id)`;
+     * - `tbl_subscriptions.site_user_id` → `tbl_site_users(id)`, `.tariff_id` → `tbl_price_tariffs(id)`.
+     *
+     * Порядок ниже удовлетворяет обоим направлениям:
+     * PUSH (LOCAL→SERVER): `authors` → `albums` → `songs` → `songcoauthors`;
+     * PULL (SERVER→LOCAL): `siteusers` → `siteplaylists` → `siteplaylistitems`,
+     * `siteusers` → `listeninghistory`/`songassignments`/`songassignmentdrafts`/`sharelinks`/`subscriptions`,
+     * `pricetariffs` → `subscriptions`.
+     *
+     * До правки порядок был `Song, Pictures, Authors, Albums, …` — песни
+     * синкались РАНЬШЕ альбомов, и новая песня с ещё не залитым альбомом
+     * роняла весь батч песен на проде (симптом владельца: «альбомы видны,
+     * песен нет»). Порядок проверяется тестом `SyncFkOrderTest`.
+     */
     val all: List<SyncTarget<*>> =
         listOf(
-            SongSyncTarget,
-            PicturesSyncTarget,
             AuthorsSyncTarget,
             AlbumsSyncTarget,
+            PicturesSyncTarget,
+            SongSyncTarget,
             SongCoAuthorsSyncTarget,
             DictionariesSyncTarget,
             NewsSyncTarget,

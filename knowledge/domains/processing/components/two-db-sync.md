@@ -102,6 +102,44 @@ DTO контрактов (`SyncEntityInfoDto`, `SyncRunResultDto`,
 `SongShareLink`, `WebEvent`, `PriceTariff`, `Subscription`,
 `SiteChatMessage`.
 
+#### Порядок реестра — FK-инвариант (KARAOKE-429, инцидент 2026-11-14)
+
+Порядок элементов `SyncRegistry.all` — **не** косметика: он задаёт очерёдность
+targets и в one-click (`ApiController.postSyncOneClick`), и в
+`AutoOneClickSyncScheduler`. Прод применяет тело `POST /changerecords`
+**целиком в одной транзакции** (`autoCommit=false`, `commit()` в конце,
+`rollback()` при ошибке) — одна строка, нарушающая FK, откатывает **весь**
+батч (HTTP 500), и ни одна строка батча не применяется.
+
+Поэтому порядок MUST быть **FK-безопасным**: «родитель» раньше «ребёнка».
+Проверенный на проде FK-граф синхронизируемых таблиц:
+
+| Ребёнок | Родитель |
+| --- | --- |
+| `tbl_albums.author_id` | `tbl_authors(id)` |
+| `tbl_songs.album_id` | `tbl_albums(id)` |
+| `tbl_song_authors.song_id` / `.author_id` | `tbl_songs(id)` / `tbl_authors(id)` |
+| `tbl_news.song_id` | `tbl_songs(id)` |
+| `tbl_site_playlists.owner_id` | `tbl_site_users(id)` |
+| `tbl_site_playlist_items.playlist_id` | `tbl_site_playlists(id)` |
+| `tbl_listening_history.site_user_id` | `tbl_site_users(id)` |
+| `tbl_song_assignments.assignee_id` | `tbl_site_users(id)` |
+| `tbl_song_assignment_drafts.assignee_id` | `tbl_site_users(id)` |
+| `tbl_song_share_links.owner_site_user_id` | `tbl_site_users(id)` |
+| `tbl_subscriptions.site_user_id` / `.tariff_id` | `tbl_site_users(id)` / `tbl_price_tariffs(id)` |
+
+**До правки** порядок был `Song, Pictures, Authors, Albums, …` — песни
+синкались РАНЬШЕ альбомов. Новая песня с ещё не залитым альбомом роняла весь
+батч песен: симптом владельца — «альбомы на проде видны, песен нет».
+**После правки**: `authors → albums → pictures → songs → songcoauthors →
+dictionaries → news`, затем pull-таргеты в FK-безопасном порядке
+(`siteusers → siteplaylists → siteplaylistitems → … → pricetariffs →
+subscriptions`).
+
+Инвариант зафиксирован тестом `SyncFkOrderTest` (FK-граф — константа теста,
+снят с прода 2026-11-14). При добавлении новой синхронизируемой таблицы
+инвариант проверяется автоматически.
+
 **Не в sync** (важно!): `KaraokeProcess`, `StemJob`, `CartItem`,
 `SearchAsync`, `SearchResult`, `PromoRule`, `CrossSong` — только
 LOCAL. Это значит, что **repair-процессы не видны прод-серверу**.
@@ -246,6 +284,21 @@ production-коде) — `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/a
    чанки, `SyncResult.error = true`, списки пусты, источник в move-режиме
    НЕ очищается. Раньше результат игнорировался, и источник удалялся при
    отказе цели.
+7. **Порядок `SyncRegistry.all` MUST быть FK-безопасным** (родитель раньше
+   ребёнка) — прод применяет батч одной транзакцией, нарушение FK откатывает
+   весь батч. Проверяется `SyncFkOrderTest`.
+8. **Загрузчик MUST переживать SQL NULL в not-null-колонке**
+   (`KaraokeDbTable.loadListInternal`): значение `null` нельзя передавать в
+   сеттер не-null Kotlin-поля — это NPE («Parameter specified as non-null is
+   null»), который НЕ является `PSQLException` и прежним `catch` не
+   перехватывался. Одна аномальная строка роняла загрузку ВСЕЙ таблицы, а с
+   ней — весь target синхронизации (KARAOKE-429: автор с
+   `last_album_processed=NULL` ронял и авторов, и альбомы, и песни).
+   Контракт: `null` в not-null-поле → значение по умолчанию из конструктора;
+   `null` в nullable-поле → `null`; одна «битая» строка/поле не обрушивает
+   загрузку остальных. Проверяется `KaraokeDbTableNullReadTest`.
+   Практическое правило: **nullable-колонка → nullable-поле в Kotlin**; если
+   поле не-null, то колонка в БД тоже должна быть NOT NULL.
 
 ## Hot paths
 

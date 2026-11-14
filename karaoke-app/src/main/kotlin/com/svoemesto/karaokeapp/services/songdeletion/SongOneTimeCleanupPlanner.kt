@@ -112,6 +112,27 @@ class SongOneTimeCleanupPlanner(
             PUBLICATION_PICTURE_NAME_SUFFIXES.map { suffix -> "$base $suffix.png" }
 
         /**
+         * Совпадает ли префикс пути объекта с автором и годом живой песни.
+         *
+         * Ключ объекта — `$автор/$год - $альбом/$имя песни`. Переименование **альбома**
+         * меняет только часть пути после `$автор/$год - ` — такой объект действительно
+         * устаревшая копия. Но у разных исполнителей бывают альбомы с одинаковым
+         * названием («Призраки Завтра» у «Мумий Тролль», «Мумий Тролль, T-Fest» и
+         * «Мумий Тролль feat. Скриптонит») — их объекты **разные записи**, а не копии.
+         * Без проверки автора и года перечень разовой уборки предлагал удалить чужие
+         * объекты (факт 2026-11-14, замер после импорта: 19 ложных кандидатов).
+         *
+         * @param author автор живой песни.
+         * @param year год живой песни.
+         * @param oldPrefix путь объекта-кандидата без имени файла.
+         */
+        internal fun isSameAuthorAndYear(
+            author: String,
+            year: String,
+            oldPrefix: String,
+        ): Boolean = oldPrefix.startsWith("$author/$year - ")
+
+        /**
          * Хвост артефакта песни в имени объекта: mp3-стем или публикационная картинка.
          *
          * @param filePart имя объекта (после `$автор/$год - $альбом/`).
@@ -424,7 +445,8 @@ class SongOneTimeCleanupPlanner(
                 // Общая обложка альбома/автора (FR-014) — не объект песни.
                 if (isSharedCoverKey(key)) return@forEach
                 // Устаревшая копия: объект живой песни под прежним путём.
-                val canonicalKeys = canonicalKeysOfStaleCopy(filePart, liveByName, historySongs)
+                val oldPrefix = key.substringBeforeLast('/', "")
+                val canonicalKeys = canonicalKeysOfStaleCopy(filePart, oldPrefix, liveByName, historySongs)
                 // Свой объект живой песни (путь совпал) — не устаревшая копия.
                 if (canonicalKeys.isNotEmpty() && canonicalKeys.none { canonical -> canonical == key }) {
                     // Удаляем, только если у живой песни ЕСТЬ актуальный объект: иначе
@@ -487,6 +509,7 @@ class SongOneTimeCleanupPlanner(
      */
     private fun canonicalKeysOfStaleCopy(
         filePart: String,
+        oldPrefix: String,
         liveByName: Map<String, List<LiveSong>>,
         historySongs: Map<String, LiveSong>,
     ): List<String> {
@@ -495,11 +518,32 @@ class SongOneTimeCleanupPlanner(
         val normalized = SongArtifactOwnership.normalizeForMatch(songName)
         val matches = liveByName[normalized].orEmpty()
         if (matches.isNotEmpty()) {
-            return matches.map { song -> canonicalKey(song, artifactTail) }
+            return matches
+                .filter { song -> sameAuthorAndYear(song, oldPrefix) }
+                .map { song -> canonicalKey(song, artifactTail) }
         }
         val historical = historySongs[songName] ?: return emptyList()
+        if (!sameAuthorAndYear(historical, oldPrefix)) return emptyList()
         return listOf(canonicalKey(historical, artifactTail))
     }
+
+    /**
+     * Тот же автор и тот же год — иначе объект под старым путём не устаревшая копия.
+     *
+     * Ключ объекта — `$автор/$год - $альбом/$имя песни`. Переименование **альбома** меняет
+     * только часть пути после `$автор/$год - ` — такие объекты действительно устаревшие
+     * копии (актуальный объект лежит в канонической папке).
+     *
+     * Но у разных исполнителей бывают альбомы с одинаковым названием (например
+     * «Призраки Завтра» у «Мумий Тролль», «Мумий Тролль, T-Fest» и
+     * «Мумий Тролль feat. Скриптонит»): их объекты — **разные записи**, а не копии.
+     * Без проверки автора и года перечень разовой уборки предлагал удалить чужие объекты
+     * (факт 2026-11-14, замер после импорта: 19 ложных кандидатов).
+     */
+    private fun sameAuthorAndYear(
+        song: LiveSong,
+        oldPrefix: String,
+    ): Boolean = isSameAuthorAndYear(song.author, song.year, oldPrefix)
 
     /** Актуальный ключ объекта песни: `$автор/$год - $альбом/$имя песни[хвост]`. */
     private fun canonicalKey(

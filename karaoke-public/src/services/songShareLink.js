@@ -35,7 +35,12 @@ async function getBrowserHash() {
 
 /**
  * Анонимный claim — обмен секрета из URL на sessionTokenHash. Вызывается на /share/{id}/{secret}.
- * Возвращает Promise<{ linkId, sessionTokenHash, redirectTo } | null при ошибке>.
+ *
+ * Возвращает `Promise<{ status: number, body: Object|null }>`, где `body` — разобранный
+ * JSON ответа (`null`, если ответ пуст или не JSON). Разбор ответа — на вызывающем:
+ * по `status` и `body.errorCode` он различает «ссылки нет», «лимит» и «ошибку сервиса»
+ * (см. `utils/shareClaim.js`). При сетевом отказе промис ОТКЛОНЯЕТСЯ с
+ * `Error('network_error')` — значение `null` не возвращается.
  */
 async function claimShare(secret) {
   const browserHash = await getBrowserHash()
@@ -61,7 +66,10 @@ async function claimShare(secret) {
 
 /**
  * Heartbeat для продления lease. Вызывается из KaraokePlayer раз в ~25 сек.
- * Возвращает `{ ok: true }` или `{ status: 410 }` при leaseExpired.
+ *
+ * Возвращает `Promise<{ status: number, body: Object|null }>` — по `status` 410 вызывающий
+ * понимает, что lease истёк (нужен повторный claim), по `body` — что ответил сервер.
+ * При сетевом отказе промис ОТКЛОНЯЕТСЯ с `Error('network_error')`.
  */
 function heartbeat(sessionTokenHash) {
   const xhr = new XMLHttpRequest()
@@ -86,6 +94,9 @@ function heartbeat(sessionTokenHash) {
 
 /**
  * Release сессии. На beforeunload отправляется через navigator.sendBeacon.
+ *
+ * Если `sendBeacon` недоступен (или бросает) — уходит через XMLHttpRequest, тем же
+ * JSON-телом. Возвращаемого значения нет: вызов fire-and-forget.
  */
 function release(sessionTokenHash, result) {
   const payload = JSON.stringify({ sessionTokenHash, result: result || 'closed' })

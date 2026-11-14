@@ -114,9 +114,11 @@ fun main(model: Model, request: HttpServletRequest): String {
 - **Аналитика**: почти каждая страница после сборки модели вызывает
   `doRegisterEvent(...)` (`CALL_REST` + `RestName` страницы); исключения —
   `/statbysong`, `/webevents`, `/testpage/{id}`.
-- **`/statbysong`**: `stats` — top-1000 (`getStatBySong(limit = 1000)`),
+- **`/statbysong`**: `stats` — top-1000 (`getStatBySong(limit = STAT_BY_SONG_PAGE_LIMIT)`),
   `totalCount` — полное число для баннера; полная выгрузка — через REST
-  `/api/stats/by-song`.
+  `/api/stats/by-song`. Лимит и дефолты пагинации выгрузки — именованные
+  константы `MainController` (`STAT_BY_SONG_PAGE_LIMIT`,
+  `STAT_BY_SONG_DEFAULT_PAGE_SIZE`, `STAT_BY_SONG_MAX_PAGE_SIZE`).
 
 ### Данные страниц (источники)
 
@@ -155,6 +157,8 @@ fun main(model: Model, request: HttpServletRequest): String {
 
 ## Changelog
 
-
+- **2026-11-14** (KARAOKE-402): лимит выборки для `/statbysong` и дефолты пагинации
+  выгрузки `/statbysong-export` вынесены в именованные константы `MainController`;
+  значения не изменились. Автор: agent (Karaoke).
 - **Pass 481** (2026-09-27, spec `481-knowledge-domain-karaoke-web`): секции приведены к шаблону компонента. Автор: agent (Karaoke).
 - **Pass 439** (2026-09-09): Initial. Автор: agent (Karaoke).

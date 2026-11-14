@@ -211,25 +211,64 @@ cd <admin> && bash deploy/deploy_public.sh
 
 > Три симптома, каждый из которых останавливал деплой. Проверено на проде
 > 2026-11-14 (выкладка `karaoke-web` и `karaoke-public`).
+>
+> **Исправлено 2026-11-15 (решение владельца).** Причина § 2б.1 устранена: базовые
+> образы вендорены в `mirror/library/**`, `FROM` переключены, on-demand sync
+> отключён. § 2б.2 и § 2б.3 остаются в силе как обходы операционки.
 
-### 2б.1. `library/**` — pull-through зона, синк с Docker Hub зависает
+### 2б.1. `library/**` — pull-through зона: синк долгий, GC вычищает результат
 
-`config.json` включает sync-on-demand с `"syncTimeout": "2h"` и префиксом
-`library/**`. `library/**` — **read-only** зона: правило в `images.lock` —
-«в `library/**` не пушим никогда».
+**Причина (полный разбор).** Зона не «зависала» — она была **опустошена**:
 
-**Симптом.** `docker pull sm-karaoke.ru:5443/library/eclipse-temurin:22-jre-jammy` →
-`Head …: net/http: timeout awaiting response headers`. В логах Zot:
-`trying to get updated image by syncing on demand` → `syncing image (remote
-docker.io/library/eclipse-temurin@sha256:dbcae8b5…)` — и синк **не завершается**.
+1. `config.json` включает sync-on-demand с `"syncTimeout": "2h"`,
+   `"maxRetries": 3`, `"retryDelay": "5m"` и префиксом `library/**`.
+   Синк с Docker Hub идёт **15–17 минут** (три ретрая по 5 минут), а HTTP-запрос
+   клиента всё это время **висит открытым** — docker-клиент сдаётся раньше.
+2. `storage.gc: true`, `gcDelay: "2h"`, `gcInterval: "24h"`, а retention-политика
+   `{"repositories": ["**"], "deleteUntagged": true}` действует **и на `library/**`**:
+   GC вычищает нетегированные манифесты и блобы, которые ещё не привязаны к тегу.
+   Цикл GC по репозиториям идёт ~40 минут — и **гарантированно наезжает** на синк.
+3. Метаданные `.sync/` в репозиториях пусты → Zot считает образ
+   «не синхронизированным» и **пересинхронизирует при каждом запросе**, даже если
+   манифест и тег лежат локально.
 
-Проверено: запрос к **любому** `library/*` с авторизацией виснет (в том числе
-`library/node` и `library/nonexistent-xyz`), а анонимный отвечает мгновенно (401) —
-то есть зависает именно путь «авторизоваться → пойти в upstream».
+**Хронология (логи Zot, 2026-11-14).**
 
-**Обход (без правки репозитория).** Базовый образ тянется напрямую с Docker Hub и
-тегуется под имя из репозитория — buildkit берёт образ из локального хранилища и
-registry не опрашивает:
+| Время | Событие |
+|---|---|
+| 14:45:40 | GC по `library/alpine`: «skipping missing image manifest blob» |
+| 14:50:29 | «sync: syncing image» — старт скачивания из Docker Hub |
+| 15:06:46 | «pushing synced local image to local registry» — через **16 мин 17 с** |
+| 15:06:48 | 4× «skipping missing manifest blob in image index» |
+| 15:07:05 | «successfully synced image» (индекс ссылается на отсутствующие манифесты) |
+| 15:25:45 | GC по `library/eclipse-temurin`: «pruned stale manifest entry from index» |
+
+После этого `library/eclipse-temurin` — **32 КБ** вместо ~90 МБ, `index.json` =
+`{"manifests":[]}`. Проверено на всех пяти репозиториях зоны: `library/node`,
+`library/nginx`, `library/alpine`, `library/ubuntu`, `library/eclipse-temurin` —
+доступных базовых образов **ноль**.
+
+**Сеть до Docker Hub при этом в порядке** (проверено с прод-хоста):
+`https://registry-1.docker.io/v2/` → 401 за 1.16 с, блоб тянется за 0.57 с.
+
+**Исправление (2026-11-15).**
+
+1. Пять базовых образов вендорены в `mirror/library/**`
+   (`tools/registry-vendor.sh --update-lock`, пины — в `images.lock`):
+   `eclipse-temurin:22-jre-jammy`, `node:22-alpine`, `nginx:stable`,
+   `ubuntu:22.04`, `openjdk:17-ea-jdk-slim`.
+2. `FROM` в `deploy/karaoke-{web,app,public,webvue3}/Dockerfile` переключены с
+   `…/library/…` на `…/mirror/library/…`.
+3. В `config.json` выставлено `"onDemand": false` — зона `library/**` больше не
+   наполняется и не чистится; запрос к ней отдаёт **404 сразу**, а не висит
+   15 минут. Конфиг Zot перечитывается на лету (fsnotify) — **рестарт контейнера
+   `karaoke-registry` не нужен**.
+
+Инвариант I-2 («в `library/**` не пушим никогда») не изменился.
+
+**Обход на время разбора (без правки репозитория).** Базовый образ тянется напрямую
+с Docker Hub и тегуется под имя из репозитория — buildkit берёт образ из локального
+хранилища и registry не опрашивает:
 
 ```bash
 docker pull eclipse-temurin:22-jre-jammy
@@ -237,6 +276,7 @@ docker tag eclipse-temurin:22-jre-jammy sm-karaoke.ru:5443/library/eclipse-temur
 ```
 
 В логе сборки видно, что взят **тот же digest**, что синкает Zot.
+
 
 **Корень проблемы — не наш, но чинить надо у себя:** upstream-синк Zot виснет на
 втором Docker Hub с этого IP. Варианты: (а) вендорить базовые образы в
@@ -345,5 +385,6 @@ bash tools/check-cert-expiry.sh sm-karaoke.ru:443 sm-karaoke.ru:5443 --warn-days
 
 | Дата | Что |
 |---|---|
+| 2026-11-15 | § 2б.1 переписан: полная причина (медленный sync + storage-GC + пустые `.sync`) и исправление — вендоринг пяти базовых образов в `mirror/library/**`, переключение `FROM`, `"onDemand": false` |
 | 2026-11-14 | Раздел «2б. Сбои операционки»: pull-through `library/**` с зависающим синком, медленные PUT манифеста (docker-клиент отваливается по таймауту, запись проходит), доступ к registry с прод-хоста по `127.0.0.1:5000`, требование `PROD_HOST` для `sync_prod_config` |
 | 2026-10-11 | Создан каркас (T007) |

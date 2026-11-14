@@ -177,10 +177,11 @@ guard, в pre-commit и CI) — предел памяти, `-Xmx` и его от
 | Значения в `do.env` | `REGISTRY_HOST`, `REGISTRY_USER`, `REGISTRY_PASSWORD`, `DOCKER_REGISTRY=sm-karaoke.ru:5443/karaoke`, `DUAL_PUSH` |
 
 Сборка на admin берёт базовые образы из нашего registry (`FROM
-sm-karaoke.ru:5443/library/…`), прод получает свои образы вендорингом
-(`mirror/**`), сторонние образы переносятся `tools/registry-vendor.sh` по
-`registry/images.lock`. Guard R-04/R-05 (`tools/check-docker-image-tags.sh`)
-расширен под registry-квалифицированные имена.
+sm-karaoke.ru:5443/mirror/library/…` — с 2026-11-15; раньше была pull-through зона
+`library/**`, см. ниже), прод получает свои образы вендорингом (`mirror/**`),
+сторонние образы переносятся `tools/registry-vendor.sh` по `registry/images.lock`.
+Guard R-04/R-05 (`tools/check-docker-image-tags.sh`) расширен под
+registry-квалифицированные имена.
 
 ### Известные сбои операционки (деплой 2026-11-14)
 
@@ -188,11 +189,21 @@ sm-karaoke.ru:5443/library/…`), прод получает свои образ�
 не код проекта. Разбор и обходы — в
 [registry/RUNBOOK.md § 2б](../../../deploy/prod-single-host/registry/RUNBOOK.md):
 
-| Симптом | Причина | Обход |
+| Симптом | Причина | Статус |
 |---|---|---|
-| `docker pull …/library/<образ>` → `timeout awaiting response headers` | `library/**` — read-only pull-through зона; sync-on-demand с Docker Hub (`syncTimeout: 2h`) зависает | тянуть базовый образ напрямую с Hub и теговать под имя из репозитория — buildkit берёт его из локального хранилища |
-| `docker push` падает по таймауту, хотя запись на сервере прошла (тег остался старый) | PUT манифеста в Zot отвечает 41–45 с, docker-клиент ждёт 30 с | проставить тег вручную `curl -X PUT` (у curl нет клиентского таймаута) и сверить `Docker-Content-Digest` |
-| `do.sh pull_web` на проде: «логин в registry не удался» | с прод-хоста HTTPS к своему же публичному IP на 5443 виснет | работать с локальным registry: `docker login 127.0.0.1:5000` → `pull` → `tag` под имя из compose → `do.sh start_*` |
+| `docker pull …/library/<образ>` → `timeout awaiting response headers` | `library/**` — pull-through зона: sync-on-demand с Docker Hub идёт 15–17 минут, а storage-GC вычищает насинкованное; зона опустела целиком | **исправлено 2026-11-15**: базовые образы вендорены в `mirror/library/**`, `FROM` переключены, `"onDemand": false` |
+| `docker push` падает по таймауту, хотя запись на сервере прошла (тег остался старый) | PUT манифеста в Zot отвечает 41–45 с, docker-клиент ждёт 30 с | обход: проставить тег вручную `curl -X PUT` (у curl нет клиентского таймаута) и сверить `Docker-Content-Digest` |
+| `do.sh pull_web` на проде: «логин в registry не удался» | с прод-хоста HTTPS к своему же публичному IP на 5443 виснет | обход: работать с локальным registry: `docker login 127.0.0.1:5000` → `pull` → `tag` под имя из compose → `do.sh start_*` |
+
+### Настройки web-контейнера (2026-11-15)
+
+`KaraokeProperties` пишет `/sm-karaoke/system/Karaoke.properties` при первом
+обращении к настройкам. Каталога в контейнере `karaoke-web` не было — запись падала
+с `NoSuchFileException` (в логе одна строка ERROR за старт; приложение продолжает
+работу на значениях по умолчанию, но настройки web не сохраняются). Теперь в
+`docker-compose-web.yml` (локальном и продовом) смонтирован **отдельный** каталог
+`${WEB_SYSTEM_HOST:-/sm-karaoke/web-system}` → `/sm-karaoke/system`. Отдельный —
+чтобы web не затирал настройки `karaoke-app` (тот монтирует `APP_FOLDER_SYSTEM`).
 
 ## Hardening S2 (аудит #336, пакет PKG-S2-08 / OpenProject #371)
 
@@ -352,6 +363,17 @@ TODO: Vault, SOPS, или другое решение (Pass 343+).
 - **Constitution.md** — запрет на коммит секретов.
 
 ## Changelog
+
+- **2026-11-15** (решение владельца): базовые образы сборки вендорены в
+  `mirror/library/**` (пины в `registry/images.lock`), `FROM` в четырёх Dockerfile
+  переключены с `…/library/…` на `…/mirror/library/…`, on-demand sync в
+  `registry/config.json` отключён (`"onDemand": false`) — pull-through-зона
+  `library/**` больше не наполняется и не вычищается GC; в `docker-compose-web.yml`
+  (локальном и продовом) добавлен отдельный каталог настроек web-контейнера
+  `${WEB_SYSTEM_HOST:-/sm-karaoke/web-system}` → `/sm-karaoke/system` (устраняет
+  `NoSuchFileException` при записи `Karaoke.properties`); контракт
+  `specs/540-private-docker-registry/contracts/image-naming.md` § 3.3 переписан.
+  Автор: agent (Karaoke).
 
 - **2026-11-14** (деплой на прод): подраздел «Известные сбои операционки» — три
   проверенных симптома приватного registry (зависающий sync-on-demand в

@@ -45,6 +45,14 @@ services:
       - CAPTCHA_SERVER_KEY=${CAPTCHA_SERVER_KEY}
 #    volumes:
 #      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
+    # Каталог настроек web-контейнера. KaraokeProperties пишет файл
+    # /sm-karaoke/system/Karaoke.properties при первом обращении к настройкам;
+    # без монтирования каталога нет — приложение падает с NoSuchFileException
+    # при создании временного файла (ошибка в логе, работа продолжается на
+    # значениях по умолчанию). Каталог ОТДЕЛЬНЫЙ от того, что у karaoke-app
+    # (APP_FOLDER_SYSTEM), чтобы web не затирал настройки приложения.
+    volumes:
+      - ${WEB_SYSTEM_HOST:-/sm-karaoke/web-system}:/sm-karaoke/system
     networks:
       - karaokenet
     depends_on:

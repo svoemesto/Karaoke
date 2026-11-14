@@ -90,20 +90,36 @@ Zot идти наверх. Для приватного образа upstream о�
 `minio` и `nvidia/cuda` прибавляются к этому, точный объём фиксируется при переносе
 (в `images.lock`). Делается один раз, вне окна обслуживания прода.
 
-### 3.3 Базовые образы сборки — через pull-through, без вендоринга
+### 3.3 Базовые образы сборки — вендоринг в `mirror/library/**` (решение владельца 2026-11-15)
+
+> **История решения.** Первоначально базовые образы сборки брались из
+> pull-through-зоны `library/**` (§ 3.3 в редакции от 2026-10-13): Zot по
+> требованию докачивает образ из Docker Hub. На практике зона оказалась
+> нерабочей — синк идёт **15–17 минут** (`maxRetries: 3`, `retryDelay: 5m`),
+> клиент отваливается по таймауту раньше, а storage-GC (`gc: true`,
+> `gcDelay: 2h`) вычищает насинкованное содержимое; к 2026-11-14 зона была пуста
+> целиком, и любая сборка с `FROM …/library/*` падала. Разбор — в
+> `deploy/prod-single-host/registry/RUNBOOK.md § 2б`.
+>
+> **Новое решение:** базовые образы вендоренятся в `mirror/library/**`
+> (штатный механизм § 3.2, `tools/registry-vendor.sh`, пины в `images.lock`),
+> on-demand sync отключён (`"onDemand": false`). Зона `library/**` остаётся
+> пустой и read-only — в неё не пушим никогда (инвариант I-2 не изменился).
 
 | Было (`FROM`) | Стало | Файл | Guard |
 |---|---|---|---|
-| `openjdk:17-ea-jdk-slim` | `sm-karaoke.ru:5443/library/openjdk:17-ea-jdk-slim` | `deploy/karaoke-app/Dockerfile` | — |
-| `ubuntu:22.04` | `…/library/ubuntu:22.04` | `deploy/karaoke-app/Dockerfile` | — |
-| `eclipse-temurin:22-jre-jammy` | `…/library/eclipse-temurin:22-jre-jammy` | `deploy/karaoke-web/Dockerfile` | — |
-| `node:22-alpine` | `…/library/node:22-alpine` | `karaoke-public`, `karaoke-webvue3` | **R-05** |
-| `nginx:stable` | `…/library/nginx:stable` | `karaoke-public`, `karaoke-webvue3` | **R-04** |
+| `openjdk:17-ea-jdk-slim` | `sm-karaoke.ru:5443/mirror/library/openjdk:17-ea-jdk-slim` | `deploy/karaoke-app/Dockerfile` | — |
+| `ubuntu:22.04` | `…/mirror/library/ubuntu:22.04` | `deploy/karaoke-app/Dockerfile` | — |
+| `eclipse-temurin:22-jre-jammy` | `…/mirror/library/eclipse-temurin:22-jre-jammy` | `deploy/karaoke-web/Dockerfile` | — |
+| `node:22-alpine` | `…/mirror/library/node:22-alpine` | `karaoke-public`, `karaoke-webvue3` | **R-05** |
+| `nginx:stable` | `…/mirror/library/nginx:stable` | `karaoke-public`, `karaoke-webvue3` | **R-04** |
 
-`library/**` покрывает официальные образы Docker Hub; `docker.io/nvidia/cuda` в него
-не входит и потому вендорится (§ 3.2). Правило «путь сохраняется» (R-2 research)
-делает `FROM …/library/node:22-alpine` рабочим без `daemon.json`: имя само указывает
-хост, Zot при промахе идёт в `docker.io` по allow-list и кэширует.
+`mirror/library/**` повторяет путь upstream'а (официальные образы Docker Hub),
+поэтому `FROM` выглядит так же, как раньше, — меняется только namespace.
+`docker.io/nvidia/cuda` вендорится в `mirror/nvidia/cuda` (§ 3.2).
+
+Пин — дайджест в `images.lock` (в `FROM` — тег без дайджеста, как в
+`DockerfileDemucs`); сверка — `tools/registry-vendor.sh --verify`.
 
 ### 3.4 Вне области этого контракта
 

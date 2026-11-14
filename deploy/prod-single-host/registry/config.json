@@ -149,7 +149,7 @@
           "urls": [
             "https://registry-1.docker.io"
           ],
-          "onDemand": true,
+          "onDemand": false,
           "tlsVerify": true,
           "maxRetries": 3,
           "retryDelay": "5m",

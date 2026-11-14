@@ -1,8 +1,12 @@
 # Базовые образы параметризованы (OpenProject #327): при недоступном registry
 # локальная сборка может не делать `docker tag`, а передать
 # NODE_IMAGE=node:22-alpine NGINX_IMAGE=nginx:stable (см. do.sh).
-ARG NODE_IMAGE=sm-karaoke.ru:5443/library/node:22-alpine
-ARG NGINX_IMAGE=sm-karaoke.ru:5443/library/nginx:stable
+# Базовые образы — вендорены в mirror/** (пин в deploy/prod-single-host/registry/images.lock).
+# Причина: pull-through-зона library/** нерабочая — Zot синхронизирует образ из
+# Docker Hub 15–17 минут, а его storage-GC вычищает синхронизированное содержимое
+# (деплой 2026-11-14, см. RUNBOOK § 2б). Подробности — knowledge/system/infra/deploy-overview.md.
+ARG NODE_IMAGE=sm-karaoke.ru:5443/mirror/library/node:22-alpine
+ARG NGINX_IMAGE=sm-karaoke.ru:5443/mirror/library/nginx:stable
 
 FROM ${NODE_IMAGE} AS build-stage
 

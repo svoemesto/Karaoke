@@ -12,6 +12,14 @@
 #     в build.gradle.kts утверждал «Jackson 2.14 (используется в проекте)» —
 #     а в проекте 2.19.2.
 #
+#   KARAOKE-404 (postgresql-explicit-version:build) — явный пин драйвера
+#     PostgreSQL перебивал версию, управляемую BOM'ом Spring Boot 3.5.6
+#     (42.7.7): в `dependencyInsight` версия 42.7.8 была «selected by rule»
+#     из-за ручного пина. Пин замораживал драйвер — обновление из BOM
+#     (в т.ч. с исправлениями уязвимостей) до него не доходило. Правок,
+#     которые даёт 42.7.8, проект не использует (перечень — в
+#     `specs/404-postgres-driver-pin/report.md`), поэтому пин снят.
+#
 #   BR-529 (heap-dump-world-readable:build) — Gradle-daemon запускался с
 #     `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/gradle-heap.hprof`.
 #     JVM писал полный дамп кучи в общий /tmp (режим 1777) с правами
@@ -41,7 +49,9 @@
 #   7. heap-dump-shared-path    — `-XX:HeapDumpPath=` не указывает в общий
 #      каталог (/tmp, /var/tmp, /dev/shm, /run);
 #   8. heap-dump-unsafe-perms   — sanctioned-скрипт гарантирует приватные
-#      права: `umask 077` (файл дампа 0600) и каталог 0700.
+#      права: `umask 077` (файл дампа 0600) и каталог 0700;
+#   9. postgresql-explicit-version — в build-файлах нет явной версии
+#      `org.postgresql:postgresql` (версию задаёт BOM Spring Boot).
 #
 # Использование:
 #   bash tools/check-build-config.sh              # guard-режим
@@ -167,6 +177,28 @@ check_jackson() {
     fi
 }
 
+# PostgreSQL-драйвер с явной версией: org.postgresql:postgresql:42.7.8
+#
+# Тот же класс проблемы, что и у Jackson (BR-527): ручной пин перебивает
+# версию, управляемую BOM Spring Boot, и замораживает драйвер — обновление
+# из BOM (в т.ч. с исправлениями уязвимостей) до него не доходит.
+check_postgresql() {
+    local file lineno content
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+        [[ "$file" == *.gradle.kts ]] || continue
+        while IFS=: read -r lineno content; do
+            [[ -z "$lineno" ]] && continue
+            case "$content" in
+                \#* | //*) continue ;;
+            esac
+            violation "postgresql-explicit-version" \
+                "$file:$lineno: явная версия PostgreSQL-драйвера перебивает BOM Spring Boot" \
+                "$(printf '%s' "$content" | sed 's/^[[:space:]]*//')"
+        done < <(grep -nE 'org\.postgresql:postgresql:[0-9]+(\.[0-9]+)*' "$ROOT/$file" 2>/dev/null || true)
+    done < <(scan_files)
+}
+
 check_dead_root_dependencies() {
     local file="build.gradle.kts"
     [[ -f "$ROOT/$file" ]] || {
@@ -286,6 +318,7 @@ run_checks() {
         return 2
     fi
     check_jackson
+    check_postgresql
     check_dead_root_dependencies || return 2
     check_maven_pom
     check_heap_dump
@@ -294,7 +327,7 @@ run_checks() {
         color_red "Найдено нарушений конфигурации сборки: $violations"
         return 1
     fi
-    color_green "OK: конфигурация сборки без мёртвых дублей, Jackson — одной версии (BOM), дампы кучи — приватные"
+    color_green "OK: конфигурация сборки без мёртвых дублей, Jackson и PostgreSQL-драйвер — из BOM, дампы кучи — приватные"
     return 0
 }
 
@@ -326,7 +359,7 @@ EOF
     cat > "$root/karaoke-app/build.gradle.kts" <<'EOF'
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
-    implementation("org.postgresql:postgresql:42.7.8")
+    implementation("org.postgresql:postgresql")
 }
 EOF
     cat > "$root/karaoke-web/build.gradle.kts" <<'EOF'
@@ -404,8 +437,13 @@ self_test() {
 
     # 3. Мёртвый блок dependencies в корне → FAIL
     make_good_tree "$tmp/deaddeps"
-    printf 'dependencies {\n    implementation("org.postgresql:postgresql:42.7.7")\n}\n' >> "$tmp/deaddeps/build.gradle.kts"
+    printf 'dependencies {\n    implementation("commons-io:commons-io:2.20.0")\n}\n' >> "$tmp/deaddeps/build.gradle.kts"
     expect_case "dead-root-dependencies" "$tmp/deaddeps" 1 || rc=1
+
+    # 3b. Явная версия PostgreSQL-драйвера → FAIL
+    make_good_tree "$tmp/pgpin"
+    sed -i 's#postgresql")#postgresql:42.7.8")#' "$tmp/pgpin/karaoke-app/build.gradle.kts"
+    expect_case "postgresql-explicit-version" "$tmp/pgpin" 1 || rc=1
 
     # 4. pom.xml в корне → FAIL
     make_good_tree "$tmp/pom"

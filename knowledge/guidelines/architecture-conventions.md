@@ -141,6 +141,17 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
    `0700` внутри `GRADLE_USER_HOME`, файл дампа — `0600`.
 5. **Нет мёртвого дублирующего build-конфига.** В корневом `build.gradle.kts`
    нет блока `dependencies`; в корне репозитория нет `pom.xml`.
+6. **PostgreSQL-драйвер — из BOM'а.** В build-файлах **нет** явной версии
+   `org.postgresql:postgresql`: версию задаёт BOM Spring Boot (42.7.7).
+   Ручной пин `42.7.8` (KARAOKE-404) перебивал BOM («selected by rule») и
+   замораживал драйвер — обновление из BOM, в том числе с исправлениями
+   уязвимостей, до него не доходило. Правок 42.7.8 проект не использует:
+   нет `queryTimeout` и отмены запросов, нет `DatabaseMetaData`/`getMetaData`,
+   нет `closeOnCompletion`, нет репликации, нет xml-типа, `boolean`-колонки
+   не читаются как числа, массивы только одномерные (читаются через
+   `getArray`, не `getResultSet`). Если драйвер понадобится обновить —
+   это обновление BOM Spring Boot, а не ручной пин в модуле.
+
 
 **Protocol**:
 
@@ -153,6 +164,7 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
   (тот же файл публикует `downloads.gradle.org`), не выдумывать и не брать
   из локального кеша. Таблица эталонных сумм — в `tools/check-gradle-wrapper.sh`.
 - Jackson: версию не задавать (`implementation("com.fasterxml.jackson.core:jackson-databind")`).
+- PostgreSQL-драйвер: версию не задавать (`implementation("org.postgresql:postgresql")`).
 - Дамп кучи: `bash tools/gradle-heap-dump.sh <задачи>` — скрипт ставит
   `umask 077` и создаёт каталог `0700`; в `gradle.properties` флагов дампа нет.
 - Зависимости модулей — только в build-файлах модулей. Корневой проект
@@ -166,6 +178,9 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
   проверки целостности (компрометация CDN/зеркала/прокси) (BR-528);
 - `jackson-databind:2.14.2` рядом с `jackson-core:2.19.2` → смешанный стек
   семейства, не покрытый поддержкой производителя (BR-527);
+- ручной пин `org.postgresql:postgresql:42.7.8` → версия драйвера перебита
+  вопреки BOM'у Spring Boot, драйвер заморожен и не получает обновлений из
+  BOM, включая исправления уязвимостей (KARAOKE-404);
 - `-XX:HeapDumpPath=/tmp/…` → полный дамп кучи (вместе с `System.getenv()`,
   т.е. секретами окружения) читается любым локальным пользователем (BR-529);
 - мёртвый блок `dependencies` в корне и `pom.xml` → правка зависимости «не
@@ -177,7 +192,8 @@ Pass 451, 452, 454). Вставка/удаление строк и смена о
 `gradle.properties`, `tools/gradle-heap-dump.sh`.
 
 **Enforcement**: `tools/check-gradle-wrapper.sh` (версии + checksum'ы),
-`tools/check-build-config.sh` (Jackson, мёртвый конфиг, дампы кучи),
+`tools/check-build-config.sh` (Jackson, PostgreSQL-драйвер, мёртвый конфиг,
+дампы кучи),
 `tools/gradle-heap-dump.sh --self-test` (эмпирическая проверка прав 700/600).
 Джоб `build-config-guard` в `.github/workflows/lint.yml`, pre-commit-хуки
 `gradle-wrapper-guard` и `build-config-guard`. Per-feature документ —

@@ -41,7 +41,15 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("org.odftoolkit:odfdom-java:0.9.0")
     implementation("org.odftoolkit:simple-odf:0.9.0")
-    implementation("org.postgresql:postgresql:42.7.8")
+    // PostgreSQL-драйвер — без явной версии: версию задаёт BOM Spring Boot 3.5.6
+    // (42.7.7). Раньше здесь стоял ручной пин драйвера 42.7.8: он перебивал
+    // версию из BOM («selected by rule»), и обновление драйвера вместе с BOM
+    // Spring Boot становилось невозможным. Правок, которые даёт 42.7.8, проект
+    // не использует: нет queryTimeout и отмены запросов, нет DatabaseMetaData
+    // и getMetaData, нет closeOnCompletion, нет репликации, нет xml-типа,
+    // boolean-колонки не читаются как числа, массивы только одномерные
+    // (читаются через getArray, не getResultSet).
+    implementation("org.postgresql:postgresql")
     implementation("commons-io:commons-io:2.20.0")
     implementation("com.google.code.gson:gson:2.8.9")
 

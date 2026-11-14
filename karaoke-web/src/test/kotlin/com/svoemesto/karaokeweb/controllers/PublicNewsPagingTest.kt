@@ -40,4 +40,14 @@ class PublicNewsPagingTest {
         assertEquals(7 to 20, controller().normalizePaging(page = 7, size = 20))
         assertEquals(0 to 100, controller().normalizePaging(page = 0, size = 100))
     }
+
+    /**
+     * KARAOKE-392: `limit` в `GET /since` вынесен в именованную константу
+     * [PublicNewsController.SINCE_POLL_LIMIT]. Значение поведения не меняем — тест фиксирует
+     * текущие 50, чтобы смена числа была осознанной правкой, а не случайной.
+     */
+    @Test
+    fun `лимит одного опроса новостей остаётся 50`() {
+        assertEquals(50, PublicNewsController.SINCE_POLL_LIMIT)
+    }
 }

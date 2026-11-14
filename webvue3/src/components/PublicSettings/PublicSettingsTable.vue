@@ -12,6 +12,13 @@
     </div>
 
     <div v-if="isLoading" class="pst-loading">Загрузка...</div>
+    <!-- BR-413 (та же правка, что в PropertiesTable): отказ загрузки виден
+         пользователю — пустой список больше не выглядит как «настроек нет». -->
+    <div
+      v-else-if="publicSettingsDigestError"
+      class="pst-error"
+      v-text="publicSettingsDigestError"
+    />
     <div v-else-if="editable.length === 0" class="pst-empty">Нет настроек</div>
     <table v-else class="pst-table">
       <thead>
@@ -59,6 +66,9 @@ export default {
   computed: {
     isLoading() {
       return this.$store.getters.getPublicSettingsDigestIsLoading
+    },
+    publicSettingsDigestError() {
+      return this.$store.getters.getPublicSettingsDigestError
     },
     digest() {
       return this.$store.getters.getPublicSettingsDigest
@@ -132,6 +142,16 @@ export default {
   font-size: small;
   color: gray;
   padding: 10px 0;
+}
+
+.pst-error {
+  font-size: small;
+  color: darkred;
+  border: 1px solid darkred;
+  border-radius: 6px;
+  background: #fff0f0;
+  padding: 6px 10px;
+  margin: 4px 0;
 }
 .pst-table {
   width: 100%;

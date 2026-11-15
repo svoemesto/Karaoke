@@ -16,6 +16,12 @@
 #                   с записью в lock-файле (exit 1 при расхождении);
 #   --dry-run       показывает план, ничего не делает.
 #
+# Harbor (источник правды для mirror/**, ADR local-0010): образ из namespace
+# mirror/** дублируется в Harbor-проект mirror — тогда наш Zot остаётся его
+# живым зеркалом, а каталог Harbor полным. Креды — HARBOR_MIRROR_USER /
+# HARBOR_MIRROR_PASSWORD (робот robot$mirror+vendor), HARBOR_MIRROR_HOST.
+# Если Harbor недоступен — WARN, вендоринг в Zot не блокируется.
+#
 # --host подменяет хост в `our_ref` (например, `--host localhost:5500` для стенда).
 # Дайджест манифеста от хоста не зависит, поэтому пины, снятые на стенде, годны и для прода.
 #
@@ -35,6 +41,12 @@ ONLY=""
 MODE="vendor"
 UPDATE_LOCK=0
 DRY_RUN=0
+# Harbor — источник правды для mirror/** (ADR local-0010): образ должен лежать
+# и в Harbor-проекте mirror, и в нашем Zot; тогда Zot остаётся его зеркалом.
+# Креды — HARBOR_MIRROR_USER/HARBOR_MIRROR_PASSWORD (робот robot$mirror+vendor).
+HARBOR_MIRROR_HOST="${HARBOR_MIRROR_HOST:-}"
+HARBOR_MIRROR_USER="${HARBOR_MIRROR_USER:-}"
+HARBOR_MIRROR_PASSWORD="${HARBOR_MIRROR_PASSWORD:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -70,7 +82,16 @@ find_doenv() {
   done
   return 1
 }
-env_val() { sed -n "s/^$1=//p" "$2" | tail -1 | tr -d ' \r'; }
+# Значение из do.env. Окружающие кавычки снимаются: в файле робот записан как
+# HARBOR_MIRROR_USER='robot$mirror+vendor' (иначе bash подставит пустую
+# переменную), и без снятия кавычек в логин уходит литерал с апострофами.
+env_val() {
+  local v
+  v="$(sed -n "s/^$1=//p" "$2" | tail -1 | tr -d ' \r')"
+  v="${v%\'}"; v="${v#\'}"
+  v="${v%\"}"; v="${v#\"}"
+  printf '%s' "$v"
+}
 
 # BR-594: креды не должны попадать в argv curl (`-u user:pass` виден в
 # `ps -eo args`). Передаём их через stdin-конфиг curl (`--config -`).
@@ -89,6 +110,13 @@ if [[ -z "$USER_CRED" || -z "$PASS_CRED" ]] && DOENV="$(find_doenv)"; then
   [[ -z "$USER_CRED" ]] && USER_CRED="$(env_val REGISTRY_USER "$DOENV")"
   [[ -z "$PASS_CRED" ]] && PASS_CRED="$(env_val REGISTRY_PASSWORD "$DOENV")"
 fi
+# Креды Harbor-робота для проекта mirror — из окружения или do.env.
+if [[ -z "$HARBOR_MIRROR_USER" || -z "$HARBOR_MIRROR_PASSWORD" ]] && DOENV="$(find_doenv)"; then
+  [[ -z "$HARBOR_MIRROR_USER" ]] && HARBOR_MIRROR_USER="$(env_val HARBOR_MIRROR_USER "$DOENV")"
+  [[ -z "$HARBOR_MIRROR_PASSWORD" ]] && HARBOR_MIRROR_PASSWORD="$(env_val HARBOR_MIRROR_PASSWORD "$DOENV")"
+  [[ -z "$HARBOR_MIRROR_HOST" ]] && HARBOR_MIRROR_HOST="$(env_val HARBOR_MIRROR_HOST "$DOENV")"
+fi
+HARBOR_MIRROR_HOST="${HARBOR_MIRROR_HOST:-registry.sm-karaoke.ru}"
 
 # Логин в целевой registry ОБЯЗАТЕЛЕН и выполняется самим инструментом:
 # `docker push` берёт креды из $DOCKER_CONFIG/config.json, а там на один хост
@@ -126,6 +154,67 @@ rehost()  { # $1=our_ref  → с подменённым хостом
   [[ -z "$HOST_OVERRIDE" ]] && { printf '%s' "$ref"; return; }
   printf '%s/%s' "$HOST_OVERRIDE" "$(path_of "$ref")"
 }
+# Отдельный DOCKER_CONFIG для Harbor: у нашего registry и Harbor разные хосты,
+# но креды РАЗНЫЕ (karaoke vs robot$mirror+vendor) — логин одного вытесняет
+# другой в одном config.json. Harbor получает свой каталог, основной не трогаем.
+HARBOR_DOCKER_CONFIG=""
+harbor_docker_config() {
+  [[ -n "$HARBOR_DOCKER_CONFIG" ]] && { printf '%s' "$HARBOR_DOCKER_CONFIG"; return 0; }
+  HARBOR_DOCKER_CONFIG="$(mktemp -d)"
+  printf '%s' "$HARBOR_DOCKER_CONFIG"
+}
+
+# Дайджест манифеста в Harbor. $1=<namespace/repo>:<tag>
+harbor_digest() {
+  local ref="$1" repo tag out
+  repo="${ref%%:*}"
+  tag="${ref##*:}"
+  out="$(printf 'user = "%s:%s"\n' "$(cfg_escape "$HARBOR_MIRROR_USER")" "$(cfg_escape "$HARBOR_MIRROR_PASSWORD")" \
+        | curl -sS --max-time 30 --config - -I \
+        -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json' \
+        "https://${HARBOR_MIRROR_HOST}/v2/$repo/manifests/$tag" 2>/dev/null \
+        | tr -d '\r' | awk -F': ' 'tolower($1)=="docker-content-digest"{print $2}')"
+  printf '%s' "$out"
+}
+
+# Push образа в Harbor-проект mirror (источник правды). $1=our_ref в нашем Zot,
+# $2=upstream ref, $3=дайджест из Zot. Печатает дайджест Harbor или пусто.
+harbor_push() {
+  local our_ref="$1" upstream="$2" zot_digest="$3" target out
+  [[ -n "$HARBOR_MIRROR_USER" && -n "$HARBOR_MIRROR_PASSWORD" ]] || return 0
+  # Только mirror/** — Harbor-проекты svoemesto/dub2000 ведутся своими роботами.
+  [[ "$(path_of "$our_ref")" == mirror/* ]] || return 0
+  target="${HARBOR_MIRROR_HOST}/$(path_of "$our_ref")"
+  local dcfg; dcfg="$(harbor_docker_config)"
+  # Логин — как в registry_login: пароль через stdin (не в argv), хост и
+  # пользователь в argv — не секрет.
+  if ! printf '%s' "$HARBOR_MIRROR_PASSWORD" \
+        | DOCKER_CONFIG="$dcfg" docker login "$HARBOR_MIRROR_HOST" -u "$HARBOR_MIRROR_USER" --password-stdin >/dev/null 2>&1; then
+    echo "  WARN: логин в Harbor не удался — $target не обновлён" >&2
+    return 0
+  fi
+  if ! DOCKER_CONFIG="$dcfg" docker tag "$upstream" "$target" 2>/dev/null; then
+    echo "  WARN: не удалось проставить тег Harbor для $target" >&2
+    return 0
+  fi
+  if ! DOCKER_CONFIG="$dcfg" docker push "$target" >/dev/null 2>&1; then
+    echo "  WARN: push в Harbor не прошёл ($target) — Zot остаётся единственной копией" >&2
+    return 0
+  fi
+  out="$(harbor_digest "$(path_of "$our_ref")")"
+  if [[ -z "$out" ]]; then
+    echo "  WARN: $target залит, но дайджест из Harbor не получен" >&2
+    return 0
+  fi
+  if [[ "$out" != "$zot_digest" ]]; then
+    # Ловушка multi-arch: docker push кладёт платформенный манифест, у Harbor и
+    # Zot он может различаться (ADR local-0010, инвариант п.3). Лечится
+    # skopeo copy --all — молчать об этом нельзя.
+    echo "  WARN: дайджест Harbor ($out) ≠ Zot ($zot_digest) — образы разошлись; нужен skopeo copy --all" >&2
+  fi
+  printf '%s' "$out"
+}
+
 manifest_digest() { # $1=host:port  $2=<namespace/repo>:<tag>  → дайджест из registry
   local h="$1" ref="$2" repo tag out
   # ВАЖНО: тег в URL НЕ входит в путь репозитория — иначе получается
@@ -216,6 +305,11 @@ while IFS=$'\t' read -r upstream our_ref digest checked_at; do
   # лежит платформенный манифест; пин по индексу сломал бы pull (`@sha256:` не найден).
   # Проверено 2026-10-11: 5 из 7 записей были записаны неверно.
   new_digest="$(manifest_digest "$(host_of "$target")" "$(path_of "$target")")"
+  # Harbor — источник правды (ADR local-0010): копия обязана быть и там.
+  harbor_dig="$(harbor_push "$target" "$upstream" "$new_digest")"
+  if [[ -n "$harbor_dig" && "$harbor_dig" == "$new_digest" ]]; then
+    ok "$target — залит в Zot и в Harbor (digest совпал)"
+  fi
   local_digest="$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$target" 2>/dev/null | head -1)"
   local_digest="${local_digest##*@}"
   up_digest="${up_digest##*@}"

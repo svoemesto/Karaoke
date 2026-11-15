@@ -38,7 +38,7 @@
 | docker.io/nvidia/cuda:12.6.2-base-ubuntu22.04 | sm-karaoke.ru:5443/mirror/nvidia/cuda:12.6.2-base-ubuntu22.04 | sha256:00dc1cc76046560ff8939b3c22607020b62d17448baf752dda25c95618c66d29 | 2026-10-11 |
 | docker.io/library/eclipse-temurin:22-jre-jammy | sm-karaoke.ru:5443/mirror/library/eclipse-temurin:22-jre-jammy | sha256:664e576610e07378b6cc29645b7cb396a2ba1213a85018a6f15bf3a220336b47 | 2026-11-14 |
 | docker.io/library/node:22-alpine | sm-karaoke.ru:5443/mirror/library/node:22-alpine | sha256:12f54cafa58d0e96554ae05871e29663ff7241836377dc9a7916449b8adb062c | 2026-11-14 |
-| docker.io/library/nginx:stable | sm-karaoke.ru:5443/mirror/library/nginx:stable | sha256:909063468649748c84e0fa2a67869c7b0b2d431c72b73cf654e4052f1e2d2937 | 2026-11-14 |
+| docker.io/library/nginx:stable | sm-karaoke.ru:5443/mirror/library/nginx:stable | sha256:909063468649748c84e0fa2a67869c7b0b2d431c72b73cf654e4052f1e2d2937 | 2026-11-15 |
 | docker.io/library/ubuntu:22.04 | sm-karaoke.ru:5443/mirror/library/ubuntu:22.04 | sha256:45e9ddc6895604674618a409ca9f73d301da8fdb75fe330e8e9a27b3b219e4ad | 2026-11-14 |
 | docker.io/library/openjdk:17-ea-jdk-slim | sm-karaoke.ru:5443/mirror/library/openjdk:17-ea-jdk-slim | sha256:a871c00349250ff8814fe6c937284cc4699aab1ad22f173f4d992bfb8ede2f12 | 2026-11-14 |
 

@@ -196,6 +196,13 @@ tag-retention применяется только там, где есть `keepT
 - Писать в Harbor-проект `mirror` умеет робот **`robot$mirror+vendor`**
   (роли `pull`+`push`, создан 2026-11-15). Креды — `HARBOR_MIRROR_USER` /
   `HARBOR_MIRROR_PASSWORD` в `deploy/do.env` (файл вне git).
+- **`tools/registry-vendor.sh` пишет в оба места** (с 2026-11-15): образ из
+  `mirror/**` сначала заливается в наш Zot, затем дублируется в Harbor-проект
+  `mirror`; в лог идёт строка «залит в Zot и в Harbor (digest совпал)». Если
+  Harbor недоступен — WARN, вендоринг в Zot не блокируется; если дайджесты
+  разошлись — WARN про multi-arch (лечится `skopeo copy --all`). Harbor получает
+  **отдельный** `DOCKER_CONFIG`: у нашего registry и Harbor разные хосты, но
+  креды разные (логин одного вытесняет другой в одном `config.json`).
 - Робот `robot$svoemesto+svoemesto-ci` в проекте `mirror` имеет **только
   `pull`** — Harbor не даёт одному project-роботу права на два проекта
   (`bad request permission`).
@@ -203,7 +210,8 @@ tag-retention применяется только там, где есть `keepT
   (`tools/registry-vendor.sh`) — Harbor-проект `mirror` остался без них (8
   репозиториев вместо 13), зеркало разорвалось в одну сторону. Образы долиты в
   Harbor, репликация догнала (`policy=3`, 5 выполнений `Succeed`), digest'ы
-  Harbor и Zot совпали.
+  Harbor и Zot совпали. Чтобы разрыв не повторился, инструмент теперь пишет в
+  Harbor сам (см. выше).
 
 ### Доступ к Harbor и infra-серверу (2026-11-15, выяснено на практике)
 

@@ -53,6 +53,15 @@ class DbPool(
     private companion object {
         /** Категория журнала пула (как у рейпера — `infra.db.reaper`). */
         const val CATEGORY = "infra.db.pool"
+
+        /**
+         * Сколько handle'ов показывать за один проход детектора.
+         *
+         * Ограничение нужно, чтобы детектор не превращался в поток шума: при
+         * пороге 15 минут на стенде он давал 1364 события за 4 часа — все от
+         * нормально живущих потоков.
+         */
+        const val MAX_REPORTED = 5
     }
 
     /**
@@ -167,13 +176,28 @@ class DbPool(
      * дольше положенного: без этого пул лишь меняет симптом утечки, а не
      * показывает её источник.
      *
+     * **Почему событий немного и порог по умолчанию большой.** Под сохранённым
+     * ThreadLocal-контрактом (ADR-0009) handle живого потока держится **столько,
+     * сколько жив поток** — это норма, а не утечка: поток может не обращаться к
+     * БД часами. Замер на стенде (2026-11-15, 4 часа работы): при пороге
+     * 15 минут детектор дал **1364 события** — весь шум от нормально живущих
+     * потоков, и ни одного настоящего дефекта. Поэтому:
+     *
+     * - порог по умолчанию — 6 часов (`karaoke.db.pool.leak-threshold-ms`);
+     * - за один проход пишется не более [MAX_REPORTED] событий, остальные
+     *   считаются и попадают в сводную строку.
+     *
+     * Настоящий сигнал возврата аренд — `DB-POOL-004`.
+     *
      * @param thresholdMs порог удержания
-     * @return сколько handle'ов сообщено
+     * @return сколько handle'ов удерживается дольше порога (все, а не только
+     *   записанные в журнал)
      */
     fun reportLongHeldHandles(thresholdMs: Long): Int {
         val longHeld = ownerRegistry.findLongHeld(thresholdMs)
+        if (longHeld.isEmpty()) return 0
         val now = System.currentTimeMillis()
-        for (handle in longHeld) {
+        longHeld.take(MAX_REPORTED).forEach { handle ->
             AppLog.warn(
                 category = CATEGORY,
                 code = "DB-POOL-003",
@@ -185,6 +209,20 @@ class DbPool(
                         "thresholdMs" to thresholdMs,
                         "thread" to handle.owner.name,
                         "stack" to handle.borrowStack,
+                    ),
+            )
+        }
+        if (longHeld.size > MAX_REPORTED) {
+            AppLog.warn(
+                category = CATEGORY,
+                code = "DB-POOL-003",
+                event = "db.pool.leak.summary",
+                fields =
+                    mapOf(
+                        "target" to target,
+                        "total" to longHeld.size,
+                        "reported" to MAX_REPORTED,
+                        "thresholdMs" to thresholdMs,
                     ),
             )
         }

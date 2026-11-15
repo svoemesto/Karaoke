@@ -43,6 +43,9 @@ services:
       - KARAOKE_DB_POOL_MAX_LIFETIME_MS=${KARAOKE_DB_POOL_MAX_LIFETIME_MS:-1800000}
       - KARAOKE_DB_POOL_KEEPALIVE_MS=${KARAOKE_DB_POOL_KEEPALIVE_MS:-60000}
       - KARAOKE_DB_POOL_VALIDATION_TIMEOUT_MS=${KARAOKE_DB_POOL_VALIDATION_TIMEOUT_MS:-3000}
+      # Порог удержания handle'а живым потоком, после которого оно считается
+      # утечкой (DB-POOL-003). 6 часов — см. комментарий в application.yml.
+      - KARAOKE_DB_POOL_LEAK_THRESHOLD_MS=${KARAOKE_DB_POOL_LEAK_THRESHOLD_MS:-21600000}
       # Ключ шифрования служебных полей между сервисами (sqlToInsert/sqlToDelete и кодовое
       # слово). Секрет живёт только в окружении (deploy/do.env, вне git) — в коде его нет.
       # Ключ и IV должны быть ОДИНАКОВЫМИ у karaoke-app (шифрует) и karaoke-web (расшифровывает).

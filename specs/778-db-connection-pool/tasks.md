@@ -31,11 +31,11 @@ description: "Task list template for feature implementation"
 
 **Purpose**: зависимость, конфигурация, дефолты.
 
-- [ ] T001 Добавить зависимость `implementation("com.zaxxer:HikariCP")` (версия из BOM Spring Boot 3.5.6 → 6.3.3, без ручного pin) в `karaoke-app/build.gradle.kts`
-- [ ] T002 [P] Добавить свойства пула с дефолтами (app: `max-local=128`, `max-server=20`) в `karaoke-app/src/main/resources/application.yml`
-- [ ] T003 [P] Добавить свойства пула с дефолтами (web: `max-local=96`, `max-server=10`) в `karaoke-web/src/main/resources/application.yml`
-- [ ] T004 [P] Прокинуть `KARAOKE_DB_POOL_*` в `deploy/docker-compose-web.yml` и `deploy/docker-compose-app.yml`
-- [ ] T005 [P] Прокинуть `KARAOKE_DB_POOL_*` в `deploy/prod-single-host/docker-compose-web.yml` и `deploy/prod-single-host/docker-compose-app.yml`
+- [x] T001 Добавить зависимость `implementation("com.zaxxer:HikariCP")` (версия из BOM Spring Boot 3.5.6 → 6.3.3, без ручного pin) в `karaoke-app/build.gradle.kts`
+- [x] T002 [P] Добавить свойства пула с дефолтами (app: `max-local=128`, `max-server=20`) в `karaoke-app/src/main/resources/application.yml`
+- [x] T003 [P] Добавить свойства пула с дефолтами (web: `max-local=96`, `max-server=10`) в `karaoke-web/src/main/resources/application.yml`
+- [x] T004 [P] Прокинуть `KARAOKE_DB_POOL_*` в `deploy/docker-compose-web.yml` и `deploy/docker-compose-app.yml`
+- [x] T005 [P] Прокинуть `KARAOKE_DB_POOL_*` в `deploy/prod-single-host/docker-compose-web.yml` и `deploy/prod-single-host/docker-compose-app.yml`
 
 **Checkpoint**: зависимость подключена, конфигурация объявлена, пул ещё не используется.
 
@@ -47,15 +47,15 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: работа над историями не начинается, пока эта фаза не завершена.
 
-- [ ] T006 Создать `PoolConfig` (разбор env/свойств → параметры пула; валидация: `maxPoolSize ≥ 1`, `minIdle ≤ maxPoolSize`, `keepalive < maxLifetime`, сумма потолков < 300) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolConfig.kt`
-- [ ] T007 Создать интерфейс `PoolProvider` (`borrow()`, `release(channel)`, `totalConnections()`, `activeConnections()`, `idleConnections()`, `waitingThreads()`) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolProvider.kt`
-- [ ] T008 Создать `PooledHandle` — делегирующий прокси `java.sql.Connection`; `close()` → `provider.release(channel)`, **не** закрывает физический канал; защита от двойного возврата через `released` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PooledHandle.kt`
-- [ ] T009 Создать `PoolOwnerRegistry` (`handle → OwnerRecord(owner, borrowedAt, lastUsed)`; метод поиска handle'ов с мёртвым владельцем через `Thread.isAlive()`) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolOwnerRegistry.kt`
-- [ ] T010 Создать `DbPool` — обёртка над HikariCP: ленивое создание, `borrow()`/`release()`, `maximumPoolSize`/`minimumIdle`/`connectionTimeout`/`validationTimeout`/`keepaliveTime`/`maxLifetime` из `PoolConfig`, **URL передаётся как есть** (без разбора — mTLS) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/DbPool.kt`
-- [ ] T011 [P] Тест `PoolConfig`: разбор параметров, дефолты, отказ на некорректных значениях в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/PoolConfigTest.kt`
-- [ ] T012 [P] Тест `PooledHandle`: `close()` возвращает канал в пул ровно один раз и **не** закрывает физический канал; подделка `java.sql.Connection` через `java.lang.reflect.Proxy` в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/PooledHandleTest.kt`
-- [ ] T013 [P] Тест `PoolOwnerRegistry`: handle взят потоком, поток завершён → registry находит его (`isAlive() == false`); handle живого потока не находится в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/PoolOwnerRegistryTest.kt`
-- [ ] T014 Тест `DbPool` через подставной `PoolProvider` (без сети): потолок не превышается, повторное взятие не создаёт новый канал, исчерпание → таймаут ожидания, `DB-POOL-002` с `waiting`/`busy` в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/DbPoolTest.kt`
+- [x] T006 Создать `PoolConfig` (разбор env/свойств → параметры пула; валидация: `maxPoolSize ≥ 1`, `minIdle ≤ maxPoolSize`, `keepalive < maxLifetime`, сумма потолков < 300) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolConfig.kt`
+- [x] T007 Создать интерфейс `PoolProvider` (`borrow()`, `release(channel)`, `totalConnections()`, `activeConnections()`, `idleConnections()`, `waitingThreads()`) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolProvider.kt`
+- [x] T008 Создать `PooledHandle` — делегирующий прокси `java.sql.Connection`; `close()` → `provider.release(channel)`, **не** закрывает физический канал; защита от двойного возврата через `released` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PooledHandle.kt`
+- [x] T009 Создать `PoolOwnerRegistry` (`handle → OwnerRecord(owner, borrowedAt, lastUsed)`; метод поиска handle'ов с мёртвым владельцем через `Thread.isAlive()`) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolOwnerRegistry.kt`
+- [x] T010 Создать `DbPool` — обёртка над HikariCP: ленивое создание, `borrow()`/`release()`, `maximumPoolSize`/`minimumIdle`/`connectionTimeout`/`validationTimeout`/`keepaliveTime`/`maxLifetime` из `PoolConfig`, **URL передаётся как есть** (без разбора — mTLS) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/DbPool.kt`
+- [x] T011 [P] Тест `PoolConfig`: разбор параметров, дефолты, отказ на некорректных значениях в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/PoolConfigTest.kt`
+- [x] T012 [P] Тест `PooledHandle`: `close()` возвращает канал в пул ровно один раз и **не** закрывает физический канал; подделка `java.sql.Connection` через `java.lang.reflect.Proxy` в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/PooledHandleTest.kt`
+- [x] T013 [P] Тест `PoolOwnerRegistry`: handle взят потоком, поток завершён → registry находит его (`isAlive() == false`); handle живого потока не находится в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/PoolOwnerRegistryTest.kt`
+- [x] T014 Тест `DbPool` через подставной `PoolProvider` (без сети): потолок не превышается, повторное взятие не создаёт новый канал, исчерпание → таймаут ожидания, `DB-POOL-002` с `waiting`/`busy` в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/DbPoolTest.kt`
 
 **Checkpoint**: каркас готов, тесты зелёные в CI без БД; пул ещё не подключён к `KaraokeConnection`.
 
@@ -69,15 +69,15 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 1
 
-- [ ] T015 [P] [US1] Тест контракта `getConnection()`: сигнатура не изменилась, ThreadLocal-кеш сохранён (два вызова из одного потока → тот же объект), поведение при выключенном пуле идентично прежнему (прямой `DriverManager`) в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeConnectionPoolTest.kt`
+- [x] T015 [P] [US1] Тест контракта `getConnection()`: сигнатура не изменилась, ThreadLocal-кеш сохранён (два вызова из одного потока → тот же объект), поведение при выключенном пуле идентично прежнему (прямой `DriverManager`) в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeConnectionPoolTest.kt`
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Переключить `getConnection()` в `KaraokeConnection` между «как раньше» (прямой `DriverManager`) и «через пул» по флагу `karaoke.db.pool.enabled`; в пуловом режиме `ThreadLocal` хранит `PooledHandle` вместо физического соединения; handle регистрируется в `PoolOwnerRegistry` с владельцем `Thread.currentThread()` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
-- [ ] T017 [US1] Изменить `closeThreadConnection()` в `KaraokeConnection`: в пуловом режиме — возврат handle'а в пул и снятие с реестра; в режиме без пула — прежнее поведение в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
-- [ ] T018 [US1] Создать пулы для ролей LOCAL и SERVER в фабриках `local()`/`remote()`; роль VIRTUAL — **без пула** (не используется в проде) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt`
-- [ ] T019 [US1] Создать пулы для ролей LOCAL и SERVER в фабриках web; роль VIRTUAL — без пула в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/Connection.kt`
-- [ ] T020 [US1] Проверить, что **все 284 места вызова `getConnection()` в прикладном коде скомпилировались без правок** (это и есть проверка FR-005): `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin`
+- [x] T016 [US1] Переключить `getConnection()` в `KaraokeConnection` между «как раньше» (прямой `DriverManager`) и «через пул» по флагу `karaoke.db.pool.enabled`; в пуловом режиме `ThreadLocal` хранит `PooledHandle` вместо физического соединения; handle регистрируется в `PoolOwnerRegistry` с владельцем `Thread.currentThread()` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
+- [x] T017 [US1] Изменить `closeThreadConnection()` в `KaraokeConnection`: в пуловом режиме — возврат handle'а в пул и снятие с реестра; в режиме без пула — прежнее поведение в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
+- [x] T018 [US1] Создать пулы для ролей LOCAL и SERVER в фабриках `local()`/`remote()`; роль VIRTUAL — **без пула** (не используется в проде) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt`
+- [x] T019 [US1] Создать пулы для ролей LOCAL и SERVER в фабриках web; роль VIRTUAL — без пула в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/Connection.kt`
+- [x] T020 [US1] Проверить, что **все 284 места вызова `getConnection()` в прикладном коде скомпилировались без правок** (это и есть проверка FR-005): `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin`
 
 **Checkpoint**: пул подключён под ThreadLocal; прикладной код не тронут; пул выключен по умолчанию → поведение прежнее.
 
@@ -91,14 +91,14 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Тест: рейпер возвращает handle'ы мёртвых владельцев и **не трогает** handle'ы живых (FR-012/FR-013); счётчик возвращённых считает только возвращённые в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeReaperPoolTest.kt`
-- [ ] T022 [P] [US2] Тест web-рейпера: симметричное поведение (тот же контракт, что и в app — разъезд поведения запрещён) в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/db/LocalConnectionReaperPoolTest.kt`
+- [x] T021 [P] [US2] Тест: рейпер возвращает handle'ы мёртвых владельцев и **не трогает** handle'ы живых (FR-012/FR-013); счётчик возвращённых считает только возвращённые в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeReaperPoolTest.kt`
+- [x] T022 [P] [US2] Тест web-рейпера: симметричное поведение (тот же контракт, что и в app — разъезд поведения запрещён) в `karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/db/LocalConnectionReaperPoolTest.kt`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Переделать `reapIdleConnections()` в `KaraokeConnection`: в пуловом режиме — возврат handle'ов **мёртвых** владельцев в пул (живые не трогаются; простаивающие лишь помечаются «осиротевшими»); в режиме без пула — прежнее поведение (закрытие каналов по простою) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
-- [ ] T024 [US2] Обновить рейпер app: в пуловом режиме считать и логировать **возвращённые handle'ы**, а не закрытые каналы; сохранить режим без пула без изменений в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LocalConnectionReaper.kt`
-- [ ] T025 [US2] Обновить рейпер web симметрично app в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/LocalConnectionReaper.kt`
+- [x] T023 [US2] Переделать `reapIdleConnections()` в `KaraokeConnection`: в пуловом режиме — возврат handle'ов **мёртвых** владельцев в пул (живые не трогаются; простаивающие лишь помечаются «осиротевшими»); в режиме без пула — прежнее поведение (закрытие каналов по простою) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
+- [x] T024 [US2] Обновить рейпер app: в пуловом режиме считать и логировать **возвращённые handle'ы**, а не закрытые каналы; сохранить режим без пула без изменений в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LocalConnectionReaper.kt`
+- [x] T025 [US2] Обновить рейпер web симметрично app в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/LocalConnectionReaper.kt`
 
 **Checkpoint**: утечка ограничена потолком; рейпер не портит рабочие соединения пула.
 
@@ -112,12 +112,12 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Тест: повторное взятие handle'а не создаёт новый физический канал (счётчик созданий == 1 при N операциях) — FR-004 в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeConnectionPoolTest.kt`
-- [ ] T027 [P] [US3] Тест: self-healing сохранён — после `SQLException` на канале следующий `getConnection()` берёт новый handle, исключения «соединение уже было закрыто» нет (specs/236, BR-274) в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeConnectionPoolTest.kt`
+- [x] T026 [P] [US3] Тест: повторное взятие handle'а не создаёт новый физический канал (счётчик созданий == 1 при N операциях) — FR-004 в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeConnectionPoolTest.kt`
+- [x] T027 [P] [US3] Тест: self-healing сохранён — после `SQLException` на канале следующий `getConnection()` берёт новый handle, исключения «соединение уже было закрыто» нет (specs/236, BR-274) в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/KaraokeConnectionPoolTest.kt`
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Убедиться, что `markConnectionBroken()` и прокси `wrapForBrokenDetection` работают поверх `PooledHandle` без изменений семантики; при необходимости — скорректировать обработку `SQLException` в `PooledHandle` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PooledHandle.kt` и `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
+- [x] T028 [US3] Убедиться, что `markConnectionBroken()` и прокси `wrapForBrokenDetection` работают поверх `PooledHandle` без изменений семантики; при необходимости — скорректировать обработку `SQLException` в `PooledHandle` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PooledHandle.kt` и `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
 
 **Checkpoint**: латентностные инварианты зафиксированы тестами; фактические замеры — в Фазе 9.
 
@@ -131,15 +131,15 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 4
 
-- [ ] T029 [P] [US4] Тест событий: `DB-POOL-002` при исчерпании (поля `target`, `waiting`, `busy`, `maxPoolSize`, `timeoutMs`); код события отличается от `DB-CONNECT-001` (отказ БД) в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/DbPoolEventsTest.kt`
-- [ ] T030 [P] [US4] Тест детектора утечки: handle удерживается дольше порога → `DB-POOL-003` со стеком вызовов; при этом handle **не** отбирается у живого владельца в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/DbPoolEventsTest.kt`
+- [x] T029 [P] [US4] Тест событий: `DB-POOL-002` при исчерпании (поля `target`, `waiting`, `busy`, `maxPoolSize`, `timeoutMs`); код события отличается от `DB-CONNECT-001` (отказ БД) в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/DbPoolEventsTest.kt`
+- [x] T030 [P] [US4] Тест детектора утечки: handle удерживается дольше порога → `DB-POOL-003` со стеком вызовов; при этом handle **не** отбирается у живого владельца в `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/DbPoolEventsTest.kt`
 
 ### Implementation for User Story 4
 
-- [ ] T031 [US4] Писать `DB-POOL-002` (исчерпание пула) при отказе по `acquire-timeout-ms` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/DbPool.kt`
-- [ ] T032 [US4] Реализовать детектор `DB-POOL-003` (долгое удержание handle со стеком вызовов места взятия) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolOwnerRegistry.kt` и `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/DbPool.kt`
-- [ ] T033 [US4] Писать `DB-POOL-004` (рейпер вернул handle'ы) в рейперах — метрика того, что FR-003 работает в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LocalConnectionReaper.kt` и `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/LocalConnectionReaper.kt`
-- [ ] T034 [US4] Сверить реализованные события с контрактом и обновить его при расхождениях в `specs/778-db-connection-pool/contracts/db-pool-events.md`
+- [x] T031 [US4] Писать `DB-POOL-002` (исчерпание пула) при отказе по `acquire-timeout-ms` в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/DbPool.kt`
+- [x] T032 [US4] Реализовать детектор `DB-POOL-003` (долгое удержание handle со стеком вызовов места взятия) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/PoolOwnerRegistry.kt` и `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/db/DbPool.kt`
+- [x] T033 [US4] Писать `DB-POOL-004` (рейпер вернул handle'ы) в рейперах — метрика того, что FR-003 работает в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LocalConnectionReaper.kt` и `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/LocalConnectionReaper.kt`
+- [x] T034 [US4] Сверить реализованные события с контрактом и обновить его при расхождениях в `specs/778-db-connection-pool/contracts/db-pool-events.md`
 
 **Checkpoint**: наблюдаемость полна; отказ приложения отличим от отказа БД.
 
@@ -147,14 +147,14 @@ description: "Task list template for feature implementation"
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T035 [P] Обновить ADR: пул под ThreadLocal-контрактом, «третий тип потока» снимается, рейпер возвращает handle'ы, ограничение «пул ограничивает, а не устраняет» — явно в `knowledge/adr/local-0009-thread-local-connection-lifecycle.md`
-- [ ] T036 [P] Обновить таблицу типов потока и параметры рейпера/пула в `knowledge/domains/persistence/domain.md`
-- [ ] T037 Создать per-feature документ (FR-009) в `knowledge/product/features/db-connection-pool.md`
-- [ ] T038 Проверить, что конфигурация пула попала в compose-файлы обоих стеков и прод-варианты (T004, T005) и что `KARAOKE_DB_POOL_ENABLED` по умолчанию `false` во всех четырёх файлах
-- [ ] T039 Прогнать полные наборы тестов: `./gradlew :karaoke-app:test :karaoke-web:test` — оба зелёные, без живой БД
-- [ ] T040 Прогнать `python3 tools/lint-knowledge.py`, `python3 tools/check-doc-references.py`, `python3 tools/check-ssot-impact.py` — без ошибок
-- [ ] T041 Подготовить `specs/778-db-connection-pool/report.md` (REQUIRED-артефакт Plane-workflow) с описанием реализации, отклонений и результатов тестов
-- [ ] T042 Коммит на ветку `778-db-connection-pool` через `git commit -F -` (никаких коммитов в master)
+- [x] T035 [P] Обновить ADR: пул под ThreadLocal-контрактом, «третий тип потока» снимается, рейпер возвращает handle'ы, ограничение «пул ограничивает, а не устраняет» — явно в `knowledge/adr/local-0009-thread-local-connection-lifecycle.md`
+- [x] T036 [P] Обновить таблицу типов потока и параметры рейпера/пула в `knowledge/domains/persistence/domain.md`
+- [x] T037 Создать per-feature документ (FR-009) в `knowledge/product/features/db-connection-pool.md`
+- [x] T038 Проверить, что конфигурация пула попала в compose-файлы обоих стеков и прод-варианты (T004, T005) и что `KARAOKE_DB_POOL_ENABLED` по умолчанию `false` во всех четырёх файлах
+- [x] T039 Прогнать полные наборы тестов: `./gradlew :karaoke-app:test :karaoke-web:test` — оба зелёные, без живой БД
+- [x] T040 Прогнать `python3 tools/lint-knowledge.py`, `python3 tools/check-doc-references.py`, `python3 tools/check-ssot-impact.py` — без ошибок
+- [x] T041 Подготовить `specs/778-db-connection-pool/report.md` (REQUIRED-артефакт Plane-workflow) с описанием реализации, отклонений и результатов тестов
+- [x] T042 Коммит на ветку `778-db-connection-pool` через `git commit -F -` (никаких коммитов в master)
 
 **Checkpoint**: код, знание и отчёт готовы; можно переходить к Фазе 9 — **только по согласию владельца**.
 

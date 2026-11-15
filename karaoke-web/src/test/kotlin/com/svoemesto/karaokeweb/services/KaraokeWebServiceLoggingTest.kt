@@ -74,6 +74,15 @@ class KaraokeWebServiceLoggingTest {
             dbRemotePostgresPassword = "test",
             dbRemoteHost = "localhost",
             dbRemotePort = "5432",
+            // Спека 778 (KARAOKE-430): пул в тесте выключен — тест не ходит в БД.
+            dbPoolEnabled = false,
+            dbPoolMaxLocal = 96,
+            dbPoolMaxServer = 10,
+            dbPoolMinIdle = 2,
+            dbPoolAcquireTimeoutMs = 5_000,
+            dbPoolMaxLifetimeMs = 1_800_000,
+            dbPoolKeepaliveMs = 60_000,
+            dbPoolValidationTimeoutMs = 3_000,
         )
 
     /** Собирает отформатированные сообщения журнала. */

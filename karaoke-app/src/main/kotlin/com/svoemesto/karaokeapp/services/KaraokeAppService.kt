@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.db.DbPoolSettings
 import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.DualStream
 import com.svoemesto.karaokeapp.propertiesfiledictionary.PropertiesFileDictionary
@@ -82,6 +83,15 @@ class KaraokeAppService(
     @Value($$"${db-remote-ssl-cert:}") val dbRemoteSslCert: String,
     @Value($$"${db-remote-ssl-key:}") val dbRemoteSslKey: String,
     @Value($$"${db-remote-ssl-root-cert:}") val dbRemoteSslRootCert: String,
+    // Спека 778 (KARAOKE-430): настройки ограниченного пула соединений.
+    @Value($$"${karaoke.db.pool.enabled:false}") val dbPoolEnabled: Boolean,
+    @Value($$"${karaoke.db.pool.max-local:128}") val dbPoolMaxLocal: Int,
+    @Value($$"${karaoke.db.pool.max-server:20}") val dbPoolMaxServer: Int,
+    @Value($$"${karaoke.db.pool.min-idle:2}") val dbPoolMinIdle: Int,
+    @Value($$"${karaoke.db.pool.acquire-timeout-ms:5000}") val dbPoolAcquireTimeoutMs: Long,
+    @Value($$"${karaoke.db.pool.max-lifetime-ms:1800000}") val dbPoolMaxLifetimeMs: Long,
+    @Value($$"${karaoke.db.pool.keepalive-ms:60000}") val dbPoolKeepaliveMs: Long,
+    @Value($$"${karaoke.db.pool.validation-timeout-ms:3000}") val dbPoolValidationTimeoutMs: Long,
 ) {
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
@@ -96,6 +106,18 @@ class KaraokeAppService(
         DB_REMOTE_SSL_CERT = dbRemoteSslCert
         DB_REMOTE_SSL_KEY = dbRemoteSslKey
         DB_REMOTE_SSL_ROOT_CERT = dbRemoteSslRootCert
+        // Спека 778: настройки пула. apply() проверяет сумму потолков против
+        // лимита БД (FR-010) и бросает исключение на старте при нарушении.
+        DbPoolSettings.apply(
+            enabled = dbPoolEnabled,
+            maxLocal = dbPoolMaxLocal,
+            maxServer = dbPoolMaxServer,
+            minIdle = dbPoolMinIdle,
+            acquireTimeoutMs = dbPoolAcquireTimeoutMs,
+            maxLifetimeMs = dbPoolMaxLifetimeMs,
+            keepaliveMs = dbPoolKeepaliveMs,
+            validationTimeoutMs = dbPoolValidationTimeoutMs,
+        )
         SNS = sseNotificationService
         KSS_APP = karaokeStorageService
         SAC_APP = storageApiClient

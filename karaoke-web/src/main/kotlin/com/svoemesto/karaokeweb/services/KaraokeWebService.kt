@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.svoemesto.karaokeapp.db.DbPoolSettings
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -46,6 +47,15 @@ class KaraokeWebService(
     @Value($$"${db-remote-postgres-password}") val dbRemotePostgresPassword: String,
     @Value($$"${db-remote-host}") val dbRemoteHost: String,
     @Value($$"${db-remote-port}") val dbRemotePort: String,
+    // Спека 778 (KARAOKE-430): настройки ограниченного пула соединений.
+    @Value($$"${karaoke.db.pool.enabled:false}") val dbPoolEnabled: Boolean,
+    @Value($$"${karaoke.db.pool.max-local:96}") val dbPoolMaxLocal: Int,
+    @Value($$"${karaoke.db.pool.max-server:10}") val dbPoolMaxServer: Int,
+    @Value($$"${karaoke.db.pool.min-idle:2}") val dbPoolMinIdle: Int,
+    @Value($$"${karaoke.db.pool.acquire-timeout-ms:5000}") val dbPoolAcquireTimeoutMs: Long,
+    @Value($$"${karaoke.db.pool.max-lifetime-ms:1800000}") val dbPoolMaxLifetimeMs: Long,
+    @Value($$"${karaoke.db.pool.keepalive-ms:60000}") val dbPoolKeepaliveMs: Long,
+    @Value($$"${karaoke.db.pool.validation-timeout-ms:3000}") val dbPoolValidationTimeoutMs: Long,
 ) {
     /**
      * Категория журнала старта `karaoke-web` (BR-008, аудит #336, находка P-37-08).
@@ -64,6 +74,18 @@ class KaraokeWebService(
         DB_SERVER_POSTGRES_PASSWORD = dbRemotePostgresPassword
         DB_REMOTE_HOST = dbRemoteHost
         DB_REMOTE_PORT = dbRemotePort
+        // Спека 778: настройки пула. apply() проверяет сумму потолков против
+        // лимита БД (FR-010) и бросает исключение на старте при нарушении.
+        DbPoolSettings.apply(
+            enabled = dbPoolEnabled,
+            maxLocal = dbPoolMaxLocal,
+            maxServer = dbPoolMaxServer,
+            minIdle = dbPoolMinIdle,
+            acquireTimeoutMs = dbPoolAcquireTimeoutMs,
+            maxLifetimeMs = dbPoolMaxLifetimeMs,
+            keepaliveMs = dbPoolKeepaliveMs,
+            validationTimeoutMs = dbPoolValidationTimeoutMs,
+        )
         WEBSOCKET = webSocket
 //        KSS_WEB = karaokeStorageService
         // karaoke-web не сканирует com.svoemesto.karaokeapp.services (нет @ComponentScan туда), поэтому

@@ -34,6 +34,10 @@ import org.springframework.stereotype.Component
  * @param remote соединение SERVER (в тестах подменяется)
  * @param intervalMs период уборки
  * @param idleMs порог простоя, после которого соединение закрывается
+ * @param leakThresholdMs порог удержания handle'а, после которого оно считается
+ *   утечкой (событие `DB-POOL-003`). Должен быть **больше** максимальной
+ *   длительности легитимной транзакции: задания очереди `KaraokeProcess` держат
+ *   соединение минутами.
  */
 @Component
 class LocalConnectionReaper(
@@ -41,6 +45,7 @@ class LocalConnectionReaper(
     private val remote: KaraokeConnection = Connection.remote(),
     @Value("\${karaoke.db.reaper.interval-ms:300000}") private val intervalMs: Long = 300_000,
     @Value("\${karaoke.db.reaper.idle-ms:900000}") private val idleMs: Long = 900_000,
+    @Value("\${karaoke.db.pool.leak-threshold-ms:900000}") private val leakThresholdMs: Long = 900_000,
 ) {
     /**
      * Убирает простаивающие соединения LOCAL и SERVER.
@@ -71,6 +76,10 @@ class LocalConnectionReaper(
                 )
                 return
             }
+        // Спека 778: в пуловом режиме уборка возвращает аренды мёртвых владельцев
+        // (FR-003), и мы показываем, где соединение удерживается дольше
+        // положенного (FR-009, DB-POOL-003). Без пула оба вызова — no-op.
+        reportLongHeld(target, database)
         if (closed <= 0) return
         AppLog.warn(
             category = "infra.db.reaper",
@@ -84,5 +93,28 @@ class LocalConnectionReaper(
                     "idleMs" to idleMs,
                 ),
         )
+    }
+
+    /**
+     * Сообщает о handle'ах, удерживаемых дольше порога (`DB-POOL-003`).
+     *
+     * Сбой здесь не должен ломать уборку: событие наблюдательное, поэтому
+     * ошибка логируется и не прерывает цикл.
+     */
+    private fun reportLongHeld(
+        target: String,
+        database: KaraokeConnection,
+    ) {
+        try {
+            database.reportLongHeldHandles(leakThresholdMs)
+        } catch (e: Exception) {
+            AppLog.warn(
+                category = "infra.db.reaper",
+                code = "DB-REAP-002",
+                event = "db.reap.failed",
+                fields = mapOf("target" to target, "operation" to "reportLongHeldHandles"),
+                error = e,
+            )
+        }
     }
 }

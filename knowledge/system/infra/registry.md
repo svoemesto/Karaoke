@@ -182,6 +182,48 @@ tag-retention применяется только там, где есть `keepT
 - Выключение Zot или перевод в read-only снимает и зеркало, и независимость
   прода от infra-сервера (см. ADR local-0010).
 
+### Harbor — источник правды для `mirror/**` (2026-11-15)
+
+Правило, которое обязано соблюдаться при вендоринге: **образ, лежащий в Zot,
+должен лежать и в Harbor**, иначе Harbor перестаёт быть каталогом, а Zot —
+его зеркалом.
+
+- Источник правды — Harbor-проект **`mirror`** (public, 13 репозиториев).
+  Репликация `mirror/** → mirror/**` доставляет его в Zot автоматически.
+- Пин — дайджест в `images.lock`; сверка `tools/registry-vendor.sh --verify`
+  проверяет **Zot** (куда тянет прод). Harbor и Zot обязаны иметь **одинаковый**
+  digest: инвариант ADR local-0010 п.3.
+- Писать в Harbor-проект `mirror` умеет робот **`robot$mirror+vendor`**
+  (роли `pull`+`push`, создан 2026-11-15). Креды — `HARBOR_MIRROR_USER` /
+  `HARBOR_MIRROR_PASSWORD` в `deploy/do.env` (файл вне git).
+- Робот `robot$svoemesto+svoemesto-ci` в проекте `mirror` имеет **только
+  `pull`** — Harbor не даёт одному project-роботу права на два проекта
+  (`bad request permission`).
+- **Прецедент 2026-11-15:** базовые образы сборки были залиты сразу в Zot
+  (`tools/registry-vendor.sh`) — Harbor-проект `mirror` остался без них (8
+  репозиториев вместо 13), зеркало разорвалось в одну сторону. Образы долиты в
+  Harbor, репликация догнала (`policy=3`, 5 выполнений `Succeed`), digest'ы
+  Harbor и Zot совпали.
+
+### Доступ к Harbor и infra-серверу (2026-11-15, выяснено на практике)
+
+- **SSH на infra-сервер**: `ssh -p 7487 -i /home/nsa/.config/karaoke/id_ed25519
+  sm@185.71.198.17`. Ключ общий (`~/.ssh/id_rsa` и `~/.ssh/win10-167` — **не
+  подходят**, `Permission denied (publickey)`). Host key уже в `known_hosts`.
+- **`sudo` на infra-хосте требует пароль** — `lxc exec infra` из сессии агента
+  недоступен. Но `/srv/infra` читается, а ежедневные архивы конфигов
+  `/home/sm/backup-out/configs-YYYY-MM-DD.tar.gz` содержат
+  `harbor.yml` (в архиве — подкаталог `harbor/harbor`) с `harbor_admin_password` — **оттуда берутся
+  права админа Harbor** (файл 600, секрет не выводить в лог).
+- Harbor API: `GET /api/v2.0/robots/{id}` отдаёт робота по id (список
+  `/api/v2.0/robots` пуст). Имя нового робота передаётся **суффиксом**
+  (`vendor`), Harbor сам собирает `robot$<project>+<suffix>` — полное имя
+  даёт `robot name is not in lower case or contains illegal characters`.
+- Добавление робота в проект через `POST /projects/{p}/members` даёт **500**;
+  работает создание отдельного робота под нужный проект
+  (`POST /api/v2.0/robots`).
+
+
 ## Связь с другими компонентами
 
 - **[harbor-registry.md](harbor-registry.md)** — основной каталог образов.
@@ -194,5 +236,9 @@ tag-retention применяется только там, где есть `keepT
 
 ## Changelog
 
+- **2026-11-15**: разрыв зеркала Harbor↔Zot закрыт — базовые образы долиты в
+  Harbor-проект `mirror`, репликация догнала, digest'ы совпали; добавлен доступ
+  к Harbor/infra-серверу (ключ, admin-пароль из архива конфигов, робот
+  `robot$mirror+vendor`).
 - **Pass 540** (2026-10-11): Initial. Приватный registry на Zot, issue #286 /
   wayfinder #274. Автор: agent (Karaoke).

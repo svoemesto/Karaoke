@@ -49,6 +49,31 @@ Zot на своём хосте — Harbor не находится в пути д
 остаются прежними. Ошибки репликации (`401`) обычно означают неверные креды
 endpoint'а; лечится `PUT /registries/{id}` с точным секретом.
 
+**Harbor — источник правды для `mirror/**`.** Всё, что лежит в Zot в
+`mirror/**`, должно лежать и в Harbor-проекте `mirror`: тогда репликация
+доставит образ в Zot сама, а каталог остаётся полным. Пин — дайджест в
+`deploy/prod-single-host/registry/images.lock`; digest'ы Harbor и Zot обязаны
+совпадать (инвариант ADR local-0010 п.3). Прецедент разрыва и его закрытия —
+2026-11-15, в [registry.md](registry.md) § «Harbor — источник правды».
+
+### Базовые образы сборки — в проекте `mirror` (2026-11-15)
+
+Пять базовых образов сборки (`eclipse-temurin:22-jre-jammy`, `node:22-alpine`,
+`nginx:stable`, `ubuntu:22.04`, `openjdk:17-ea-jdk-slim`) живут в проекте
+`mirror` — вместе с остальными вендоренными образами (postgres, minio, cuda,
+4get, searxng, ollama, whisper-server, xray-core). Их `FROM` указывает на Zot
+(`sm-karaoke.ru:5443/mirror/library/…`), а копия в Harbor — источник правды,
+из которого репликация их раздаёт.
+
+Писать в проект `mirror` умеет робот **`robot$mirror+vendor`** (роли
+`pull`+`push`); креды — `HARBOR_MIRROR_USER` / `HARBOR_MIRROR_PASSWORD` в
+`deploy/do.env`. У робота `robot$svoemesto+svoemesto-ci` в этом проекте только
+`pull` — Harbor не даёт одному project-роботу права на два проекта.
+
+Проект `library` (public) **пуст** и репликации не имеет: он не участвует в
+пути доставки ни в Harbor, ни в Zot.
+
+
 ### Миграция образов
 
 - `skopeo copy --all` — сохраняет OCI-индекс и digest.
@@ -88,5 +113,8 @@ endpoint'а; лечится `PUT /registries/{id}` с точным секрет�
 
 ## Changelog
 
+- **2026-11-15**: базовые образы сборки добавлены в проект `mirror` (5 образов,
+  источник правды Harbor); создан робот `robot$mirror+vendor` для записи в этот
+  проект; проект `library` зафиксирован как пустой и не участвующий в репликации.
 - **2026-10-27**: Initial. Harbor развёрнут, образы `karaoke/*` и `mirror/*`
   перенесены, репликация в Zot включена.

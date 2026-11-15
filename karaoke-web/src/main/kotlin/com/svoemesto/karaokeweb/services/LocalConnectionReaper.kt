@@ -44,8 +44,10 @@ import org.springframework.stereotype.Component
  * @param intervalMs период уборки
  * @param idleMs порог простоя, после которого соединение закрывается
  * @param leakThresholdMs порог удержания handle'а, после которого оно считается
- *   утечкой (событие `DB-POOL-003`). Должен быть **больше** максимальной
- *   длительности легитимной транзакции.
+ *   утечкой (событие `DB-POOL-003`). По умолчанию — 6 часов: под ThreadLocal-
+ *   контрактом handle живого потока держится столько, сколько жив поток, и
+ *   порог в 15 минут давал только шум (замер на стенде: 1364 события за 4 часа,
+ *   все от нормально живущих потоков).
  */
 @Component
 class LocalConnectionReaper(
@@ -53,7 +55,7 @@ class LocalConnectionReaper(
     private val remote: KaraokeConnection = Connection.remote(),
     @Value("\${karaoke.db.reaper.interval-ms:300000}") private val intervalMs: Long = 300_000,
     @Value("\${karaoke.db.reaper.idle-ms:900000}") private val idleMs: Long = 900_000,
-    @Value("\${karaoke.db.pool.leak-threshold-ms:900000}") private val leakThresholdMs: Long = 900_000,
+    @Value("\${karaoke.db.pool.leak-threshold-ms:21600000}") private val leakThresholdMs: Long = 21_600_000,
 ) {
     /**
      * Убирает простаивающие соединения LOCAL и SERVER.

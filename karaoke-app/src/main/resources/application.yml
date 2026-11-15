@@ -102,6 +102,11 @@ karaoke:
       keepalive-ms: ${KARAOKE_DB_POOL_KEEPALIVE_MS:60000}
       # Проверка живости канала при выдаче.
       validation-timeout-ms: ${KARAOKE_DB_POOL_VALIDATION_TIMEOUT_MS:3000}
+      # Порог, после которого удержание handle'а живым потоком считается
+      # утечкой (DB-POOL-003). 6 часов: под ThreadLocal-контрактом handle живого
+      # потока держится столько, сколько жив поток, и порог в 15 минут давал
+      # только шум (1364 события за 4 часа на стенде — все от живых потоков).
+      leak-threshold-ms: ${KARAOKE_DB_POOL_LEAK_THRESHOLD_MS:21600000}
 
 # BR-173 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): блок `app:` удалён.
 #

@@ -24,6 +24,13 @@
   * внутренний nginx контейнера проксирует на `127.0.0.1` соответствующих портов.
 - **SSH**: `sm@185.71.198.17` порт 7487, ключ `id_ed25519`; root-операции через
   `sudo`; внутри — `lxc exec infra`.
+  * Рабочий ключ агента — `/home/nsa/.config/karaoke/id_ed25519` (общий с Forgejo);
+    `~/.ssh/id_rsa` и `~/.ssh/win10-167` — **не подходят** (`Permission denied
+    (publickey)`). Host key сервера уже в `~/.ssh/known_hosts`.
+  * `sudo` требует пароль, `lxc exec infra` из сессии агента **недоступен**.
+    Права админа Harbor берутся из ежедневных архивов конфигов
+    `/home/sm/backup-out/configs-YYYY-MM-DD.tar.gz` → `harbor.yml` (в архиве — подкаталог `harbor/harbor`)
+    (поле `harbor_admin_password`); файл 600, секрет не выводить в лог.
 
 ## Логика и Алгоритмы
 
@@ -116,6 +123,10 @@
 - **[ci-tools.md](ci-tools.md)** — где исполняется CI.
 
 ## Changelog
+
+- **2026-11-15**: уточнён рабочий путь доступа: ключ агента
+  `/home/nsa/.config/karaoke/id_ed25519`; `sudo` без пароля недоступен, права
+  админа Harbor берутся из архива конфигов `configs-*.tar.gz` (`harbor.yml`).
 
 - **2026-10-27**: Initial. Forgejo, Plane, Harbor, бэкапы и мониторинг
   развёрнуты на infra-сервере.

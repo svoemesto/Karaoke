@@ -75,3 +75,6 @@ knowledge/guidelines/runbooks/log-correlation.md	path	org/springframework/boot/l
 knowledge/system/error-handling.md	path	console-appender.xml	dependency-resource
 knowledge/system/error-handling.md	path	org/springframework/boot/logging/logback/base.xml	dependency-resource
 knowledge/guidelines/runbooks/prod-tunnel.md	path	pg_hba.conf	host-path
+knowledge/system/infra/registry.md	path	harbor.yml	host-path
+knowledge/system/infra/external-infra.md	path	harbor.yml	host-path
+knowledge/system/infra/registry.md	endpoint	/api/v2.0/robots	external-not-api

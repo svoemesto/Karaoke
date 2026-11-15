@@ -1,113 +1,531 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Ограниченный пул соединений к БД
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Branch**: `778-db-connection-pool` | **Date**: 2026-11-15 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command; its definition describes the execution workflow.
+**Input**: Feature specification from `specs/778-db-connection-pool/spec.md` (KARAOKE-430, FR-010 спеки #645 / OpenProject #410)
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Текущая модель: `KaraokeConnection` кэширует **физическое** `java.sql.Connection` в `ThreadLocal` потока (ADR-0009). Один канал на поток, без верхней границы. Поток умер — канал остался в БД навсегда (утечка BR-627). Лимит `max_connections=300` исчерпывается → БД отказывает всей системе сразу.
+
+Эта фича переводит физические каналы под **ограниченный пул** (HikariCP), сохраняя публичный контракт `getConnection()` **без единой правки в прикладном коде** (решение владельца Q1=A): 284 места вызова не трогаем.
+
+Ключевая инженерная проблема — **пул сам по себе не устраняет утечку**: если соединение взято из пула, но владелец умер, handle остаётся «взятым», и пул тоже исчерпается. Поэтому вводится **владение с возвратом по смерти потока**: реестр handle→владелец, детектор мёртвых потоков, возврат handle в пул вместо закрытия канала.
+
+Технически: `KaraokeConnection` перестаёт владеть физическим соединением напрямую — он владеет **handle** (обёрткой), а физическим каналом владеет пул. Handle кэшируется в `ThreadLocal` как раньше, поэтому прикладной код не меняется; handle при закрытии возвращает канал в пул вместо разрыва TCP.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: Kotlin 2.2.20, JDK 17 (target), Gradle multi-module; модули `karaoke-app` (ядро, только админ-машина) и `karaoke-web` (прод). `karaoke-web` зависит от `karaoke-app` (`implementation(project(":karaoke-app"))`), поэтому общий код БД живёт в `karaoke-app` и доступен обоим процессам.
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Primary Dependencies**:
+- `com.zaxxer:HikariCP` — **новая зависимость**. Версия: **6.3.3** (управляется BOM Spring Boot 3.5.6 через `io.spring.dependency-management`, `hikaricp.version>6.3.3` в `spring-boot-dependencies`). В локальном gradle-кэше есть только 5.0.1 (от чужого проекта), 6.3.3 докачается с Maven Central — проверено: `repo1.maven.org` отдаёт 200 за 0,33 с.
+- `org.postgresql:postgresql` 42.7.7 — уже есть, драйвер идёт в пул без изменений.
+- `org.slf4j:slf4j-api` 2.0.x — уже есть (HikariCP требует).
 
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Storage**: PostgreSQL 16, `max_connections=300` (оба compose-файла БД, переопределяется `DB_MAX_CONNECTIONS`); MinIO — не затрагивается.
 
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Testing**: JUnit 5 (Kotlin), `./gradlew :karaoke-app:test :karaoke-web:test`; в CI — job `Lint / backend unit tests` (`.forgejo/workflows/lint.yml`). Тесты на живой БД в репозитории отсутствуют (по Constitution § «Тесты»: большинство `@Disabled`), поэтому проверка поведения пула — юнит-тесты с подменами + ручной прогон на стенде по `quickstart.md`.
 
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Target Platform**: Linux (Docker), `eclipse-temurin:22-jre-jammy`, Spring Boot 3.5.6.
 
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: web-service (публичный API) + backend engine.
 
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
+**Performance Goals**: SC-002 — латентность не хуже базовой: локально `/api/public/news` p50 ≤ 13,1 мс / p95 ≤ 38,8 мс (база 11,9 / 35,3); прод p50 ≤ 77,1 мс / p95 ≤ 92,9 мс (база 70,1 / 84,5). SC-007 — доля операций, порождающих **новый физический канал**, ≤ 1 на 1000.
 
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
+**Constraints**:
+- **Публичный контракт `getConnection()` не меняется** (FR-005): 284 места вызова в прикладном коде остаются нетронутыми.
+- **Контракт ThreadLocal сохраняется** (Q1=A, ADR-0009 п.2): соединение, удерживаемое живым потоком, не возвращается в пул принудительно.
+- Лимит БД 300 — суммарный потолок пулов одного процесса должен быть заметно ниже (FR-010).
+- `max_connections` **не повышаем** (Out of Scope спеки).
+- Запрет ORM (ADR-0001) — HikariCP не ORM; см. § «Constitution Check».
 
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
-
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Scale/Scope**: 284 места вызова `getConnection()` (app 238, web 46); `closeThreadConnection()` — 3 реальных вызывающих; 10 тестовых подмен `KaraokeConnection` в двух модулях; 4 пула (app×{LOCAL,SERVER}, web×{LOCAL,SERVER}), роль VIRTUAL — без пула.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Требование | Проверка этой фичи | Итог |
+|---|---|---|---|
+| **II. Сырой JDBC + дифф по хэшам** (NON-NEGOTIABLE) | БД — только через сырой JDBC (`KaraokeConnection`), никаких JPA/Hibernate/Exposed | HikariCP — **пул физических JDBC-соединений**, а не ORM: он не мапит сущности, не генерирует SQL, не подменяет `recordhash`-механику. Все 284 места вызова продолжают работать с `java.sql.Connection` через `KaraokeConnection`. Guard `tools/check-no-jpa-imports.sh` (R-07) проверяет импорты JPA — новых нет. | **ПРОЙДЕНО** — пул не меняет модель доступа к данным, меняет только владение каналом |
+| **VI. Code Standards** (FR-006/007/009) | публичные API MUST иметь KDoc + `@see` на `knowledge/product/features/<slug>.md`; ktlint; per-feature документ в том же PR | Новые публичные классы получают KDoc; per-feature документ `knowledge/product/features/<slug>.md` обновляется в том же PR; ktlint — в pre-commit и CI | **ПРОЙДЕНО** (обязательства зафиксированы в § «Порядок внедрения», этап 6) |
+| **IX. Knowledge-first** (NON-NEGOTIABLE) | 5 шагов до кода; `codegraph_explore` — только после | Выполнено в `spec.md § Knowledge References` (6 grep-запросов, 7 документов, codegraph по `KaraokeConnection`/`Connection`/рейперам). Этот план продолжает ту же линию | **ПРОЙДЕНО** |
+| **VIII. Секреты и git-гигита** | секреты только через env; `do.env` не коммитить | Креды БД уже приходят через `@Value` из env (`DB_LOCAL_POSTGRES_PASSWORD` и т.п.). HikariCP конфигурируется **тем же** URL/логином/паролем, что уже приходят в `KaraokeConnection`; новых секретов и новых env-переменных с секретами нет | **ПРОЙДЕНО** |
+| **IV. Async-очередь** | длительные операции — через `KaraokeProcess*`; `redirectErrorStream` обязательно | Не затрагивается. Но: очередь держит соединение минутами → учтено в sizing (§ «Размеры пулов») как жёсткая нижняя граница | **ПРОЙДЕНО** |
+| **III. Двух-БД синхронизация через SyncRegistry** | сущности в `SyncRegistry.all` + 8 флагов | Не затрагивается: `Connection.remote()`/`local()` остаются теми же singleton'ами | **ПРОЙДЕНО** |
+| **Ограничения доступа агента** | не перезапускать `karaoke-app` без согласия; деплой — по прямому согласию; `do.env` не перезаписывать; не ходить в docker/прод без согласия | Внедрение на стенде и проде — **по прямому согласию владельца на каждый шаг**; § «Порядок внедрения» это отражает. `do.env` не трогаем | **ПРОЙДЕНО** (с оговоркой ниже) |
+| **Knowledge SSoT** (AGENTS.md Hard Gate) | изменение кода требует синхронного обновления `knowledge/` | ADR-0009 и `knowledge/domains/persistence/domain.md` обновляются в том же PR (ADR-0009 § «Поправки» — поправка 2026-11-15+); `knowledge/product/features/<slug>.md` — тоже | **ПРОЙДЕНО** |
+
+**Нарушений, требующих обоснования в Complexity Tracking, нет.** Пул — это не «четвёртый проект» и не смена парадигмы: контракт `getConnection()` сохраняется, объём прикладного кода — ноль правок.
+
+**Оговорка о доступе.** Перезапуск `karaoke-app` на админ-машине и деплой на прод требуют согласия владельца (Constitution § «Ограничения и доступы агента», п. 1–2; AGENTS.md Hard Gate «Машинные исключения»). Эта фича меняет поведение обоих процессов, поэтому § «Порядок внедрения» разбит на этапы, каждый из которых деплоится только после словного согласия.
+
+### Пересмотр после Phase 1 (дизайн)
+
+| Principle | Что изменилось в дизайне | Итог |
+|---|---|---|
+| II | Дизайн не вводит ни ORM, ни Spring `JdbcTemplate`, ни Spring `DataSource` в прикладный код: `KaraokeConnection` остаётся **единственной** точкой доступа к БД. HikariCP используется только как источник физических каналов внутри `KaraokeConnection` | **ПРОЙДЕНО** |
+| VI | Появились публичные классы `DbPool`/`PooledHandle` — получают KDoc с `@see` на per-feature документ | **ПРОЙДЕНО** |
+| VIII | Новые env-переменные — только числовые (размеры, таймауты), никаких секретов | **ПРОЙДЕНО** |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
+specs/778-db-connection-pool/
+├── plan.md              # Этот файл (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+│   ├── db-pool-config.md        # Конфигурация пула (env → параметры)
+│   └── db-pool-events.md        # События наблюдаемости (коды, поля, семантика)
+├── checklists/
+│   └── requirements.md  # Чек-лист качества спеки
+├── spec.md              # Спека (контракт; правки — только словом владельца)
+└── tasks.md             # Phase 2 output (/speckit.tasks command — НЕ создаётся этой командой)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/
+├── KaraokeConnection.kt            # ИЗМЕНЯЕТСЯ: handle вместо физического соединения;
+│                                   #   ThreadLocal-кеш сохранён; добавлен реестр владельцев
+├── Connection.kt                   # ИЗМЕНЯЕТСЯ: singleton-фабрики получают DbPool (LOCAL/SERVER)
+├── db/                             # НОВОЕ (общий код для app и web)
+│   ├── DbPool.kt                   # Обёртка над HikariDataSource: выдаёт/возвращает handle
+│   ├── PooledHandle.kt             # java.sql.Connection-прокси: делегирует в канал пула,
+│   │                               #   close() → возврат канала в пул (НЕ закрытие TCP)
+│   ├── PoolOwnerRegistry.kt        # Реестр handle→владелец-поток; поиск мёртвых потоков
+│   └── PoolConfig.kt               # Разбор env → параметры пула (размеры, таймауты)
 ├── services/
-├── cli/
-└── lib/
+│   ├── LocalConnectionReaper.kt    # ИЗМЕНЯЕТСЯ: уборка handle'ов мёртвых потоков
+│   └── OneShotThread.kt            # БЕЗ ИЗМЕНЕНИЙ (контракт сохранён)
+└── services/Env-like singletons    # AppLog, AppLog.warn — переиспользуются
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/
+├── Connection.kt                   # ИЗМЕНЯЕТСЯ: singleton-фабрики web получают DbPool
+└── services/LocalConnectionReaper.kt  # ИЗМЕНЯЕТСЯ: тот же новый контракт уборки
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/db/   # НОВОЕ
+├── DbPoolTest.kt                   # Размер пула, возврат handle, таймаут ожидания
+├── PooledHandleTest.kt             # close() → возврат в пул, а не закрытие канала
+├── PoolOwnerRegistryTest.kt        # Детекция мёртвого потока → handle доступен к возврату
+└── KaraokeConnectionPoolTest.kt    # Интеграция: getConnection() не меняет сигнатуру,
+                                    #   ThreadLocal-кеш сохранён, рейпер возвращает handle
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+karaoke-web/src/test/kotlin/com/svoemesto/karaokeweb/db/   # НОВОЕ
+└── LocalConnectionReaperPoolTest.kt # Рейпер web'а возвращает handle (FR-013)
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+karaoke-app/build.gradle.kts        # ИЗМЕНЯЕТСЯ: + implementation("com.zaxxer:HikariCP")
+karaoke-web/build.gradle.kts        # ИЗМЕНЯЕТСЯ: HikariCP приходит транзитивно из app
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: новый пакет `com.svoemesto.karaokeapp.db` — потому что `karaoke-web` уже зависит от `karaoke-app` и оба процесса используют один и тот же `KaraokeConnection`. Дублировать код пула в двух модулях нельзя: расхождение поведения между app и web — ровно та причина, по которой утечка «пряталась» (рейпер был только в app).
+
+## Точки интеграции
+
+| Файл | Что меняется | Почему |
+|---|---|---|
+| `karaoke-app/.../KaraokeConnection.kt` | `getConnection()` — отдаёт handle из пула вместо `DriverManager.getConnection`; `ThreadLocal` хранит handle; `openConnections` (реестр) расширяется владельцем-потоком; `closeThreadConnection()` — возвращает handle в пул; `reapIdleConnections()` — заменяется на возврат handle'ов мёртвых потоков | единственная точка доступа к БД; здесь же ThreadLocal-контракт |
+| `karaoke-app/.../db/DbPool.kt` | новый: обёртка над `HikariDataSource`, ленивое создание, `borrow()`/`release()`, наблюдаемость | владеет физическими каналами и потолком |
+| `karaoke-app/.../db/PooledHandle.kt` | новый: `java.sql.Connection`-прокси поверх канала пула; `close()` → `release()`, а не `channel.close()` | FR-002: возврат в пул вместо разрыва TCP |
+| `karaoke-app/.../db/PoolOwnerRegistry.kt` | новый: `handle → владелец (поток)`; `findDeadOwners()` | FR-003: возврат по смерти потока |
+| `karaoke-app/.../Connection.kt` | `LOCAL_INSTANCE`/`REMOTE_INSTANCE` получают свой `DbPool`; `VIRTUAL` — без пула | пулы для ролей; VIRTUAL в проде не используется (Q2=A) |
+| `karaoke-web/.../Connection.kt` | то же для web | web — отдельный процесс, свой пул |
+| `karaoke-app/.../services/LocalConnectionReaper.kt` | убирает handle'ы мёртвых потоков (вместо закрытия каналов по простою) | FR-013: с пулом рейпер закрывает HANDLE, иначе убьёт рабочие соединения пула |
+| `karaoke-web/.../services/LocalConnectionReaper.kt` | то же | симметрия app/web (иначе разъезд поведения повторит текущий дефект) |
+| `karaoke-app/build.gradle.kts` | `implementation("com.zaxxer:HikariCP")` (версия из BOM) | новая зависимость; guard R-07 (JPA) не затрагивается |
+| `deploy/docker-compose-web.yml`, `deploy/prod-single-host/docker-compose-web.yml` | env для размеров пулов и флаг отката | FR-007, FR-011 |
+| `deploy/docker-compose-app.yml` (и прод-вариант) | то же для app | FR-007, FR-011 |
+| `knowledge/adr/local-0009-thread-local-connection-lifecycle.md` | поправка: пул под ThreadLocal, «третий тип потока» снимается | ADR-0009 § «Альтернатива 3» прямо называет этот шаг; SSoT требует обновления |
+| `knowledge/domains/persistence/domain.md` | таблица типов потока: с пулом «завершаемый пулом» больше не оставляет канал в БД | Knowledge SSoT Hard Gate |
+| `knowledge/product/features/<slug>.md` | per-feature документ (FR-009) | Constitution VI |
+
+**Что НЕ меняется** (проверено): 284 места вызова `getConnection()` в прикладном коде; `OneShotThread.kt`; `Connection.remote()`/`local()` сигнатуры; публичные HTTP-контракты; `application.yml` сверх новых параметров пула; схема БД.
+
+## Модель владения соединением
+
+### Что меняется в терминах владения
+
+Сейчас (`KaraokeConnection.getConnection()`):
+
+```
+поток ──(ThreadLocal)──▶ физический java.sql.Connection ──▶ TCP-канал к PostgreSQL
+                              владелец: KaraokeConnection
+                              закрывает: рейпер — или никто (утечка)
+```
+
+С пулом:
+
+```
+поток ──(ThreadLocal)──▶ handle (PooledHandle) ──▶ физический канал пула ──▶ TCP
+        владелец handle:  поток, взявший handle
+        владелец канала:  DbPool (HikariCP)
+        handle.close()  →  возврат канала в пул  (НЕ закрытие TCP)
+        смерть потока    →  реестр владельцев + детектор → возврат канала в пул
+```
+
+**Ключевой инвариант:** handle — это **аренда**, а не владение каналом. Прикладной код, закрывая handle (или не закрывая), не влияет на то, лежит ли канал в пуле или уже отдан другому арендатору.
+
+### Почему handle, а не «отдать канал в ThreadLocal напрямую»
+
+Три причины, каждая — следствие требования:
+
+1. **FR-002 (возврат в пул при освобождении).** `PooledHandle.close()` обязан вернуть канал в пул. Если бы в `ThreadLocal` лежал сам канал HikariCP, `close()` на нём означал бы «освободить аренду» — но тогда прикладной код, вызывающий `conn.close()` (а он это делает в 3 местах через `closeThreadConnection()`), закрывал бы **аренду чужого канала**, который уже отдан другому потоку → `SQLException` в чужом потоке. Handle разделяет эти вещи: канал отдаётся ровно тем, кто его взял.
+2. **FR-005 (сигнатура `getConnection()` не меняется).** Возвращать `java.sql.Connection` должен сам `PooledHandle` — он реализует интерфейс `java.sql.Connection` (делегирующий прокси, как уже сделано `wrapForBrokenDetection` в BR-274). Прикладной код видит тот же тип, что и раньше, и не отличает handle от канала.
+3. **FR-013 (рейпер закрывает HANDLE, а не рабочие соединения пула).** Рейпер обязан отличать «handle, хозяин которого мёртв» (надо вернуть в пул) от «handle, хозяин которого жив» (нельзя трогать — хозяин им пользуется). Без отдельного объекта handle это неразличимо.
+
+### Реестр владельцев — FR-003, ядро фичи
+
+Текущий `openConnections` — `ConcurrentHashMap<java.sql.Connection, AtomicLong>` (время последнего использования). Он не знает, **чей** это handle. Для пула этого мало: «простаивает 15 минут» и «хозяин мёртв» — разные вещи.
+
+Новый реестр (`PoolOwnerRegistry`):
+
+```
+ConcurrentHashMap<PooledHandle, OwnerRecord>
+
+OwnerRecord:
+  ownerThread : Thread          // поток, взявший handle
+  lastUsedMs  : AtomicLong      // наблюдаемость
+  borrowedAt  : Long
+```
+
+**Детекция смерти владельца** — `ownerThread.isAlive()`. Поток Tomcat, ушедший в idle-таймаут, помечается как мёртвый; его handle возвращается в пул.
+
+**Почему `isAlive()` достаточно.** Альтернативы хуже:
+- `WeakReference<Thread>`: реестр удерживает Thread → объект не соберётся, пока запись не уберётся. Ссылка на мёртвый Thread удерживает его `ThreadLocalMap` → удерживает handle → цикл. Нужен отдельный обход по GC.
+- `Thread.UncaughtExceptionHandler`: не срабатывает при штатном завершении потока.
+- `Cleaner`/`PhantomReference` на handle: срабатывает только после GC handle'а, а handle удерживается ThreadLocal мёртвого потока → сборка не гарантирована вовремя. Тайминг неконтролируем — не годится для «вернуть слот за 5 минут».
+
+`isAlive()` — **прямой факт**: после `Thread.exit()` поток мёртв, `isAlive()` возвращает `false` навсегда. Дёшево (поле в объекте Thread), не требует GC.
+
+**Гонка «поток умер между проверкой и возвратом».** Сценарий: рейпер проверил `isAlive() == false`, решил вернуть handle в пул. Гонки нет — мёртвый поток не может использовать handle. Обратный порядок (поток умер после проверки `isAlive() == true`) тоже безопасен: рейпер не трогает handle, следующий проход рейпера увидит мёртвый поток.
+
+**Поток жив, но handle «забыт» (настоящая утечка).** Пулом это не лечится: если поток жив и держит handle, handle занят — и это законно (ThreadLocal-контракт). Такой handle возвращается в пул, когда поток умрёт. Именно поэтому **пул не устраняет утечку, а делает её безвредной**: число занятых каналов ограничено потолком пула, а не растёт бесконечно. Это и есть FR-001/SC-001.
+
+### Как это соотносится с текущим рейпером (PR #129)
+
+Сейчас рейпер закрывает **физические каналы**, простаивающие дольше `idle-ms` (900 000 мс). Логика безопасна: закрыть чужое соединение не вредно — владелец увидит `isClosed` и откроет новое (self-healing, specs/236).
+
+С пулом закрывать канал **нельзя**: канал принадлежит пулу и может быть отдан другому потоку. Закрытие = порча чужой работы.
+
+**Новый контракт рейпера (FR-013):**
+
+| Ситуация | Действие рейпера | Почему |
+|---|---|---|
+| Handle, хозяин **мёртв** | вернуть канал в пул (`handle.close()` → `release()`) | канал не используется — можно вернуть |
+| Handle, хозяин **жив**, простаивает дольше `idle-ms` | пометить «осиротевшим», **не отдавать** в пул сразу | хозяин может вернуться за ним (ThreadLocal-контракт). Текущий рейпер закрывал канал по простою — это было безопасно лишь потому, что канал принадлежал самому потоку. С пулом канал общий → отдать его чужому нельзя |
+| Handle, хозяин жив и недавно пользовался | не трогать | норма |
+
+**Следствие:** рейпер перестаёт быть «уборщиком по простою» и становится «уборщиком по смерти владельца». Порог `idle-ms` не исчезает: он остаётся страховкой на случай «поток жив, handle утерян» — handle помечается осиротевшим, и при следующем обращении владельца `getConnection()` сам вернёт канал в пул и возьмёт новый.
+
+Это сохраняет нынешнюю защиту от «поток жив, но канал протух» и добавляет новую — от «поток мёртв, канал занят».
+
+### Физический канал в пуле: кто его реально закрывает
+
+Пул сам управляет жизненным циклом каналов:
+- `maximumPoolSize` — потолок одновременных каналов (FR-001);
+- `minimumIdle` — нижняя граница прогретых каналов;
+- `idleTimeout` — сколько простаивающий канал ждёт до возврата в пул (HikariCP сам);
+- `maxLifetime` — абсолютный срок жизни канала (HikariCP сам) — страховка от «залипших» каналов;
+- `keepaliveTime` — пинг простаивающих каналов, чтобы туннель до SERVER-БД (ADR local-0018) не рвал их молча.
+
+Рейпер приложения **не закрывает каналы** — он возвращает аренды. Ключевое разграничение: каналом владеет пул, арендой — поток.
+
+### Что происходит при смерти потока — полная последовательность
+
+```
+t0: поток P берёт handle H из пула (DbPool.borrow())
+    → H.owner = P, H зарегистрирован в PoolOwnerRegistry
+    → ThreadLocal(P).set(H)
+
+t1: поток P завершается (не вызвав closeThreadConnection())
+    → канал остаётся арендованным: PooledHandle.close() никто не звал
+    → пул считает канал занятым (в HikariCP — active connection)
+
+t2: рейпер (раз в 5 мин) обходит реестр
+    → находит H: H.owner.isAlive() == false
+    → вызывает H.close() → DbPool.release(channel) → канал возвращён в пул
+    → H удаляется из реестра
+    → слот в пуле снова свободен
+
+t3: следующий поток Q берёт handle → получает ТОТ ЖЕ канал (или другой свободный)
+    → физических каналов не прибавилось
+```
+
+**Без рейпера** шаг t2 не происходит — и тогда пул исчерпается точно так же, как сегодня БД. То есть **рейпер — обязательная часть фичи, а не спутник**: без него FR-001 («число физических соединений ограничено») в части «каналы не копятся» не выполняется, и получается тот же инцидент, только внутри пула.
+
+### Альтернативы, рассмотренные и отклонённые
+
+| Альтернатива | Почему отклонена |
+|---|---|
+| **A. Отказ от ThreadLocal** (`getConnection()` берёт и отдаёт канал на каждый вызов) | Прямо запрещено решением владельца Q1=A: 284 места вызова пришлось бы править (закрывать соединение), что ломает контракт ADR-0009 п.2 и увеличивает churn. Плюс: закрывать соединение в коде, который его не открывал, — источник ошибок в 284 местах |
+| **B. `closeThreadConnection()` в `finally` везде** | То же, что A, но точечно: места с `use { }`/try-finally надо найти и переписать. Не масштабируется и не покрывает «поток умер» |
+| **C. `WeakReference<Thread>` + сборщик мусора** | Как разобрано выше: реестр удерживает Thread → объект не собирается; нужен отдельный обход. `isAlive()` — прямой факт и дешевле |
+| **D. `Cleaner`/`PhantomReference` на handle** | Срабатывает только после GC handle'а, а handle удерживается ThreadLocal мёртвого потока → сборка не гарантирована вовремя. Тайминг неконтролируем |
+| **E. Свой пул вместо HikariCP** | ~300 строк кода на то, что делает проверенная библиотека: keepalive, maxLifetime, idle eviction, health-check, метрики. Домысливать это — источник багов. HikariCP — стандарт де-факто, версия 6.3.3 уже управляется BOM'ом Spring Boot 3.5.6 |
+| **F. Spring `DataSource` + `JdbcTemplate` в прикладный код** | Запрещено ADR-0001 (сырой JDBC) и ломает 284 места вызова. HikariCP используется **только** как источник каналов внутри `KaraokeConnection` |
+
+## Размеры пулов и конфигурация
+
+### Обоснование из измеренных данных (2026-11-15)
+
+| Наблюдение | Значение | Откуда |
+|---|---|---|
+| Физический коннект (стоимость) | **25,5 мс** на операцию | замер JDBC `DriverManager.getConnection` × 40 |
+| Хит пула | **0,216 мс** на операцию | замер HikariCP, 2000 операций get→query→close |
+| Холодный коннект (первый) | **349 мс** | тот же замер |
+| Конкурентная потребность, app | пик **31** | 40 сэмплов `pg_stat_activity` по 3 с, стенд |
+| Конкурентная потребность, web | пик **22** | там же |
+| Конкурентная потребность, web на проде | **46–47** устойчиво | 20 сэмплов `/proc/net/tcp` по 6 с, прод |
+| Прод: соединений у web | 46–47 при ≈40 потоках, способных коснуться БД | совпадение в пределах 15% |
+| Потоки, способные коснуться БД, app | 36 `parallel-*` (Reactor `Schedulers.parallel()`) + 10 Tomcat + лейны очереди | перечень потоков в контейнере |
+| Потоки, способные коснуться БД, web | 30 `MessageBroker-*` (WebSocket-брокер) + 10 Tomcat `http-nio` | перечень потоков в контейнере |
+| Очередь `KaraokeProcess` | **4 лейна** (`thread_id` = −1, 0, 1, 2) → максимум 4 задания параллельно | `KaraokeProcessWorker.threadsMap` |
+| Лимит БД | `max_connections=300` | compose обоих стеков |
+
+### Вывод по размеру
+
+**Ключевой момент (следствие Q1=A):** при сохранении ThreadLocal-контракта handle живёт столько же, сколько жив поток-хозяин. Значит **размер пула обязан вмещать все одновременно занятые handle'ы**, иначе мёртвые потоки не смогут вернуть канал, а новые потоки упрутся в исчерпание (ожидание 5 с → 503).
+
+Отсюда sizing — не «сколько соединений нужно по нагрузке», а **«сколько handle'ов может одновременно существовать»**:
+
+| Процесс | Роль | Верхняя граница одновременных handle'ов | Размер пула | Запас |
+|---|---|---|---|---|
+| app | LOCAL | 36 (`parallel-*`) + 10 (Tomcat) + 4 (лейны очереди) + служебные ≈ **52** | **56** | ~8% |
+| app | SERVER | те же потоки, но SERVER используется точечно (синхронизация) ≈ **16** | **20** | 25% |
+| web | LOCAL | 30 (`MessageBroker-*`) + 10 (Tomcat) + служебные ≈ **42** | **48** | ~14% |
+| web | SERVER | используется в одном месте (`SiteShareLinksController`) ≈ **8** | **10** | 25% |
+
+**Суммарный потолок на процесс:** app 56 + 20 = **76** из 300; web 48 + 10 = **58** из 300. FR-010 выполнен с запасом.
+
+**Почему не ближе к измеренному пику (31/22/46).** Пик — это **одновременная активность**, а размер пула ограничен **числом существующих handle'ов**. Handle'ов больше, чем активных обращений: поток Tomcat может тронуть БД один раз и держать handle до своей смерти. Прод-цифра 46–47 при ≈40 потоках это и показывает: соединений чуть больше, чем активных потоков, — и это норма, а не утечка.
+
+**Почему idle-реклейм позволяет не держать пул большим.** Освобождение простаивающего handle обходится в **0,216 мс** (возврат в пул) вместо **25,5 мс** (новый физический коннект). Поэтому при волне потоков handle'и можно быстро переиспользовать: вместо «каждый поток открывает свой канал» получается «каналы возвращаются в пул и берутся снова». Это позволяет держать потолок на уровне измеренной конкурентной потребности + запас, а не «по каналу на каждый возможный поток».
+
+**Жёсткое ограничение (риск взаимоблокировки).** Размер пула **не может быть меньше числа одновременно занятых handle'ов**. Для app это ≥ 4 (лейны очереди `KaraokeProcess`, каждый держит соединение минутами на транскрибации/демуксе). Если пул меньше — воркер не сможет взять handle и встанет (регрессия: очередь перестаёт обрабатывать задания). Проверяется тестом (§ «Стратегия тестов»).
+
+**Роль VIRTUAL** пула не получает: она `@Suppress("unused")` и в проде не используется (Q2=A).
+
+### Параметры (env → свойства)
+
+| Env | Свойство | Значение по умолчанию | Обоснование |
+|---|---|---|---|
+| `KARAOKE_DB_POOL_ENABLED` | `karaoke.db.pool.enabled` | `false` | **выключено по умолчанию** → FR-011 (откат без пересборки) и безопасное включение по шагам |
+| `KARAOKE_DB_POOL_MAX_LOCAL` | `karaoke.db.pool.max-local` | app: `56`, web: `48` | см. таблицу sizing |
+| `KARAOKE_DB_POOL_MAX_SERVER` | `karaoke.db.pool.max-server` | app: `20`, web: `10` | SERVER используется точечно |
+| `KARAOKE_DB_POOL_MIN_IDLE` | `karaoke.db.pool.min-idle` | `2` | прогрев; остальное пул добирает сам (`minimumIdle`) |
+| `KARAOKE_DB_POOL_ACQUIRE_TIMEOUT_MS` | `karaoke.db.pool.acquire-timeout-ms` | `5000` | Q3=A: ждать освобождения слота до 5 с |
+| `KARAOKE_DB_POOL_MAX_LIFETIME_MS` | `karaoke.db.pool.max-lifetime-ms` | `1800000` (30 мин) | страховка от «залипших» каналов |
+| `KARAOKE_DB_POOL_KEEPALIVE_MS` | `karaoke.db.pool.keepalive-ms` | `60000` (1 мин) | пинг простаивающих каналов: туннель до SERVER-БД (ADR local-0018) рвёт их молча |
+| `KARAOKE_DB_POOL_VALIDATION_TIMEOUT_MS` | `karaoke.db.pool.validation-timeout-ms` | `3000` | проверка живости канала при выдаче |
+
+**Дефолты различаются для app и web** — поэтому свойства задаются в `application.yml` каждого модуля, env перекрывает.
+
+**Свойства читаются в стиле существующего кода** (`@Value("\${karaoke.db.reaper.interval-ms:300000}")` — уже так сделано в рейпере, PR #129). Новых секретов нет: логин/пароль/URL берутся из уже существующих полей `url`/`username`/`password` класса `KaraokeConnection`.
+
+### SSL/mTLS и параметры JDBC-URL (спека 733, ADR local-0018)
+
+`Connection.remote()` в `karaoke-app` строит URL с `sslmode`/`sslcert`/`sslkey`/`sslrootcert` (`buildRemoteJdbcUrl`). **Пул обязан передать URL HikariCP без потерь** — иначе mTLS к SERVER-БД сломается.
+
+Решение: `DbPool` получает **тот же** `url`, что уже лежит в `KaraokeConnection`, и передаёт его в `HikariConfig.jdbcUrl` **как есть**. Никакого разбора и пересборки URL. Проверка: `Connection.remote().url` содержит `sslmode=verify-full&sslcert=…&sslkey=…&sslrootcert=…` → после перехода в пул строка не меняется (тест на равенство).
+
+**Обрыв туннеля (FR-016).** Сценарий: туннель до SERVER-БД рвётся → канал в пуле «мёртв», но формально жив. Обработка: (1) `keepaliveTime` пингует простаивающие каналы; (2) при выдаче handle'а HikariCP проверяет канал и выбрасывает мёртвые; (3) при `SQLException` действует существующий BR-274 self-healing (`markConnectionBroken` → следующий `getConnection()` переоткрывает). Пул **не** вносит новых требований к этому механизму — он его сохраняет.
+
+### Флаг отката (FR-011)
+
+`KARAOKE_DB_POOL_ENABLED=false` → `KaraokeConnection` работает **как сегодня**: `DriverManager.getConnection` напрямую, без пула, без реестра владельцев. Переключение — **без пересборки и без правки кода**, только env + рестарт контейнера. Первая линия отката; вторая — `git revert` PR.
+
+**Проверка отката обязательна** (T9 в § «Порядок внедрения»): с выключенным пулом поведение `getConnection()`/`closeThreadConnection()` совпадает с текущим.
+
+## Стратегия тестов
+
+### Принципы
+
+1. **Никаких сетевых подключений в конструкторе** (требование задания): `DbPool` создаётся **лениво** — только при первом `borrow()`. 10 тестовых подмен `KaraokeConnection` переопределяют `getConnection()`, поэтому пул у них не создаётся вовсе. Конструктор `KaraokeConnection` не трогает пул — он лишь хранит ссылку на фабрику.
+2. **Без `mockStatic`/`mockito-inline`/`mockk`** (запрещено правилами репозитория). Инструменты: подмены классов (обычные классы в тестах), `java.sql.Connection` — самодельная заглушка, `HikariDataSource` — за интерфейсом `PoolProvider`, который подменяется в тестах.
+3. **Тесты без живой БД.** Пул проверяется через абстракцию `PoolProvider` (выдача/возврат канала), а интеграция с HikariCP — отдельным тестом, помеченным `@EnabledIf` (живая БД), по образцу существующих `@Disabled`-интеграционных тестов.
+
+### Таблица покрытия требований
+
+| Требование | Тест | Что проверяет |
+|---|---|---|
+| **FR-001** (потолок физических соединений) | `DbPoolTest.потолок_пула_не_превышается` | при `maxPoolSize=N` одновременно занятых каналов **не больше N**; попытка N+1 ждёт `acquireTimeoutMs` и затем отказывает |
+| **FR-002** (возврат в пул при освобождении) | `PooledHandleTest.close_возвращает_канал_в_пул` | `handle.close()` → `PoolProvider.release(channel)` вызван **ровно один раз**; физический канал **не** закрыт (`channel.isClosed == false`) |
+| **FR-003** (возврат по смерти потока) | `PoolOwnerRegistryTest.мёртвый_владелец_обнаруживается` + `KaraokeConnectionPoolTest.рейпер_возвращает_handle_мёртвого_потока` | handle взят потоком, поток завершён → реестр находит его (`isAlive()==false`); рейпер вызывает `release` → слот освобождён |
+| **FR-004** (нет физического коннекта в горячем пути) | `DbPoolTest.повторное_взятие_не_создаёт_новый_канал` | N выдач из пула → `DriverManager`/создание канала **не** вызывается (счётчик созданий == 1) |
+| **FR-005** (контракт `getConnection()` не меняется) | `KaraokeConnectionPoolTest.сигнатура_и_кеш_сохранены` + **компиляция 284 мест вызова** | `getConnection()` возвращает `java.sql.Connection`; два вызова из одного потока → **тот же** объект (ThreadLocal-кеш сохранён); исходники модулей компилируются без правок (это и есть главная проверка FR-005) |
+| **FR-006** (self-healing сохраняется) | `KaraokeConnectionPoolTest.после_SQLException_следующий_вызов_работает` | после `SQLException` на канале `markConnectionBroken()` → следующий `getConnection()` берёт **новый** handle; исключения «соединение уже было закрыто» нет (specs/236) |
+| **FR-007** (размеры настраиваются) | `PoolConfigTest.размеры_читаются_из_окружения` | env → параметры; дефолты совпадают с § «Размеры пулов»; некорректное значение (`0`, отрицательное) → отказ на старте с внятным сообщением |
+| **FR-008** (событие исчерпания) | `DbPoolTest.исчерпание_пула_пишет_событие` | при исчерпании — событие `DB-POOL-002` с `target`, `waiting`, `busy`; отказ приложения различим с отказом БД (код события отличается от `DB-CONNECT-001`) |
+| **FR-009** (детектор утечки) | `DbPoolTest.долгое_удержание_даёт_событие_со_стеком` | handle удерживается дольше порога → событие `DB-POOL-003` со стеком вызовов места утечки |
+| **FR-010** (суммарный потолок < лимита БД) | `PoolConfigTest.суммарный_потолок_меньше_лимита_бд` | сумма размеров пулов процесса < 300; при превышении — отказ на старте с объяснением |
+| **FR-011** (обратный выключатель) | `KaraokeConnectionPoolTest.пул_выключен_ведёт_себя_как_прежде` | при `KARAOKE_DB_POOL_ENABLED=false` — `DriverManager` напрямую, реестр пуст, рейпер ничего не возвращает |
+| **FR-012** (живой поток сохраняет handle) | `KaraokeConnectionPoolTest.живой_поток_не_теряет_handle` | handle взят живым потоком → рейпер **не** возвращает его в пул; следующий `getConnection()` отдаёт **тот же** handle |
+| **FR-013** (рейпер не убивает рабочие соединения) | `LocalConnectionReaperPoolTest.рейпер_не_трогает_живые_handle` | рейпер обходит реестр: мёртвые → `release`, живые → не трогает; счётчик `closed` считает **только** возвращённые |
+| **FR-014** (нет изменений API/миграций) | сборка + ревью diff | публичные HTTP-контракты не тронуты; DDL/DML отсутствуют |
+| **FR-015** (SSoT в том же PR) | `tools/check-ssot-impact.py` в CI | ADR-0009, `knowledge/domains/persistence/domain.md`, per-feature документ обновлены в том же PR |
+| **FR-016** (переживает перезапуск БД и обрыв) | `DbPoolTest.после_обрыва_пул_выдаёт_живой_канал` | канал, помеченный как мёртвый, выбрасывается пулом; следующая выдача даёт рабочий канал |
+| **SC-001** | замер на стенде (§ «Замеры») | число соединений ≤ суммы размеров пулов |
+| **SC-002** | замер до/после | латентность не хуже базовой +10% |
+| **SC-003** | наблюдение 7 суток на проде | ни одного `too many clients` в логах БД |
+| **SC-004** | наблюдение 24 ч | счётчик соединений стабилен |
+| **SC-005** | `KaraokeConnectionPoolTest.возврат_не_позднее_целевого_интервала` | handle мёртвого потока возвращён в пределах `idle-ms` (900 000 мс) |
+| **SC-006** | `DbPoolTest.исчерпание_не_влияет_на_других_клиентов_бд` | при исчерпании пула приложение пишет событие; **другие** клиенты БД продолжают работать |
+| **SC-007** | замер на стенде | доля операций, порождающих **новый** физический канал, ≤ 1 на 1000 |
+
+### Обязательный тест на взаимоблокировку (риск из sizing)
+
+`DbPoolTest.размер_пула_не_меньше_числа_одновременно_занятых`: при `maxPoolSize = N` и `N` занятых handle'ах (имитация 4 лейнов очереди) — каждый из них успевает взять handle **до истечения `acquireTimeoutMs`**, потому что канал возвращается предыдущим арендатором. Тест падает, если пул меньше числа одновременно занятых.
+
+### Регрессия: полный набор тестов
+
+`./gradlew :karaoke-app:test :karaoke-web:test` — оба модуля зелёные. Существующие 10 подмен `KaraokeConnection` не должны сломаться: они переопределяют `getConnection()`/`reapIdleConnections()`/`openConnectionCount()`, а пул у них не создаётся (ленивое создание + переопределённый метод).
+
+### Ручная проверка (quickstart.md)
+
+Живой стенд: стенд-скрипт поднимает пул, берёт handle, имитирует смерть потока, проверяет возврат в пул и отсутствие роста числа соединений; отдельный сценарий — исчерпание пула → событие → 503, а БД продолжает обслуживать другие подключения.
+
+## Стратегия отката
+
+Три уровня, от быстрого к медленному:
+
+| Уровень | Действие | Время | Когда применять |
+|---|---|---|---|
+| **1. Флаг (без пересборки)** | `KARAOKE_DB_POOL_ENABLED=false` в env + рестарт контейнера через `deploy/do.sh start_<c>` | минуты | пул ведёт себя нестабильно, но код корректен |
+| **2. Откат конфигурации** | вернуть прежние значения размеров/таймаутов + рестарт | минуты | неверный sizing (исчерпание пула под нагрузкой) |
+| **3. `git revert` PR** | revert коммита фичи + пересборка образов + деплой | ~деплой-цикл | дефект в коде пула, не закрываемый флагом |
+
+**Критерий применения уровня 1:** пул включён, но наблюдается `DB-POOL-002` (исчерпание) чаще, чем раз в час, при работающем сайте. Тогда: `KARAOKE_DB_POOL_ENABLED=false` → поведение возвращается к сегодняшнему (рейпер физических каналов), инцидент 2026-11-14 не повторяется.
+
+**Проверка отката (обязательно, T9 в § «Порядок внедрения»):** с флагом `false` приложение работает как до фичи — регрессионный набор тестов + ручной сценарий из quickstart.
+
+**Побочный эффект отката:** при выключенном пуле сохраняется **текущий** дефект (каналы мёртвых потоков копятся) — компенсирующая мера (рейпер из PR #129) продолжает работать. То есть откат возвращает систему к состоянию «ограниченный ущерб», а не к инциденту.
+
+## Порядок внедрения
+
+Каждый этап — отдельно проверяемый, с отдельным PR (или отдельным коммитом в одном PR — решение лида). **Ни один этап не деплоится без словного согласия владельца** (Constitution: деплой — по прямому согласию; рестарт `karaoke-app` — тоже).
+
+| Этап | Содержание | Проверка этапа | Деплой |
+|---|---|---|---|
+| **1. Каркас пула** (без подключения) | `PoolConfig`, `PoolProvider` (интерфейс), `DbPool` (Hikari-реализация), `PooledHandle`, `PoolOwnerRegistry`. `KaraokeConnection` **не тронут**; пул создаётся лениво и никем не используется | юнит-тесты каркаса; сборка обоих модулей; пул не создаётся при старте (нет соединений) | не требуется |
+| **2. Подключение к `KaraokeConnection`** (пул выключен по умолчанию) | `KaraokeConnection` переключается между «как раньше» и «через пул» по флагу; `Connection.local()/remote()` создают пулы; реестр владельцев | все тесты таблицы покрытия; **284 места вызова компилируются без правок** (FR-005); `KARAOKE_DB_POOL_ENABLED=false` → поведение идентично сегодняшнему | на стенд (локальный стек), флаг выключен → деградации нет |
+| **3. Новый контракт рейпера** | рейпер (app + web) возвращает handle'ы мёртвых потоков; в режиме без пула — старое поведение (закрытие каналов по простою) | `LocalConnectionReaperPoolTest` (FR-013); регрессионные тесты рейпера (существующие) | на стенд, флаг выключен → поведение прежнее |
+| **4. Включение на стенде** | `KARAOKE_DB_POOL_ENABLED=true` на локальном стеке; замеры до/после (§ «Замеры») | все SC на стенде; нагрузочный прогон; число соединений не растёт; латентность не хуже | стенд, по согласию |
+| **5. Включение на проде (web)** | прод-web с пулом; **наблюдение 24–72 ч** | прод: `pg_stat_activity` ≤ потолка; `too many clients` = 0; латентность в базовых пределах; событий `DB-POOL-002` нет | прод, по согласию; **веб-контейнер трогаем без остановки очереди** (очередь — в `karaoke-app`, на проде его нет) |
+| **6. Включение на проде (app)** | админ-машина: app с пулом | то же + **проверка очереди**: `isworking` → true, задания доходят до `DONE` | админ-машина, по согласию **и по Pass 380**: сначала остановить очередь, дождаться завершения активных заданий, потом рестарт |
+| **7. Наблюдение и замеры** | 7 суток на проде (SC-003), 24 ч (SC-004) | сводка замеров; отчёт в `report.md`; `tracker.sh add-comment 430` | — |
+| **8. Обновление знания** | ADR-0009 (поправка), `knowledge/domains/persistence/domain.md`, per-feature документ, `knowledge/system/infra/` (размеры пулов в описании стенда) | `tools/lint-knowledge.py`, `tools/check-doc-references.py`, `tools/check-ssot-impact.py` | — |
+
+**Порядок web → app выбран осознанно:** на проде развёрнут только `karaoke-web` (`karaoke-app` там не разворачивается — Constitution, «Деплой-окружения»), а app ходит в SERVER-БД **прода** через туннель. Если включить app первым, его пул к SERVER-БД начнёт конкурировать с пулом web за слоты прод-БД — при `max_connections=300` и двух пулах (web 48+10, app 56+20 = 134) это перебор без нужды. Сначала web (58 слотов), наблюдаем, потом app.
+
+**Отдельно: `karaoke-app` на админ-машине и Pass 380.** Рестарт app — только после остановки очереди `KaraokeProcess` и фактического завершения активных заданий (AGENTS.md, Pass 380/381). Проверка: `POST http://localhost:7906/api/processesdigests` → пустой список активных; очередь останавливается через `:8898/process/stop`; после рестарта очередь поднимается кнопкой «Старт».
+
+## Риски и как они снимаются
+
+| # | Риск | Вероятность | Влияние | Как снимается |
+|---|---|---|---|---|
+| **R1** | **Исчерпание пула при сохранении ThreadLocal-контракта.** Handle живёт, пока жив поток; пул обязан вмещать все занятые handle'ы. При неверном sizing — ожидание 5 с и 503 (Q3=A) | средняя | **высокое** (сайт отдаёт 503) | Sizing выведен из измеренной верхней границы handle'ов (36 `parallel-*` + 10 Tomcat + 4 лейна), а не из пика активности; запас 8–25%; `KARAOKE_DB_POOL_MAX_*` настраиваются без пересборки; событие `DB-POOL-002` с `waiting`/`busy`; тест «размер пула ≥ числа одновременно занятых» |
+| **R2** | **Взаимоблокировка на лейнах очереди.** `KaraokeProcessWorker` держит соединение минутами; 4 лейна → 4 слота заняты постоянно. Пул меньше 4 (+ служебные) → воркер встанет | средняя | **высокое** (очередь встаёт, задания не идут) | Минимальный размер пула ≥ числа лейнов + запас; явная проверка в § «Размеры пулов»; тест на взаимоблокировку; отдельная проверка очереди на этапе 6 (Pass 380 — не перезапускать app с работающим заданием) |
+| **R3** | **Рейпер убивает рабочие соединения.** Если рейпер, как сейчас, закрывает каналы по простою — с пулом это портит чужую работу (канал отдан другому потоку) | высокая, если не менять рейпер | **высокое** (SQLException в чужом потоке) | Новый контракт рейпера (FR-013): возвращать handle'ы мёртвых владельцев; живые handle'ы не трогать; отдельный тест `LocalConnectionReaperPoolTest`; рейпер app и web меняются **симметрично** |
+| **R4** | **Без рейпера пул исчерпается так же, как сегодня БД** — утечка переносится внутрь пула | высокая, если рейпер не переделан | **высокое** | Рейпер — обязательная часть фичи, не спутник; этап 3 отдельный и проверяемый; в § «Модель владения» описана полная последовательность t0→t3 |
+| **R5** | **mTLS к SERVER-БД ломается при переходе в пул** (потеря `sslmode`/`sslcert`/`sslkey`/`sslrootcert`) | низкая | **высокое** (прод-БД недоступна) | URL передаётся в `HikariConfig.jdbcUrl` как есть, без разбора; тест на равенство URL до/после; проверка на этапе 5 (прод) — `SiteShareLinksController` ходит в SERVER-БД |
+| **R6** | **Обрыв туннеля до SERVER-БД** (ADR local-0018) — канал «залип» | средняя | среднее | `keepaliveTime` (60 с) пингует простаивающие каналы; `maxLifetime` (30 мин) страхует; проверка живости при выдаче; существующий BR-274 self-healing сохранён; FR-016 |
+| **R7** | **Новая зависимость недоступна в CI/сборке** (HikariCP 6.3.3 не в локальном gradle-кэше) | низкая | среднее | Maven Central проверен: `repo1.maven.org` → 200 за 0,33 с; версия управляется BOM'ом Spring Boot 3.5.6 (`hikaricp.version>6.3.3`) — без ручного pin; CI-джоб `backend build` скачает зависимость |
+| **R8** | **Регрессия латентности** — handle-прокси добавляет слой делегирования к каждому вызову JDBC | средняя | среднее | Замер до/после обязателен (SC-002); базовые значения зафиксированы; при превышении +10% — анализ накладных расходов прокси; запас по latency при переходе ~0,09 мс на операцию (25,5 → 0,216 при idle-реклейме) |
+| **R9** | **Ложные срабатывания детектора утечки (FR-009)** — нормальная работа с длинными транзакциями выглядит как утечка | средняя | низкое (шум в журнале) | Порог детектора **больше** максимальной длительности легитимной транзакции (задания очереди держат соединение минутами); событие — предупреждение, не действие; стек вызовов помогает отличить |
+| **R10** | **Расхождение поведения app и web** (как сейчас: рейпер был только в app) | средняя | **высокое** (дефект прячется в одном процессе) | Общий код пула — в `karaoke-app` (модуль, от которого зависит web); рейпер меняется **симметрично** в обоих; тесты в обоих модулях |
+| **R11** | **Откат не сработал** — флаг есть, но код сломан | низкая | среднее | Откат проверяется тестом (T9) и вручную на стенде; второй уровень — `git revert` PR; откат возвращает систему к «ограниченному ущербу» (рейпер физических каналов продолжает работать), а не к инциденту |
+| **R12** | **Пул не даёт ожидаемого эффекта, т.к. handle'ы всё равно копятся** (потоки живут долго) | средняя | среднее | Это ожидаемое поведение модели: **потолок** достигается, но не превышается — цель FR-001. Замер SC-001/SC-004 подтверждает: число соединений стабильно и ≤ потолка. Пункт «утечка не устранена, а ограничена» фиксируется в ADR-0009 явно |
+| **R13** | **Размеры пулов на стенде и на проде различаются, а дефолт один** | высокая | среднее | Дефолты разные для app и web (см. sizing); прод-значения выставляются через env в compose; при отладке на стенде — те же числа, что и на проде, чтобы перенос не менял поведение |
+
+## План замеров «до/после»
+
+### Что уже измерено (baseline, 2026-11-15)
+
+Замеры выполнены на стенде и на проде **до** внедрения; это baseline для сравнения.
+
+| Метрика | Где | Значение |
+|---|---|---|
+| Стоимость физического коннекта | стенд | 25,5 мс/операция (40 коннектов) |
+| Стоимость хита пула | стенд | 0,216 мс/операция (2000 операций) |
+| Холодный коннект | стенд | 349 мс |
+| Конкурентная потребность | стенд | app — пик 31, web — пик 22 (40 сэмплов по 3 с) |
+| Конкурентная потребность | прод | web — 46–47 (20 сэмплов по 6 с) |
+| Латентность `/api/public/news` | стенд | p50 11,9 мс, p95 35,3 мс (50 запросов) |
+| Латентность `/api/public/news` | прод | p50 70,1 мс, p95 84,5 мс, 30/30 код 200 (30 запросов) |
+| События рейпера | прод | 25 событий `DB-REAP-001`, 0 `too many clients` за 2,5 ч |
+
+### Методика «после» (те же метрики, тот же инструментарий)
+
+**Стенд** (этап 4):
+
+| # | Замер | Метод | Ожидание (SC) |
+|---|---|---|---|
+| M1 | Потолок соединений | `pg_stat_activity` сэмплы по 3 с, 2 мин | число соединений ≤ суммы размеров пулов (SC-001) |
+| M2 | Стабильность счётчика | счётчик соединений до нагрузки и через 24 ч | отличие ≤ размера пула (SC-004) |
+| M3 | Латентность | 50 запросов `/api/public/news` | p50 ≤ 13,1 мс, p95 ≤ 38,8 мс (SC-002) |
+| M4 | Доля новых каналов | счётчик `DriverManager`-подобных созданий канала ÷ число операций | ≤ 1 на 1000 (SC-007) |
+| M5 | Возврат по смерти потока | сценарий «поток умер с handle» (quickstart) | handle возвращён в пределах `idle-ms` (900 000 мс) (SC-005) |
+| M6 | Исчерпание | искусственное занятие всех слотов | событие `DB-POOL-002`; 503 приложения; **другие клиенты БД работают** (SC-006) |
+| M7 | `too many clients` | логи БД за прогон | 0 (SC-003) |
+
+**Прод** (этапы 5–7):
+
+| # | Замер | Метод | Ожидание |
+|---|---|---|---|
+| P1 | Соединения к БД | `/proc/net/tcp` в контейнере БД, сэмплы по 6 с | ≤ 58 для web (48+10) |
+| P2 | Латентность | 30 запросов `/api/public/news` | p50 ≤ 77,1 мс, p95 ≤ 92,9 мс; коды 200 |
+| P3 | Стабильность | счётчик 24 ч, затем 7 суток | без роста (SC-004, SC-003) |
+| P4 | Очередь (app, этап 6) | `POST :7906/api/processesdigests` → `isworking` | очередь работает, задания доходят до `DONE` |
+| P5 | События | поиск `DB-POOL-*` и `too many clients` в логах | нет `DB-POOL-002`, нет `too many clients` |
+
+### Отчёт по замерам
+
+Результаты M1–M7 и P1–P5 — в `specs/778-db-connection-pool/report.md` (REQUIRED-артефакт Plane-workflow), затем `tracker.sh add-comment 430 --file …/report.md` и `mark-review 430`.
+
+### Критерий приёмки фичи
+
+Фича принята, если **одновременно**:
+1. Все FR-001…FR-016 покрыты тестами (таблица § «Стратегия тестов»), тесты зелёные;
+2. M1–M7 на стенде — в ожидаемых пределах;
+3. P1–P5 на проде — в ожидаемых пределах, наблюдение ≥ 24 ч;
+4. ADR-0009 и `knowledge/domains/persistence/domain.md` обновлены в том же PR (FR-015);
+5. Откат проверен (T9).
+
+## Итог: что даёт фича и чего не даёт
+
+**Даёт:**
+- **Потолок.** Число физических соединений к БД ограничено числом, а не растёт до `max_connections` (FR-001, SC-001). Именно это устраняет отказ всей системы: сейчас лимит БД — это «потолок для всех», и его исчерпание отказывает сразу всем.
+- **Возврат при смерти потока** (FR-003) — слот освобождается, а не копится.
+- **Дешёвое освобождение**: 0,216 мс вместо 25,5 мс — запас по concurrency без роста числа каналов.
+- **Диагностика**: `DB-POOL-002` (исчерпание) и `DB-POOL-003` (долгое удержание со стеком) — отличить отказ приложения от отказа БД (FR-008, FR-009).
+- **Откат без пересборки** (FR-011).
+
+**Не даёт (честно):**
+- Не устраняет утечку как таковую: handle мёртвого потока возвращается в пул **не мгновенно**, а за цикл рейпера (до 5 минут). Канал при этом остаётся физически открытым в БД — он просто возвращён в пул и может быть переиспользован.
+- Не устраняет «поток жив, а handle забыт»: такой handle занимает слот до смерти потока. Пул **ограничивает** ущерб, но не устраняет причину. Окончательное решение — отказ от ThreadLocal-контракта, который владелец сознательно вынес за рамки (Q1-A; отдельная задача).
+- Не повышает `max_connections` (Out of Scope).
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| **Нет** | — | Constitution Check пройден без нарушений: HikariCP — не ORM (Principle II), контракт `getConnection()` сохранён (FR-005), прикладной код не меняется (0 правок в 284 местах вызова), новая зависимость — пул, а не ORM |
+
+## Связанные артефакты
+
+- `spec.md` — контракт фичи (FR-001…FR-016, SC-001…SC-007); решения владельца Q1=A, Q2=A, Q3=A.
+- `research.md` — Phase 0: обоснование выбора HikariCP, модели владения, sizing.
+- `data-model.md` — Phase 1: сущности пула и состояния handle'а.
+- `contracts/db-pool-config.md` — Phase 1: контракт конфигурации (env → параметры).
+- `contracts/db-pool-events.md` — Phase 1: контракт событий наблюдаемости.
+- `quickstart.md` — Phase 1: сценарии ручной проверки.
+- `knowledge/adr/local-0009-thread-local-connection-lifecycle.md` — ADR-0009: контракт ThreadLocal и его соотношение с пулом.
+- `knowledge/domains/persistence/domain.md` — контракт соединения на поток.
+- `specs/645-fix-connection-leak/spec.md` — предшественник (FR-010 выносит пул в эту задачу).
+- `specs/236-fix-karaoke-connection-self-healing/spec.md` — self-healing, который пул обязан сохранить.

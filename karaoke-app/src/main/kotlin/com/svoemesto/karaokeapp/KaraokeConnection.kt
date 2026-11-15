@@ -1,5 +1,8 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.db.DbPool
+import com.svoemesto.karaokeapp.db.DbPoolSettings
+import com.svoemesto.karaokeapp.db.PooledHandle
 import com.svoemesto.karaokeapp.tunnel.CertFailureClassifier
 import com.svoemesto.karaokeapp.tunnel.CertFailureReason
 import org.slf4j.LoggerFactory
@@ -53,6 +56,62 @@ abstract class KaraokeConnection(
     }
 
     private val threadLocalConnection = ThreadLocal<java.sql.Connection?>()
+
+    /**
+     * Handle (аренда канала пула) текущего потока — только в пуловом режиме.
+     *
+     * В режиме без пула (по умолчанию) остаётся `null`, и работает прежний
+     * путь: физическое соединение в [threadLocalConnection].
+     */
+    private val threadLocalHandle = ThreadLocal<PooledHandle?>()
+
+    /**
+     * Пул соединений этой роли БД; `null` — пул выключен (прежнее поведение).
+     *
+     * Создаётся **лениво** (при первом обращении к БД), а не в конструкторе:
+     * 10 тестовых подмен `KaraokeConnection` переопределяют `getConnection()`
+     * и не должны создавать ни пула, ни сетевых подключений.
+     *
+     * Пул принадлежит **экземпляру** соединения, а не процессу: у каждой
+     * роли (`LOCAL`/`SERVER`) свой набор каналов и свой потолок (FR-001).
+     */
+    @Volatile
+    private var poolInstance: DbPool? = null
+
+    /** Пул уже создан? (создание — ленивое, под блокировкой) */
+    @Volatile
+    private var poolCreated: Boolean = false
+
+    /**
+     * Пул соединений для этой роли БД (создаётся при первом обращении).
+     *
+     * `null`, если пул выключен ([DbPoolSettings.enabled]) — тогда работает
+     * прежний путь через `DriverManager`.
+     */
+    protected open fun pool(): DbPool? {
+        if (poolCreated) return poolInstance
+        synchronized(this) {
+            if (poolCreated) return poolInstance
+            val config = DbPoolSettings.configFor(name)
+            // Настройки ещё не применены (Spring-контекст не инициализирован) —
+            // НЕ запоминаем решение: пул создастся при следующем обращении.
+            if (config == null && !DbPoolSettings.resolved) return null
+            poolInstance =
+                if (config == null) {
+                    null
+                } else {
+                    DbPool(
+                        target = name,
+                        jdbcUrl = url,
+                        username = username,
+                        password = password,
+                        config = config,
+                    )
+                }
+            poolCreated = true
+            return poolInstance
+        }
+    }
 
     /**
      * Реестр физических соединений этого экземпляра: соединение → время последнего
@@ -179,6 +238,32 @@ abstract class KaraokeConnection(
             // PSQLException: Соединение уже было закрыто на loadList/createStatement.
             threadLocalConnection.set(null)
             threadLocalPoisoned.set(false)
+            val pool = pool()
+            if (pool != null) {
+                // Пул (спека 778): берём АРЕНДУ канала, а не физическое соединение.
+                // Handle кэшируется в ThreadLocal — контракт «соединение на поток»
+                // сохраняется (ADR-0009), но каналом владеет пул.
+                try {
+                    // Старый handle освобождаем ДО взятия нового: иначе слот
+                    // пула утекал бы на каждом переоткрытии (битое соединение,
+                    // истёкший простой) — а слот конечен.
+                    threadLocalHandle.get()?.release()
+                    threadLocalHandle.remove()
+                    val handle = pool.borrowHandle()
+                    threadLocalHandle.set(handle)
+                    // BR-274: прокси «битого» состояния поверх handle'а — SQLException
+                    // помечает handle, следующий getConnection() возьмёт новый.
+                    val wrapped = wrapForBrokenDetection(handle.asConnection())
+                    threadLocalConnection.set(wrapped)
+                    // BR-274: валидация выполнена — метка времени обновляется, чтобы
+                    // следующие обращения не платили ещё за один round-trip.
+                    threadLocalLastValidationMs.set(System.currentTimeMillis())
+                    return wrapped
+                } catch (e: Exception) {
+                    logConnectionFailure(e)
+                    return null
+                }
+            }
             Class.forName("org.postgresql.Driver")
             try {
                 val opened = DriverManager.getConnection(url, username, password)
@@ -193,52 +278,7 @@ abstract class KaraokeConnection(
                 // следующие обращения не платили ещё за один round-trip.
                 threadLocalLastValidationMs.set(System.currentTimeMillis())
             } catch (e: Exception) {
-                // BR-275: в лог уходит САМ объект исключения (последний аргумент
-                // SLF4J) — так сохраняются стек, класс и cause-цепочка. Раньше
-                // логировался только `e.message`, и в stdout/централизованных
-                // логах не оставалось ни стека, ни причины, ни типа исключения.
-                //
-                // Неинформативный println убран (2026-11-12): он печатал только текст
-                // исключения — без цели (LOCAL/SERVER), хоста и кода события, поэтому
-                // по нему нельзя было понять, к какой базе не удалось подключиться.
-                // Строка ниже (AppLog) содержит target, host и reason и идёт в тот же
-                // stdout через logback — дублировать её не нужно.
-                // FR-004 spec.md: структурированный SLF4J warn для диагностики.
-                // specs/236: добавляем urlHost (без credentials) — сразу видно, к какому
-                // хосту/порту шла попытка (полезно при пустом DB_REMOTE_HOST в env).
-                // KARAOKE-387: одна строка с кодом вместо стека Spring/Tomcat.
-                AppLog.warn(
-                    category = CATEGORY,
-                    code = "DB-CONNECT-001",
-                    event = "db.connect.failed",
-                    fields =
-                        mapOf(
-                            "target" to name,
-                            "thread" to Thread.currentThread().name,
-                            "host" to url.substringAfter("://").substringBefore("/"),
-                            "reason" to (e.message ?: "unknown"),
-                        ),
-                    error = e,
-                )
-                // Спека 733 (FR-016): отказ по сертификату MUST попадать в наблюдаемость
-                // как событие с указанием причины (просрочен / недоверенный / отозван),
-                // а не как безымянная ошибка соединения. Тот же отказ порождает и
-                // DB-CONNECT-001 — здесь появляется код участника «сертификат».
-                val certReason = CertFailureClassifier.classify(e)
-                if (certReason != CertFailureReason.UNKNOWN) {
-                    AppLog.warn(
-                        category = CATEGORY,
-                        code = "DB-CERT-001",
-                        event = "db.cert.rejected",
-                        fields =
-                            mapOf(
-                                "target" to name,
-                                "certReason" to certReason.code,
-                                "host" to url.substringAfter("://").substringBefore("/"),
-                            ),
-                        error = e,
-                    )
-                }
+                logConnectionFailure(e)
             }
         }
         val cached = threadLocalConnection.get()
@@ -246,6 +286,68 @@ abstract class KaraokeConnection(
             openConnections[cached]?.set(System.currentTimeMillis())
         }
         return cached
+    }
+
+    /**
+     * Пишет отказ подключения в журнал (BR-275, спека 733).
+     *
+     * В лог уходит **САМ объект исключения** (последний аргумент SLF4J) — так
+     * сохраняются стек, класс и cause-цепочка. Раньше логировался только
+     * `e.message`, и в stdout/централизованных логах не оставалось ни стека, ни
+     * причины, ни типа исключения.
+     *
+     * Отдельный метод — потому что одинаково нужен обоим путям: через пул
+     * (спека 778) и через прямой `DriverManager`.
+     *
+     * @param e исключение подключения
+     */
+    private fun logConnectionFailure(e: Exception) {
+        // BR-275: в лог уходит САМ объект исключения (последний аргумент
+        // SLF4J) — так сохраняются стек, класс и cause-цепочка. Раньше
+        // логировался только `e.message`, и в stdout/централизованных
+        // логах не оставалось ни стека, ни причины, ни типа исключения.
+        //
+        // Неинформативный println убран (2026-11-12): он печатал только текст
+        // исключения — без цели (LOCAL/SERVER), хоста и кода события, поэтому
+        // по нему нельзя было понять, к какой базе не удалось подключиться.
+        // Строка ниже (AppLog) содержит target, host и reason и идёт в тот же
+        // stdout через logback — дублировать её не нужно.
+        // FR-004 spec.md: структурированный SLF4J warn для диагностики.
+        // specs/236: добавляем urlHost (без credentials) — сразу видно, к какому
+        // хосту/порту шла попытка (полезно при пустом DB_REMOTE_HOST в env).
+        // KARAOKE-387: одна строка с кодом вместо стека Spring/Tomcat.
+        AppLog.warn(
+            category = CATEGORY,
+            code = "DB-CONNECT-001",
+            event = "db.connect.failed",
+            fields =
+                mapOf(
+                    "target" to name,
+                    "thread" to Thread.currentThread().name,
+                    "host" to url.substringAfter("://").substringBefore("/"),
+                    "reason" to (e.message ?: "unknown"),
+                ),
+            error = e,
+        )
+        // Спека 733 (FR-016): отказ по сертификату MUST попадать в наблюдаемость
+        // как событие с указанием причины (просрочен / недоверенный / отозван),
+        // а не как безымянная ошибка соединения. Тот же отказ порождает и
+        // DB-CONNECT-001 — здесь появляется код участника «сертификат».
+        val certReason = CertFailureClassifier.classify(e)
+        if (certReason != CertFailureReason.UNKNOWN) {
+            AppLog.warn(
+                category = CATEGORY,
+                code = "DB-CERT-001",
+                event = "db.cert.rejected",
+                fields =
+                    mapOf(
+                        "target" to name,
+                        "certReason" to certReason.code,
+                        "host" to url.substringAfter("://").substringBefore("/"),
+                    ),
+                error = e,
+            )
+        }
     }
 
     /**
@@ -261,6 +363,12 @@ abstract class KaraokeConnection(
      * (specs/236), а не ошибка.
      */
     open fun reapIdleConnections(maxIdleMs: Long): Int {
+        // Пул (спека 778): убираются АРЕНДЫ мёртвых владельцев, а не каналы.
+        // Физические каналы закрывает пул (FR-013).
+        val pool = pool()
+        if (pool != null) {
+            return pool.reapDeadOwnerHandles()
+        }
         val now = System.currentTimeMillis()
         var closed = 0
         val iterator = openConnections.entries.iterator()
@@ -278,8 +386,43 @@ abstract class KaraokeConnection(
         return closed
     }
 
-    /** Сколько физических соединений экземпляра сейчас учтено реестром (для наблюдаемости). */
-    open fun openConnectionCount(): Int = openConnections.size
+    /**
+     * Сообщает о handle'ах, удерживаемых живым владельцем дольше порога
+     * (FR-009, событие `DB-POOL-003`).
+     *
+     * Наблюдательное событие: ничего не отбирается и ничего не закрывается —
+     * показывается только место в коде, где соединение удерживается дольше
+     * положенного. Без пула события нет: там соединением владеет поток, и его
+     * удержание — нормальная часть контракта ADR-0009.
+     *
+     * @param thresholdMs порог удержания
+     * @return сколько handle'ов сообщено (0 — пул выключен)
+     */
+    open fun reportLongHeldHandles(thresholdMs: Long): Int {
+        val pool = pool() ?: return 0
+        return pool.reportLongHeldHandles(thresholdMs)
+    }
+
+    /**
+     * Handle текущего потока (только в пуловом режиме).
+     *
+     * Шов для тестов: позволяет взять handle в отдельном потоке и проверить,
+     * что рейпер вернёт аренду мёртвого владельца. В прикладном коде не
+     * используется.
+     */
+    protected open fun currentHandle(): PooledHandle? = threadLocalHandle.get()
+
+    /**
+     * Сколько соединений экземпляра сейчас занято (для наблюдаемости).
+     *
+     * Без пула — число физических соединений в реестре; с пулом — число занятых
+     * аренд (каналов, выданных потокам).
+     */
+    open fun openConnectionCount(): Int {
+        val pool = pool()
+        if (pool != null) return pool.activeConnections()
+        return openConnections.size
+    }
 
     /**
      * Явно закрывает и освобождает физическое соединение **текущего потока**, если оно
@@ -310,6 +453,15 @@ abstract class KaraokeConnection(
      * Метод `open` — шов для тестов: наследник может зафиксировать факт закрытия.
      */
     open fun closeThreadConnection() {
+        // Пул (спека 778): handle возвращается в пул — канал НЕ закрывается,
+        // он общий (FR-002). Физическое соединение закрывает сам пул.
+        val handle = threadLocalHandle.get()
+        if (handle != null) {
+            threadLocalHandle.remove()
+            threadLocalConnection.remove()
+            handle.release()
+            return
+        }
         val conn = threadLocalConnection.get() ?: return
         try {
             conn.close()

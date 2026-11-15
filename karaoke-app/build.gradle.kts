@@ -50,6 +50,12 @@ dependencies {
     // boolean-колонки не читаются как числа, массивы только одномерные
     // (читаются через getArray, не getResultSet).
     implementation("org.postgresql:postgresql")
+    // HikariCP — ограниченный пул JDBC-соединений (спека 778, KARAOKE-430).
+    // Версию задаёт BOM Spring Boot 3.5.6 (hikaricp.version>6.3.3) — ручной пин
+    // не нужен и запрещён: расхождение с BOM ломает обновление по семейству.
+    // Пул НЕ ORM (ADR-0001): это только источник физических каналов, весь
+    // доступ к БД остаётся в KaraokeConnection.
+    implementation("com.zaxxer:HikariCP")
     implementation("commons-io:commons-io:2.20.0")
     implementation("com.google.code.gson:gson:2.8.9")
 

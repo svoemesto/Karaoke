@@ -71,6 +71,38 @@ db-remote-ssl-cert: ${DB_REMOTE_SSL_CERT:}
 db-remote-ssl-key: ${DB_REMOTE_SSL_KEY:}
 db-remote-ssl-root-cert: ${DB_REMOTE_SSL_ROOT_CERT:}
 
+# Спека 778 (KARAOKE-430): ограниченный пул соединений к БД.
+#
+# Пул живёт ПОД ThreadLocal-контрактом KaraokeConnection (ADR-0009): в ThreadLocal
+# хранится handle (обёртка java.sql.Connection), а физическим каналом владеет пул.
+# Публичный контракт getConnection() не меняется — 284 места вызова не трогаем.
+#
+# Размеры — ПОТОЛОК одновременно существующих handle'ов, посчитанный от конфигурации
+# (не от наблюдаемой загрузки): handle живёт, пока жив поток-хозяин.
+#   app LOCAL ≈ 50 (server.tomcat.threads.max) + 36 (Schedulers.parallel() = nproc)
+#             + 30 (HealthReport: POOL_SIZE=10 + POOL_SIZE_WAITING=20)
+#             + 4 (лейны KaraokeProcess) + 4 (karaoke-scheduler) ≈ 124 → 128
+#   app SERVER ≈ 16 → 20 (SERVER используется точечно — синхронизация)
+# Потолок — ограничитель, а не заказ: установившееся число соединений (~40–60)
+# от него не зависит. При другом числе ядер дефолт пересчитать по этой формуле.
+karaoke:
+  db:
+    pool:
+      # Выключено по умолчанию → безопасная доставка по шагам и откат без пересборки
+      # (FR-011). Включение — переменная env + рестарт контейнера.
+      enabled: ${KARAOKE_DB_POOL_ENABLED:false}
+      max-local: ${KARAOKE_DB_POOL_MAX_LOCAL:128}
+      max-server: ${KARAOKE_DB_POOL_MAX_SERVER:20}
+      min-idle: ${KARAOKE_DB_POOL_MIN_IDLE:2}
+      # Сколько ждать свободный слот перед отказом (FR-008, решение владельца Q3=A).
+      acquire-timeout-ms: ${KARAOKE_DB_POOL_ACQUIRE_TIMEOUT_MS:5000}
+      # Абсолютный срок жизни канала — страховка от «залипших» каналов.
+      max-lifetime-ms: ${KARAOKE_DB_POOL_MAX_LIFETIME_MS:1800000}
+      # Пинг простаивающих каналов: туннель до SERVER-БД (ADR local-0018) рвёт их молча.
+      keepalive-ms: ${KARAOKE_DB_POOL_KEEPALIVE_MS:60000}
+      # Проверка живости канала при выдаче.
+      validation-timeout-ms: ${KARAOKE_DB_POOL_VALIDATION_TIMEOUT_MS:3000}
+
 # BR-173 (аудит #336, пакет `PKG-S3-23`, OpenProject #395): блок `app:` удалён.
 #
 # `app.max-file-size` / `app.max-request-size` НЕ ЧИТАЛИСЬ ни одним классом — это был

@@ -37,6 +37,37 @@ db-remote-postgres-password: ${DB_SERVER_POSTGRES_PASSWORD}
 db-remote-host: ${DB_REMOTE_HOST:188.127.240.124}
 db-remote-port: ${DB_REMOTE_PORT:8832}
 
+# Спека 778 (KARAOKE-430): ограниченный пул соединений к БД.
+#
+# Пул живёт ПОД ThreadLocal-контрактом KaraokeConnection (ADR-0009): в ThreadLocal
+# хранится handle (обёртка java.sql.Connection), а физическим каналом владеет пул.
+# Публичный контракт getConnection() не меняется — 46 мест вызова в web не трогаем.
+#
+# Размеры — ПОТОЛОК одновременно существующих handle'ов, посчитанный от конфигурации
+# (не от наблюдаемой загрузки): handle живёт, пока жив поток-хозяин.
+#   web LOCAL ≈ 50 (server.tomcat.threads.max) + 36 (пул WebSocket-брокера =
+#             availableProcessors = nproc) + 4 (служебные) ≈ 90 → 96
+#   web SERVER ≈ 8 → 10 (SERVER используется в одном месте — SiteShareLinksController)
+# Потолок — ограничитель, а не заказ: установившееся число соединений (~40–50)
+# от него не зависит. При другом числе ядер дефолт пересчитать по этой формуле.
+karaoke:
+  db:
+    pool:
+      # Выключено по умолчанию → безопасная доставка по шагам и откат без пересборки
+      # (FR-011). Включение — переменная env + рестарт контейнера.
+      enabled: ${KARAOKE_DB_POOL_ENABLED:false}
+      max-local: ${KARAOKE_DB_POOL_MAX_LOCAL:96}
+      max-server: ${KARAOKE_DB_POOL_MAX_SERVER:10}
+      min-idle: ${KARAOKE_DB_POOL_MIN_IDLE:2}
+      # Сколько ждать свободный слот перед отказом (FR-008, решение владельца Q3=A).
+      acquire-timeout-ms: ${KARAOKE_DB_POOL_ACQUIRE_TIMEOUT_MS:5000}
+      # Абсолютный срок жизни канала — страховка от «залипших» каналов.
+      max-lifetime-ms: ${KARAOKE_DB_POOL_MAX_LIFETIME_MS:1800000}
+      # Пинг простаивающих каналов: туннель до SERVER-БД (ADR local-0018) рвёт их молча.
+      keepalive-ms: ${KARAOKE_DB_POOL_KEEPALIVE_MS:60000}
+      # Проверка живости канала при выдаче.
+      validation-timeout-ms: ${KARAOKE_DB_POOL_VALIDATION_TIMEOUT_MS:3000}
+
 app:
   max-file-size: 100MB
   max-request-size: 100MB

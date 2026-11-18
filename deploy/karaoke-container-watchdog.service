@@ -1,0 +1,25 @@
+# Сторож «зомби»-контейнеров прод-хоста (инцидент 2026-11-18).
+#
+# В 07:11 systemd остановил containerd (окно автообновлений), тот поднялся в
+# 07:16, но задачи контейнеров были потеряны. Docker остался с устаревшим
+# статусом: `docker ps` показывал `karaoke-db Up 8 days`, а процесса не
+# существовало. База не принимала соединения 2.5 часа.
+#
+# Политика `restart: always` здесь не помогает: docker считает контейнер
+# работающим. Поэтому нужен внешний наблюдатель, сверяющий статус с реальностью.
+#
+# Установка (root на прод-хосте):
+#   install -m 755 deploy/karaoke-container-watchdog.sh /usr/local/sbin/
+#   cp deploy/karaoke-container-watchdog.{service,timer} /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now karaoke-container-watchdog.timer
+
+[Unit]
+Description=Karaoke: сторож зомби-контейнеров (инцидент 2026-11-18)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/karaoke-container-watchdog.sh --apply
+StandardOutput=journal
+StandardError=journal

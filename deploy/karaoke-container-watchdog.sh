@@ -57,6 +57,9 @@ recover_cmd() {
         karaoke-web) echo "start_web" ;;
         karaoke-public) echo "start_public" ;;
         karaoke-storage) echo "start_storage" ;;
+        # У registry штатной команды в do.sh нет — он поднимается своим
+        # compose-файлом проекта. Восстановление разрешено владельцем 2026-11-18.
+        karaoke-registry) echo "compose_registry" ;;
         *) echo "" ;;
     esac
 }
@@ -127,8 +130,23 @@ recover() {
         log "  ${name}: восстановление уже выполнялось менее ${COOLDOWN_MIN} мин назад — ждём (защита от цикла)"
         return 1
     fi
-    log "  ${name}: поднимаю через do.sh ${cmd}"
-    if ( cd "${DEPLOY_DIR}" && bash do.sh "${cmd}" ) >/dev/null 2>&1; then
+    local restart_ok=0
+    # Для registry повторяем семантику do.sh: сначала снять контейнер, потом
+    # поднять. Одного `up -d` НЕДОСТАТОЧНО: у «зомби» docker считает контейнер
+    # работающим, и `up -d` ничего не делает (проверено 2026-11-18 — состояние
+    # осталось running со старым PID). `down` снимает устаревшую запись, после
+    # чего `up -d` создаёт контейнер заново.
+    if [ "${cmd}" = "compose_registry" ]; then
+        log "  ${name}: снимаю и поднимаю заново через docker-compose-registry.yml"
+        ( cd "${DEPLOY_DIR}" &&
+            docker compose -f docker-compose-registry.yml down >/dev/null 2>&1
+          cd "${DEPLOY_DIR}" &&
+            docker compose -f docker-compose-registry.yml up -d ) >/dev/null 2>&1 && restart_ok=1
+    else
+        log "  ${name}: поднимаю через do.sh ${cmd}"
+        ( cd "${DEPLOY_DIR}" && bash do.sh "${cmd}" ) >/dev/null 2>&1 && restart_ok=1
+    fi
+    if [ "${restart_ok}" = "1" ]; then
         mark_recovered "${name}"
         sleep 5
         local pid state
@@ -141,7 +159,7 @@ recover() {
         log "  ${name}: после восстановления состояние ${state} pid=${pid} — требуется вмешательство"
         return 1
     fi
-    log "  ${name}: do.sh ${cmd} вернул ошибку"
+    log "  ${name}: команда восстановления (${cmd}) вернула ошибку"
     return 1
 }
 
@@ -168,7 +186,7 @@ if [ "${MODE}" = "self-test" ]; then
     if [ -z "$(recover_cmd karaoke-db)" ]; then log "FAIL у karaoke-db нет команды восстановления"; failures=$((failures + 1)); else log "OK   у karaoke-db есть команда восстановления"; fi
     if [ -n "$(recover_cmd karaoke-web)" ]; then log "OK   у karaoke-web есть команда восстановления"; else log "FAIL у karaoke-web нет команды"; failures=$((failures + 1)); fi
     # registry намеренно без команды: поднимается владельцем
-    if [ -z "$(recover_cmd karaoke-registry)" ]; then log "OK   у karaoke-registry нет команды (ожидаемо)"; else log "FAIL у karaoke-registry не должно быть команды"; failures=$((failures + 1)); fi
+    if [ -n "$(recover_cmd karaoke-registry)" ]; then log "OK   у karaoke-registry есть команда восстановления (compose)"; else log "FAIL у karaoke-registry нет команды"; failures=$((failures + 1)); fi
     log "--- итог self-test: провалов ${failures} ---"
     [ "${failures}" -eq 0 ] && exit 0 || exit 1
 fi

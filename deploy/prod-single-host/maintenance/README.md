@@ -14,6 +14,7 @@
 | `apt-daily-upgrade.timer.override.conf` | `/etc/systemd/system/apt-daily-upgrade.timer.d/override.conf` |
 | `apt-daily-upgrade.service.override.conf` | `/etc/systemd/system/apt-daily-upgrade.service.d/override.conf` |
 | `fail2ban-karaoke.local` | `/etc/fail2ban/jail.d/karaoke.local` |
+| `99-karaoke-keyonly.conf` | `/etc/ssh/sshd_config.d/99-karaoke-keyonly.conf` (вход только по ключу) |
 | `99-karaoke-blocklist-sctp.conf` | `/etc/modprobe.d/99-karaoke-blocklist-sctp.conf` |
 | `../nginx.conf` (в репозитории) | `/etc/nginx/nginx.conf` — добавлена директива `http2 off;` |
 

@@ -1,3 +1,12 @@
+# ВНИМАНИЕ: НЕ КОПИРОВАТЬ ЭТОТ ФАЙЛ НА ПРОД-ХОСТ ЦЕЛИКОМ.
+#
+# Как и deploy/prod-single-host/nginx.conf, это репозиторная копия с ПУБЛИЧНЫМ
+# allow-list (guard tools/check-allowlist-guardrails.sh, FR-004). На проде в
+# локациях /changerecords и /api/properties/setproperty стоит `allow 10.77.0.1;`
+# (режим туннеля, с 2026-11-09): публичного адреса админ-машины там больше нет.
+# Правки — точечно, по конкретной строке (прецедент 2026-11-19: замена файла
+# целиком откатила allow-list и отрезала канал к прод-БД на ~3 минуты).
+
 server {
   listen 443 ssl;
   server_name sm-karaoke.ru www.sm-karaoke.ru;

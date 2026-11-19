@@ -21,6 +21,8 @@ Runbook'и создаются по мере необходимости в это
 | [crypto-key-rotation.md](crypto-key-rotation.md) | Ротация криптографических ключей | `docs/ops/crypto-key-rotation.md` |
 | [forgejo-access.md](forgejo-access.md) | Доступ к Forgejo (репозиторий, CI, runner) | `docs/ops/forgejo-access.md` |
 | [prod-config-delivery.md](prod-config-delivery.md) | Доставка конфигурации на прод | `docs/ops/prod-config-delivery.md` |
+| [prod-tunnel.md](prod-tunnel.md) | Туннель админ-машина → прод (WireGuard, mTLS, allow-list) | спека 733 |
+| [ssh-access.md](ssh-access.md) | SSH-доступ: новая машина, ротация и бэкап ключей, восстановление доступа | — (создан 2026-11-19) |
 
 ## Структура runbook'а
 

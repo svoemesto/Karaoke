@@ -14,6 +14,8 @@
 | `apt-daily-upgrade.timer.override.conf` | `/etc/systemd/system/apt-daily-upgrade.timer.d/override.conf` |
 | `apt-daily-upgrade.service.override.conf` | `/etc/systemd/system/apt-daily-upgrade.service.d/override.conf` |
 | `fail2ban-karaoke.local` | `/etc/fail2ban/jail.d/karaoke.local` |
+| `99-karaoke-blocklist-sctp.conf` | `/etc/modprobe.d/99-karaoke-blocklist-sctp.conf` |
+| `../nginx.conf` (в репозитории) | `/etc/nginx/nginx.conf` — добавлена директива `http2 off;` |
 
 ## Установка
 
@@ -87,6 +89,45 @@ sudo systemctl restart fail2ban   # или: sudo systemctl disable --now fail2ba
 
 Автоматические обновления при откате **не отключаются** — возвращается прежний
 режим и время.
+
+## Защита от nginx2root (2026-11-18)
+
+Серия уязвимостей nginx (`CVE-2026-123007` и ещё четыре) плюс zero-day в SCTP ядра
+Linux: RCE в nginx, затем выход из Docker-контейнера в root (контейнеры делят ядро).
+Исправление nginx — **1.30.7/1.31.9** (18.11.2026), патча на ядро нет.
+
+Наша экспозиция проверена фактами, а не номерами версий:
+
+| Вектор | Нужно | У нас |
+|---|---|---|
+| `CVE-2026-123007` / `-123633` (HTTP/2) | активный HTTP/2 | **выключен**: `curl --http2` → `HTTP/1.1`; в конфиге теперь и явное `http2 off;` |
+| `CVE-2026-121810` (HTTP/3/QUIC) | HTTP/3 | не используется |
+| `CVE-2026-123634` (DNS-резолвер) | `resolver` + переменная в `proxy_pass` + `mirror` | в конфигах отсутствуют |
+| `CVE-2026-113425` (почтовый прокси) | блок `mail {}` | не используется |
+| SCTP zero-day (выход из контейнера) | загруженный модуль `sctp` | **заблокирован** файлом modprobe.d |
+
+Что сделано:
+
+1. `http2 off;` в `http {}` — раньше HTTP/2 был выключен «по недосмотру»
+   (`listen 443 ssl;` без параметра), и одна правка могла это изменить.
+2. Заблокирован модуль ядра `sctp`: `modprobe sctp` возвращает ошибку,
+   `lsmod` пуст. SCTP не нужен ни приложению, ни Docker, ни nginx.
+
+Проверка:
+
+```bash
+nginx -t && systemctl is-active nginx
+curl -s -o /dev/null -w "%{http_version}\n" --http2 https://sm-karaoke.ru/   # ждём 1.1
+modprobe sctp; echo "rc=$?"        # ждём ненулевой код
+lsmod | grep -c sctp               # ждём 0
+```
+
+Откат: удалить `/etc/modprobe.d/99-karaoke-blocklist-sctp.conf` (перезагрузка не
+нужна, пока модуль не загружен) и снять строку `http2 off;` из `nginx.conf`.
+
+**Что осталось** (оформлено задачами): поставить патч nginx, когда Ubuntu его
+выпустит (сейчас `Candidate` = `Installed`, 1.28.3-2ubuntu1.12), и зафиксировать
+версию nginx в контейнерном образе вместо плавающего `nginx:stable` (там 1.30.6).
 
 ## Связанное
 

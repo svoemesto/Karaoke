@@ -37,6 +37,22 @@ set -uo pipefail
 MODE="report"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Постоянный внутренний адрес туннеля (спека 733, FR-005/FR-031). В режиме
+# туннеля allow-list прод-хоста содержит ИМЕННО его, а публичного адреса
+# админ-машины там нет вообще. Раньше guard требовал «только публичный IPv4»
+# (FR-004) и любую репозиторную копию с туннельным адресом считал ошибкой —
+# из-за этого репозиторный конфиг не мог совпадать с рабочим прод-конфигом,
+# и замена файла целиком откатывала allow-list (прецедент 2026-11-19: канал
+# к прод-БД отвалился на ~3 минуты).
+TUNNEL_ADDR="${ALLOWLIST_TUNNEL_ADDR:-10.77.0.1}"
+
+# Режим туннеля определяется по юниту автоматики: он же определяет, пишет ли
+# скрипт публичный адрес вообще.
+tunnel_mode_enabled() {
+  local service="$ROOT/deploy/admin-ip-allowlist.service"
+  [ -f "$service" ] && grep -qE '^Environment=ALLOWLIST_MODE=tunnel' "$service"
+}
+
 for arg in "$@"; do
   case "$arg" in
     --quiet) MODE="quiet" ;;
@@ -202,11 +218,17 @@ check_allowlist() {
   local addrs
   addrs="$(grep -oE '^[[:space:]]*allow[[:space:]]+[0-9.]+;' "$conf" | grep -oE '[0-9.]+' | sort -u)"
 
-  local ip a b c d octet
+  local ip a b c d octet tunnel_ok=0
+  tunnel_mode_enabled && tunnel_ok=1
   while read -r ip; do
     [ -z "${ip}" ] && continue
     if ! [[ "${ip}" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
       bad "адрес ${ip} не является IPv4"
+      continue
+    fi
+    # В режиме туннеля единственный допустимый приватный адрес — постоянный
+    # адрес пира (FR-005). Любой другой приватный адрес по-прежнему ошибка.
+    if [ "${tunnel_ok}" = "1" ] && [ "${ip}" = "${TUNNEL_ADDR}" ]; then
       continue
     fi
     IFS='.' read -r a b c d <<<"${ip}"
@@ -229,7 +251,11 @@ check_allowlist() {
         ;;
     esac
   done <<<"${addrs}"
-  ok "адреса allow-list проверены на валидность и публичность (FR-004)"
+  if [ "${tunnel_ok}" = "1" ]; then
+    ok "адреса allow-list проверены: публичные + постоянный адрес туннеля ${TUNNEL_ADDR} (FR-004/FR-005, режим туннеля)"
+  else
+    ok "адреса allow-list проверены на валидность и публичность (FR-004)"
+  fi
 }
 
 # 3-4. Ограничение частоты и пути состояния/журнала.
@@ -636,6 +662,62 @@ UNIT
 | `ALLOWLIST_TELEGRAM_PROXY` | (нет) | Прокси только для вызова Telegram Bot API |
 MD
   expect_ok "корректная конфигурация после проверок"
+
+  # --- правило FR-004/FR-005: приватный адрес допустим ТОЛЬКО как постоянный
+  # адрес туннеля и ТОЛЬКО в режиме туннеля (прецедент 2026-11-19: репозиторная
+  # копия не могла совпасть с продом, замена файла целиком откатила allow-list).
+  write_tunnel_conf() {
+    cat >"$tmp/deploy/prod-single-host/nginx.conf" <<'NGX'
+stream {
+    server {
+        listen 5433;
+        allow 10.77.0.1;
+        deny all;
+    }
+    server {
+        listen 9000;
+        allow 10.77.0.1;
+        deny all;
+    }
+}
+NGX
+    cat >"$tmp/deploy/prod-single-host/80to8897" <<'NGX'
+server {
+    listen 80;
+    location /api/properties/setproperty {
+        allow 10.77.0.1;
+        deny all;
+    }
+    location /changerecords {
+        allow 10.77.0.1;
+        deny all;
+    }
+}
+NGX
+  }
+
+  write_tunnel_conf
+  expect_ok "адрес туннеля 10.77.0.1 в режиме туннеля допустим"
+
+  # Другой приватный адрес — ошибка даже в режиме туннеля.
+  sed -i 's/allow 10\.77\.0\.1;/allow 10.0.0.5;/' "$tmp/deploy/prod-single-host/nginx.conf" \
+    "$tmp/deploy/prod-single-host/80to8897"
+  expect_fail "чужой приватный адрес в режиме туннеля"
+
+  # Адрес туннеля без режима туннеля — ошибка (иначе на проде мог бы оказаться
+  # приватный адрес при публичной автоматике).
+  write_tunnel_conf
+  sed -i '/^Environment=ALLOWLIST_MODE=tunnel$/d' "$tmp/deploy/admin-ip-allowlist.service"
+  expect_fail "адрес туннеля без режима туннеля"
+
+  # Возврат к корректному состоянию для финальной проверки.
+  cat >"$tmp/deploy/admin-ip-allowlist.service" <<'UNIT'
+[Service]
+ExecStart=/home/nsa/Karaoke/deploy/admin-ip-allowlist.sh
+Environment=ALLOWLIST_MODE=tunnel
+StandardOutput=journal
+UNIT
+  expect_ok "финальное состояние корректно"
 
   echo "✅ self-test: правила ловят битое состояние и пропускают корректное"
   exit 0
